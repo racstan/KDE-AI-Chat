@@ -11,10 +11,12 @@ echo "Installing AI Chat Plasma Widget..."
 
 if [ "$INSTALL_TYPE" = "global" ]; then
     echo "Installing globally (requires sudo)..."
-    kpackagetool6 --install "$WIDGET_DIR" --global || kpackagetool6 --upgrade "$WIDGET_DIR" --global
+    kpackagetool6 --install "$WIDGET_DIR" --type Plasma/Applet --global \
+        || kpackagetool6 --upgrade "$WIDGET_DIR" --type Plasma/Applet --global
 else
     echo "Installing for current user..."
-    kpackagetool6 --install "$WIDGET_DIR" || kpackagetool6 --upgrade "$WIDGET_DIR"
+    kpackagetool6 --install "$WIDGET_DIR" --type Plasma/Applet \
+        || kpackagetool6 --upgrade "$WIDGET_DIR" --type Plasma/Applet
 fi
 
 echo "Installation complete!"
