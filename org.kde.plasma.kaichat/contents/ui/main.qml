@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support as P5Support
@@ -30,6 +31,8 @@ PlasmoidItem {
     property int sseOffset: 0
     property int streamingAssistantIndex: -1
     property bool userScrolled: false
+    property string attachmentText: ""
+    property string attachmentLabel: ""
 
     // Session persistence
     property string conversationDir: "$HOME/.local/share/plasmoids/org.kde.plasma.kaichat/conversations"
@@ -41,21 +44,25 @@ PlasmoidItem {
 
     // Global activation support (shortcut tab in Plasma config uses this)
     property var inputFieldRef: null
+    property var runtimeApiKeys: ({})
+    property var pendingMessages: []
+    property bool pendingSendAfterSecretLookup: false
+    property string pendingSecretProvider: ""
 
     property bool hasValidConfig: {
         switch (currentProvider) {
-        case "openai":      return plasmoid.configuration.openaiApiKey      !== ""
-        case "anthropic":   return plasmoid.configuration.anthropicApiKey   !== ""
-        case "gemini":      return plasmoid.configuration.geminiApiKey      !== ""
-        case "mistral":     return plasmoid.configuration.mistralApiKey     !== ""
-        case "grok":        return plasmoid.configuration.grokApiKey        !== ""
-        case "deepseek":    return plasmoid.configuration.deepseekApiKey    !== ""
-        case "nvidia":      return plasmoid.configuration.nvidiaApiKey      !== ""
-        case "cerebras":    return plasmoid.configuration.cerebrasApiKey    !== ""
+        case "openai":      return (runtimeApiKeys.openai || plasmoid.configuration.openaiApiKey)      !== ""
+        case "anthropic":   return (runtimeApiKeys.anthropic || plasmoid.configuration.anthropicApiKey) !== ""
+        case "gemini":      return (runtimeApiKeys.gemini || plasmoid.configuration.geminiApiKey)      !== ""
+        case "mistral":     return (runtimeApiKeys.mistral || plasmoid.configuration.mistralApiKey)    !== ""
+        case "grok":        return (runtimeApiKeys.grok || plasmoid.configuration.grokApiKey)          !== ""
+        case "deepseek":    return (runtimeApiKeys.deepseek || plasmoid.configuration.deepseekApiKey)  !== ""
+        case "nvidia":      return (runtimeApiKeys.nvidia || plasmoid.configuration.nvidiaApiKey)      !== ""
+        case "cerebras":    return (runtimeApiKeys.cerebras || plasmoid.configuration.cerebrasApiKey)  !== ""
         case "cloudflare":  return plasmoid.configuration.cfAccountId       !== ""
-                                && plasmoid.configuration.cfApiToken         !== ""
-        case "huggingface": return plasmoid.configuration.hfApiKey          !== ""
-        case "openrouter":  return plasmoid.configuration.openrouterApiKey  !== ""
+                                && (runtimeApiKeys.cloudflare || plasmoid.configuration.cfApiToken)      !== ""
+        case "huggingface": return (runtimeApiKeys.huggingface || plasmoid.configuration.hfApiKey)     !== ""
+        case "openrouter":  return (runtimeApiKeys.openrouter || plasmoid.configuration.openrouterApiKey)!== ""
         case "litellm":     return true
         case "local":       return true
         case "opencode":    return true
@@ -151,6 +158,62 @@ PlasmoidItem {
         }
     }
 
+    P5Support.DataSource {
+        id: clipDs
+        engine: "executable"
+        connectedSources: []
+        property bool readingPrimary: false
+        onNewData: function(sourceName, data) {
+            var out = (data["stdout"] || "")
+            var text = out.trim()
+            if (text === "") {
+                disconnectSource(sourceName)
+                return
+            }
+
+            if (text.length > 500) {
+                root.attachmentText = text
+                root.attachmentLabel = "Clipboard content attached (" + formatBytes(text.length) + ")"
+            } else if (root.inputFieldRef) {
+                root.inputFieldRef.text = quoteForPrompt(text) + root.inputFieldRef.text
+                root.inputFieldRef.forceActiveFocus()
+            }
+            disconnectSource(sourceName)
+        }
+    }
+
+    P5Support.DataSource {
+        id: secretDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var key = (data["stdout"] || "").trim()
+            if (root.pendingSendAfterSecretLookup) {
+                if (key !== "") {
+                    root.runtimeApiKeys[root.pendingSecretProvider] = key
+                    var messages = root.pendingMessages
+                    root.pendingMessages = []
+                    root.pendingSendAfterSecretLookup = false
+                    dispatchMessages(messages)
+                } else {
+                    root.pendingMessages = []
+                    root.pendingSendAfterSecretLookup = false
+                    pushError("No API key found in Secret Service for provider: " + root.pendingSecretProvider)
+                }
+            }
+            disconnectSource(sourceName)
+        }
+    }
+
+    P5Support.DataSource {
+        id: notifyDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            disconnectSource(sourceName)
+        }
+    }
+
     function runCli(program, args) {
         var parts = [program]
         for (var i = 0; i < args.length - 1; i++)
@@ -159,6 +222,87 @@ PlasmoidItem {
         var last = (args.length > 0 ? args[args.length - 1] : "").replace(/'/g, "'\\''")
         parts.push("'" + last + "'")
         execDs.connectSource(parts.join(" "))
+    }
+
+    function writeToClipboard(text) {
+        var escaped = (text || "").replace(/'/g, "'\\''")
+        var cmd = "sh -lc \"if [ -n '$WAYLAND_DISPLAY' ]; then printf '%s' '" + escaped + "' | wl-copy; else printf '%s' '" + escaped + "' | xclip -selection clipboard; fi\""
+        execDs.connectSource(cmd)
+    }
+
+    function requestClipboard(usePrimarySelection) {
+        var cmd = "sh -lc \"if [ -n '$WAYLAND_DISPLAY' ]; then wl-paste " + (usePrimarySelection ? "-p" : "") + "; else xclip -o -selection " + (usePrimarySelection ? "primary" : "clipboard") + "; fi\""
+        clipDs.connectSource(cmd)
+    }
+
+    function quoteForPrompt(text) {
+        return "> " + text.replace(/\n/g, "\n> ") + "\n\n"
+    }
+
+    function formatBytes(chars) {
+        var bytes = chars
+        if (bytes < 1024) return bytes + " B"
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB"
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB"
+    }
+
+    function extractCodeBlocks(text) {
+        var blocks = []
+        var re = /```[\w-]*\n([\s\S]*?)```/g
+        var m
+        while ((m = re.exec(text || "")) !== null) {
+            blocks.push(m[1])
+        }
+        return blocks
+    }
+
+    function providerHasKeyRequirement(provider) {
+        return provider !== "local" && provider !== "litellm" && provider !== "opencode"
+    }
+
+    function providerSecretName(provider) {
+        return "kai-chat-" + provider
+    }
+
+    function ensureProviderKeyThenDispatch(messages) {
+        if (!providerHasKeyRequirement(root.currentProvider)) {
+            dispatchMessages(messages)
+            return
+        }
+
+        var cfg = apiConfig()
+        if (root.currentProvider === "anthropic") {
+            if (cfg.anthropicApiKey && cfg.anthropicApiKey !== "") {
+                dispatchMessages(messages)
+                return
+            }
+        } else {
+            var resolved = resolveOpenAICompat(root.currentProvider, cfg)
+            if (resolved && resolved.apiKey && resolved.apiKey !== "") {
+                dispatchMessages(messages)
+                return
+            }
+        }
+
+        root.pendingSendAfterSecretLookup = true
+        root.pendingMessages = messages
+        root.pendingSecretProvider = root.currentProvider
+        var service = providerSecretName(root.currentProvider)
+        var cmd = "sh -lc \"secret-tool lookup service " + service + " account default 2>/dev/null\""
+        secretDs.connectSource(cmd)
+    }
+
+    function notifyBackgroundCompletion(text) {
+        if (plasmoid.expanded || !plasmoid.configuration.notifyOnBackgroundCompletion)
+            return
+        var body = (text || "").split("\n")[0]
+        if (body.length > 120)
+            body = body.slice(0, 120) + "..."
+        var title = "Kai Chat - " + (root.currentSessionTitle || "Response ready")
+        var safeTitle = title.replace(/'/g, "'\\''")
+        var safeBody = body.replace(/'/g, "'\\''")
+        var cmd = "sh -lc \"notify-send '" + safeTitle + "' '" + safeBody + "'\""
+        notifyDs.connectSource(cmd)
     }
 
     function nowIso() {
@@ -256,32 +400,32 @@ PlasmoidItem {
 
     function apiConfig() {
         return {
-            openaiApiKey:      plasmoid.configuration.openaiApiKey,
+            openaiApiKey:      runtimeApiKeys.openai || plasmoid.configuration.openaiApiKey,
             openaiBaseUrl:     plasmoid.configuration.openaiBaseUrl,
             openaiModel:       plasmoid.configuration.openaiModel,
-            anthropicApiKey:   plasmoid.configuration.anthropicApiKey,
+            anthropicApiKey:   runtimeApiKeys.anthropic || plasmoid.configuration.anthropicApiKey,
             anthropicModel:    plasmoid.configuration.anthropicModel,
-            geminiApiKey:      plasmoid.configuration.geminiApiKey,
+            geminiApiKey:      runtimeApiKeys.gemini || plasmoid.configuration.geminiApiKey,
             geminiModel:       plasmoid.configuration.geminiModel,
-            mistralApiKey:     plasmoid.configuration.mistralApiKey,
+            mistralApiKey:     runtimeApiKeys.mistral || plasmoid.configuration.mistralApiKey,
             mistralModel:      plasmoid.configuration.mistralModel,
-            grokApiKey:        plasmoid.configuration.grokApiKey,
+            grokApiKey:        runtimeApiKeys.grok || plasmoid.configuration.grokApiKey,
             grokModel:         plasmoid.configuration.grokModel,
-            deepseekApiKey:    plasmoid.configuration.deepseekApiKey,
+            deepseekApiKey:    runtimeApiKeys.deepseek || plasmoid.configuration.deepseekApiKey,
             deepseekModel:     plasmoid.configuration.deepseekModel,
-            nvidiaApiKey:      plasmoid.configuration.nvidiaApiKey,
+            nvidiaApiKey:      runtimeApiKeys.nvidia || plasmoid.configuration.nvidiaApiKey,
             nvidiaModel:       plasmoid.configuration.nvidiaModel,
-            cerebrasApiKey:    plasmoid.configuration.cerebrasApiKey,
+            cerebrasApiKey:    runtimeApiKeys.cerebras || plasmoid.configuration.cerebrasApiKey,
             cerebrasModel:     plasmoid.configuration.cerebrasModel,
             cfAccountId:       plasmoid.configuration.cfAccountId,
-            cfApiToken:        plasmoid.configuration.cfApiToken,
+            cfApiToken:        runtimeApiKeys.cloudflare || plasmoid.configuration.cfApiToken,
             cfModel:           plasmoid.configuration.cfModel,
-            hfApiKey:          plasmoid.configuration.hfApiKey,
+            hfApiKey:          runtimeApiKeys.huggingface || plasmoid.configuration.hfApiKey,
             hfModel:           plasmoid.configuration.hfModel,
-            openrouterApiKey:  plasmoid.configuration.openrouterApiKey,
+            openrouterApiKey:  runtimeApiKeys.openrouter || plasmoid.configuration.openrouterApiKey,
             openrouterModel:   plasmoid.configuration.openrouterModel,
             litellmBaseUrl:    plasmoid.configuration.litellmBaseUrl,
-            litellmApiKey:     plasmoid.configuration.litellmApiKey,
+            litellmApiKey:     runtimeApiKeys.litellm || plasmoid.configuration.litellmApiKey,
             litellmModel:      plasmoid.configuration.litellmModel,
             localBaseUrl:      plasmoid.configuration.localBaseUrl,
             localModel:        plasmoid.configuration.localModel,
@@ -469,6 +613,7 @@ PlasmoidItem {
             var content = root.chatModel[root.streamingAssistantIndex].content || ""
             var first = content.split("\n")[0]
             root.lastAssistantPreview = first.length > 90 ? first.slice(0, 90) + "..." : first
+            notifyBackgroundCompletion(content)
         }
         root.streamingAssistantIndex = -1
         root.chatModel = root.chatModel
@@ -502,10 +647,29 @@ PlasmoidItem {
             chatListView.positionViewAtEnd()
     }
 
+    function dispatchMessages(msgs) {
+        if (startStreamingOpenAICompat(msgs))
+            return
+
+        root.isLoading = true
+        root.compactState = "streaming"
+        apiWorker.sendMessage({
+            provider: root.currentProvider,
+            messages: msgs,
+            config: apiConfig()
+        })
+    }
+
     function sendMessage() {
         var text = msgInput.text.trim()
         if (text === "" || root.isLoading)
             return
+
+        if (root.attachmentText !== "") {
+            text = quoteForPrompt(root.attachmentText) + text
+            root.attachmentText = ""
+            root.attachmentLabel = ""
+        }
 
         root.chatModel.push({ role: "user", content: text, timestamp: nowIso(), model: "" })
         root.chatModel = root.chatModel
@@ -519,17 +683,7 @@ PlasmoidItem {
         }
 
         var msgs = buildMessages()
-        if (startStreamingOpenAICompat(msgs)) {
-            return
-        }
-
-        root.isLoading = true
-        root.compactState = "streaming"
-        apiWorker.sendMessage({
-            provider: root.currentProvider,
-            messages: msgs,
-            config: apiConfig()
-        })
+        ensureProviderKeyThenDispatch(msgs)
     }
 
     function regenerate() {
@@ -546,16 +700,7 @@ PlasmoidItem {
         saveConversation()
 
         var msgs = buildMessages()
-        if (startStreamingOpenAICompat(msgs))
-            return
-
-        root.isLoading = true
-        root.compactState = "streaming"
-        apiWorker.sendMessage({
-            provider: root.currentProvider,
-            messages: msgs,
-            config: apiConfig()
-        })
+        ensureProviderKeyThenDispatch(msgs)
     }
 
     function clearChat() {
@@ -588,10 +733,10 @@ PlasmoidItem {
                 border.width: 1
                 border.color: Kirigami.Theme.backgroundColor
                 color: {
-                    if (root.compactState === "streaming") return "#2e7dd1"
-                    if (root.compactState === "done") return "#2e8b57"
-                    if (root.compactState === "error") return "#c0392b"
-                    return "#8c8c8c"
+                    if (root.compactState === "streaming") return Kirigami.Theme.highlightColor
+                    if (root.compactState === "done") return Kirigami.Theme.positiveTextColor
+                    if (root.compactState === "error") return Kirigami.Theme.negativeTextColor
+                    return Kirigami.Theme.disabledTextColor
                 }
 
                 SequentialAnimation on opacity {
@@ -625,10 +770,15 @@ PlasmoidItem {
 
             Component.onCompleted: root.inputFieldRef = msgInput
 
-            ColumnLayout {
+            PlasmaCore.FrameSvgItem {
                 anchors.fill: parent
-                anchors.margins: Kirigami.Units.smallSpacing
-                spacing: Kirigami.Units.smallSpacing
+                imagePath: "dialogs/background"
+                prefix: "normal"
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.smallSpacing
+                    spacing: Kirigami.Units.smallSpacing
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -809,9 +959,7 @@ PlasmoidItem {
                                         QQC2.ToolTip.visible: hovered
                                         QQC2.ToolTip.text: "Copy"
                                         onClicked: {
-                                            clipHelper.text = modelData.content || ""
-                                            clipHelper.selectAll()
-                                            clipHelper.copy()
+                                            writeToClipboard(modelData.content || "")
                                         }
                                     }
                                     PC3.ToolButton {
@@ -820,6 +968,17 @@ PlasmoidItem {
                                         QQC2.ToolTip.visible: hovered
                                         QQC2.ToolTip.text: "Regenerate"
                                         onClicked: regenerate()
+                                    }
+                                    PC3.ToolButton {
+                                        icon.name: "edit-delete"
+                                        display: PC3.AbstractButton.IconOnly
+                                        QQC2.ToolTip.visible: hovered
+                                        QQC2.ToolTip.text: "Delete message"
+                                        onClicked: {
+                                            root.chatModel.splice(index, 1)
+                                            root.chatModel = root.chatModel
+                                            saveConversation()
+                                        }
                                     }
                                     PC3.ToolButton {
                                         visible: plasmoid.configuration.enableOpencodeBridge
@@ -851,6 +1010,19 @@ PlasmoidItem {
                                         }
                                     }
                                 }
+
+                                Row {
+                                    visible: modelData.role === "assistant" && extractCodeBlocks(modelData.content || "").length > 0
+                                    spacing: Kirigami.Units.smallSpacing
+                                    Repeater {
+                                        model: extractCodeBlocks(modelData.content || "")
+                                        delegate: PC3.ToolButton {
+                                            icon.name: "edit-copy"
+                                            text: "Copy code " + (index + 1)
+                                            onClicked: writeToClipboard(modelData)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -870,6 +1042,24 @@ PlasmoidItem {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
+
+                    PC3.ToolButton {
+                        icon.name: "edit-paste"
+                        display: PC3.AbstractButton.IconOnly
+                        QQC2.ToolTip.text: "Use clipboard text"
+                        QQC2.ToolTip.visible: hovered
+                        enabled: !root.isLoading
+                        onClicked: requestClipboard(false)
+                    }
+
+                    PC3.ToolButton {
+                        icon.name: "selection-mode"
+                        display: PC3.AbstractButton.IconOnly
+                        QQC2.ToolTip.text: "Use selected text"
+                        QQC2.ToolTip.visible: hovered
+                        enabled: !root.isLoading
+                        onClicked: requestClipboard(true)
+                    }
 
                     QQC2.TextArea {
                         id: msgInput
@@ -909,6 +1099,34 @@ PlasmoidItem {
                         }
                     }
                 }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    visible: root.attachmentLabel !== ""
+                    radius: Kirigami.Units.smallSpacing
+                    color: Kirigami.Theme.alternateBackgroundColor
+                    height: attachLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        spacing: Kirigami.Units.smallSpacing
+                        PC3.Label {
+                            id: attachLabel
+                            Layout.fillWidth: true
+                            text: root.attachmentLabel
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        PC3.ToolButton {
+                            icon.name: "window-close"
+                            display: PC3.AbstractButton.IconOnly
+                            onClicked: {
+                                root.attachmentText = ""
+                                root.attachmentLabel = ""
+                            }
+                        }
+                    }
+                }
             }
 
             TextEdit { id: clipHelper; visible: false }
@@ -936,6 +1154,7 @@ PlasmoidItem {
                         root.compactState = "done"
                         stateResetTimer.restart()
                         root.lastAssistantPreview = previewFromMessages(root.chatModel)
+                        notifyBackgroundCompletion(msg.content || "")
                         maybeAutoScroll()
                         saveConversation()
                     }

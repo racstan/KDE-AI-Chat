@@ -30,12 +30,48 @@ A KDE Plasma 6 widget that provides AI chat through 13 built-in providers and an
   - **Aider** – `aider --message "…"`
   - **Claude Code** – `claude -p "…"`
 
-- **Chat Interface:**
-  - Markdown rendering
-  - Configurable conversation history
-  - Copy to clipboard
-  - Provider switching on the fly
-  - Customisable system prompt
+- **Streaming Chat UI:**
+  - Token streaming over SSE for OpenAI-compatible providers
+  - Stop button to abort generation while keeping partial output
+  - Per-message timestamps and regenerate support
+  - Auto-scroll unless user manually scrolls up
+
+- **Compact ↔ Full Representation:**
+  - Compact panel icon with state dot (idle, streaming, success, error)
+  - Pulsing animation while streaming
+  - Tooltip preview of last assistant response
+
+- **Conversation Sessions on Disk:**
+  - Stored as JSON under `~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/`
+  - New chat/session switcher in the header
+  - Auto-title from first user message
+
+- **Global Shortcut Ready:**
+  - Implements `activate()` to open widget and focus input field
+  - Shortcut assignment available from Plasma widget Shortcuts tab
+
+- **Clipboard / Selection Inject:**
+  - Paste clipboard or primary selection text into prompt
+  - Large pasted text is attached as a chip instead of flooding the input box
+
+- **Response Actions:**
+  - Copy full response
+  - Copy each detected markdown code block separately
+  - Regenerate last response
+  - Delete assistant message
+
+- **Theme Compliance:**
+  - Uses `Kirigami.Theme.*` colors and `Kirigami.Units.*` spacing
+  - Popup uses Plasma dialog background (`dialogs/background`) for native appearance
+
+- **Secure Keyring Integration (Secret Service/KWallet backend):**
+  - Active provider key can be stored via `secret-tool`
+  - Runtime key lookup from Secret Service when config key is empty
+  - Plain-text config key is cleared after secure store (settings action)
+
+- **Background Completion Notifications:**
+  - Optional desktop notification when response completes while widget is collapsed
+  - Configurable via settings toggle
 
 ## Installation
 
@@ -77,7 +113,12 @@ kpackagetool6 --upgrade org.kde.plasma.kaichat --global
 
 1. Right-click the widget → **Configure Kai Chat…**
 2. Choose a provider and enter the required credentials
-3. Optionally enable CLI bridges and/or the OpenCode beta bridge
+3. Optionally enable CLI bridges, Secret Service key storage, notifications, and/or the OpenCode beta bridge
+
+### Sessions
+
+- Use the session dropdown in the chat header to switch conversations
+- Use the **+** button to create a new conversation JSON file
 
 ### OpenCode Bridge (Beta)
 
@@ -115,9 +156,10 @@ org.kde.plasma.kaichat/
 
 ## Security Notes
 
-- API keys are stored using KDE's secure KConfig system
-- Keys are masked in the configuration UI
-- For shared systems, be cautious with local model endpoints
+- API keys entered directly in provider fields are plain-text KConfig values.
+- Use **Secret Service (KWallet backend)** controls in settings to move keys into keyring storage.
+- Kai Chat can look up provider keys at runtime via `secret-tool lookup`.
+- For shared systems, prefer keyring storage and local model endpoints.
 
 ## Requirements
 
@@ -125,6 +167,9 @@ org.kde.plasma.kaichat/
 - Qt 6
 - Network access for API providers
 - CLI tools installed for bridging features
+- `xclip` (X11) or `wl-clipboard` (Wayland) for clipboard/selection inject
+- `libsecret` / `secret-tool` for keyring-backed key storage
+- `notify-send` for background completion notifications
 
 ## License
 

@@ -93,11 +93,88 @@ Kirigami.ScrollablePage {
             disconnectSource(sourceName)
         }
     }
+    P5Support.DataSource {
+        id: secretToolDs
+        engine: "executable"
+        connectedSources: []
+        property var statusLabel: null
+        onNewData: function(sourceName, data) {
+            var out = (data["stdout"] || "").trim()
+            var err = (data["stderr"] || "").trim()
+            if (statusLabel) {
+                if (err !== "") {
+                    statusLabel.color = Kirigami.Theme.negativeTextColor
+                    statusLabel.text = "✘ " + err
+                } else {
+                    statusLabel.color = Kirigami.Theme.positiveTextColor
+                    statusLabel.text = out !== "" ? out : "✔ Done"
+                }
+                statusLabel = null
+            }
+            disconnectSource(sourceName)
+        }
+    }
+
     function testCli(cmd, lbl) {
         lbl.text  = "checking…"
         lbl.color = Kirigami.Theme.textColor
         testDs.resultLabel = lbl
         testDs.connectSource("which " + cmd)
+    }
+
+    function providerKeyValue(provider) {
+        switch (provider) {
+        case "openai": return plasmoid.configuration.openaiApiKey
+        case "anthropic": return plasmoid.configuration.anthropicApiKey
+        case "gemini": return plasmoid.configuration.geminiApiKey
+        case "mistral": return plasmoid.configuration.mistralApiKey
+        case "grok": return plasmoid.configuration.grokApiKey
+        case "deepseek": return plasmoid.configuration.deepseekApiKey
+        case "nvidia": return plasmoid.configuration.nvidiaApiKey
+        case "cerebras": return plasmoid.configuration.cerebrasApiKey
+        case "cloudflare": return plasmoid.configuration.cfApiToken
+        case "huggingface": return plasmoid.configuration.hfApiKey
+        case "openrouter": return plasmoid.configuration.openrouterApiKey
+        case "litellm": return plasmoid.configuration.litellmApiKey
+        default: return ""
+        }
+    }
+
+    function clearProviderKeyValue(provider) {
+        switch (provider) {
+        case "openai": plasmoid.configuration.openaiApiKey = ""; break
+        case "anthropic": plasmoid.configuration.anthropicApiKey = ""; break
+        case "gemini": plasmoid.configuration.geminiApiKey = ""; break
+        case "mistral": plasmoid.configuration.mistralApiKey = ""; break
+        case "grok": plasmoid.configuration.grokApiKey = ""; break
+        case "deepseek": plasmoid.configuration.deepseekApiKey = ""; break
+        case "nvidia": plasmoid.configuration.nvidiaApiKey = ""; break
+        case "cerebras": plasmoid.configuration.cerebrasApiKey = ""; break
+        case "cloudflare": plasmoid.configuration.cfApiToken = ""; break
+        case "huggingface": plasmoid.configuration.hfApiKey = ""; break
+        case "openrouter": plasmoid.configuration.openrouterApiKey = ""; break
+        case "litellm": plasmoid.configuration.litellmApiKey = ""; break
+        }
+    }
+
+    function storeKeyInSecretService(provider, lbl) {
+        var key = providerKeyValue(provider)
+        if (!key || key === "") {
+            lbl.color = Kirigami.Theme.negativeTextColor
+            lbl.text = "✘ No key in field to store"
+            return
+        }
+        var escaped = key.replace(/'/g, "'\\''")
+        var cmd = "sh -lc \"printf '%s' '" + escaped + "' | secret-tool store --label='Kai Chat API Key' service kai-chat-" + provider + " account default && echo '✔ Stored in Secret Service'\""
+        secretToolDs.statusLabel = lbl
+        secretToolDs.connectSource(cmd)
+        clearProviderKeyValue(provider)
+    }
+
+    function checkKeyInSecretService(provider, lbl) {
+        var cmd = "sh -lc \"if secret-tool lookup service kai-chat-" + provider + " account default >/dev/null 2>&1; then echo '✔ Key found in Secret Service'; else echo '✘ No key stored yet'; fi\""
+        secretToolDs.statusLabel = lbl
+        secretToolDs.connectSource(cmd)
     }
 
     // Returns { url, key } for the currently selected provider
@@ -813,6 +890,46 @@ Kirigami.ScrollablePage {
             opacity: 0.75
             font.pointSize: Kirigami.Theme.smallFont.pointSize
             text: "No shortcut is set by default. In the widget settings dialog, open the Shortcuts tab and assign one to open Kai Chat from anywhere."
+        }
+        PC3.CheckBox {
+            Kirigami.FormData.label: "Notifications:"
+            text: "Notify when response finishes in background"
+            checked: plasmoid.configuration.notifyOnBackgroundCompletion
+            onToggled: plasmoid.configuration.notifyOnBackgroundCompletion = checked
+        }
+
+        // ══ Secret Service / KWallet (BETA) ═════════════════════════════════
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: "Secret Service (KWallet backend)"
+        }
+        PC3.Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            opacity: 0.75
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            text: "Store API keys in Secret Service using secret-tool. Click Store for the active provider after entering a key. The plain-text config field is then cleared."
+        }
+        RowLayout {
+            Kirigami.FormData.label: "Active Provider Key:"
+            spacing: Kirigami.Units.smallSpacing
+            PC3.Button {
+                text: "Store Securely"
+                icon.name: "document-encrypt"
+                onClicked: storeKeyInSecretService(plasmoid.configuration.provider, secretStatus)
+            }
+            PC3.Button {
+                text: "Check"
+                icon.name: "dialog-ok"
+                onClicked: checkKeyInSecretService(plasmoid.configuration.provider, secretStatus)
+            }
+            PC3.Label {
+                id: secretStatus
+                Layout.fillWidth: true
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                text: ""
+                wrapMode: Text.Wrap
+            }
         }
 
         // ══ CLI Bridges ════════════════════════════════════════════════════════

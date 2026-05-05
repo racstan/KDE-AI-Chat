@@ -140,6 +140,9 @@
         <entry name="lastSessionId" type="String">
             <default></default>
         </entry>
+        <entry name="notifyOnBackgroundCompletion" type="Bool">
+            <default>true</default>
+        </entry>
 
         <!-- ── CLI Bridges (send AI responses → coding tools) ───────────── -->
         <entry name="enableOpencodeBridge" type="Bool">
