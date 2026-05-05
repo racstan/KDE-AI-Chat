@@ -770,10 +770,10 @@ PlasmoidItem {
 
             Component.onCompleted: root.inputFieldRef = msgInput
 
-            PlasmaCore.FrameSvgItem {
+            Rectangle {
                 anchors.fill: parent
-                imagePath: "dialogs/background"
-                prefix: "normal"
+                color: Kirigami.Theme.backgroundColor
+                radius: Kirigami.Units.smallSpacing
 
                 ColumnLayout {
                     anchors.fill: parent
