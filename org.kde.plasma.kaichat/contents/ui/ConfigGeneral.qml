@@ -806,6 +806,14 @@ Kirigami.ScrollablePage {
             value: plasmoid.configuration.maxHistory
             onValueModified: plasmoid.configuration.maxHistory = value
         }
+        PC3.Label {
+            Kirigami.FormData.label: "Global Shortcut:"
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            opacity: 0.75
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            text: "No shortcut is set by default. In the widget settings dialog, open the Shortcuts tab and assign one to open Kai Chat from anywhere."
+        }
 
         // ══ CLI Bridges ════════════════════════════════════════════════════════
         Kirigami.Separator {

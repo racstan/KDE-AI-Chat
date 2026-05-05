@@ -137,6 +137,9 @@
         <entry name="chatHistory" type="StringList">
             <default></default>
         </entry>
+        <entry name="lastSessionId" type="String">
+            <default></default>
+        </entry>
 
         <!-- ── CLI Bridges (send AI responses → coding tools) ───────────── -->
         <entry name="enableOpencodeBridge" type="Bool">

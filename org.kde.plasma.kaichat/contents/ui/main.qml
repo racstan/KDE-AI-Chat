@@ -4,78 +4,571 @@ import QtQuick.Controls as QQC2
 import org.kde.plasma.plasmoid
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
-// Plasma 6: DataSource (executable engine) lives in plasma5support
 import org.kde.plasma.plasma5support as P5Support
 
 PlasmoidItem {
     id: root
 
-    // Keep panel rendering as a compact icon; full view opens when expanded.
     preferredRepresentation: compactRepresentation
     Plasmoid.icon: "dialog-messages"
+    Plasmoid.hideOnWindowDeactivate: true
     fullRepresentation: fullRep
     compactRepresentation: compactRep
 
     property var chatModel: []
     property bool isLoading: false
     property string currentProvider: plasmoid.configuration.provider
+    property string opencodeSessionId: plasmoid.configuration.opencodeSessionId || ""
 
-    // OpenCode beta bridge: persisted session ID kept in memory during the session
-    property string opencodeSessionId: ""
+    // Compact state: idle | streaming | done | error
+    property string compactState: "idle"
+    property string lastAssistantPreview: "Open Kai Chat"
+
+    // Streaming state
+    property var activeStreamXhr: null
+    property string sseBuffer: ""
+    property int sseOffset: 0
+    property int streamingAssistantIndex: -1
+    property bool userScrolled: false
+
+    // Session persistence
+    property string conversationDir: "$HOME/.local/share/plasmoids/org.kde.plasma.kaichat/conversations"
+    property var sessionsModel: []
+    property string currentSessionId: plasmoid.configuration.lastSessionId || ""
+    property string currentSessionTitle: "New Chat"
+    property string currentSessionCreatedAt: ""
+    property string convOp: ""
+
+    // Global activation support (shortcut tab in Plasma config uses this)
+    property var inputFieldRef: null
 
     property bool hasValidConfig: {
         switch (currentProvider) {
         case "openai":      return plasmoid.configuration.openaiApiKey      !== ""
-        case "anthropic":  return plasmoid.configuration.anthropicApiKey  !== ""
-        case "gemini":     return plasmoid.configuration.geminiApiKey     !== ""
-        case "mistral":    return plasmoid.configuration.mistralApiKey    !== ""
-        case "grok":       return plasmoid.configuration.grokApiKey       !== ""
-        case "deepseek":   return plasmoid.configuration.deepseekApiKey   !== ""
-        case "nvidia":     return plasmoid.configuration.nvidiaApiKey     !== ""
-        case "cerebras":   return plasmoid.configuration.cerebrasApiKey   !== ""
-        case "cloudflare": return plasmoid.configuration.cfAccountId      !== ""
-                                  && plasmoid.configuration.cfApiToken    !== ""
-        case "huggingface":return plasmoid.configuration.hfApiKey         !== ""
-        case "openrouter": return plasmoid.configuration.openrouterApiKey !== ""
-        case "litellm":    return true
-        case "local":      return true
-        case "opencode":   return true  // OpenCode server manages its own auth
-        default:           return false
+        case "anthropic":   return plasmoid.configuration.anthropicApiKey   !== ""
+        case "gemini":      return plasmoid.configuration.geminiApiKey      !== ""
+        case "mistral":     return plasmoid.configuration.mistralApiKey     !== ""
+        case "grok":        return plasmoid.configuration.grokApiKey        !== ""
+        case "deepseek":    return plasmoid.configuration.deepseekApiKey    !== ""
+        case "nvidia":      return plasmoid.configuration.nvidiaApiKey      !== ""
+        case "cerebras":    return plasmoid.configuration.cerebrasApiKey    !== ""
+        case "cloudflare":  return plasmoid.configuration.cfAccountId       !== ""
+                                && plasmoid.configuration.cfApiToken         !== ""
+        case "huggingface": return plasmoid.configuration.hfApiKey          !== ""
+        case "openrouter":  return plasmoid.configuration.openrouterApiKey  !== ""
+        case "litellm":     return true
+        case "local":       return true
+        case "opencode":    return true
+        default:             return false
         }
     }
 
-    // ── Plasma 6 executable DataSource for CLI bridges ──────────────────
+    function activate() {
+        plasmoid.expanded = true
+        if (root.inputFieldRef) {
+            root.inputFieldRef.forceActiveFocus()
+        }
+    }
+
+    Timer {
+        id: stateResetTimer
+        interval: 1400
+        repeat: false
+        onTriggered: {
+            if (!root.isLoading)
+                root.compactState = "idle"
+        }
+    }
+
     P5Support.DataSource {
         id: execDs
         engine: "executable"
         connectedSources: []
-        property string pendingCmd: ""
         onNewData: function(sourceName, data) {
             var out = (data["stdout"] || "").trim()
             var err = (data["stderr"] || "").trim()
-            var msg = out !== "" ? out : (err !== "" ? "CLI error: " + err : "CLI command sent.")
-            root.chatModel.push({ role: "system", content: "⚡ " + msg, model: "" })
-            root.chatModel = root.chatModel
+            if (out !== "" || err !== "") {
+                root.chatModel.push({ role: "system", content: "CLI: " + (out !== "" ? out : err), timestamp: nowIso(), model: "" })
+                root.chatModel = root.chatModel
+                maybeAutoScroll()
+            }
+            disconnectSource(sourceName)
+            saveConversation()
+        }
+    }
+
+    P5Support.DataSource {
+        id: convDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var out = data["stdout"] || ""
+            var err = data["stderr"] || ""
+
+            if (root.convOp === "list") {
+                var ids = out.trim() === "" ? [] : out.trim().split("\n")
+                var mapped = []
+                for (var i = 0; i < ids.length; i++) {
+                    mapped.push({ value: ids[i], text: ids[i] })
+                }
+                root.sessionsModel = mapped
+
+                if (ids.length === 0) {
+                    startNewSession()
+                } else {
+                    var preferred = root.currentSessionId
+                    var found = false
+                    for (var j = 0; j < ids.length; j++) {
+                        if (ids[j] === preferred) {
+                            found = true
+                            break
+                        }
+                    }
+                    loadConversation(found ? preferred : ids[0])
+                }
+            } else if (root.convOp === "load") {
+                try {
+                    var obj = JSON.parse(out)
+                    root.currentSessionId = obj.id || makeSessionId()
+                    root.currentSessionTitle = obj.title || "New Chat"
+                    root.currentSessionCreatedAt = obj.createdAt || nowIso()
+                    root.chatModel = obj.messages || []
+                    root.lastAssistantPreview = previewFromMessages(root.chatModel)
+                    plasmoid.configuration.lastSessionId = root.currentSessionId
+                } catch (e) {
+                    root.chatModel = []
+                    pushError("Failed to load session JSON: " + e)
+                }
+            } else if (root.convOp === "save") {
+                // Refresh list after save so new sessions appear in dropdown.
+                refreshSessions()
+            }
+
+            if (err.trim() !== "" && root.convOp !== "list") {
+                pushError("Session I/O error: " + err.trim())
+            }
             disconnectSource(sourceName)
         }
     }
 
     function runCli(program, args) {
-        // Build a single shell command string
         var parts = [program]
-        for (var i = 0; i < args.length - 1; i++) parts.push(args[i])
-        // Last arg is the prompt — shell-escape it
-        parts.push(args[args.length - 1].replace(/'/g, "'\\''"))
-        var cmd = parts.slice(0, parts.length - 1).join(" ") + " '" + parts[parts.length - 1] + "'"
-        execDs.connectSource(cmd)
+        for (var i = 0; i < args.length - 1; i++)
+            parts.push(args[i])
+
+        var last = (args.length > 0 ? args[args.length - 1] : "").replace(/'/g, "'\\''")
+        parts.push("'" + last + "'")
+        execDs.connectSource(parts.join(" "))
     }
 
-    // ── Compact representation ──────────────────────────────────────────
+    function nowIso() {
+        return new Date().toISOString()
+    }
+
+    function makeSessionId() {
+        return "session-" + Date.now() + "-" + Math.floor(Math.random() * 100000)
+    }
+
+    function sessionFile(sessionId) {
+        return root.conversationDir + "/" + sessionId + ".json"
+    }
+
+    function runConvCommand(mode, cmd) {
+        root.convOp = mode
+        convDs.connectSource(cmd)
+    }
+
+    function refreshSessions() {
+        var cmd = "sh -lc \"mkdir -p " + root.conversationDir + "; for f in $(ls -1t " + root.conversationDir + "/*.json 2>/dev/null); do basename \\\"$f\\\" .json; done\""
+        runConvCommand("list", cmd)
+    }
+
+    function loadConversation(sessionId) {
+        if (!sessionId || sessionId === "") return
+        root.currentSessionId = sessionId
+        plasmoid.configuration.lastSessionId = sessionId
+        var cmd = "sh -lc \"cat " + sessionFile(sessionId) + "\""
+        runConvCommand("load", cmd)
+    }
+
+    function saveConversation() {
+        if (!root.currentSessionId || root.currentSessionId === "")
+            root.currentSessionId = makeSessionId()
+
+        var title = root.currentSessionTitle
+        if (!title || title === "New Chat") {
+            title = autoTitleFromConversation()
+            root.currentSessionTitle = title
+        }
+
+        var payload = {
+            id: root.currentSessionId,
+            title: title,
+            createdAt: root.currentSessionCreatedAt || nowIso(),
+            updatedAt: nowIso(),
+            messages: root.chatModel
+        }
+
+        var json = JSON.stringify(payload)
+        var escaped = json.replace(/'/g, "'\\''")
+        var cmd = "sh -lc \"mkdir -p " + root.conversationDir + "; printf '%s' '" + escaped + "' > " + sessionFile(root.currentSessionId) + "\""
+        runConvCommand("save", cmd)
+    }
+
+    function startNewSession() {
+        root.currentSessionId = makeSessionId()
+        root.currentSessionTitle = "New Chat"
+        root.currentSessionCreatedAt = nowIso()
+        root.chatModel = []
+        root.lastAssistantPreview = "Open Kai Chat"
+        plasmoid.configuration.lastSessionId = root.currentSessionId
+        saveConversation()
+    }
+
+    function previewFromMessages(messages) {
+        for (var i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === "assistant") {
+                var txt = (messages[i].content || "").split("\n")[0]
+                return txt.length > 90 ? txt.slice(0, 90) + "..." : txt
+            }
+        }
+        return "Open Kai Chat"
+    }
+
+    function autoTitleFromConversation() {
+        for (var i = 0; i < root.chatModel.length; i++) {
+            if (root.chatModel[i].role === "user") {
+                var words = (root.chatModel[i].content || "").trim().split(/\s+/)
+                return words.slice(0, 5).join(" ") || "New Chat"
+            }
+        }
+        return "New Chat"
+    }
+
+    function pushError(text) {
+        root.chatModel.push({ role: "error", content: text, timestamp: nowIso(), model: "" })
+        root.chatModel = root.chatModel
+        root.compactState = "error"
+        root.isLoading = false
+        stateResetTimer.restart()
+        maybeAutoScroll()
+    }
+
+    function apiConfig() {
+        return {
+            openaiApiKey:      plasmoid.configuration.openaiApiKey,
+            openaiBaseUrl:     plasmoid.configuration.openaiBaseUrl,
+            openaiModel:       plasmoid.configuration.openaiModel,
+            anthropicApiKey:   plasmoid.configuration.anthropicApiKey,
+            anthropicModel:    plasmoid.configuration.anthropicModel,
+            geminiApiKey:      plasmoid.configuration.geminiApiKey,
+            geminiModel:       plasmoid.configuration.geminiModel,
+            mistralApiKey:     plasmoid.configuration.mistralApiKey,
+            mistralModel:      plasmoid.configuration.mistralModel,
+            grokApiKey:        plasmoid.configuration.grokApiKey,
+            grokModel:         plasmoid.configuration.grokModel,
+            deepseekApiKey:    plasmoid.configuration.deepseekApiKey,
+            deepseekModel:     plasmoid.configuration.deepseekModel,
+            nvidiaApiKey:      plasmoid.configuration.nvidiaApiKey,
+            nvidiaModel:       plasmoid.configuration.nvidiaModel,
+            cerebrasApiKey:    plasmoid.configuration.cerebrasApiKey,
+            cerebrasModel:     plasmoid.configuration.cerebrasModel,
+            cfAccountId:       plasmoid.configuration.cfAccountId,
+            cfApiToken:        plasmoid.configuration.cfApiToken,
+            cfModel:           plasmoid.configuration.cfModel,
+            hfApiKey:          plasmoid.configuration.hfApiKey,
+            hfModel:           plasmoid.configuration.hfModel,
+            openrouterApiKey:  plasmoid.configuration.openrouterApiKey,
+            openrouterModel:   plasmoid.configuration.openrouterModel,
+            litellmBaseUrl:    plasmoid.configuration.litellmBaseUrl,
+            litellmApiKey:     plasmoid.configuration.litellmApiKey,
+            litellmModel:      plasmoid.configuration.litellmModel,
+            localBaseUrl:      plasmoid.configuration.localBaseUrl,
+            localModel:        plasmoid.configuration.localModel,
+            opencodeServerUrl: plasmoid.configuration.opencodeServerUrl,
+            opencodeSessionId: root.opencodeSessionId,
+            temperature:       plasmoid.configuration.temperature
+        }
+    }
+
+    function buildMessages() {
+        var msgs = [{ role: "system", content: plasmoid.configuration.systemPrompt }]
+        for (var i = 0; i < root.chatModel.length; i++) {
+            var m = root.chatModel[i]
+            if (m.role === "user" || m.role === "assistant")
+                msgs.push({ role: m.role, content: m.content })
+        }
+        return msgs
+    }
+
+    function resolveOpenAICompat(provider, c) {
+        switch (provider) {
+        case "openai":
+            return { baseUrl: c.openaiBaseUrl, apiKey: c.openaiApiKey, model: c.openaiModel }
+        case "gemini":
+            return { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", apiKey: c.geminiApiKey, model: c.geminiModel }
+        case "mistral":
+            return { baseUrl: "https://api.mistral.ai/v1", apiKey: c.mistralApiKey, model: c.mistralModel }
+        case "grok":
+            return { baseUrl: "https://api.x.ai/v1", apiKey: c.grokApiKey, model: c.grokModel }
+        case "deepseek":
+            return { baseUrl: "https://api.deepseek.com/v1", apiKey: c.deepseekApiKey, model: c.deepseekModel }
+        case "nvidia":
+            return { baseUrl: "https://integrate.api.nvidia.com/v1", apiKey: c.nvidiaApiKey, model: c.nvidiaModel }
+        case "cerebras":
+            return { baseUrl: "https://api.cerebras.ai/v1", apiKey: c.cerebrasApiKey, model: c.cerebrasModel }
+        case "cloudflare":
+            return { baseUrl: "https://api.cloudflare.com/client/v4/accounts/" + c.cfAccountId + "/ai/v1", apiKey: c.cfApiToken, model: c.cfModel }
+        case "huggingface":
+            return { baseUrl: "https://api-inference.huggingface.co/v1", apiKey: c.hfApiKey, model: c.hfModel }
+        case "openrouter":
+            return { baseUrl: "https://openrouter.ai/api/v1", apiKey: c.openrouterApiKey, model: c.openrouterModel }
+        case "litellm":
+            return { baseUrl: c.litellmBaseUrl, apiKey: c.litellmApiKey || "", model: c.litellmModel }
+        case "local":
+            return { baseUrl: c.localBaseUrl, apiKey: "", model: c.localModel }
+        default:
+            return null
+        }
+    }
+
+    function startStreamingOpenAICompat(messages) {
+        var c = apiConfig()
+        var resolved = resolveOpenAICompat(root.currentProvider, c)
+        if (!resolved)
+            return false
+
+        var xhr = new XMLHttpRequest()
+        var url = resolved.baseUrl.replace(/\/$/, "") + "/chat/completions"
+
+        root.isLoading = true
+        root.compactState = "streaming"
+        root.sseOffset = 0
+        root.sseBuffer = ""
+        root.streamingAssistantIndex = -1
+        root.activeStreamXhr = xhr
+
+        xhr.open("POST", url, true)
+        xhr.setRequestHeader("Content-Type", "application/json")
+        if (resolved.apiKey && resolved.apiKey !== "")
+            xhr.setRequestHeader("Authorization", "Bearer " + resolved.apiKey)
+        if (root.currentProvider === "openrouter") {
+            xhr.setRequestHeader("HTTP-Referer", "https://kde.org")
+            xhr.setRequestHeader("X-Title", "Kai Chat")
+        }
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.LOADING || xhr.readyState === XMLHttpRequest.DONE) {
+                var delta = xhr.responseText.slice(root.sseOffset)
+                root.sseOffset = xhr.responseText.length
+                processSseDelta(delta)
+            }
+
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    finishStreamingSuccess()
+                } else {
+                    var err = "HTTP " + xhr.status + ": " + xhr.statusText
+                    try {
+                        var obj = JSON.parse(xhr.responseText)
+                        if (obj.error && obj.error.message)
+                            err = obj.error.message
+                    } catch (e) {}
+                    finishStreamingError(err)
+                }
+            }
+        }
+        xhr.onerror = function() {
+            finishStreamingError("Network error reaching " + resolved.baseUrl)
+        }
+
+        var body = {
+            model: resolved.model,
+            messages: messages,
+            temperature: c.temperature,
+            stream: true
+        }
+        xhr.send(JSON.stringify(body))
+        return true
+    }
+
+    function ensureStreamingAssistantMessage() {
+        if (root.streamingAssistantIndex >= 0)
+            return
+
+        root.chatModel.push({
+            role: "assistant",
+            content: "",
+            timestamp: nowIso(),
+            model: root.currentProvider
+        })
+        root.streamingAssistantIndex = root.chatModel.length - 1
+        root.chatModel = root.chatModel
+    }
+
+    function processSseDelta(chunk) {
+        if (!chunk || chunk === "")
+            return
+
+        root.sseBuffer += chunk
+
+        while (true) {
+            var idx = root.sseBuffer.indexOf("\n\n")
+            if (idx < 0)
+                break
+
+            var block = root.sseBuffer.slice(0, idx)
+            root.sseBuffer = root.sseBuffer.slice(idx + 2)
+
+            var lines = block.split("\n")
+            var payload = ""
+            for (var i = 0; i < lines.length; i++) {
+                if (lines[i].indexOf("data:") === 0)
+                    payload += lines[i].slice(5).trim()
+            }
+            if (payload === "")
+                continue
+            if (payload === "[DONE]")
+                continue
+
+            try {
+                var obj = JSON.parse(payload)
+                var delta = obj.choices && obj.choices[0] && obj.choices[0].delta ? obj.choices[0].delta : null
+                var token = ""
+                if (delta && typeof delta.content === "string") {
+                    token = delta.content
+                } else if (delta && delta.content && delta.content.length) {
+                    for (var j = 0; j < delta.content.length; j++) {
+                        var part = delta.content[j]
+                        if (part && part.text)
+                            token += part.text
+                    }
+                }
+
+                if (token !== "") {
+                    ensureStreamingAssistantMessage()
+                    root.chatModel[root.streamingAssistantIndex].content += token
+                    root.chatModel = root.chatModel
+                    maybeAutoScroll()
+                }
+            } catch (e) {
+                // ignore non-JSON keepalive chunks
+            }
+        }
+    }
+
+    function finishStreamingSuccess() {
+        root.isLoading = false
+        root.activeStreamXhr = null
+        root.sseBuffer = ""
+        root.sseOffset = 0
+        root.compactState = "done"
+        stateResetTimer.restart()
+
+        if (root.streamingAssistantIndex >= 0) {
+            var content = root.chatModel[root.streamingAssistantIndex].content || ""
+            var first = content.split("\n")[0]
+            root.lastAssistantPreview = first.length > 90 ? first.slice(0, 90) + "..." : first
+        }
+        root.streamingAssistantIndex = -1
+        root.chatModel = root.chatModel
+        saveConversation()
+    }
+
+    function finishStreamingError(errMsg) {
+        root.isLoading = false
+        root.activeStreamXhr = null
+        root.sseBuffer = ""
+        root.sseOffset = 0
+        root.streamingAssistantIndex = -1
+        root.compactState = "error"
+        stateResetTimer.restart()
+        pushError(errMsg)
+    }
+
+    function stopStreaming() {
+        if (root.activeStreamXhr) {
+            try { root.activeStreamXhr.abort() } catch (e) {}
+            root.activeStreamXhr = null
+        }
+        root.isLoading = false
+        root.compactState = "done"
+        stateResetTimer.restart()
+        saveConversation()
+    }
+
+    function maybeAutoScroll() {
+        if (!root.userScrolled)
+            chatListView.positionViewAtEnd()
+    }
+
+    function sendMessage() {
+        var text = msgInput.text.trim()
+        if (text === "" || root.isLoading)
+            return
+
+        root.chatModel.push({ role: "user", content: text, timestamp: nowIso(), model: "" })
+        root.chatModel = root.chatModel
+        msgInput.text = ""
+        maybeAutoScroll()
+        saveConversation()
+
+        if (!root.hasValidConfig) {
+            pushError("Provider config is incomplete. Open Settings and check API keys / URL.")
+            return
+        }
+
+        var msgs = buildMessages()
+        if (startStreamingOpenAICompat(msgs)) {
+            return
+        }
+
+        root.isLoading = true
+        root.compactState = "streaming"
+        apiWorker.sendMessage({
+            provider: root.currentProvider,
+            messages: msgs,
+            config: apiConfig()
+        })
+    }
+
+    function regenerate() {
+        if (root.isLoading)
+            return
+
+        if (root.chatModel.length > 0 && root.chatModel[root.chatModel.length - 1].role === "assistant") {
+            root.chatModel.pop()
+            root.chatModel = root.chatModel
+        }
+        if (root.chatModel.length === 0)
+            return
+
+        saveConversation()
+
+        var msgs = buildMessages()
+        if (startStreamingOpenAICompat(msgs))
+            return
+
+        root.isLoading = true
+        root.compactState = "streaming"
+        apiWorker.sendMessage({
+            provider: root.currentProvider,
+            messages: msgs,
+            config: apiConfig()
+        })
+    }
+
+    function clearChat() {
+        root.chatModel = []
+        root.lastAssistantPreview = "Open Kai Chat"
+        saveConversation()
+    }
+
     Component {
         id: compactRep
         Item {
-            implicitWidth: Kirigami.Units.iconSizes.medium
-            implicitHeight: Kirigami.Units.iconSizes.medium
+            implicitWidth: Kirigami.Units.iconSizes.medium + Kirigami.Units.smallSpacing * 2
+            implicitHeight: implicitWidth
 
             Kirigami.Icon {
                 anchors.centerIn: parent
@@ -83,27 +576,88 @@ PlasmoidItem {
                 height: width
                 source: "dialog-messages"
             }
+
+            Rectangle {
+                id: statusDot
+                width: Kirigami.Units.smallSpacing * 1.8
+                height: width
+                radius: width / 2
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 1
+                border.width: 1
+                border.color: Kirigami.Theme.backgroundColor
+                color: {
+                    if (root.compactState === "streaming") return "#2e7dd1"
+                    if (root.compactState === "done") return "#2e8b57"
+                    if (root.compactState === "error") return "#c0392b"
+                    return "#8c8c8c"
+                }
+
+                SequentialAnimation on opacity {
+                    running: root.compactState === "streaming"
+                    loops: Animation.Infinite
+                    NumberAnimation { from: 1.0; to: 0.3; duration: 450 }
+                    NumberAnimation { from: 0.3; to: 1.0; duration: 450 }
+                }
+            }
+
+            MouseArea {
+                id: compactMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                onClicked: plasmoid.expanded = !plasmoid.expanded
+            }
+
+            QQC2.ToolTip.visible: compactMouse.containsMouse
+            QQC2.ToolTip.text: root.lastAssistantPreview
         }
     }
 
-    // ── Full representation ─────────────────────────────────────────────
     Component {
         id: fullRep
         Item {
             id: fullRepItem
-            Layout.minimumWidth:  400
+            Layout.minimumWidth: 400
             Layout.minimumHeight: 500
-            Layout.preferredWidth: 520
-            Layout.preferredHeight: 660
+            Layout.preferredWidth: 480
+            Layout.preferredHeight: 600
+
+            Component.onCompleted: root.inputFieldRef = msgInput
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing
                 spacing: Kirigami.Units.smallSpacing
 
-                // ── Top bar ───────────────────────────────────────────
                 RowLayout {
                     Layout.fillWidth: true
+
+                    PC3.ComboBox {
+                        id: sessionCombo
+                        Layout.minimumWidth: 170
+                        model: root.sessionsModel
+                        textRole: "text"
+                        valueRole: "value"
+                        enabled: model.length > 0 && !root.isLoading
+                        currentIndex: {
+                            for (var i = 0; i < model.length; i++) {
+                                if (model[i].value === root.currentSessionId) return i
+                            }
+                            return 0
+                        }
+                        onActivated: {
+                            if (currentValue !== root.currentSessionId)
+                                loadConversation(currentValue)
+                        }
+                    }
+
+                    PC3.ToolButton {
+                        icon.name: "list-add"
+                        QQC2.ToolTip.text: "New Chat"
+                        QQC2.ToolTip.visible: hovered
+                        onClicked: startNewSession()
+                    }
 
                     PC3.ComboBox {
                         id: providerCombo
@@ -121,7 +675,7 @@ PlasmoidItem {
                             { value: "huggingface", text: "HuggingFace" },
                             { value: "openrouter",  text: "OpenRouter" },
                             { value: "litellm",     text: "LiteLLM (proxy)" },
-                            { value: "local",       text: "Local (Ollama / LM Studio)" },
+                            { value: "local",       text: "Local" },
                             { value: "opencode",    text: "[BETA] OpenCode Bridge" }
                         ]
                         textRole: "text"
@@ -138,19 +692,14 @@ PlasmoidItem {
                         }
                     }
 
-                    // OpenCode beta: new-session button
                     PC3.ToolButton {
                         visible: root.currentProvider === "opencode"
-                        icon.name: "list-add"
-                        QQC2.ToolTip.text: "New OpenCode session"
+                        icon.name: "view-refresh"
+                        QQC2.ToolTip.text: "Reset OpenCode Session"
                         QQC2.ToolTip.visible: hovered
                         onClicked: {
                             root.opencodeSessionId = ""
-                            root.chatModel = []
-                            root.chatModel.push({ role: "system",
-                                content: "🔄 OpenCode session reset – a new session will be created on next send.",
-                                model: "" })
-                            root.chatModel = root.chatModel
+                            plasmoid.configuration.opencodeSessionId = ""
                         }
                     }
 
@@ -162,80 +711,23 @@ PlasmoidItem {
                     }
                 }
 
-                // ── Bridge pills ──────────────────────────────────────
-                Flow {
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.smallSpacing
-                    visible: plasmoid.configuration.enableOpencodeBridge
-                          || plasmoid.configuration.enableAiderBridge
-                          || plasmoid.configuration.enableClaudeCodeBridge
-
-                    PC3.Label {
-                        text: "Bridges:"
-                        font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        opacity: 0.7
-                    }
-
-                    Repeater {
-                        model: [
-                            { on: plasmoid.configuration.enableOpencodeBridge,   name: "Opencode",    bg: "#4CAF50" },
-                            { on: plasmoid.configuration.enableAiderBridge,      name: "Aider",       bg: "#2196F3" },
-                            { on: plasmoid.configuration.enableClaudeCodeBridge, name: "Claude Code", bg: "#FF9800" }
-                        ]
-                        delegate: Rectangle {
-                            visible: modelData.on
-                            width:  lbl.implicitWidth + Kirigami.Units.smallSpacing * 2
-                            height: Kirigami.Units.gridUnit
-                            radius: height / 2
-                            color:  modelData.bg
-                            PC3.Label {
-                                id: lbl
-                                anchors.centerIn: parent
-                                text: modelData.name
-                                color: "white"
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize - 1
-                            }
-                        }
-                    }
-                }
-
-                // ── Config warning ────────────────────────────────────
                 Rectangle {
                     Layout.fillWidth: true
-                    height: warnLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
                     visible: !root.hasValidConfig
                     color: Kirigami.Theme.negativeBackgroundColor
                     radius: Kirigami.Units.smallSpacing
+                    height: warn.implicitHeight + Kirigami.Units.smallSpacing * 2
                     PC3.Label {
-                        id: warnLabel
+                        id: warn
                         anchors.centerIn: parent
-                        width: parent.width - Kirigami.Units.smallSpacing * 4
+                        width: parent.width - Kirigami.Units.largeSpacing
                         wrapMode: Text.Wrap
                         horizontalAlignment: Text.AlignHCenter
                         color: Kirigami.Theme.negativeTextColor
-                        text: {
-                        var labels = {
-                            openai:      "Set your OpenAI API key in Settings.",
-                            anthropic:   "Set your Anthropic API key in Settings.",
-                            gemini:      "Set your Google Gemini API key in Settings.",
-                            mistral:     "Set your Mistral API key in Settings.",
-                            grok:        "Set your xAI Grok API key in Settings.",
-                            deepseek:    "Set your DeepSeek API key in Settings.",
-                            nvidia:      "Set your NVIDIA API key in Settings.",
-                            cerebras:    "Set your Cerebras API key in Settings.",
-                            cloudflare:  "Set your Cloudflare Account ID and API Token in Settings.",
-                            huggingface: "Set your HuggingFace API key in Settings.",
-                            openrouter:  "Set your OpenRouter API key in Settings.",
-                            litellm:     "Make sure your LiteLLM proxy server is running.",
-                            local:       "Make sure your local model server (Ollama / LM Studio) is running.",
-                            opencode:    "Make sure OpenCode is running locally (opencode serve)."
-                        }
-                        return labels[root.currentProvider] || "Configure provider in Settings."
-                    }
+                        text: "Provider configuration is missing or incomplete. Open Settings to update API endpoint and key."
                     }
                 }
 
-                // ── Chat list ─────────────────────────────────────────
                 QQC2.ScrollView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -244,149 +736,137 @@ PlasmoidItem {
 
                     ListView {
                         id: chatListView
-                        spacing: Kirigami.Units.smallSpacing
                         model: root.chatModel
+                        spacing: Kirigami.Units.smallSpacing
+                        onMovementStarted: root.userScrolled = true
+                        onMovementEnded: {
+                            var nearBottom = (contentY + height) >= (contentHeight - Kirigami.Units.gridUnit)
+                            if (nearBottom)
+                                root.userScrolled = false
+                        }
 
                         delegate: Rectangle {
                             width: chatListView.width
-                            height: msgCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+                            height: bubble.implicitHeight + Kirigami.Units.smallSpacing * 2
                             radius: Kirigami.Units.smallSpacing
                             color: {
-                                if (modelData.role === "user")   return Qt.rgba(
-                                    Kirigami.Theme.highlightColor.r,
-                                    Kirigami.Theme.highlightColor.g,
-                                    Kirigami.Theme.highlightColor.b, 0.10)
-                                if (modelData.role === "error")  return Kirigami.Theme.negativeBackgroundColor
-                                if (modelData.role === "system") return Qt.rgba(0,0,0,0.06)
+                                if (modelData.role === "user") {
+                                    return Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                                   Kirigami.Theme.highlightColor.g,
+                                                   Kirigami.Theme.highlightColor.b,
+                                                   0.15)
+                                }
+                                if (modelData.role === "error")
+                                    return Kirigami.Theme.negativeBackgroundColor
+                                if (modelData.role === "system")
+                                    return Qt.rgba(Kirigami.Theme.textColor.r,
+                                                   Kirigami.Theme.textColor.g,
+                                                   Kirigami.Theme.textColor.b,
+                                                   0.06)
                                 return Kirigami.Theme.alternateBackgroundColor
                             }
 
                             Column {
-                                id: msgCol
-                                anchors {
-                                    top: parent.top; left: parent.left; right: parent.right
-                                    margins: Kirigami.Units.smallSpacing
-                                }
+                                id: bubble
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Kirigami.Units.smallSpacing
                                 spacing: Kirigami.Units.smallSpacing / 2
 
-                                // Role header
                                 Row {
                                     spacing: Kirigami.Units.smallSpacing
-                                    Kirigami.Icon {
-                                        width: Kirigami.Units.iconSizes.small; height: width
-                                        source: modelData.role === "user"   ? "user-identity"
-                                              : modelData.role === "error"  ? "dialog-error"
-                                              : modelData.role === "system" ? "utilities-terminal"
-                                              :                                "dialog-messages"
-                                    }
                                     PC3.Label {
+                                        text: modelData.role === "user" ? "You" : (modelData.role === "assistant" ? "AI" : (modelData.role === "system" ? "CLI" : "Error"))
                                         font.bold: true
                                         font.pointSize: Kirigami.Theme.smallFont.pointSize
-                                        text: modelData.role === "user"   ? "You"
-                                            : modelData.role === "error"  ? "Error"
-                                            : modelData.role === "system" ? "CLI"
-                                            :                               "AI"
                                     }
                                     PC3.Label {
-                                        visible: (modelData.model || "") !== ""
-                                        text: "· " + (modelData.model || "")
-                                        font.pointSize: Kirigami.Theme.smallFont.pointSize - 1
+                                        visible: !!modelData.timestamp
+                                        text: "- " + (modelData.timestamp || "")
                                         opacity: 0.55
+                                        font.pointSize: Kirigami.Theme.smallFont.pointSize - 1
                                     }
                                 }
 
-                                // Body
                                 PC3.Label {
-                                    width: msgCol.width
+                                    width: bubble.width
                                     wrapMode: Text.Wrap
                                     textFormat: Text.MarkdownText
-                                    text: modelData.content
+                                    text: modelData.content || ""
                                     color: modelData.role === "error"
                                            ? Kirigami.Theme.negativeTextColor
                                            : Kirigami.Theme.textColor
-                                    onLinkActivated: link => Qt.openUrlExternally(link)
+                                    onLinkActivated: function(link) { Qt.openUrlExternally(link) }
                                 }
 
-                                // Action row (assistant messages only)
                                 Row {
-                                    visible: modelData.role === "assistant" && !root.isLoading
+                                    visible: modelData.role === "assistant"
                                     spacing: Kirigami.Units.smallSpacing
-
                                     PC3.ToolButton {
                                         icon.name: "edit-copy"
                                         display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.text: "Copy"
                                         QQC2.ToolTip.visible: hovered
+                                        QQC2.ToolTip.text: "Copy"
                                         onClicked: {
-                                            clipHelper.text = modelData.content
+                                            clipHelper.text = modelData.content || ""
                                             clipHelper.selectAll()
                                             clipHelper.copy()
                                         }
                                     }
-
+                                    PC3.ToolButton {
+                                        icon.name: "view-refresh"
+                                        display: PC3.AbstractButton.IconOnly
+                                        QQC2.ToolTip.visible: hovered
+                                        QQC2.ToolTip.text: "Regenerate"
+                                        onClicked: regenerate()
+                                    }
                                     PC3.ToolButton {
                                         visible: plasmoid.configuration.enableOpencodeBridge
                                               || plasmoid.configuration.enableAiderBridge
                                               || plasmoid.configuration.enableClaudeCodeBridge
                                         icon.name: "utilities-terminal"
                                         display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.text: "Send to coding CLI"
                                         QQC2.ToolTip.visible: hovered
+                                        QQC2.ToolTip.text: "Send to coding CLI"
                                         onClicked: cliMenu.open()
 
                                         PC3.Menu {
                                             id: cliMenu
                                             PC3.MenuItem {
                                                 visible: plasmoid.configuration.enableOpencodeBridge
-                                                text: "Opencode  (opencode -p …)"
-                                                onTriggered: root.runCli(
-                                                    plasmoid.configuration.opencodePath,
-                                                    ["-p", modelData.content])
+                                                text: "Opencode"
+                                                onTriggered: runCli(plasmoid.configuration.opencodePath, ["-p", modelData.content || ""])
                                             }
                                             PC3.MenuItem {
                                                 visible: plasmoid.configuration.enableAiderBridge
-                                                text: "Aider  (aider --message …)"
-                                                onTriggered: root.runCli(
-                                                    plasmoid.configuration.aiderPath,
-                                                    ["--message", modelData.content])
+                                                text: "Aider"
+                                                onTriggered: runCli(plasmoid.configuration.aiderPath, ["--message", modelData.content || ""])
                                             }
                                             PC3.MenuItem {
                                                 visible: plasmoid.configuration.enableClaudeCodeBridge
-                                                text: "Claude Code  (claude -p …)"
-                                                onTriggered: root.runCli(
-                                                    plasmoid.configuration.claudeCodePath,
-                                                    ["-p", modelData.content])
+                                                text: "Claude"
+                                                onTriggered: runCli(plasmoid.configuration.claudeCodePath, ["-p", modelData.content || ""])
                                             }
                                         }
-                                    }
-
-                                    PC3.ToolButton {
-                                        icon.name: "view-refresh"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.text: "Regenerate"
-                                        QQC2.ToolTip.visible: hovered
-                                        onClicked: regenerate()
                                     }
                                 }
                             }
                         }
-
-                        function scrollToBottom() { positionViewAtEnd() }
                     }
                 }
 
-                // ── Thinking indicator ────────────────────────────────
                 RowLayout {
                     Layout.fillWidth: true
                     visible: root.isLoading
                     PC3.BusyIndicator {
                         running: root.isLoading
-                        width: Kirigami.Units.iconSizes.small; height: width
+                        width: Kirigami.Units.iconSizes.small
+                        height: width
                     }
-                    PC3.Label { text: "Thinking…"; opacity: 0.7 }
+                    PC3.Label { text: "Streaming response..."; opacity: 0.72 }
                 }
 
-                // ── Input row ─────────────────────────────────────────
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
@@ -394,18 +874,9 @@ PlasmoidItem {
                     QQC2.TextArea {
                         id: msgInput
                         Layout.fillWidth: true
-                        placeholderText: "Message… (Enter = send, Shift+Enter = newline)"
+                        enabled: !root.isLoading
                         wrapMode: Text.WordWrap
-                        background: Rectangle {
-                            color: Kirigami.Theme.backgroundColor
-                            border.color: msgInput.activeFocus
-                                ? Kirigami.Theme.highlightColor
-                                : Kirigami.Theme.disabledTextColor
-                            border.width: 1
-                            radius: Kirigami.Units.smallSpacing
-                        }
-                        color: Kirigami.Theme.textColor
-                        // FIX: TextArea has no onAccepted — use Keys.onPressed
+                        placeholderText: "Type message. Enter sends, Shift+Enter inserts newline"
                         Keys.onPressed: function(event) {
                             if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
                                     && !(event.modifiers & Qt.ShiftModifier)) {
@@ -417,176 +888,63 @@ PlasmoidItem {
 
                     ColumnLayout {
                         spacing: Kirigami.Units.smallSpacing
-
                         PC3.Button {
-                            icon.name: "document-send"
-                            QQC2.ToolTip.text: "Send"
-                            QQC2.ToolTip.visible: hovered
-                            enabled: !root.isLoading
-                                  && msgInput.text.trim() !== ""
-                                  && root.hasValidConfig
-                            onClicked: sendMessage()
+                            icon.name: root.isLoading ? "process-stop" : "document-send"
+                            text: root.isLoading ? "Stop" : "Send"
+                            enabled: root.isLoading || (msgInput.text.trim() !== "" && root.hasValidConfig)
+                            onClicked: {
+                                if (root.isLoading)
+                                    stopStreaming()
+                                else
+                                    sendMessage()
+                            }
                         }
-
                         PC3.ToolButton {
                             icon.name: "edit-clear-history"
                             display: PC3.AbstractButton.IconOnly
-                            QQC2.ToolTip.text: "Clear chat"
+                            QQC2.ToolTip.text: "Clear current chat"
                             QQC2.ToolTip.visible: hovered
+                            enabled: !root.isLoading
                             onClicked: clearChat()
                         }
                     }
                 }
             }
 
-            // Invisible clipboard helper
             TextEdit { id: clipHelper; visible: false }
 
-            // ── API worker ────────────────────────────────────────────
             WorkerScript {
                 id: apiWorker
                 source: "apiWorker.mjs"
                 onMessage: function(msg) {
                     root.isLoading = false
-                    // OpenCode bridge may return a new session ID
                     if (msg.opencodeSessionId) {
                         root.opencodeSessionId = msg.opencodeSessionId
                         plasmoid.configuration.opencodeSessionId = msg.opencodeSessionId
                     }
                     if (msg.error) {
-                        root.chatModel.push({ role: "error", content: msg.error, model: "" })
+                        root.compactState = "error"
+                        pushError(msg.error)
                     } else {
-                        root.chatModel.push({ role: "assistant", content: msg.content, model: msg.model || "" })
-                        saveHistory()
+                        root.chatModel.push({
+                            role: "assistant",
+                            content: msg.content,
+                            model: msg.model || "",
+                            timestamp: nowIso()
+                        })
+                        root.chatModel = root.chatModel
+                        root.compactState = "done"
+                        stateResetTimer.restart()
+                        root.lastAssistantPreview = previewFromMessages(root.chatModel)
+                        maybeAutoScroll()
+                        saveConversation()
                     }
-                    root.chatModel = root.chatModel
-                    chatListView.scrollToBottom()
                 }
             }
 
-            // ── Helpers ───────────────────────────────────────────────
-            function apiConfig() {
-                return {
-                    // OpenAI
-                    openaiApiKey:        plasmoid.configuration.openaiApiKey,
-                    openaiBaseUrl:       plasmoid.configuration.openaiBaseUrl,
-                    openaiModel:         plasmoid.configuration.openaiModel,
-                    // Anthropic
-                    anthropicApiKey:     plasmoid.configuration.anthropicApiKey,
-                    anthropicModel:      plasmoid.configuration.anthropicModel,
-                    // Gemini
-                    geminiApiKey:        plasmoid.configuration.geminiApiKey,
-                    geminiModel:         plasmoid.configuration.geminiModel,
-                    // Mistral
-                    mistralApiKey:       plasmoid.configuration.mistralApiKey,
-                    mistralModel:        plasmoid.configuration.mistralModel,
-                    // Grok
-                    grokApiKey:          plasmoid.configuration.grokApiKey,
-                    grokModel:           plasmoid.configuration.grokModel,
-                    // DeepSeek
-                    deepseekApiKey:      plasmoid.configuration.deepseekApiKey,
-                    deepseekModel:       plasmoid.configuration.deepseekModel,
-                    // NVIDIA NIMs
-                    nvidiaApiKey:        plasmoid.configuration.nvidiaApiKey,
-                    nvidiaModel:         plasmoid.configuration.nvidiaModel,
-                    // Cerebras
-                    cerebrasApiKey:      plasmoid.configuration.cerebrasApiKey,
-                    cerebrasModel:       plasmoid.configuration.cerebrasModel,
-                    // Cloudflare Workers AI
-                    cfAccountId:         plasmoid.configuration.cfAccountId,
-                    cfApiToken:          plasmoid.configuration.cfApiToken,
-                    cfModel:             plasmoid.configuration.cfModel,
-                    // HuggingFace
-                    hfApiKey:            plasmoid.configuration.hfApiKey,
-                    hfModel:             plasmoid.configuration.hfModel,
-                    // OpenRouter
-                    openrouterApiKey:    plasmoid.configuration.openrouterApiKey,
-                    openrouterModel:     plasmoid.configuration.openrouterModel,
-                    // LiteLLM
-                    litellmBaseUrl:      plasmoid.configuration.litellmBaseUrl,
-                    litellmApiKey:       plasmoid.configuration.litellmApiKey,
-                    litellmModel:        plasmoid.configuration.litellmModel,
-                    // Local
-                    localBaseUrl:        plasmoid.configuration.localBaseUrl,
-                    localModel:          plasmoid.configuration.localModel,
-                    // OpenCode bridge
-                    opencodeServerUrl:   plasmoid.configuration.opencodeServerUrl,
-                    opencodeSessionId:   root.opencodeSessionId,
-                    // Generation parameters
-                    temperature:         plasmoid.configuration.temperature
-                }
+            Component.onCompleted: {
+                refreshSessions()
             }
-
-            function buildMessages() {
-                var msgs = [{ role: "system", content: plasmoid.configuration.systemPrompt }]
-                for (var i = 0; i < root.chatModel.length; i++) {
-                    var m = root.chatModel[i]
-                    if (m.role === "user" || m.role === "assistant")
-                        msgs.push({ role: m.role, content: m.content })
-                }
-                return msgs
-            }
-
-            function sendMessage() {
-                var text = msgInput.text.trim()
-                if (text === "" || root.isLoading) return
-                root.chatModel.push({ role: "user", content: text, model: "" })
-                root.chatModel = root.chatModel
-                msgInput.text = ""
-                root.isLoading = true
-                chatListView.scrollToBottom()
-                apiWorker.sendMessage({
-                    provider: root.currentProvider,
-                    messages: buildMessages(),
-                    config: apiConfig()
-                })
-            }
-
-            // Called by apiWorker when OpenCode creates/reuses a session
-            function onOpencodeSessionCreated(sessionId) {
-                root.opencodeSessionId = sessionId
-                plasmoid.configuration.opencodeSessionId = sessionId
-            }
-
-            function regenerate() {
-                if (root.chatModel.length > 0
-                        && root.chatModel[root.chatModel.length - 1].role === "assistant") {
-                    root.chatModel.pop()
-                    root.chatModel = root.chatModel
-                }
-                if (root.chatModel.length === 0) return
-                root.isLoading = true
-                apiWorker.sendMessage({
-                    provider: root.currentProvider,
-                    messages: buildMessages(),
-                    config: apiConfig()
-                })
-            }
-
-            function clearChat() {
-                root.chatModel = []
-                plasmoid.configuration.chatHistory = []
-            }
-
-            function saveHistory() {
-                var h = []
-                var start = Math.max(0, root.chatModel.length - plasmoid.configuration.maxHistory)
-                for (var i = start; i < root.chatModel.length; i++)
-                    h.push(JSON.stringify(root.chatModel[i]))
-                plasmoid.configuration.chatHistory = h
-            }
-
-            function loadHistory() {
-                var raw = plasmoid.configuration.chatHistory
-                if (!raw || raw.length === 0) return
-                var out = []
-                for (var i = 0; i < raw.length; i++) {
-                    try { out.push(JSON.parse(raw[i])) } catch(e) {}
-                }
-                root.chatModel = out
-            }
-
-            Component.onCompleted: loadHistory()
         }
     }
 }
