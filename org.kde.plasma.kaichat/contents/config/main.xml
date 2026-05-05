@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+    <kcfgfile name=""/>
+
+    <group name="General">
+        <!-- ── Active provider ─────────────────────────────────────────── -->
+        <entry name="provider" type="String">
+            <default>openai</default>
+        </entry>
+
+        <!-- ── OpenAI ───────────────────────────────────────────────────── -->
+        <entry name="openaiApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="openaiBaseUrl" type="String">
+            <default>https://api.openai.com/v1</default>
+        </entry>
+        <entry name="openaiModel" type="String">
+            <default>gpt-4o-mini</default>
+        </entry>
+
+        <!-- ── Anthropic ────────────────────────────────────────────────── -->
+        <entry name="anthropicApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="anthropicModel" type="String">
+            <default>claude-sonnet-4-5</default>
+        </entry>
+
+        <!-- ── Google Gemini ─────────────────────────────────────────────── -->
+        <entry name="geminiApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="geminiModel" type="String">
+            <default>gemini-2.0-flash</default>
+        </entry>
+
+        <!-- ── Mistral AI ────────────────────────────────────────────────── -->
+        <entry name="mistralApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="mistralModel" type="String">
+            <default>mistral-large-latest</default>
+        </entry>
+
+        <!-- ── xAI Grok ──────────────────────────────────────────────────── -->
+        <entry name="grokApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="grokModel" type="String">
+            <default>grok-3</default>
+        </entry>
+
+        <!-- ── DeepSeek ──────────────────────────────────────────────────── -->
+        <entry name="deepseekApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="deepseekModel" type="String">
+            <default>deepseek-chat</default>
+        </entry>
+
+        <!-- ── NVIDIA NIMs ───────────────────────────────────────────────── -->
+        <entry name="nvidiaApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="nvidiaModel" type="String">
+            <default>nvidia/llama-3.1-nemotron-70b-instruct</default>
+        </entry>
+
+        <!-- ── Cerebras ──────────────────────────────────────────────────── -->
+        <entry name="cerebrasApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="cerebrasModel" type="String">
+            <default>llama3.1-8b</default>
+        </entry>
+
+        <!-- ── Cloudflare Workers AI ─────────────────────────────────────── -->
+        <entry name="cfAccountId" type="String">
+            <default></default>
+        </entry>
+        <entry name="cfApiToken" type="String">
+            <default></default>
+        </entry>
+        <entry name="cfModel" type="String">
+            <default>@cf/meta/llama-3.1-8b-instruct</default>
+        </entry>
+
+        <!-- ── HuggingFace Inference ─────────────────────────────────────── -->
+        <entry name="hfApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="hfModel" type="String">
+            <default>meta-llama/Llama-3.2-3B-Instruct</default>
+        </entry>
+
+        <!-- ── OpenRouter ────────────────────────────────────────────────── -->
+        <entry name="openrouterApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="openrouterModel" type="String">
+            <default>openai/gpt-4o-mini</default>
+        </entry>
+
+        <!-- ── LiteLLM (local proxy) ─────────────────────────────────────── -->
+        <entry name="litellmBaseUrl" type="String">
+            <default>http://localhost:4000</default>
+        </entry>
+        <entry name="litellmApiKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="litellmModel" type="String">
+            <default>gpt-4o</default>
+        </entry>
+
+        <!-- ── Local / Ollama / LM Studio ───────────────────────────────── -->
+        <entry name="localBaseUrl" type="String">
+            <default>http://localhost:11434/v1</default>
+        </entry>
+        <entry name="localModel" type="String">
+            <default>llama3.2</default>
+        </entry>
+
+        <!-- ── Chat behaviour ────────────────────────────────────────────── -->
+        <entry name="systemPrompt" type="String">
+            <default>You are a helpful assistant.</default>
+        </entry>
+        <entry name="temperature" type="Double">
+            <default>0.7</default>
+        </entry>
+        <entry name="maxHistory" type="Int">
+            <default>50</default>
+        </entry>
+        <entry name="chatHistory" type="StringList">
+            <default></default>
+        </entry>
+
+        <!-- ── CLI Bridges (send AI responses → coding tools) ───────────── -->
+        <entry name="enableOpencodeBridge" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="opencodePath" type="String">
+            <default>opencode</default>
+        </entry>
+        <entry name="enableAiderBridge" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="aiderPath" type="String">
+            <default>aider</default>
+        </entry>
+        <entry name="enableClaudeCodeBridge" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="claudeCodePath" type="String">
+            <default>claude</default>
+        </entry>
+
+        <!-- ── OpenCode Beta Bridge (use OpenCode as the AI provider) ───── -->
+        <!-- Enable in Providers → [BETA] OpenCode Bridge                   -->
+        <entry name="opencodeServerUrl" type="String">
+            <default>http://localhost:4096</default>
+        </entry>
+        <!-- Persisted session ID so the widget can resume across restarts  -->
+        <entry name="opencodeSessionId" type="String">
+            <default></default>
+        </entry>
+    </group>
+</kcfg>

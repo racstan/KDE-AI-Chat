@@ -1,98 +1,116 @@
-# AI Chat - KDE Plasma Widget
+# Kai Chat – KDE Plasma Widget
 
-A KDE Plasma 6 widget that provides AI chat capabilities with support for multiple providers (OpenAI, Anthropic, Local models) and bridges to coding CLI tools like Opencode, Aider, and Claude Code.
+A KDE Plasma 6 widget that provides AI chat through 13 built-in providers and an experimental OpenCode Bridge, plus CLI bridges to Opencode, Aider, and Claude Code.
 
 ## Features
 
-- **Multiple AI Providers:**
-  - OpenAI (GPT-4, GPT-4o, GPT-4o-mini, etc.)
-  - Anthropic Claude (Claude 3.5 Sonnet, etc.)
-  - Local models via OpenAI-compatible endpoints (Ollama, LM Studio, llama.cpp, text-generation-webui)
+- **13 Built-in AI Providers:**
+  - OpenAI (GPT-4o, GPT-4.1, o3, o4-mini, etc.)
+  - Anthropic Claude (claude-sonnet-4-5, claude-3-7, etc.)
+  - Google Gemini (gemini-2.0-flash, gemini-2.5-pro, etc.)
+  - Mistral AI (mistral-large, codestral, etc.)
+  - xAI Grok (grok-3, grok-3-mini, etc.)
+  - DeepSeek (deepseek-chat, deepseek-reasoner)
+  - NVIDIA NIMs (llama, mistral, and more via NVIDIA's inference platform)
+  - Cerebras (llama3.1, qwen-3, etc. — ultra-fast inference)
+  - Cloudflare Workers AI (llama, gemma, qwq, etc.)
+  - HuggingFace Inference API (serverless, OpenAI-compatible)
+  - OpenRouter (400+ models via one API key)
+  - LiteLLM proxy (local OpenAI-compatible proxy for any model)
+  - Local models (Ollama, LM Studio, llama.cpp, text-generation-webui)
 
-- **CLI Bridges:**
-  - **Opencode** - Send AI responses directly to the Opencode CLI
-  - **Aider** - Bridge to Aider coding assistant
-  - **Claude Code** - Bridge to Claude Code CLI
+- **[BETA] OpenCode Bridge:**
+  - Kai Chat talks to your locally-running OpenCode server as the AI backend
+  - OpenCode manages model selection and provider credentials — no API key setup needed in the widget
+  - Session persistence across restarts; "new session" button in the chat header
+  - Start with: `opencode serve`
+
+- **CLI Bridges (forward AI responses → coding tools):**
+  - **Opencode** – `opencode -p "…"`
+  - **Aider** – `aider --message "…"`
+  - **Claude Code** – `claude -p "…"`
 
 - **Chat Interface:**
-  - Markdown rendering support
-  - Conversation history (configurable limit)
-  - Copy to clipboard functionality
-  - Provider switching on-the-fly
-  - System prompt customization
+  - Markdown rendering
+  - Configurable conversation history
+  - Copy to clipboard
+  - Provider switching on the fly
+  - Customisable system prompt
 
 ## Installation
 
 ### From Source
 
-1. Clone or download this repository
-2. Install the widget:
-
 ```bash
-kpackagetool6 --install org.kde.plasma.aichat --global
+kpackagetool6 --install org.kde.plasma.kaichat --global
 ```
 
-Or for user-local installation:
+Or user-local:
 
 ```bash
-kpackagetool6 --install org.kde.plasma.aichat
+kpackagetool6 --install org.kde.plasma.kaichat
+```
+
+Or use the helper script:
+
+```bash
+bash install.sh          # user-local
+bash install.sh global   # system-wide (needs sudo)
 ```
 
 ### Upgrade
 
 ```bash
-kpackagetool6 --upgrade org.kde.plasma.aichat --global
+kpackagetool6 --upgrade org.kde.plasma.kaichat --global
 ```
 
 ## Usage
 
 ### Adding to Desktop/Panel
 
-1. Right-click on your desktop or panel
-2. Select "Add Widgets..."
-3. Search for "AI Chat"
+1. Right-click your desktop or panel
+2. Select **Add Widgets…**
+3. Search for **Kai Chat**
 4. Drag it to your desired location
 
 ### Configuration
 
-1. Right-click the widget and select "Configure AI Chat..."
-2. Choose your AI provider and enter the required settings:
-   - **OpenAI**: API key and optional custom base URL
-   - **Anthropic**: API key
-   - **Local**: Base URL of your local server (e.g., `http://localhost:11434/v1` for Ollama)
+1. Right-click the widget → **Configure Kai Chat…**
+2. Choose a provider and enter the required credentials
+3. Optionally enable CLI bridges and/or the OpenCode beta bridge
 
-3. Enable and configure CLI bridges as needed
-4. Customize the system prompt to tailor AI behavior
+### OpenCode Bridge (Beta)
 
-### CLI Bridge Setup
+```bash
+# Start OpenCode in server mode (exposes HTTP API on port 4096)
+opencode serve
 
-Make sure the respective CLI tools are installed and available in your PATH:
+# Then in Kai Chat Settings → Provider → [BETA] OpenCode Bridge
+```
 
-- **Opencode**: `npm install -g opencode` or see [Opencode docs](https://github.com/opencode-ai/opencode)
-- **Aider**: `pip install aider-chat` or see [Aider docs](https://aider.chat/)
-- **Claude Code**: See [Anthropic's Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+The widget creates a session on your first message and reuses it for context.  
+Use the **+** button in the chat header to start a fresh session.
 
 ### Local Model Setup (Ollama Example)
 
-1. Install Ollama: https://ollama.com/
-2. Pull a model: `ollama pull llama3.2`
-3. Start Ollama server: `ollama serve`
-4. In widget settings, select "Local" provider
-5. Set Base URL to: `http://localhost:11434/v1`
-6. Set Model to: `llama3.2`
+```bash
+ollama pull llama3.2
+ollama serve
+# Base URL: http://localhost:11434/v1   Model: llama3.2
+```
 
 ## File Structure
 
 ```
-org.kde.plasma.aichat/
-├── metadata.json                 # Widget metadata
+org.kde.plasma.kaichat/
+├── metadata.json                 # Widget metadata (ID: org.kde.plasma.kaichat)
 ├── contents/
 │   ├── config/
-│   │   └── main.xml             # Configuration schema
+│   │   └── main.xml             # KConfigXT configuration schema (all providers)
 │   └── ui/
-│       ├── main.qml             # Main chat interface
-│       ├── ConfigGeneral.qml    # Settings UI
-│       └── apiWorker.mjs        # API communication worker
+│       ├── main.qml             # Main chat interface + panel icon
+│       ├── ConfigGeneral.qml    # Settings UI (all 13 providers + OpenCode bridge)
+│       └── apiWorker.mjs        # Background API worker (WorkerScript)
 ```
 
 ## Security Notes

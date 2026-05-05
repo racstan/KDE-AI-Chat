@@ -1,0 +1,128 @@
+1. Backend Configuration
+This is the foundation. Nothing else runs without it.
+What it does: Lets the user tell the widget where to send requests — endpoint URL, API key, and which model to use. Needs to support OpenAI-compatible APIs so it works with your LiteLLM, Ollama, OpenRouter, or Anthropic direct endpoint out of the box.
+What you need to build it:
+
+A configGeneral.qml config tab using Kirigami.FormLayout — this is the standard Plasma 6 way to build config UIs
+A config/main.xml using KConfigXT to declare and persist all config keys: apiEndpoint (String), modelName (String), temperature (Double), systemPrompt (String, multiline)
+All config properties are accessible via plasmoid.configuration.variableName regardless of what group they're in, so you bind your QML inputs directly to those KDE
+A "Test Connection" button in the config UI that fires a quick /models or /ping call and shows ✓ or ✗ inline — saves the user debugging why nothing works
+Model list can either be a static ComboBox with manual entry, or auto-fetched from the endpoint's /v1/models on config open and populated dynamically
+
+What NOT to do: Don't store the API key here yet — that goes in KWallet (step 9). For now, the key field can store to config while you build other things, just make it obvious in the UI that it's not yet secure.
+
+2. Streaming Chat UI
+The actual chat interface — the core loop. Everything else wraps around this.
+What it does: Shows a scrollable message list, an input box at the bottom, a send button, and streams responses from the API token by token as they arrive via SSE (Server-Sent Events).
+What you need to build it:
+
+ui/main.qml as the fullRepresentation with Layout.preferredWidth: 480 and Layout.preferredHeight: 600 (adjustable later)
+A ListView or Repeater + Column inside a ScrollView for the message list. Each message is a delegate with: role label ("You" / "AI"), message bubble, timestamp
+Markdown rendering is the hardest part here — QML's native Text only supports basic Text.RichText, which doesn't handle code blocks, tables, or proper fencing. Your options: use WebEngineView (heavy but full markdown), or write a lightweight JS markdown-to-HTML converter that runs in QML and outputs HTML that Text { textFormat: Text.RichText } can handle. The second option is better for a panel widget — WebEngine in a popup is overkill
+Streaming: use XMLHttpRequest in QML with onreadystatechange + chunked response parsing. Each chunk comes as data: {...}\n\n — split on newlines, parse the delta, append to the current assistant message in your model. When you get data: [DONE], close the stream
+Auto-scroll: bind ScrollView.contentY to the bottom, but watch the contentHeight. Only auto-scroll if the user hasn't manually scrolled up — add a boolean userScrolled flag that flips when the user drags the scrollbar
+Input: TextArea with Keys.onReturnPressed → send on Enter, Keys.onShiftReturnPressed → newline. Disable the field while streaming
+A "Stop" button that calls request.abort() on the active XHR — appears only during streaming, replaces the Send button
+
+
+3. Compact ↔ Full Representation
+How the widget lives in the panel vs. when it's expanded.
+What it does: Shows a small icon in the panel that the user clicks to open the full chat popup. The icon needs to communicate state so the user knows something is happening even without the popup open.
+What you need to build it:
+
+Plasmoid.compactRepresentation for the panel icon, Plasmoid.fullRepresentation for the popup. If there isn't enough room in the panel, the widget shows the compact view, and when plasmoid.expanded is true the full view appears in a PlasmaQuick.Dialog KDE
+The compact view: an Item containing a PlasmaCore.IconItem (use brain-symbolic or dialog-messages-symbolic from the icon theme) + a small colored dot overlaid in the corner. The dot changes color: grey = idle, blue/pulsing = streaming in progress, green = response just completed, red = error
+For the pulsing animation during streaming: a SequentialAnimation on the dot's opacity property cycling 1.0 → 0.3 → 1.0 with loops: Animation.Infinite. Start it when streaming begins, stop it when done
+A MouseArea on the compact view that toggles plasmoid.expanded = !plasmoid.expanded
+Set Plasmoid.hideOnWindowDeactivate: false during development so the popup doesn't close when you click elsewhere while testing config windows — flip it back to true for production KDE
+Tooltip on hover showing the last response's first line (useful at a glance without opening the popup)
+
+
+4. Conversation Persistence
+Without this, every panel click starts fresh. Useless.
+What it does: Saves all conversations to disk, loads them on startup, lets the user switch between past sessions.
+What you need to build it:
+
+Do NOT use plasmoid.configuration for this — it's designed for small config values and will bloat plasma-org.kde.plasma.desktop-appletsrc. Instead write to ~/.local/share/plasmoids/your.widget.id/conversations/ as individual JSON files, one per conversation
+Each conversation file: { id, title, createdAt, updatedAt, messages: [{role, content, timestamp}] }
+Use Qt.resolvedUrl() + XMLHttpRequest with file:// URLs to read/write local files from QML, or better: a small PlasmaCore.DataSource backed by a Python or JS helper script if file I/O via XHR feels fragile
+In the popup UI: a "Sessions" drawer or a top bar with a ComboBox listing recent conversations by title + date. "New Chat" button creates a fresh JSON file with a UUID filename
+Auto-title: after the first AI response, fire a separate background API call with prompt "Summarize this conversation in 5 words or less for a title:" + first exchange. Write the result back to the JSON file. This feels polished
+On Component.onCompleted in main.qml, scan the conversations directory, sort by updatedAt, load the most recent one
+
+
+5. Configurable Global Hotkey
+Not enabled by default — user has to set it. But the infrastructure needs to be there.
+What it does: Lets the user bind a key combo (e.g. Meta+A) system-wide so they can open the widget from any context without touching the mouse.
+What you need to build it:
+
+The Plasma config dialog by default already contains a form to set a global shortcut to activate your widget — you get this for free just by having the standard config dialog. The shortcut tab appears automatically KDE
+The activate() function is called when the widget is activated by the user, e.g. by a keyboard shortcut — this is the right place to set focus on the input field. Override it in your root PlasmoidItem: KDE TechBase
+
+qml  function activate() {
+      plasmoid.expanded = true
+      inputField.forceActiveFocus()
+  }
+
+The default value for the shortcut should be empty/unset — don't assign a default key combo or you'll conflict with other widgets the user might have
+In the config UI, add a note under the shortcut field: "No shortcut set by default. Assign one here to open the widget from anywhere." Makes it discoverable without being forced
+
+
+6. Clipboard / Selection Inject
+The system-level feature no browser tab can do. This is what makes the plasmoid actually useful vs. just opening claude.ai.
+What it does: Lets the user grab whatever text is currently in the clipboard or selected in any window, and prepend it to their next message with one click.
+What you need to build it:
+
+Clipboard: QML has Qt.clipboard but it's read-only in Plasma widget context. Use PlasmaCore.DataSource with the executable engine to run xclip -o -selection clipboard (X11) or wl-paste (Wayland). Check plasmoid.formFactor / $WAYLAND_DISPLAY env to pick the right command
+Selection: Same approach but xclip -o -selection primary on X11 — this gets whatever the user has highlighted without them needing to explicitly copy it. On Wayland, wl-paste -p
+In the UI: a small paperclip or "paste" icon button next to the input field. On click, run the clipboard command, get the text, prepend it to the input field as a quote block: > {clipboardText}\n\n
+A "Use selected text" button that uses the primary selection — separate from clipboard, more powerful
+When the user pastes long content (>500 chars), show a "Clipboard content attached (1.2 KB)" chip above the input box instead of dumping it all in the text area. Cleaner UX
+
+
+7. Response Action Buttons
+Small UX detail but very high daily value.
+What it does: After a response renders, gives the user quick actions without having to manually select text.
+What you need to build it:
+
+Per-message action row that appears on hover (or always visible — your call). Minimum set: Copy (copies full message text to clipboard via executable DataSource running echo "..." | xclip -selection clipboard), Regenerate (resend last user message), Delete message (removes from the session JSON)
+For code blocks specifically: each code block in the rendered output needs its own Copy code button. Since you're doing markdown-to-HTML conversion in JS, inject <button onclick="copyCode(this)">Copy</button> into each pre block and handle it via WebChannel if using WebEngine, or via a separate Repeater if you parse code blocks into structured data
+Stop generation button: visible only while streaming. Calling request.abort() stops the SSE stream. The partial response should be kept in the message list, not discarded — the user might want what was streamed so far
+A "copy last response" global shortcut option (optional, lower priority)
+
+
+8. Plasma Theme Compliance
+Makes the widget look native instead of like a foreign app glued onto the panel.
+What it does: Ensures colors, fonts, spacing, and corner radii all match whatever Plasma theme and color scheme the user has active — and update live when they change.
+What you need to build it:
+
+Never hardcode colors. Use Kirigami.Theme.textColor, Kirigami.Theme.backgroundColor, Kirigami.Theme.highlightColor, Kirigami.Theme.alternateBackgroundColor for message bubbles
+Message bubbles: user messages get Kirigami.Theme.highlightColor at 15% opacity, assistant messages get Kirigami.Theme.alternateBackgroundColor. This automatically adapts to Breeze, Breeze Dark, Nord, whatever
+Use Kirigami.Units.gridUnit for spacing and Kirigami.Units.smallSpacing / largeSpacing for padding — never hardcode pixel values. Multiply stored sizes by PlasmaCore.Units.devicePixelRatio to handle HiDPI correctly KDE
+For fonts: Kirigami.Theme.defaultFont for body text, Kirigami.Theme.smallFont for timestamps and labels
+Background of the popup: use PlasmaCore.FrameSvgItem with imagePath: "dialogs/background" — this gives you the proper Plasma dialog background with blur/translucency if the user's theme supports it
+Test with both Breeze Light and Breeze Dark before shipping — these are the two cases that will catch 90% of theming bugs
+
+
+9. KWallet for API Key Storage
+Security that actually works with the KDE ecosystem.
+What it does: Stores the API key in the encrypted KWallet/Secret Service store instead of in plaintext inside plasma-org.kde.plasma.desktop-appletsrc.
+What you need to build it:
+
+KDE is currently transitioning from KWallet to the Secret Service API. The modern approach is to use the QtKeychain library, which uses the Secret Service API natively on Linux and works with KWallet, gnome-keyring, or KeepassXC as the backend. Since you're on Tumbleweed which will be on Plasma 6, use QtKeychain via a C++ plugin, or use D-Bus calls directly to org.kde.kwalletd5 / org.freedesktop.secrets from QML via PlasmaCore.DataSource with the executable engine Planet KDE
+Simplest QML-only approach: shell out to secret-tool store --label="AI Plasmoid API Key" service ai-plasmoid on save, and secret-tool lookup service ai-plasmoid on load. This uses libsecret under the hood and talks to whatever Secret Service provider is running (KWallet on Plasma)
+In the config UI: the API key field should be a PasswordField (text masked). Show a lock icon. On save click: write to secret-tool, NOT to plasmoid.configuration. On load: read from secret-tool, populate the in-memory variable only, never write it to config
+Since KDE Frameworks 5.97.0, KDE Wallet supports the org.freedesktop.secrets D-Bus API, so your secret-tool approach will work transparently whether the backend is KWallet or anything else ArchWiki
+If secret-tool is unavailable or the wallet is locked: show an inline warning in the config tab and fall back to asking for the key each session
+
+
+10. Background Notification
+Closes the loop when the user asks something and collapses the popup before the response finishes.
+What it does: When a response completes while the popup is closed, fires a KDE notification so the user knows to click back.
+What you need to build it:
+
+Use PlasmaCore.DataSource with engine "notifications" — or the simpler approach: shell out to notify-send with PlasmaCore.DataSource + executable engine
+Better approach for Plasma integration: use org.kde.knotifications via D-Bus. Create a knotificationrc file shipped inside the plasmoid package at contents/config/notifications/ai-chat.notifyrc defining your notification event
+Trigger condition: if (!plasmoid.expanded && responseComplete) → fire notification with title = conversation title, body = first 100 chars of the response
+The notification should be clickable — clicking it should set plasmoid.expanded = true and scroll to the latest message. Wire this up via the notification's default action D-Bus callback
+Don't fire a notification if the popup is currently open — that would be annoying. Also add a config toggle "Notify on background completion" defaulting to true, so power users who always keep it open can turn it off

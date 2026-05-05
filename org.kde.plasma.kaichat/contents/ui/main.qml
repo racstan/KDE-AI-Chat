@@ -10,7 +10,9 @@ import org.kde.plasma.plasma5support as P5Support
 PlasmoidItem {
     id: root
 
-    preferredRepresentation: fullRepresentation
+    // Keep panel rendering as a compact icon; full view opens when expanded.
+    preferredRepresentation: compactRepresentation
+    Plasmoid.icon: "dialog-messages"
     fullRepresentation: fullRep
     compactRepresentation: compactRep
 
@@ -18,11 +20,28 @@ PlasmoidItem {
     property bool isLoading: false
     property string currentProvider: plasmoid.configuration.provider
 
+    // OpenCode beta bridge: persisted session ID kept in memory during the session
+    property string opencodeSessionId: ""
+
     property bool hasValidConfig: {
-        if (currentProvider === "openai")    return plasmoid.configuration.openaiApiKey    !== ""
-        if (currentProvider === "anthropic") return plasmoid.configuration.anthropicApiKey !== ""
-        if (currentProvider === "local")     return true
-        return false
+        switch (currentProvider) {
+        case "openai":      return plasmoid.configuration.openaiApiKey      !== ""
+        case "anthropic":  return plasmoid.configuration.anthropicApiKey  !== ""
+        case "gemini":     return plasmoid.configuration.geminiApiKey     !== ""
+        case "mistral":    return plasmoid.configuration.mistralApiKey    !== ""
+        case "grok":       return plasmoid.configuration.grokApiKey       !== ""
+        case "deepseek":   return plasmoid.configuration.deepseekApiKey   !== ""
+        case "nvidia":     return plasmoid.configuration.nvidiaApiKey     !== ""
+        case "cerebras":   return plasmoid.configuration.cerebrasApiKey   !== ""
+        case "cloudflare": return plasmoid.configuration.cfAccountId      !== ""
+                                  && plasmoid.configuration.cfApiToken    !== ""
+        case "huggingface":return plasmoid.configuration.hfApiKey         !== ""
+        case "openrouter": return plasmoid.configuration.openrouterApiKey !== ""
+        case "litellm":    return true
+        case "local":      return true
+        case "opencode":   return true  // OpenCode server manages its own auth
+        default:           return false
+        }
     }
 
     // ── Plasma 6 executable DataSource for CLI bridges ──────────────────
@@ -55,8 +74,13 @@ PlasmoidItem {
     Component {
         id: compactRep
         Item {
+            implicitWidth: Kirigami.Units.iconSizes.medium
+            implicitHeight: Kirigami.Units.iconSizes.medium
+
             Kirigami.Icon {
-                anchors.fill: parent
+                anchors.centerIn: parent
+                width: Kirigami.Units.iconSizes.medium
+                height: width
                 source: "dialog-messages"
             }
         }
@@ -85,9 +109,20 @@ PlasmoidItem {
                         id: providerCombo
                         Layout.fillWidth: true
                         model: [
-                            { value: "openai",    text: "OpenAI" },
-                            { value: "anthropic", text: "Anthropic" },
-                            { value: "local",     text: "Local (Ollama / LM Studio)" }
+                            { value: "openai",      text: "OpenAI" },
+                            { value: "anthropic",   text: "Anthropic" },
+                            { value: "gemini",      text: "Google Gemini" },
+                            { value: "mistral",     text: "Mistral AI" },
+                            { value: "grok",        text: "xAI Grok" },
+                            { value: "deepseek",    text: "DeepSeek" },
+                            { value: "nvidia",      text: "NVIDIA NIMs" },
+                            { value: "cerebras",    text: "Cerebras" },
+                            { value: "cloudflare",  text: "Cloudflare Workers AI" },
+                            { value: "huggingface", text: "HuggingFace" },
+                            { value: "openrouter",  text: "OpenRouter" },
+                            { value: "litellm",     text: "LiteLLM (proxy)" },
+                            { value: "local",       text: "Local (Ollama / LM Studio)" },
+                            { value: "opencode",    text: "[BETA] OpenCode Bridge" }
                         ]
                         textRole: "text"
                         valueRole: "value"
@@ -100,6 +135,22 @@ PlasmoidItem {
                         onActivated: {
                             root.currentProvider = currentValue
                             plasmoid.configuration.provider = currentValue
+                        }
+                    }
+
+                    // OpenCode beta: new-session button
+                    PC3.ToolButton {
+                        visible: root.currentProvider === "opencode"
+                        icon.name: "list-add"
+                        QQC2.ToolTip.text: "New OpenCode session"
+                        QQC2.ToolTip.visible: hovered
+                        onClicked: {
+                            root.opencodeSessionId = ""
+                            root.chatModel = []
+                            root.chatModel.push({ role: "system",
+                                content: "🔄 OpenCode session reset – a new session will be created on next send.",
+                                model: "" })
+                            root.chatModel = root.chatModel
                         }
                     }
 
@@ -162,11 +213,25 @@ PlasmoidItem {
                         wrapMode: Text.Wrap
                         horizontalAlignment: Text.AlignHCenter
                         color: Kirigami.Theme.negativeTextColor
-                        text: root.currentProvider === "openai"
-                              ? "Set your OpenAI API key in Settings (gear icon)."
-                              : root.currentProvider === "anthropic"
-                                ? "Set your Anthropic API key in Settings (gear icon)."
-                                : "Local provider – make sure your server is running."
+                        text: {
+                        var labels = {
+                            openai:      "Set your OpenAI API key in Settings.",
+                            anthropic:   "Set your Anthropic API key in Settings.",
+                            gemini:      "Set your Google Gemini API key in Settings.",
+                            mistral:     "Set your Mistral API key in Settings.",
+                            grok:        "Set your xAI Grok API key in Settings.",
+                            deepseek:    "Set your DeepSeek API key in Settings.",
+                            nvidia:      "Set your NVIDIA API key in Settings.",
+                            cerebras:    "Set your Cerebras API key in Settings.",
+                            cloudflare:  "Set your Cloudflare Account ID and API Token in Settings.",
+                            huggingface: "Set your HuggingFace API key in Settings.",
+                            openrouter:  "Set your OpenRouter API key in Settings.",
+                            litellm:     "Make sure your LiteLLM proxy server is running.",
+                            local:       "Make sure your local model server (Ollama / LM Studio) is running.",
+                            opencode:    "Make sure OpenCode is running locally (opencode serve)."
+                        }
+                        return labels[root.currentProvider] || "Configure provider in Settings."
+                    }
                     }
                 }
 
@@ -383,6 +448,11 @@ PlasmoidItem {
                 source: "apiWorker.mjs"
                 onMessage: function(msg) {
                     root.isLoading = false
+                    // OpenCode bridge may return a new session ID
+                    if (msg.opencodeSessionId) {
+                        root.opencodeSessionId = msg.opencodeSessionId
+                        plasmoid.configuration.opencodeSessionId = msg.opencodeSessionId
+                    }
                     if (msg.error) {
                         root.chatModel.push({ role: "error", content: msg.error, model: "" })
                     } else {
@@ -397,13 +467,53 @@ PlasmoidItem {
             // ── Helpers ───────────────────────────────────────────────
             function apiConfig() {
                 return {
-                    openaiApiKey:    plasmoid.configuration.openaiApiKey,
-                    openaiBaseUrl:   plasmoid.configuration.openaiBaseUrl,
-                    openaiModel:     plasmoid.configuration.openaiModel,
-                    anthropicApiKey: plasmoid.configuration.anthropicApiKey,
-                    anthropicModel:  plasmoid.configuration.anthropicModel,
-                    localBaseUrl:    plasmoid.configuration.localBaseUrl,
-                    localModel:      plasmoid.configuration.localModel
+                    // OpenAI
+                    openaiApiKey:        plasmoid.configuration.openaiApiKey,
+                    openaiBaseUrl:       plasmoid.configuration.openaiBaseUrl,
+                    openaiModel:         plasmoid.configuration.openaiModel,
+                    // Anthropic
+                    anthropicApiKey:     plasmoid.configuration.anthropicApiKey,
+                    anthropicModel:      plasmoid.configuration.anthropicModel,
+                    // Gemini
+                    geminiApiKey:        plasmoid.configuration.geminiApiKey,
+                    geminiModel:         plasmoid.configuration.geminiModel,
+                    // Mistral
+                    mistralApiKey:       plasmoid.configuration.mistralApiKey,
+                    mistralModel:        plasmoid.configuration.mistralModel,
+                    // Grok
+                    grokApiKey:          plasmoid.configuration.grokApiKey,
+                    grokModel:           plasmoid.configuration.grokModel,
+                    // DeepSeek
+                    deepseekApiKey:      plasmoid.configuration.deepseekApiKey,
+                    deepseekModel:       plasmoid.configuration.deepseekModel,
+                    // NVIDIA NIMs
+                    nvidiaApiKey:        plasmoid.configuration.nvidiaApiKey,
+                    nvidiaModel:         plasmoid.configuration.nvidiaModel,
+                    // Cerebras
+                    cerebrasApiKey:      plasmoid.configuration.cerebrasApiKey,
+                    cerebrasModel:       plasmoid.configuration.cerebrasModel,
+                    // Cloudflare Workers AI
+                    cfAccountId:         plasmoid.configuration.cfAccountId,
+                    cfApiToken:          plasmoid.configuration.cfApiToken,
+                    cfModel:             plasmoid.configuration.cfModel,
+                    // HuggingFace
+                    hfApiKey:            plasmoid.configuration.hfApiKey,
+                    hfModel:             plasmoid.configuration.hfModel,
+                    // OpenRouter
+                    openrouterApiKey:    plasmoid.configuration.openrouterApiKey,
+                    openrouterModel:     plasmoid.configuration.openrouterModel,
+                    // LiteLLM
+                    litellmBaseUrl:      plasmoid.configuration.litellmBaseUrl,
+                    litellmApiKey:       plasmoid.configuration.litellmApiKey,
+                    litellmModel:        plasmoid.configuration.litellmModel,
+                    // Local
+                    localBaseUrl:        plasmoid.configuration.localBaseUrl,
+                    localModel:          plasmoid.configuration.localModel,
+                    // OpenCode bridge
+                    opencodeServerUrl:   plasmoid.configuration.opencodeServerUrl,
+                    opencodeSessionId:   root.opencodeSessionId,
+                    // Generation parameters
+                    temperature:         plasmoid.configuration.temperature
                 }
             }
 
@@ -430,6 +540,12 @@ PlasmoidItem {
                     messages: buildMessages(),
                     config: apiConfig()
                 })
+            }
+
+            // Called by apiWorker when OpenCode creates/reuses a session
+            function onOpencodeSessionCreated(sessionId) {
+                root.opencodeSessionId = sessionId
+                plasmoid.configuration.opencodeSessionId = sessionId
             }
 
             function regenerate() {

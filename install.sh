@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# AI Chat Plasma Widget Installation Script
+# Kai Chat Plasma Widget Installation Script
 
 set -e
 
-WIDGET_DIR="org.kde.plasma.aichat"
+WIDGET_DIR="org.kde.plasma.kaichat"
 INSTALL_TYPE="${1:-user}"
 
-echo "Installing AI Chat Plasma Widget..."
+echo "Installing Kai Chat Plasma Widget..."
 
 if [ "$INSTALL_TYPE" = "global" ]; then
     echo "Installing globally (requires sudo)..."
@@ -24,7 +24,7 @@ echo ""
 echo "To add the widget:"
 echo "  1. Right-click on desktop or panel"
 echo "  2. Select 'Add Widgets...'"
-echo "  3. Search for 'AI Chat'"
+echo "  3. Search for 'Kai Chat'"
 echo ""
 echo "To uninstall:"
-echo "  kpackagetool6 --remove org.kde.plasma.aichat"
+echo "  kpackagetool6 --remove org.kde.plasma.kaichat"

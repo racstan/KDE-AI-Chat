@@ -1,0 +1,23 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "user@example.com",
+                "Name": "Kai Chat Widget"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "Kai Chat – a KDE AI chat widget supporting OpenAI, Anthropic, Google Gemini, Mistral, Grok, DeepSeek, NVIDIA NIMs, Cerebras, Cloudflare Workers AI, HuggingFace, OpenRouter, LiteLLM, local models, and an experimental OpenCode bridge.",
+        "Icon": "dialog-messages",
+        "Id": "org.kde.plasma.kaichat",
+        "License": "GPL-2.0+",
+        "Name": "Kai Chat",
+        "Version": "2.0",
+        "Website": "https://github.com/user/kaichat-widget",
+        "EnabledByDefault": true
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-ConfigurationFile": "kaichatrc",
+    "X-Plasma-ConfigurationUI": "ui/ConfigGeneral.qml"
+}
