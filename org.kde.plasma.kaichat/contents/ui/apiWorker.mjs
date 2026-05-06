@@ -1,5 +1,3 @@
-import QtQuick
-
 // ─────────────────────────────────────────────────────────────────────────────
 //  Kai Chat – background API worker (Plasma 6 WorkerScript / ES module)
 //
@@ -20,8 +18,7 @@ import QtQuick
 //    opencode    <user-configured, default :4096>         (native REST)
 // ─────────────────────────────────────────────────────────────────────────────
 
-WorkerScript {
-    onMessage: function(msg) {
+WorkerScript.onMessage = function(msg) {
         var p = msg.provider
         var c = msg.config
         var messages = msg.messages
@@ -313,4 +310,3 @@ WorkerScript {
         // Last resort: stringify for debugging
         return JSON.stringify(response)
     }
-}
