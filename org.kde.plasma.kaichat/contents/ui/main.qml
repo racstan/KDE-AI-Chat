@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
+import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -9,7 +10,9 @@ import org.kde.plasma.plasma5support as P5Support
 PlasmoidItem {
     id: root
 
-    preferredRepresentation: compactRepresentation
+    preferredRepresentation: Plasmoid.formFactor === PlasmaCore.Types.Planar
+                             ? fullRepresentation
+                             : compactRepresentation
     Plasmoid.icon: "dialog-messages"
     hideOnWindowDeactivate: false
     fullRepresentation: fullRep
@@ -792,7 +795,7 @@ PlasmoidItem {
                 id: compactMouse
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: plasmoid.expanded = !plasmoid.expanded
+                onClicked: root.activate()
             }
 
             QQC2.ToolTip.visible: compactMouse.containsMouse
