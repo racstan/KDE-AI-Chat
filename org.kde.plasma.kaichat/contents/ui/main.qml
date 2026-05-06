@@ -11,7 +11,7 @@ PlasmoidItem {
 
     preferredRepresentation: compactRepresentation
     Plasmoid.icon: "dialog-messages"
-    hideOnWindowDeactivate: true
+    hideOnWindowDeactivate: false
     fullRepresentation: fullRep
     compactRepresentation: compactRep
 
@@ -74,6 +74,15 @@ PlasmoidItem {
         plasmoid.expanded = true
         if (root.inputFieldRef) {
             root.inputFieldRef.forceActiveFocus()
+        }
+    }
+
+    onExpandedChanged: {
+        if (plasmoid.expanded) {
+            Qt.callLater(function() {
+                if (root.inputFieldRef)
+                    root.inputFieldRef.forceActiveFocus()
+            })
         }
     }
 
@@ -795,10 +804,12 @@ PlasmoidItem {
         id: fullRep
         Item {
             id: fullRepItem
-            Layout.minimumWidth: 400
-            Layout.minimumHeight: 500
-            Layout.preferredWidth: 480
-            Layout.preferredHeight: 600
+            implicitWidth: 480
+            implicitHeight: 600
+            Layout.minimumWidth: implicitWidth
+            Layout.minimumHeight: implicitHeight
+            Layout.preferredWidth: implicitWidth
+            Layout.preferredHeight: implicitHeight
 
             Component.onCompleted: {
                 root.inputFieldRef = msgInput
