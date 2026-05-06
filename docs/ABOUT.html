@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kai Chat Docs</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --text: #1c2330;
+      --muted: #566074;
+      --accent: #0b7285;
+      --border: #dce2ea;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans", "Cantarell", sans-serif;
+      line-height: 1.5;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    h1, h2 { margin: 0 0 10px; }
+    h1 { color: var(--accent); }
+    ul { margin: 8px 0 0 20px; }
+    code {
+      background: #eef2f6;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: "Noto Sans Mono", monospace;
+    }
+    pre {
+      background: #0f1722;
+      color: #e7edf6;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1>Kai Chat</h1>
+      <p class="muted">KDE Plasma AI widget docs and troubleshooting.</p>
+      <p>Author: <strong>RACHIT ASTHANA</strong></p>
+    </div>
+
+    <div class="panel">
+      <h2>Features</h2>
+      <ul>
+        <li>Centered chat header with top-left history toggle</li>
+        <li>Collapsible chat history sidebar</li>
+        <li>Per-chat rename and delete controls in history</li>
+        <li>Last modified timestamp per chat session</li>
+        <li>Per-message timestamp and assistant model label</li>
+        <li>Provider-specific settings in Configure only</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>KWallet Setup</h2>
+      <p>Default wallet name is <code>KaiChatWallet</code>.</p>
+      <ol>
+        <li>Open KDE Wallet Manager.</li>
+        <li>Create or unlock <code>KaiChatWallet</code>.</li>
+        <li>Use Configure in Kai Chat to Save/Load provider keys.</li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <h2>Issue Check Commands</h2>
+      <pre><code># List wallets
+qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
+
+# List installed plasmoids
+kpackagetool6 --type Plasma/Applet --list | grep org.kde.plasma.kaichat
+
+# Reinstall widget
+cd /path/to/rachitkdeaichat
+./install.sh
+systemctl --user restart plasma-plasmashell.service
+
+# QML lint
+qmllint org.kde.plasma.kaichat/contents/ui/main.qml
+qmllint org.kde.plasma.kaichat/contents/ui/ConfigGeneral.qml</code></pre>
+    </div>
+  </div>
+</body>
+</html>

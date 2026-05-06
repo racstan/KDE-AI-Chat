@@ -1,30 +1,14 @@
 #!/bin/bash
-
-# Kai Chat Plasma Widget Installation Script
-
 set -e
 
 WIDGET_DIR="org.kde.plasma.kaichat"
-INSTALL_TYPE="${1:-user}"
+WIDGET_ID="org.kde.plasma.kaichat"
 
-echo "Installing Kai Chat Plasma Widget..."
+echo "Installing / upgrading $WIDGET_ID ..."
 
-if [ "$INSTALL_TYPE" = "global" ]; then
-    echo "Installing globally (requires sudo)..."
-    kpackagetool6 --install "$WIDGET_DIR" --type Plasma/Applet --global \
-        || kpackagetool6 --upgrade "$WIDGET_DIR" --type Plasma/Applet --global
-else
-    echo "Installing for current user..."
-    kpackagetool6 --install "$WIDGET_DIR" --type Plasma/Applet \
-        || kpackagetool6 --upgrade "$WIDGET_DIR" --type Plasma/Applet
-fi
+# Clean reinstall to avoid stale metadata/config binding issues.
+kpackagetool6 --type Plasma/Applet --remove "$WIDGET_ID" >/dev/null 2>&1 || true
+kpackagetool6 --type Plasma/Applet --install "$WIDGET_DIR"
 
-echo "Installation complete!"
-echo ""
-echo "To add the widget:"
-echo "  1. Right-click on desktop or panel"
-echo "  2. Select 'Add Widgets...'"
-echo "  3. Search for 'Kai Chat'"
-echo ""
-echo "To uninstall:"
-echo "  kpackagetool6 --remove org.kde.plasma.kaichat"
+echo "Done. Restart plasmashell to load the new version:"
+echo "  systemctl --user restart plasma-plasmashell.service"
