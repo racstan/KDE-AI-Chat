@@ -23,6 +23,7 @@ PlasmoidItem {
 
     property int editingMessageIndex: -1
     property string editingDraft: ""
+    property bool editingWillTruncateTail: false
 
     property string editingSessionId: ""
     property string editingSessionDraft: ""
@@ -43,10 +44,10 @@ PlasmoidItem {
     }
 
     fullRepresentation: Item {
-        Layout.minimumWidth: 420
-        Layout.minimumHeight: 520
-        Layout.preferredWidth: 680
-        Layout.preferredHeight: 640
+        Layout.minimumWidth: 460
+        Layout.minimumHeight: 560
+        Layout.preferredWidth: 720
+        Layout.preferredHeight: 700
 
         Component.onCompleted: {
             root.inputRef = msgInput
@@ -74,6 +75,7 @@ PlasmoidItem {
                     text: root.historyOnlyMode ? "Chat History" : (root.currentSessionTitle || "New Chat")
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
 
@@ -88,158 +90,52 @@ PlasmoidItem {
                 }
             }
 
-            Rectangle {
-                visible: root.historyOnlyMode
+            StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                radius: 6
-                color: Kirigami.Theme.alternateBackgroundColor
+                currentIndex: root.historyOnlyMode ? 1 : 0
 
-                QQC2.ScrollView {
-                    anchors.fill: parent
-                    anchors.margins: Kirigami.Units.smallSpacing
-                    clip: true
-                    QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
+                Item {
+                    id: chatPage
 
-                    ListView {
-                        id: historyList
-                        model: root.sessions
-                        spacing: Kirigami.Units.smallSpacing / 2
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: Kirigami.Units.smallSpacing
 
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: historyList.width
-                            height: historyContent.implicitHeight + Kirigami.Units.smallSpacing * 2
-                            radius: 6
-                            color: modelData.value === root.currentSessionId
-                                ? Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                          Kirigami.Theme.highlightColor.g,
-                                          Kirigami.Theme.highlightColor.b,
-                                          0.2)
-                                : "transparent"
+                        QQC2.ScrollView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
 
-                            Column {
-                                id: historyContent
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: Kirigami.Units.smallSpacing
-                                spacing: Kirigami.Units.smallSpacing / 2
+                            ListView {
+                                id: msgList
+                                model: root.messages
+                                spacing: Kirigami.Units.largeSpacing
+                                leftMargin: Kirigami.Units.largeSpacing
+                                rightMargin: Kirigami.Units.largeSpacing
+                                topMargin: Kirigami.Units.smallSpacing
+                                bottomMargin: Kirigami.Units.smallSpacing
 
-                                Row {
-                                    width: parent.width
-                                    spacing: Kirigami.Units.smallSpacing / 2
-
-                                    QQC2.TextField {
-                                        visible: root.editingSessionId === modelData.value
-                                        width: parent.width - renameBtn.width - deleteBtn.width - Kirigami.Units.smallSpacing * 2
-                                        text: root.editingSessionDraft
-                                        onTextChanged: root.editingSessionDraft = text
-                                        onAccepted: root.saveSessionRename(modelData.value)
-                                    }
-
-                                    PC3.Label {
-                                        visible: root.editingSessionId !== modelData.value
-                                        width: parent.width - renameBtn.width - deleteBtn.width - Kirigami.Units.smallSpacing * 2
-                                        elide: Text.ElideRight
-                                        text: modelData.text || "New Chat"
-                                    }
-
-                                    PC3.ToolButton {
-                                        id: renameBtn
-                                        icon.name: root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
-                                        onClicked: {
-                                            if (root.editingSessionId === modelData.value)
-                                                root.saveSessionRename(modelData.value)
-                                            else
-                                                root.startSessionRename(modelData.value)
-                                        }
-                                    }
-
-                                    PC3.ToolButton {
-                                        id: deleteBtn
-                                        icon.name: root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
-                                        onClicked: {
-                                            if (root.editingSessionId === modelData.value)
-                                                root.cancelSessionRename()
-                                            else
-                                                root.deleteSession(modelData.value)
-                                        }
-                                    }
-                                }
-
-                                PC3.Label {
-                                    opacity: 0.7
-                                    text: "Updated " + root.formatDateTime(modelData.updatedAt || modelData.createdAt || Date.now())
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                acceptedButtons: Qt.LeftButton
-                                onClicked: {
-                                    root.switchSession(modelData.value)
-                                    root.historyOnlyMode = false
-                                }
-                                z: -1
-                            }
-                        }
-                    }
-                }
-            }
-
-            Item {
-                visible: !root.historyOnlyMode
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: Kirigami.Units.smallSpacing
-
-                    QQC2.ScrollView {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
-
-                        ListView {
-                            id: msgList
-                            model: root.messages
-                            spacing: Kirigami.Units.smallSpacing
-
-                            delegate: Item {
-                                width: msgList.width
-                                height: bubble.implicitHeight
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: Kirigami.Units.smallSpacing
-                                    anchors.rightMargin: Kirigami.Units.smallSpacing
-
-                                    Item {
-                                        Layout.fillWidth: modelData.role !== "user"
-                                        visible: modelData.role !== "user"
-                                    }
+                                delegate: Item {
+                                    width: msgList.width - msgList.leftMargin - msgList.rightMargin
+                                    height: bubble.implicitHeight
 
                                     Rectangle {
                                         id: bubble
-                                        Layout.maximumWidth: msgList.width * 0.78
-                                        radius: 8
+                                        width: Math.min(parent.width * 0.78, contentCol.implicitWidth + Kirigami.Units.largeSpacing)
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: modelData.role === "user" ? undefined : parent.left
+                                        anchors.right: modelData.role === "user" ? parent.right : undefined
+                                        radius: 10
                                         color: modelData.role === "user"
-                                            ? Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                                      Kirigami.Theme.highlightColor.g,
-                                                      Kirigami.Theme.highlightColor.b,
-                                                      0.20)
-                                            : modelData.role === "error"
-                                              ? Kirigami.Theme.negativeBackgroundColor
-                                              : Kirigami.Theme.alternateBackgroundColor
+                                               ? Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                                         Kirigami.Theme.highlightColor.g,
+                                                         Kirigami.Theme.highlightColor.b,
+                                                         0.20)
+                                               : modelData.role === "error"
+                                                 ? Kirigami.Theme.negativeBackgroundColor
+                                                 : Kirigami.Theme.alternateBackgroundColor
                                         border.width: 1
                                         border.color: Qt.rgba(Kirigami.Theme.textColor.r,
                                                               Kirigami.Theme.textColor.g,
@@ -247,24 +143,22 @@ PlasmoidItem {
                                                               0.12)
 
                                         Column {
+                                            id: contentCol
                                             anchors.fill: parent
                                             anchors.margins: Kirigami.Units.smallSpacing
                                             spacing: Kirigami.Units.smallSpacing / 2
 
                                             Row {
                                                 spacing: Kirigami.Units.smallSpacing
-
                                                 PC3.Label {
                                                     text: modelData.role === "user" ? "You" : (modelData.role === "error" ? "Error" : "AI")
                                                     font.bold: true
                                                 }
-
                                                 PC3.Label {
                                                     text: modelData.time || ""
                                                     opacity: 0.7
                                                     visible: text !== ""
                                                 }
-
                                                 PC3.Label {
                                                     text: modelData.role === "assistant" && modelData.model ? ("(" + modelData.model + ")") : ""
                                                     opacity: 0.6
@@ -283,14 +177,38 @@ PlasmoidItem {
 
                                             PC3.Label {
                                                 visible: root.editingMessageIndex !== index
-                                                width: bubble.width - Kirigami.Units.smallSpacing * 2
+                                                width: parent.width
                                                 wrapMode: Text.Wrap
                                                 textFormat: Text.MarkdownText
                                                 text: modelData.content
                                                 color: modelData.role === "error"
-                                                    ? Kirigami.Theme.negativeTextColor
-                                                    : Kirigami.Theme.textColor
+                                                       ? Kirigami.Theme.negativeTextColor
+                                                       : Kirigami.Theme.textColor
                                                 onLinkActivated: function(link) { Qt.openUrlExternally(link) }
+                                            }
+
+                                            Rectangle {
+                                                visible: root.editingMessageIndex === index
+                                                width: parent.width
+                                                radius: 6
+                                                color: Qt.rgba(Kirigami.Theme.neutralTextColor.r,
+                                                               Kirigami.Theme.neutralTextColor.g,
+                                                               Kirigami.Theme.neutralTextColor.b,
+                                                               0.12)
+                                                border.width: 1
+                                                border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                      Kirigami.Theme.textColor.g,
+                                                                      Kirigami.Theme.textColor.b,
+                                                                      0.12)
+                                                height: warningLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
+
+                                                PC3.Label {
+                                                    id: warningLabel
+                                                    anchors.fill: parent
+                                                    anchors.margins: Kirigami.Units.smallSpacing
+                                                    wrapMode: Text.Wrap
+                                                    text: "If you save this edit, all messages below this one will be removed and this becomes the latest message."
+                                                }
                                             }
 
                                             Row {
@@ -305,6 +223,7 @@ PlasmoidItem {
                                                     onClicked: {
                                                         root.editingMessageIndex = index
                                                         root.editingDraft = modelData.content
+                                                        root.editingWillTruncateTail = true
                                                     }
                                                 }
 
@@ -313,7 +232,7 @@ PlasmoidItem {
                                                     icon.name: "dialog-ok-apply"
                                                     display: PC3.AbstractButton.IconOnly
                                                     QQC2.ToolTip.visible: hovered
-                                                    QQC2.ToolTip.text: "Save edit"
+                                                    QQC2.ToolTip.text: "Apply edit"
                                                     onClicked: root.saveEditedMessage()
                                                 }
 
@@ -326,6 +245,7 @@ PlasmoidItem {
                                                     onClicked: {
                                                         root.editingMessageIndex = -1
                                                         root.editingDraft = ""
+                                                        root.editingWillTruncateTail = false
                                                     }
                                                 }
 
@@ -339,55 +259,157 @@ PlasmoidItem {
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
 
-                                    Item {
-                                        Layout.fillWidth: modelData.role === "user"
-                                        visible: modelData.role === "user"
+                        RowLayout {
+                            visible: root.loading
+                            PC3.BusyIndicator { running: root.loading; width: 20; height: 20 }
+                            PC3.Label { text: "Generating..."; opacity: 0.8 }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignBottom
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.TextArea {
+                                id: msgInput
+                                Layout.fillWidth: true
+                                Layout.minimumHeight: Kirigami.Units.gridUnit * 3
+                                Layout.maximumHeight: Kirigami.Units.gridUnit * 7
+                                Layout.preferredHeight: Math.min(Layout.maximumHeight,
+                                                                 Math.max(Layout.minimumHeight,
+                                                                          contentHeight + topPadding + bottomPadding))
+                                wrapMode: Text.WordWrap
+                                clip: true
+                                enabled: !root.loading
+                                placeholderText: "Type message (Enter sends, Shift+Enter newline)"
+
+                                Keys.onPressed: function(event) {
+                                    if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                                            && !(event.modifiers & Qt.ShiftModifier)) {
+                                        event.accepted = true
+                                        root.sendMessage()
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    RowLayout {
-                        visible: root.loading
-                        PC3.BusyIndicator { running: root.loading; width: 20; height: 20 }
-                        PC3.Label { text: "Generating..."; opacity: 0.8 }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignBottom
-                        spacing: Kirigami.Units.smallSpacing
-
-                        QQC2.TextArea {
-                            id: msgInput
-                            Layout.fillWidth: true
-                            Layout.minimumHeight: Kirigami.Units.gridUnit * 3
-                            Layout.maximumHeight: Kirigami.Units.gridUnit * 7
-                            Layout.preferredHeight: Math.min(Layout.maximumHeight, Math.max(Layout.minimumHeight, contentHeight + topPadding + bottomPadding))
-                            wrapMode: Text.WordWrap
-                            clip: true
-                            enabled: !root.loading
-                            placeholderText: "Type message (Enter sends, Shift+Enter newline)"
-
-                            Keys.onPressed: function(event) {
-                                if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-                                        && !(event.modifiers & Qt.ShiftModifier)) {
-                                    event.accepted = true
-                                    root.sendMessage()
-                                }
+                            PC3.Button {
+                                icon.name: root.loading ? "process-stop" : "document-send"
+                                text: root.loading ? "Stop" : "Send"
+                                Layout.minimumWidth: Kirigami.Units.gridUnit * 5
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.alignment: Qt.AlignBottom
+                                enabled: root.loading || msgInput.text.trim() !== ""
+                                onClicked: root.loading ? root.stopStreaming() : root.sendMessage()
                             }
                         }
+                    }
+                }
 
-                        PC3.Button {
-                            icon.name: root.loading ? "process-stop" : "document-send"
-                            text: root.loading ? "Stop" : "Send"
-                            Layout.minimumWidth: Kirigami.Units.gridUnit * 5
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                            Layout.alignment: Qt.AlignBottom
-                            enabled: root.loading || msgInput.text.trim() !== ""
-                            onClicked: root.loading ? root.stopStreaming() : root.sendMessage()
+                Rectangle {
+                    id: historyPage
+                    radius: 6
+                    color: Kirigami.Theme.alternateBackgroundColor
+
+                    QQC2.ScrollView {
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        clip: true
+                        QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
+
+                        ListView {
+                            id: historyList
+                            model: root.sessions
+                            spacing: Kirigami.Units.smallSpacing
+
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: historyList.width
+                                height: historyContent.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                radius: 8
+                                color: modelData.value === root.currentSessionId
+                                       ? Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                                 Kirigami.Theme.highlightColor.g,
+                                                 Kirigami.Theme.highlightColor.b,
+                                                 0.18)
+                                       : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                 Kirigami.Theme.textColor.g,
+                                                 Kirigami.Theme.textColor.b,
+                                                 0.04)
+
+                                Column {
+                                    id: historyContent
+                                    anchors.fill: parent
+                                    anchors.margins: Kirigami.Units.smallSpacing
+                                    spacing: Kirigami.Units.smallSpacing / 2
+
+                                    Row {
+                                        width: parent.width
+                                        spacing: Kirigami.Units.smallSpacing / 2
+
+                                        QQC2.TextField {
+                                            visible: root.editingSessionId === modelData.value
+                                            width: parent.width - renameBtn.width - deleteBtn.width - Kirigami.Units.smallSpacing * 2
+                                            text: root.editingSessionDraft
+                                            onTextChanged: root.editingSessionDraft = text
+                                            onAccepted: root.saveSessionRename(modelData.value)
+                                        }
+
+                                        PC3.Label {
+                                            visible: root.editingSessionId !== modelData.value
+                                            width: parent.width - renameBtn.width - deleteBtn.width - Kirigami.Units.smallSpacing * 2
+                                            elide: Text.ElideRight
+                                            text: modelData.text || "New Chat"
+                                        }
+
+                                        PC3.ToolButton {
+                                            id: renameBtn
+                                            icon.name: root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
+                                            display: PC3.AbstractButton.IconOnly
+                                            QQC2.ToolTip.visible: hovered
+                                            QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
+                                            onClicked: {
+                                                if (root.editingSessionId === modelData.value)
+                                                    root.saveSessionRename(modelData.value)
+                                                else
+                                                    root.startSessionRename(modelData.value)
+                                            }
+                                        }
+
+                                        PC3.ToolButton {
+                                            id: deleteBtn
+                                            icon.name: root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
+                                            display: PC3.AbstractButton.IconOnly
+                                            QQC2.ToolTip.visible: hovered
+                                            QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
+                                            onClicked: {
+                                                if (root.editingSessionId === modelData.value)
+                                                    root.cancelSessionRename()
+                                                else
+                                                    root.deleteSession(modelData.value)
+                                            }
+                                        }
+                                    }
+
+                                    PC3.Label {
+                                        opacity: 0.7
+                                        text: "Updated " + root.formatDateTime(modelData.updatedAt || modelData.createdAt || Date.now())
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    acceptedButtons: Qt.LeftButton
+                                    propagateComposedEvents: true
+                                    onClicked: {
+                                        root.switchSession(modelData.value)
+                                        root.historyOnlyMode = false
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -492,7 +514,7 @@ PlasmoidItem {
         sortSessionsByUpdated()
     }
 
-    function saveCurrentSessionState() {
+    function saveCurrentSessionState(touchUpdatedAt) {
         var idx = sessionIndexById(root.currentSessionId)
         if (idx < 0)
             return
@@ -500,11 +522,13 @@ PlasmoidItem {
         var updated = root.sessions.slice()
         var s = Object.assign({}, updated[idx])
         s.text = root.currentSessionTitle || "New Chat"
-        s.updatedAt = Date.now()
         s.messages = root.messages
+        if (touchUpdatedAt !== false)
+            s.updatedAt = Date.now()
         updated[idx] = s
         root.sessions = updated
-        sortSessionsByUpdated()
+        if (touchUpdatedAt !== false)
+            sortSessionsByUpdated()
         persistSessions()
     }
 
@@ -512,7 +536,7 @@ PlasmoidItem {
         if (!sessionId || sessionId === root.currentSessionId)
             return
 
-        saveCurrentSessionState()
+        saveCurrentSessionState(false)
 
         var idx = sessionIndexById(sessionId)
         if (idx < 0)
@@ -523,6 +547,7 @@ PlasmoidItem {
         root.messages = root.sessions[idx].messages || []
         root.editingMessageIndex = -1
         root.editingDraft = ""
+        root.editingWillTruncateTail = false
         root.editingSessionId = ""
         root.editingSessionDraft = ""
         persistSessions()
@@ -597,7 +622,8 @@ PlasmoidItem {
         root.messages = copy
         root.editingMessageIndex = -1
         root.editingDraft = ""
-        saveCurrentSessionState()
+        root.editingWillTruncateTail = false
+        saveCurrentSessionState(true)
     }
 
     function saveEditedMessage() {
@@ -605,14 +631,17 @@ PlasmoidItem {
         if (i < 0 || i >= root.messages.length)
             return
 
-        var copy = root.messages.slice()
+        var copy = root.messages.slice(0, i + 1)
         var item = Object.assign({}, copy[i])
         item.content = root.editingDraft
+        item.time = nowTime()
         copy[i] = item
+
         root.messages = copy
         root.editingMessageIndex = -1
         root.editingDraft = ""
-        saveCurrentSessionState()
+        root.editingWillTruncateTail = false
+        saveCurrentSessionState(true)
     }
 
     function scrollToBottom() {
@@ -623,7 +652,7 @@ PlasmoidItem {
     function pushErrorMessage(text) {
         root.messages = root.messages.concat([{ role: "error", content: text, time: nowTime(), model: "" }])
         scrollToBottom()
-        saveCurrentSessionState()
+        saveCurrentSessionState(true)
     }
 
     function validateProviderConfig(cfg) {
@@ -649,16 +678,16 @@ PlasmoidItem {
         if (root.inputRef)
             root.inputRef.text = ""
 
-        saveCurrentSessionState()
+        saveCurrentSessionState(true)
         scrollToBottom()
 
         if (root.openCodeMode) {
             doOpenAICompatRequest(
                 (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1"),
-                (plasmoid.configuration.openCodeApiKey || ""),
-                (plasmoid.configuration.openCodeModel || "gpt-4o-mini"),
+                "",
+                (plasmoid.configuration.openCodeModel || ""),
                 null,
-                (plasmoid.configuration.openCodeModel || "gpt-4o-mini")
+                (plasmoid.configuration.openCodeModel || "OpenCode")
             )
             return
         }
@@ -698,7 +727,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
                 apiKey: "",
-                model: plasmoid.configuration.localModel || "llama3.2",
+                model: plasmoid.configuration.localModel || "",
                 headers: null,
                 allowEmptyKey: true
             }
@@ -708,7 +737,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.groqBaseUrl || "https://api.groq.com/openai/v1",
                 apiKey: plasmoid.configuration.groqApiKey || "",
-                model: plasmoid.configuration.groqModel || "llama-3.3-70b-versatile",
+                model: plasmoid.configuration.groqModel || "",
                 headers: null,
                 allowEmptyKey: false
             }
@@ -725,7 +754,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.openRouterBaseUrl || "https://openrouter.ai/api/v1",
                 apiKey: plasmoid.configuration.openRouterApiKey || "",
-                model: plasmoid.configuration.openRouterModel || "openai/gpt-4o-mini",
+                model: plasmoid.configuration.openRouterModel || "",
                 headers: headers,
                 allowEmptyKey: false
             }
@@ -735,7 +764,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.mistralBaseUrl || "https://api.mistral.ai/v1",
                 apiKey: plasmoid.configuration.mistralApiKey || "",
-                model: plasmoid.configuration.mistralModel || "mistral-small-latest",
+                model: plasmoid.configuration.mistralModel || "",
                 headers: null,
                 allowEmptyKey: false
             }
@@ -745,7 +774,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.cloudflareBaseUrl || "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
                 apiKey: plasmoid.configuration.cloudflareApiKey || "",
-                model: plasmoid.configuration.cloudflareModel || "@cf/meta/llama-3.1-8b-instruct",
+                model: plasmoid.configuration.cloudflareModel || "",
                 headers: null,
                 allowEmptyKey: false
             }
@@ -755,7 +784,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.nvidiaBaseUrl || "https://integrate.api.nvidia.com/v1",
                 apiKey: plasmoid.configuration.nvidiaApiKey || "",
-                model: plasmoid.configuration.nvidiaModel || "meta/llama-3.1-70b-instruct",
+                model: plasmoid.configuration.nvidiaModel || "",
                 headers: null,
                 allowEmptyKey: false
             }
@@ -765,7 +794,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.huggingFaceBaseUrl || "https://router.huggingface.co/v1",
                 apiKey: plasmoid.configuration.huggingFaceApiKey || "",
-                model: plasmoid.configuration.huggingFaceModel || "openai/gpt-oss-120b:groq",
+                model: plasmoid.configuration.huggingFaceModel || "",
                 headers: null,
                 allowEmptyKey: false
             }
@@ -775,7 +804,7 @@ PlasmoidItem {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.xaiBaseUrl || "https://api.x.ai/v1",
                 apiKey: plasmoid.configuration.xaiApiKey || "",
-                model: plasmoid.configuration.xaiModel || "grok-2-latest",
+                model: plasmoid.configuration.xaiModel || "",
                 headers: null,
                 allowEmptyKey: false
             }
@@ -784,14 +813,15 @@ PlasmoidItem {
             type: "openai-compat",
             baseUrl: plasmoid.configuration.baseUrl || "https://api.openai.com/v1",
             apiKey: plasmoid.configuration.apiKey || "",
-            model: plasmoid.configuration.model || "gpt-4o-mini",
+            model: plasmoid.configuration.model || "",
             headers: null,
             allowEmptyKey: false
         }
     }
 
     function buildOpenAICompatPayload() {
-        var sys = plasmoid.configuration.systemPrompt || "You are a helpful assistant."
+        var sys = plasmoid.configuration.systemPrompt
+                  || "You are Kai Chat, a precise and helpful assistant. Answer clearly, ask for missing context when needed, and avoid hallucinations."
         var arr = [{ role: "system", content: sys }]
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i]
@@ -894,7 +924,7 @@ PlasmoidItem {
                     pushErrorMessage(err)
                 }
 
-                saveCurrentSessionState()
+                saveCurrentSessionState(true)
             }
         }
 
@@ -959,7 +989,7 @@ PlasmoidItem {
             }
 
             scrollToBottom()
-            saveCurrentSessionState()
+            saveCurrentSessionState(true)
         }
 
         xhr.onerror = function() {
@@ -971,7 +1001,8 @@ PlasmoidItem {
         xhr.send(JSON.stringify({
             model: model,
             max_tokens: 1024,
-            system: plasmoid.configuration.systemPrompt || "You are a helpful assistant.",
+            system: plasmoid.configuration.systemPrompt
+                    || "You are Kai Chat, a precise and helpful assistant. Answer clearly, ask for missing context when needed, and avoid hallucinations.",
             messages: buildAnthropicPayload()
         }))
     }
@@ -985,6 +1016,6 @@ PlasmoidItem {
             root.activeXhr = null
         }
         root.loading = false
-        saveCurrentSessionState()
+        saveCurrentSessionState(true)
     }
 }

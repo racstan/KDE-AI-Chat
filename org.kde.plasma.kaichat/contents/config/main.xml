@@ -115,11 +115,11 @@
     <entry name="openCodeUrl" type="String">
       <default>http://127.0.0.1:4096/v1</default>
     </entry>
-    <entry name="openCodeApiKey" type="String">
+    <entry name="openCodeProvider" type="String">
       <default></default>
     </entry>
     <entry name="openCodeModel" type="String">
-      <default>gpt-4o-mini</default>
+      <default></default>
     </entry>
 
     <entry name="kwalletName" type="String">
@@ -127,7 +127,7 @@
     </entry>
 
     <entry name="systemPrompt" type="String">
-      <default>You are a helpful assistant.</default>
+      <default>You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.</default>
     </entry>
 
     <entry name="chatSessionsJson" type="String">
