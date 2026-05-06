@@ -43,6 +43,7 @@ PlasmoidItem {
 
     // Global activation support (shortcut tab in Plasma config uses this)
     property var inputFieldRef: null
+    property var chatListViewRef: null
     property var runtimeApiKeys: ({})
     property var pendingMessages: []
     property bool pendingSendAfterSecretLookup: false
@@ -642,8 +643,8 @@ PlasmoidItem {
     }
 
     function maybeAutoScroll() {
-        if (!root.userScrolled)
-            chatListView.positionViewAtEnd()
+        if (!root.userScrolled && root.chatListViewRef)
+            root.chatListViewRef.positionViewAtEnd()
     }
 
     function dispatchMessages(msgs) {
@@ -660,7 +661,7 @@ PlasmoidItem {
     }
 
     function sendMessage() {
-        var text = msgInput.text.trim()
+        var text = root.inputFieldRef ? root.inputFieldRef.text.trim() : ""
         if (text === "" || root.isLoading)
             return
 
@@ -672,7 +673,7 @@ PlasmoidItem {
 
         root.chatModel.push({ role: "user", content: text, timestamp: nowIso(), model: "" })
         root.chatModel = root.chatModel
-        msgInput.text = ""
+        if (root.inputFieldRef) root.inputFieldRef.text = ""
         maybeAutoScroll()
         saveConversation()
 
@@ -706,6 +707,38 @@ PlasmoidItem {
         root.chatModel = []
         root.lastAssistantPreview = "Open Kai Chat"
         saveConversation()
+    }
+
+    TextEdit { id: clipHelper; visible: false }
+
+    WorkerScript {
+        id: apiWorker
+        source: "apiWorker.mjs"
+        onMessage: function(msg) {
+            root.isLoading = false
+            if (msg.opencodeSessionId) {
+                root.opencodeSessionId = msg.opencodeSessionId
+                plasmoid.configuration.opencodeSessionId = msg.opencodeSessionId
+            }
+            if (msg.error) {
+                root.compactState = "error"
+                pushError(msg.error)
+            } else {
+                root.chatModel.push({
+                    role: "assistant",
+                    content: msg.content,
+                    model: msg.model || "",
+                    timestamp: nowIso()
+                })
+                root.chatModel = root.chatModel
+                root.compactState = "done"
+                stateResetTimer.restart()
+                root.lastAssistantPreview = previewFromMessages(root.chatModel)
+                notifyBackgroundCompletion(msg.content || "")
+                maybeAutoScroll()
+                saveConversation()
+            }
+        }
     }
 
     Component {
@@ -767,7 +800,11 @@ PlasmoidItem {
             Layout.preferredWidth: 480
             Layout.preferredHeight: 600
 
-            Component.onCompleted: root.inputFieldRef = msgInput
+            Component.onCompleted: {
+                root.inputFieldRef = msgInput
+                root.chatListViewRef = chatListView
+                refreshSessions()
+            }
 
             Rectangle {
                 anchors.fill: parent
@@ -1128,40 +1165,9 @@ PlasmoidItem {
                 }
             }
 
-            TextEdit { id: clipHelper; visible: false }
-
-            WorkerScript {
-                id: apiWorker
-                source: "apiWorker.mjs"
-                onMessage: function(msg) {
-                    root.isLoading = false
-                    if (msg.opencodeSessionId) {
-                        root.opencodeSessionId = msg.opencodeSessionId
-                        plasmoid.configuration.opencodeSessionId = msg.opencodeSessionId
-                    }
-                    if (msg.error) {
-                        root.compactState = "error"
-                        pushError(msg.error)
-                    } else {
-                        root.chatModel.push({
-                            role: "assistant",
-                            content: msg.content,
-                            model: msg.model || "",
-                            timestamp: nowIso()
-                        })
-                        root.chatModel = root.chatModel
-                        root.compactState = "done"
-                        stateResetTimer.restart()
-                        root.lastAssistantPreview = previewFromMessages(root.chatModel)
-                        notifyBackgroundCompletion(msg.content || "")
-                        maybeAutoScroll()
-                        saveConversation()
-                    }
-                }
-            }
-
-            Component.onCompleted: {
-                refreshSessions()
+            Component.onDestruction: {
+                root.inputFieldRef = null
+                root.chatListViewRef = null
             }
         }
     }
