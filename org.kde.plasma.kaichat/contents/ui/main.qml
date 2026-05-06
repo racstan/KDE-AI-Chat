@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
-import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -10,9 +9,7 @@ import org.kde.plasma.plasma5support as P5Support
 PlasmoidItem {
     id: root
 
-    preferredRepresentation: Plasmoid.formFactor === PlasmaCore.Types.Planar
-                             ? fullRepresentation
-                             : compactRepresentation
+    preferredRepresentation: fullRepresentation
     Plasmoid.icon: "dialog-messages"
     hideOnWindowDeactivate: false
     fullRepresentation: fullRep
@@ -51,6 +48,19 @@ PlasmoidItem {
     property var pendingMessages: []
     property bool pendingSendAfterSecretLookup: false
     property string pendingSecretProvider: ""
+    property bool debugLogs: true
+
+    function debugLog(message) {
+        if (!root.debugLogs)
+            return
+
+        var line = (new Date()).toISOString() + " " + message
+        console.log("[KaiChat] " + line)
+
+        var escaped = line.replace(/'/g, "'\\''")
+        var cmd = "sh -lc \"mkdir -p $HOME/.cache && printf '%s\\n' '" + escaped + "' >> $HOME/.cache/kaichat-debug.log; echo __kaichat_debug__\""
+        debugDs.connectSource(cmd)
+    }
 
     property bool hasValidConfig: {
         switch (currentProvider) {
@@ -74,19 +84,27 @@ PlasmoidItem {
     }
 
     function activate() {
-        plasmoid.expanded = true
+        debugLog("activate() called; expanded before=" + root.expanded)
+        root.expanded = true
         if (root.inputFieldRef) {
             root.inputFieldRef.forceActiveFocus()
+            debugLog("activate(): input focus requested")
         }
     }
 
     onExpandedChanged: {
-        if (plasmoid.expanded) {
+        debugLog("onExpandedChanged -> " + root.expanded)
+        if (root.expanded) {
             Qt.callLater(function() {
                 if (root.inputFieldRef)
                     root.inputFieldRef.forceActiveFocus()
             })
         }
+    }
+
+    Component.onCompleted: {
+        debugDs.connectSource("sh -lc \"mkdir -p $HOME/.cache && printf '%s\\n' 'boot-direct' >> $HOME/.cache/kaichat-debug.log; echo __kaichat_debug__\"")
+        debugLog("loaded; has compact=" + (compactRepresentation !== null) + ", has full=" + (fullRepresentation !== null))
     }
 
     Timer {
@@ -97,6 +115,14 @@ PlasmoidItem {
             if (!root.isLoading)
                 root.compactState = "idle"
         }
+    }
+
+    Timer {
+        id: debugBootTimer
+        interval: 1
+        repeat: false
+        running: root.debugLogs
+        onTriggered: root.debugLog("boot timer fired")
     }
 
     P5Support.DataSource {
@@ -226,6 +252,15 @@ PlasmoidItem {
         }
     }
 
+    P5Support.DataSource {
+        id: debugDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            disconnectSource(sourceName)
+        }
+    }
+
     function runCli(program, args) {
         var parts = [program]
         for (var i = 0; i < args.length - 1; i++)
@@ -305,7 +340,7 @@ PlasmoidItem {
     }
 
     function notifyBackgroundCompletion(text) {
-        if (plasmoid.expanded || !plasmoid.configuration.notifyOnBackgroundCompletion)
+        if (root.expanded || !plasmoid.configuration.notifyOnBackgroundCompletion)
             return
         var body = (text || "").split("\n")[0]
         if (body.length > 120)
@@ -402,6 +437,7 @@ PlasmoidItem {
     }
 
     function pushError(text) {
+        debugLog("pushError: " + text)
         root.chatModel.push({ role: "error", content: text, timestamp: nowIso(), model: "" })
         root.chatModel = root.chatModel
         root.compactState = "error"
@@ -727,6 +763,7 @@ PlasmoidItem {
         id: apiWorker
         source: "apiWorker.mjs"
         onMessage: function(msg) {
+            debugLog("apiWorker.onMessage: error=" + (msg.error ? "yes" : "no") + ", model=" + (msg.model || ""))
             root.isLoading = false
             if (msg.opencodeSessionId) {
                 root.opencodeSessionId = msg.opencodeSessionId
@@ -795,7 +832,13 @@ PlasmoidItem {
                 id: compactMouse
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: root.activate()
+                // Keep hover tooltip support, but let Plasma handle left-click
+                // on compact representation to open the applet popup.
+                acceptedButtons: Qt.NoButton
+                onContainsMouseChanged: {
+                    if (containsMouse)
+                        root.debugLog("compact hover")
+                }
             }
 
             QQC2.ToolTip.visible: compactMouse.containsMouse
@@ -815,6 +858,7 @@ PlasmoidItem {
             Layout.preferredHeight: implicitHeight
 
             Component.onCompleted: {
+                root.debugLog("fullRep created")
                 root.inputFieldRef = msgInput
                 root.chatListViewRef = chatListView
                 refreshSessions()
@@ -1180,6 +1224,7 @@ PlasmoidItem {
             }
 
             Component.onDestruction: {
+                root.debugLog("fullRep destroyed")
                 root.inputFieldRef = null
                 root.chatListViewRef = null
             }
