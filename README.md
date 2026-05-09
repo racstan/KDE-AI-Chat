@@ -1,119 +1,103 @@
 # Kai Chat — KDE Plasma 6 Widget
 
-An AI chat widget for KDE Plasma 6 with:
-- Collapsible chat history sidebar in the popup.
-- Provider configuration only in right-click Configure.
-- Multiple providers: OpenAI, Anthropic, Groq, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA, Hugging Face Router, xAI (Grok), and Local.
-- Optional OpenCode priority mode.
+A powerful, native AI chat widget built exclusively for KDE Plasma 6. Designed by **Rachit Asthana** ([github.com/racstan](https://github.com/racstan)), Kai Chat integrates seamlessly into your desktop panel to provide instant access to the world's most capable language models.
 
 ---
 
-## Quick Start
+## 🌟 Features
 
-### Install
+* **Multi-Provider Support:** First-class support for OpenAI, Anthropic, Groq, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA, Hugging Face, xAI (Grok), LM Studio, and Local endpoints.
+* **Smart Model Discovery:** Automatically fetches and syncs available models directly from provider APIs when you enter your API key.
+* **Auto-Complete Combobox:** Effortlessly search through hundreds of models (like OpenRouter's massive catalog) using the smart, non-blocking dropdown search.
+* **Fluid UI & Resizability:** Features a built-in drag-to-resize handle natively integrated into the Plasma popup, remembering your preferred dimensions across reboots.
+* **Advanced Chat History:** Conversations are automatically grouped by date (Today, Yesterday, etc.). You can archive, rename, and branch conversations simply by editing a previous message.
+* **Secure Key Storage:** Fully integrates with KWallet to keep your API keys encrypted and safe from plain-text exposure.
+* **Rich Messaging:** Full Markdown rendering, live Server-Sent Events (SSE) streaming for immediate token-by-token output, and easy one-click copy buttons for both queries and AI responses.
+* **Transparent Debugging:** Extracts deep error metadata directly from provider API payloads, so you always know exactly why a request failed (e.g., rate limits, invalid IDs).
 
+---
+
+## 🚀 Installation & Walkthrough
+
+### Prerequisites
+* KDE Plasma 6
+* Qt 6
+* KDE Wallet (`kwalletmanager5`) for secure API key storage.
+
+### 1. Installation
+Clone the repository and run the installation script:
 ```bash
-# Clone the repo
-git clone https://github.com/your-repo/rachitkdeaichat
+git clone https://github.com/racstan/rachitkdeaichat
 cd rachitkdeaichat
-
-# Install (first time)
 ./install.sh
-
-# Then restart plasmashell
-systemctl --user restart plasma-plasmashell.service
 ```
-
-### Add to panel
-
-1. Right-click panel → **Add Widgets…**
-2. Search for **Kai Chat**
-3. Drag it to your panel
-
-### Configure
-
-Right-click the widget → **Configure Kai Chat…**
-
-Provider-specific fields are shown only for the currently selected provider.
-
-## KWallet Setup (Important)
-
-Kai Chat defaults to wallet name `KaiChatWallet`.
-
-If you want a fresh wallet password (`password`):
-
-1. Open KDE Wallet Manager (`kwalletmanager5`) from app launcher.
-2. Create a wallet named `KaiChatWallet`.
-3. Set wallet password to `password`.
-4. In widget Configure, keep Wallet name as `KaiChatWallet`.
-5. Use **Save KWallet** / **Load** for provider keys.
-
-Note: KDE wallet master password cannot be force-set non-interactively by this project script. KDE requires wallet creation/password via its wallet UI flow.
-
-## About / Docs Page
-
-- Local docs page: `docs/ABOUT.html`
-- Intended website path: `https://example.com/kaichat/docs`
-
-## Quick Troubleshooting Commands
-
+Once installed, restart your Plasma shell to load the widget:
 ```bash
-# Show wallets
-qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
-
-# Clean reinstall
-./install.sh
-systemctl --user restart plasma-plasmashell.service
-
-# Lint UI files
-qmllint org.kde.plasma.kaichat/contents/ui/main.qml
-qmllint org.kde.plasma.kaichat/contents/ui/ConfigGeneral.qml
-```
-
----
-
-## Upgrade after changes
-
-```bash
-./install.sh
 systemctl --user restart plasma-plasmashell.service
 ```
 
----
+### 2. Add to Panel
+1. Right-click your Plasma panel and select **Add Widgets…**
+2. Search for **Kai Chat** and drag it to your panel or desktop.
 
-## File Structure
-
-```
-org.kde.plasma.kaichat/
-├── metadata.json                 # Widget metadata (id, name, icon)
-└── contents/
-    ├── config/
-    │   └── main.xml             # Configuration schema
-    └── ui/
-        ├── main.qml             # Chat UI + collapsible history sidebar
-        └── ConfigGeneral.qml    # Provider and key settings
-```
+### 3. Setup & KWallet
+1. Right-click the Kai Chat widget icon and select **Configure Kai Chat…**
+2. Select your preferred provider (e.g., OpenRouter).
+3. Enter your API Key.
+4. *(Optional but Recommended)* Click **Save to KWallet** to securely store your key in the `KaiChatWallet`.
+5. The widget will automatically refresh the model list. Use the auto-complete dropdown to select your desired model.
+6. Click **Apply** and start chatting!
 
 ---
 
-## Local model (Ollama) example
+## 🛠️ Local Model (Ollama/LM Studio) Setup
 
-1. Install Ollama: https://ollama.com/
-2. Pull a model: `ollama pull llama3.2`
-3. Start Ollama: `ollama serve`
-4. In widget settings set Base URL to: `http://localhost:11434/v1`
-5. Set Model to: `llama3.2`
-6. Leave API Key empty
+Kai Chat works perfectly with local inference servers:
+1. Start your local server (e.g., `ollama serve` or LM Studio).
+2. Open Kai Chat Settings and select **Local** as the provider.
+3. Set the Base URL to your local endpoint (e.g., `http://localhost:11434/v1` for Ollama).
+4. Type your model name manually in the dropdown (e.g., `llama3.2`).
+5. Leave the API Key blank and apply.
 
 ---
 
-## Requirements
+## 🚧 Changelog
 
-- KDE Plasma 6
-- Qt 6
-- Network access for remote providers
-- KWallet (for key save/load buttons)
+**v1.1.0**
+* Added custom drag-to-resize handle at the bottom right of the popup.
+* Fixed QtQuick ComboBox autofill interference when typing to search for models.
+* Enhanced error parsing to expose deep JSON metadata from providers like OpenRouter and Anthropic.
+* Added one-click copy buttons for user queries and AI responses.
+* Implemented automatic model discovery triggers upon opening widget configurations.
+* Refined chronological chat history headers with localized dates.
+* Removed aggressive "Queued..." labeling that caused visual flickering.
 
-## License
+**v1.0.0**
+* Initial release for KDE Plasma 6.
+* Support for major AI providers and Server-Sent Events streaming.
+* History archiving, branching, and KWallet integration.
+
+---
+
+## ⚠️ Known Problems
+
+* **Plasma 6 Popups:** Plasma manages popup geometry strictly. To bypass limitations, use the custom drag handle at the bottom right instead of attempting edge-dragging.
+* **KWallet Initialization:** On first run, KWallet may prompt you repeatedly for permissions. You can configure KWalletManager to auto-allow Plasma widgets to avoid this.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] **Image Generation:** Integrate DALL-E 3 and Stable Diffusion endpoints for rendering images inline.
+- [ ] **Vision Models:** Allow users to drag and drop images into the chat box for multi-modal context.
+- [ ] **System Prompt Templates:** Save and load custom system prompts based on specific tasks (e.g., "Coding Assistant", "Creative Writer").
+- [ ] **Export Options:** Export full chat histories to Markdown or PDF.
+- [ ] **Cloud Sync:** Sync chat history across multiple KDE Plasma devices using Nextcloud or KDE Connect.
+
+---
+
+## 📜 License
 
 GPL-2.0+
+
+Made with ❤️ by Rachit Asthana.
