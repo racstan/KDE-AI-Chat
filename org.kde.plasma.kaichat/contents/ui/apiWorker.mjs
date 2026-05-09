@@ -109,9 +109,25 @@ WorkerScript.onMessage = function(msg) {
             } else {
                 try {
                     var errResp = JSON.parse(xhr.responseText)
-                    var errMsg = (errResp.error && errResp.error.message)
-                                 ? errResp.error.message
-                                 : xhr.statusText
+                    var errMsg = ""
+                    if (errResp.error) {
+                        if (typeof errResp.error === "string") {
+                            errMsg = errResp.error
+                        } else {
+                            errMsg = errResp.error.message || "Unknown API Error"
+                            if (errResp.error.metadata) {
+                                try {
+                                    errMsg += " | " + JSON.stringify(errResp.error.metadata)
+                                } catch (ex) {
+                                    errMsg += " | " + errResp.error.metadata
+                                }
+                            } else if (Object.keys(errResp.error).length > 1) {
+                                errMsg += " | Details: " + JSON.stringify(errResp.error)
+                            }
+                        }
+                    } else {
+                        errMsg = xhr.statusText + " | " + xhr.responseText
+                    }
                     WorkerScript.sendMessage({ content: "", error: "API Error (" + xhr.status + "): " + errMsg })
                 } catch (e) {
                     WorkerScript.sendMessage({ content: "", error: "HTTP " + xhr.status + ": " + xhr.statusText })
@@ -162,9 +178,19 @@ WorkerScript.onMessage = function(msg) {
             } else {
                 try {
                     var errResp = JSON.parse(xhr.responseText)
-                    var errMsg = (errResp.error && errResp.error.message)
-                                 ? errResp.error.message
-                                 : xhr.statusText
+                    var errMsg = ""
+                    if (errResp.error) {
+                        if (typeof errResp.error === "string") {
+                            errMsg = errResp.error
+                        } else {
+                            errMsg = errResp.error.message || "Unknown Anthropic Error"
+                            if (errResp.error.type) {
+                                errMsg = "[" + errResp.error.type + "] " + errMsg
+                            }
+                        }
+                    } else {
+                        errMsg = xhr.statusText + " | " + xhr.responseText
+                    }
                     WorkerScript.sendMessage({ content: "", error: "Anthropic Error (" + xhr.status + "): " + errMsg })
                 } catch (e) {
                     WorkerScript.sendMessage({ content: "", error: "HTTP " + xhr.status + ": " + xhr.statusText })

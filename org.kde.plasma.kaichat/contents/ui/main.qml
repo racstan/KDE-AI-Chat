@@ -8,6 +8,8 @@ import org.kde.kirigami as Kirigami
 PlasmoidItem {
     id: root
 
+    Plasmoid.title: plasmoid.configuration.appDisplayName || "Kai Chat"
+
     preferredRepresentation: compactRepresentation
 
     property var sessions: []
@@ -18,19 +20,54 @@ PlasmoidItem {
     property bool historyOnlyMode: false
     property bool loading: false
     property var activeXhr: null
-    property var inputRef: null
-    property var listRef: null
+    property var openCodeEventXhr: null
+    property string openCodeActiveSessionId: ""
+    property int openCodeAssistantMessageIndex: -1
+    property string openCodeAssistantServerMessageId: ""
+    property string openCodeAssistantModelLabel: "OpenCode"
+    property bool openCodeErrorShownForRequest: false
+    property bool streamingResponse: false
 
     property int editingMessageIndex: -1
     property string editingDraft: ""
-    property bool editingWillTruncateTail: false
 
     property string editingSessionId: ""
     property string editingSessionDraft: ""
 
+    property bool renamingCurrentChat: false
+    property string currentChatRenameDraft: ""
+
     property bool openCodeMode: plasmoid.configuration.useOpenCode
 
+    // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
+    property string chatInputText: ""
+    signal clearChatInput()
+    property var msgListViewRef: null
+    property bool userScrolledUp: false
+    property int queueCounter: 0
+
+    property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
+    property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
+
+    function cyclePopupSizeMode() {
+        var current = plasmoid.configuration.popupSizeMode || 0
+        plasmoid.configuration.popupSizeMode = (current + 1) % 3
+        root.expanded = false
+        popupReopenTimer.start()
+    }
+
+    Timer {
+        id: popupReopenTimer
+        interval: 120
+        repeat: false
+        onTriggered: root.expanded = true
+    }
+
     Component.onCompleted: loadSessions()
+    onMessagesChanged: {
+        if (!root.historyOnlyMode && !root.userScrolledUp)
+            Qt.callLater(scrollToBottom)
+    }
 
     compactRepresentation: MouseArea {
         onClicked: root.expanded = !root.expanded
@@ -44,15 +81,15 @@ PlasmoidItem {
     }
 
     fullRepresentation: Item {
-        Layout.minimumWidth: 460
-        Layout.minimumHeight: 560
-        Layout.preferredWidth: 720
-        Layout.preferredHeight: 700
-
-        Component.onCompleted: {
-            root.inputRef = msgInput
-            root.listRef = msgList
-        }
+        // Plasma popup sizing follows implicit size more reliably than Layout hints here.
+        implicitWidth: root.popupPreferredWidth
+        implicitHeight: root.popupPreferredHeight
+        width: implicitWidth
+        height: implicitHeight
+        Layout.minimumWidth: 500
+        Layout.minimumHeight: 620
+        Layout.preferredWidth: implicitWidth
+        Layout.preferredHeight: implicitHeight
 
         ColumnLayout {
             anchors.fill: parent
@@ -72,14 +109,65 @@ PlasmoidItem {
                 Item { Layout.fillWidth: true }
 
                 PC3.Label {
-                    text: root.historyOnlyMode ? "Chat History" : (root.currentSessionTitle || "New Chat")
+                    text: root.historyOnlyMode
+                          ? ((plasmoid.configuration.appDisplayName || "Kai Chat") + " History")
+                          : (root.currentSessionTitle || "New Chat")
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
 
                 Item { Layout.fillWidth: true }
+
+                PC3.ToolButton {
+                    visible: !root.historyOnlyMode
+                    icon.name: "document-edit"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: "Rename current chat"
+                    onClicked: {
+                        root.renamingCurrentChat = !root.renamingCurrentChat
+                        root.currentChatRenameDraft = root.currentSessionTitle || ""
+                    }
+                }
+
+                PC3.ToolButton {
+                    icon.name: {
+                        if (plasmoid.configuration.popupSizeMode === 0) return "view-fullscreen"
+                        if (plasmoid.configuration.popupSizeMode === 1) return "zoom-fit-best"
+                        return "view-restore"
+                    }
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: {
+                        if (plasmoid.configuration.popupSizeMode === 0) return "Expand to large popup"
+                        if (plasmoid.configuration.popupSizeMode === 1) return "Expand to fullscreen popup"
+                        return "Restore normal popup size"
+                    }
+                    onClicked: root.cyclePopupSizeMode()
+                }
+
+                PC3.ToolButton {
+                    visible: !root.historyOnlyMode
+                    icon.name: "go-top"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: "Jump to first message"
+                    onClicked: {
+                        if (root.msgListViewRef && root.msgListViewRef.count > 0) {
+                            root.userScrolledUp = true
+                            root.msgListViewRef.positionViewAtBeginning()
+                        }
+                    }
+                }
+
+                PC3.ToolButton {
+                    visible: !root.historyOnlyMode
+                    icon.name: "go-bottom"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: "Jump to latest message"
+                    onClicked: {
+                        root.userScrolledUp = false
+                        root.scrollToBottom()
+                    }
+                }
 
                 PC3.ToolButton {
                     icon.name: "list-add"
@@ -90,173 +178,299 @@ PlasmoidItem {
                 }
             }
 
+            RowLayout {
+                visible: !root.historyOnlyMode && root.renamingCurrentChat
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.TextField {
+                    Layout.fillWidth: true
+                    text: root.currentChatRenameDraft
+                    onTextChanged: root.currentChatRenameDraft = text
+                    onAccepted: {
+                        root.renameCurrentSession(root.currentChatRenameDraft)
+                        root.renamingCurrentChat = false
+                    }
+                }
+
+                PC3.ToolButton {
+                    icon.name: "dialog-ok-apply"
+                    onClicked: {
+                        root.renameCurrentSession(root.currentChatRenameDraft)
+                        root.renamingCurrentChat = false
+                    }
+                }
+
+                PC3.ToolButton {
+                    icon.name: "dialog-cancel"
+                    onClicked: root.renamingCurrentChat = false
+                }
+            }
+
             StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 currentIndex: root.historyOnlyMode ? 1 : 0
 
                 Item {
-                    id: chatPage
-
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: Kirigami.Units.smallSpacing
 
-                        QQC2.ScrollView {
+                        Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            radius: 8
+                            color: Kirigami.Theme.alternateBackgroundColor
                             clip: true
-                            QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
+
+                            Connections {
+                                target: root
+                                function onClearChatInput() { msgInput.text = "" }
+                            }
 
                             ListView {
                                 id: msgList
+                                anchors.fill: parent
+                                anchors.margins: Kirigami.Units.smallSpacing
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
-                                leftMargin: Kirigami.Units.largeSpacing
-                                rightMargin: Kirigami.Units.largeSpacing
-                                topMargin: Kirigami.Units.smallSpacing
-                                bottomMargin: Kirigami.Units.smallSpacing
+                                clip: true
+                                QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+
+                                Component.onCompleted: root.msgListViewRef = msgList
+
+                                // Track whether user manually scrolled away from bottom
+                                onMovementStarted: {
+                                    if (!msgList.atYEnd)
+                                        root.userScrolledUp = true
+                                }
+                                onAtYEndChanged: {
+                                    if (msgList.atYEnd)
+                                        root.userScrolledUp = false
+                                }
 
                                 delegate: Item {
-                                    width: msgList.width - msgList.leftMargin - msgList.rightMargin
-                                    height: bubble.implicitHeight
+                                    property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
+                                    width: msgList.width
+                                    implicitHeight: delegateCol.implicitHeight
+                                    height: implicitHeight
 
-                                    Rectangle {
-                                        id: bubble
-                                        width: Math.min(parent.width * 0.78, contentCol.implicitWidth + Kirigami.Units.largeSpacing)
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: modelData.role === "user" ? undefined : parent.left
-                                        anchors.right: modelData.role === "user" ? parent.right : undefined
-                                        radius: 10
-                                        color: modelData.role === "user"
-                                               ? Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                                         Kirigami.Theme.highlightColor.g,
-                                                         Kirigami.Theme.highlightColor.b,
-                                                         0.20)
-                                               : modelData.role === "error"
-                                                 ? Kirigami.Theme.negativeBackgroundColor
-                                                 : Kirigami.Theme.alternateBackgroundColor
-                                        border.width: 1
-                                        border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                                              Kirigami.Theme.textColor.g,
-                                                              Kirigami.Theme.textColor.b,
-                                                              0.12)
+                                    Column {
+                                        id: delegateCol
+                                        width: parent.width
+                                        spacing: Kirigami.Units.largeSpacing
 
-                                        Column {
-                                            id: contentCol
-                                            anchors.fill: parent
-                                            anchors.margins: Kirigami.Units.smallSpacing
-                                            spacing: Kirigami.Units.smallSpacing / 2
-
-                                            Row {
-                                                spacing: Kirigami.Units.smallSpacing
-                                                PC3.Label {
-                                                    text: modelData.role === "user" ? "You" : (modelData.role === "error" ? "Error" : "AI")
-                                                    font.bold: true
-                                                }
-                                                PC3.Label {
-                                                    text: modelData.time || ""
-                                                    opacity: 0.7
-                                                    visible: text !== ""
-                                                }
-                                                PC3.Label {
-                                                    text: modelData.role === "assistant" && modelData.model ? ("(" + modelData.model + ")") : ""
-                                                    opacity: 0.6
-                                                    visible: text !== ""
-                                                }
-                                            }
-
-                                            Loader {
-                                                active: root.editingMessageIndex === index
-                                                sourceComponent: QQC2.TextArea {
-                                                    text: root.editingDraft
-                                                    wrapMode: Text.WordWrap
-                                                    onTextChanged: root.editingDraft = text
-                                                }
-                                            }
-
-                                            PC3.Label {
-                                                visible: root.editingMessageIndex !== index
-                                                width: parent.width
-                                                wrapMode: Text.Wrap
-                                                textFormat: Text.MarkdownText
-                                                text: modelData.content
-                                                color: modelData.role === "error"
-                                                       ? Kirigami.Theme.negativeTextColor
-                                                       : Kirigami.Theme.textColor
-                                                onLinkActivated: function(link) { Qt.openUrlExternally(link) }
-                                            }
+                                        Item {
+                                            visible: showDayHeader
+                                            width: parent.width
+                                            height: showDayHeader ? dayHeaderChip.implicitHeight : 0
 
                                             Rectangle {
-                                                visible: root.editingMessageIndex === index
-                                                width: parent.width
-                                                radius: 6
-                                                color: Qt.rgba(Kirigami.Theme.neutralTextColor.r,
-                                                               Kirigami.Theme.neutralTextColor.g,
-                                                               Kirigami.Theme.neutralTextColor.b,
-                                                               0.12)
-                                                border.width: 1
-                                                border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                                                      Kirigami.Theme.textColor.g,
-                                                                      Kirigami.Theme.textColor.b,
-                                                                      0.12)
-                                                height: warningLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                                id: dayHeaderChip
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                radius: 999
+                                                color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                               Kirigami.Theme.textColor.g,
+                                                               Kirigami.Theme.textColor.b,
+                                                               0.10)
+                                                implicitWidth: dayHeaderText.implicitWidth + Kirigami.Units.largeSpacing
+                                                implicitHeight: dayHeaderText.implicitHeight + Kirigami.Units.smallSpacing
 
                                                 PC3.Label {
-                                                    id: warningLabel
-                                                    anchors.fill: parent
-                                                    anchors.margins: Kirigami.Units.smallSpacing
-                                                    wrapMode: Text.Wrap
-                                                    text: "If you save this edit, all messages below this one will be removed and this becomes the latest message."
+                                                    id: dayHeaderText
+                                                    anchors.centerIn: parent
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    opacity: 0.78
+                                                    text: root.dayDividerLabelForIndex(index)
                                                 }
                                             }
+                                        }
 
-                                            Row {
-                                                spacing: Kirigami.Units.smallSpacing
+                                        Item {
+                                            width: parent.width
+                                            height: bubble.implicitHeight
 
-                                                PC3.ToolButton {
-                                                    visible: root.editingMessageIndex !== index
-                                                    icon.name: "document-edit"
-                                                    display: PC3.AbstractButton.IconOnly
-                                                    QQC2.ToolTip.visible: hovered
-                                                    QQC2.ToolTip.text: "Edit message"
-                                                    onClicked: {
-                                                        root.editingMessageIndex = index
-                                                        root.editingDraft = modelData.content
-                                                        root.editingWillTruncateTail = true
+                                            Rectangle {
+                                                id: bubble
+                                                width: Math.min(msgList.width * 0.76, 560)
+                                                implicitHeight: bubbleCol.implicitHeight + Kirigami.Units.largeSpacing
+                                                radius: 10
+                                                color: modelData.role === "user"
+                                                       ? Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                                                 Kirigami.Theme.highlightColor.g,
+                                                                 Kirigami.Theme.highlightColor.b,
+                                                                 0.20)
+                                                       : modelData.role === "queued"
+                                                         ? Qt.rgba(Kirigami.Theme.neutralTextColor.r,
+                                                                   Kirigami.Theme.neutralTextColor.g,
+                                                                   Kirigami.Theme.neutralTextColor.b,
+                                                                   0.18)
+                                                       : modelData.role === "error"
+                                                         ? Kirigami.Theme.negativeBackgroundColor
+                                                         : Kirigami.Theme.backgroundColor
+                                                border.width: modelData.role === "error" ? 2 : 1
+                                                border.color: modelData.role === "error"
+                                                              ? Kirigami.Theme.negativeTextColor
+                                                              : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                        Kirigami.Theme.textColor.g,
+                                                                        Kirigami.Theme.textColor.b,
+                                                                        0.16)
+                                                anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
+                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" ? parent.left : undefined
+
+                                                Column {
+                                                    id: bubbleCol
+                                                    width: parent.width - Kirigami.Units.largeSpacing
+                                                    x: Kirigami.Units.smallSpacing + Kirigami.Units.smallSpacing / 2
+                                                    y: Kirigami.Units.smallSpacing + Kirigami.Units.smallSpacing / 2
+                                                    spacing: Kirigami.Units.smallSpacing
+
+                                                    Row {
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        PC3.Label {
+                                                            text: modelData.role === "user"
+                                                                  ? "You"
+                                                                  : modelData.role === "queued"
+                                                                    ? "You (Queued)"
+                                                                    : (modelData.role === "error" ? "Error" : "AI")
+                                                            font.bold: true
+                                                        }
+
+                                                        PC3.Label {
+                                                            text: root.formatMessageTime(modelData, index)
+                                                            opacity: 0.7
+                                                            visible: text !== ""
+                                                        }
+
+                                                        PC3.Label {
+                                                            text: modelData.role === "assistant" && modelData.model ? ("(" + modelData.model + ")") : ""
+                                                            opacity: 0.6
+                                                            visible: text !== ""
+                                                        }
                                                     }
-                                                }
 
-                                                PC3.ToolButton {
-                                                    visible: root.editingMessageIndex === index
-                                                    icon.name: "dialog-ok-apply"
-                                                    display: PC3.AbstractButton.IconOnly
-                                                    QQC2.ToolTip.visible: hovered
-                                                    QQC2.ToolTip.text: "Apply edit"
-                                                    onClicked: root.saveEditedMessage()
-                                                }
-
-                                                PC3.ToolButton {
-                                                    visible: root.editingMessageIndex === index
-                                                    icon.name: "dialog-cancel"
-                                                    display: PC3.AbstractButton.IconOnly
-                                                    QQC2.ToolTip.visible: hovered
-                                                    QQC2.ToolTip.text: "Cancel edit"
-                                                    onClicked: {
-                                                        root.editingMessageIndex = -1
-                                                        root.editingDraft = ""
-                                                        root.editingWillTruncateTail = false
+                                                    Loader {
+                                                        active: root.editingMessageIndex === index
+                                                                && modelData.role !== "error"
+                                                                && modelData.role !== "assistant"
+                                                        width: parent.width
+                                                        sourceComponent: QQC2.TextArea {
+                                                            width: parent ? parent.width : implicitWidth
+                                                            text: root.editingDraft
+                                                            wrapMode: Text.WordWrap
+                                                            onTextChanged: root.editingDraft = text
+                                                        }
                                                     }
-                                                }
 
-                                                PC3.ToolButton {
-                                                    icon.name: "edit-delete"
-                                                    display: PC3.AbstractButton.IconOnly
-                                                    QQC2.ToolTip.visible: hovered
-                                                    QQC2.ToolTip.text: "Delete message"
-                                                    onClicked: root.deleteMessage(index)
+                                                    PC3.Label {
+                                                        visible: root.editingMessageIndex !== index || modelData.role === "error"
+                                                        width: parent.width
+                                                        wrapMode: Text.Wrap
+                                                        textFormat: Text.MarkdownText
+                                                        text: modelData.content
+                                                        color: modelData.role === "error"
+                                                               ? Kirigami.Theme.negativeTextColor
+                                                               : Kirigami.Theme.textColor
+                                                        onLinkActivated: function(link) { Qt.openUrlExternally(link) }
+                                                    }
+
+                                                    Rectangle {
+                                                        visible: root.editingMessageIndex === index && modelData.role !== "error"
+                                                        width: parent.width
+                                                        height: editWarn.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                                        radius: 6
+                                                        color: Qt.rgba(Kirigami.Theme.neutralTextColor.r,
+                                                                       Kirigami.Theme.neutralTextColor.g,
+                                                                       Kirigami.Theme.neutralTextColor.b,
+                                                                       0.10)
+
+                                                        PC3.Label {
+                                                            id: editWarn
+                                                            anchors.fill: parent
+                                                            anchors.margins: Kirigami.Units.smallSpacing
+                                                            wrapMode: Text.Wrap
+                                                            text: "Saving this edit will remove all messages below this one and make this the latest message."
+                                                        }
+                                                    }
+
+                                                    Row {
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        PC3.ToolButton {
+                                                            visible: root.editingMessageIndex !== index
+                                                                     && modelData.role !== "error"
+                                                                     && modelData.role !== "assistant"
+                                                            icon.name: "document-edit"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: modelData.role === "queued" ? "Edit queued message" : "Edit message"
+                                                            onClicked: {
+                                                                root.editingMessageIndex = index
+                                                                root.editingDraft = modelData.content
+                                                            }
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            visible: root.editingMessageIndex === index
+                                                                     && modelData.role !== "error"
+                                                                     && modelData.role !== "assistant"
+                                                            icon.name: "dialog-ok-apply"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Apply edit"
+                                                            onClicked: root.saveEditedMessage()
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            visible: root.editingMessageIndex === index
+                                                                     && modelData.role !== "error"
+                                                                     && modelData.role !== "assistant"
+                                                            icon.name: "dialog-cancel"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Cancel edit"
+                                                            onClicked: {
+                                                                root.editingMessageIndex = -1
+                                                                root.editingDraft = ""
+                                                            }
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            icon.name: "edit-copy"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Copy message"
+                                                            onClicked: {
+                                                                // Use an invisible text input to copy to clipboard in QML
+                                                                clipboardHelper.text = modelData.content || ""
+                                                                clipboardHelper.selectAll()
+                                                                clipboardHelper.copy()
+                                                            }
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            icon.name: "edit-delete"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: modelData.role === "queued" ? "Delete queued message" : "Delete message"
+                                                            onClicked: root.deleteMessage(index)
+                                                        }
+                                                    }
                                                 }
                                             }
+                                        }
+
+                                        Rectangle {
+                                            width: parent.width
+                                            implicitHeight: 1
+                                            color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                           Kirigami.Theme.textColor.g,
+                                                           Kirigami.Theme.textColor.b,
+                                                           0.14)
                                         }
                                     }
                                 }
@@ -266,12 +480,14 @@ PlasmoidItem {
                         RowLayout {
                             visible: root.loading
                             PC3.BusyIndicator { running: root.loading; width: 20; height: 20 }
-                            PC3.Label { text: "Generating..."; opacity: 0.8 }
+                            PC3.Label {
+                                text: root.streamingResponse ? "Streaming response..." : "Thinking..."
+                                opacity: 0.8
+                            }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignBottom
                             spacing: Kirigami.Units.smallSpacing
 
                             QQC2.TextArea {
@@ -287,6 +503,9 @@ PlasmoidItem {
                                 enabled: !root.loading
                                 placeholderText: "Type message (Enter sends, Shift+Enter newline)"
 
+                                // Sync to root property so root-scope functions can read/clear it
+                                onTextChanged: root.chatInputText = text
+
                                 Keys.onPressed: function(event) {
                                     if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
                                             && !(event.modifiers & Qt.ShiftModifier)) {
@@ -297,117 +516,133 @@ PlasmoidItem {
                             }
 
                             PC3.Button {
-                                icon.name: root.loading ? "process-stop" : "document-send"
-                                text: root.loading ? "Stop" : "Send"
+                                icon.name: root.loading ? "list-add" : "document-send"
+                                text: root.loading ? "Queue" : "Send"
                                 Layout.minimumWidth: Kirigami.Units.gridUnit * 5
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                                Layout.alignment: Qt.AlignBottom
-                                enabled: root.loading || msgInput.text.trim() !== ""
-                                onClicked: root.loading ? root.stopStreaming() : root.sendMessage()
+                                enabled: root.chatInputText.trim() !== ""
+                                onClicked: root.sendMessage()
+                            }
+
+                            PC3.ToolButton {
+                                visible: root.loading
+                                icon.name: "process-stop"
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: "Stop current response"
+                                onClicked: root.stopStreaming()
                             }
                         }
                     }
                 }
 
                 Rectangle {
-                    id: historyPage
-                    radius: 6
+                    radius: 8
                     color: Kirigami.Theme.alternateBackgroundColor
 
-                    QQC2.ScrollView {
+                    ListView {
+                        id: historyList
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.smallSpacing
+                        model: root.sessions
+                        spacing: Kirigami.Units.smallSpacing
                         clip: true
-                        QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
+                        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
 
-                        ListView {
-                            id: historyList
-                            model: root.sessions
-                            spacing: Kirigami.Units.smallSpacing
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: historyList.width
+                            height: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+                            radius: 8
+                            opacity: modelData.archived ? 0.72 : 1.0
+                            color: root.historySessionTint(modelData)
 
-                            delegate: Rectangle {
-                                required property var modelData
-                                width: historyList.width
-                                height: historyContent.implicitHeight + Kirigami.Units.smallSpacing * 2
-                                radius: 8
-                                color: modelData.value === root.currentSessionId
-                                       ? Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                                 Kirigami.Theme.highlightColor.g,
-                                                 Kirigami.Theme.highlightColor.b,
-                                                 0.18)
-                                       : Qt.rgba(Kirigami.Theme.textColor.r,
-                                                 Kirigami.Theme.textColor.g,
-                                                 Kirigami.Theme.textColor.b,
-                                                 0.04)
+                            Column {
+                                id: historyCol
+                                anchors.fill: parent
+                                anchors.margins: Kirigami.Units.smallSpacing
+                                spacing: Kirigami.Units.smallSpacing / 2
 
-                                Column {
-                                    id: historyContent
-                                    anchors.fill: parent
-                                    anchors.margins: Kirigami.Units.smallSpacing
+                                Row {
+                                    width: parent.width
                                     spacing: Kirigami.Units.smallSpacing / 2
 
-                                    Row {
-                                        width: parent.width
-                                        spacing: Kirigami.Units.smallSpacing / 2
-
-                                        QQC2.TextField {
-                                            visible: root.editingSessionId === modelData.value
-                                            width: parent.width - renameBtn.width - deleteBtn.width - Kirigami.Units.smallSpacing * 2
-                                            text: root.editingSessionDraft
-                                            onTextChanged: root.editingSessionDraft = text
-                                            onAccepted: root.saveSessionRename(modelData.value)
-                                        }
+                                    Rectangle {
+                                        id: modeBadge
+                                        visible: modelData.source === "opencode"
+                                        width: modeBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
+                                        height: modeBadgeText.implicitHeight + Kirigami.Units.smallSpacing
+                                        radius: 999
+                                        color: Qt.rgba(0.20, 0.48, 0.92, 0.18)
 
                                         PC3.Label {
-                                            visible: root.editingSessionId !== modelData.value
-                                            width: parent.width - renameBtn.width - deleteBtn.width - Kirigami.Units.smallSpacing * 2
-                                            elide: Text.ElideRight
-                                            text: modelData.text || "New Chat"
-                                        }
-
-                                        PC3.ToolButton {
-                                            id: renameBtn
-                                            icon.name: root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
-                                            display: PC3.AbstractButton.IconOnly
-                                            QQC2.ToolTip.visible: hovered
-                                            QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
-                                            onClicked: {
-                                                if (root.editingSessionId === modelData.value)
-                                                    root.saveSessionRename(modelData.value)
-                                                else
-                                                    root.startSessionRename(modelData.value)
-                                            }
-                                        }
-
-                                        PC3.ToolButton {
-                                            id: deleteBtn
-                                            icon.name: root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
-                                            display: PC3.AbstractButton.IconOnly
-                                            QQC2.ToolTip.visible: hovered
-                                            QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
-                                            onClicked: {
-                                                if (root.editingSessionId === modelData.value)
-                                                    root.cancelSessionRename()
-                                                else
-                                                    root.deleteSession(modelData.value)
-                                            }
+                                            id: modeBadgeText
+                                            anchors.centerIn: parent
+                                            text: "OC"
+                                            font.bold: true
+                                            color: Qt.rgba(0.12, 0.35, 0.78, 1.0)
                                         }
                                     }
 
-                                    PC3.Label {
-                                        opacity: 0.7
-                                        text: "Updated " + root.formatDateTime(modelData.updatedAt || modelData.createdAt || Date.now())
+                                    QQC2.TextField {
+                                        visible: root.editingSessionId === modelData.value
+                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
+                                        text: root.editingSessionDraft
+                                        onTextChanged: root.editingSessionDraft = text
+                                        onAccepted: root.saveSessionRename(modelData.value)
+                                    }
+
+                                    QQC2.Button {
+                                        visible: root.editingSessionId !== modelData.value
+                                        flat: true
+                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
+                                        text: modelData.text || "New Chat"
+                                        onClicked: {
+                                            root.switchSession(modelData.value)
+                                            root.historyOnlyMode = false
+                                        }
+                                    }
+
+                                    PC3.ToolButton {
+                                        id: saveRename
+                                        icon.name: root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
+                                        display: PC3.AbstractButton.IconOnly
+                                        QQC2.ToolTip.visible: hovered
+                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
+                                        onClicked: {
+                                            if (root.editingSessionId === modelData.value)
+                                                root.saveSessionRename(modelData.value)
+                                            else
+                                                root.startSessionRename(modelData.value)
+                                        }
+                                    }
+
+                                    PC3.ToolButton {
+                                        id: archiveChat
+                                        icon.name: modelData.archived ? "archive-remove" : "archive-insert"
+                                        display: PC3.AbstractButton.IconOnly
+                                        QQC2.ToolTip.visible: hovered
+                                        QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
+                                        onClicked: root.setSessionArchived(modelData.value, !modelData.archived)
+                                    }
+
+                                    PC3.ToolButton {
+                                        id: removeChat
+                                        icon.name: root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
+                                        display: PC3.AbstractButton.IconOnly
+                                        QQC2.ToolTip.visible: hovered
+                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
+                                        onClicked: {
+                                            if (root.editingSessionId === modelData.value)
+                                                root.cancelSessionRename()
+                                            else
+                                                root.deleteSession(modelData.value)
+                                        }
                                     }
                                 }
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    acceptedButtons: Qt.LeftButton
-                                    propagateComposedEvents: true
-                                    onClicked: {
-                                        root.switchSession(modelData.value)
-                                        root.historyOnlyMode = false
-                                    }
+                                PC3.Label {
+                                    opacity: 0.7
+                                    text: root.sessionSubtitle(modelData)
                                 }
                             }
                         }
@@ -415,10 +650,70 @@ PlasmoidItem {
                 }
             }
         }
+
+        MouseArea {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            width: Kirigami.Units.gridUnit
+            height: Kirigami.Units.gridUnit
+            cursorShape: Qt.SizeFDiagCursor
+            
+            property real startX: 0
+            property real startY: 0
+            property real startW: 0
+            property real startH: 0
+            
+            onPressed: function(mouse) {
+                startX = mouse.x
+                startY = mouse.y
+                startW = parent.implicitWidth
+                startH = parent.implicitHeight
+            }
+            onPositionChanged: function(mouse) {
+                if (pressed) {
+                    var dx = mouse.x - startX
+                    var dy = mouse.y - startY
+                    var newW = Math.max(500, startW + dx)
+                    var newH = Math.max(620, startH + dy)
+                    parent.implicitWidth = newW
+                    parent.implicitHeight = newH
+                    plasmoid.configuration.customPopupWidth = newW
+                    plasmoid.configuration.customPopupHeight = newH
+                }
+            }
+            
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                Canvas {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    onPaint: {
+                        var ctx = getContext("2d");
+                        ctx.strokeStyle = Kirigami.Theme.textColor;
+                        ctx.lineWidth = 1;
+                        ctx.globalAlpha = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(width - 4, height);
+                        ctx.lineTo(width, height - 4);
+                        ctx.moveTo(width - 8, height);
+                        ctx.lineTo(width, height - 8);
+                        ctx.moveTo(width - 12, height);
+                        ctx.lineTo(width, height - 12);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
     }
 
-    function nowTime() {
-        return new Date().toLocaleTimeString()
+    function pad2(v) {
+        return v < 10 ? ("0" + v) : String(v)
+    }
+
+    function nowTime(ts) {
+        var d = ts ? new Date(ts) : new Date()
+        return pad2(d.getHours()) + ":" + pad2(d.getMinutes())
     }
 
     function formatDateTime(ts) {
@@ -443,6 +738,16 @@ PlasmoidItem {
                 for (var i = 0; i < arr.length; i++) {
                     if (!arr[i].messages)
                         arr[i].messages = []
+                    if (arr[i].archived === undefined)
+                        arr[i].archived = false
+                    if (!arr[i].source)
+                        arr[i].source = arr[i].openCodeSessionId ? "opencode" : "provider"
+                    for (var j = 0; j < arr[i].messages.length; j++) {
+                        if (!arr[i].messages[j].at)
+                            arr[i].messages[j].at = arr[i].updatedAt || arr[i].createdAt || Date.now()
+                        if (!arr[i].messages[j].time)
+                            arr[i].messages[j].time = nowTime(arr[i].messages[j].at)
+                    }
                     if (!arr[i].updatedAt)
                         arr[i].updatedAt = arr[i].createdAt || Date.now()
                 }
@@ -462,9 +767,42 @@ PlasmoidItem {
     function sortSessionsByUpdated() {
         var copy = root.sessions.slice()
         copy.sort(function(a, b) {
+            if (!!a.archived !== !!b.archived)
+                return a.archived ? 1 : -1
             return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)
         })
         root.sessions = copy
+    }
+
+    function historySessionTint(sessionData) {
+        if (!sessionData)
+            return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
+
+        if (sessionData.value === root.currentSessionId && sessionData.source === "opencode")
+            return Qt.rgba(0.20, 0.48, 0.92, 0.22)
+        if (sessionData.source === "opencode")
+            return Qt.rgba(0.20, 0.48, 0.92, 0.10)
+        if (sessionData.value === root.currentSessionId)
+            return Qt.rgba(Kirigami.Theme.highlightColor.r,
+                           Kirigami.Theme.highlightColor.g,
+                           Kirigami.Theme.highlightColor.b,
+                           0.18)
+        return Qt.rgba(Kirigami.Theme.textColor.r,
+                       Kirigami.Theme.textColor.g,
+                       Kirigami.Theme.textColor.b,
+                       0.05)
+    }
+
+    function sessionSubtitle(sessionData) {
+        var parts = []
+        if (sessionData.source === "opencode")
+            parts.push("OpenCode")
+        else
+            parts.push("Provider")
+        if (sessionData.archived)
+            parts.push("Archived")
+        parts.push("Updated " + root.formatDateTime(sessionData.updatedAt || sessionData.createdAt || Date.now()))
+        return parts.join(" · ")
     }
 
     function sessionIndexById(sessionId) {
@@ -481,6 +819,9 @@ PlasmoidItem {
             text: "New Chat",
             createdAt: Date.now(),
             updatedAt: Date.now(),
+            archived: false,
+            source: root.openCodeMode ? "opencode" : "provider",
+            openCodeSessionId: "",
             messages: []
         }
         root.sessions = [s].concat(root.sessions)
@@ -493,6 +834,8 @@ PlasmoidItem {
             root.editingDraft = ""
             root.editingSessionId = ""
             root.editingSessionDraft = ""
+            root.renamingCurrentChat = false
+            root.currentChatRenameDraft = ""
             root.historyOnlyMode = false
         }
         persistSessions()
@@ -532,6 +875,33 @@ PlasmoidItem {
         persistSessions()
     }
 
+    function setCurrentSessionSource(source) {
+        var idx = sessionIndexById(root.currentSessionId)
+        if (idx < 0)
+            return
+        var updated = root.sessions.slice()
+        var item = Object.assign({}, updated[idx])
+        item.source = source || "provider"
+        item.archived = false
+        updated[idx] = item
+        root.sessions = updated
+        persistSessions()
+    }
+
+    function setSessionArchived(sessionId, archived) {
+        var idx = sessionIndexById(sessionId)
+        if (idx < 0)
+            return
+        var updated = root.sessions.slice()
+        var item = Object.assign({}, updated[idx])
+        item.archived = !!archived
+        item.updatedAt = Date.now()
+        updated[idx] = item
+        root.sessions = updated
+        sortSessionsByUpdated()
+        persistSessions()
+    }
+
     function switchSession(sessionId) {
         if (!sessionId || sessionId === root.currentSessionId)
             return
@@ -547,11 +917,21 @@ PlasmoidItem {
         root.messages = root.sessions[idx].messages || []
         root.editingMessageIndex = -1
         root.editingDraft = ""
-        root.editingWillTruncateTail = false
         root.editingSessionId = ""
         root.editingSessionDraft = ""
+        root.renamingCurrentChat = false
+        root.currentChatRenameDraft = ""
         persistSessions()
         scrollToBottom()
+    }
+
+    function renameCurrentSession(newTitle) {
+        var title = (newTitle || "").trim()
+        if (title === "")
+            title = "New Chat"
+
+        root.currentSessionTitle = title
+        saveCurrentSessionState(true)
     }
 
     function startSessionRename(sessionId) {
@@ -622,7 +1002,7 @@ PlasmoidItem {
         root.messages = copy
         root.editingMessageIndex = -1
         root.editingDraft = ""
-        root.editingWillTruncateTail = false
+        clearCurrentOpenCodeSessionIfNeeded()
         saveCurrentSessionState(true)
     }
 
@@ -630,75 +1010,488 @@ PlasmoidItem {
         var i = root.editingMessageIndex
         if (i < 0 || i >= root.messages.length)
             return
+        if ((root.messages[i].role || "") === "error") {
+            root.editingMessageIndex = -1
+            root.editingDraft = ""
+            return
+        }
 
-        var copy = root.messages.slice(0, i + 1)
+        var role = root.messages[i].role || ""
+        var isQueued = role === "queued"
+
+        var copy = isQueued ? root.messages.slice() : root.messages.slice(0, i + 1)
         var item = Object.assign({}, copy[i])
         item.content = root.editingDraft
-        item.time = nowTime()
+        item.at = Date.now()
+        item.time = nowTime(item.at)
         copy[i] = item
 
         root.messages = copy
         root.editingMessageIndex = -1
         root.editingDraft = ""
-        root.editingWillTruncateTail = false
+        clearCurrentOpenCodeSessionIfNeeded()
         saveCurrentSessionState(true)
+
+        // Re-run from edited user prompt so assistant response reflects the new text.
+        if (role === "user" && !root.loading) {
+            root.userScrolledUp = false
+            sendMessageByIndex(i)
+        }
+    }
+
+    function openCodeBaseUrl() {
+        var raw = (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1").trim()
+        return raw.replace(/\/v1\/?$/, "").replace(/\/$/, "")
+    }
+
+    function currentOpenCodeSessionId() {
+        var idx = sessionIndexById(root.currentSessionId)
+        if (idx < 0)
+            return ""
+        return root.sessions[idx].openCodeSessionId || ""
+    }
+
+    function setCurrentOpenCodeSessionId(remoteSessionId) {
+        var idx = sessionIndexById(root.currentSessionId)
+        if (idx < 0)
+            return
+        var updated = root.sessions.slice()
+        var item = Object.assign({}, updated[idx])
+        item.openCodeSessionId = remoteSessionId || ""
+        updated[idx] = item
+        root.sessions = updated
+        persistSessions()
+    }
+
+    function clearCurrentOpenCodeSessionIfNeeded() {
+        if (!root.openCodeMode)
+            return
+        setCurrentOpenCodeSessionId("")
+    }
+
+    function extractReadableError(prefix, errObj, fallbackText) {
+        if (errObj) {
+            if (errObj.data && errObj.data.message)
+                return prefix + errObj.data.message
+            if (errObj.message)
+                return prefix + errObj.message
+            if (errObj.name)
+                return prefix + errObj.name
+        }
+        return prefix + (fallbackText || "Unknown error")
+    }
+
+    function beginAssistantStreaming(modelLabel) {
+        if (modelLabel)
+            root.openCodeAssistantModelLabel = modelLabel
+    }
+
+    function updateAssistantStreamingContent(text, modelLabel) {
+        var incoming = text || ""
+        if (incoming === "")
+            return
+        if (modelLabel)
+            root.openCodeAssistantModelLabel = modelLabel
+
+        if (root.openCodeAssistantMessageIndex < 0) {
+            var ts = Date.now()
+            root.messages = root.messages.concat([{
+                role: "assistant",
+                content: incoming,
+                time: nowTime(ts),
+                at: ts,
+                model: root.openCodeAssistantModelLabel || "OpenCode"
+            }])
+            root.openCodeAssistantMessageIndex = root.messages.length - 1
+            root.streamingResponse = true
+            if (!root.userScrolledUp)
+                Qt.callLater(scrollToBottom)
+            return
+        }
+
+        var copy = root.messages.slice()
+        var item = Object.assign({}, copy[root.openCodeAssistantMessageIndex])
+        var existing = item.content || ""
+
+        // OpenCode streams can be cumulative or token-delta; handle both.
+        if (incoming.indexOf(existing) === 0)
+            item.content = incoming
+        else if (existing.indexOf(incoming) === 0)
+            item.content = existing
+        else
+            item.content = existing + incoming
+
+        item.at = Date.now()
+        item.time = nowTime(item.at)
+        item.model = root.openCodeAssistantModelLabel || item.model || "OpenCode"
+        root.streamingResponse = (item.content || "") !== ""
+        copy[root.openCodeAssistantMessageIndex] = item
+        root.messages = copy
+        if (!root.userScrolledUp)
+            Qt.callLater(scrollToBottom)
+    }
+
+    function finishOpenCodeRequest() {
+        root.loading = false
+        root.activeXhr = null
+        root.openCodeActiveSessionId = ""
+        root.openCodeAssistantMessageIndex = -1
+        root.openCodeAssistantServerMessageId = ""
+        root.openCodeErrorShownForRequest = false
+        root.streamingResponse = false
+        saveCurrentSessionState(true)
+        processNextQueuedMessage()
+    }
+
+    function ensureOpenCodeEventStream() {
+        if (root.openCodeEventXhr)
+            return
+
+        var xhr = new XMLHttpRequest()
+        var buffer = ""
+        var offset = 0
+        var url = openCodeBaseUrl() + "/event"
+
+        root.openCodeEventXhr = xhr
+
+        xhr.open("GET", url, true)
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
+                return
+
+            var delta = xhr.responseText.slice(offset)
+            offset = xhr.responseText.length
+            buffer += delta
+
+            while (true) {
+                var split = buffer.indexOf("\n\n")
+                if (split < 0)
+                    break
+
+                var block = buffer.slice(0, split)
+                buffer = buffer.slice(split + 2)
+
+                var lines = block.split("\n")
+                for (var i = 0; i < lines.length; i++) {
+                    if (lines[i].indexOf("data:") !== 0)
+                        continue
+                    try {
+                        var eventObj = JSON.parse(lines[i].slice(5).trim())
+                        handleOpenCodeEvent(eventObj)
+                    } catch (eventError) {
+                    }
+                }
+            }
+
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                root.openCodeEventXhr = null
+                if (root.openCodeMode)
+                    Qt.callLater(ensureOpenCodeEventStream)
+            }
+        }
+
+        xhr.onerror = function() {
+            root.openCodeEventXhr = null
+        }
+
+        try {
+            xhr.send()
+        } catch (streamError) {
+            root.openCodeEventXhr = null
+        }
+    }
+
+    function handleOpenCodeEvent(eventObj) {
+        var props = eventObj && eventObj.properties ? eventObj.properties : {}
+        var sessionId = props.sessionID || ""
+        if (!sessionId || sessionId !== root.openCodeActiveSessionId)
+            return
+
+        if (eventObj.type === "message.updated") {
+            var info = props.info || {}
+            if (info.role === "assistant") {
+                root.openCodeAssistantServerMessageId = info.id || root.openCodeAssistantServerMessageId
+                beginAssistantStreaming((info.providerID && info.modelID) ? (info.providerID + "/" + info.modelID) : (info.modelID || "OpenCode"))
+                if (info.error && !root.openCodeErrorShownForRequest) {
+                    root.openCodeErrorShownForRequest = true
+                    pushErrorMessage(extractReadableError("OpenCode: ", info.error, "Request failed."))
+                }
+            }
+        } else if (eventObj.type === "message.part.updated") {
+            var part = props.part || {}
+            if (part.type === "text"
+                    && root.openCodeAssistantServerMessageId !== ""
+                    && part.messageID === root.openCodeAssistantServerMessageId)
+                updateAssistantStreamingContent(part.text || "", "OpenCode")
+        } else if (eventObj.type === "session.error") {
+            if (!root.openCodeErrorShownForRequest) {
+                root.openCodeErrorShownForRequest = true
+                pushErrorMessage(extractReadableError("OpenCode: ", props.error, "Session error."))
+            }
+        } else if (eventObj.type === "session.status") {
+            var status = props.status || {}
+            if (status.type === "idle")
+                finishOpenCodeRequest()
+        } else if (eventObj.type === "session.idle") {
+            finishOpenCodeRequest()
+        }
+    }
+
+    function ensureCurrentOpenCodeSession(callback) {
+        var existing = currentOpenCodeSessionId()
+        if (existing !== "") {
+            callback(existing)
+            return
+        }
+
+        var xhr = new XMLHttpRequest()
+        xhr.open("POST", openCodeBaseUrl() + "/session", true)
+        xhr.setRequestHeader("Content-Type", "application/json")
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var obj = JSON.parse(xhr.responseText)
+                    var remoteId = obj.id || ""
+                    if (remoteId === "") {
+                        pushErrorMessage("OpenCode: server created a session without an id.")
+                        return
+                    }
+                    setCurrentOpenCodeSessionId(remoteId)
+                    callback(remoteId)
+                } catch (parseError) {
+                    pushErrorMessage("OpenCode: could not parse session creation response.")
+                }
+            } else {
+                pushErrorMessage("OpenCode: failed to create a server session (HTTP " + xhr.status + ").")
+            }
+        }
+
+        xhr.onerror = function() {
+            pushErrorMessage("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.")
+        }
+
+        try {
+            xhr.send(JSON.stringify({ title: root.currentSessionTitle || "Kai Chat" }))
+        } catch (sendError) {
+            pushErrorMessage("OpenCode: failed to create session: " + sendError)
+        }
+    }
+
+    function doOpenCodeRequest() {
+        ensureOpenCodeEventStream()
+        ensureCurrentOpenCodeSession(function(remoteSessionId) {
+            var xhr = new XMLHttpRequest()
+            var modelId = (plasmoid.configuration.openCodeModel || "").trim()
+            var providerId = (plasmoid.configuration.openCodeProvider || "").trim()
+            var requestFinalized = false
+
+            function failOpenCodeRequest(message) {
+                if (requestFinalized)
+                    return
+                requestFinalized = true
+                if (!root.openCodeErrorShownForRequest) {
+                    root.openCodeErrorShownForRequest = true
+                    pushErrorMessage(message)
+                }
+                finishOpenCodeRequest()
+            }
+
+            root.loading = true
+            root.streamingResponse = false
+            root.activeXhr = xhr
+            root.openCodeActiveSessionId = remoteSessionId
+            root.openCodeAssistantMessageIndex = -1
+            root.openCodeAssistantServerMessageId = ""
+            root.openCodeErrorShownForRequest = false
+
+            xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true)
+            xhr.setRequestHeader("Content-Type", "application/json")
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE)
+                    return
+
+                if (requestFinalized)
+                    return
+
+                if (xhr.status < 200 || xhr.status >= 300) {
+                    var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error"
+                    failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.")
+                    return
+                }
+
+                try {
+                    var obj = JSON.parse(xhr.responseText)
+                    if (obj.info && obj.info.id)
+                        root.openCodeAssistantServerMessageId = obj.info.id
+                    if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
+                        root.openCodeErrorShownForRequest = true
+                        pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."))
+                    }
+
+                    if (obj.parts && obj.parts.length > 0) {
+                        var combined = ""
+                        for (var i = 0; i < obj.parts.length; i++) {
+                            if (obj.parts[i].type === "text")
+                                combined += obj.parts[i].text || obj.parts[i].content || ""
+                        }
+                        if (combined !== "")
+                            updateAssistantStreamingContent(combined, providerId + "/" + modelId)
+                        else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
+                            updateAssistantStreamingContent("(empty response)", providerId + "/" + modelId)
+                    }
+                } catch (parseResponseError) {
+                }
+
+                requestFinalized = true
+                finishOpenCodeRequest()
+            }
+
+            xhr.onerror = function() {
+                failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.")
+            }
+
+            try {
+                xhr.send(JSON.stringify({
+                    model: {
+                        providerID: providerId,
+                        modelID: modelId
+                    },
+                    system: plasmoid.configuration.systemPrompt
+                            || "You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
+                    parts: [{ type: "text", text: root.messages[root.messages.length - 1].content || "" }]
+                }))
+            } catch (sendError) {
+                if (!root.openCodeErrorShownForRequest) {
+                    root.openCodeErrorShownForRequest = true
+                    pushErrorMessage("OpenCode: failed to send request: " + sendError)
+                }
+                finishOpenCodeRequest()
+            }
+        })
     }
 
     function scrollToBottom() {
-        if (root.listRef)
-            root.listRef.positionViewAtEnd()
+        if (root.msgListViewRef)
+            root.msgListViewRef.positionViewAtEnd()
+    }
+
+    function messageTimestampAt(index) {
+        if (index < 0 || index >= root.messages.length)
+            return Date.now()
+        var m = root.messages[index] || {}
+        return m.at || Date.now()
+    }
+
+    function messageDayKeyAt(index) {
+        var d = new Date(messageTimestampAt(index))
+        return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate()
+    }
+
+    function dayBucketLabel(ts) {
+        var target = new Date(ts)
+        var now = new Date()
+        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        var targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate())
+        var daysDiff = Math.floor((today.getTime() - targetDay.getTime()) / 86400000)
+
+        if (daysDiff === 0)
+            return "Today"
+        if (daysDiff === 1)
+            return "Yesterday"
+        if (daysDiff === 2)
+            return "Day before yesterday"
+
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        return months[target.getMonth()] + " " + pad2(target.getDate()) + ", " + target.getFullYear()
+    }
+
+    function countMessagesForDayKey(dayKey) {
+        var count = 0
+        for (var i = 0; i < root.messages.length; i++) {
+            if (messageDayKeyAt(i) === dayKey)
+                count++
+        }
+        return count
+    }
+
+    function dayDividerLabelForIndex(index) {
+        var key = messageDayKeyAt(index)
+        return dayBucketLabel(messageTimestampAt(index)) + " (" + countMessagesForDayKey(key) + ")"
+    }
+
+    function formatMessageTime(message, index) {
+        if (message && message.time)
+            return message.time
+        return nowTime(messageTimestampAt(index))
     }
 
     function pushErrorMessage(text) {
-        root.messages = root.messages.concat([{ role: "error", content: text, time: nowTime(), model: "" }])
+        var ts = Date.now()
+        root.messages = root.messages.concat([{ role: "error", content: "DEBUG: " + text, time: nowTime(ts), at: ts, model: "" }])
         scrollToBottom()
         saveCurrentSessionState(true)
     }
 
-    function validateProviderConfig(cfg) {
-        if (!cfg)
-            return "Provider configuration missing."
-        if (!cfg.baseUrl && cfg.type !== "anthropic")
-            return "Provider base URL is missing."
-        if (!cfg.model)
-            return "Model is missing for the selected provider."
-        if (cfg.type === "anthropic" && !cfg.apiKey)
-            return "Anthropic API key missing in settings."
-        if (cfg.type !== "anthropic" && !cfg.allowEmptyKey && !cfg.apiKey)
-            return "API key missing for the selected provider."
-        return ""
+    function appendUserMessage(text, role) {
+        var ts = Date.now()
+        root.messages = root.messages.concat([{
+            role: role || "user",
+            content: text,
+            time: nowTime(ts),
+            at: ts,
+            model: "",
+            queueId: role === "queued" ? (++root.queueCounter) : 0
+        }])
+        saveCurrentSessionState(true)
+        if (!root.userScrolledUp)
+            Qt.callLater(scrollToBottom)
     }
 
-    function sendMessage() {
-        var text = (root.inputRef ? root.inputRef.text : "").trim()
-        if (text === "" || root.loading)
+    function validateCurrentSendTarget() {
+        if (root.openCodeMode)
+            return validateOpenCodeConfig()
+
+        var provider = plasmoid.configuration.provider || "openai"
+        var providerCfg = getProviderConfig(provider)
+        return validateProviderConfig(provider, providerCfg)
+    }
+
+    function sendMessageByIndex(index) {
+        var source = root.messages[index] || {}
+        var text = (source.content || "").trim()
+        if (!text)
             return
 
-        root.messages = root.messages.concat([{ role: "user", content: text, time: nowTime(), model: "" }])
-        if (root.inputRef)
-            root.inputRef.text = ""
+        var validationError = validateCurrentSendTarget()
+        if (validationError !== "") {
+            pushErrorMessage(validationError)
+            return
+        }
 
-        saveCurrentSessionState(true)
-        scrollToBottom()
+        if ((source.role || "") === "queued") {
+            var copy = root.messages.slice()
+            var queued = Object.assign({}, copy[index])
+            queued.role = "user"
+            queued.at = Date.now()
+            queued.time = nowTime(queued.at)
+            copy[index] = queued
+            root.messages = copy
+            saveCurrentSessionState(true)
+        }
+
+        setCurrentSessionSource(root.openCodeMode ? "opencode" : "provider")
 
         if (root.openCodeMode) {
-            doOpenAICompatRequest(
-                (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1"),
-                "",
-                (plasmoid.configuration.openCodeModel || ""),
-                null,
-                (plasmoid.configuration.openCodeModel || "OpenCode")
-            )
+            doOpenCodeRequest()
             return
         }
 
         var provider = plasmoid.configuration.provider || "openai"
         var providerCfg = getProviderConfig(provider)
-        var validationError = validateProviderConfig(providerCfg)
-        if (validationError !== "") {
-            pushErrorMessage(validationError)
-            return
-        }
 
         if (providerCfg.type === "anthropic") {
             doAnthropicRequest(providerCfg.apiKey, providerCfg.model)
@@ -713,12 +1506,105 @@ PlasmoidItem {
         }
     }
 
+    function processNextQueuedMessage() {
+        if (root.loading)
+            return
+        for (var i = 0; i < root.messages.length; i++) {
+            if ((root.messages[i].role || "") === "queued") {
+                sendMessageByIndex(i)
+                return
+            }
+        }
+    }
+
+    function providerDisplayName(providerId) {
+        if (providerId === "openai") return "OpenAI"
+        if (providerId === "anthropic") return "Anthropic"
+        if (providerId === "groq") return "Groq"
+        if (providerId === "deepseek") return "DeepSeek"
+        if (providerId === "minimax") return "MiniMax"
+        if (providerId === "fireworks") return "Fireworks"
+        if (providerId === "google") return "Google Gemini"
+        if (providerId === "openrouter") return "OpenRouter"
+        if (providerId === "mistral") return "Mistral"
+        if (providerId === "cloudflare") return "Cloudflare"
+        if (providerId === "nvidia") return "NVIDIA"
+        if (providerId === "huggingface") return "Hugging Face"
+        if (providerId === "xai") return "xAI"
+        if (providerId === "lmstudio") return "LM Studio"
+        if (providerId === "local") return "Local"
+        return providerId || "Selected provider"
+    }
+
+    function validateOpenCodeConfig() {
+        var missing = []
+        if (!(plasmoid.configuration.openCodeUrl || "").trim())
+            missing.push("OpenCode URL")
+        if (!(plasmoid.configuration.openCodeProvider || "").trim())
+            missing.push("OpenCode provider")
+        if (!(plasmoid.configuration.openCodeModel || "").trim())
+            missing.push("OpenCode model")
+
+        if (missing.length > 0)
+            return "Cannot send yet. Configure: " + missing.join(", ") + "."
+        return ""
+    }
+
+    function validateProviderConfig(providerId, cfg) {
+        if (!cfg)
+            return "Provider configuration missing."
+
+        var missing = []
+        var name = providerDisplayName(providerId)
+
+        if (!providerId)
+            missing.push("provider")
+        if (!cfg.baseUrl && cfg.type !== "anthropic")
+            missing.push("base URL")
+        if (!cfg.model)
+            missing.push("model")
+        if (cfg.type === "anthropic" && !cfg.apiKey)
+            missing.push("API key")
+        if (cfg.type !== "anthropic" && !cfg.allowEmptyKey && !cfg.apiKey)
+            missing.push("API key")
+
+        if (missing.length > 0)
+            return "Cannot send with " + name + ". Missing: " + missing.join(", ") + "."
+
+        return ""
+    }
+
+    function sendMessage() {
+        try {
+            var text = (root.chatInputText || "").trim()
+            if (text === "")
+                return
+
+            root.chatInputText = ""
+            root.clearChatInput()
+            root.userScrolledUp = false
+
+            if (root.loading) {
+                appendUserMessage(text, "queued")
+                return
+            }
+
+            appendUserMessage(text, "user")
+            sendMessageByIndex(root.messages.length - 1)
+        } catch (err) {
+            root.loading = false
+            root.activeXhr = null
+            pushErrorMessage("Send failed: " + err)
+            processNextQueuedMessage()
+        }
+    }
+
     function getProviderConfig(provider) {
         if (provider === "anthropic") {
             return {
                 type: "anthropic",
                 apiKey: plasmoid.configuration.anthropicApiKey || "",
-                model: plasmoid.configuration.anthropicModel || "claude-3-5-sonnet-latest",
+                model: plasmoid.configuration.anthropicModel || "",
                 allowEmptyKey: false
             }
         }
@@ -728,6 +1614,16 @@ PlasmoidItem {
                 baseUrl: plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
                 apiKey: "",
                 model: plasmoid.configuration.localModel || "",
+                headers: null,
+                allowEmptyKey: true
+            }
+        }
+        if (provider === "lmstudio") {
+            return {
+                type: "openai-compat",
+                baseUrl: plasmoid.configuration.lmStudioBaseUrl || "http://localhost:1234/v1",
+                apiKey: "",
+                model: plasmoid.configuration.lmStudioModel || "",
                 headers: null,
                 allowEmptyKey: true
             }
@@ -742,20 +1638,53 @@ PlasmoidItem {
                 allowEmptyKey: false
             }
         }
+        if (provider === "deepseek") {
+            return {
+                type: "openai-compat",
+                baseUrl: plasmoid.configuration.deepSeekBaseUrl || "https://api.deepseek.com",
+                apiKey: plasmoid.configuration.deepSeekApiKey || "",
+                model: plasmoid.configuration.deepSeekModel || "",
+                headers: null,
+                allowEmptyKey: false
+            }
+        }
+        if (provider === "minimax") {
+            return {
+                type: "openai-compat",
+                baseUrl: plasmoid.configuration.miniMaxBaseUrl || "https://api.minimax.io/v1",
+                apiKey: plasmoid.configuration.miniMaxApiKey || "",
+                model: plasmoid.configuration.miniMaxModel || "",
+                headers: null,
+                allowEmptyKey: false
+            }
+        }
+        if (provider === "fireworks") {
+            return {
+                type: "openai-compat",
+                baseUrl: plasmoid.configuration.fireworksBaseUrl || "https://api.fireworks.ai/inference/v1",
+                apiKey: plasmoid.configuration.fireworksApiKey || "",
+                model: plasmoid.configuration.fireworksModel || "",
+                headers: null,
+                allowEmptyKey: false
+            }
+        }
+        if (provider === "google") {
+            return {
+                type: "openai-compat",
+                baseUrl: plasmoid.configuration.googleBaseUrl || "https://generativelanguage.googleapis.com/v1beta/openai/",
+                apiKey: plasmoid.configuration.googleApiKey || "",
+                model: plasmoid.configuration.googleModel || "",
+                headers: null,
+                allowEmptyKey: false
+            }
+        }
         if (provider === "openrouter") {
-            var headers = {}
-            var referer = plasmoid.configuration.openRouterReferer || ""
-            var title = plasmoid.configuration.openRouterTitle || "Kai Chat"
-            if (referer)
-                headers["HTTP-Referer"] = referer
-            if (title)
-                headers["X-OpenRouter-Title"] = title
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.openRouterBaseUrl || "https://openrouter.ai/api/v1",
                 apiKey: plasmoid.configuration.openRouterApiKey || "",
                 model: plasmoid.configuration.openRouterModel || "",
-                headers: headers,
+                headers: null,
                 allowEmptyKey: false
             }
         }
@@ -821,7 +1750,7 @@ PlasmoidItem {
 
     function buildOpenAICompatPayload() {
         var sys = plasmoid.configuration.systemPrompt
-                  || "You are Kai Chat, a precise and helpful assistant. Answer clearly, ask for missing context when needed, and avoid hallucinations."
+                  || "You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
         var arr = [{ role: "system", content: sys }]
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i]
@@ -844,23 +1773,33 @@ PlasmoidItem {
     function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
         var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions"
         var xhr = new XMLHttpRequest()
-        root.loading = true
-        root.activeXhr = xhr
 
         var sseBuffer = ""
         var sseOffset = 0
         var assistantIdx = -1
+        var streamedAnyToken = false
+        var errorHandled = false
 
-        xhr.open("POST", url, true)
-        xhr.setRequestHeader("Content-Type", "application/json")
-        if (apiKey !== "")
-            xhr.setRequestHeader("Authorization", "Bearer " + apiKey)
-        if (extraHeaders) {
-            for (var headerName in extraHeaders) {
-                if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
-                    xhr.setRequestHeader(headerName, extraHeaders[headerName])
+        try {
+            xhr.open("POST", url, true)
+            xhr.setRequestHeader("Content-Type", "application/json")
+            if (apiKey !== "")
+                xhr.setRequestHeader("Authorization", "Bearer " + apiKey)
+            if (extraHeaders) {
+                for (var headerName in extraHeaders) {
+                    if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
+                        xhr.setRequestHeader(headerName, extraHeaders[headerName])
+                }
             }
+        } catch (setupError) {
+            root.loading = false
+            root.activeXhr = null
+            pushErrorMessage("Failed to start request: " + setupError)
+            return
         }
+
+        root.loading = true
+        root.activeXhr = xhr
 
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.LOADING || xhr.readyState === XMLHttpRequest.DONE) {
@@ -891,17 +1830,22 @@ PlasmoidItem {
                                         && obj.choices[0].delta
                                         && obj.choices[0].delta.content) || ""
                             if (token !== "") {
+                                streamedAnyToken = true
+                                var chunkTs = Date.now()
                                 if (assistantIdx < 0) {
-                                    root.messages = root.messages.concat([{ role: "assistant", content: token, time: nowTime(), model: modelLabel || model || "" }])
+                                    root.messages = root.messages.concat([{ role: "assistant", content: token, time: nowTime(chunkTs), at: chunkTs, model: modelLabel || model || "" }])
                                     assistantIdx = root.messages.length - 1
                                 } else {
                                     var copy = root.messages.slice()
                                     var a = Object.assign({}, copy[assistantIdx])
                                     a.content = (a.content || "") + token
+                                    a.at = chunkTs
+                                    a.time = nowTime(chunkTs)
                                     copy[assistantIdx] = a
                                     root.messages = copy
                                 }
-                                scrollToBottom()
+                                if (!root.userScrolledUp)
+                                    Qt.callLater(scrollToBottom)
                             }
                         } catch (e) {
                         }
@@ -914,40 +1858,83 @@ PlasmoidItem {
                 root.activeXhr = null
 
                 if (xhr.status < 200 || xhr.status >= 300) {
-                    var err = "HTTP " + xhr.status
+                    if (errorHandled)
+                        return
+                    errorHandled = true
+                    var err = "Request to " + url + " failed"
+                    if (xhr.status)
+                        err += " (HTTP " + xhr.status + ")"
                     try {
                         var eobj = JSON.parse(xhr.responseText)
-                        if (eobj.error && eobj.error.message)
-                            err = eobj.error.message
+                        if (eobj.error) {
+                            if (typeof eobj.error === "string") {
+                                err += " | " + eobj.error
+                            } else {
+                                if (eobj.error.message)
+                                    err = "API Error (" + xhr.status + "): " + eobj.error.message
+                                if (eobj.error.metadata) {
+                                    try {
+                                        err += " | " + JSON.stringify(eobj.error.metadata)
+                                    } catch(ex) {
+                                        err += " | " + eobj.error.metadata
+                                    }
+                                }
+                            }
+                        }
                     } catch (e2) {
                     }
                     pushErrorMessage(err)
+                } else if (!streamedAnyToken) {
+                    try {
+                        var parsed = JSON.parse(xhr.responseText)
+                        var finalText = (parsed.choices && parsed.choices[0]
+                                         && parsed.choices[0].message
+                                         && parsed.choices[0].message.content) || ""
+                        if (finalText !== "") {
+                            var doneTs = Date.now()
+                            root.messages = root.messages.concat([{ role: "assistant", content: finalText, time: nowTime(doneTs), at: doneTs, model: modelLabel || model || "" }])
+                        }
+                    } catch (doneParseError) {
+                    }
                 }
 
                 saveCurrentSessionState(true)
+                processNextQueuedMessage()
             }
         }
 
         xhr.onerror = function() {
+            if (errorHandled)
+                return
+            errorHandled = true
             root.loading = false
             root.activeXhr = null
-            pushErrorMessage("Network error")
+            pushErrorMessage("Could not reach " + url + ". Check the server URL and whether that endpoint accepts API requests.")
+            processNextQueuedMessage()
         }
 
-        xhr.send(JSON.stringify({
-            model: model,
-            messages: buildOpenAICompatPayload(),
-            stream: true
-        }))
+        try {
+            xhr.send(JSON.stringify({
+                model: model,
+                messages: buildOpenAICompatPayload(),
+                stream: true
+            }))
+        } catch (sendError) {
+            root.loading = false
+            root.activeXhr = null
+            pushErrorMessage("Failed to send request: " + sendError)
+        }
     }
 
     function doAnthropicRequest(apiKey, model) {
         if (!apiKey) {
             pushErrorMessage("Anthropic API key missing in settings.")
+            processNextQueuedMessage()
             return
         }
 
         var xhr = new XMLHttpRequest()
+        var errorHandled = false
         root.loading = true
         root.activeXhr = xhr
 
@@ -973,7 +1960,8 @@ PlasmoidItem {
                                 text += obj.content[i].text
                         }
                     }
-                    root.messages = root.messages.concat([{ role: "assistant", content: text || "(empty response)", time: nowTime(), model: model || "" }])
+                    var ts = Date.now()
+                    root.messages = root.messages.concat([{ role: "assistant", content: text || "(empty response)", time: nowTime(ts), at: ts, model: model || "" }])
                 } catch (e) {
                     pushErrorMessage("Failed to parse Anthropic response")
                 }
@@ -981,8 +1969,16 @@ PlasmoidItem {
                 var err = "Anthropic HTTP " + xhr.status
                 try {
                     var eobj = JSON.parse(xhr.responseText)
-                    if (eobj.error && eobj.error.message)
-                        err = eobj.error.message
+                    if (eobj.error) {
+                        if (typeof eobj.error === "string") {
+                            err += " | " + eobj.error
+                        } else {
+                            if (eobj.error.message)
+                                err = "Anthropic Error (" + xhr.status + "): " + eobj.error.message
+                            if (eobj.error.type)
+                                err = "[" + eobj.error.type + "] " + err
+                        }
+                    }
                 } catch (e2) {
                 }
                 pushErrorMessage(err)
@@ -990,19 +1986,24 @@ PlasmoidItem {
 
             scrollToBottom()
             saveCurrentSessionState(true)
+            processNextQueuedMessage()
         }
 
         xhr.onerror = function() {
+            if (errorHandled)
+                return
+            errorHandled = true
             root.loading = false
             root.activeXhr = null
-            pushErrorMessage("Network error")
+            pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages. Check network access and API configuration.")
+            processNextQueuedMessage()
         }
 
         xhr.send(JSON.stringify({
             model: model,
             max_tokens: 1024,
             system: plasmoid.configuration.systemPrompt
-                    || "You are Kai Chat, a precise and helpful assistant. Answer clearly, ask for missing context when needed, and avoid hallucinations.",
+                    || "You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
             messages: buildAnthropicPayload()
         }))
     }
@@ -1017,5 +2018,6 @@ PlasmoidItem {
         }
         root.loading = false
         saveCurrentSessionState(true)
+        processNextQueuedMessage()
     }
 }

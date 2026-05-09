@@ -9,6 +9,14 @@
       <default>openai</default>
     </entry>
 
+    <entry name="appDisplayName" type="String">
+      <default>Kai Chat</default>
+    </entry>
+
+    <entry name="popupSizeMode" type="Int">
+      <default>0</default>
+    </entry>
+
     <entry name="baseUrl" type="String">
       <default>https://api.openai.com/v1</default>
     </entry>
@@ -34,6 +42,46 @@
     </entry>
     <entry name="groqModel" type="String">
       <default>llama-3.3-70b-versatile</default>
+    </entry>
+
+    <entry name="deepSeekBaseUrl" type="String">
+      <default>https://api.deepseek.com</default>
+    </entry>
+    <entry name="deepSeekApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="deepSeekModel" type="String">
+      <default>deepseek-v4-pro</default>
+    </entry>
+
+    <entry name="miniMaxBaseUrl" type="String">
+      <default>https://api.minimax.io/v1</default>
+    </entry>
+    <entry name="miniMaxApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="miniMaxModel" type="String">
+      <default>MiniMax-M2.7</default>
+    </entry>
+
+    <entry name="fireworksBaseUrl" type="String">
+      <default>https://api.fireworks.ai/inference/v1</default>
+    </entry>
+    <entry name="fireworksApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="fireworksModel" type="String">
+      <default>accounts/fireworks/models/llama-v3p3-70b-instruct</default>
+    </entry>
+
+    <entry name="googleBaseUrl" type="String">
+      <default>https://generativelanguage.googleapis.com/v1beta/openai/</default>
+    </entry>
+    <entry name="googleApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="googleModel" type="String">
+      <default>gemini-3-flash-preview</default>
     </entry>
 
     <entry name="openRouterBaseUrl" type="String">
@@ -102,6 +150,13 @@
       <default>grok-2-latest</default>
     </entry>
 
+    <entry name="lmStudioBaseUrl" type="String">
+      <default>http://localhost:1234/v1</default>
+    </entry>
+    <entry name="lmStudioModel" type="String">
+      <default></default>
+    </entry>
+
     <entry name="localBaseUrl" type="String">
       <default>http://localhost:11434/v1</default>
     </entry>
@@ -121,9 +176,15 @@
     <entry name="openCodeModel" type="String">
       <default></default>
     </entry>
+    <entry name="openCodeStartCommand" type="String">
+      <default>nohup opencode serve --port 4096 >/tmp/kaichat-opencode.log 2&gt;&amp;1 &amp; echo OpenCode start command launched.</default>
+    </entry>
+    <entry name="openCodeStopCommand" type="String">
+      <default>pkill -f opencode &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo OpenCode stop command launched. || echo No OpenCode process matched.</default>
+    </entry>
 
     <entry name="kwalletName" type="String">
-      <default>KaiChatWallet</default>
+      <default>kaichatwallet</default>
     </entry>
 
     <entry name="systemPrompt" type="String">
@@ -135,6 +196,12 @@
     </entry>
     <entry name="lastSessionId" type="String">
       <default></default>
+    </entry>
+      <entry name="customPopupWidth" type="Int">
+      <default>760</default>
+    </entry>
+    <entry name="customPopupHeight" type="Int">
+      <default>760</default>
     </entry>
   </group>
 </kcfg>
