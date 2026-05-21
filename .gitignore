@@ -15,3 +15,7 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Local developer documents
+FORUSER.md
+audit.md
+
