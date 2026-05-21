@@ -5,10 +5,18 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-05-21
+
+### Fixed
+- **System Hang — True Root Cause Found and Fixed**: The actual cause was `textFormat: Text.MarkdownText` on the message content label. Qt's Markdown renderer converts the entire AI response into a QTextDocument rich-text tree — for long responses with code blocks, headers, and lists this takes 5–15 seconds and **completely blocks** the Plasma shell's single main thread. Switched to `Text.PlainText` which renders instantly regardless of response length.
+- **Dead Code Cleanup**: Removed the now-unused SSE batch timer, buffer properties, and `flushSseBuffer()` function left over from the v1.2.0 streaming experiment.
+
+---
+
 ## [1.2.1] - 2026-05-21
 
 ### Fixed
-- **System Hang During AI Response (Definitive Fix)**: Removed streaming entirely. The widget now sends `stream: false` and waits for the complete response before displaying it. The previous streaming approach re-rendered the entire QML delegate tree on every individual SSE token, which saturated the main thread and made the entire KDE desktop unresponsive. With non-streaming mode there is exactly one UI update per response — the hang is gone.
+- **System Hang During AI Response (Partial)**: Removed streaming (`stream: false`). This eliminated per-token writes but the hang persisted because the real bottleneck was the Markdown renderer, not the network layer.
 
 ---
 

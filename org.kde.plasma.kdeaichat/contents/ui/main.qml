@@ -47,20 +47,6 @@ PlasmoidItem {
     property bool userScrolledUp: false
     property int queueCounter: 0
 
-    // ── Streaming batch-buffer to avoid re-rendering the messages list on every
-    //    individual token (which hammers the QML binding engine and hangs the desktop).
-    property string _sseTokenBuffer: ""
-    property int    _sseAssistantIdx: -1
-    property string _sseModelLabel: ""
-
-    Timer {
-        id: sseFlushTimer
-        interval: 80        // flush at most ~12 times/second
-        repeat: true
-        running: false
-        onTriggered: root.flushSseBuffer()
-    }
-
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
     readonly property bool popupIsDark: {
@@ -430,12 +416,11 @@ PlasmoidItem {
                                                         visible: root.editingMessageIndex !== index || modelData.role === "error"
                                                         width: parent.width
                                                         wrapMode: Text.Wrap
-                                                        textFormat: Text.MarkdownText
+                                                        textFormat: Text.PlainText
                                                         text: modelData.content
                                                         color: modelData.role === "error"
                                                                ? Kirigami.Theme.negativeTextColor
                                                                : Kirigami.Theme.textColor
-                                                        onLinkActivated: function(link) { Qt.openUrlExternally(link) }
                                                     }
 
                                                     Row {
@@ -1252,38 +1237,6 @@ PlasmoidItem {
             root.openCodeAssistantModelLabel = modelLabel
     }
 
-
-    // Flush accumulated SSE token buffer to root.messages in one batched write.
-    // Called by sseFlushTimer every 80ms to keep the main thread free.
-    function flushSseBuffer() {
-        var buffered = root._sseTokenBuffer
-        if (buffered === "")
-            return
-        root._sseTokenBuffer = ""
-
-        var idx = root._sseAssistantIdx
-        if (idx < 0) {
-            var ts = Date.now()
-            root.messages = root.messages.concat([{
-                role: "assistant",
-                content: buffered,
-                time: nowTime(ts),
-                at: ts,
-                model: root._sseModelLabel || "assistant"
-            }])
-            root._sseAssistantIdx = root.messages.length - 1
-        } else {
-            var copy = root.messages.slice()
-            var a = Object.assign({}, copy[idx])
-            a.content = (a.content || "") + buffered
-            a.at = Date.now()
-            a.time = nowTime(a.at)
-            copy[idx] = a
-            root.messages = copy
-        }
-        if (!root.userScrolledUp)
-            Qt.callLater(scrollToBottom)
-    }
 
     function updateAssistantStreamingContent(text, modelLabel) {
         var incoming = text || ""
