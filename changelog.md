@@ -5,6 +5,14 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-21
+
+### Fixed
+- **System Hang During Streaming**: The core streaming loop previously wrote `root.messages` on every individual SSE token, hammering the QML binding engine and making the entire KDE desktop unresponsive mid-response. Tokens are now accumulated in a plain JS string buffer and flushed to the UI via an 80ms `Timer` (≈12 writes/second max), keeping the main thread completely free.
+- **Long Chat Title Expanding the Window**: The header title `Label` had no width constraint, allowing very long session names to push toolbar buttons off-screen to the right. Now capped with `Layout.maximumWidth` so it always elides gracefully within the available space.
+
+---
+
 ## [1.1.0] - 2026-05-21
 
 ### Added

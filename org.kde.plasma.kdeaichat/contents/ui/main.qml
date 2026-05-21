@@ -47,6 +47,20 @@ PlasmoidItem {
     property bool userScrolledUp: false
     property int queueCounter: 0
 
+    // ── Streaming batch-buffer to avoid re-rendering the messages list on every
+    //    individual token (which hammers the QML binding engine and hangs the desktop).
+    property string _sseTokenBuffer: ""
+    property int    _sseAssistantIdx: -1
+    property string _sseModelLabel: ""
+
+    Timer {
+        id: sseFlushTimer
+        interval: 80        // flush at most ~12 times/second
+        repeat: true
+        running: false
+        onTriggered: root.flushSseBuffer()
+    }
+
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
     readonly property bool popupIsDark: {
@@ -126,15 +140,21 @@ PlasmoidItem {
                     onClicked: root.historyOnlyMode = !root.historyOnlyMode
                 }
 
+                Item { Layout.fillWidth: true }
+
                 PC3.Label {
-                    Layout.fillWidth: true
                     text: root.historyOnlyMode
                           ? ((plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History")
                           : (root.currentSessionTitle || "New Chat")
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
+                    Layout.fillWidth: false
+                    Layout.maximumWidth: Math.max(50, parent.width - 220)
+                    clip: true
                 }
+
+                Item { Layout.fillWidth: true }
 
                 PC3.ToolButton {
                     visible: !root.historyOnlyMode
@@ -1232,6 +1252,39 @@ PlasmoidItem {
             root.openCodeAssistantModelLabel = modelLabel
     }
 
+
+    // Flush accumulated SSE token buffer to root.messages in one batched write.
+    // Called by sseFlushTimer every 80ms to keep the main thread free.
+    function flushSseBuffer() {
+        var buffered = root._sseTokenBuffer
+        if (buffered === "")
+            return
+        root._sseTokenBuffer = ""
+
+        var idx = root._sseAssistantIdx
+        if (idx < 0) {
+            var ts = Date.now()
+            root.messages = root.messages.concat([{
+                role: "assistant",
+                content: buffered,
+                time: nowTime(ts),
+                at: ts,
+                model: root._sseModelLabel || "assistant"
+            }])
+            root._sseAssistantIdx = root.messages.length - 1
+        } else {
+            var copy = root.messages.slice()
+            var a = Object.assign({}, copy[idx])
+            a.content = (a.content || "") + buffered
+            a.at = Date.now()
+            a.time = nowTime(a.at)
+            copy[idx] = a
+            root.messages = copy
+        }
+        if (!root.userScrolledUp)
+            Qt.callLater(scrollToBottom)
+    }
+
     function updateAssistantStreamingContent(text, modelLabel) {
         var incoming = text || ""
         if (incoming === "")
@@ -2093,9 +2146,6 @@ PlasmoidItem {
                 sseOffset = xhr.responseText.length
                 sseBuffer += delta
 
-                var accumulatedTokens = ""
-                var latestChunkTs = Date.now()
-
                 while (true) {
                     var split = sseBuffer.indexOf("\n\n")
                     if (split < 0)
@@ -2120,39 +2170,42 @@ PlasmoidItem {
                                         && obj.choices[0].delta.content) || ""
                             if (token !== "") {
                                 streamedAnyToken = true
-                                accumulatedTokens += token
-                                latestChunkTs = Date.now()
+                                // Accumulate into buffer - only start the
+                                // flush timer on first token so we create the
+                                // placeholder message once, then batch writes.
+                                if (assistantIdx < 0 && root._sseAssistantIdx < 0) {
+                                    // Create placeholder message immediately so
+                                    // user sees the bubble appear at once.
+                                    var chunkTs = Date.now()
+                                    root._sseModelLabel = modelLabel || model || ""
+                                    root.messages = root.messages.concat([{
+                                        role: "assistant",
+                                        content: "",
+                                        time: nowTime(chunkTs),
+                                        at: chunkTs,
+                                        model: root._sseModelLabel
+                                    }])
+                                    assistantIdx = root.messages.length - 1
+                                    root._sseAssistantIdx = assistantIdx
+                                    sseFlushTimer.start()
+                                }
+                                root._sseTokenBuffer += token
                             }
                         } catch (e) {
                         }
                     }
                 }
-
-                if (accumulatedTokens !== "") {
-                    if (assistantIdx < 0) {
-                        root.messages = root.messages.concat([{
-                            role: "assistant",
-                            content: accumulatedTokens,
-                            time: nowTime(latestChunkTs),
-                            at: latestChunkTs,
-                            model: modelLabel || model || ""
-                        }])
-                        assistantIdx = root.messages.length - 1
-                    } else {
-                        var copy = root.messages.slice()
-                        var a = Object.assign({}, copy[assistantIdx])
-                        a.content = (a.content || "") + accumulatedTokens
-                        a.at = latestChunkTs
-                        a.time = nowTime(latestChunkTs)
-                        copy[assistantIdx] = a
-                        root.messages = copy
-                    }
-                    if (!root.userScrolledUp)
-                        Qt.callLater(scrollToBottom)
-                }
             }
 
             if (xhr.readyState === XMLHttpRequest.DONE) {
+                // Stop the batch-flush timer and drain anything still in the buffer
+                // before we finalise loading=false, so the last tokens always appear.
+                sseFlushTimer.stop()
+                root.flushSseBuffer()
+                root._sseAssistantIdx = -1
+                root._sseTokenBuffer = ""
+                root._sseModelLabel = ""
+
                 root.loading = false
                 root.activeXhr = null
 
@@ -2207,6 +2260,10 @@ PlasmoidItem {
             if (errorHandled)
                 return
             errorHandled = true
+            sseFlushTimer.stop()
+            root._sseAssistantIdx = -1
+            root._sseTokenBuffer = ""
+            root._sseModelLabel = ""
             root.loading = false
             root.activeXhr = null
             pushErrorMessage("Could not reach " + url + ". Check the server URL and whether that endpoint accepts API requests.")
