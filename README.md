@@ -4,11 +4,16 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ---
 
-![KDE AI Chat Main View](.github/assets/image.png)
-![KDE AI Chat Settings](.github/assets/image2.png)
-![KDE AI Chat History](.github/assets/image3.png)
-![Model Discovery](.github/assets/image4.png)
-![OpenCode Server Status](.github/assets/image5.png)
+### 📸 Showcase & Feature Walkthrough
+
+| Screenshot | Feature & Explanation |
+| :--- | :--- |
+| ![Model Switcher & API Config](.github/assets/image.png) | **Providers & Models Dropdown**: Use any provider from our extensive list with your custom API keys, or run offline local models through local engines (Ollama, LM Studio). For persistent saving of API keys, utilize the secure native **KWallet** storage backend; alternatively, easily input or clear API keys directly as you wish! |
+| ![OpenCode Mode & Bridge Integration](.github/assets/image2.png) | **OpenCode Bridge**: Build an interactive execution bridge between the chat widget and your local OpenCode environment. Simply toggle the **OpenCode** selector to make it the default conversation mode. Start the local OpenCode server, click refresh, and select your preferred providers and model weights. |
+| ![Session History Management](.github/assets/image3.png) | **Conversations Sidebar**: Efficiently manage all your active chats in the sidebar history panel. Supports renaming, archiving, and deleting threads in a click. OpenCode developmental chats are visually styled differently so you can tell them apart at a glance! |
+| ![Widget Customizations](.github/assets/image4.png) | **Widget Settings Panel**: Custom tuning, custom system prompt templates, theme overrides (Dark/Light follow system), audio chime notifications, and dynamic scaling controls. We highly recommend users look after this panel to tinker and play with each custom option! |
+| ![About & Contributing Page](.github/assets/image5.png) | **About KDE AI Chat**: Showcases licensing, version metrics, and project credits. We are fully open to contributions and community feedback to expand Plasmoid AI integrations! |
+
 
 ---
 
@@ -123,8 +128,20 @@ zip -r "dist/org.kde.plasma.kdeaichat-v1.1.plasmoid" org.kde.plasma.kdeaichat \
 
 ---
 
+## 🤝 Open to Contributions & Future Roadmap
+
+**KDE AI Chat** is built by the community, for the community! We are highly open to contributions, bug reports, and collaborative feature enhancements to shape the best native Linux AI experience.
+
+### 🚀 What We're Working On Next
+We are planning multiple active development rounds to implement new requested features:
+1. **Elegant UI Enhancements**: Redefining QML layouts with premium modern visual aesthetics, sleek micro-animations, glassmorphism card panels, and smooth scroll interfaces.
+2. **Interactive Elements for OpenCode**: Introducing rich interactive layouts inside chat bubbles to render code previews, live shell triggers, and interactive compiler feedback widgets.
+
+---
+
 ## Documentation Guides
 
+- [User Operations Manual & FAQ](file:///home/home/Programming/rachitkdeaichat/user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
 - [End-User Setup & API Keys Guide](file:///home/home/Programming/rachitkdeaichat/SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all 13 providers.
 - [Technical Audit & Code Quality Report](file:///home/home/Programming/rachitkdeaichat/audit.md) — Detailed results of the May 2026 quality assurance audit.
 - [Release Operator Playbook](file:///home/home/Programming/rachitkdeaichat/FORUSER.md) — Bumping versioning, tag management, and release steps.
