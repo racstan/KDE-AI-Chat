@@ -40,8 +40,10 @@ Manual checks:
 rm -rf dist
 mkdir -p dist
 VERSION="$(jq -r '.KPlugin.Version' org.kde.plasma.kaichat/metadata.json)"
-zip -r "dist/org.kde.plasma.kaichat-v${VERSION}.plasmoid" org.kde.plasma.kaichat \
+cd org.kde.plasma.kaichat
+zip -r "../dist/org.kde.plasma.kaichat-v${VERSION}.plasmoid" * \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
+cd ..
 ```
 
 Optional checksum:
