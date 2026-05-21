@@ -807,8 +807,6 @@ PlasmoidItem {
         var parts = []
         if (sessionData.source === "opencode")
             parts.push("OpenCode")
-        else
-            parts.push("Provider")
         if (sessionData.archived)
             parts.push("Archived")
         parts.push("Updated " + root.formatDateTime(sessionData.updatedAt || sessionData.createdAt || Date.now()))

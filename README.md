@@ -4,6 +4,18 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ---
 
+## Gallery & Screenshots
+
+| Main Interface | Settings Panel | Chat History |
+| :---: | :---: | :---: |
+| ![Kai Chat Main View](image.png) | ![Kai Chat Settings](image%20copy.png) | ![Kai Chat History](image%20copy%202.png) |
+
+| Multi-Model Selection | OpenCode Server Control |
+| :---: | :---: |
+| ![Model Discovery](image%20copy%203.png) | ![OpenCode Server Status](image%20copy%204.png) |
+
+---
+
 ## Key Features
 
 - **Multi-Provider Switching**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA, Hugging Face, xAI (Grok), LM Studio, and generic local OpenAI-compatible endpoints.
