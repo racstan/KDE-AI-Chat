@@ -1,6 +1,6 @@
-# Kai Chat - Setup & Usage Guide
+# KDE AI Chat - Setup & Usage Guide
 
-A comprehensive guide to setting up and using each feature of the Kai Chat KDE Plasma widget.
+A comprehensive guide to setting up and using each feature of the KDE AI Chat KDE Plasma widget.
 
 ## Table of Contents
 1. [Installation](#installation)
@@ -25,7 +25,7 @@ A comprehensive guide to setting up and using each feature of the Kai Chat KDE P
 #### Option A: Native 1-Click Desktop Installation (Recommended)
 1. Right-click your desktop background or the panel and click **Add Widgets...**
 2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
-3. In the search box, search for **"Kai Chat"** (short for KDE AI Chat).
+3. In the search box, search for **"KDE AI Chat"** (short for KDE AI Chat).
 4. Click **Install**.
 
 #### Option B: Manual Package Installation
@@ -41,7 +41,7 @@ If you downloaded the compiled `.plasmoid` file directly from the KDE Store:
    ```
 
 4. **Verify installation:**
-   - Right-click your panel/desktop, select **Add Widgets...**, search for **"Kai Chat"**, and drag it onto your panel or desktop.
+   - Right-click your panel/desktop, select **Add Widgets...**, search for **"KDE AI Chat"**, and drag it onto your panel or desktop.
    - Click the chat icon (💬) to open the popup.
    - Navigate to the **Settings** view (click the gear icon) to configure your first provider.
 
@@ -51,7 +51,7 @@ If you downloaded the compiled `.plasmoid` file directly from the KDE Store:
 
 ### Access Settings
 
-1. **Open the Kai Chat widget** by clicking its panel icon
+1. **Open the KDE AI Chat widget** by clicking its panel icon
 2. **Click the gear icon** in the top-right corner to open Settings
 3. You'll see tabs for **General**, **Appearance**, and **Shortcuts**
 
@@ -94,7 +94,7 @@ Follow the steps below for each provider you want to use.
    - Visit https://platform.openai.com/api-keys
    - Sign in or create an account
    - Click **+ Create new secret key**
-   - Copy and paste into Kai Chat settings
+   - Copy and paste into KDE AI Chat settings
 
 2. **Model Selection:**
    - Click **Fetch Available Models** in settings
@@ -363,7 +363,7 @@ Follow the steps below for each provider you want to use.
 
 2. **Use Selected Text:**
    - Highlight text in any application
-   - Click the **Selection icon** (🔍) in Kai Chat
+   - Click the **Selection icon** (🔍) in KDE AI Chat
    - Selected text is inserted into the chat
 
 3. **Tips:**
@@ -466,7 +466,7 @@ Follow the steps below for each provider you want to use.
 3. Notifications will appear in your system notification panel
 
 **What the notification shows:**
-- "Kai Chat: Response received"
+- "KDE AI Chat: Response received"
 - First 100 characters of the response
 - Click to bring the widget to foreground
 
@@ -475,13 +475,13 @@ Follow the steps below for each provider you want to use.
 ### 10. Global Keyboard Shortcut
 
 **What it does:**
-- Configure a keyboard shortcut to activate the Kai Chat widget from anywhere
+- Configure a keyboard shortcut to activate the KDE AI Chat widget from anywhere
 
 **How to set up:**
 1. Open **System Settings** → **Shortcuts** (or KDE's shortcut manager)
-2. Search for "Kai Chat"
+2. Search for "KDE AI Chat"
 3. Assign a keyboard shortcut (e.g., `Meta+Shift+K`)
-4. Press the shortcut from any app to open Kai Chat
+4. Press the shortcut from any app to open KDE AI Chat
 
 **Alternative setup in widget settings:**
 - Go to Settings → **Shortcuts** tab
@@ -549,7 +549,7 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/{sessionId}.jso
 **How to change:**
 1. Go to **System Settings** → **Appearance** → **Colors** or **Application Style**
 2. Choose your theme
-3. Kai Chat will automatically update colors/spacing
+3. KDE AI Chat will automatically update colors/spacing
 
 **Supported themes:**
 - Any KDE Plasma 6 theme (dark, light, custom)
@@ -684,4 +684,4 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/{sessionId}.jso
 
 ## License
 
-Kai Chat is licensed under the MIT License. See `LICENSE` file for details.
+KDE AI Chat is licensed under the MIT License. See `LICENSE` file for details.

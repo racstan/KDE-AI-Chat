@@ -4,11 +4,12 @@ import QtQuick.Controls as QQC2
 import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PC3
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.plasma5support 2.0 as P5Support
 
 PlasmoidItem {
     id: root
 
-    Plasmoid.title: plasmoid.configuration.appDisplayName || "Kai Chat"
+    Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
 
     preferredRepresentation: compactRepresentation
 
@@ -111,7 +112,7 @@ PlasmoidItem {
 
                 PC3.Label {
                     text: root.historyOnlyMode
-                          ? ((plasmoid.configuration.appDisplayName || "Kai Chat") + " History")
+                          ? ((plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History")
                           : (root.currentSessionTitle || "New Chat")
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
@@ -309,16 +310,23 @@ PlasmoidItem {
                                                                    0.18)
                                                        : modelData.role === "error"
                                                          ? Kirigami.Theme.negativeBackgroundColor
-                                                         : Kirigami.Theme.backgroundColor
-                                                border.width: modelData.role === "error" ? 2 : 1
+                                                         : modelData.role === "permission_request"
+                                                           ? Qt.rgba(Kirigami.Theme.focusColor.r,
+                                                                     Kirigami.Theme.focusColor.g,
+                                                                     Kirigami.Theme.focusColor.b,
+                                                                     0.12)
+                                                           : Kirigami.Theme.backgroundColor
+                                                border.width: modelData.role === "error" || modelData.role === "permission_request" ? 2 : 1
                                                 border.color: modelData.role === "error"
                                                               ? Kirigami.Theme.negativeTextColor
-                                                              : Qt.rgba(Kirigami.Theme.textColor.r,
-                                                                        Kirigami.Theme.textColor.g,
-                                                                        Kirigami.Theme.textColor.b,
-                                                                        0.16)
+                                                              : modelData.role === "permission_request"
+                                                                ? Kirigami.Theme.focusColor
+                                                                : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                          Kirigami.Theme.textColor.g,
+                                                                          Kirigami.Theme.textColor.b,
+                                                                          0.16)
                                                 anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
-                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" ? parent.left : undefined
+                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" ? parent.left : undefined
 
                                                 Column {
                                                     id: bubbleCol
@@ -336,7 +344,11 @@ PlasmoidItem {
                                                                   ? "You"
                                                                   : modelData.role === "queued"
                                                                     ? "You (Queued)"
-                                                                    : (modelData.role === "error" ? "Error" : "AI")
+                                                                    : modelData.role === "error"
+                                                                      ? "Error"
+                                                                      : modelData.role === "permission_request"
+                                                                        ? "OpenCode Security Request"
+                                                                        : "AI"
                                                             font.bold: true
                                                         }
 
@@ -376,6 +388,42 @@ PlasmoidItem {
                                                                ? Kirigami.Theme.negativeTextColor
                                                                : Kirigami.Theme.textColor
                                                         onLinkActivated: function(link) { Qt.openUrlExternally(link) }
+                                                    }
+
+                                                    Row {
+                                                        visible: modelData.role === "permission_request"
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.largeSpacing
+                                                        Layout.topMargin: Kirigami.Units.smallSpacing
+
+                                                        PC3.Button {
+                                                            visible: modelData.status === "pending"
+                                                            text: "Allow"
+                                                            icon.name: "dialog-ok-apply"
+                                                            onClicked: root.respondToPermission(modelData.permissionId, true)
+                                                        }
+
+                                                        PC3.Button {
+                                                            visible: modelData.status === "pending"
+                                                            text: "Reject"
+                                                            icon.name: "dialog-cancel"
+                                                            onClicked: root.respondToPermission(modelData.permissionId, false)
+                                                        }
+
+                                                        PC3.Label {
+                                                            visible: modelData.status !== "pending"
+                                                            text: modelData.status === "allowed"
+                                                                  ? "Approved ✅"
+                                                                  : modelData.status === "denied"
+                                                                    ? "Rejected ❌"
+                                                                    : modelData.status === "allowing..."
+                                                                      ? "Approving..."
+                                                                      : "Rejecting..."
+                                                            font.bold: true
+                                                            color: modelData.status === "allowed"
+                                                                   ? Kirigami.Theme.positiveTextColor
+                                                                   : Kirigami.Theme.negativeTextColor
+                                                        }
                                                     }
 
                                                     Rectangle {
@@ -1148,6 +1196,7 @@ PlasmoidItem {
         root.openCodeErrorShownForRequest = false
         root.streamingResponse = false
         saveCurrentSessionState(true)
+        triggerNotificationSound()
         processNextQueuedMessage()
     }
 
@@ -1242,6 +1291,53 @@ PlasmoidItem {
                 finishOpenCodeRequest()
         } else if (eventObj.type === "session.idle") {
             finishOpenCodeRequest()
+        } else if (eventObj.type === "permission.asked") {
+            var p = props.permission || {}
+            var permId = p.id || ""
+            if (permId !== "") {
+                var tool = p.tool || ""
+                var args = p.arguments || {}
+                var argStr = ""
+                try {
+                    argStr = typeof args === "string" ? args : JSON.stringify(args, null, 2)
+                } catch (e) {
+                    argStr = String(args)
+                }
+
+                var msg = {
+                    role: "permission_request",
+                    content: "OpenCode is asking for permission to run **" + tool + "**:\n\n```json\n" + argStr + "\n```",
+                    model: "OpenCode Security",
+                    id: "perm-" + permId,
+                    permissionId: permId,
+                    tool: tool,
+                    arguments: args,
+                    status: "pending",
+                    at: Date.now()
+                }
+
+                root.messages = root.messages.concat([msg])
+                saveCurrentSessionState(true)
+                if (!root.userScrolledUp)
+                    Qt.callLater(scrollToBottom)
+            }
+        } else if (eventObj.type === "permission.replied") {
+            var pr = props.permission || {}
+            var pId = pr.id || ""
+            var response = pr.response || ""
+            var copy = root.messages.slice()
+            var updated = false
+            for (var i = copy.length - 1; i >= 0; i--) {
+                if (copy[i].role === "permission_request" && copy[i].permissionId === pId) {
+                    copy[i].status = (response === "allow" ? "allowed" : "denied")
+                    updated = true
+                    break
+                }
+            }
+            if (updated) {
+                root.messages = copy
+                saveCurrentSessionState(true)
+            }
         }
     }
 
@@ -1260,6 +1356,7 @@ PlasmoidItem {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return
             if (xhr.status >= 200 && xhr.status < 300) {
+                triggerNotificationSound()
                 try {
                     var obj = JSON.parse(xhr.responseText)
                     var remoteId = obj.id || ""
@@ -1282,7 +1379,7 @@ PlasmoidItem {
         }
 
         try {
-            xhr.send(JSON.stringify({ title: root.currentSessionTitle || "Kai Chat" }))
+            xhr.send(JSON.stringify({ title: root.currentSessionTitle || "KDE AI Chat" }))
         } catch (sendError) {
             pushErrorMessage("OpenCode: failed to create session: " + sendError)
         }
@@ -1369,7 +1466,7 @@ PlasmoidItem {
                         modelID: modelId
                     },
                     system: plasmoid.configuration.systemPrompt
-                            || "You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
+                            || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
                     parts: [{ type: "text", text: root.messages[root.messages.length - 1].content || "" }]
                 }))
             } catch (sendError) {
@@ -1758,7 +1855,7 @@ PlasmoidItem {
 
     function buildOpenAICompatPayload() {
         var sys = plasmoid.configuration.systemPrompt
-                  || "You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
+                  || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
         var arr = [{ role: "system", content: sys }]
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i]
@@ -1906,6 +2003,7 @@ PlasmoidItem {
                     }
                 }
 
+                triggerNotificationSound()
                 saveCurrentSessionState(true)
                 processNextQueuedMessage()
             }
@@ -1959,6 +2057,7 @@ PlasmoidItem {
             root.activeXhr = null
 
             if (xhr.status >= 200 && xhr.status < 300) {
+                triggerNotificationSound()
                 try {
                     var obj = JSON.parse(xhr.responseText)
                     var text = ""
@@ -2011,9 +2110,98 @@ PlasmoidItem {
             model: model,
             max_tokens: 1024,
             system: plasmoid.configuration.systemPrompt
-                    || "You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
+                    || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
             messages: buildAnthropicPayload()
         }))
+    }
+
+    P5Support.DataSource {
+        id: soundDs
+        engine: "executable"
+        connectedSources: []
+    }
+
+    function triggerNotificationSound() {
+        if (!plasmoid.configuration.playNotificationSound)
+            return
+        soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant")
+    }
+
+    function respondToPermission(permissionId, approved) {
+        var sessionId = root.openCodeActiveSessionId
+        if (!sessionId) {
+            var idx = findSessionIndex(root.currentSessionId)
+            if (idx >= 0) {
+                sessionId = root.sessions[idx].openCodeSessionId || ""
+            }
+        }
+        if (!sessionId || !permissionId)
+            return
+
+        var copy = root.messages.slice()
+        for (var i = 0; i < copy.length; i++) {
+            if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
+                copy[i].status = approved ? "allowing..." : "denying..."
+                break
+            }
+        }
+        root.messages = copy
+
+        var xhr = new XMLHttpRequest()
+        var primaryUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permission/" + permissionId
+        var fallbackUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permissions/" + permissionId
+        var responseValue = approved ? "allow" : "deny"
+
+        function sendToUrl(url, isRetry) {
+            xhr.open("POST", url, true)
+            xhr.setRequestHeader("Content-Type", "application/json")
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE)
+                    return
+
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    var copy = root.messages.slice()
+                    for (var i = 0; i < copy.length; i++) {
+                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
+                            copy[i].status = approved ? "allowed" : "denied"
+                            break
+                        }
+                    }
+                    root.messages = copy
+                    saveCurrentSessionState(true)
+                } else if (xhr.status === 404 && !isRetry) {
+                    sendToUrl(fallbackUrl, true)
+                } else {
+                    var copy = root.messages.slice()
+                    for (var i = 0; i < copy.length; i++) {
+                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
+                            copy[i].status = "pending"
+                            break
+                        }
+                    }
+                    root.messages = copy
+                    pushErrorMessage("OpenCode: failed to reply to permission (HTTP " + xhr.status + ").")
+                }
+            }
+            xhr.onerror = function() {
+                if (!isRetry) {
+                    sendToUrl(fallbackUrl, true)
+                } else {
+                    var copy = root.messages.slice()
+                    for (var i = 0; i < copy.length; i++) {
+                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
+                            copy[i].status = "pending"
+                            break
+                        }
+                    }
+                    root.messages = copy
+                    pushErrorMessage("OpenCode: could not reach permission reply server endpoint.")
+                }
+            }
+            xhr.send(JSON.stringify({ response: responseValue }))
+        }
+
+        sendToUrl(primaryUrl, false)
     }
 
     function stopStreaming() {

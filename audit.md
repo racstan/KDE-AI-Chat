@@ -1,6 +1,6 @@
-# Kai Chat Codebase Audit Report (May 21, 2026)
+# KDE AI Chat Codebase Audit Report (May 21, 2026)
 
-This document presents a comprehensive technical audit of the **Kai Chat** KDE Plasma 6 widget codebase. It details our findings, code verification outcomes, clean-up operations, and publishing readiness status ahead of release.
+This document presents a comprehensive technical audit of the **KDE AI Chat** KDE Plasma 6 widget codebase. It details our findings, code verification outcomes, clean-up operations, and publishing readiness status ahead of release.
 
 ---
 
@@ -94,4 +94,4 @@ We audited the core logic in `main.qml` and `ConfigGeneral.qml` for robustness, 
 ---
 
 ## 6. Conclusion
-The **Kai Chat** codebase is in an **immaculate, production-ready state**. It represents an extremely high standard of QML design, utilizing Plasma 6's robust native features while adhering strictly to KDE design patterns and code safety standards. It is ready for publication on the GitHub Releases page and the KDE Store.
+The **KDE AI Chat** codebase is in an **immaculate, production-ready state**. It represents an extremely high standard of QML design, utilizing Plasma 6's robust native features while adhering strictly to KDE design patterns and code safety standards. It is ready for publication on the GitHub Releases page and the KDE Store.

@@ -1,6 +1,6 @@
-# Kai Chat Publishing Runbook (For You)
+# KDE AI Chat Publishing Runbook (For You)
 
-This is the exact order to publish a new Kai Chat release.
+This is the exact order to publish a new KDE AI Chat release.
 
 ## 0) Preconditions
 
@@ -65,7 +65,7 @@ Then re-open widget once to confirm no regressions.
 
 ```bash
 git add README.md SETUP.md FORUSER.md audit.md .gitignore
-git commit -m "Prepare Kai Chat v${VERSION} release documentation"
+git commit -m "Prepare KDE AI Chat v${VERSION} release documentation"
 git tag "v${VERSION}"
 git push
 git push --tags
@@ -75,7 +75,7 @@ git push --tags
 
 1. Open GitHub repo releases page.
 2. Create release from tag `v<version>`.
-3. Title: `Kai Chat v<version>`.
+3. Title: `KDE AI Chat v<version>`.
 4. Paste release notes.
 5. Upload file:
    - `dist/org.kde.plasma.kaichat-v<version>.plasmoid`

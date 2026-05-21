@@ -1,18 +1,14 @@
-# Kai Chat — Native KDE Plasma 6 AI Chat Widget
+# KDE AI Chat — Native KDE Plasma 6 AI Chat Widget
 
 Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Qt 6**. It features seamless multi-provider switching, real-time model discovery, session persistence, direct SSE streaming, and secure KWallet integration.
 
 ---
 
-## Gallery & Screenshots
-
-| Main Interface | Settings Panel | Chat History |
-| :---: | :---: | :---: |
-| ![Kai Chat Main View](image.png) | ![Kai Chat Settings](image%20copy.png) | ![Kai Chat History](image%20copy%202.png) |
-
-| Multi-Model Selection | OpenCode Server Control |
-| :---: | :---: |
-| ![Model Discovery](image%20copy%203.png) | ![OpenCode Server Status](image%20copy%204.png) |
+![KDE AI Chat Main View](.github/assets/image.png)
+![KDE AI Chat Settings](.github/assets/image%20copy.png)
+![KDE AI Chat History](.github/assets/image%20copy%202.png)
+![Model Discovery](.github/assets/image%20copy%203.png)
+![OpenCode Server Status](.github/assets/image%20copy%204.png)
 
 ---
 

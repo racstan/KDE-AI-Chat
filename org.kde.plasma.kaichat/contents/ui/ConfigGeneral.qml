@@ -79,6 +79,7 @@ KCM.SimpleKCM {
     property alias cfg_localModel: localModelField.text
 
     property alias cfg_useOpenCode: openCodeToggle.checked
+    property alias cfg_playNotificationSound: playSoundToggle.checked
     property alias cfg_openCodeUrl: openCodeUrlField.text
     property alias cfg_openCodeModel: openCodeModelValueField.text
     property alias cfg_openCodeProvider: openCodeProviderValueField.text
@@ -938,7 +939,7 @@ KCM.SimpleKCM {
     }
 
     function resetToDefaults() {
-        appDisplayNameField.text = "Kai Chat"
+        appDisplayNameField.text = "KDE AI Chat"
         providerBox.currentIndex = 0
         baseUrlField.text = "https://api.openai.com/v1"
         apiKeyField.text = ""
@@ -1005,7 +1006,7 @@ KCM.SimpleKCM {
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched."
 
         walletNameField.text = availableWalletNames.length > 0 ? availableWalletNames[0] : "kdewallet"
-        systemPromptArea.text = "You are Kai Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
+        systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
 
         providerModelCandidates = []
         openCodeProviderCandidates = []
@@ -1179,6 +1180,12 @@ KCM.SimpleKCM {
                 font: Kirigami.Theme.smallFont
                 text: "Light mode and Dark mode pin the widget to bright UI with dark text or dark UI with light text. Follow system uses your Plasma colors and updates with the desktop theme."
             }
+        }
+
+        QQC2.CheckBox {
+            id: playSoundToggle
+            Kirigami.FormData.label: "Notification sound:"
+            text: "Play sound when AI finishes a response"
         }
 
         QQC2.CheckBox {
@@ -1624,7 +1631,7 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "System prompt:"
             Layout.fillWidth: true
             wrapMode: Text.Wrap
-            placeholderText: "You are Kai Chat, a precise and helpful assistant."
+            placeholderText: "You are KDE AI Chat, a precise and helpful assistant."
         }
 
         Kirigami.Separator {
@@ -1743,9 +1750,9 @@ KCM.SimpleKCM {
         QQC2.TextField {
             id: appDisplayNameField
             Kirigami.FormData.label: "App name:"
-            placeholderText: "Kai Chat"
+            placeholderText: "KDE AI Chat"
             onTextChanged: {
-                if (text !== (plasmoid.configuration.appDisplayName || "Kai Chat")) {
+                if (text !== (plasmoid.configuration.appDisplayName || "KDE AI Chat")) {
                     page.discoveryStatus = "Tip: After changing the app name and pressing Apply/OK, restart plasmashell with: systemctl --user restart plasma-plasmashell.service"
                 }
             }

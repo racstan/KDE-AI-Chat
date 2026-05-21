@@ -11,8 +11,8 @@
         "Icon": "dialog-messages",
         "Id": "org.kde.plasma.kaichat",
         "License": "GPL-2.0+",
-        "Name": "Kai Chat",
-        "Version": "3.1",
+        "Name": "KDE AI Chat",
+        "Version": "1.0",
         "Website": "https://github.com/racstan/kai-chat",
         "BugReportUrl": "https://github.com/racstan/kai-chat/issues"
     },
