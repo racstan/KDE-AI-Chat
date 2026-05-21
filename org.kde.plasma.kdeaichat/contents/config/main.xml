@@ -164,6 +164,13 @@
       <default>llama3.2</default>
     </entry>
 
+    <entry name="ollamaBaseUrl" type="String">
+      <default>http://localhost:11434/v1</default>
+    </entry>
+    <entry name="ollamaModel" type="String">
+      <default>llama3.2</default>
+    </entry>
+
     <entry name="useOpenCode" type="Bool">
       <default>false</default>
     </entry>
@@ -185,6 +192,10 @@
 
     <entry name="kwalletName" type="String">
       <default>kdeaichatwallet</default>
+    </entry>
+
+    <entry name="useKWallet" type="Bool">
+      <default>false</default>
     </entry>
 
     <entry name="systemPrompt" type="String">

@@ -12,7 +12,7 @@
         "Id": "org.kde.plasma.kdeaichat",
         "License": "GPL-2.0+",
         "Name": "KDE AI Chat",
-        "Version": "1.0",
+        "Version": "1.1",
         "Website": "https://github.com/racstan/kai-chat",
         "BugReportUrl": "https://github.com/racstan/kai-chat/issues"
     },

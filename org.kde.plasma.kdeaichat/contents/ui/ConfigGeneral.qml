@@ -11,14 +11,19 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0
-        detectWallets()
+        if (plasmoid.configuration.useKWallet)
+            detectWallets()
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery()
     }
-    Component.onDestruction: kwalletStoreAll()
+    Component.onDestruction: {
+        if (plasmoid.configuration.useKWallet)
+            kwalletStoreAll()
+    }
 
     property alias cfg_appDisplayName: appDisplayNameField.text
     property alias cfg_appearanceMode: appearanceModeCombo.currentIndex
+    property alias cfg_useKWallet: useKWalletCheckbox.checked
     property alias cfg_provider: providerBox.currentValue
 
     property alias cfg_baseUrl: baseUrlField.text
@@ -77,6 +82,9 @@ KCM.SimpleKCM {
 
     property alias cfg_localBaseUrl: localBaseUrlField.text
     property alias cfg_localModel: localModelField.text
+
+    property alias cfg_ollamaBaseUrl: ollamaBaseUrlField.text
+    property alias cfg_ollamaModel: ollamaModelField.text
 
     property alias cfg_useOpenCode: openCodeToggle.checked
     property alias cfg_playNotificationSound: playSoundToggle.checked
@@ -297,7 +305,7 @@ KCM.SimpleKCM {
     }
 
     function providerNeedsApiKey(providerId) {
-        return providerId !== "local" && providerId !== "lmstudio"
+        return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama"
     }
 
     function providerHasConfiguredKey(providerId) {
@@ -473,6 +481,15 @@ KCM.SimpleKCM {
                 baseUrl: lmStudioBaseUrlField.text,
                 apiKey: "",
                 modelField: lmStudioModelField
+            }
+        }
+        if (p === "ollama") {
+            return {
+                id: p,
+                type: "openai-compat",
+                baseUrl: ollamaBaseUrlField.text,
+                apiKey: "",
+                modelField: ollamaModelField
             }
         }
         return {
@@ -1226,7 +1243,8 @@ KCM.SimpleKCM {
                 { value: "huggingface", text: "Hugging Face Router" },
                 { value: "xai", text: "xAI (Grok)" },
                 { value: "lmstudio", text: "LM Studio" },
-                { value: "local", text: "Local (OpenAI-compatible)" }
+                { value: "local", text: "Local (OpenAI-compatible)" },
+                { value: "ollama", text: "Ollama" }
             ]
             onActivated: {
                 providerModelCandidates = []
@@ -1621,6 +1639,9 @@ KCM.SimpleKCM {
         QQC2.TextField { id: localBaseUrlField; Kirigami.FormData.label: "Local URL:"; visible: page.providerEnabled("local"); Layout.fillWidth: true; placeholderText: "http://localhost:11434/v1" }
         QQC2.TextField { id: localModelField; Kirigami.FormData.label: "Local model:"; visible: page.providerModelVisible("local") && (false); Layout.fillWidth: true; placeholderText: "llama3.2" }
 
+        QQC2.TextField { id: ollamaBaseUrlField; Kirigami.FormData.label: "Ollama URL:"; visible: page.providerEnabled("ollama"); Layout.fillWidth: true; placeholderText: "http://localhost:11434/v1" }
+        QQC2.TextField { id: ollamaModelField; Kirigami.FormData.label: "Ollama model:"; visible: page.providerModelVisible("ollama") && (false); Layout.fillWidth: true; placeholderText: "llama3.2" }
+
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: "Behavior"
@@ -1639,8 +1660,18 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "KWallet Settings"
         }
 
+        QQC2.CheckBox {
+            id: useKWalletCheckbox
+            Kirigami.FormData.label: "Secure storage:"
+            text: "Enable KWallet integration"
+            onCheckedChanged: {
+                if (checked && availableWalletNames.length === 0)
+                    detectWallets()
+            }
+        }
+
         QQC2.ComboBox {
-            visible: availableWalletNames.length > 0
+            visible: useKWalletCheckbox.checked && availableWalletNames.length > 0
             Kirigami.FormData.label: "Wallet name:"
             Layout.fillWidth: true
             model: availableWalletNames
@@ -1652,7 +1683,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.TextField {
-            visible: availableWalletNames.length === 0
+            visible: useKWalletCheckbox.checked && availableWalletNames.length === 0
             Kirigami.FormData.label: "Wallet name:"
             Layout.fillWidth: true
             text: walletNameField.text
@@ -1661,7 +1692,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.Label {
-            visible: availableWalletNames.length > 0
+            visible: useKWalletCheckbox.checked && availableWalletNames.length > 0
             Kirigami.FormData.label: "Detected wallets:"
             Layout.fillWidth: true
             text: availableWalletNames.join(", ")
@@ -1670,6 +1701,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.Label {
+            visible: useKWalletCheckbox.checked
             Kirigami.FormData.label: "Wallet info:"
             Layout.fillWidth: true
             text: "KWallet controls wallet creation and password policy. A new wallet name may trigger KDE to create or unlock that wallet, depending on your system wallet settings."
@@ -1678,6 +1710,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
+            visible: useKWalletCheckbox.checked
             Kirigami.FormData.label: "Wallet actions:"
             Layout.fillWidth: true
 
@@ -1701,6 +1734,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.Button {
+            visible: useKWalletCheckbox.checked
             Kirigami.FormData.label: "Wallet status:"
             text: "Check wallet status"
             enabled: !keyringBusy
@@ -1712,6 +1746,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
+            visible: useKWalletCheckbox.checked
             Kirigami.FormData.label: "KWallet sync:"
 
             QQC2.Button {
@@ -1728,7 +1763,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.BusyIndicator {
-            visible: keyringBusy
+            visible: useKWalletCheckbox.checked && keyringBusy
             running: visible
             Kirigami.FormData.label: "Working:"
         }

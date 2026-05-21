@@ -105,9 +105,19 @@ For developers packaging the widget from local sources, standard procedures are 
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kdeaichat-v1.0.plasmoid" org.kde.plasma.kdeaichat \
+zip -r "dist/org.kde.plasma.kdeaichat-v1.1.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
+
+---
+
+## Changelog
+
+### Version 1.1
+* **Dedicated Ollama Provider**: Integrated Ollama as a dedicated keyless provider defaulting to `http://localhost:11434/v1` and `llama3.2`.
+* **Optional KWallet Secure Storage**: Added a checkbox in settings to enable/disable KWallet integration, allowing direct config key storage as a simpler, manual alternative.
+* **Dynamic Dark/Light Themes**: Fixed theme apply bug. Added absolute `Kirigami.Theme` overrides and matching solid backgrounds inside the chat representation to honor custom Light/Dark appearance modes.
+* **Provider Static-Analysis Auditing**: Created an automated validation suite (`validate_providers.py`) to verify all 16 providers are perfectly aligned across configuration schemas, UI settings, and execution engines.
 
 ---
 

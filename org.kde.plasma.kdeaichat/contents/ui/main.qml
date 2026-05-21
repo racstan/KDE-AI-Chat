@@ -49,7 +49,12 @@ PlasmoidItem {
 
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
-    readonly property bool popupIsDark: Qt.styleHints.colorScheme === Qt.Dark
+    readonly property bool popupIsDark: {
+        var mode = plasmoid.configuration.appearanceMode || 0;
+        if (mode === 1) return false;
+        if (mode === 2) return true;
+        return Qt.styleHints.colorScheme === Qt.Dark;
+    }
 
     function cyclePopupSizeMode() {
         var current = plasmoid.configuration.popupSizeMode || 0
@@ -92,6 +97,19 @@ PlasmoidItem {
         Layout.minimumHeight: 620
         Layout.preferredWidth: implicitWidth
         Layout.preferredHeight: implicitHeight
+
+        Kirigami.Theme.inherit: false
+        Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
+        Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
+        Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
+        Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
+        Kirigami.Theme.highlightColor: "#3182ce"
+
+        Rectangle {
+            anchors.fill: parent
+            color: Kirigami.Theme.backgroundColor
+            radius: 8
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -1719,6 +1737,16 @@ PlasmoidItem {
                 baseUrl: plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
                 apiKey: "",
                 model: plasmoid.configuration.localModel || "",
+                headers: null,
+                allowEmptyKey: true
+            }
+        }
+        if (provider === "ollama") {
+            return {
+                type: "openai-compat",
+                baseUrl: plasmoid.configuration.ollamaBaseUrl || "http://localhost:11434/v1",
+                apiKey: "",
+                model: plasmoid.configuration.ollamaModel || "",
                 headers: null,
                 allowEmptyKey: true
             }

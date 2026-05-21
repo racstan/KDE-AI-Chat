@@ -289,7 +289,7 @@ Follow the steps below for each provider you want to use.
    - Example (vLLM): `http://localhost:8000/v1`
 
 4. **API Key:**
-   - For local models, use any dummy key (e.g., `local-key`)
+   - Starting with **Version 1.1**, local providers (Ollama, LM Studio, and Local OpenAI-compatible) are configured as **keyless**. You do not need to enter any dummy tokens or API keys to use them!
 
 ---
 
