@@ -33,7 +33,7 @@ If you downloaded the compiled `.plasmoid` file directly from the KDE Store:
 1. Open a terminal in the folder containing the downloaded `.plasmoid` package.
 2. Run the package registration command:
    ```bash
-   kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kdeaichat-v3.1.plasmoid
+   kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kdeaichat-v1.0.plasmoid
    ```
 3. Restart your Plasma shell to apply the update:
    ```bash

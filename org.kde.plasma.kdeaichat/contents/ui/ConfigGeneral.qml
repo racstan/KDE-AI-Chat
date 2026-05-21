@@ -1047,7 +1047,7 @@ KCM.SimpleKCM {
                     else if (stdout === "__KAI_LOAD__:OPEN_FAILED")
                         page.keyringStatus = "KWallet did not open the selected wallet."
                     else if (stdout === "__KAI_LOAD__:NO_FOLDER")
-                        page.keyringStatus = "Wallet opened, but Kai Chat storage is not initialized yet. Click Create wallet first."
+                        page.keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet. Click Create wallet first."
                     else if (stdout === "__KAI_LOAD__:NO_ENTRY")
                         page.keyringStatus = "No saved key for " + op.target + " in KWallet."
                     else if (stderr !== "")
@@ -1091,7 +1091,7 @@ KCM.SimpleKCM {
                 } else if (out === "__KAI_BULK__:OPEN_FAILED") {
                     keyringStatus = "KWallet did not open the selected wallet."
                 } else if (out === "__KAI_BULK__:NO_FOLDER") {
-                    keyringStatus = "Wallet opened, but Kai Chat storage is not initialized yet."
+                    keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet."
                 } else {
                     var lines = out === "" ? [] : out.split(/\n+/)
                     var loaded = 0
@@ -1113,9 +1113,9 @@ KCM.SimpleKCM {
                 }
             } else if (sourceName.indexOf("kwallet-create") >= 0) {
                 if (out === "__KAI_INIT__:READY")
-                    keyringStatus = "Wallet connection is ready for Kai Chat storage."
+                    keyringStatus = "Wallet connection is ready for KDE AI Chat storage."
                 else if (out === "__KAI_INIT__:CREATED")
-                    keyringStatus = "Kai Chat storage folder was created in the wallet."
+                    keyringStatus = "KDE AI Chat storage folder was created in the wallet."
                 else if (out === "__KAI_INIT__:OPEN_FAILED")
                     keyringStatus = "KWallet did not open the selected wallet. If the wallet does not exist, KDE should prompt to create it."
                 else
@@ -1128,9 +1128,9 @@ KCM.SimpleKCM {
                 } else if (out === "__KAI_STATUS__:OPEN_FAILED") {
                     keyringStatus = "KWallet could not open the selected wallet."
                 } else if (out === "__KAI_STATUS__:NO_FOLDER") {
-                    keyringStatus = "Wallet is open, but Kai Chat storage is not initialized yet. Click Create wallet."
+                    keyringStatus = "Wallet is open, but KDE AI Chat storage is not initialized yet. Click Create wallet."
                 } else if (out === "__KAI_STATUS__:READY") {
-                    keyringStatus = "Wallet ready for Kai Chat."
+                    keyringStatus = "Wallet ready for KDE AI Chat."
                 } else {
                     keyringStatus = out !== "" ? out : (err !== "" ? err : "Wallet check finished.")
                 }

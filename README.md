@@ -36,7 +36,7 @@ As of **May 21, 2026**, the codebase has undergone a comprehensive structural au
 
 ## Repository Structure
 
-**Kai Chat** is 100% open-source. The repository is organized under a standard KDE Plasma KPackage layout, allowing developers to audit, run diagnostic linters, and build from source:
+**KDE AI Chat** is 100% open-source. The repository is organized under a standard KDE Plasma KPackage layout, allowing developers to audit, run diagnostic linters, and build from source:
 
 ```text
 kai-chat/
@@ -60,12 +60,12 @@ kai-chat/
 
 ## Installation
 
-You can install **Kai Chat** either directly through your desktop interface (recommended for general users) or build it directly from source (for developers and power users).
+You can install **KDE AI Chat** either directly through your desktop interface (recommended for general users) or build it directly from source (for developers and power users).
 
 ### Option 1: Native Desktop Installation (Recommended)
 1. Right-click your desktop background or the Plasma panel and select **Add Widgets...**
 2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
-3. In the search box, search for **"Kai Chat"** and click **Install**.
+3. In the search box, search for **"KDE AI Chat"** and click **Install**.
 
 *This automatically fetches and registers the pre-compiled, verified release package from the KDE Store.*
 
@@ -84,7 +84,7 @@ If you want to run the latest development build or customize the source files:
    ```bash
    systemctl --user restart plasma-plasmashell.service
    ```
-4. Right-click your desktop/panel, select **Add Widgets...**, search for **Kai Chat**, and drag it onto your screen!
+4. Right-click your desktop/panel, select **Add Widgets...**, search for **KDE AI Chat**, and drag it onto your screen!
 
 ---
 
@@ -105,7 +105,7 @@ For developers packaging the widget from local sources, standard procedures are 
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kdeaichat-v3.1.plasmoid" org.kde.plasma.kdeaichat \
+zip -r "dist/org.kde.plasma.kdeaichat-v1.0.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
 
