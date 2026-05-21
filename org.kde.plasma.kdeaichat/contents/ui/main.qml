@@ -198,6 +198,17 @@ PlasmoidItem {
                 }
             }
 
+            PC3.Label {
+                Layout.fillWidth: true
+                visible: !root.historyOnlyMode && root.openCodeMode && root.currentOpenCodeSessionId() !== ""
+                text: "OpenCode Session ID: " + root.currentOpenCodeSessionId()
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font.italic: true
+                opacity: 0.8
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
             RowLayout {
                 visible: !root.historyOnlyMode && root.renamingCurrentChat
                 Layout.fillWidth: true
@@ -328,23 +339,23 @@ PlasmoidItem {
                                                                    0.18)
                                                        : modelData.role === "error"
                                                          ? Kirigami.Theme.negativeBackgroundColor
-                                                         : modelData.role === "permission_request"
+                                                          : (modelData.role === "permission_request" || modelData.role === "question_request")
                                                            ? Qt.rgba(Kirigami.Theme.focusColor.r,
                                                                      Kirigami.Theme.focusColor.g,
                                                                      Kirigami.Theme.focusColor.b,
                                                                      0.12)
                                                            : Kirigami.Theme.backgroundColor
-                                                border.width: modelData.role === "error" || modelData.role === "permission_request" ? 2 : 1
+                                                border.width: modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" ? 2 : 1
                                                 border.color: modelData.role === "error"
                                                               ? Kirigami.Theme.negativeTextColor
-                                                              : modelData.role === "permission_request"
+                                                              : (modelData.role === "permission_request" || modelData.role === "question_request")
                                                                 ? Kirigami.Theme.focusColor
                                                                 : Qt.rgba(Kirigami.Theme.textColor.r,
                                                                           Kirigami.Theme.textColor.g,
                                                                           Kirigami.Theme.textColor.b,
                                                                           0.16)
                                                 anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
-                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" ? parent.left : undefined
+                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" ? parent.left : undefined
 
                                                 Column {
                                                     id: bubbleCol
@@ -364,7 +375,9 @@ PlasmoidItem {
                                                                     ? "You (Queued)"
                                                                     : modelData.role === "error"
                                                                       ? "Error"
-                                                                      : modelData.role === "permission_request"
+                                                                      : modelData.role === "question_request"
+                                                                        ? "OpenCode Interactive Question"
+                                                                        : modelData.role === "permission_request"
                                                                         ? "OpenCode Security Request"
                                                                         : "AI"
                                                             font.bold: true
@@ -443,6 +456,68 @@ PlasmoidItem {
                                                                    : Kirigami.Theme.negativeTextColor
                                                         }
                                                     }
+
+                                                     Column {
+                                                         visible: modelData.role === "question_request"
+                                                         width: parent.width
+                                                         spacing: Kirigami.Units.smallSpacing
+
+                                                         PC3.Label {
+                                                             text: "Your Answer:"
+                                                             font.bold: true
+                                                             visible: modelData.status === "pending"
+                                                         }
+
+                                                         PC3.TextField {
+                                                             id: questionReplyField
+                                                             visible: modelData.status === "pending"
+                                                             width: parent.width
+                                                             placeholderText: "Type your answer here..."
+                                                             onAccepted: {
+                                                                 if (text.trim() !== "") {
+                                                                     root.respondToQuestion(modelData.questionId, text, false)
+                                                                 }
+                                                             }
+                                                         }
+
+                                                         Row {
+                                                             width: parent.width
+                                                             spacing: Kirigami.Units.largeSpacing
+
+                                                             PC3.Button {
+                                                                 visible: modelData.status === "pending"
+                                                                 text: "Submit"
+                                                                 icon.name: "mail-send"
+                                                                 onClicked: {
+                                                                     if (questionReplyField.text.trim() !== "") {
+                                                                         root.respondToQuestion(modelData.questionId, questionReplyField.text, false)
+                                                                     }
+                                                                 }
+                                                             }
+
+                                                             PC3.Button {
+                                                                 visible: modelData.status === "pending"
+                                                                 text: "Dismiss"
+                                                                 icon.name: "dialog-cancel"
+                                                                 onClicked: root.respondToQuestion(modelData.questionId, "", true)
+                                                             }
+
+                                                             PC3.Label {
+                                                                 visible: modelData.status !== "pending"
+                                                                 text: modelData.status === "answered"
+                                                                       ? "Answered: \"" + (modelData.submittedAnswer || "") + "\" ✅"
+                                                                       : modelData.status === "dismissed"
+                                                                         ? "Dismissed ❌"
+                                                                         : modelData.status === "answering..."
+                                                                           ? "Submitting..."
+                                                                           : "Dismissing..."
+                                                                 font.bold: true
+                                                                 color: modelData.status === "answered"
+                                                                        ? Kirigami.Theme.positiveTextColor
+                                                                        : Kirigami.Theme.negativeTextColor
+                                                             }
+                                                         }
+                                                     }
 
                                                     Rectangle {
                                                         visible: root.editingMessageIndex === index && modelData.role !== "error"
@@ -1356,18 +1431,92 @@ PlasmoidItem {
                 root.messages = copy
                 saveCurrentSessionState(true)
             }
+        } else if (eventObj.type === "question.asked") {
+            var requestID = props.requestID || props.id || eventObj.id || ""
+            if (requestID !== "") {
+                var q = props.question || {}
+                var qText = ""
+                if (typeof props.question === "string") {
+                    qText = props.question
+                } else if (q.text) {
+                    qText = q.text
+                } else if (q.content) {
+                    qText = q.content
+                } else {
+                    qText = props.text || props.content || "OpenCode requires clarification."
+                }
+
+                var alreadyExists = False
+                for (var i = 0; i < root.messages.length; i++) {
+                    if (root.messages[i].role === "question_request" && root.messages[i].questionId === requestID) {
+                        alreadyExists = True
+                        break
+                    }
+                }
+
+                if (!alreadyExists) {
+                    var msg = {
+                        role: "question_request",
+                        content: "OpenCode is asking a question:\n\n**" + qText + "**",
+                        model: "OpenCode Question",
+                        id: "question-" + requestID,
+                        questionId: requestID,
+                        status: "pending",
+                        at: Date.now()
+                    }
+
+                    root.messages = root.messages.concat([msg])
+                    saveCurrentSessionState(true)
+                    if (!root.userScrolledUp)
+                        Qt.callLater(scrollToBottom)
+                }
+            }
+        } else if (eventObj.type === "question.replied") {
+            var qId = props.requestID || props.id || eventObj.id || ""
+            var copy = root.messages.slice()
+            var updated = False
+            for (var i = copy.length - 1; i >= 0; i--) {
+                if (copy[i].role === "question_request" && copy[i].questionId === qId) {
+                    if (copy[i].status === "pending" || copy[i].status === "answering...") {
+                        copy[i].status = "answered"
+                        updated = True
+                    }
+                    break
+                }
+            }
+            if (updated) {
+                root.messages = copy
+                saveCurrentSessionState(true)
+            }
+        } else if (eventObj.type === "question.rejected" || eventObj.type === "question.cancelled") {
+            var qId = props.requestID || props.id || eventObj.id || ""
+            var copy = root.messages.slice()
+            var updated = False
+            for (var i = copy.length - 1; i >= 0; i--) {
+                if (copy[i].role === "question_request" && copy[i].questionId === qId) {
+                    if (copy[i].status === "pending" || copy[i].status === "dismissing...") {
+                        copy[i].status = "dismissed"
+                        updated = True
+                    }
+                    break
+                }
+            }
+            if (updated) {
+                root.messages = copy
+                saveCurrentSessionState(true)
+            }
         }
     }
 
-    function ensureCurrentOpenCodeSession(callback) {
+    function ensureCurrentOpenCodeSession(successCallback, failureCallback) {
         var existing = currentOpenCodeSessionId()
         if (existing !== "") {
-            callback(existing)
+            successCallback(existing)
             return
         }
 
         var xhr = new XMLHttpRequest()
-        xhr.open("POST", openCodeBaseUrl() + "/session", true)
+        xhr.open("POST", openCodeBaseUrl() + "/session", True)
         xhr.setRequestHeader("Content-Type", "application/json")
 
         xhr.onreadystatechange = function() {
@@ -1379,122 +1528,129 @@ PlasmoidItem {
                     var obj = JSON.parse(xhr.responseText)
                     var remoteId = obj.id || ""
                     if (remoteId === "") {
-                        pushErrorMessage("OpenCode: server created a session without an id.")
+                        failureCallback("OpenCode: server created a session without an id.")
                         return
                     }
                     setCurrentOpenCodeSessionId(remoteId)
-                    callback(remoteId)
+                    successCallback(remoteId)
                 } catch (parseError) {
-                    pushErrorMessage("OpenCode: could not parse session creation response.")
+                    failureCallback("OpenCode: could not parse session creation response.")
                 }
             } else {
-                pushErrorMessage("OpenCode: failed to create a server session (HTTP " + xhr.status + ").")
+                failureCallback("OpenCode: failed to create a server session (HTTP " + xhr.status + ").")
             }
         }
 
         xhr.onerror = function() {
-            pushErrorMessage("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.")
+            failureCallback("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.")
         }
 
         try {
             xhr.send(JSON.stringify({ title: root.currentSessionTitle || "KDE AI Chat" }))
         } catch (sendError) {
-            pushErrorMessage("OpenCode: failed to create session: " + sendError)
+            failureCallback("OpenCode: failed to create session: " + sendError)
         }
     }
 
     function doOpenCodeRequest() {
         ensureOpenCodeEventStream()
-        ensureCurrentOpenCodeSession(function(remoteSessionId) {
-            var xhr = new XMLHttpRequest()
-            var modelId = (plasmoid.configuration.openCodeModel || "").trim()
-            var providerId = (plasmoid.configuration.openCodeProvider || "").trim()
-            var requestFinalized = false
+        
+        root.loading = True
+        root.streamingResponse = False
+        root.openCodeAssistantMessageIndex = -1
+        root.openCodeAssistantServerMessageId = ""
+        root.openCodeErrorShownForRequest = False
 
-            function failOpenCodeRequest(message) {
-                if (requestFinalized)
-                    return
-                requestFinalized = true
-                if (!root.openCodeErrorShownForRequest) {
-                    root.openCodeErrorShownForRequest = true
-                    pushErrorMessage(message)
+        ensureCurrentOpenCodeSession(
+            function(remoteSessionId) {
+                var xhr = new XMLHttpRequest()
+                var modelId = (plasmoid.configuration.openCodeModel || "").trim()
+                var providerId = (plasmoid.configuration.openCodeProvider || "").trim()
+                var requestFinalized = false
+
+                function failOpenCodeRequest(message) {
+                    if (requestFinalized)
+                        return
+                    requestFinalized = True
+                    if (!root.openCodeErrorShownForRequest) {
+                        root.openCodeErrorShownForRequest = True
+                        pushErrorMessage(message)
+                    }
+                    finishOpenCodeRequest()
                 }
-                finishOpenCodeRequest()
-            }
 
-            root.loading = true
-            root.streamingResponse = false
-            root.activeXhr = xhr
-            root.openCodeActiveSessionId = remoteSessionId
-            root.openCodeAssistantMessageIndex = -1
-            root.openCodeAssistantServerMessageId = ""
-            root.openCodeErrorShownForRequest = false
+                root.activeXhr = xhr
+                root.openCodeActiveSessionId = remoteSessionId
 
-            xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true)
-            xhr.setRequestHeader("Content-Type", "application/json")
+                xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true)
+                xhr.setRequestHeader("Content-Type", "application/json")
 
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE)
-                    return
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== XMLHttpRequest.DONE)
+                        return
 
-                if (requestFinalized)
-                    return
+                    if (requestFinalized)
+                        return
 
-                if (xhr.status < 200 || xhr.status >= 300) {
-                    var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error"
-                    failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.")
-                    return
+                    if (xhr.status < 200 || xhr.status >= 300) {
+                        var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error"
+                        failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.")
+                        return
+                    }
+
+                    try {
+                        var obj = JSON.parse(xhr.responseText)
+                        if (obj.info && obj.info.id)
+                            root.openCodeAssistantServerMessageId = obj.info.id
+                        if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
+                            root.openCodeErrorShownForRequest = True
+                            pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."))
+                        }
+
+                        if (obj.parts && obj.parts.length > 0) {
+                            var combined = ""
+                            for (var i = 0; i < obj.parts.length; i++) {
+                                if (obj.parts[i].type === "text")
+                                    combined += obj.parts[i].text || obj.parts[i].content || ""
+                            }
+                            if (combined !== "")
+                                updateAssistantStreamingContent(combined, providerId + "/" + modelId)
+                            else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
+                                updateAssistantStreamingContent("(empty response)", providerId + "/" + modelId)
+                        }
+                    } catch (parseResponseError) {
+                    }
+
+                    requestFinalized = True
+                    finishOpenCodeRequest()
+                }
+
+                xhr.onerror = function() {
+                    failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.")
                 }
 
                 try {
-                    var obj = JSON.parse(xhr.responseText)
-                    if (obj.info && obj.info.id)
-                        root.openCodeAssistantServerMessageId = obj.info.id
-                    if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
-                        root.openCodeErrorShownForRequest = true
-                        pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."))
-                    }
-
-                    if (obj.parts && obj.parts.length > 0) {
-                        var combined = ""
-                        for (var i = 0; i < obj.parts.length; i++) {
-                            if (obj.parts[i].type === "text")
-                                combined += obj.parts[i].text || obj.parts[i].content || ""
-                        }
-                        if (combined !== "")
-                            updateAssistantStreamingContent(combined, providerId + "/" + modelId)
-                        else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
-                            updateAssistantStreamingContent("(empty response)", providerId + "/" + modelId)
-                    }
-                } catch (parseResponseError) {
+                    xhr.send(JSON.stringify({
+                        model: {
+                            providerID: providerId,
+                            modelID: modelId
+                        },
+                        system: plasmoid.configuration.systemPrompt
+                                || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
+                        parts: [{ type: "text", text: root.messages[root.messages.length - 1].content || "" }]
+                    }))
+                } catch (sendError) {
+                    failOpenCodeRequest("OpenCode: failed to send request: " + sendError)
                 }
-
-                requestFinalized = true
-                finishOpenCodeRequest()
-            }
-
-            xhr.onerror = function() {
-                failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.")
-            }
-
-            try {
-                xhr.send(JSON.stringify({
-                    model: {
-                        providerID: providerId,
-                        modelID: modelId
-                    },
-                    system: plasmoid.configuration.systemPrompt
-                            || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
-                    parts: [{ type: "text", text: root.messages[root.messages.length - 1].content || "" }]
-                }))
-            } catch (sendError) {
+            },
+            function(errorMessage) {
                 if (!root.openCodeErrorShownForRequest) {
-                    root.openCodeErrorShownForRequest = true
-                    pushErrorMessage("OpenCode: failed to send request: " + sendError)
+                    root.openCodeErrorShownForRequest = True
+                    pushErrorMessage(errorMessage)
                 }
                 finishOpenCodeRequest()
             }
-        })
+        )
     }
 
     function scrollToBottom() {
@@ -2230,6 +2386,100 @@ PlasmoidItem {
         }
 
         sendToUrl(primaryUrl, false)
+    }
+
+    function respondToQuestion(questionId, answerValue, isReject) {
+        var sessionId = root.openCodeActiveSessionId
+        if (!sessionId) {
+            var idx = findSessionIndex(root.currentSessionId)
+            if (idx >= 0) {
+                sessionId = root.sessions[idx].openCodeSessionId || ""
+            }
+        }
+        if (!questionId)
+            return
+
+        var copy = root.messages.slice()
+        for (var i = 0; i < copy.length; i++) {
+            if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
+                copy[i].status = isReject ? "dismissing..." : "answering..."
+                break
+            }
+        }
+        root.messages = copy
+
+        var xhr = new XMLHttpRequest()
+        var action = isReject ? "reject" : "reply"
+        
+        var urls = [
+            openCodeBaseUrl() + "/question/" + questionId + "/" + action,
+            openCodeBaseUrl() + "/session/" + sessionId + "/question/" + questionId + "/" + action,
+            openCodeBaseUrl() + "/session/" + sessionId + "/questions/" + questionId + "/" + action
+        ]
+
+        var currentUrlIdx = 0
+
+        function tryNextUrl() {
+            if (currentUrlIdx >= urls.length) {
+                var copy = root.messages.slice()
+                for (var i = 0; i < copy.length; i++) {
+                    if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
+                        copy[i].status = "pending"
+                        break
+                    }
+                }
+                root.messages = copy
+                pushErrorMessage("OpenCode: failed to reply to question endpoint.")
+                return
+            }
+
+            var url = urls[currentUrlIdx]
+            currentUrlIdx++
+
+            xhr.open("POST", url, true)
+            xhr.setRequestHeader("Content-Type", "application/json")
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE)
+                    return
+
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    var copy = root.messages.slice()
+                    for (var i = 0; i < copy.length; i++) {
+                        if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
+                            copy[i].status = isReject ? "dismissed" : "answered"
+                            copy[i].submittedAnswer = answerValue
+                            break
+                        }
+                    }
+                    root.messages = copy
+                    saveCurrentSessionState(true)
+                } else if (xhr.status === 404) {
+                    tryNextUrl()
+                } else {
+                    var copy = root.messages.slice()
+                    for (var i = 0; i < copy.length; i++) {
+                        if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
+                            copy[i].status = "pending"
+                            break
+                        }
+                    }
+                    root.messages = copy
+                    pushErrorMessage("OpenCode: failed to reply to question (HTTP " + xhr.status + ").")
+                }
+            }
+
+            xhr.onerror = function() {
+                tryNextUrl()
+            }
+
+            try {
+                xhr.send(JSON.stringify(isReject ? {} : { answer: answerValue }))
+            } catch (err) {
+                tryNextUrl()
+            }
+        }
+
+        tryNextUrl()
     }
 
     function stopStreaming() {

@@ -118,7 +118,8 @@ zip -r "dist/org.kde.plasma.kdeaichat-v1.1.plasmoid" org.kde.plasma.kdeaichat \
 * **Dedicated Ollama Provider**: Integrated Ollama as a dedicated keyless provider defaulting to `http://localhost:11434/v1` and `llama3.2`.
 * **Optional KWallet Secure Storage**: Added a checkbox in settings to enable/disable KWallet integration, allowing direct config key storage as a simpler, manual alternative.
 * **Dynamic Dark/Light Themes**: Fixed theme apply bug. Added absolute `Kirigami.Theme` overrides and matching solid backgrounds inside the chat representation to honor custom Light/Dark appearance modes.
-* **Provider Static-Analysis Auditing**: Created an automated validation suite (`validate_providers.py`) to verify all 16 providers are perfectly aligned across configuration schemas, UI settings, and execution engines.
+* **OpenCode Interactive Questions**: Integrated prompt clarification cards directly within the chat bubble delegate with Submit/Dismiss pathways.
+* **OpenCode Session ID Header Display**: Embeds a live dynamic OpenCode Session ID subtitle in the main chat header area.
 
 ---
 
