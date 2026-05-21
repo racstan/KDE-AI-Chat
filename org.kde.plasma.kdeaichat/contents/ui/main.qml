@@ -126,9 +126,8 @@ PlasmoidItem {
                     onClicked: root.historyOnlyMode = !root.historyOnlyMode
                 }
 
-                Item { Layout.fillWidth: true }
-
                 PC3.Label {
+                    Layout.fillWidth: true
                     text: root.historyOnlyMode
                           ? ((plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History")
                           : (root.currentSessionTitle || "New Chat")
@@ -136,8 +135,6 @@ PlasmoidItem {
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                 }
-
-                Item { Layout.fillWidth: true }
 
                 PC3.ToolButton {
                     visible: !root.historyOnlyMode
@@ -2096,6 +2093,9 @@ PlasmoidItem {
                 sseOffset = xhr.responseText.length
                 sseBuffer += delta
 
+                var accumulatedTokens = ""
+                var latestChunkTs = Date.now()
+
                 while (true) {
                     var split = sseBuffer.indexOf("\n\n")
                     if (split < 0)
@@ -2120,25 +2120,35 @@ PlasmoidItem {
                                         && obj.choices[0].delta.content) || ""
                             if (token !== "") {
                                 streamedAnyToken = true
-                                var chunkTs = Date.now()
-                                if (assistantIdx < 0) {
-                                    root.messages = root.messages.concat([{ role: "assistant", content: token, time: nowTime(chunkTs), at: chunkTs, model: modelLabel || model || "" }])
-                                    assistantIdx = root.messages.length - 1
-                                } else {
-                                    var copy = root.messages.slice()
-                                    var a = Object.assign({}, copy[assistantIdx])
-                                    a.content = (a.content || "") + token
-                                    a.at = chunkTs
-                                    a.time = nowTime(chunkTs)
-                                    copy[assistantIdx] = a
-                                    root.messages = copy
-                                }
-                                if (!root.userScrolledUp)
-                                    Qt.callLater(scrollToBottom)
+                                accumulatedTokens += token
+                                latestChunkTs = Date.now()
                             }
                         } catch (e) {
                         }
                     }
+                }
+
+                if (accumulatedTokens !== "") {
+                    if (assistantIdx < 0) {
+                        root.messages = root.messages.concat([{
+                            role: "assistant",
+                            content: accumulatedTokens,
+                            time: nowTime(latestChunkTs),
+                            at: latestChunkTs,
+                            model: modelLabel || model || ""
+                        }])
+                        assistantIdx = root.messages.length - 1
+                    } else {
+                        var copy = root.messages.slice()
+                        var a = Object.assign({}, copy[assistantIdx])
+                        a.content = (a.content || "") + accumulatedTokens
+                        a.at = latestChunkTs
+                        a.time = nowTime(latestChunkTs)
+                        copy[assistantIdx] = a
+                        root.messages = copy
+                    }
+                    if (!root.userScrolledUp)
+                        Qt.callLater(scrollToBottom)
                 }
             }
 
