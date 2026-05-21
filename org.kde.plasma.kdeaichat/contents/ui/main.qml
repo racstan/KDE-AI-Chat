@@ -416,11 +416,12 @@ PlasmoidItem {
                                                         visible: root.editingMessageIndex !== index || modelData.role === "error"
                                                         width: parent.width
                                                         wrapMode: Text.Wrap
-                                                        textFormat: Text.PlainText
-                                                        text: modelData.content
+                                                        textFormat: modelData.role === "error" ? Text.PlainText : Text.RichText
+                                                        text: modelData.role === "error" ? modelData.content : root.convertMarkdownToHtml(modelData.content)
                                                         color: modelData.role === "error"
                                                                ? Kirigami.Theme.negativeTextColor
                                                                : Kirigami.Theme.textColor
+                                                        onLinkActivated: function(link) { Qt.openUrlExternally(link) }
                                                     }
 
                                                     Row {
@@ -2457,5 +2458,85 @@ PlasmoidItem {
         root.loading = false
         saveCurrentSessionState(true)
         processNextQueuedMessage()
+    }
+
+    function convertMarkdownToHtml(markdown) {
+        if (!markdown) return "";
+
+        var isDark = root.popupIsDark;
+        var codeBg = isDark ? "#2d3139" : "#f0f2f5";
+        var codeColor = isDark ? "#abb2bf" : "#383a42";
+        var inlineBg = isDark ? "#3e4452" : "#e5e5e5";
+        var inlineColor = isDark ? "#e06c75" : "#a626a4";
+        var linkColor = isDark ? "#61afef" : "#4078f2";
+        var borderColor = isDark ? "#3e4452" : "#d0d4dc";
+
+        var html = markdown;
+
+        // 1. Escape HTML
+        html = html.replace(/&/g, "&amp;")
+                   .replace(/</g, "&lt;")
+                   .replace(/>/g, "&gt;");
+
+        // 2. Extract code blocks with safe placeholders
+        var codeBlocks = [];
+        
+        // Code blocks with language specifiers
+        html = html.replace(/```([a-zA-Z0-9+#-_]*)\n([\s\S]*?)```/g, function(match, lang, code) {
+            var blockIdx = codeBlocks.length;
+            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px; margin: 8px 0px; border-radius: 6px; border: 1px solid ' + borderColor + ';">'
+                         + '<div style="font-size: 0.85em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 5px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 3px;">' + (lang || "code") + '</div>'
+                         + '<pre style="margin: 0px; white-space: pre-wrap; font-family: monospace;">' + code.trim() + '</pre>'
+                         + '</div>';
+            codeBlocks.push(rendered);
+            return "%%CODEBLOCKPLACEHOLDER" + blockIdx + "%%";
+        });
+
+        // Code blocks without language specifiers
+        html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
+            var blockIdx = codeBlocks.length;
+            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px; margin: 8px 0px; border-radius: 6px; border: 1px solid ' + borderColor + ';">'
+                         + '<pre style="margin: 0px; white-space: pre-wrap; font-family: monospace;">' + code.trim() + '</pre>'
+                         + '</div>';
+            codeBlocks.push(rendered);
+            return "%%CODEBLOCKPLACEHOLDER" + blockIdx + "%%";
+        });
+
+        // 3. Inline code
+        html = html.replace(/`([^`\n]+)`/g, '<code style="background-color: ' + inlineBg + '; color: ' + inlineColor + '; font-family: monospace; padding: 2px 4px; border-radius: 3px; font-size: 0.95em;">$1</code>');
+
+        // 4. Headers
+        html = html.replace(/^#### (.*?)$/gm, '<h4 style="margin: 8px 0px; font-weight: bold;">$1</h4>');
+        html = html.replace(/^### (.*?)$/gm, '<h3 style="margin: 10px 0px; font-weight: bold;">$1</h3>');
+        html = html.replace(/^## (.*?)$/gm, '<h2 style="margin: 12px 0px; font-weight: bold;">$1</h2>');
+        html = html.replace(/^# (.*?)$/gm, '<h1 style="margin: 14px 0px; font-weight: bold;">$1</h1>');
+
+        // 5. Bold & Italic
+        html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<b>$1</b>');
+        html = html.replace(/__([^\_\n]+)__/g, '<b>$1</b>');
+        html = html.replace(/\*([^\*\n]+)\*/g, '<i>$1</i>');
+        html = html.replace(/_([^\_\n]+)_/g, '<i>$1</i>');
+
+        // 6. Links [text](url)
+        html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, '<a href="$2" style="color: ' + linkColor + '; text-decoration: underline;">$1</a>');
+
+        // 7. Bullet Lists
+        html = html.replace(/^\s*[-*+]\s+(.*?)$/gm, '<ul><li>$1</li></ul>');
+        html = html.replace(/<\/ul>\s*\n?\s*<ul>/g, "");
+
+        // 8. Numbered Lists
+        html = html.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<ol><li value="$1">$2</li></ol>');
+        html = html.replace(/<\/ol>\s*\n?\s*<ol>/g, "");
+
+        // 9. Paragraph double and single newlines
+        html = html.replace(/\n\n/g, "<br/><br/>");
+        html = html.replace(/\n/g, "<br/>");
+
+        // 10. Restore code blocks
+        for (var idx = 0; idx < codeBlocks.length; idx++) {
+            html = html.replace("%%CODEBLOCKPLACEHOLDER" + idx + "%%", codeBlocks[idx]);
+        }
+
+        return html;
     }
 }
