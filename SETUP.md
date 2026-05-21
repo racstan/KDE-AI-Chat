@@ -22,31 +22,28 @@ A comprehensive guide to setting up and using each feature of the Kai Chat KDE P
 
 ### Install Steps
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/rachisthan-bit/kai-chat-plasma.git
-   cd rachitkdeaichat
-   ```
+#### Option A: Native 1-Click Desktop Installation (Recommended)
+1. Right-click your desktop background or the panel and click **Add Widgets...**
+2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
+3. In the search box, search for **"Kai Chat"** (short for KDE AI Chat).
+4. Click **Install**.
 
-2. **Run the install script (user-local):**
+#### Option B: Manual Package Installation
+If you downloaded the compiled `.plasmoid` file directly from the KDE Store:
+1. Open a terminal in the folder containing the downloaded `.plasmoid` package.
+2. Run the package registration command:
    ```bash
-   bash install.sh
+   kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kaichat-v3.1.plasmoid
    ```
-   
-   Or for **system-wide installation:**
+3. Restart your Plasma shell to apply the update:
    ```bash
-   sudo bash install.sh global
+   systemctl --user restart plasma-plasmashell.service
    ```
-
-3. **Add the widget to your panel:**
-   - Right-click the panel → **Edit Mode** (or press `Alt+E`)
-   - Click **+** → Search for **"Kai Chat"**
-   - Click to add
 
 4. **Verify installation:**
-   - The widget icon (💬) should appear on your panel
-   - Click to open the chat popup
-   - Navigate to **Settings** (gear icon) to configure your first provider
+   - Right-click your panel/desktop, select **Add Widgets...**, search for **"Kai Chat"**, and drag it onto your panel or desktop.
+   - Click the chat icon (💬) to open the popup.
+   - Navigate to the **Settings** view (click the gear icon) to configure your first provider.
 
 ---
 
