@@ -5,10 +5,10 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 ---
 
 ![KDE AI Chat Main View](.github/assets/image.png)
-![KDE AI Chat Settings](.github/assets/image%20copy.png)
-![KDE AI Chat History](.github/assets/image%20copy%202.png)
-![Model Discovery](.github/assets/image%20copy%203.png)
-![OpenCode Server Status](.github/assets/image%20copy%204.png)
+![KDE AI Chat Settings](.github/assets/image2.png)
+![KDE AI Chat History](.github/assets/image3.png)
+![Model Discovery](.github/assets/image4.png)
+![OpenCode Server Status](.github/assets/image5.png)
 
 ---
 
@@ -40,7 +40,7 @@ As of **May 21, 2026**, the codebase has undergone a comprehensive structural au
 
 ```text
 kai-chat/
-├── org.kde.plasma.kaichat/       # Core Widget Package (KPackage structure)
+├── org.kde.plasma.kdeaichat/       # Core Widget Package (KPackage structure)
 │   ├── metadata.json             # Plasmoid manifest (version, licensing, API specs)
 │   └── contents/
 │       ├── config/
@@ -105,7 +105,7 @@ For developers packaging the widget from local sources, standard procedures are 
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kaichat-v3.1.plasmoid" org.kde.plasma.kaichat \
+zip -r "dist/org.kde.plasma.kdeaichat-v3.1.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
 

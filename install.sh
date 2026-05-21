@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-WIDGET_DIR="org.kde.plasma.kaichat"
-WIDGET_ID="org.kde.plasma.kaichat"
+WIDGET_DIR="org.kde.plasma.kdeaichat"
+WIDGET_ID="org.kde.plasma.kdeaichat"
 
 echo "Installing / upgrading $WIDGET_ID ..."
 

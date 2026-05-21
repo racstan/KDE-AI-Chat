@@ -108,7 +108,7 @@ KCM.SimpleKCM {
     property var filteredOpenCodeModels: []
 
     readonly property string walletFolderName: "KaiChat"
-    readonly property string walletAppId: "org.kde.plasma.kaichat"
+    readonly property string walletAppId: "org.kde.plasma.kdeaichat"
 
     function updateFilteredProviderModels(searchText) {
         var search = (searchText || "").toLowerCase()
@@ -1002,7 +1002,7 @@ KCM.SimpleKCM {
         openCodeUrlField.text = "http://127.0.0.1:4096/v1"
         openCodeProviderValueField.text = ""
         openCodeModelValueField.text = ""
-        openCodeStartCommandField.text = "nohup opencode serve --port 4096 >/tmp/kaichat-opencode.log 2>&1 & echo OpenCode start command launched."
+        openCodeStartCommandField.text = "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched."
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched."
 
         walletNameField.text = availableWalletNames.length > 0 ? availableWalletNames[0] : "kdewallet"
@@ -1320,7 +1320,7 @@ KCM.SimpleKCM {
                 enabled: !openCodeBusy
                 onClicked: {
                     discoveryStatus = "Running OpenCode start command..."
-                    var cmd = "sh -lc '" + shellEscape(openCodeStartCommandField.text || "nohup opencode serve --port 4096 >/tmp/kaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'"
+                    var cmd = "sh -lc '" + shellEscape(openCodeStartCommandField.text || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'"
                     utilityDs.connectSource(cmd + " #opencode-start")
                 }
             }
@@ -1440,7 +1440,7 @@ KCM.SimpleKCM {
         QQC2.TextField {
             id: walletNameField
             visible: false
-            text: "kaichatwallet"
+            text: "kdeaichatwallet"
         }
 
         QQC2.TextField {

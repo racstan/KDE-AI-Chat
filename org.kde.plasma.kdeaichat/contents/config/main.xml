@@ -177,14 +177,14 @@
       <default></default>
     </entry>
     <entry name="openCodeStartCommand" type="String">
-      <default>nohup opencode serve --port 4096 >/tmp/kaichat-opencode.log 2&gt;&amp;1 &amp; echo OpenCode start command launched.</default>
+      <default>nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2&gt;&amp;1 &amp; echo OpenCode start command launched.</default>
     </entry>
     <entry name="openCodeStopCommand" type="String">
       <default>pkill -f opencode &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo OpenCode stop command launched. || echo No OpenCode process matched.</default>
     </entry>
 
     <entry name="kwalletName" type="String">
-      <default>kaichatwallet</default>
+      <default>kdeaichatwallet</default>
     </entry>
 
     <entry name="systemPrompt" type="String">

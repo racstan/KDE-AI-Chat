@@ -33,7 +33,7 @@ If you downloaded the compiled `.plasmoid` file directly from the KDE Store:
 1. Open a terminal in the folder containing the downloaded `.plasmoid` package.
 2. Run the package registration command:
    ```bash
-   kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kaichat-v3.1.plasmoid
+   kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kdeaichat-v3.1.plasmoid
    ```
 3. Restart your Plasma shell to apply the update:
    ```bash
@@ -328,7 +328,7 @@ Follow the steps below for each provider you want to use.
 ### 3. Conversation Sessions
 
 **What it does:**
-- Each chat session is saved to disk at `~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/`
+- Each chat session is saved to disk at `~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/`
 - Sessions persist after the widget closes or Plasma restarts
 
 **How to use:**
@@ -526,17 +526,17 @@ Follow the steps below for each provider you want to use.
 
 **View saved sessions:**
 ```bash
-ls ~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/
+ls ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/
 ```
 
 **Inspect a session:**
 ```bash
-cat ~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/{sessionId}.json | jq .
+cat ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.json | jq .
 ```
 
 **Delete a session:**
 ```bash
-rm ~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/{sessionId}.json
+rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.json
 ```
 
 ---
@@ -613,7 +613,7 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/{sessionId}.jso
 **Solution:**
 1. Check that sessions exist:
    ```bash
-   ls -la ~/.local/share/plasmoids/org.kde.plasma.kaichat/conversations/
+   ls -la ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/
    ```
 
 2. If directory is empty, sessions may not be saved. Ensure **conversation persistence** is working:

@@ -9,7 +9,7 @@
         "Category": "Utilities",
         "Description": "A KDE Plasma AI chat widget with session history, OpenCode priority mode, and multi-provider settings.",
         "Icon": "dialog-messages",
-        "Id": "org.kde.plasma.kaichat",
+        "Id": "org.kde.plasma.kdeaichat",
         "License": "GPL-2.0+",
         "Name": "KDE AI Chat",
         "Version": "1.0",
