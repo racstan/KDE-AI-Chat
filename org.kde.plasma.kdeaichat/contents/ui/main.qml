@@ -2112,11 +2112,6 @@ PlasmoidItem {
     function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
         var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions"
         var xhr = new XMLHttpRequest()
-
-        var sseBuffer = ""
-        var sseOffset = 0
-        var assistantIdx = -1
-        var streamedAnyToken = false
         var errorHandled = false
 
         try {
@@ -2140,130 +2135,79 @@ PlasmoidItem {
         root.loading = true
         root.activeXhr = xhr
 
+        // Non-streaming: wait for the complete response, then display it at once.
+        // This is intentional — streaming caused the QML engine to re-render on every
+        // individual token, saturating the main thread and freezing the KDE desktop.
         xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.LOADING || xhr.readyState === XMLHttpRequest.DONE) {
-                var delta = xhr.responseText.slice(sseOffset)
-                sseOffset = xhr.responseText.length
-                sseBuffer += delta
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
 
-                while (true) {
-                    var split = sseBuffer.indexOf("\n\n")
-                    if (split < 0)
-                        break
+            root.loading = false
+            root.activeXhr = null
 
-                    var block = sseBuffer.slice(0, split)
-                    sseBuffer = sseBuffer.slice(split + 2)
-
-                    var lines = block.split("\n")
-                    for (var i = 0; i < lines.length; i++) {
-                        if (lines[i].indexOf("data:") !== 0)
-                            continue
-
-                        var payload = lines[i].slice(5).trim()
-                        if (payload === "" || payload === "[DONE]")
-                            continue
-
-                        try {
-                            var obj = JSON.parse(payload)
-                            var token = (obj.choices && obj.choices[0]
-                                        && obj.choices[0].delta
-                                        && obj.choices[0].delta.content) || ""
-                            if (token !== "") {
-                                streamedAnyToken = true
-                                // Accumulate into buffer - only start the
-                                // flush timer on first token so we create the
-                                // placeholder message once, then batch writes.
-                                if (assistantIdx < 0 && root._sseAssistantIdx < 0) {
-                                    // Create placeholder message immediately so
-                                    // user sees the bubble appear at once.
-                                    var chunkTs = Date.now()
-                                    root._sseModelLabel = modelLabel || model || ""
-                                    root.messages = root.messages.concat([{
-                                        role: "assistant",
-                                        content: "",
-                                        time: nowTime(chunkTs),
-                                        at: chunkTs,
-                                        model: root._sseModelLabel
-                                    }])
-                                    assistantIdx = root.messages.length - 1
-                                    root._sseAssistantIdx = assistantIdx
-                                    sseFlushTimer.start()
-                                }
-                                root._sseTokenBuffer += token
-                            }
-                        } catch (e) {
-                        }
-                    }
-                }
-            }
-
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                // Stop the batch-flush timer and drain anything still in the buffer
-                // before we finalise loading=false, so the last tokens always appear.
-                sseFlushTimer.stop()
-                root.flushSseBuffer()
-                root._sseAssistantIdx = -1
-                root._sseTokenBuffer = ""
-                root._sseModelLabel = ""
-
-                root.loading = false
-                root.activeXhr = null
-
-                if (xhr.status < 200 || xhr.status >= 300) {
-                    if (errorHandled)
-                        return
-                    errorHandled = true
-                    var err = "Request to " + url + " failed"
-                    if (xhr.status)
-                        err += " (HTTP " + xhr.status + ")"
-                    try {
-                        var eobj = JSON.parse(xhr.responseText)
-                        if (eobj.error) {
-                            if (typeof eobj.error === "string") {
-                                err += " | " + eobj.error
-                            } else {
-                                if (eobj.error.message)
-                                    err = "API Error (" + xhr.status + "): " + eobj.error.message
-                                if (eobj.error.metadata) {
-                                    try {
-                                        err += " | " + JSON.stringify(eobj.error.metadata)
-                                    } catch(ex) {
-                                        err += " | " + eobj.error.metadata
-                                    }
+            if (xhr.status < 200 || xhr.status >= 300) {
+                if (errorHandled)
+                    return
+                errorHandled = true
+                var err = "Request to " + url + " failed"
+                if (xhr.status)
+                    err += " (HTTP " + xhr.status + ")"
+                try {
+                    var eobj = JSON.parse(xhr.responseText)
+                    if (eobj.error) {
+                        if (typeof eobj.error === "string") {
+                            err += " | " + eobj.error
+                        } else {
+                            if (eobj.error.message)
+                                err = "API Error (" + xhr.status + "): " + eobj.error.message
+                            if (eobj.error.metadata) {
+                                try {
+                                    err += " | " + JSON.stringify(eobj.error.metadata)
+                                } catch(ex) {
+                                    err += " | " + eobj.error.metadata
                                 }
                             }
                         }
-                    } catch (e2) {
                     }
-                    pushErrorMessage(err)
-                } else if (!streamedAnyToken) {
-                    try {
-                        var parsed = JSON.parse(xhr.responseText)
-                        var finalText = (parsed.choices && parsed.choices[0]
-                                         && parsed.choices[0].message
-                                         && parsed.choices[0].message.content) || ""
-                        if (finalText !== "") {
-                            var doneTs = Date.now()
-                            root.messages = root.messages.concat([{ role: "assistant", content: finalText, time: nowTime(doneTs), at: doneTs, model: modelLabel || model || "" }])
-                        }
-                    } catch (doneParseError) {
-                    }
+                } catch (e2) {
                 }
-
-                triggerNotificationSound()
-                saveCurrentSessionState(true)
+                pushErrorMessage(err)
                 processNextQueuedMessage()
+                return
             }
+
+            try {
+                var parsed = JSON.parse(xhr.responseText)
+                var finalText = (parsed.choices && parsed.choices[0]
+                                 && parsed.choices[0].message
+                                 && parsed.choices[0].message.content) || ""
+                if (finalText !== "") {
+                    var doneTs = Date.now()
+                    root.messages = root.messages.concat([{
+                        role: "assistant",
+                        content: finalText,
+                        time: nowTime(doneTs),
+                        at: doneTs,
+                        model: modelLabel || model || ""
+                    }])
+                    if (!root.userScrolledUp)
+                        Qt.callLater(scrollToBottom)
+                } else {
+                    pushErrorMessage("The model returned an empty response.")
+                }
+            } catch (parseError) {
+                pushErrorMessage("Failed to parse response: " + parseError)
+            }
+
+            triggerNotificationSound()
+            saveCurrentSessionState(true)
+            processNextQueuedMessage()
         }
 
         xhr.onerror = function() {
             if (errorHandled)
                 return
             errorHandled = true
-            sseFlushTimer.stop()
-            root._sseAssistantIdx = -1
-            root._sseTokenBuffer = ""
-            root._sseModelLabel = ""
             root.loading = false
             root.activeXhr = null
             pushErrorMessage("Could not reach " + url + ". Check the server URL and whether that endpoint accepts API requests.")
@@ -2274,7 +2218,7 @@ PlasmoidItem {
             xhr.send(JSON.stringify({
                 model: model,
                 messages: buildOpenAICompatPayload(),
-                stream: true
+                stream: false
             }))
         } catch (sendError) {
             root.loading = false
