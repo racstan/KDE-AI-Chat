@@ -14,7 +14,8 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ## Key Features
 
-- **Multi-Provider Switching**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA, Hugging Face, xAI (Grok), LM Studio, and generic local OpenAI-compatible endpoints.
+- **Multi-Provider Switching**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA, Hugging Face, xAI (Grok), Ollama, LM Studio, and local OpenAI-compatible endpoints.
+- **Offline & Local AI Priority**: Keyless out-of-the-box integration with offline local LLM engines (Ollama, LM Studio, or custom local OpenAI-compatible endpoints), allowing complete data privacy and local-only operations.
 - **Dynamic Model Discovery**: Auto-detects and populates model lists directly from API endpoints, featuring a real-time searchable combobox.
 - **Local Priority (OpenCode Mode)**: Special developer-priority mode with server process control (Start/Stop/Kill controls directly from settings).
 - **Session History Manager**: Persistence layer supporting creating, renaming, archiving, and deleting chat threads, categorized with elegant date groupings.
@@ -39,7 +40,7 @@ As of **May 21, 2026**, the codebase has undergone a comprehensive structural au
 **KDE AI Chat** is 100% open-source. The repository is organized under a standard KDE Plasma KPackage layout, allowing developers to audit, run diagnostic linters, and build from source:
 
 ```text
-kai-chat/
+KDE-AI-Chat/
 ├── org.kde.plasma.kdeaichat/       # Core Widget Package (KPackage structure)
 │   ├── metadata.json             # Plasmoid manifest (version, licensing, API specs)
 │   └── contents/
@@ -73,8 +74,8 @@ You can install **KDE AI Chat** either directly through your desktop interface (
 If you want to run the latest development build or customize the source files:
 1. Clone the open-source repository:
    ```bash
-   git clone https://github.com/racstan/kai-chat.git
-   cd kai-chat
+   git clone https://github.com/racstan/KDE-AI-Chat.git
+   cd KDE-AI-Chat
    ```
 2. Run the one-click local installation script:
    ```bash

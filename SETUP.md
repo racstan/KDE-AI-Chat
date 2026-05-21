@@ -445,7 +445,7 @@ Follow the steps below for each provider you want to use.
 
 3. **Manage Keys (manual):**
    ```bash
-   # List all keys
+   # List all keys (queries secure internal storage namespace)
    secret-tool search provider kai-chat
 
    # Delete a key (if needed)
@@ -676,7 +676,7 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
 
 ## Support & Feedback
 
-- **GitHub Issues:** https://github.com/rachisthan-bit/kai-chat-plasma/issues
+- **GitHub Issues:** https://github.com/racstan/KDE-AI-Chat/issues
 - **Feature Requests:** Open an issue with the `feature` label
 - **Bug Reports:** Include widget version and error messages
 
