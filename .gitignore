@@ -8,7 +8,13 @@
 # Build artifacts
 build/
 *.qmlc
+dist/
+*.plasmoid
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Exclude source code for private distribution (releases only via KDE Store)
+org.kde.plasma.kaichat/
+install.sh
