@@ -26,46 +26,57 @@ As of **May 21, 2026**, the codebase has undergone a comprehensive structural au
 
 ---
 
-## Repository Structure (GitHub Public Portal)
+## Repository Structure
 
-To optimize distribution, the public GitHub repository serves as the official documentation, setup guide, and issue-tracking portal. The codebase is compiled directly into the production-ready `.plasmoid` distribution package, which is distributed solely through the official **KDE Store** and GitHub Releases.
+**Kai Chat** is 100% open-source. The repository is organized under a standard KDE Plasma KPackage layout, allowing developers to audit, run diagnostic linters, and build from source:
 
-The tracked files in this repository are:
 ```text
-rachitkdeaichat/
-├── README.md                      # Official landing portal and index
-├── SETUP.md                       # Comprehensive credentials & provider API key setup guide
-├── FORUSER.md                     # Release & packaging runbook (for developers)
-├── audit.md                       # Detailed QA technical audit report
-└── .gitignore                     # Git tracking safety filter
+kai-chat/
+├── org.kde.plasma.kaichat/       # Core Widget Package (KPackage structure)
+│   ├── metadata.json             # Plasmoid manifest (version, licensing, API specs)
+│   └── contents/
+│       ├── config/
+│       │   ├── config.qml        # Config UI page binder
+│       │   └── main.xml          # KConfigXT schema for persistent storage
+│       └── ui/
+│           ├── ConfigGeneral.qml # Widget settings panel (sync logic & API keys)
+│           └── main.qml          # Widget main interface (popup, database & SSE)
+├── .gitignore                    # Git file tracking safety guard
+├── install.sh                    # One-click developer clean-reinstall script
+├── audit.md                      # Detailed technical audit report
+├── SETUP.md                      # End-user credentials & provider setup guide
+└── FORUSER.md                    # Release and publishing runbook
 ```
 
 ---
 
 ## Installation
 
-Installing **Kai Chat** is seamless and does not require manual command-line execution or downloading source files.
+You can install **Kai Chat** either directly through your desktop interface (recommended for general users) or build it directly from source (for developers and power users).
 
-### Option 1: Native One-Click Desktop Installation (Recommended)
-1. Right-click your desktop background or Plasma panel and select **Add Widgets...**
-2. Click **Get New Widgets** at the top, then select **Download New Plasma Widgets...**
-3. In the search box, type **Kai Chat**.
-4. Click the **Install** button.
+### Option 1: Native Desktop Installation (Recommended)
+1. Right-click your desktop background or the Plasma panel and select **Add Widgets...**
+2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
+3. In the search box, search for **"Kai Chat"** and click **Install**.
 
-*This automatically fetches and registers the verified distribution package from the KDE Store.*
+*This automatically fetches and registers the pre-compiled, verified release package from the KDE Store.*
 
-### Option 2: Manual Package Installation
-If you prefer to download the compiled `.plasmoid` bundle manually from the [KDE Store](https://store.kde.org/p/2153123) or the GitHub Releases tab:
-1. Open your terminal in the directory where you downloaded the `.plasmoid` file.
-2. Register the widget with Plasma:
+### Option 2: Clone and Install from Source (For Developers)
+If you want to run the latest development build or customize the source files:
+1. Clone the open-source repository:
    ```bash
-   kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kaichat-v3.1.plasmoid
+   git clone https://github.com/racstan/kai-chat.git
+   cd kai-chat
    ```
-3. Restart your Plasma shell to apply the changes:
+2. Run the one-click local installation script:
+   ```bash
+   ./install.sh
+   ```
+3. Restart your Plasma shell to apply changes and register the widget:
    ```bash
    systemctl --user restart plasma-plasmashell.service
    ```
-4. Add the widget by searching for **Kai Chat** in your Plasma Widget Explorer.
+4. Right-click your desktop/panel, select **Add Widgets...**, search for **Kai Chat**, and drag it onto your screen!
 
 ---
 
