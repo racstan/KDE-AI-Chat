@@ -1247,29 +1247,33 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "Model:"
             Layout.fillWidth: true
             editable: true
-            model: filteredProviderModels
+            model: providerModelCandidates
 
             Component.onCompleted: {
-                editText = activeProviderModelValue()
+                syncText()
+            }
+
+            onModelChanged: {
+                syncText()
+            }
+
+            function syncText() {
+                var val = activeProviderModelValue()
+                var idx = providerModelCandidates.indexOf(val)
+                if (idx >= 0) {
+                    currentIndex = idx
+                } else {
+                    currentIndex = -1
+                    editText = val
+                }
             }
 
             onEditTextChanged: {
                 if (activeFocus) {
-                    var currentStr = editText
-                    var cursorPos = 0
-                    if (contentItem && contentItem.cursorPosition !== undefined)
-                        cursorPos = contentItem.cursorPosition
-                    
-                    updateFilteredProviderModels(currentStr)
-                    
-                    if (editText !== currentStr) {
-                        editText = currentStr
-                        if (contentItem && contentItem.cursorPosition !== undefined)
-                            contentItem.cursorPosition = cursorPos
-                    }
-                    applyDetectedModelToActiveProvider(currentStr)
+                    applyDetectedModelToActiveProvider(editText)
                 }
             }
+
             onActivated: {
                 applyDetectedModelToActiveProvider(currentText)
                 editText = currentText
@@ -1365,18 +1369,33 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "Model:"
             Layout.fillWidth: true
             editable: true
-            model: filteredOpenCodeModels
+            model: openCodeModelCandidates
 
             Component.onCompleted: {
-                editText = openCodeModelValueField.text
+                syncText()
+            }
+
+            onModelChanged: {
+                syncText()
+            }
+
+            function syncText() {
+                var val = openCodeModelValueField.text || ""
+                var idx = openCodeModelCandidates.indexOf(val)
+                if (idx >= 0) {
+                    currentIndex = idx
+                } else {
+                    currentIndex = -1
+                    editText = val
+                }
             }
 
             onEditTextChanged: {
                 if (activeFocus) {
-                    updateFilteredOpenCodeModels(editText)
                     setOpenCodeModelValue(editText)
                 }
             }
+
             onActivated: {
                 setOpenCodeModelValue(currentText)
                 editText = currentText

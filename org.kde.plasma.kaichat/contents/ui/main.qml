@@ -592,22 +592,22 @@ PlasmoidItem {
                                         onAccepted: root.saveSessionRename(modelData.value)
                                     }
 
-                                    QQC2.Button {
+                                    PC3.Label {
                                         visible: root.editingSessionId !== modelData.value
-                                        flat: true
                                         width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
                                         text: modelData.text || "New Chat"
-                                        contentItem: Text {
-                                            text: parent.text
-                                            font: parent.font
-                                            color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                                            horizontalAlignment: Text.AlignLeft
-                                            verticalAlignment: Text.AlignVCenter
-                                            elide: Text.ElideRight
-                                        }
-                                        onClicked: {
-                                            root.switchSession(modelData.value)
-                                            root.historyOnlyMode = false
+                                        font.bold: modelData.value === root.currentSessionId
+                                        color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                                        elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                root.switchSession(modelData.value)
+                                                root.historyOnlyMode = false
+                                            }
                                         }
                                     }
 
