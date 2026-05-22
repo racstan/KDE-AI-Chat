@@ -1,6 +1,8 @@
 # KDE AI Chat — Native KDE Plasma 6 AI Chat Widget
 
-Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Qt 6**. It features seamless multi-provider switching, real-time model discovery, session persistence, direct SSE streaming, and secure KWallet integration.
+[![KDE Store](https://img.shields.io/badge/KDE%20Store-Download-blue?style=for-the-badge&logo=kde)](https://store.kde.org/p/2360152/) [![GitHub Release](https://img.shields.io/github/v/release/racstan/KDE-AI-Chat?style=for-the-badge&color=success)](https://github.com/racstan/KDE-AI-Chat/releases)
+
+Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Qt 6**. It features seamless multi-provider switching, real-time model discovery, session persistence, direct SSE streaming, and secure KWallet integration. Available to download on the [KDE Store](https://store.kde.org/p/2360152/).
 
 ---
 
@@ -115,16 +117,10 @@ zip -r "dist/org.kde.plasma.kdeaichat-v1.1.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
 
----
 
 ## Changelog
 
-### Version 1.1
-* **Dedicated Ollama Provider**: Integrated Ollama as a dedicated keyless provider defaulting to `http://localhost:11434/v1` and `llama3.2`.
-* **Optional KWallet Secure Storage**: Added a checkbox in settings to enable/disable KWallet integration, allowing direct config key storage as a simpler, manual alternative.
-* **Dynamic Dark/Light Themes**: Fixed theme apply bug. Added absolute `Kirigami.Theme` overrides and matching solid backgrounds inside the chat representation to honor custom Light/Dark appearance modes.
-* **OpenCode Interactive Questions**: Integrated prompt clarification cards directly within the chat bubble delegate with Submit/Dismiss pathways.
-* **OpenCode Session ID Header Display**: Embeds a live dynamic OpenCode Session ID subtitle in the main chat header area.
+For a detailed history of features, bug fixes, and performance updates across all releases, please refer to the dedicated [changelog.md](changelog.md) file.
 
 ---
 

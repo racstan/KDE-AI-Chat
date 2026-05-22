@@ -56,19 +56,6 @@ PlasmoidItem {
         return Qt.styleHints.colorScheme === Qt.Dark;
     }
 
-    function cyclePopupSizeMode() {
-        var current = plasmoid.configuration.popupSizeMode || 0
-        plasmoid.configuration.popupSizeMode = (current + 1) % 3
-        root.expanded = false
-        popupReopenTimer.start()
-    }
-
-    Timer {
-        id: popupReopenTimer
-        interval: 120
-        repeat: false
-        onTriggered: root.expanded = true
-    }
 
     Component.onCompleted: loadSessions()
     onMessagesChanged: {
@@ -153,20 +140,6 @@ PlasmoidItem {
                     }
                 }
 
-                PC3.ToolButton {
-                    icon.name: {
-                        if (plasmoid.configuration.popupSizeMode === 0) return "view-fullscreen"
-                        if (plasmoid.configuration.popupSizeMode === 1) return "zoom-fit-best"
-                        return "view-restore"
-                    }
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: {
-                        if (plasmoid.configuration.popupSizeMode === 0) return "Expand to large popup"
-                        if (plasmoid.configuration.popupSizeMode === 1) return "Expand to fullscreen popup"
-                        return "Restore normal popup size"
-                    }
-                    onClicked: root.cyclePopupSizeMode()
-                }
 
                 PC3.ToolButton {
                     visible: !root.historyOnlyMode
@@ -1658,8 +1631,12 @@ PlasmoidItem {
     }
 
     function scrollToBottom() {
-        if (root.msgListViewRef)
+        if (root.msgListViewRef) {
             root.msgListViewRef.positionViewAtEnd()
+            if (root.msgListViewRef.contentHeight > root.msgListViewRef.height) {
+                root.msgListViewRef.contentY = root.msgListViewRef.contentHeight - root.msgListViewRef.height
+            }
+        }
     }
 
     function messageTimestampAt(index) {

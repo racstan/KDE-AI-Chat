@@ -1195,7 +1195,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: "Light mode and Dark mode pin the widget to bright UI with dark text or dark UI with light text. Follow system uses your Plasma colors and updates with the desktop theme."
+                text: "Light mode and Dark mode pin the widget to bright UI with dark text or dark UI with light text. Follow system uses your Plasma colors and updates with the desktop theme. Note: These appearance themes apply only to the chat widget popup; they do not apply to this settings page itself, which is styled by the system host settings."
             }
         }
 
