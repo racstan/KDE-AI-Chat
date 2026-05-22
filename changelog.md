@@ -5,6 +5,16 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-05-22
+
+### Added
+- **Interactive Ctrl+Scroll Zooming**: Added Ctrl+Scroll interactive zooming support (`0.75x` to `1.5x` layout scaling) for the settings configuration sheet, offering on-the-fly sizing adjustments.
+
+### Fixed
+- **Dynamic Sizing and Auto-Scaling**: Completely overhauled the KCM configuration sheet to be dynamically responsive across all monitor aspect ratios and DPI scales. Enabled adaptive `wideMode` (single-column under `36` gridUnits, two-column when wide) and bound `Layout.preferredWidth: 0` to all fields, comboboxes, text areas, and warning labels, eliminating horizontal stretching and LHS coordinate clipping.
+
+---
+
 ## [1.2.4] - 2026-05-22
 
 ### Added

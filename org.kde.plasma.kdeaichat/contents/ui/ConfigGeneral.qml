@@ -8,6 +8,19 @@ import org.kde.plasma.plasma5support as P5Support
 KCM.SimpleKCM {
     id: page
 
+    /** Ctrl+scroll zoom for the settings form (0.75–1.5). */
+    property real configZoom: 1.0
+    horizontalScrollBarPolicy: configZoom > 1.01 ? QQC2.ScrollBar.AsNeeded : QQC2.ScrollBar.AlwaysOff
+
+    WheelHandler {
+        acceptedModifiers: Qt.ControlModifier
+        onWheel: function(event) {
+            var step = event.angleDelta.y / 800
+            page.configZoom = Math.max(0.75, Math.min(1.5, page.configZoom + step))
+            event.accepted = true
+        }
+    }
+
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0
@@ -1162,27 +1175,49 @@ KCM.SimpleKCM {
         }
     }
 
-    Kirigami.FormLayout {
-        anchors.fill: parent
-        /** wideMode=false caps the grid (~576px) and centers it — huge gutters in System Settings. Desktop KCM: force wide. */
-        wideMode: true
+    Item {
+        id: zoomHost
+        implicitWidth: 0
+        implicitHeight: Math.ceil(formLayout.implicitHeight * page.configZoom)
+        clip: true
+
+        Kirigami.FormLayout {
+            id: formLayout
+            x: 0
+            clip: true
+            scale: page.configZoom
+            transformOrigin: Item.TopLeft
+            /** Single column: wideMode uses implicitWidth for grid width and centers it, which clips labels in narrow config dialogs. */
+            wideMode: false
+            readonly property real boundedWidth: {
+                var hostW = zoomHost.width
+                if (hostW <= 0)
+                    return Kirigami.Units.gridUnit * 28
+                return Math.min(hostW / page.configZoom, Kirigami.Units.gridUnit * 32)
+            }
+            width: boundedWidth
+            /** FormLayout treats preferredWidth 0 as "unset" and uses implicitWidth — cap fields to the form instead. */
+            readonly property real fieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, boundedWidth)
 
         QQC2.Label {
             Kirigami.FormData.label: "Tip:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             wrapMode: Text.Wrap
-            text: "For best layout, widen this settings window if needed. Resize the chat popup anytime by dragging its bottom-right corner."
+            text: "Ctrl+scroll to zoom this page in or out. Resize the chat popup anytime by dragging its bottom-right corner."
             opacity: 0.8
         }
 
         ColumnLayout {
             Kirigami.FormData.label: "Appearance:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.ComboBox {
                 id: appearanceModeCombo
                 Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
                 model: [
                     "Follow system",
                     "Light mode",
@@ -1192,6 +1227,7 @@ KCM.SimpleKCM {
 
             QQC2.Label {
                 Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
@@ -1202,12 +1238,14 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: playSoundToggle
             Kirigami.FormData.label: "Notification sound:"
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: "Play sound when AI finishes a response"
         }
 
         QQC2.CheckBox {
             id: openCodeToggle
             Kirigami.FormData.label: "OpenCode mode:"
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: "Enable OpenCode mode"
             onCheckedChanged: {
                 if (checked)
@@ -1226,6 +1264,7 @@ KCM.SimpleKCM {
             visible: !openCodeToggle.checked
             Kirigami.FormData.label: "Default provider:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             textRole: "text"
             valueRole: "value"
             model: [
@@ -1255,6 +1294,8 @@ KCM.SimpleKCM {
         QQC2.Button {
             visible: !openCodeToggle.checked
             Kirigami.FormData.label: "Model discovery:"
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: "Refresh models for active provider"
             enabled: !providerNeedsApiKey(providerBox.currentValue || "openai") || providerHasConfiguredKey(providerBox.currentValue || "openai")
             onClicked: refreshCurrentProviderModels()
@@ -1271,6 +1312,7 @@ KCM.SimpleKCM {
             visible: !openCodeToggle.checked && providerModelVisible(providerBox.currentValue || "openai")
             Kirigami.FormData.label: "Model:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             editable: true
             model: providerModelCandidates
 
@@ -1309,6 +1351,7 @@ KCM.SimpleKCM {
             visible: discoveryStatus !== ""
             Kirigami.FormData.label: "Status:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: discoveryStatus
             wrapMode: Text.Wrap
             opacity: 0.8
@@ -1325,6 +1368,7 @@ KCM.SimpleKCM {
             visible: openCodeToggle.checked
             Kirigami.FormData.label: "OpenCode URL:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             placeholderText: "http://127.0.0.1:4096/v1"
         }
 
@@ -1332,6 +1376,7 @@ KCM.SimpleKCM {
             visible: openCodeToggle.checked
             Kirigami.FormData.label: "OpenCode server:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
             QQC2.Button {
                 text: "Start server"
@@ -1374,6 +1419,7 @@ KCM.SimpleKCM {
             visible: openCodeToggle.checked && openCodeProviderCandidates.length > 0
             Kirigami.FormData.label: "Providers:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             model: openCodeProviderCandidates
             onActivated: {
                 setOpenCodeProviderValue(currentText)
@@ -1393,6 +1439,7 @@ KCM.SimpleKCM {
             visible: openCodeToggle.checked
             Kirigami.FormData.label: "Model:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             editable: true
             model: openCodeModelCandidates
 
@@ -1431,6 +1478,7 @@ KCM.SimpleKCM {
             visible: openCodeToggle.checked && (false)
             Kirigami.FormData.label: filteredOpenCodeModels.length > 0 ? "Custom model:" : "OpenCode model (optional):"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             placeholderText: "Enter your OpenCode model id"
             text: openCodeModelValueField.text
             onTextChanged: {
@@ -1466,15 +1514,19 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "OpenAI URL:"
             visible: page.providerEnabled("openai")
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             placeholderText: "https://api.openai.com/v1"
         }
 
         RowLayout {
             Kirigami.FormData.label: "OpenAI key:"
             visible: page.providerEnabled("openai")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField {
                 id: apiKeyField
                 Layout.fillWidth: true
+                Layout.maximumWidth: parent.width - apiKeyShowHide.implicitWidth - parent.spacing
                 echoMode: apiKeyShowHide.checked ? TextInput.Normal : TextInput.Password
             }
             QQC2.Button {
@@ -1488,6 +1540,7 @@ KCM.SimpleKCM {
             visible: page.providerNeedsKeyHintVisible("openai")
             Kirigami.FormData.label: "OpenAI model:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: "Enter the OpenAI API key first, then refresh models or type a model name."
             wrapMode: Text.Wrap
             opacity: 0.75
@@ -1498,6 +1551,7 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "OpenAI model:"
             visible: page.providerModelVisible("openai") && (false)
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             placeholderText: "gpt-4o-mini"
             text: activeProviderModelValue()
             onTextChanged: setActiveProviderModelValue(text)
@@ -1506,6 +1560,8 @@ KCM.SimpleKCM {
         RowLayout {
             Kirigami.FormData.label: "Anthropic key:"
             visible: page.providerEnabled("anthropic")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: anthropicApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("anthropic"); echoMode: anthropicKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: anthropicKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
@@ -1514,6 +1570,7 @@ KCM.SimpleKCM {
             visible: page.providerNeedsKeyHintVisible("anthropic")
             Kirigami.FormData.label: "Anthropic model:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: "Enter the Anthropic API key first, then refresh models or type a model name."
             wrapMode: Text.Wrap
             opacity: 0.75
@@ -1524,123 +1581,146 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "Anthropic model:"
             visible: page.providerModelVisible("anthropic") && (false)
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             placeholderText: "claude-3-5-sonnet-latest"
         }
 
-        QQC2.TextField { id: groqBaseUrlField; Kirigami.FormData.label: "Groq URL:"; visible: page.providerEnabled("groq"); Layout.fillWidth: true; placeholderText: "https://api.groq.com/openai/v1" }
+        QQC2.TextField { id: groqBaseUrlField; Kirigami.FormData.label: "Groq URL:"; visible: page.providerEnabled("groq"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://api.groq.com/openai/v1" }
         RowLayout {
             Kirigami.FormData.label: "Groq key:"; visible: page.providerEnabled("groq")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: groqApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("groq"); echoMode: groqKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: groqKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("groq"); Kirigami.FormData.label: "Groq model:"; Layout.fillWidth: true; text: "Enter the Groq API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: groqModelField; Kirigami.FormData.label: "Groq model:"; visible: page.providerModelVisible("groq") && (false); Layout.fillWidth: true; placeholderText: "llama-3.3-70b-versatile" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("groq"); Kirigami.FormData.label: "Groq model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the Groq API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: groqModelField; Kirigami.FormData.label: "Groq model:"; visible: page.providerModelVisible("groq") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "llama-3.3-70b-versatile" }
 
-        QQC2.TextField { id: deepSeekBaseUrlField; Kirigami.FormData.label: "DeepSeek URL:"; visible: page.providerEnabled("deepseek"); Layout.fillWidth: true; placeholderText: "https://api.deepseek.com" }
+        QQC2.TextField { id: deepSeekBaseUrlField; Kirigami.FormData.label: "DeepSeek URL:"; visible: page.providerEnabled("deepseek"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://api.deepseek.com" }
         RowLayout {
             Kirigami.FormData.label: "DeepSeek key:"; visible: page.providerEnabled("deepseek")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: deepSeekApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("deepseek"); echoMode: deepSeekKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: deepSeekKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("deepseek"); Kirigami.FormData.label: "DeepSeek model:"; Layout.fillWidth: true; text: "Enter the DeepSeek API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: deepSeekModelField; Kirigami.FormData.label: "DeepSeek model:"; visible: page.providerModelVisible("deepseek") && (false); Layout.fillWidth: true; placeholderText: "deepseek-v4-pro" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("deepseek"); Kirigami.FormData.label: "DeepSeek model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the DeepSeek API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: deepSeekModelField; Kirigami.FormData.label: "DeepSeek model:"; visible: page.providerModelVisible("deepseek") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "deepseek-v4-pro" }
 
-        QQC2.TextField { id: miniMaxBaseUrlField; Kirigami.FormData.label: "MiniMax URL:"; visible: page.providerEnabled("minimax"); Layout.fillWidth: true; placeholderText: "https://api.minimax.io/v1" }
+        QQC2.TextField { id: miniMaxBaseUrlField; Kirigami.FormData.label: "MiniMax URL:"; visible: page.providerEnabled("minimax"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://api.minimax.io/v1" }
         RowLayout {
             Kirigami.FormData.label: "MiniMax key:"; visible: page.providerEnabled("minimax")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: miniMaxApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("minimax"); echoMode: miniMaxKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: miniMaxKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("minimax"); Kirigami.FormData.label: "MiniMax model:"; Layout.fillWidth: true; text: "Enter the MiniMax API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: miniMaxModelField; Kirigami.FormData.label: "MiniMax model:"; visible: page.providerModelVisible("minimax") && (false); Layout.fillWidth: true; placeholderText: "MiniMax-M2.7" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("minimax"); Kirigami.FormData.label: "MiniMax model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the MiniMax API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: miniMaxModelField; Kirigami.FormData.label: "MiniMax model:"; visible: page.providerModelVisible("minimax") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "MiniMax-M2.7" }
 
-        QQC2.TextField { id: fireworksBaseUrlField; Kirigami.FormData.label: "Fireworks URL:"; visible: page.providerEnabled("fireworks"); Layout.fillWidth: true; placeholderText: "https://api.fireworks.ai/inference/v1" }
+        QQC2.TextField { id: fireworksBaseUrlField; Kirigami.FormData.label: "Fireworks URL:"; visible: page.providerEnabled("fireworks"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://api.fireworks.ai/inference/v1" }
         RowLayout {
             Kirigami.FormData.label: "Fireworks key:"; visible: page.providerEnabled("fireworks")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: fireworksApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("fireworks"); echoMode: fireworksKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: fireworksKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("fireworks"); Kirigami.FormData.label: "Fireworks model:"; Layout.fillWidth: true; text: "Enter the Fireworks API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: fireworksModelField; Kirigami.FormData.label: "Fireworks model:"; visible: page.providerModelVisible("fireworks") && (false); Layout.fillWidth: true; placeholderText: "accounts/fireworks/models/llama-v3p3-70b-instruct" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("fireworks"); Kirigami.FormData.label: "Fireworks model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the Fireworks API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: fireworksModelField; Kirigami.FormData.label: "Fireworks model:"; visible: page.providerModelVisible("fireworks") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "accounts/fireworks/models/llama-v3p3-70b-instruct" }
 
-        QQC2.TextField { id: googleBaseUrlField; Kirigami.FormData.label: "Google URL:"; visible: page.providerEnabled("google"); Layout.fillWidth: true; placeholderText: "https://generativelanguage.googleapis.com/v1beta/openai/" }
+        QQC2.TextField { id: googleBaseUrlField; Kirigami.FormData.label: "Google URL:"; visible: page.providerEnabled("google"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://generativelanguage.googleapis.com/v1beta/openai/" }
         RowLayout {
             Kirigami.FormData.label: "Google key:"; visible: page.providerEnabled("google")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: googleApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("google"); echoMode: googleKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: googleKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("google"); Kirigami.FormData.label: "Google model:"; Layout.fillWidth: true; text: "Enter the Gemini API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: googleModelField; Kirigami.FormData.label: "Google model:"; visible: page.providerModelVisible("google") && (false); Layout.fillWidth: true; placeholderText: "gemini-3-flash-preview" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("google"); Kirigami.FormData.label: "Google model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the Gemini API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: googleModelField; Kirigami.FormData.label: "Google model:"; visible: page.providerModelVisible("google") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "gemini-3-flash-preview" }
 
-        QQC2.TextField { id: openRouterBaseUrlField; Kirigami.FormData.label: "OpenRouter URL:"; visible: page.providerEnabled("openrouter"); Layout.fillWidth: true; placeholderText: "https://openrouter.ai/api/v1" }
+        QQC2.TextField { id: openRouterBaseUrlField; Kirigami.FormData.label: "OpenRouter URL:"; visible: page.providerEnabled("openrouter"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://openrouter.ai/api/v1" }
         RowLayout {
             Kirigami.FormData.label: "OpenRouter key:"; visible: page.providerEnabled("openrouter")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: openRouterApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("openrouter"); echoMode: openRouterKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: openRouterKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("openrouter"); Kirigami.FormData.label: "OpenRouter model:"; Layout.fillWidth: true; text: "Enter the OpenRouter API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: openRouterModelField; Kirigami.FormData.label: "OpenRouter model:"; visible: page.providerModelVisible("openrouter") && (false); Layout.fillWidth: true; placeholderText: "openai/gpt-4o-mini" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("openrouter"); Kirigami.FormData.label: "OpenRouter model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the OpenRouter API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: openRouterModelField; Kirigami.FormData.label: "OpenRouter model:"; visible: page.providerModelVisible("openrouter") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "openai/gpt-4o-mini" }
 
-        QQC2.TextField { id: mistralBaseUrlField; Kirigami.FormData.label: "Mistral URL:"; visible: page.providerEnabled("mistral"); Layout.fillWidth: true; placeholderText: "https://api.mistral.ai/v1" }
+        QQC2.TextField { id: mistralBaseUrlField; Kirigami.FormData.label: "Mistral URL:"; visible: page.providerEnabled("mistral"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://api.mistral.ai/v1" }
         RowLayout {
             Kirigami.FormData.label: "Mistral key:"; visible: page.providerEnabled("mistral")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: mistralApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("mistral"); echoMode: mistralKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: mistralKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("mistral"); Kirigami.FormData.label: "Mistral model:"; Layout.fillWidth: true; text: "Enter the Mistral API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: mistralModelField; Kirigami.FormData.label: "Mistral model:"; visible: page.providerModelVisible("mistral") && (false); Layout.fillWidth: true; placeholderText: "mistral-small-latest" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("mistral"); Kirigami.FormData.label: "Mistral model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the Mistral API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: mistralModelField; Kirigami.FormData.label: "Mistral model:"; visible: page.providerModelVisible("mistral") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "mistral-small-latest" }
 
-        QQC2.TextField { id: cloudflareBaseUrlField; Kirigami.FormData.label: "Cloudflare URL:"; visible: page.providerEnabled("cloudflare"); Layout.fillWidth: true; placeholderText: "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1" }
+        QQC2.TextField { id: cloudflareBaseUrlField; Kirigami.FormData.label: "Cloudflare URL:"; visible: page.providerEnabled("cloudflare"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1" }
         RowLayout {
             Kirigami.FormData.label: "Cloudflare key:"; visible: page.providerEnabled("cloudflare")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: cloudflareApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("cloudflare"); echoMode: cloudflareKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: cloudflareKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("cloudflare"); Kirigami.FormData.label: "Cloudflare model:"; Layout.fillWidth: true; text: "Enter the Cloudflare API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: cloudflareModelField; Kirigami.FormData.label: "Cloudflare model:"; visible: page.providerModelVisible("cloudflare") && (false); Layout.fillWidth: true; placeholderText: "@cf/meta/llama-3.1-8b-instruct" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("cloudflare"); Kirigami.FormData.label: "Cloudflare model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the Cloudflare API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: cloudflareModelField; Kirigami.FormData.label: "Cloudflare model:"; visible: page.providerModelVisible("cloudflare") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "@cf/meta/llama-3.1-8b-instruct" }
 
-        QQC2.TextField { id: nvidiaBaseUrlField; Kirigami.FormData.label: "NVIDIA URL:"; visible: page.providerEnabled("nvidia"); Layout.fillWidth: true; placeholderText: "https://integrate.api.nvidia.com/v1" }
+        QQC2.TextField { id: nvidiaBaseUrlField; Kirigami.FormData.label: "NVIDIA URL:"; visible: page.providerEnabled("nvidia"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://integrate.api.nvidia.com/v1" }
         RowLayout {
             Kirigami.FormData.label: "NVIDIA key:"; visible: page.providerEnabled("nvidia")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: nvidiaApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("nvidia"); echoMode: nvidiaKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: nvidiaKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("nvidia"); Kirigami.FormData.label: "NVIDIA model:"; Layout.fillWidth: true; text: "Enter the NVIDIA API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: nvidiaModelField; Kirigami.FormData.label: "NVIDIA model:"; visible: page.providerModelVisible("nvidia") && (false); Layout.fillWidth: true; placeholderText: "meta/llama-3.1-70b-instruct" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("nvidia"); Kirigami.FormData.label: "NVIDIA model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the NVIDIA API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: nvidiaModelField; Kirigami.FormData.label: "NVIDIA model:"; visible: page.providerModelVisible("nvidia") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "meta/llama-3.1-70b-instruct" }
 
-        QQC2.TextField { id: huggingFaceBaseUrlField; Kirigami.FormData.label: "HF URL:"; visible: page.providerEnabled("huggingface"); Layout.fillWidth: true; placeholderText: "https://router.huggingface.co/v1" }
+        QQC2.TextField { id: huggingFaceBaseUrlField; Kirigami.FormData.label: "HF URL:"; visible: page.providerEnabled("huggingface"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://router.huggingface.co/v1" }
         RowLayout {
             Kirigami.FormData.label: "HF token:"; visible: page.providerEnabled("huggingface")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: huggingFaceApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("huggingface"); echoMode: huggingFaceKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: huggingFaceKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("huggingface"); Kirigami.FormData.label: "HF model:"; Layout.fillWidth: true; text: "Enter the Hugging Face token first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: huggingFaceModelField; Kirigami.FormData.label: "HF model:"; visible: page.providerModelVisible("huggingface") && (false); Layout.fillWidth: true; placeholderText: "openai/gpt-oss-120b:groq" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("huggingface"); Kirigami.FormData.label: "HF model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the Hugging Face token first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: huggingFaceModelField; Kirigami.FormData.label: "HF model:"; visible: page.providerModelVisible("huggingface") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "openai/gpt-oss-120b:groq" }
 
-        QQC2.TextField { id: xaiBaseUrlField; Kirigami.FormData.label: "xAI URL:"; visible: page.providerEnabled("xai"); Layout.fillWidth: true; placeholderText: "https://api.x.ai/v1" }
+        QQC2.TextField { id: xaiBaseUrlField; Kirigami.FormData.label: "xAI URL:"; visible: page.providerEnabled("xai"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://api.x.ai/v1" }
         RowLayout {
             Kirigami.FormData.label: "xAI key:"; visible: page.providerEnabled("xai")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: xaiApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("xai"); echoMode: xaiKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: xaiKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("xai"); Kirigami.FormData.label: "xAI model:"; Layout.fillWidth: true; text: "Enter the xAI API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: xaiModelField; Kirigami.FormData.label: "xAI model:"; visible: page.providerModelVisible("xai") && (false); Layout.fillWidth: true; placeholderText: "grok-2-latest" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("xai"); Kirigami.FormData.label: "xAI model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the xAI API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: xaiModelField; Kirigami.FormData.label: "xAI model:"; visible: page.providerModelVisible("xai") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "grok-2-latest" }
 
-        QQC2.TextField { id: lmStudioBaseUrlField; Kirigami.FormData.label: "LM Studio URL:"; visible: page.providerEnabled("lmstudio"); Layout.fillWidth: true; placeholderText: "http://localhost:1234/v1" }
-        QQC2.TextField { id: lmStudioModelField; Kirigami.FormData.label: "LM Studio model:"; visible: page.providerModelVisible("lmstudio") && (false); Layout.fillWidth: true; placeholderText: "Load a model in LM Studio, then refresh models" }
+        QQC2.TextField { id: lmStudioBaseUrlField; Kirigami.FormData.label: "LM Studio URL:"; visible: page.providerEnabled("lmstudio"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "http://localhost:1234/v1" }
+        QQC2.TextField { id: lmStudioModelField; Kirigami.FormData.label: "LM Studio model:"; visible: page.providerModelVisible("lmstudio") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "Load a model in LM Studio, then refresh models" }
 
-        QQC2.TextField { id: localBaseUrlField; Kirigami.FormData.label: "Local URL:"; visible: page.providerEnabled("local"); Layout.fillWidth: true; placeholderText: "http://localhost:11434/v1" }
-        QQC2.TextField { id: localModelField; Kirigami.FormData.label: "Local model:"; visible: page.providerModelVisible("local") && (false); Layout.fillWidth: true; placeholderText: "llama3.2" }
+        QQC2.TextField { id: localBaseUrlField; Kirigami.FormData.label: "Local URL:"; visible: page.providerEnabled("local"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "http://localhost:11434/v1" }
+        QQC2.TextField { id: localModelField; Kirigami.FormData.label: "Local model:"; visible: page.providerModelVisible("local") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "llama3.2" }
 
-        QQC2.TextField { id: ollamaBaseUrlField; Kirigami.FormData.label: "Ollama URL:"; visible: page.providerEnabled("ollama"); Layout.fillWidth: true; placeholderText: "http://localhost:11434/v1" }
-        QQC2.TextField { id: ollamaModelField; Kirigami.FormData.label: "Ollama model:"; visible: page.providerModelVisible("ollama") && (false); Layout.fillWidth: true; placeholderText: "llama3.2" }
+        QQC2.TextField { id: ollamaBaseUrlField; Kirigami.FormData.label: "Ollama URL:"; visible: page.providerEnabled("ollama"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "http://localhost:11434/v1" }
+        QQC2.TextField { id: ollamaModelField; Kirigami.FormData.label: "Ollama model:"; visible: page.providerModelVisible("ollama") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "llama3.2" }
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
@@ -1651,6 +1731,7 @@ KCM.SimpleKCM {
             id: systemPromptArea
             Kirigami.FormData.label: "System prompt:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             wrapMode: Text.Wrap
             placeholderText: "You are KDE AI Chat, a precise and helpful assistant."
         }
@@ -1695,6 +1776,7 @@ KCM.SimpleKCM {
             visible: useKWalletCheckbox.checked && availableWalletNames.length > 0
             Kirigami.FormData.label: "Detected wallets:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: availableWalletNames.join(", ")
             wrapMode: Text.Wrap
             opacity: 0.8
@@ -1704,6 +1786,7 @@ KCM.SimpleKCM {
             visible: useKWalletCheckbox.checked
             Kirigami.FormData.label: "Wallet info:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: "KWallet controls wallet creation and password policy. A new wallet name may trigger KDE to create or unlock that wallet, depending on your system wallet settings."
             wrapMode: Text.Wrap
             opacity: 0.8
@@ -1748,6 +1831,8 @@ KCM.SimpleKCM {
         RowLayout {
             visible: useKWalletCheckbox.checked
             Kirigami.FormData.label: "KWallet sync:"
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
 
             QQC2.Button {
                 text: "Refresh from KWallet"
@@ -1772,6 +1857,7 @@ KCM.SimpleKCM {
             visible: keyringStatus !== ""
             Kirigami.FormData.label: "Status:"
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             text: keyringStatus
             wrapMode: Text.Wrap
             opacity: 0.8
@@ -1796,6 +1882,8 @@ KCM.SimpleKCM {
         RowLayout {
             visible: page.discoveryStatus.indexOf("systemctl") >= 0
             Kirigami.FormData.label: "Next step:"
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField {
                 Layout.fillWidth: true
                 readOnly: true
@@ -1813,6 +1901,7 @@ KCM.SimpleKCM {
 
         QQC2.Label {
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             wrapMode: Text.Wrap
             text: "Settings are persisted automatically by KDE when you press Apply or OK."
             opacity: 0.8
@@ -1822,6 +1911,7 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "Reset settings:"
             text: "Reset to defaults"
             onClicked: page.resetToDefaults()
+        }
         }
     }
 }
