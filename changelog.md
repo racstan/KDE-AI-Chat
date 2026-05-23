@@ -5,6 +5,24 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2026-05-23
+
+### Added
+- **Multi-Format Document & File Attachments**: Added drag-and-drop and copy-paste support for document attachments (Images, Word files, PDFs, CSVs, etc.) directly into the chat input field.
+- **Text-Free Attachment Submissions**: Allows users to dispatch queries consisting solely of attachment files (images, documents) without forcing textual prompt input.
+- **Conversation Forking (Edit Branching)**: Implemented branch message editing. Modifying an older user prompt now cleanly deletes all messages following it and dispatches the edited message as a new prompt to prevent context tree contamination.
+- **Viewport-Aware Question Navigation**: Added Up/Down tool navigation buttons in the toolbar to cycle between user questions based on the active scroll viewport, with fallback index checking to prevent empty page scrolling.
+- **Token Usage & Cost Indicators**: Added detailed token tracking (input, output, reasoning tokens, cache read/write) and pricing/cost calculators for OpenAI-compatible, Anthropic, and OpenCode streams, displaying context metrics inside the assistant chat bubbles.
+- **NVIDIA NIM & OpenRouter Attribution**: Fully updated all NVIDIA configurations to the standard "NVIDIA NIM" terminology. Added HTTP-Referer and X-Title metrics/attribution headers for OpenRouter API requests.
+
+### Fixed
+- **Scrollbar Stability (Layout Flickering)**: Added large cache buffers (`cacheBuffer: 20000` on messages and `5000` on history) to prevent dynamic delegate recycling and scrollbar sizing/position jitter during scrolling.
+- **Interactive Drag & Wheel Scrolling**: Overhauled manual scroll detection by monitoring `contentY` changes and checking scrollbar active/pressed states to prevent automated snap-to-bottom actions from fighting the user's manual scroll.
+- **API Key Whitespace Sanitization**: Automatically `.trim()` all keys when loading configurations, stripping accidental spaces/newlines copied from web browsers that trigger HTTP 401 Unauthorized errors.
+- **NVIDIA NIM Error Field Parsing**: Enhanced JSON response parsing in `doOpenAICompatRequest` to capture and display custom API error fields (such as `detail` or `message`) returned by NVIDIA NIM and OpenRouter gateway endpoints.
+
+---
+
 ## [1.2.5] - 2026-05-22
 
 ### Added

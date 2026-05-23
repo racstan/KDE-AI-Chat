@@ -1278,7 +1278,7 @@ KCM.SimpleKCM {
                 { value: "openrouter", text: "OpenRouter" },
                 { value: "mistral", text: "Mistral" },
                 { value: "cloudflare", text: "Cloudflare Workers AI" },
-                { value: "nvidia", text: "NVIDIA" },
+                { value: "nvidia", text: "NVIDIA NIM" },
                 { value: "huggingface", text: "Hugging Face Router" },
                 { value: "xai", text: "xAI (Grok)" },
                 { value: "lmstudio", text: "LM Studio" },
@@ -1677,17 +1677,17 @@ KCM.SimpleKCM {
         QQC2.Label { visible: page.providerNeedsKeyHintVisible("cloudflare"); Kirigami.FormData.label: "Cloudflare model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the Cloudflare API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
         QQC2.TextField { id: cloudflareModelField; Kirigami.FormData.label: "Cloudflare model:"; visible: page.providerModelVisible("cloudflare") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "@cf/meta/llama-3.1-8b-instruct" }
 
-        QQC2.TextField { id: nvidiaBaseUrlField; Kirigami.FormData.label: "NVIDIA URL:"; visible: page.providerEnabled("nvidia"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://integrate.api.nvidia.com/v1" }
+        QQC2.TextField { id: nvidiaBaseUrlField; Kirigami.FormData.label: "NVIDIA NIM URL:"; visible: page.providerEnabled("nvidia"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://integrate.api.nvidia.com/v1" }
         RowLayout {
-            Kirigami.FormData.label: "NVIDIA key:"; visible: page.providerEnabled("nvidia")
+            Kirigami.FormData.label: "NVIDIA NIM key:"; visible: page.providerEnabled("nvidia")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.TextField { id: nvidiaApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("nvidia"); echoMode: nvidiaKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
             QQC2.Button { id: nvidiaKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
         }
 
-        QQC2.Label { visible: page.providerNeedsKeyHintVisible("nvidia"); Kirigami.FormData.label: "NVIDIA model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the NVIDIA API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
-        QQC2.TextField { id: nvidiaModelField; Kirigami.FormData.label: "NVIDIA model:"; visible: page.providerModelVisible("nvidia") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "meta/llama-3.1-70b-instruct" }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("nvidia"); Kirigami.FormData.label: "NVIDIA NIM model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the NVIDIA NIM API key first, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: nvidiaModelField; Kirigami.FormData.label: "NVIDIA NIM model:"; visible: page.providerModelVisible("nvidia") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "meta/llama-3.1-70b-instruct" }
 
         QQC2.TextField { id: huggingFaceBaseUrlField; Kirigami.FormData.label: "HF URL:"; visible: page.providerEnabled("huggingface"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "https://router.huggingface.co/v1" }
         RowLayout {

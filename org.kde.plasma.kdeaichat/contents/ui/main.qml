@@ -5,6 +5,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PC3
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support 2.0 as P5Support
+import QtQuick.Dialogs
 
 PlasmoidItem {
     id: root
@@ -17,6 +18,7 @@ PlasmoidItem {
     property string currentSessionId: ""
     property string currentSessionTitle: ""
     property var messages: []
+    property var attachedFiles: []
 
     property bool historyOnlyMode: false
     property bool loading: false
@@ -98,6 +100,59 @@ PlasmoidItem {
             radius: 8
         }
 
+        DropArea {
+            id: dropArea
+            anchors.fill: parent
+            
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                               Kirigami.Theme.highlightColor.g,
+                               Kirigami.Theme.highlightColor.b,
+                               0.15)
+                border.color: Kirigami.Theme.highlightColor
+                border.width: 2
+                radius: 8
+                visible: parent.containsDrag
+                z: 999
+
+                ColumnLayout {
+                    anchors.centerIn: parent
+                    spacing: Kirigami.Units.largeSpacing
+
+                    Kirigami.Icon {
+                        source: "mail-attachment"
+                        Layout.alignment: Qt.AlignHCenter
+                        implicitWidth: 48
+                        implicitHeight: 48
+                        color: Kirigami.Theme.highlightColor
+                    }
+
+                    PC3.Label {
+                        text: "Drop files here to attach"
+                        font.bold: true
+                        font.pointSize: 14
+                        color: Kirigami.Theme.highlightColor
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+                }
+            }
+
+            onEntered: function(drag) {
+                if (drag.hasUrls) {
+                    drag.accept(Qt.CopyAction)
+                }
+            }
+
+            onDropped: function(drop) {
+                if (drop.hasUrls) {
+                    for (var i = 0; i < drop.urls.length; i++) {
+                        root.attachFile(drop.urls[i])
+                    }
+                }
+            }
+        }
+
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Kirigami.Units.smallSpacing
@@ -152,6 +207,22 @@ PlasmoidItem {
                             root.msgListViewRef.positionViewAtBeginning()
                         }
                     }
+                }
+
+                PC3.ToolButton {
+                    visible: !root.historyOnlyMode
+                    icon.name: "go-up"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: "Jump to one message above"
+                    onClicked: root.jumpOneMessageAbove()
+                }
+
+                PC3.ToolButton {
+                    visible: !root.historyOnlyMode
+                    icon.name: "go-down"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: "Jump to one message below"
+                    onClicked: root.jumpOneMessageBelow()
                 }
 
                 PC3.ToolButton {
@@ -243,7 +314,8 @@ PlasmoidItem {
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+                                cacheBuffer: 20000
+                                QQC2.ScrollBar.vertical: QQC2.ScrollBar { id: verticalScrollBar }
 
                                 Component.onCompleted: root.msgListViewRef = msgList
 
@@ -255,6 +327,13 @@ PlasmoidItem {
                                 onAtYEndChanged: {
                                     if (msgList.atYEnd)
                                         root.userScrolledUp = false
+                                }
+                                onContentYChanged: {
+                                    if (!msgList.atYEnd) {
+                                        if (msgList.moving || msgList.dragging || verticalScrollBar.pressed || verticalScrollBar.active) {
+                                            root.userScrolledUp = true
+                                        }
+                                    }
                                 }
 
                                 delegate: Item {
@@ -397,6 +476,72 @@ PlasmoidItem {
                                                         onLinkActivated: function(link) { Qt.openUrlExternally(link) }
                                                     }
 
+                                                    Flow {
+                                                        width: parent.width
+                                                        visible: modelData.attachments && modelData.attachments.length > 0
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        Repeater {
+                                                            model: modelData.attachments || []
+                                                            delegate: Rectangle {
+                                                                width: Math.min(150, msgFilenameLabel.implicitWidth + 36)
+                                                                height: Kirigami.Units.gridUnit * 1.25
+                                                                radius: 6
+                                                                color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                               Kirigami.Theme.textColor.g,
+                                                                               Kirigami.Theme.textColor.b,
+                                                                               0.05)
+                                                                border.width: 1
+                                                                border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                                      Kirigami.Theme.textColor.g,
+                                                                                      Kirigami.Theme.textColor.b,
+                                                                                      0.10)
+
+                                                                RowLayout {
+                                                                    anchors.fill: parent
+                                                                    anchors.margins: Kirigami.Units.smallSpacing
+                                                                    spacing: Kirigami.Units.smallSpacing
+
+                                                                    Item {
+                                                                        Layout.preferredWidth: 16
+                                                                        Layout.preferredHeight: 16
+
+                                                                        Image {
+                                                                            anchors.fill: parent
+                                                                            visible: modelData.type === "image"
+                                                                            source: "file://" + modelData.path
+                                                                            fillMode: Image.PreserveAspectCrop
+                                                                            clip: true
+                                                                        }
+
+                                                                        Kirigami.Icon {
+                                                                            anchors.fill: parent
+                                                                            visible: modelData.type !== "image"
+                                                                            source: root.fileIconName(modelData.name)
+                                                                        }
+                                                                    }
+
+                                                                    PC3.Label {
+                                                                        id: msgFilenameLabel
+                                                                        Layout.fillWidth: true
+                                                                        text: modelData.name
+                                                                        elide: Text.ElideRight
+                                                                        font.pointSize: 8
+                                                                        color: Kirigami.Theme.textColor
+                                                                    }
+                                                                }
+
+                                                                MouseArea {
+                                                                    anchors.fill: parent
+                                                                    cursorShape: Qt.PointingHandCursor
+                                                                    QQC2.ToolTip.visible: hovered
+                                                                    QQC2.ToolTip.text: "Open: " + modelData.path
+                                                                    onClicked: Qt.openUrlExternally("file://" + modelData.path)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
                                                     Row {
                                                         visible: modelData.role === "permission_request"
                                                         width: parent.width
@@ -514,6 +659,16 @@ PlasmoidItem {
                                                         }
                                                     }
 
+                                                    PC3.Label {
+                                                        visible: modelData.role === "assistant" && modelData.tokens !== undefined
+                                                        width: parent.width
+                                                        horizontalAlignment: Text.AlignRight
+                                                        text: root.formatTokensUsage(modelData.tokens, modelData.cost)
+                                                        font.pointSize: 8
+                                                        opacity: 0.55
+                                                        elide: Text.ElideRight
+                                                    }
+
                                                     Row {
                                                         width: parent.width
                                                         spacing: Kirigami.Units.smallSpacing
@@ -604,9 +759,131 @@ PlasmoidItem {
                             }
                         }
 
+                        // Attached Files Bar
+                        QQC2.ScrollView {
+                            Layout.fillWidth: true
+                            visible: root.attachedFiles.length > 0
+                            height: Kirigami.Units.gridUnit * 2
+                            QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
+                            QQC2.ScrollBar.vertical.policy: QQC2.ScrollBar.AlwaysOff
+
+                            Row {
+                                spacing: Kirigami.Units.smallSpacing
+                                padding: Kirigami.Units.smallSpacing
+
+                                Repeater {
+                                    model: root.attachedFiles
+                                    delegate: Rectangle {
+                                        width: Math.min(180, filenameLabel.implicitWidth + 60)
+                                        height: Kirigami.Units.gridUnit * 1.5
+                                        radius: 6
+                                        color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                       Kirigami.Theme.textColor.g,
+                                                       Kirigami.Theme.textColor.b,
+                                                       0.08)
+                                        border.width: 1
+                                        border.color: modelData.error !== ""
+                                                      ? Kirigami.Theme.negativeTextColor
+                                                      : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                Kirigami.Theme.textColor.g,
+                                                                Kirigami.Theme.textColor.b,
+                                                                0.15)
+
+                                        QQC2.ToolTip.visible: fileMouseArea.hovered && modelData.error !== ""
+                                        QQC2.ToolTip.text: modelData.error
+
+                                        MouseArea {
+                                            id: fileMouseArea
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                        }
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: Kirigami.Units.smallSpacing
+                                            spacing: Kirigami.Units.smallSpacing
+
+                                            Item {
+                                                Layout.preferredWidth: 20
+                                                Layout.preferredHeight: 20
+
+                                                PC3.BusyIndicator {
+                                                    anchors.centerIn: parent
+                                                    visible: modelData.loading
+                                                    running: modelData.loading
+                                                    width: 16
+                                                    height: 16
+                                                }
+
+                                                Image {
+                                                    anchors.fill: parent
+                                                    visible: !modelData.loading && modelData.type === "image"
+                                                    source: "file://" + modelData.path
+                                                    fillMode: Image.PreserveAspectCrop
+                                                    clip: true
+                                                }
+
+                                                Kirigami.Icon {
+                                                    anchors.fill: parent
+                                                    visible: !modelData.loading && modelData.type !== "image"
+                                                    source: root.fileIconName(modelData.name)
+                                                }
+                                            }
+
+                                            PC3.Label {
+                                                id: filenameLabel
+                                                Layout.fillWidth: true
+                                                text: modelData.name
+                                                elide: Text.ElideRight
+                                                font.pointSize: 9
+                                                color: modelData.error !== "" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                                            }
+
+                                            PC3.ToolButton {
+                                                icon.name: "dialog-close"
+                                                Layout.preferredWidth: 20
+                                                Layout.preferredHeight: 20
+                                                display: PC3.AbstractButton.IconOnly
+                                                QQC2.ToolTip.visible: hovered
+                                                QQC2.ToolTip.text: "Remove file"
+                                                onClicked: root.removeAttachedFile(index)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
+
+                            PC3.ToolButton {
+                                icon.name: "mail-attachment"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                enabled: !root.loading
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: "Attach files (Images, PDF, CSV, Word documents)"
+                                onClicked: fileDialog.open()
+                            }
+
+                            PC3.ToolButton {
+                                icon.name: "edit-paste"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                enabled: !root.loading
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: "Paste file or text from clipboard"
+                                onClicked: {
+                                    root.checkClipboardForAttachments()
+                                    var txt = root.readClipboardText()
+                                    if (txt && txt.trim() !== "") {
+                                        var curPos = msgInput.cursorPosition
+                                        msgInput.insert(curPos, txt)
+                                    }
+                                }
+                            }
 
                             QQC2.TextArea {
                                 id: msgInput
@@ -629,6 +906,9 @@ PlasmoidItem {
                                             && !(event.modifiers & Qt.ShiftModifier)) {
                                         event.accepted = true
                                         root.sendMessage()
+                                    } else if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
+                                        root.checkClipboardForAttachments()
+                                        event.accepted = false
                                     }
                                 }
                             }
@@ -638,7 +918,7 @@ PlasmoidItem {
                                 text: root.loading ? "Queue" : "Send"
                                 Layout.minimumWidth: Kirigami.Units.gridUnit * 5
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                                enabled: root.chatInputText.trim() !== ""
+                                enabled: root.chatInputText.trim() !== "" || root.attachedFiles.length > 0
                                 onClicked: root.sendMessage()
                             }
 
@@ -664,6 +944,7 @@ PlasmoidItem {
                         model: root.sessions
                         spacing: Kirigami.Units.smallSpacing
                         clip: true
+                        cacheBuffer: 5000
                         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
 
                         delegate: Rectangle {
@@ -1141,6 +1422,9 @@ PlasmoidItem {
             return
         }
 
+        // Cancel any active streaming/loading requests first
+        stopStreaming()
+
         var role = root.messages[i].role || ""
         var isQueued = role === "queued"
 
@@ -1158,7 +1442,7 @@ PlasmoidItem {
         saveCurrentSessionState(true)
 
         // Re-run from edited user prompt so assistant response reflects the new text.
-        if (role === "user" && !root.loading) {
+        if (role === "user") {
             root.userScrolledUp = false
             sendMessageByIndex(i)
         }
@@ -1408,6 +1692,23 @@ PlasmoidItem {
                 root.messages = copy
                 saveCurrentSessionState(true)
             }
+        } else if (eventObj.type === "session.next.step.ended") {
+            var copy = root.messages.slice()
+            var updated = false
+            for (var idx = copy.length - 1; idx >= 0; idx--) {
+                if (copy[idx].role === "assistant") {
+                    var item = Object.assign({}, copy[idx])
+                    item.tokens = props.tokens
+                    item.cost = props.cost
+                    copy[idx] = item
+                    updated = true
+                    break
+                }
+            }
+            if (updated) {
+                root.messages = copy
+                saveCurrentSessionState(true)
+            }
         } else if (eventObj.type === "question.asked") {
             var requestID = props.requestID || props.id || eventObj.id || ""
             if (requestID !== "") {
@@ -1423,10 +1724,10 @@ PlasmoidItem {
                     qText = props.text || props.content || "OpenCode requires clarification."
                 }
 
-                var alreadyExists = False
+                var alreadyExists = false
                 for (var i = 0; i < root.messages.length; i++) {
                     if (root.messages[i].role === "question_request" && root.messages[i].questionId === requestID) {
-                        alreadyExists = True
+                        alreadyExists = true
                         break
                     }
                 }
@@ -1451,12 +1752,12 @@ PlasmoidItem {
         } else if (eventObj.type === "question.replied") {
             var qId = props.requestID || props.id || eventObj.id || ""
             var copy = root.messages.slice()
-            var updated = False
+            var updated = false
             for (var i = copy.length - 1; i >= 0; i--) {
                 if (copy[i].role === "question_request" && copy[i].questionId === qId) {
                     if (copy[i].status === "pending" || copy[i].status === "answering...") {
                         copy[i].status = "answered"
-                        updated = True
+                        updated = true
                     }
                     break
                 }
@@ -1468,12 +1769,12 @@ PlasmoidItem {
         } else if (eventObj.type === "question.rejected" || eventObj.type === "question.cancelled") {
             var qId = props.requestID || props.id || eventObj.id || ""
             var copy = root.messages.slice()
-            var updated = False
+            var updated = false
             for (var i = copy.length - 1; i >= 0; i--) {
                 if (copy[i].role === "question_request" && copy[i].questionId === qId) {
                     if (copy[i].status === "pending" || copy[i].status === "dismissing...") {
                         copy[i].status = "dismissed"
-                        updated = True
+                        updated = true
                     }
                     break
                 }
@@ -1493,7 +1794,7 @@ PlasmoidItem {
         }
 
         var xhr = new XMLHttpRequest()
-        xhr.open("POST", openCodeBaseUrl() + "/session", True)
+        xhr.open("POST", openCodeBaseUrl() + "/session", true)
         xhr.setRequestHeader("Content-Type", "application/json")
 
         xhr.onreadystatechange = function() {
@@ -1532,11 +1833,11 @@ PlasmoidItem {
     function doOpenCodeRequest() {
         ensureOpenCodeEventStream()
         
-        root.loading = True
-        root.streamingResponse = False
+        root.loading = true
+        root.streamingResponse = false
         root.openCodeAssistantMessageIndex = -1
         root.openCodeAssistantServerMessageId = ""
-        root.openCodeErrorShownForRequest = False
+        root.openCodeErrorShownForRequest = false
 
         ensureCurrentOpenCodeSession(
             function(remoteSessionId) {
@@ -1548,9 +1849,9 @@ PlasmoidItem {
                 function failOpenCodeRequest(message) {
                     if (requestFinalized)
                         return
-                    requestFinalized = True
+                    requestFinalized = true
                     if (!root.openCodeErrorShownForRequest) {
-                        root.openCodeErrorShownForRequest = True
+                        root.openCodeErrorShownForRequest = true
                         pushErrorMessage(message)
                     }
                     finishOpenCodeRequest()
@@ -1580,7 +1881,7 @@ PlasmoidItem {
                         if (obj.info && obj.info.id)
                             root.openCodeAssistantServerMessageId = obj.info.id
                         if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
-                            root.openCodeErrorShownForRequest = True
+                            root.openCodeErrorShownForRequest = true
                             pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."))
                         }
 
@@ -1598,7 +1899,7 @@ PlasmoidItem {
                     } catch (parseResponseError) {
                     }
 
-                    requestFinalized = True
+                    requestFinalized = true
                     finishOpenCodeRequest()
                 }
 
@@ -1607,6 +1908,31 @@ PlasmoidItem {
                 }
 
                 try {
+                    var lastMsg = root.messages[root.messages.length - 1]
+                    var parts = []
+                    if (lastMsg.attachments && lastMsg.attachments.length > 0) {
+                        var payload = buildMessageContent(lastMsg.content, lastMsg.attachments, "openai")
+                        if (typeof payload === "string") {
+                            parts.push({ type: "text", text: payload })
+                        } else {
+                            for (var p = 0; p < payload.length; p++) {
+                                var item = payload[p]
+                                if (item.type === "text") {
+                                    parts.push({ type: "text", text: item.text })
+                                } else if (item.type === "image_url") {
+                                    var mType = item.image_url.url.split(";")[0].split(":")[1]
+                                    parts.push({
+                                        type: "file",
+                                        mime: mType,
+                                        url: item.image_url.url
+                                    })
+                                }
+                            }
+                        }
+                    } else {
+                        parts.push({ type: "text", text: lastMsg.content || "" })
+                    }
+
                     xhr.send(JSON.stringify({
                         model: {
                             providerID: providerId,
@@ -1614,7 +1940,7 @@ PlasmoidItem {
                         },
                         system: plasmoid.configuration.systemPrompt
                                 || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
-                        parts: [{ type: "text", text: root.messages[root.messages.length - 1].content || "" }]
+                        parts: parts
                     }))
                 } catch (sendError) {
                     failOpenCodeRequest("OpenCode: failed to send request: " + sendError)
@@ -1622,7 +1948,7 @@ PlasmoidItem {
             },
             function(errorMessage) {
                 if (!root.openCodeErrorShownForRequest) {
-                    root.openCodeErrorShownForRequest = True
+                    root.openCodeErrorShownForRequest = true
                     pushErrorMessage(errorMessage)
                 }
                 finishOpenCodeRequest()
@@ -1633,9 +1959,6 @@ PlasmoidItem {
     function scrollToBottom() {
         if (root.msgListViewRef) {
             root.msgListViewRef.positionViewAtEnd()
-            if (root.msgListViewRef.contentHeight > root.msgListViewRef.height) {
-                root.msgListViewRef.contentY = root.msgListViewRef.contentHeight - root.msgListViewRef.height
-            }
         }
     }
 
@@ -1689,6 +2012,110 @@ PlasmoidItem {
         return nowTime(messageTimestampAt(index))
     }
 
+    function jumpOneMessageAbove() {
+        if (!root.msgListViewRef || root.messages.length === 0)
+            return
+        
+        var currentTop = -1
+        for (var offset = 15; offset <= 100; offset += 20) {
+            currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset)
+            if (currentTop >= 0)
+                break
+        }
+        
+        if (currentTop < 0) {
+            currentTop = root.messages.length
+        }
+        
+        var target = -1
+        for (var i = currentTop - 1; i >= 0; i--) {
+            var msg = root.messages[i]
+            if (msg && msg.role === "user") {
+                target = i
+                break
+            }
+        }
+        
+        if (target >= 0) {
+            root.userScrolledUp = true
+            root.msgListViewRef.positionViewAtIndex(target, ListView.Beginning)
+        } else {
+            root.userScrolledUp = true
+            root.msgListViewRef.positionViewAtBeginning()
+        }
+    }
+
+    function jumpOneMessageBelow() {
+        if (!root.msgListViewRef || root.messages.length === 0)
+            return
+        
+        var currentTop = -1
+        for (var offset = 15; offset <= 100; offset += 20) {
+            currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset)
+            if (currentTop >= 0)
+                break
+        }
+        
+        if (currentTop < 0) {
+            currentTop = -1
+        }
+        
+        var target = -1
+        for (var i = currentTop + 1; i < root.messages.length; i++) {
+            var msg = root.messages[i]
+            if (msg && msg.role === "user") {
+                target = i
+                break
+            }
+        }
+        
+        if (target >= 0) {
+            var isLastUser = true
+            for (var j = target + 1; j < root.messages.length; j++) {
+                if (root.messages[j] && root.messages[j].role === "user") {
+                    isLastUser = false
+                    break
+                }
+            }
+            if (isLastUser) {
+                if (root.userScrolledUp) {
+                    root.userScrolledUp = false
+                    root.scrollToBottom()
+                }
+            } else {
+                root.userScrolledUp = true
+                root.msgListViewRef.positionViewAtIndex(target, ListView.Beginning)
+            }
+        } else {
+            if (root.userScrolledUp) {
+                root.userScrolledUp = false
+                root.scrollToBottom()
+            }
+        }
+    }
+
+    function formatTokensUsage(tokens, cost) {
+        if (!tokens)
+            return ""
+        
+        var parts = []
+        if (tokens.input !== undefined)
+            parts.push("Input: " + tokens.input)
+        if (tokens.output !== undefined)
+            parts.push("Output: " + tokens.output)
+        if (tokens.reasoning !== undefined && tokens.reasoning > 0)
+            parts.push("Reasoning: " + tokens.reasoning)
+        if (tokens.cache && (tokens.cache.read > 0 || tokens.cache.write > 0)) {
+            parts.push("Cache R/W: " + tokens.cache.read + "/" + tokens.cache.write)
+        }
+        
+        var res = parts.join(" | ")
+        if (cost !== undefined && cost > 0) {
+            res += " | Cost: $" + cost.toFixed(5)
+        }
+        return res
+    }
+
     function pushErrorMessage(text) {
         var ts = Date.now()
         root.messages = root.messages.concat([{ role: "error", content: "DEBUG: " + text, time: nowTime(ts), at: ts, model: "" }])
@@ -1696,7 +2123,7 @@ PlasmoidItem {
         saveCurrentSessionState(true)
     }
 
-    function appendUserMessage(text, role) {
+    function appendUserMessage(text, role, attachments) {
         var ts = Date.now()
         root.messages = root.messages.concat([{
             role: role || "user",
@@ -1704,7 +2131,8 @@ PlasmoidItem {
             time: nowTime(ts),
             at: ts,
             model: "",
-            queueId: role === "queued" ? (++root.queueCounter) : 0
+            queueId: role === "queued" ? (++root.queueCounter) : 0,
+            attachments: attachments || []
         }])
         saveCurrentSessionState(true)
         if (!root.userScrolledUp)
@@ -1723,7 +2151,8 @@ PlasmoidItem {
     function sendMessageByIndex(index) {
         var source = root.messages[index] || {}
         var text = (source.content || "").trim()
-        if (!text)
+        var hasAttachments = source.attachments && source.attachments.length > 0
+        if (!text && !hasAttachments)
             return
 
         var validationError = validateCurrentSendTarget()
@@ -1788,7 +2217,7 @@ PlasmoidItem {
         if (providerId === "openrouter") return "OpenRouter"
         if (providerId === "mistral") return "Mistral"
         if (providerId === "cloudflare") return "Cloudflare"
-        if (providerId === "nvidia") return "NVIDIA"
+        if (providerId === "nvidia") return "NVIDIA NIM"
         if (providerId === "huggingface") return "Hugging Face"
         if (providerId === "xai") return "xAI"
         if (providerId === "lmstudio") return "LM Studio"
@@ -1837,19 +2266,21 @@ PlasmoidItem {
     function sendMessage() {
         try {
             var text = (root.chatInputText || "").trim()
-            if (text === "")
+            var attachments = root.attachedFiles || []
+            if (text === "" && attachments.length === 0)
                 return
 
+            root.attachedFiles = []
             root.chatInputText = ""
             root.clearChatInput()
             root.userScrolledUp = false
 
             if (root.loading) {
-                appendUserMessage(text, "queued")
+                appendUserMessage(text, "queued", attachments)
                 return
             }
 
-            appendUserMessage(text, "user")
+            appendUserMessage(text, "user", attachments)
             sendMessageByIndex(root.messages.length - 1)
         } catch (err) {
             root.loading = false
@@ -1863,7 +2294,7 @@ PlasmoidItem {
         if (provider === "anthropic") {
             return {
                 type: "anthropic",
-                apiKey: plasmoid.configuration.anthropicApiKey || "",
+                apiKey: (plasmoid.configuration.anthropicApiKey || "").trim(),
                 model: plasmoid.configuration.anthropicModel || "",
                 allowEmptyKey: false
             }
@@ -1902,7 +2333,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.groqBaseUrl || "https://api.groq.com/openai/v1",
-                apiKey: plasmoid.configuration.groqApiKey || "",
+                apiKey: (plasmoid.configuration.groqApiKey || "").trim(),
                 model: plasmoid.configuration.groqModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -1912,7 +2343,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.deepSeekBaseUrl || "https://api.deepseek.com",
-                apiKey: plasmoid.configuration.deepSeekApiKey || "",
+                apiKey: (plasmoid.configuration.deepSeekApiKey || "").trim(),
                 model: plasmoid.configuration.deepSeekModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -1922,7 +2353,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.miniMaxBaseUrl || "https://api.minimax.io/v1",
-                apiKey: plasmoid.configuration.miniMaxApiKey || "",
+                apiKey: (plasmoid.configuration.miniMaxApiKey || "").trim(),
                 model: plasmoid.configuration.miniMaxModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -1932,7 +2363,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.fireworksBaseUrl || "https://api.fireworks.ai/inference/v1",
-                apiKey: plasmoid.configuration.fireworksApiKey || "",
+                apiKey: (plasmoid.configuration.fireworksApiKey || "").trim(),
                 model: plasmoid.configuration.fireworksModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -1942,19 +2373,24 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.googleBaseUrl || "https://generativelanguage.googleapis.com/v1beta/openai/",
-                apiKey: plasmoid.configuration.googleApiKey || "",
+                apiKey: (plasmoid.configuration.googleApiKey || "").trim(),
                 model: plasmoid.configuration.googleModel || "",
                 headers: null,
                 allowEmptyKey: false
             }
         }
         if (provider === "openrouter") {
+            var headers = {}
+            var referer = plasmoid.configuration.openRouterReferer || "https://github.com/racstan/KDE-AI-Chat"
+            var title = plasmoid.configuration.openRouterTitle || "KDE AI Chat"
+            headers["HTTP-Referer"] = referer
+            headers["X-Title"] = title
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.openRouterBaseUrl || "https://openrouter.ai/api/v1",
-                apiKey: plasmoid.configuration.openRouterApiKey || "",
+                apiKey: (plasmoid.configuration.openRouterApiKey || "").trim(),
                 model: plasmoid.configuration.openRouterModel || "",
-                headers: null,
+                headers: headers,
                 allowEmptyKey: false
             }
         }
@@ -1962,7 +2398,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.mistralBaseUrl || "https://api.mistral.ai/v1",
-                apiKey: plasmoid.configuration.mistralApiKey || "",
+                apiKey: (plasmoid.configuration.mistralApiKey || "").trim(),
                 model: plasmoid.configuration.mistralModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -1972,7 +2408,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.cloudflareBaseUrl || "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
-                apiKey: plasmoid.configuration.cloudflareApiKey || "",
+                apiKey: (plasmoid.configuration.cloudflareApiKey || "").trim(),
                 model: plasmoid.configuration.cloudflareModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -1982,7 +2418,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.nvidiaBaseUrl || "https://integrate.api.nvidia.com/v1",
-                apiKey: plasmoid.configuration.nvidiaApiKey || "",
+                apiKey: (plasmoid.configuration.nvidiaApiKey || "").trim(),
                 model: plasmoid.configuration.nvidiaModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -1992,7 +2428,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.huggingFaceBaseUrl || "https://router.huggingface.co/v1",
-                apiKey: plasmoid.configuration.huggingFaceApiKey || "",
+                apiKey: (plasmoid.configuration.huggingFaceApiKey || "").trim(),
                 model: plasmoid.configuration.huggingFaceModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -2002,7 +2438,7 @@ PlasmoidItem {
             return {
                 type: "openai-compat",
                 baseUrl: plasmoid.configuration.xaiBaseUrl || "https://api.x.ai/v1",
-                apiKey: plasmoid.configuration.xaiApiKey || "",
+                apiKey: (plasmoid.configuration.xaiApiKey || "").trim(),
                 model: plasmoid.configuration.xaiModel || "",
                 headers: null,
                 allowEmptyKey: false
@@ -2011,7 +2447,7 @@ PlasmoidItem {
         return {
             type: "openai-compat",
             baseUrl: plasmoid.configuration.baseUrl || "https://api.openai.com/v1",
-            apiKey: plasmoid.configuration.apiKey || "",
+            apiKey: (plasmoid.configuration.apiKey || "").trim(),
             model: plasmoid.configuration.model || "",
             headers: null,
             allowEmptyKey: false
@@ -2024,8 +2460,14 @@ PlasmoidItem {
         var arr = [{ role: "system", content: sys }]
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i]
-            if (m.role === "user" || m.role === "assistant")
-                arr.push({ role: m.role, content: m.content })
+            if (m.role === "user" || m.role === "assistant") {
+                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
+                    var payloadContent = buildMessageContent(m.content, m.attachments, "openai")
+                    arr.push({ role: m.role, content: payloadContent })
+                } else {
+                    arr.push({ role: m.role, content: m.content })
+                }
+            }
         }
         return arr
     }
@@ -2034,8 +2476,14 @@ PlasmoidItem {
         var arr = []
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i]
-            if (m.role === "user" || m.role === "assistant")
-                arr.push({ role: m.role, content: m.content })
+            if (m.role === "user" || m.role === "assistant") {
+                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
+                    var payloadContent = buildMessageContent(m.content, m.attachments, "anthropic")
+                    arr.push({ role: m.role, content: payloadContent })
+                } else {
+                    arr.push({ role: m.role, content: m.content })
+                }
+            }
         }
         return arr
     }
@@ -2048,8 +2496,13 @@ PlasmoidItem {
         try {
             xhr.open("POST", url, true)
             xhr.setRequestHeader("Content-Type", "application/json")
-            if (apiKey !== "")
+            if (apiKey !== "") {
+                var safeKey = apiKey.substring(0, Math.min(8, apiKey.length)) + "... (" + apiKey.length + " chars)"
+                console.log("DEBUG: Sending request to " + url + " with auth key starting with: " + safeKey)
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey)
+            } else {
+                console.log("DEBUG: Sending request to " + url + " without Authorization header (empty key)")
+            }
             if (extraHeaders) {
                 for (var headerName in extraHeaders) {
                     if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
@@ -2099,6 +2552,10 @@ PlasmoidItem {
                                 }
                             }
                         }
+                    } else if (eobj.detail) {
+                        err += " | " + eobj.detail
+                    } else if (eobj.message) {
+                        err += " | " + eobj.message
                     }
                 } catch (e2) {
                 }
@@ -2114,13 +2571,20 @@ PlasmoidItem {
                                  && parsed.choices[0].message.content) || ""
                 if (finalText !== "") {
                     var doneTs = Date.now()
-                    root.messages = root.messages.concat([{
+                    var msgObj = {
                         role: "assistant",
                         content: finalText,
                         time: nowTime(doneTs),
                         at: doneTs,
                         model: modelLabel || model || ""
-                    }])
+                    }
+                    if (parsed.usage) {
+                        msgObj.tokens = {
+                            input: parsed.usage.prompt_tokens || 0,
+                            output: parsed.usage.completion_tokens || 0
+                        }
+                    }
+                    root.messages = root.messages.concat([msgObj])
                     if (!root.userScrolledUp)
                         Qt.callLater(scrollToBottom)
                 } else {
@@ -2194,7 +2658,20 @@ PlasmoidItem {
                         }
                     }
                     var ts = Date.now()
-                    root.messages = root.messages.concat([{ role: "assistant", content: text || "(empty response)", time: nowTime(ts), at: ts, model: model || "" }])
+                    var msgObj = {
+                        role: "assistant",
+                        content: text || "(empty response)",
+                        time: nowTime(ts),
+                        at: ts,
+                        model: model || ""
+                    }
+                    if (obj.usage) {
+                        msgObj.tokens = {
+                            input: obj.usage.input_tokens || 0,
+                            output: obj.usage.output_tokens || 0
+                        }
+                    }
+                    root.messages = root.messages.concat([msgObj])
                 } catch (e) {
                     pushErrorMessage("Failed to parse Anthropic response")
                 }
@@ -2515,5 +2992,266 @@ PlasmoidItem {
         }
 
         return html;
+    }
+
+    function fileIconName(filename) {
+        var ext = filename.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return 'document-pdf';
+        if (ext === 'csv') return 'text-csv';
+        if (ext === 'docx' || ext === 'doc') return 'document-word';
+        if (ext === 'md' || ext === 'txt') return 'text-plain';
+        return 'document-text';
+    }
+
+    function removeAttachedFile(index) {
+        var files = root.attachedFiles.slice()
+        if (index >= 0 && index < files.length) {
+            files.splice(index, 1)
+            root.attachedFiles = files
+        }
+    }
+
+    function getDocExtractorPath() {
+        var urlStr = String(Qt.resolvedUrl("doc_extractor.py"));
+        if (urlStr.indexOf("file://") === 0) {
+            urlStr = urlStr.substring(7);
+        }
+        return decodeURIComponent(urlStr);
+    }
+
+    function attachFile(fileUrl) {
+        var localPath = String(fileUrl);
+        if (localPath.indexOf("file://") === 0) {
+            localPath = localPath.substring(7);
+        }
+        localPath = decodeURIComponent(localPath);
+
+        var files = root.attachedFiles.slice();
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].path === localPath) {
+                return;
+            }
+        }
+
+        var filename = localPath.substring(localPath.lastIndexOf("/") + 1);
+        var newFile = {
+            path: localPath,
+            name: filename,
+            loading: true,
+            error: "",
+            type: "",
+            content: "",
+            mimeType: "",
+            size: 0
+        };
+
+        files.push(newFile);
+        root.attachedFiles = files;
+
+        var docExtractorPath = getDocExtractorPath();
+        var escapedPath = localPath.replace(/'/g, "'\\''");
+        var cmd = "python3 '" + docExtractorPath + "' '" + escapedPath + "'";
+        fileReaderDs.connectSource(cmd);
+    }
+
+    function buildMessageContent(text, attachments, apiType) {
+        var docs = []
+        var imgs = []
+        for (var i = 0; i < attachments.length; i++) {
+            var att = attachments[i]
+            if (att.type === "image") {
+                imgs.push(att)
+            } else if (att.type === "text") {
+                docs.push(att)
+            }
+        }
+
+        var compiledPrompt = ""
+        for (var d = 0; d < docs.length; d++) {
+            compiledPrompt += "[Attached File: " + docs[d].name + " (" + Math.round((docs[d].size || 0) / 1024) + " KB)]\n"
+            compiledPrompt += "--- START OF FILE CONTENT ---\n"
+            compiledPrompt += (docs[d].content || "") + "\n"
+            compiledPrompt += "--- END OF FILE CONTENT ---\n\n"
+        }
+        compiledPrompt += text
+
+        if (imgs.length === 0) {
+            return compiledPrompt
+        }
+
+        var contentList = []
+        if (compiledPrompt.trim() !== "") {
+            contentList.push({ type: "text", text: compiledPrompt })
+        }
+
+        for (var imgIdx = 0; imgIdx < imgs.length; imgIdx++) {
+            var image = imgs[imgIdx]
+            if (apiType === "anthropic") {
+                contentList.push({
+                    type: "image",
+                    source: {
+                        type: "base64",
+                        media_type: image.mimeType || "image/jpeg",
+                        data: image.content
+                    }
+                })
+            } else {
+                contentList.push({
+                    type: "image_url",
+                    image_url: {
+                        url: "data:" + (image.mimeType || "image/jpeg") + ";base64," + image.content
+                    }
+                })
+            }
+        }
+
+        return contentList
+    }
+
+    P5Support.DataSource {
+        id: fileReaderDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var exitCode = data["exit code"]
+            var stdout = data["stdout"] || ""
+            var stderr = data["stderr"] || ""
+
+            if (sourceName.indexOf("--clipboard") !== -1) {
+                if (exitCode === 0 && stderr.trim() === "") {
+                    try {
+                        var res = JSON.parse(stdout)
+                        if (res.status === "success") {
+                            var currentFiles = root.attachedFiles.slice()
+                            if (res.mode === "files" && res.files) {
+                                for (var f = 0; f < res.files.length; f++) {
+                                    var fInfo = res.files[f]
+                                    var exists = false
+                                    for (var idx = 0; idx < currentFiles.length; idx++) {
+                                        if (currentFiles[idx].path === fInfo.path) {
+                                            exists = true
+                                            break
+                                        }
+                                    }
+                                    if (!exists) {
+                                        currentFiles.push({
+                                            name: fInfo.filename || fInfo.name,
+                                            path: fInfo.path,
+                                            type: fInfo.type,
+                                            content: fInfo.content,
+                                            mimeType: fInfo.mimeType,
+                                            size: fInfo.size,
+                                            loading: false,
+                                            error: ""
+                                        })
+                                    }
+                                }
+                            } else if (res.mode === "image" && res.file) {
+                                var fInfo = res.file
+                                var exists = false
+                                for (var idx = 0; idx < currentFiles.length; idx++) {
+                                    if (currentFiles[idx].path === fInfo.path) {
+                                        exists = true
+                                        break
+                                    }
+                                }
+                                if (!exists) {
+                                    currentFiles.push({
+                                        name: fInfo.name,
+                                        path: fInfo.path,
+                                        type: fInfo.type,
+                                        content: fInfo.content,
+                                        mimeType: fInfo.mimeType,
+                                        size: fInfo.size,
+                                        loading: false,
+                                        error: ""
+                                    })
+                                }
+                            }
+                            root.attachedFiles = currentFiles
+                        }
+                    } catch (e) {
+                        console.log("Failed to parse clipboard data: " + e)
+                    }
+                }
+                disconnectSource(sourceName)
+                return
+            }
+
+            var matchedIndex = -1
+            var files = root.attachedFiles.slice()
+            for (var i = 0; i < files.length; i++) {
+                var filePath = files[i].path
+                if (sourceName.indexOf(filePath) !== -1) {
+                    matchedIndex = i
+                    break
+                }
+            }
+
+            if (matchedIndex === -1) {
+                disconnectSource(sourceName)
+                return
+            }
+
+            var fileObj = Object.assign({}, files[matchedIndex])
+            fileObj.loading = false
+
+            if (exitCode !== 0 || stderr.trim() !== "") {
+                fileObj.error = stderr.trim() || ("Command exited with code " + exitCode)
+            } else {
+                try {
+                    var res = JSON.parse(stdout)
+                    if (res.status === "success") {
+                        fileObj.type = res.type
+                        fileObj.content = res.content
+                        fileObj.mimeType = res.mimeType
+                        fileObj.size = res.size
+                    } else {
+                        fileObj.error = res.message || "Failed to extract file contents"
+                    }
+                } catch (e) {
+                    fileObj.error = "Failed to parse extractor output: " + e
+                }
+            }
+
+            files[matchedIndex] = fileObj
+            root.attachedFiles = files
+            disconnectSource(sourceName)
+        }
+    }
+
+    FileDialog {
+        id: fileDialog
+        title: "Attach Files"
+        fileMode: FileDialog.OpenFiles
+        nameFilters: [
+            "All supported files (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)",
+            "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)",
+            "Documents (*.pdf *.docx *.csv *.txt *.md *.json)",
+            "All files (*)"
+        ]
+        onAccepted: {
+            for (var i = 0; i < selectedFiles.length; i++) {
+                root.attachFile(selectedFiles[i])
+            }
+        }
+    }
+
+    // Invisible text editor acting as helper to interact with OS text clipboard (copy / paste)
+    TextEdit {
+        id: clipboardHelper
+        visible: false
+    }
+
+    function checkClipboardForAttachments() {
+        var docExtractorPath = getDocExtractorPath()
+        var cmd = "python3 '" + docExtractorPath + "' --clipboard"
+        fileReaderDs.connectSource(cmd)
+    }
+
+    function readClipboardText() {
+        clipboardHelper.text = ""
+        clipboardHelper.paste()
+        return clipboardHelper.text
     }
 }

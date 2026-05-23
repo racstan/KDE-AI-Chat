@@ -21,15 +21,16 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ## Key Features
 
-- **Multi-Provider Switching**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA, Hugging Face, xAI (Grok), Ollama, LM Studio, and local OpenAI-compatible endpoints.
-- **Offline & Local AI Priority**: Keyless out-of-the-box integration with offline local LLM engines (Ollama, LM Studio, or custom local OpenAI-compatible endpoints), allowing complete data privacy and local-only operations.
-- **Dynamic Model Discovery**: Auto-detects and populates model lists directly from API endpoints, featuring a real-time searchable combobox.
-- **Local Priority (OpenCode Mode)**: Special developer-priority mode with server process control (Start/Stop/Kill controls directly from settings).
-- **Session History Manager**: Persistence layer supporting creating, renaming, archiving, and deleting chat threads, categorized with elegant date groupings.
-- **Premium UX**: Markdown parsing, multi-line auto-resizing text fields, and smooth keyboard shortcuts (Ctrl+Enter to send, arrow keys to navigate history).
-- **Secure KWallet Storage**: Secure DBus credential loading to prevent exposing raw API keys in plain text.
-- **Popup Canvas Scaling**: Custom bottom-right drag-to-resize handle that persists coordinates natively via KConfigXT backend.
-- **Theme Compliant**: Perfectly adapts to Dark and Light modes, supporting custom pinning (Light/Dark/Follow system).
+- **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
+- **🔄 Multi-Provider Switching**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), Ollama, LM Studio, and local OpenAI-compatible endpoints.
+- **🌳 Conversation Forking (Branch Editing)**: Editing any older user message automatically deletes subsequent logs and forks the branch as a fresh request, maintaining clean conversation histories.
+- **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
+- **📊 Token Usage & Cost Diagnostics**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
+- **⚡ Ultra-Stable Scrolling**: Features huge caching (`cacheBuffer`) and mouse wheel/scrollbar interaction hooks to eliminate scroll layout jumping and auto-snap collisions.
+- **🔑 Secure KWallet Storage**: Secure DBus credentials handling to prevent exposing raw API keys in plain text.
+- **🛡️ Offline & Local AI Priority**: Keyless out-of-the-box integration with offline local LLM engines (Ollama, LM Studio), ensuring absolute privacy.
+- **🔍 Dynamic Model Discovery**: Auto-detects and populates model lists directly from API endpoints, featuring a real-time searchable combobox.
+- **🎨 Custom Popup Canvas Scaling**: Bottom-right drag-to-resize handle with coordinates persisted via KConfigXT backend.
 
 ---
 
