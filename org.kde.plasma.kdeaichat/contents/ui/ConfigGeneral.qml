@@ -35,11 +35,13 @@ KCM.SimpleKCM {
             refreshOpenCodeDiscovery()
     }
     Component.onDestruction: {
-        if (plasmoid.configuration.keyStorageMode === 2)
+        saveAllSettingsToConfiguration()
+        if (plasmoid.configuration.keyStorageMode === 2) {
             kwalletStoreAll()
-        // Session-only mode: clear keys from persistent storage on close
-        if (plasmoid.configuration.keyStorageMode === 0)
+        } else if (plasmoid.configuration.keyStorageMode === 0) {
             clearAllApiKeyFields()
+            saveAllSettingsToConfiguration()
+        }
     }
 
     property alias cfg_appDisplayName: appDisplayNameField.text
@@ -996,6 +998,84 @@ KCM.SimpleKCM {
         nvidiaApiKeyField.text = plasmoid.configuration.nvidiaApiKey || ""
         huggingFaceApiKeyField.text = plasmoid.configuration.huggingFaceApiKey || ""
         xaiApiKeyField.text = plasmoid.configuration.xaiApiKey || ""
+    }
+
+    function saveAllSettingsToConfiguration() {
+        plasmoid.configuration.appDisplayName = appDisplayNameField.text
+        plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex
+        plasmoid.configuration.keyStorageMode = cfg_keyStorageMode
+
+        plasmoid.configuration.provider = providerBox.currentValue
+        plasmoid.configuration.baseUrl = baseUrlField.text
+        plasmoid.configuration.apiKey = apiKeyField.text
+        plasmoid.configuration.model = modelField.text
+
+        plasmoid.configuration.anthropicApiKey = anthropicApiKeyField.text
+        plasmoid.configuration.anthropicModel = anthropicModelField.text
+
+        plasmoid.configuration.groqBaseUrl = groqBaseUrlField.text
+        plasmoid.configuration.groqApiKey = groqApiKeyField.text
+        plasmoid.configuration.groqModel = groqModelField.text
+
+        plasmoid.configuration.deepSeekBaseUrl = deepSeekBaseUrlField.text
+        plasmoid.configuration.deepSeekApiKey = deepSeekApiKeyField.text
+        plasmoid.configuration.deepSeekModel = deepSeekModelField.text
+
+        plasmoid.configuration.miniMaxBaseUrl = miniMaxBaseUrlField.text
+        plasmoid.configuration.miniMaxApiKey = miniMaxApiKeyField.text
+        plasmoid.configuration.miniMaxModel = miniMaxModelField.text
+
+        plasmoid.configuration.fireworksBaseUrl = fireworksBaseUrlField.text
+        plasmoid.configuration.fireworksApiKey = fireworksApiKeyField.text
+        plasmoid.configuration.fireworksModel = fireworksModelField.text
+
+        plasmoid.configuration.googleBaseUrl = googleBaseUrlField.text
+        plasmoid.configuration.googleApiKey = googleApiKeyField.text
+        plasmoid.configuration.googleModel = googleModelField.text
+
+        plasmoid.configuration.openRouterBaseUrl = openRouterBaseUrlField.text
+        plasmoid.configuration.openRouterApiKey = openRouterApiKeyField.text
+        plasmoid.configuration.openRouterModel = openRouterModelField.text
+
+        plasmoid.configuration.mistralBaseUrl = mistralBaseUrlField.text
+        plasmoid.configuration.mistralApiKey = mistralApiKeyField.text
+        plasmoid.configuration.mistralModel = mistralModelField.text
+
+        plasmoid.configuration.cloudflareBaseUrl = cloudflareBaseUrlField.text
+        plasmoid.configuration.cloudflareApiKey = cloudflareApiKeyField.text
+        plasmoid.configuration.cloudflareModel = cloudflareModelField.text
+
+        plasmoid.configuration.nvidiaBaseUrl = nvidiaBaseUrlField.text
+        plasmoid.configuration.nvidiaApiKey = nvidiaApiKeyField.text
+        plasmoid.configuration.nvidiaModel = nvidiaModelField.text
+
+        plasmoid.configuration.huggingFaceBaseUrl = huggingFaceBaseUrlField.text
+        plasmoid.configuration.huggingFaceApiKey = huggingFaceApiKeyField.text
+        plasmoid.configuration.huggingFaceModel = huggingFaceModelField.text
+
+        plasmoid.configuration.xaiBaseUrl = xaiBaseUrlField.text
+        plasmoid.configuration.xaiApiKey = xaiApiKeyField.text
+        plasmoid.configuration.xaiModel = xaiModelField.text
+
+        plasmoid.configuration.lmStudioBaseUrl = lmStudioBaseUrlField.text
+        plasmoid.configuration.lmStudioModel = lmStudioModelField.text
+
+        plasmoid.configuration.localBaseUrl = localBaseUrlField.text
+        plasmoid.configuration.localModel = localModelField.text
+
+        plasmoid.configuration.ollamaBaseUrl = ollamaBaseUrlField.text
+        plasmoid.configuration.ollamaModel = ollamaModelField.text
+
+        plasmoid.configuration.useOpenCode = openCodeToggle.checked
+        plasmoid.configuration.playNotificationSound = playSoundToggle.checked
+        plasmoid.configuration.openCodeUrl = openCodeUrlField.text
+        plasmoid.configuration.openCodeModel = openCodeModelValueField.text
+        plasmoid.configuration.openCodeProvider = openCodeProviderValueField.text
+        plasmoid.configuration.openCodeStartCommand = openCodeStartCommandField.text
+        plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text
+
+        plasmoid.configuration.kwalletName = walletNameField.text
+        plasmoid.configuration.systemPrompt = systemPromptArea.text
     }
 
     function cancelKeyringOps() {
