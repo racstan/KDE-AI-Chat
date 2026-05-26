@@ -985,19 +985,44 @@ KCM.SimpleKCM {
     }
 
     function loadKeysFromPlainConfig() {
-        apiKeyField.text = plasmoid.configuration.apiKey || ""
-        anthropicApiKeyField.text = plasmoid.configuration.anthropicApiKey || ""
-        groqApiKeyField.text = plasmoid.configuration.groqApiKey || ""
-        deepSeekApiKeyField.text = plasmoid.configuration.deepSeekApiKey || ""
-        miniMaxApiKeyField.text = plasmoid.configuration.miniMaxApiKey || ""
-        fireworksApiKeyField.text = plasmoid.configuration.fireworksApiKey || ""
-        googleApiKeyField.text = plasmoid.configuration.googleApiKey || ""
-        openRouterApiKeyField.text = plasmoid.configuration.openRouterApiKey || ""
-        mistralApiKeyField.text = plasmoid.configuration.mistralApiKey || ""
-        cloudflareApiKeyField.text = plasmoid.configuration.cloudflareApiKey || ""
-        nvidiaApiKeyField.text = plasmoid.configuration.nvidiaApiKey || ""
-        huggingFaceApiKeyField.text = plasmoid.configuration.huggingFaceApiKey || ""
-        xaiApiKeyField.text = plasmoid.configuration.xaiApiKey || ""
+        utilityDs.connectSource("python3 -c \"import configparser, json; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); print(json.dumps(dict(config['General']) if 'General' in config else {}))\" #plainconfig-load")
+    }
+
+    function applyPlainConfigKeys(keys) {
+        apiKeyField.text = keys["apiKey"] || ""
+        anthropicApiKeyField.text = keys["anthropicApiKey"] || ""
+        groqApiKeyField.text = keys["groqApiKey"] || ""
+        deepSeekApiKeyField.text = keys["deepSeekApiKey"] || ""
+        miniMaxApiKeyField.text = keys["miniMaxApiKey"] || ""
+        fireworksApiKeyField.text = keys["fireworksApiKey"] || ""
+        googleApiKeyField.text = keys["googleApiKey"] || ""
+        openRouterApiKeyField.text = keys["openRouterApiKey"] || ""
+        mistralApiKeyField.text = keys["mistralApiKey"] || ""
+        cloudflareApiKeyField.text = keys["cloudflareApiKey"] || ""
+        nvidiaApiKeyField.text = keys["nvidiaApiKey"] || ""
+        huggingFaceApiKeyField.text = keys["huggingFaceApiKey"] || ""
+        xaiApiKeyField.text = keys["xaiApiKey"] || ""
+    }
+
+    function writeKeysToDiskAndOpen() {
+        var payload = {
+            "apiKey": apiKeyField.text,
+            "anthropicApiKey": anthropicApiKeyField.text,
+            "groqApiKey": groqApiKeyField.text,
+            "deepSeekApiKey": deepSeekApiKeyField.text,
+            "miniMaxApiKey": miniMaxApiKeyField.text,
+            "fireworksApiKey": fireworksApiKeyField.text,
+            "googleApiKey": googleApiKeyField.text,
+            "openRouterApiKey": openRouterApiKeyField.text,
+            "mistralApiKey": mistralApiKeyField.text,
+            "cloudflareApiKey": cloudflareApiKeyField.text,
+            "nvidiaApiKey": nvidiaApiKeyField.text,
+            "huggingFaceApiKey": huggingFaceApiKeyField.text,
+            "xaiApiKey": xaiApiKeyField.text
+        }
+        var jsonStr = JSON.stringify(payload).replace(/'/g, "'\\''")
+        var cmd = "python3 -c \"import configparser, json; data = json.loads('" + jsonStr + "'); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config"
+        utilityDs.connectSource(cmd)
     }
 
     function saveAllSettingsToConfiguration() {
@@ -1288,10 +1313,15 @@ KCM.SimpleKCM {
                 } else {
                     keyringStatus = out !== "" ? out : (err !== "" ? err : "Wallet check finished.")
                 }
-            } else if (sourceName.indexOf("opencode-start") >= 0) {
-                discoveryStatus = out !== "" ? out : (err !== "" ? err : "OpenCode start command finished. Use Check server to confirm /config/providers is reachable.")
-            } else if (sourceName.indexOf("opencode-stop") >= 0) {
-                discoveryStatus = out !== "" ? out : (err !== "" ? err : "OpenCode stop command finished.")
+            } else if (sourceName.indexOf("plainconfig-load") >= 0) {
+                try {
+                    var keys = JSON.parse(out)
+                    applyPlainConfigKeys(keys)
+                    keyringStatus = "Keys successfully reloaded from the physical configuration file."
+                } catch(e) {
+                    console.log("Error parsing plain config: " + e)
+                    keyringStatus = "Error parsing config file: " + e
+                }
             } else {
                 discoveryStatus = out !== "" ? out : (err !== "" ? err : "Command finished.")
             }
@@ -1922,9 +1952,7 @@ KCM.SimpleKCM {
             }
             QQC2.Button {
                 text: "Open config file"
-                onClicked: {
-                    utilityDs.connectSource("mkdir -p ~/.config && touch ~/.config/kdeaichatrc && xdg-open ~/.config/kdeaichatrc #open-config")
-                }
+                onClicked: writeKeysToDiskAndOpen()
             }
         }
 
