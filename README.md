@@ -8,11 +8,19 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ### 📸 Showcase & Feature Walkthrough
 
-#### 🎥 Feature Demonstration Video
+#### 🎥 Feature Demonstration Video (Two-Part Walkthrough)
 
-See **KDE AI Chat** in action! Below is a walkthrough video showcasing the interactive provider and model switching, local offline prioritizing, chat session management, and widget customization:
+See **KDE AI Chat** in action! Below is a detailed walkthrough of the widget's capabilities, split into two sequential parts. Viewers are advised to watch the continuation in **Part 2** immediately after finishing **Part 1**:
 
-<video src="https://raw.githubusercontent.com/racstan/KDE-AI-Chat/master/.github/assets/Demonstration.mp4" width="100%" controls></video>
+##### 🎬 Part 1: Core Interface, Model Selection & Secure Key Setup
+*Showcases interactive provider and model switching, local offline prioritizing, and secure native KWallet integration:*
+
+<video src="https://github.com/user-attachments/assets/b0af2ca7-f556-469e-a136-3006f8ee582f" width="100%" controls></video>
+
+##### 🎬 Part 2: OpenCode Developer Bridge, Document Attachments & Scaling Customization
+*Continuation detailing chat session management, document and multi-format attachment analysis, settings tuning, and local OpenCode developer execution:*
+
+<video src="https://github.com/user-attachments/assets/32d8b39e-7357-4543-ab97-7834031f5f40" width="100%" controls></video>
 
 ---
 
