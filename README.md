@@ -151,6 +151,9 @@ For a detailed history of features, bug fixes, and performance updates across al
 We are planning multiple active development rounds to implement new requested features:
 1. **Elegant UI Enhancements**: Redefining QML layouts with premium modern visual aesthetics, sleek micro-animations, glassmorphism card panels, and smooth scroll interfaces.
 2. **Interactive Elements for OpenCode**: Introducing rich interactive layouts inside chat bubbles to render code previews, live shell triggers, and interactive compiler feedback widgets.
+3. **LiteLLM Integration**: Supporting LiteLLM as an optional universal proxy middleware to interface with over 100+ LLMs using a standardized API key and server configurations.
+4. **Chat Export Utility (PDF/TXT)**: Adding a one-click exporter to save formatted conversations as clean PDF reports or plain TXT files directly from the sidebar.
+5. **Scheduled Chats & Prompt Automation**: Implementing a robust scheduling calendar to automate recurrent prompts, execute off-hour diagnostics, and trigger timed workflows.
 
 ---
 
