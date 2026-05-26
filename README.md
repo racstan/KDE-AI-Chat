@@ -12,7 +12,7 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 See **KDE AI Chat** in action! Below is a walkthrough video showcasing the interactive provider and model switching, local offline prioritizing, chat session management, and widget customization:
 
-<video src=".github/assets/Demonstration.mp4" width="100%" controls></video>
+<video src="https://raw.githubusercontent.com/racstan/KDE-AI-Chat/master/.github/assets/Demonstration.mp4" width="100%" controls></video>
 
 ---
 
