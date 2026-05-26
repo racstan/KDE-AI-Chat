@@ -29,6 +29,8 @@ KCM.SimpleKCM {
         // Session-only mode: wipe all key fields from the config at startup
         if (plasmoid.configuration.keyStorageMode === 0)
             clearAllApiKeyFields()
+        if (plasmoid.configuration.keyStorageMode === 1)
+            loadKeysFromPlainConfig()
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery()
     }
@@ -980,6 +982,22 @@ KCM.SimpleKCM {
         xaiApiKeyField.text = ""
     }
 
+    function loadKeysFromPlainConfig() {
+        apiKeyField.text = plasmoid.configuration.apiKey || ""
+        anthropicApiKeyField.text = plasmoid.configuration.anthropicApiKey || ""
+        groqApiKeyField.text = plasmoid.configuration.groqApiKey || ""
+        deepSeekApiKeyField.text = plasmoid.configuration.deepSeekApiKey || ""
+        miniMaxApiKeyField.text = plasmoid.configuration.miniMaxApiKey || ""
+        fireworksApiKeyField.text = plasmoid.configuration.fireworksApiKey || ""
+        googleApiKeyField.text = plasmoid.configuration.googleApiKey || ""
+        openRouterApiKeyField.text = plasmoid.configuration.openRouterApiKey || ""
+        mistralApiKeyField.text = plasmoid.configuration.mistralApiKey || ""
+        cloudflareApiKeyField.text = plasmoid.configuration.cloudflareApiKey || ""
+        nvidiaApiKeyField.text = plasmoid.configuration.nvidiaApiKey || ""
+        huggingFaceApiKeyField.text = plasmoid.configuration.huggingFaceApiKey || ""
+        xaiApiKeyField.text = plasmoid.configuration.xaiApiKey || ""
+    }
+
     function cancelKeyringOps() {
         var running = keyringDs.connectedSources
         for (var i = 0; i < running.length; i++)
@@ -1800,6 +1818,11 @@ KCM.SimpleKCM {
             text: "Save API keys to the local KDE config file (default)"
             QQC2.ButtonGroup.group: keyStorageModeGroup
             checked: plasmoid.configuration.keyStorageMode === 1
+            onCheckedChanged: {
+                if (checked) {
+                    loadKeysFromPlainConfig()
+                }
+            }
         }
         QQC2.Label {
             visible: plainConfigRadio.checked
@@ -1808,6 +1831,15 @@ KCM.SimpleKCM {
             text: "Config file location: ~/.config/kdeaichatrc — Keys are stored in plain text. Suitable for single-user machines where disk access is trusted."
             wrapMode: Text.Wrap
             opacity: 0.75
+        }
+        RowLayout {
+            visible: plainConfigRadio.checked
+            Kirigami.FormData.label: "Config actions:"
+            Layout.fillWidth: true
+            QQC2.Button {
+                text: "Reload from config file"
+                onClicked: loadKeysFromPlainConfig()
+            }
         }
 
         QQC2.RadioButton {
