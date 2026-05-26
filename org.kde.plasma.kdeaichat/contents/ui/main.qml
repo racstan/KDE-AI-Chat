@@ -237,6 +237,21 @@ PlasmoidItem {
                 }
 
                 PC3.ToolButton {
+                    visible: !root.historyOnlyMode && root.messages.length > 0
+                    icon.name: "edit-clear-all"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: "Clear current chat history"
+                    enabled: !root.loading
+                    onClicked: {
+                        root.messages = []
+                        root.editingMessageIndex = -1
+                        root.editingDraft = ""
+                        root.clearCurrentOpenCodeSessionIfNeeded()
+                        root.saveCurrentSessionState(true)
+                    }
+                }
+
+                PC3.ToolButton {
                     icon.name: "list-add"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "New chat"

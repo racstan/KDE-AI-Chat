@@ -1840,6 +1840,12 @@ KCM.SimpleKCM {
                 text: "Reload from config file"
                 onClicked: loadKeysFromPlainConfig()
             }
+            QQC2.Button {
+                text: "Open config file"
+                onClicked: {
+                    utilityDs.connectSource("xdg-open ~/.config/kdeaichatrc #open-config")
+                }
+            }
         }
 
         QQC2.RadioButton {
@@ -1912,6 +1918,13 @@ KCM.SimpleKCM {
                 text: "Detect wallets"
                 enabled: !keyringBusy
                 onClicked: detectWallets()
+            }
+
+            QQC2.Button {
+                text: "Launch KWalletManager"
+                onClicked: {
+                    utilityDs.connectSource("kwalletmanager6 || kwalletmanager5 || kwalletmanager #launch-kwallet")
+                }
             }
 
             QQC2.Button {
