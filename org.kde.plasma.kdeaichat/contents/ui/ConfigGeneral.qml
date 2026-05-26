@@ -24,19 +24,29 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0
-        if (plasmoid.configuration.useKWallet)
+        if (plasmoid.configuration.keyStorageMode === 2)
             detectWallets()
+        // Session-only mode: wipe all key fields from the config at startup
+        if (plasmoid.configuration.keyStorageMode === 0)
+            clearAllApiKeyFields()
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery()
     }
     Component.onDestruction: {
-        if (plasmoid.configuration.useKWallet)
+        if (plasmoid.configuration.keyStorageMode === 2)
             kwalletStoreAll()
+        // Session-only mode: clear keys from persistent storage on close
+        if (plasmoid.configuration.keyStorageMode === 0)
+            clearAllApiKeyFields()
     }
 
     property alias cfg_appDisplayName: appDisplayNameField.text
     property alias cfg_appearanceMode: appearanceModeCombo.currentIndex
-    property alias cfg_useKWallet: useKWalletCheckbox.checked
+    property int cfg_keyStorageMode: keyStorageModeGroup.checkedButton === sessionOnlyRadio ? 0
+                                    : keyStorageModeGroup.checkedButton === kwalletRadio ? 2
+                                    : 1
+    // Convenience computed for all KWallet-only visibility guards
+    readonly property bool kwalletModeActive: cfg_keyStorageMode === 2
     property alias cfg_provider: providerBox.currentValue
 
     property alias cfg_baseUrl: baseUrlField.text
@@ -954,6 +964,22 @@ KCM.SimpleKCM {
         keyringStatus = count > 0 ? ("Synced the above key as well as other keys (" + count + " total).") : "No API keys to sync."
     }
 
+    function clearAllApiKeyFields() {
+        apiKeyField.text = ""
+        anthropicApiKeyField.text = ""
+        groqApiKeyField.text = ""
+        deepSeekApiKeyField.text = ""
+        miniMaxApiKeyField.text = ""
+        fireworksApiKeyField.text = ""
+        googleApiKeyField.text = ""
+        openRouterApiKeyField.text = ""
+        mistralApiKeyField.text = ""
+        cloudflareApiKeyField.text = ""
+        nvidiaApiKeyField.text = ""
+        huggingFaceApiKeyField.text = ""
+        xaiApiKeyField.text = ""
+    }
+
     function cancelKeyringOps() {
         var running = keyringDs.connectedSources
         for (var i = 0; i < running.length; i++)
@@ -1738,21 +1764,74 @@ KCM.SimpleKCM {
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: "KWallet Settings"
+            Kirigami.FormData.label: "API Key Storage"
         }
 
-        QQC2.CheckBox {
-            id: useKWalletCheckbox
-            Kirigami.FormData.label: "Secure storage:"
-            text: "Enable KWallet integration"
+        QQC2.Label {
+            Kirigami.FormData.label: "Storage mode:"
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: "Choose how your API keys are stored between sessions:"
+            wrapMode: Text.Wrap
+            opacity: 0.75
+        }
+
+        QQC2.ButtonGroup { id: keyStorageModeGroup }
+
+        QQC2.RadioButton {
+            id: sessionOnlyRadio
+            Kirigami.FormData.label: "🔒 Session only:"
+            text: "Do not store API keys — forget them when KDE AI Chat closes"
+            QQC2.ButtonGroup.group: keyStorageModeGroup
+            checked: plasmoid.configuration.keyStorageMode === 0
+        }
+        QQC2.Label {
+            visible: sessionOnlyRadio.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: "⚠️  Your keys are held in memory only and wiped from the config file on close. You will need to re-enter them every time you restart the widget."
+            wrapMode: Text.Wrap
+            opacity: 0.75
+        }
+
+        QQC2.RadioButton {
+            id: plainConfigRadio
+            Kirigami.FormData.label: "📄 Plain config:"
+            text: "Save API keys to the local KDE config file (default)"
+            QQC2.ButtonGroup.group: keyStorageModeGroup
+            checked: plasmoid.configuration.keyStorageMode === 1
+        }
+        QQC2.Label {
+            visible: plainConfigRadio.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: "Config file location: ~/.config/kdeaichatrc — Keys are stored in plain text. Suitable for single-user machines where disk access is trusted."
+            wrapMode: Text.Wrap
+            opacity: 0.75
+        }
+
+        QQC2.RadioButton {
+            id: kwalletRadio
+            Kirigami.FormData.label: "🔑 KWallet (secure):"
+            text: "Encrypt and store API keys in KWallet"
+            QQC2.ButtonGroup.group: keyStorageModeGroup
+            checked: plasmoid.configuration.keyStorageMode === 2
             onCheckedChanged: {
                 if (checked && availableWalletNames.length === 0)
                     detectWallets()
             }
         }
+        QQC2.Label {
+            visible: kwalletRadio.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: "Keys are encrypted and stored via DBus in your system KWallet. Recommended for shared or multi-user machines."
+            wrapMode: Text.Wrap
+            opacity: 0.75
+        }
 
         QQC2.ComboBox {
-            visible: useKWalletCheckbox.checked && availableWalletNames.length > 0
+            visible: kwalletModeActive && availableWalletNames.length > 0
             Kirigami.FormData.label: "Wallet name:"
             Layout.fillWidth: true
             model: availableWalletNames
@@ -1764,7 +1843,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.TextField {
-            visible: useKWalletCheckbox.checked && availableWalletNames.length === 0
+            visible: kwalletModeActive && availableWalletNames.length === 0
             Kirigami.FormData.label: "Wallet name:"
             Layout.fillWidth: true
             text: walletNameField.text
@@ -1773,7 +1852,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.Label {
-            visible: useKWalletCheckbox.checked && availableWalletNames.length > 0
+            visible: kwalletModeActive && availableWalletNames.length > 0
             Kirigami.FormData.label: "Detected wallets:"
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -1783,7 +1862,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.Label {
-            visible: useKWalletCheckbox.checked
+            visible: kwalletModeActive
             Kirigami.FormData.label: "Wallet info:"
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -1793,7 +1872,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            visible: useKWalletCheckbox.checked
+            visible: kwalletModeActive
             Kirigami.FormData.label: "Wallet actions:"
             Layout.fillWidth: true
 
@@ -1817,7 +1896,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.Button {
-            visible: useKWalletCheckbox.checked
+            visible: kwalletModeActive
             Kirigami.FormData.label: "Wallet status:"
             text: "Check wallet status"
             enabled: !keyringBusy
@@ -1829,7 +1908,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            visible: useKWalletCheckbox.checked
+            visible: kwalletModeActive
             Kirigami.FormData.label: "KWallet sync:"
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -1848,7 +1927,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.BusyIndicator {
-            visible: useKWalletCheckbox.checked && keyringBusy
+            visible: kwalletModeActive && keyringBusy
             running: visible
             Kirigami.FormData.label: "Working:"
         }
