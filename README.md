@@ -8,6 +8,16 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ### 📸 Showcase & Feature Walkthrough
 
+#### 🎥 Feature Demonstration Video
+
+See **KDE AI Chat** in action! Below is a walkthrough video showcasing the interactive provider and model switching, local offline prioritizing, chat session management, and widget customization:
+
+<video src=".github/assets/Demonstration.mp4" width="100%" controls></video>
+
+---
+
+#### 🖼️ Screenshot Gallery & Walkthrough
+
 | Screenshot | Feature & Explanation |
 | :--- | :--- |
 | ![Model Switcher & API Config](.github/assets/image.png) | **Providers & Models Dropdown**: Use any provider from our extensive list with your custom API keys, or run offline local models through local engines (Ollama, LM Studio). For persistent saving of API keys, utilize the secure native **KWallet** storage backend; alternatively, easily input or clear API keys directly as you wish! |
@@ -104,13 +114,13 @@ Every package release is built following a rigorous QA checklist. The code is au
 - **Security Protocols**: Safe DBus API key storage with input sanitization to protect user credentials.
 - **Process Robustness**: Resizing coordinates persist natively across system sessions, and long-running API tasks execute strictly off-thread to ensure the Plasma desktop shell remains 100% fluid.
 
-For detailed analysis, refer to the [Technical Audit Report](file:///home/home/Programming/rachitkdeaichat/audit.md).
+For detailed analysis, refer to the [Technical Audit Report](audit.md).
 
 ---
 
 ## Build & Publishing Flow (For Developers)
 
-For developers packaging the widget from local sources, standard procedures are detailed in the [Release Operator Playbook](file:///home/home/Programming/rachitkdeaichat/FORUSER.md). Building the distribution archive requires zipping the QML package structure:
+For developers packaging the widget from local sources, standard procedures are detailed in the [Release Operator Playbook](FORUSER.md). Building the distribution archive requires zipping the QML package structure:
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
@@ -136,12 +146,24 @@ We are planning multiple active development rounds to implement new requested fe
 
 ---
 
+## 🔒 Secure KWallet Storage & 🛠️ OpenCode Developer Bridge
+
+### Secure KWallet Integration
+KDE AI Chat integrates natively with your desktop's secure credentials subsystem, **KWallet**, using secure DBus transactions. When active, it safeguards all your sensitive API keys, preventing them from being stored in plain text configuration files.
+- For complete setup instructions and troubleshooting, refer to the [KWallet Secure Storage Guide](user_manual.md#3-secure-storage-kwallet-vs-plain-configs).
+
+### OpenCode Developer Bridge
+Turn your chat interface into an interactive code execution workspace with the native **OpenCode Bridge**. Enable it with a single toggle in the bottom toolbar to establish a local connection with your OpenCode execution environment, rendering structured decision options, code previews, and token-based diagnostics directly in the chat bubbles.
+- For instructions on running and managing sessions, see the [OpenCode Developer Bridge Guide](user_manual.md#5-opencode-developer-bridge-guide).
+
+---
+
 ## Documentation Guides
 
-- [User Operations Manual & FAQ](file:///home/home/Programming/rachitkdeaichat/user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
-- [End-User Setup & API Keys Guide](file:///home/home/Programming/rachitkdeaichat/SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all 13 providers.
-- [Technical Audit & Code Quality Report](file:///home/home/Programming/rachitkdeaichat/audit.md) — Detailed results of the May 2026 quality assurance audit.
-- [Release Operator Playbook](file:///home/home/Programming/rachitkdeaichat/FORUSER.md) — Bumping versioning, tag management, and release steps.
+- [User Operations Manual & FAQ](user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
+- [End-User Setup & API Keys Guide](SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all 13 providers.
+- [Technical Audit & Code Quality Report](audit.md) — Detailed results of the May 2026 quality assurance audit.
+- [Release Operator Playbook](FORUSER.md) — Bumping versioning, tag management, and release steps.
 
 ---
 
