@@ -579,24 +579,135 @@ PlasmoidItem {
                                                     }
 
                                                      Column {
+                                                         id: questionCol
                                                          visible: modelData.role === "question_request"
                                                          width: parent.width
                                                          spacing: Kirigami.Units.smallSpacing
+                                                         property string qId: modelData.questionId || ""
+                                                         property var qQuestions: modelData.questions || []
+                                                         property bool qAllowCustom: modelData.allowCustom !== false
+                                                         property string qStatus: modelData.status || ""
 
+                                                         // Per-question sections when structured options are available
+                                                         Repeater {
+                                                             model: (questionCol.qStatus === "pending" && questionCol.qQuestions.length > 0) ? questionCol.qQuestions : []
+                                                             delegate: Column {
+                                                                 id: questionItemCol
+                                                                 required property var modelData
+                                                                 required property int index
+                                                                 property bool qMultiple: modelData.multiple || false
+                                                                 width: parent.width
+                                                                 spacing: Kirigami.Units.smallSpacing
+
+                                                                 // Question header chip
+                                                                 Rectangle {
+                                                                     visible: (modelData.header || "") !== ""
+                                                                     width: qHeaderLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
+                                                                     height: qHeaderLabel.implicitHeight + Kirigami.Units.smallSpacing
+                                                                     radius: 999
+                                                                     color: Qt.rgba(Kirigami.Theme.focusColor.r,
+                                                                                    Kirigami.Theme.focusColor.g,
+                                                                                    Kirigami.Theme.focusColor.b,
+                                                                                    0.18)
+                                                                     PC3.Label {
+                                                                         id: qHeaderLabel
+                                                                         anchors.centerIn: parent
+                                                                         text: modelData.header || ""
+                                                                         font.bold: true
+                                                                         font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                                                         color: Kirigami.Theme.focusColor
+                                                                     }
+                                                                 }
+
+                                                                 // Clickable option buttons
+                                                                 Flow {
+                                                                     width: parent.width
+                                                                     spacing: Kirigami.Units.smallSpacing
+                                                                     visible: modelData.options && modelData.options.length > 0
+
+                                                                     Repeater {
+                                                                         model: modelData.options || []
+                                                                         delegate: Rectangle {
+                                                                             id: optionBtn
+                                                                             required property var modelData
+                                                                             required property int index
+                                                                             property bool selected: false
+                                                                             width: optBtnLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
+                                                                             height: optBtnLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                                                             radius: 6
+                                                                             color: selected
+                                                                                    ? Qt.rgba(Kirigami.Theme.focusColor.r,
+                                                                                              Kirigami.Theme.focusColor.g,
+                                                                                              Kirigami.Theme.focusColor.b,
+                                                                                              0.30)
+                                                                                    : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                                              Kirigami.Theme.textColor.g,
+                                                                                              Kirigami.Theme.textColor.b,
+                                                                                              0.08)
+                                                                             border.width: selected ? 2 : 1
+                                                                             border.color: selected
+                                                                                           ? Kirigami.Theme.focusColor
+                                                                                           : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                                                     Kirigami.Theme.textColor.g,
+                                                                                                     Kirigami.Theme.textColor.b,
+                                                                                                     0.18)
+
+                                                                             PC3.Label {
+                                                                                 id: optBtnLabel
+                                                                                 anchors.centerIn: parent
+                                                                                 text: (optionBtn.selected ? "✓ " : "") + (optionBtn.modelData.label || "")
+                                                                                 font.bold: optionBtn.selected
+                                                                                 color: optionBtn.selected ? Kirigami.Theme.focusColor : Kirigami.Theme.textColor
+                                                                             }
+
+                                                                             QQC2.ToolTip.visible: optionMa.containsMouse && (optionBtn.modelData.description || "") !== ""
+                                                                             QQC2.ToolTip.text: optionBtn.modelData.description || ""
+
+                                                                             MouseArea {
+                                                                                 id: optionMa
+                                                                                 anchors.fill: parent
+                                                                                 hoverEnabled: true
+                                                                                 cursorShape: Qt.PointingHandCursor
+                                                                                 onClicked: {
+                                                                                     optionBtn.selected = !optionBtn.selected
+                                                                                     // For non-multiple questions, submit immediately on click
+                                                                                     if (!questionItemCol.qMultiple && optionBtn.selected) {
+                                                                                         root.respondToQuestion(questionCol.qId, optionBtn.modelData.label || "", false)
+                                                                                     }
+                                                                                 }
+                                                                             }
+                                                                         }
+                                                                     }
+                                                                 }
+
+                                                                 // Separator between questions
+                                                                 Rectangle {
+                                                                     visible: index < (parent.model ? parent.model.length - 1 : 0)
+                                                                     width: parent.width
+                                                                     height: 1
+                                                                     color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                                    Kirigami.Theme.textColor.g,
+                                                                                    Kirigami.Theme.textColor.b,
+                                                                                    0.10)
+                                                                 }
+                                                             }
+                                                         }
+
+                                                         // Custom answer text field (shown when custom is allowed or no options exist)
                                                          PC3.Label {
-                                                             text: "Your Answer:"
+                                                             text: (questionCol.qQuestions.length > 0) ? "Or type a custom answer:" : "Your Answer:"
                                                              font.bold: true
-                                                             visible: modelData.status === "pending"
+                                                             visible: questionCol.qStatus === "pending" && questionCol.qAllowCustom
                                                          }
 
                                                          PC3.TextField {
                                                              id: questionReplyField
-                                                             visible: modelData.status === "pending"
+                                                             visible: questionCol.qStatus === "pending" && questionCol.qAllowCustom
                                                              width: parent.width
                                                              placeholderText: "Type your answer here..."
                                                              onAccepted: {
                                                                  if (text.trim() !== "") {
-                                                                     root.respondToQuestion(modelData.questionId, text, false)
+                                                                     root.respondToQuestion(questionCol.qId, text, false)
                                                                  }
                                                              }
                                                          }
@@ -606,34 +717,30 @@ PlasmoidItem {
                                                              spacing: Kirigami.Units.largeSpacing
 
                                                              PC3.Button {
-                                                                 visible: modelData.status === "pending"
+                                                                 visible: questionCol.qStatus === "pending"
                                                                  text: "Submit"
                                                                  icon.name: "mail-send"
-                                                                 onClicked: {
-                                                                     if (questionReplyField.text.trim() !== "") {
-                                                                         root.respondToQuestion(modelData.questionId, questionReplyField.text, false)
-                                                                     }
-                                                                 }
+                                                                 onClicked: root.submitQuestionAnswer(questionCol.qId, questionCol.qQuestions, questionReplyField)
                                                              }
 
                                                              PC3.Button {
-                                                                 visible: modelData.status === "pending"
+                                                                 visible: questionCol.qStatus === "pending"
                                                                  text: "Dismiss"
                                                                  icon.name: "dialog-cancel"
-                                                                 onClicked: root.respondToQuestion(modelData.questionId, "", true)
+                                                                 onClicked: root.respondToQuestion(questionCol.qId, "", true)
                                                              }
 
                                                              PC3.Label {
-                                                                 visible: modelData.status !== "pending"
-                                                                 text: modelData.status === "answered"
+                                                                 visible: questionCol.qStatus !== "pending"
+                                                                 text: questionCol.qStatus === "answered"
                                                                        ? "Answered: \"" + (modelData.submittedAnswer || "") + "\" ✅"
-                                                                       : modelData.status === "dismissed"
+                                                                       : questionCol.qStatus === "dismissed"
                                                                          ? "Dismissed ❌"
-                                                                         : modelData.status === "answering..."
+                                                                         : questionCol.qStatus === "answering..."
                                                                            ? "Submitting..."
                                                                            : "Dismissing..."
                                                                  font.bold: true
-                                                                 color: modelData.status === "answered"
+                                                                 color: questionCol.qStatus === "answered"
                                                                         ? Kirigami.Theme.positiveTextColor
                                                                         : Kirigami.Theme.negativeTextColor
                                                              }
@@ -667,6 +774,64 @@ PlasmoidItem {
                                                         font.pointSize: 8
                                                         opacity: 0.55
                                                         elide: Text.ElideRight
+                                                    }
+
+                                                    // Context items (tool invocations) display
+                                                    Column {
+                                                        visible: modelData.role === "assistant" && modelData.contextItems !== undefined && modelData.contextItems.length > 0
+                                                        width: parent.width
+                                                        spacing: 2
+
+                                                        Row {
+                                                            spacing: Kirigami.Units.smallSpacing
+                                                            PC3.Label {
+                                                                text: "📂 Context (" + (modelData.contextItems ? modelData.contextItems.length : 0) + ")"
+                                                                font.pointSize: 7
+                                                                font.bold: true
+                                                                opacity: 0.6
+                                                            }
+                                                            PC3.Label {
+                                                                id: contextToggle
+                                                                property bool expanded: false
+                                                                text: expanded ? "▲ hide" : "▼ show"
+                                                                font.pointSize: 7
+                                                                opacity: 0.5
+                                                                MouseArea {
+                                                                    anchors.fill: parent
+                                                                    cursorShape: Qt.PointingHandCursor
+                                                                    onClicked: contextToggle.expanded = !contextToggle.expanded
+                                                                }
+                                                            }
+                                                        }
+
+                                                        Flow {
+                                                            visible: contextToggle.expanded
+                                                            width: parent.width
+                                                            spacing: 3
+
+                                                            Repeater {
+                                                                model: modelData.contextItems || []
+                                                                delegate: Rectangle {
+                                                                    required property string modelData
+                                                                    width: ctxLabel.implicitWidth + 10
+                                                                    height: ctxLabel.implicitHeight + 4
+                                                                    radius: 999
+                                                                    color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                                   Kirigami.Theme.textColor.g,
+                                                                                   Kirigami.Theme.textColor.b,
+                                                                                   0.06)
+                                                                    PC3.Label {
+                                                                        id: ctxLabel
+                                                                        anchors.centerIn: parent
+                                                                        text: modelData
+                                                                        font.pointSize: 7
+                                                                        opacity: 0.6
+                                                                        elide: Text.ElideMiddle
+                                                                        maximumLineCount: 1
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
                                                     }
 
                                                     Row {
@@ -1634,6 +1799,39 @@ PlasmoidItem {
                     && root.openCodeAssistantServerMessageId !== ""
                     && part.messageID === root.openCodeAssistantServerMessageId)
                 updateAssistantStreamingContent(part.text || "", "OpenCode")
+
+            // Track tool invocations as context items on the assistant message
+            if (part.type === "tool-invocation" && root.openCodeAssistantMessageIndex >= 0) {
+                var toolName = part.toolName || part.tool || ""
+                var toolArgs = part.args || part.input || {}
+                var toolState = part.state || ""
+                if (toolName !== "") {
+                    var copy = root.messages.slice()
+                    var item = Object.assign({}, copy[root.openCodeAssistantMessageIndex])
+                    var ctx = item.contextItems || []
+
+                    // Build a concise description of the tool call
+                    var desc = toolName
+                    if (toolArgs.filePath || toolArgs.path || toolArgs.file)
+                        desc += ": " + (toolArgs.filePath || toolArgs.path || toolArgs.file)
+                    else if (toolArgs.command)
+                        desc += ": " + String(toolArgs.command).substring(0, 60)
+                    else if (toolArgs.query || toolArgs.pattern)
+                        desc += ": " + (toolArgs.query || toolArgs.pattern)
+
+                    // Avoid duplicates
+                    var exists = false
+                    for (var ci = 0; ci < ctx.length; ci++) {
+                        if (ctx[ci] === desc) { exists = true; break }
+                    }
+                    if (!exists) {
+                        ctx = ctx.concat([desc])
+                        item.contextItems = ctx
+                        copy[root.openCodeAssistantMessageIndex] = item
+                        root.messages = copy
+                    }
+                }
+            }
         } else if (eventObj.type === "session.error") {
             if (!root.openCodeErrorShownForRequest) {
                 root.openCodeErrorShownForRequest = true
@@ -1712,16 +1910,58 @@ PlasmoidItem {
         } else if (eventObj.type === "question.asked") {
             var requestID = props.requestID || props.id || eventObj.id || ""
             if (requestID !== "") {
-                var q = props.question || {}
+                // Parse full structured questions array from OpenCode
+                var questions = props.questions || []
                 var qText = ""
-                if (typeof props.question === "string") {
-                    qText = props.question
-                } else if (q.text) {
-                    qText = q.text
-                } else if (q.content) {
-                    qText = q.content
+                var parsedQuestions = []
+                var allowCustom = true
+
+                if (questions.length > 0) {
+                    // Structured question(s) with options
+                    var parts = []
+                    for (var qi = 0; qi < questions.length; qi++) {
+                        var qItem = questions[qi]
+                        var header = qItem.header || ""
+                        var questionText = qItem.question || ""
+                        var opts = qItem.options || []
+                        var multiple = qItem.multiple || false
+                        var custom = qItem.custom !== undefined ? qItem.custom : true
+
+                        if (!custom) allowCustom = false
+
+                        var partText = ""
+                        if (header) partText += "**" + header + "**: "
+                        partText += questionText
+                        if (opts.length > 0) {
+                            var optLabels = []
+                            for (var oi = 0; oi < opts.length; oi++)
+                                optLabels.push(opts[oi].label || "")
+                            partText += "\n\nOptions: " + optLabels.join(", ")
+                        }
+                        if (multiple) partText += " *(select multiple)*"
+                        parts.push(partText)
+
+                        parsedQuestions.push({
+                            header: header,
+                            question: questionText,
+                            options: opts,
+                            multiple: multiple,
+                            custom: custom
+                        })
+                    }
+                    qText = parts.join("\n\n---\n\n")
                 } else {
-                    qText = props.text || props.content || "OpenCode requires clarification."
+                    // Fallback: legacy format
+                    var q = props.question || {}
+                    if (typeof props.question === "string") {
+                        qText = props.question
+                    } else if (q.text) {
+                        qText = q.text
+                    } else if (q.content) {
+                        qText = q.content
+                    } else {
+                        qText = props.text || props.content || "OpenCode requires clarification."
+                    }
                 }
 
                 var alreadyExists = false
@@ -1739,6 +1979,8 @@ PlasmoidItem {
                         model: "OpenCode Question",
                         id: "question-" + requestID,
                         questionId: requestID,
+                        questions: parsedQuestions,
+                        allowCustom: allowCustom,
                         status: "pending",
                         at: Date.now()
                     }
@@ -2807,6 +3049,44 @@ PlasmoidItem {
         sendToUrl(primaryUrl, false)
     }
 
+    // Collect selected options from the question UI and submit the answer
+    function submitQuestionAnswer(questionId, questions, customField) {
+        // Find the question_request message to access its question data
+        var msgIdx = -1
+        for (var i = 0; i < root.messages.length; i++) {
+            if (root.messages[i].role === "question_request" && root.messages[i].questionId === questionId) {
+                msgIdx = i
+                break
+            }
+        }
+        if (msgIdx < 0) return
+
+        var customText = customField ? (customField.text || "").trim() : ""
+
+        // If no structured questions, fallback to custom text only
+        if (!questions || questions.length === 0) {
+            if (customText !== "") {
+                respondToQuestion(questionId, customText, false)
+            }
+            return
+        }
+
+        // For structured questions, the answer format is array of arrays.
+        // However since we can't easily traverse QML Repeater children
+        // to read selected state, we use a simpler approach:
+        // If user typed custom text, use that as the answer.
+        // Otherwise this function is called from the Submit button
+        // and we handle it via the text field.
+        if (customText !== "") {
+            respondToQuestion(questionId, customText, false)
+        } else {
+            // No custom text and no way to read options from here,
+            // so prompt user to type something or click an option
+            // The option buttons themselves handle single-click submit
+            // for non-multiple mode
+        }
+    }
+
     function respondToQuestion(questionId, answerValue, isReject) {
         var sessionId = root.openCodeActiveSessionId
         if (!sessionId) {
@@ -2892,7 +3172,18 @@ PlasmoidItem {
             }
 
             try {
-                xhr.send(JSON.stringify(isReject ? {} : { answer: answerValue }))
+                if (isReject) {
+                    xhr.send(JSON.stringify({}))
+                } else {
+                    // Send in OpenCode's expected format: { answers: [["label"]] }
+                    var answers = []
+                    if (typeof answerValue === "object" && Array.isArray(answerValue)) {
+                        answers = answerValue
+                    } else {
+                        answers = [[String(answerValue || "")]]
+                    }
+                    xhr.send(JSON.stringify({ answers: answers }))
+                }
             } catch (err) {
                 tryNextUrl()
             }

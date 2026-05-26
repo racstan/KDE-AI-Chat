@@ -8,6 +8,16 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ### 📸 Showcase & Feature Walkthrough
 
+#### 🎥 Feature Demonstration Video
+
+See **KDE AI Chat** in action! Below is a walkthrough video showcasing the interactive provider and model switching, local offline prioritizing, chat session management, and widget customization:
+
+<video src=".github/2026-05-26%2018-08-29.mp4" width="100%" controls></video>
+
+---
+
+#### 🖼️ Screenshot Gallery & Walkthrough
+
 | Screenshot | Feature & Explanation |
 | :--- | :--- |
 | ![Model Switcher & API Config](.github/assets/image.png) | **Providers & Models Dropdown**: Use any provider from our extensive list with your custom API keys, or run offline local models through local engines (Ollama, LM Studio). For persistent saving of API keys, utilize the secure native **KWallet** storage backend; alternatively, easily input or clear API keys directly as you wish! |
