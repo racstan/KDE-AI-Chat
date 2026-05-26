@@ -81,7 +81,7 @@ Inside the **Settings** panel, you will find a checkbox labeled **"Use KWallet S
   
 * **Checkbox Disabled (Direct Config Mode)**:
   - Disables secure KWallet interactions entirely.
-  - Keys are stored inside standard, human-readable local config files (`~/.config/kaichatrc` / `~/.config/kdeaichatrc`).
+  - Keys are stored inside standard, human-readable local config files (`~/.config/kdeaichatrc`).
   - Perfect for manual editing, quick backups, or on headless systems where wallet services are inactive.
 
 ---
@@ -149,7 +149,7 @@ Conversation threads are tracked in the persistent sidebar.
 **A**: Ensure that your Plasma global desktop theme doesn't enforce strict application style sheets that override widget layouts. If you want the widget to ignore system-wide rules, go to settings and change the **Theme Mode** dropdown from "Follow System" to "Strict Dark" or "Strict Light".
 
 ### Q: Where are the plain config keys saved when KWallet is turned off?
-**A**: Plain keys are saved inside standard KDE configuration pathways. On most Linux distributions, this is located at `~/.config/kaichatrc`.
+**A**: Plain keys are saved inside standard KDE configuration pathways. On most Linux distributions, this is located at `~/.config/kdeaichatrc`.
 
 ### Q: How do I report bugs or suggest enhancements?
 **A**: KDE AI Chat is open-source! We welcome the community to collaborate, play, and contribute. Please visit our homepage at [https://github.com/racstan/KDE-AI-Chat](https://github.com/racstan/KDE-AI-Chat) to open an issue or fork the project to submit pull requests.
