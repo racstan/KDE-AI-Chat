@@ -1923,7 +1923,7 @@ KCM.SimpleKCM {
             QQC2.Button {
                 text: "Open config file"
                 onClicked: {
-                    utilityDs.connectSource("xdg-open ~/.config/kdeaichatrc #open-config")
+                    utilityDs.connectSource("mkdir -p ~/.config && touch ~/.config/kdeaichatrc && xdg-open ~/.config/kdeaichatrc #open-config")
                 }
             }
         }
