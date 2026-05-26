@@ -1020,8 +1020,8 @@ KCM.SimpleKCM {
             "huggingFaceApiKey": huggingFaceApiKeyField.text,
             "xaiApiKey": xaiApiKeyField.text
         }
-        var jsonStr = JSON.stringify(payload).replace(/'/g, "'\\''")
-        var cmd = "python3 -c \"import configparser, json; data = json.loads('" + jsonStr + "'); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config"
+        var b64Str = Qt.btoa(JSON.stringify(payload))
+        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config"
         utilityDs.connectSource(cmd)
     }
 
