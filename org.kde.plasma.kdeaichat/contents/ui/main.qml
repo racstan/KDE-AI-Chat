@@ -59,6 +59,26 @@ PlasmoidItem {
     }
 
 
+    function focusInput() {
+        Qt.callLater(function() {
+            if (typeof msgInput !== "undefined" && msgInput) {
+                msgInput.forceActiveFocus()
+            }
+        })
+    }
+
+    onExpandedChanged: {
+        if (expanded) {
+            root.focusInput()
+        }
+    }
+
+    onHistoryOnlyModeChanged: {
+        if (!historyOnlyMode) {
+            root.focusInput()
+        }
+    }
+
     Component.onCompleted: {
         loadSessions()
         loadKWalletKeysAtStartup()
@@ -89,6 +109,16 @@ PlasmoidItem {
         Layout.minimumHeight: 620
         Layout.preferredWidth: implicitWidth
         Layout.preferredHeight: implicitHeight
+
+        Component.onCompleted: {
+            root.focusInput()
+        }
+
+        onVisibleChanged: {
+            if (visible) {
+                root.focusInput()
+            }
+        }
 
         Kirigami.Theme.inherit: false
         Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
@@ -1103,6 +1133,7 @@ PlasmoidItem {
                                 clip: true
                                 enabled: !root.loading
                                 placeholderText: "Type message (Enter sends, Shift+Enter newline)"
+                                focus: true
 
                                 // Sync to root property so root-scope functions can read/clear it
                                 onTextChanged: root.chatInputText = text
@@ -1449,6 +1480,7 @@ PlasmoidItem {
             root.renamingCurrentChat = false
             root.currentChatRenameDraft = ""
             root.historyOnlyMode = false
+            root.focusInput()
         }
         persistSessions()
     }
@@ -1535,6 +1567,7 @@ PlasmoidItem {
         root.currentChatRenameDraft = ""
         persistSessions()
         scrollToBottom()
+        root.focusInput()
     }
 
     function renameCurrentSession(newTitle) {
