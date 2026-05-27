@@ -63,6 +63,9 @@ PlasmoidItem {
         Qt.callLater(function() {
             if (typeof msgInput !== "undefined" && msgInput) {
                 msgInput.forceActiveFocus()
+                if (typeof msgInput.focusTimerRef !== "undefined" && msgInput.focusTimerRef) {
+                    msgInput.focusTimerRef.start()
+                }
             }
         })
     }
@@ -1140,12 +1143,41 @@ PlasmoidItem {
 
                                 Keys.onPressed: function(event) {
                                     if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-                                            && !(event.modifiers & Qt.ShiftModifier)) {
+                                             && !(event.modifiers & Qt.ShiftModifier)) {
                                         event.accepted = true
                                         root.sendMessage()
                                     } else if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
                                         root.checkClipboardForAttachments()
                                         event.accepted = false
+                                    }
+                                }
+
+                                // Dual-stage focus mechanism for Plasma 6
+                                property alias focusTimerRef: focusTimer
+
+                                Timer {
+                                    id: focusTimer
+                                    interval: 120
+                                    repeat: false
+                                    onTriggered: {
+                                        if (msgInput.enabled && msgInput.visible) {
+                                            msgInput.forceActiveFocus()
+                                        }
+                                    }
+                                }
+
+                                Connections {
+                                    target: root
+                                    function onExpandedChanged() {
+                                        if (root.expanded) {
+                                            focusTimer.start()
+                                        }
+                                    }
+                                }
+
+                                Component.onCompleted: {
+                                    if (root.expanded) {
+                                        focusTimer.start()
                                     }
                                 }
                             }
