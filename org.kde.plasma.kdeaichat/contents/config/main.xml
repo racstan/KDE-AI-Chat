@@ -171,6 +171,16 @@
       <default>llama3.2</default>
     </entry>
 
+    <entry name="litellmBaseUrl" type="String">
+      <default>http://localhost:4000/v1</default>
+    </entry>
+    <entry name="litellmApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="litellmModel" type="String">
+      <default></default>
+    </entry>
+
     <entry name="useOpenCode" type="Bool">
       <default>false</default>
     </entry>

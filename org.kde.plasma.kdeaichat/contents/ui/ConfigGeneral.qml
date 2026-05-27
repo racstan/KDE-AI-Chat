@@ -118,6 +118,10 @@ KCM.SimpleKCM {
     property alias cfg_ollamaBaseUrl: ollamaBaseUrlField.text
     property alias cfg_ollamaModel: ollamaModelField.text
 
+    property alias cfg_litellmBaseUrl: litellmBaseUrlField.text
+    property alias key_litellmApiKey: litellmApiKeyField.text
+    property alias cfg_litellmModel: litellmModelField.text
+
     property alias cfg_useOpenCode: openCodeToggle.checked
     property alias cfg_playNotificationSound: playSoundToggle.checked
     property alias cfg_openCodeUrl: openCodeUrlField.text
@@ -307,7 +311,7 @@ KCM.SimpleKCM {
             + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; "
             + "hasFolder=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); "
             + "if [ \"$hasFolder\" != true ]; then qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; "
-            + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai; do "
+            + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm; do "
             + "key=\"kai-chat-${target}-api-key\"; "
             + "hasEntry=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); "
             + "if [ \"$hasEntry\" = true ]; then secret=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; "
@@ -337,7 +341,7 @@ KCM.SimpleKCM {
     }
 
     function providerNeedsApiKey(providerId) {
-        return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama"
+        return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama" && providerId !== "litellm"
     }
 
     function providerHasConfiguredKey(providerId) {
@@ -365,6 +369,8 @@ KCM.SimpleKCM {
             return (huggingFaceApiKeyField.text || "").trim() !== ""
         if (providerId === "xai")
             return (xaiApiKeyField.text || "").trim() !== ""
+        if (providerId === "litellm")
+            return (litellmApiKeyField.text || "").trim() !== ""
         if (providerId === "openai")
             return (apiKeyField.text || "").trim() !== ""
         return true
@@ -522,6 +528,15 @@ KCM.SimpleKCM {
                 baseUrl: ollamaBaseUrlField.text,
                 apiKey: "",
                 modelField: ollamaModelField
+            }
+        }
+        if (p === "litellm") {
+            return {
+                id: p,
+                type: "openai-compat",
+                baseUrl: litellmBaseUrlField.text,
+                apiKey: litellmApiKeyField.text,
+                modelField: litellmModelField
             }
         }
         return {
@@ -924,6 +939,8 @@ KCM.SimpleKCM {
             huggingFaceApiKeyField.text = normalized
         else if (targetId === "xai")
             xaiApiKeyField.text = normalized
+        else if (targetId === "litellm")
+            litellmApiKeyField.text = normalized
             
         var after = apiKeyForTarget(targetId)
         if (before !== after && providerBox.currentValue === targetId) {
@@ -932,7 +949,7 @@ KCM.SimpleKCM {
     }
 
     function keyTargetIds() {
-        return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai"]
+        return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm"]
     }
 
     function apiKeyForTarget(targetId) {
@@ -949,6 +966,7 @@ KCM.SimpleKCM {
         if (targetId === "nvidia") return nvidiaApiKeyField.text
         if (targetId === "huggingface") return huggingFaceApiKeyField.text
         if (targetId === "xai") return xaiApiKeyField.text
+        if (targetId === "litellm") return litellmApiKeyField.text
         return ""
     }
 
@@ -987,6 +1005,7 @@ KCM.SimpleKCM {
         nvidiaApiKeyField.text = ""
         huggingFaceApiKeyField.text = ""
         xaiApiKeyField.text = ""
+        litellmApiKeyField.text = ""
     }
 
     function loadKeysFromPlainConfig() {
@@ -1007,6 +1026,7 @@ KCM.SimpleKCM {
         nvidiaApiKeyField.text = keys["nvidiaApiKey"] || ""
         huggingFaceApiKeyField.text = keys["huggingFaceApiKey"] || ""
         xaiApiKeyField.text = keys["xaiApiKey"] || ""
+        litellmApiKeyField.text = keys["litellmApiKey"] || ""
     }
 
     function writeKeysToDiskAndOpen() {
@@ -1023,7 +1043,8 @@ KCM.SimpleKCM {
             "cloudflareApiKey": cloudflareApiKeyField.text,
             "nvidiaApiKey": nvidiaApiKeyField.text,
             "huggingFaceApiKey": huggingFaceApiKeyField.text,
-            "xaiApiKey": xaiApiKeyField.text
+            "xaiApiKey": xaiApiKeyField.text,
+            "litellmApiKey": litellmApiKeyField.text
         }
         var b64Str = Qt.btoa(JSON.stringify(payload))
         var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config"
@@ -1044,7 +1065,8 @@ KCM.SimpleKCM {
             "cloudflareApiKey": cloudflareApiKeyField.text,
             "nvidiaApiKey": nvidiaApiKeyField.text,
             "huggingFaceApiKey": huggingFaceApiKeyField.text,
-            "xaiApiKey": xaiApiKeyField.text
+            "xaiApiKey": xaiApiKeyField.text,
+            "litellmApiKey": litellmApiKeyField.text
         }
         var b64Str = Qt.btoa(JSON.stringify(payload))
         var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\""
@@ -1063,10 +1085,11 @@ KCM.SimpleKCM {
         plasmoid.configuration.nvidiaApiKey = nvidiaApiKeyField.text
         plasmoid.configuration.huggingFaceApiKey = huggingFaceApiKeyField.text
         plasmoid.configuration.xaiApiKey = xaiApiKeyField.text
+        plasmoid.configuration.litellmApiKey = litellmApiKeyField.text
     }
 
     function clearKeysFromDisk() {
-        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\""
+        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\""
         utilityDs.connectSource(cmd + " #plainconfig-clear")
 
         plasmoid.configuration.apiKey = ""
@@ -1082,6 +1105,7 @@ KCM.SimpleKCM {
         plasmoid.configuration.nvidiaApiKey = ""
         plasmoid.configuration.huggingFaceApiKey = ""
         plasmoid.configuration.xaiApiKey = ""
+        plasmoid.configuration.litellmApiKey = ""
     }
 
     function saveGeneralSettingsOnly() {
@@ -1136,6 +1160,9 @@ KCM.SimpleKCM {
 
         plasmoid.configuration.ollamaBaseUrl = ollamaBaseUrlField.text
         plasmoid.configuration.ollamaModel = ollamaModelField.text
+
+        plasmoid.configuration.litellmBaseUrl = litellmBaseUrlField.text
+        plasmoid.configuration.litellmModel = litellmModelField.text
 
         plasmoid.configuration.useOpenCode = openCodeToggle.checked
         plasmoid.configuration.playNotificationSound = playSoundToggle.checked
@@ -1222,6 +1249,13 @@ KCM.SimpleKCM {
 
         localBaseUrlField.text = "http://localhost:11434/v1"
         localModelField.text = "llama3.2"
+
+        ollamaBaseUrlField.text = "http://localhost:11434/v1"
+        ollamaModelField.text = "llama3.2"
+
+        litellmBaseUrlField.text = "http://localhost:4000/v1"
+        litellmApiKeyField.text = ""
+        litellmModelField.text = ""
 
         openCodeToggle.checked = false
         openCodeUrlField.text = "http://127.0.0.1:4096/v1"
@@ -1483,7 +1517,8 @@ KCM.SimpleKCM {
                 { value: "xai", text: "xAI (Grok)" },
                 { value: "lmstudio", text: "LM Studio" },
                 { value: "local", text: "Local (OpenAI-compatible)" },
-                { value: "ollama", text: "Ollama" }
+                { value: "ollama", text: "Ollama" },
+                { value: "litellm", text: "LiteLLM Proxy" }
             ]
             onActivated: {
                 providerModelCandidates = []
@@ -1921,6 +1956,17 @@ KCM.SimpleKCM {
 
         QQC2.TextField { id: ollamaBaseUrlField; Kirigami.FormData.label: "Ollama URL:"; visible: page.providerEnabled("ollama"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "http://localhost:11434/v1" }
         QQC2.TextField { id: ollamaModelField; Kirigami.FormData.label: "Ollama model:"; visible: page.providerModelVisible("ollama") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "llama3.2" }
+
+        QQC2.TextField { id: litellmBaseUrlField; Kirigami.FormData.label: "LiteLLM URL:"; visible: page.providerEnabled("litellm"); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "http://localhost:4000/v1" }
+        RowLayout {
+            Kirigami.FormData.label: "LiteLLM key:"; visible: page.providerEnabled("litellm")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            QQC2.TextField { id: litellmApiKeyField; Layout.fillWidth: true; onEditingFinished: page.refreshIfActiveProvider("litellm"); echoMode: litellmKeyShowHide.checked ? TextInput.Normal : TextInput.Password }
+            QQC2.Button { id: litellmKeyShowHide; checkable: true; text: checked ? "Hide" : "Show" }
+        }
+        QQC2.Label { visible: page.providerNeedsKeyHintVisible("litellm"); Kirigami.FormData.label: "LiteLLM model:"; Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; text: "Enter the LiteLLM API key first if required, then refresh models or type a model name."; wrapMode: Text.Wrap; opacity: 0.75 }
+        QQC2.TextField { id: litellmModelField; Kirigami.FormData.label: "LiteLLM model:"; visible: page.providerModelVisible("litellm") && (false); Layout.fillWidth: true; Layout.maximumWidth: formLayout.fieldMaxWidth; placeholderText: "gpt-4o-mini" }
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true

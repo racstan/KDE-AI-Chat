@@ -2503,6 +2503,7 @@ PlasmoidItem {
         if (providerId === "nvidia") return "NVIDIA NIM"
         if (providerId === "huggingface") return "Hugging Face"
         if (providerId === "xai") return "xAI"
+        if (providerId === "litellm") return "LiteLLM Proxy"
         if (providerId === "lmstudio") return "LM Studio"
         if (providerId === "local") return "Local"
         return providerId || "Selected provider"
@@ -2598,6 +2599,16 @@ PlasmoidItem {
                 baseUrl: plasmoid.configuration.ollamaBaseUrl || "http://localhost:11434/v1",
                 apiKey: "",
                 model: plasmoid.configuration.ollamaModel || "",
+                headers: null,
+                allowEmptyKey: true
+            }
+        }
+        if (provider === "litellm") {
+            return {
+                type: "openai-compat",
+                baseUrl: plasmoid.configuration.litellmBaseUrl || "http://localhost:4000/v1",
+                apiKey: (plasmoid.configuration.litellmApiKey || "").trim(),
+                model: plasmoid.configuration.litellmModel || "",
                 headers: null,
                 allowEmptyKey: true
             }
@@ -3643,6 +3654,7 @@ PlasmoidItem {
         else if (targetId === "nvidia") plasmoid.configuration.nvidiaApiKey = secretValue
         else if (targetId === "huggingface") plasmoid.configuration.huggingFaceApiKey = secretValue
         else if (targetId === "xai") plasmoid.configuration.xaiApiKey = secretValue
+        else if (targetId === "litellm") plasmoid.configuration.litellmApiKey = secretValue
     }
 
     function walletBulkReadCommand(walletName) {
@@ -3659,7 +3671,7 @@ PlasmoidItem {
             + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; "
             + "hasFolder=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); "
             + "if [ \"$hasFolder\" != true ]; then qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; "
-            + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai; do "
+            + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm; do "
             + "key=\"kai-chat-${target}-api-key\"; "
             + "hasEntry=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); "
             + "if [ \"$hasEntry\" = true ]; then secret=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; "
