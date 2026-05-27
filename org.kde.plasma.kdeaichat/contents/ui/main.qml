@@ -59,7 +59,10 @@ PlasmoidItem {
     }
 
 
-    Component.onCompleted: loadSessions()
+    Component.onCompleted: {
+        loadSessions()
+        loadKWalletKeysAtStartup()
+    }
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom)
@@ -248,6 +251,29 @@ PlasmoidItem {
                         root.editingDraft = ""
                         root.clearCurrentOpenCodeSessionIfNeeded()
                         root.saveCurrentSessionState(true)
+                    }
+                }
+
+                PC3.ToolButton {
+                    visible: !root.historyOnlyMode && root.messages.length > 0
+                    icon.name: "document-export"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: "Export chat session"
+                    enabled: !root.loading
+                    onClicked: {
+                        var cleanTitle = (root.currentSessionTitle || "New Chat")
+                            .replace(/[\/\?<>\\:\*\|":\s]+/g, "_")
+                        var now = new Date()
+                        var year = now.getFullYear()
+                        var month = String(now.getMonth() + 1).padStart(2, "0")
+                        var day = String(now.getDate()).padStart(2, "0")
+                        var hour = String(now.getHours()).padStart(2, "0")
+                        var min = String(now.getMinutes()).padStart(2, "0")
+                        var sec = String(now.getSeconds()).padStart(2, "0")
+                        var timestamp = year + "-" + month + "-" + day + "_" + hour + "-" + min + "-" + sec
+                        
+                        exportFileDialog.currentFile = "file:///home/home/Documents/" + cleanTitle + "_" + timestamp + ".md"
+                        exportFileDialog.open()
                     }
                 }
 
@@ -3543,6 +3569,23 @@ PlasmoidItem {
         }
     }
 
+    FileDialog {
+        id: exportFileDialog
+        title: "Export Chat Session"
+        fileMode: FileDialog.SaveFile
+        nameFilters: [
+            "Markdown files (*.md)",
+            "Plain text files (*.txt)"
+        ]
+        onAccepted: {
+            var path = selectedFile.toString()
+            if (path.indexOf("file://") === 0) {
+                path = decodeURIComponent(path.slice(7))
+            }
+            root.performExportChat(path)
+        }
+    }
+
     // Invisible text editor acting as helper to interact with OS text clipboard (copy / paste)
     TextEdit {
         id: clipboardHelper
@@ -3559,5 +3602,161 @@ PlasmoidItem {
         clipboardHelper.text = ""
         clipboardHelper.paste()
         return clipboardHelper.text
+    }
+
+    P5Support.DataSource {
+        id: kwalletStartupDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var stdout = data["stdout"] || ""
+            if (sourceName.indexOf("kwallet-startup-load") >= 0) {
+                var lines = stdout.split(/\r?\n/)
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim()
+                    if (line.indexOf("__KAI_SECRET__:") === 0) {
+                        var rest = line.slice("__KAI_SECRET__:".length)
+                        var sep = rest.indexOf(":")
+                        if (sep > 0) {
+                            var targetId = rest.slice(0, sep)
+                            var secretValue = rest.slice(sep + 1)
+                            applyKWalletKeyToMemory(targetId, secretValue)
+                        }
+                    }
+                }
+            }
+            disconnectSource(sourceName)
+        }
+    }
+
+    function applyKWalletKeyToMemory(targetId, secretValue) {
+        if (targetId === "openai") plasmoid.configuration.apiKey = secretValue
+        else if (targetId === "anthropic") plasmoid.configuration.anthropicApiKey = secretValue
+        else if (targetId === "groq") plasmoid.configuration.groqApiKey = secretValue
+        else if (targetId === "deepseek") plasmoid.configuration.deepSeekApiKey = secretValue
+        else if (targetId === "minimax") plasmoid.configuration.miniMaxApiKey = secretValue
+        else if (targetId === "fireworks") plasmoid.configuration.fireworksApiKey = secretValue
+        else if (targetId === "google") plasmoid.configuration.googleApiKey = secretValue
+        else if (targetId === "openrouter") plasmoid.configuration.openRouterApiKey = secretValue
+        else if (targetId === "mistral") plasmoid.configuration.mistralApiKey = secretValue
+        else if (targetId === "cloudflare") plasmoid.configuration.cloudflareApiKey = secretValue
+        else if (targetId === "nvidia") plasmoid.configuration.nvidiaApiKey = secretValue
+        else if (targetId === "huggingface") plasmoid.configuration.huggingFaceApiKey = secretValue
+        else if (targetId === "xai") plasmoid.configuration.xaiApiKey = secretValue
+    }
+
+    function walletBulkReadCommand(walletName) {
+        var escapedWallet = (walletName || "").replace(/'/g, "'\\''")
+        var escapedFolder = "KaiChat"
+        var escapedAppId = "org.kde.plasma.kdeaichat"
+        return "sh -lc '"
+            + "wallet='\''" + escapedWallet + "'\''; "
+            + "folder='\''" + escapedFolder + "'\''; "
+            + "appid='\''" + escapedAppId + "'\''; "
+            + "wallets=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); "
+            + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; "
+            + "handle=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); "
+            + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; "
+            + "hasFolder=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); "
+            + "if [ \"$hasFolder\" != true ]; then qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; "
+            + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai; do "
+            + "key=\"kai-chat-${target}-api-key\"; "
+            + "hasEntry=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); "
+            + "if [ \"$hasEntry\" = true ]; then secret=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; "
+            + "done; "
+            + "qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; "
+            + "printf \"__KAI_BULK__:DONE\"'"
+    }
+
+    function loadKWalletKeysAtStartup() {
+        if (plasmoid.configuration.keyStorageMode === 2) {
+            var walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet"
+            kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load")
+        }
+    }
+
+    function performExportChat(filePath) {
+        var isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown")
+        var content = ""
+        var sessionTitle = root.currentSessionTitle || "Untitled Session"
+        var now = new Date()
+        var dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString()
+
+        if (isMarkdown) {
+            content += "# 💬 KDE AI Chat: " + sessionTitle + "\n"
+            content += "*Exported on " + dateStr + "*\n\n"
+            content += "---\n\n"
+
+            for (var i = 0; i < root.messages.length; i++) {
+                var m = root.messages[i]
+                if (m.role === "user") {
+                    content += "<div align=\"right\">\n\n"
+                    content += "### 👤 **User** (" + (m.time || "") + ")\n"
+                    content += m.content + "\n\n"
+                    content += "</div>\n\n"
+                    content += "---\n\n"
+                } else if (m.role === "assistant") {
+                    var modelName = m.model || plasmoid.configuration.model || "Assistant"
+                    content += "<div align=\"left\">\n\n"
+                    content += "### 🤖 **" + modelName + "** (" + (m.time || "") + ")\n"
+                    content += m.content + "\n\n"
+                    content += "</div>\n\n"
+                    content += "---\n\n"
+                } else if (m.role === "error") {
+                    content += "<div align=\"left\">\n\n"
+                    content += "### ❌ **System Error** (" + (m.time || "") + ")\n"
+                    content += "> " + m.content + "\n\n"
+                    content += "</div>\n\n"
+                    content += "---\n\n"
+                }
+            }
+        } else {
+            content += "==================================================\n"
+            content += "💬 KDE AI Chat: " + sessionTitle + "\n"
+            content += "Exported on: " + dateStr + "\n"
+            content += "==================================================\n\n"
+
+            var rightAlignTxt = function(text, width) {
+                if (!width) width = 80
+                var lines = text.split("\n")
+                for (var j = 0; j < lines.length; j++) {
+                    var trimmed = lines[j].trim()
+                    if (trimmed.length === 0) {
+                        lines[j] = ""
+                        continue
+                    }
+                    if (trimmed.length >= width) {
+                        lines[j] = trimmed
+                    } else {
+                        lines[j] = " ".repeat(width - trimmed.length) + trimmed
+                    }
+                }
+                return lines.join("\n")
+            }
+
+            for (var i = 0; i < root.messages.length; i++) {
+                var m = root.messages[i]
+                if (m.role === "user") {
+                    var userHeader = "👤 User (" + (m.time || "") + "):"
+                    content += " ".repeat(Math.max(0, 80 - userHeader.length)) + userHeader + "\n"
+                    content += rightAlignTxt(m.content, 80) + "\n\n"
+                    content += "--------------------------------------------------\n\n"
+                } else if (m.role === "assistant") {
+                    var modelName = m.model || plasmoid.configuration.model || "Assistant"
+                    content += "🤖 " + modelName + " (" + (m.time || "") + "):\n"
+                    content += m.content + "\n\n"
+                    content += "--------------------------------------------------\n\n"
+                } else if (m.role === "error") {
+                    content += "❌ System Error (" + (m.time || "") + "):\n"
+                    content += "ERROR: " + m.content + "\n\n"
+                    content += "--------------------------------------------------\n\n"
+                }
+            }
+        }
+
+        var b64Str = Qt.btoa(content)
+        var pythonCode = "import base64; f = open('" + filePath.replace(/'/g, "'\\''") + "', 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()"
+        var cmd = "python3 -c \"" + pythonCode + "\" && notify-send -i document-export 'KDE AI Chat' 'Chat session successfully exported to " + filePath.replace(/'/g, "'\\''") + "'"
+        fileReaderDs.connectSource(cmd + " #export-chat-save")
     }
 }

@@ -24,23 +24,28 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0
-        if (plasmoid.configuration.keyStorageMode === 2)
-            detectWallets()
-        // Session-only mode: wipe all key fields from the config at startup
-        if (plasmoid.configuration.keyStorageMode === 0)
-            clearAllApiKeyFields()
-        if (plasmoid.configuration.keyStorageMode === 1)
+        
+        // Manual API Key loading depending on storage mode
+        if (plasmoid.configuration.keyStorageMode === 1) {
             loadKeysFromPlainConfig()
+        } else if (plasmoid.configuration.keyStorageMode === 2) {
+            detectWallets()
+        } else {
+            clearAllApiKeyFields()
+        }
+
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery()
     }
     Component.onDestruction: {
-        saveAllSettingsToConfiguration()
-        if (plasmoid.configuration.keyStorageMode === 2) {
+        saveGeneralSettingsOnly()
+        if (plasmoid.configuration.keyStorageMode === 1) {
+            syncKeysToDisk()
+        } else if (plasmoid.configuration.keyStorageMode === 2) {
             kwalletStoreAll()
+            clearKeysFromDisk()
         } else if (plasmoid.configuration.keyStorageMode === 0) {
-            clearAllApiKeyFields()
-            saveAllSettingsToConfiguration()
+            clearKeysFromDisk()
         }
     }
 
@@ -54,54 +59,54 @@ KCM.SimpleKCM {
     property alias cfg_provider: providerBox.currentValue
 
     property alias cfg_baseUrl: baseUrlField.text
-    property alias cfg_apiKey: apiKeyField.text
+    property alias key_apiKey: apiKeyField.text
     property alias cfg_model: modelField.text
 
-    property alias cfg_anthropicApiKey: anthropicApiKeyField.text
+    property alias key_anthropicApiKey: anthropicApiKeyField.text
     property alias cfg_anthropicModel: anthropicModelField.text
 
     property alias cfg_groqBaseUrl: groqBaseUrlField.text
-    property alias cfg_groqApiKey: groqApiKeyField.text
+    property alias key_groqApiKey: groqApiKeyField.text
     property alias cfg_groqModel: groqModelField.text
 
     property alias cfg_deepSeekBaseUrl: deepSeekBaseUrlField.text
-    property alias cfg_deepSeekApiKey: deepSeekApiKeyField.text
+    property alias key_deepSeekApiKey: deepSeekApiKeyField.text
     property alias cfg_deepSeekModel: deepSeekModelField.text
 
     property alias cfg_miniMaxBaseUrl: miniMaxBaseUrlField.text
-    property alias cfg_miniMaxApiKey: miniMaxApiKeyField.text
+    property alias key_miniMaxApiKey: miniMaxApiKeyField.text
     property alias cfg_miniMaxModel: miniMaxModelField.text
 
     property alias cfg_fireworksBaseUrl: fireworksBaseUrlField.text
-    property alias cfg_fireworksApiKey: fireworksApiKeyField.text
+    property alias key_fireworksApiKey: fireworksApiKeyField.text
     property alias cfg_fireworksModel: fireworksModelField.text
 
     property alias cfg_googleBaseUrl: googleBaseUrlField.text
-    property alias cfg_googleApiKey: googleApiKeyField.text
+    property alias key_googleApiKey: googleApiKeyField.text
     property alias cfg_googleModel: googleModelField.text
 
     property alias cfg_openRouterBaseUrl: openRouterBaseUrlField.text
-    property alias cfg_openRouterApiKey: openRouterApiKeyField.text
+    property alias key_openRouterApiKey: openRouterApiKeyField.text
     property alias cfg_openRouterModel: openRouterModelField.text
 
     property alias cfg_mistralBaseUrl: mistralBaseUrlField.text
-    property alias cfg_mistralApiKey: mistralApiKeyField.text
+    property alias key_mistralApiKey: mistralApiKeyField.text
     property alias cfg_mistralModel: mistralModelField.text
 
     property alias cfg_cloudflareBaseUrl: cloudflareBaseUrlField.text
-    property alias cfg_cloudflareApiKey: cloudflareApiKeyField.text
+    property alias key_cloudflareApiKey: cloudflareApiKeyField.text
     property alias cfg_cloudflareModel: cloudflareModelField.text
 
     property alias cfg_nvidiaBaseUrl: nvidiaBaseUrlField.text
-    property alias cfg_nvidiaApiKey: nvidiaApiKeyField.text
+    property alias key_nvidiaApiKey: nvidiaApiKeyField.text
     property alias cfg_nvidiaModel: nvidiaModelField.text
 
     property alias cfg_huggingFaceBaseUrl: huggingFaceBaseUrlField.text
-    property alias cfg_huggingFaceApiKey: huggingFaceApiKeyField.text
+    property alias key_huggingFaceApiKey: huggingFaceApiKeyField.text
     property alias cfg_huggingFaceModel: huggingFaceModelField.text
 
     property alias cfg_xaiBaseUrl: xaiBaseUrlField.text
-    property alias cfg_xaiApiKey: xaiApiKeyField.text
+    property alias key_xaiApiKey: xaiApiKeyField.text
     property alias cfg_xaiModel: xaiModelField.text
 
     property alias cfg_lmStudioBaseUrl: lmStudioBaseUrlField.text
@@ -1025,61 +1030,102 @@ KCM.SimpleKCM {
         utilityDs.connectSource(cmd)
     }
 
-    function saveAllSettingsToConfiguration() {
+    function syncKeysToDisk() {
+        var payload = {
+            "apiKey": apiKeyField.text,
+            "anthropicApiKey": anthropicApiKeyField.text,
+            "groqApiKey": groqApiKeyField.text,
+            "deepSeekApiKey": deepSeekApiKeyField.text,
+            "miniMaxApiKey": miniMaxApiKeyField.text,
+            "fireworksApiKey": fireworksApiKeyField.text,
+            "googleApiKey": googleApiKeyField.text,
+            "openRouterApiKey": openRouterApiKeyField.text,
+            "mistralApiKey": mistralApiKeyField.text,
+            "cloudflareApiKey": cloudflareApiKeyField.text,
+            "nvidiaApiKey": nvidiaApiKeyField.text,
+            "huggingFaceApiKey": huggingFaceApiKeyField.text,
+            "xaiApiKey": xaiApiKeyField.text
+        }
+        var b64Str = Qt.btoa(JSON.stringify(payload))
+        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\""
+        utilityDs.connectSource(cmd + " #plainconfig-sync")
+
+        plasmoid.configuration.apiKey = apiKeyField.text
+        plasmoid.configuration.anthropicApiKey = anthropicApiKeyField.text
+        plasmoid.configuration.groqApiKey = groqApiKeyField.text
+        plasmoid.configuration.deepSeekApiKey = deepSeekApiKeyField.text
+        plasmoid.configuration.miniMaxApiKey = miniMaxApiKeyField.text
+        plasmoid.configuration.fireworksApiKey = fireworksApiKeyField.text
+        plasmoid.configuration.googleApiKey = googleApiKeyField.text
+        plasmoid.configuration.openRouterApiKey = openRouterApiKeyField.text
+        plasmoid.configuration.mistralApiKey = mistralApiKeyField.text
+        plasmoid.configuration.cloudflareApiKey = cloudflareApiKeyField.text
+        plasmoid.configuration.nvidiaApiKey = nvidiaApiKeyField.text
+        plasmoid.configuration.huggingFaceApiKey = huggingFaceApiKeyField.text
+        plasmoid.configuration.xaiApiKey = xaiApiKeyField.text
+    }
+
+    function clearKeysFromDisk() {
+        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\""
+        utilityDs.connectSource(cmd + " #plainconfig-clear")
+
+        plasmoid.configuration.apiKey = ""
+        plasmoid.configuration.anthropicApiKey = ""
+        plasmoid.configuration.groqApiKey = ""
+        plasmoid.configuration.deepSeekApiKey = ""
+        plasmoid.configuration.miniMaxApiKey = ""
+        plasmoid.configuration.fireworksApiKey = ""
+        plasmoid.configuration.googleApiKey = ""
+        plasmoid.configuration.openRouterApiKey = ""
+        plasmoid.configuration.mistralApiKey = ""
+        plasmoid.configuration.cloudflareApiKey = ""
+        plasmoid.configuration.nvidiaApiKey = ""
+        plasmoid.configuration.huggingFaceApiKey = ""
+        plasmoid.configuration.xaiApiKey = ""
+    }
+
+    function saveGeneralSettingsOnly() {
         plasmoid.configuration.appDisplayName = appDisplayNameField.text
         plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex
         plasmoid.configuration.keyStorageMode = cfg_keyStorageMode
 
         plasmoid.configuration.provider = providerBox.currentValue
         plasmoid.configuration.baseUrl = baseUrlField.text
-        plasmoid.configuration.apiKey = apiKeyField.text
         plasmoid.configuration.model = modelField.text
 
-        plasmoid.configuration.anthropicApiKey = anthropicApiKeyField.text
         plasmoid.configuration.anthropicModel = anthropicModelField.text
 
         plasmoid.configuration.groqBaseUrl = groqBaseUrlField.text
-        plasmoid.configuration.groqApiKey = groqApiKeyField.text
         plasmoid.configuration.groqModel = groqModelField.text
 
         plasmoid.configuration.deepSeekBaseUrl = deepSeekBaseUrlField.text
-        plasmoid.configuration.deepSeekApiKey = deepSeekApiKeyField.text
         plasmoid.configuration.deepSeekModel = deepSeekModelField.text
 
         plasmoid.configuration.miniMaxBaseUrl = miniMaxBaseUrlField.text
-        plasmoid.configuration.miniMaxApiKey = miniMaxApiKeyField.text
         plasmoid.configuration.miniMaxModel = miniMaxModelField.text
 
         plasmoid.configuration.fireworksBaseUrl = fireworksBaseUrlField.text
-        plasmoid.configuration.fireworksApiKey = fireworksApiKeyField.text
         plasmoid.configuration.fireworksModel = fireworksModelField.text
 
         plasmoid.configuration.googleBaseUrl = googleBaseUrlField.text
-        plasmoid.configuration.googleApiKey = googleApiKeyField.text
         plasmoid.configuration.googleModel = googleModelField.text
 
         plasmoid.configuration.openRouterBaseUrl = openRouterBaseUrlField.text
-        plasmoid.configuration.openRouterApiKey = openRouterApiKeyField.text
         plasmoid.configuration.openRouterModel = openRouterModelField.text
 
         plasmoid.configuration.mistralBaseUrl = mistralBaseUrlField.text
-        plasmoid.configuration.mistralApiKey = mistralApiKeyField.text
         plasmoid.configuration.mistralModel = mistralModelField.text
 
         plasmoid.configuration.cloudflareBaseUrl = cloudflareBaseUrlField.text
-        plasmoid.configuration.cloudflareApiKey = cloudflareApiKeyField.text
         plasmoid.configuration.cloudflareModel = cloudflareModelField.text
 
         plasmoid.configuration.nvidiaBaseUrl = nvidiaBaseUrlField.text
-        plasmoid.configuration.nvidiaApiKey = nvidiaApiKeyField.text
         plasmoid.configuration.nvidiaModel = nvidiaModelField.text
 
         plasmoid.configuration.huggingFaceBaseUrl = huggingFaceBaseUrlField.text
-        plasmoid.configuration.huggingFaceApiKey = huggingFaceApiKeyField.text
         plasmoid.configuration.huggingFaceModel = huggingFaceModelField.text
 
         plasmoid.configuration.xaiBaseUrl = xaiBaseUrlField.text
-        plasmoid.configuration.xaiApiKey = xaiApiKeyField.text
         plasmoid.configuration.xaiModel = xaiModelField.text
 
         plasmoid.configuration.lmStudioBaseUrl = lmStudioBaseUrlField.text
