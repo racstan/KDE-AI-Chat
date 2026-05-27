@@ -43,7 +43,7 @@ See **KDE AI Chat** in action! Below is a detailed walkthrough of the widget's c
 - **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and **LiteLLM Proxy**.
 - **🔑 3-Way API Key Storage**: Choose between **Session Only** (keys live in memory), **Plain Config** (saved to `~/.config/kdeaichatrc`), or **Secure KWallet** (native DBus-encrypted storage). Open, reload, or clear the config file directly from the settings panel.
 - **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
-- **💬 Directional Chat Bubbles**: User messages are right-aligned and AI/system responses are left-aligned for a clean, modern messaging layout.
+- **💬 Directional Chat Bubbles**: User messages appear **right-aligned** in the live chat UI with a distinct bubble colour, while AI responses and system messages are left-aligned — just like any modern messaging app. Exported files mirror this layout too.
 - **🌳 Conversation Forking (Branch Editing)**: Editing any older user message automatically deletes subsequent logs and forks the branch as a fresh request, maintaining clean conversation histories.
 - **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
 - **📊 Token Usage & Cost Diagnostics**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
@@ -80,8 +80,8 @@ Export any conversation to a file from the chat toolbar:
 - Exported files use full **UTF-8 encoding** and include a formatted header with the export timestamp.
 - Messages are cleanly formatted with role labels, timestamps, and proper wrapping.
 
-### 💬 Right-Aligned User Messages
-User messages now appear **right-aligned** with a distinct bubble styling, mirroring familiar mobile and web chat interfaces. AI responses and system messages remain left-aligned for clear visual separation.
+### 💬 Right-Aligned User Messages (Live Chat UI)
+User messages now appear **right-aligned** with a distinct bubble colour directly in the **live chat popup**, mirroring familiar mobile and web chat interfaces. AI responses and system messages remain left-aligned. Exported files also reflect this layout with right-aligned user text blocks.
 
 ### 🔗 LiteLLM Proxy Support
 **LiteLLM Proxy** has been added as a fully supported provider:
@@ -94,7 +94,7 @@ User messages now appear **right-aligned** with a distinct bubble styling, mirro
 
 ## Codebase Quality & Audit Status
 
-As of **May 2026**, the codebase has undergone a comprehensive structural audit and is marked **100% production-ready**:
+As of **May 27, 2026**, the codebase has undergone a comprehensive structural audit and is marked **100% production-ready**:
 - **Diagnostic Safety**: The codebase successfully compiles and passes QML structural analysis using the KDE diagnostic suite (`qmllint`) with **zero errors and zero warnings**.
 - **Security Hardening**: Secure DBus transactions with DBus filters in `applyLoadedKey` to prevent status warnings from entering input fields. Base64 serialization is used to safely pass configuration payloads through shell commands, preventing all bash double-quote stripping issues.
 - **Immaculate Directory**: All pre-production developer notes, scratchpads, and unused file assets have been removed for clean packaging.
@@ -207,10 +207,17 @@ KDE AI Chat offers three modes of API key storage to suit any workflow:
 | **Plain Config** | `~/.config/kdeaichatrc` | ✅ Yes |
 | **Secure KWallet** | KDE Wallet via DBus | ✅ Yes (encrypted) |
 
-Switch modes, open the config file, reload from disk, or launch KWallet Manager — all directly from the settings panel. For complete setup instructions and troubleshooting, refer to the [KWallet Secure Storage Guide](user_manual.md#3-secure-storage-kwallet-vs-plain-configs).
+Switch modes instantly from the settings panel — no restart needed. You can also open the config file, reload keys from disk, or launch KWallet Manager directly from the same panel.
+
+### Secure KWallet Integration
+KDE AI Chat integrates natively with your desktop's secure credentials subsystem, **[KWallet](https://apps.kde.org/kwalletmanager5/)**, using secure DBus transactions (`qdbus6 org.kde.kwalletd6`). When active, it safeguards all your sensitive API keys, preventing them from being stored in plain text configuration files.
+- For complete setup instructions and troubleshooting, refer to the [KWallet Secure Storage Guide](user_manual.md#3-secure-storage-kwallet-vs-plain-configs).
+- Download & manage KWallet: [KDE Wallet Manager](https://apps.kde.org/kwalletmanager5/)
 
 ### OpenCode Developer Bridge
-Turn your chat interface into an interactive code execution workspace with the native **OpenCode Bridge**. Enable it with a single toggle in the bottom toolbar to establish a local connection with your OpenCode execution environment, rendering structured decision options, code previews, and token-based diagnostics directly in the chat bubbles.
+Turn your chat interface into an interactive code execution workspace with the native **[OpenCode](https://opencode.ai/) Bridge**. Enable it with a single toggle in the bottom toolbar to establish a local connection with your OpenCode execution environment, rendering structured decision options, code previews, and token-based diagnostics directly in the chat bubbles.
+- Official OpenCode site: [opencode.ai](https://opencode.ai/)
+- GitHub repository: [sst/opencode](https://github.com/sst/opencode)
 - For instructions on running and managing sessions, see the [OpenCode Developer Bridge Guide](user_manual.md#5-opencode-developer-bridge-guide).
 
 ---

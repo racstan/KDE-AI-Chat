@@ -57,10 +57,10 @@ If you downloaded the compiled `.plasmoid` file directly from the KDE Store:
 
 ### Configure Your First Provider
 
-All 13 providers follow the same pattern:
+All 17 providers follow the same pattern:
 
 1. **Select a Provider** from the dropdown in the **General** tab:
-   - OpenAI, Anthropic, Gemini, Mistral, Grok, DeepSeek, NVIDIA, Cerebras, Cloudflare, HuggingFace, OpenRouter, LiteLLM, Local
+   - OpenAI, Anthropic, Gemini, Mistral, Grok (xAI), DeepSeek, MiniMax, Fireworks AI, NVIDIA NIM, Cloudflare Workers AI, Hugging Face, OpenRouter, Groq, LM Studio, Ollama, Local (OpenAI-compatible), LiteLLM Proxy
 
 2. **Obtain Your API Key:**
    - See [Provider Setup](#provider-setup) for provider-specific instructions
@@ -257,18 +257,28 @@ Follow the steps below for each provider you want to use.
 
 ---
 
-### LiteLLM
+### LiteLLM Proxy
 
-1. **Get API Key:**
-   - For self-hosted LiteLLM proxy, generate an API key
-   - Or use LiteLLM hosted services
+1. **Install LiteLLM:**
+   - `pip install litellm`
+   - Or use the [LiteLLM Proxy docs](https://docs.litellm.ai/docs/proxy/quick_start) for a full config-file-based setup
 
-2. **Model Selection:**
-   - Depends on your proxy configuration
+2. **Start the proxy:**
+   ```bash
+   litellm --model gpt-4o-mini
+   # or with a config file:
+   litellm --config /path/to/config.yaml
+   ```
 
-3. **Endpoint:**
-   - Example: `http://localhost:4000` (if self-hosted)
-   - Or use LiteLLM's hosted endpoint
+3. **Configure the widget:**
+   - Select **LiteLLM Proxy** from the provider dropdown
+   - Set endpoint to `http://localhost:4000/v1` (default)
+   - API key is **optional** — leave blank for keyless proxy setups
+   - Click **Refresh Models** to discover available models
+
+4. **Endpoint:**
+   - Default: `http://localhost:4000/v1`
+   - Adjust if you've configured a different port or remote host
 
 ---
 
@@ -321,7 +331,7 @@ Follow the steps below for each provider you want to use.
 - The response is saved to conversation history after completion
 
 **Provider Support:**
-- All 13 providers support streaming
+- All 17 providers support streaming
 
 ---
 
@@ -428,29 +438,25 @@ Follow the steps below for each provider you want to use.
 
 ---
 
-### 8. Secret Service Integration
+### 8. KWallet / API Key Storage
 
 **What it does:**
-- API keys are stored securely using the system's Secret Service (libsecret)
-- Keys are **never** stored in plain text in config files
+- API keys can be stored using **KDE Wallet (KWallet)** via DBus, in a **plain config file**, or kept **session-only** in memory.
 
 **How to use:**
-1. **First Time Setup:**
-   - Enter your API key in Settings
-   - Select the provider and key is securely stored
+1. Open Settings → find the **API Key Storage** mode selector.
+2. Choose: **Session Only**, **Plain Config**, or **Secure KWallet**.
+3. In **Plain Config** mode, use **Open Config File** to edit `~/.config/kdeaichatrc` directly.
+4. In **KWallet** mode, use **Launch KWallet Manager** to inspect stored credentials.
 
-2. **Key Retrieval:**
-   - Widget automatically retrieves keys from Secret Service
-   - You may be prompted by your system keyring on first access
+**Manual KWallet inspection:**
+```bash
+# Open KWallet Manager from terminal
+kwalletmanager5
 
-3. **Manage Keys (manual):**
-   ```bash
-   # List all keys (queries secure internal storage namespace)
-   secret-tool search provider kai-chat
-
-   # Delete a key (if needed)
-   secret-tool clear provider kai-chat provider_name
-   ```
+# Or query keys via DBus
+qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
+```
 
 ---
 
@@ -591,19 +597,25 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
 
 ---
 
-### Secret Service Errors
-**Problem:** "Could not retrieve API key from Secret Service"
+### KWallet Errors
+**Problem:** "Could not retrieve API key from KWallet" or keys not loading on startup.
 
 **Solution:**
-1. Install `libsecret`:
+1. Ensure `kwalletd6` is running:
    ```bash
-   sudo apt install libsecret-1-dev  # Debian/Ubuntu
-   sudo zypper install libsecret-devel  # openSUSE
+   systemctl --user status plasma-kwalletd.service
+   # or start it:
+   systemctl --user start plasma-kwalletd.service
    ```
 
-2. Ensure your keyring is unlocked (may need system restart)
+2. Open KWallet Manager and check that the `KaiChat` folder exists and contains your keys:
+   ```bash
+   kwalletmanager5
+   ```
 
-3. Re-enter API key in Settings
+3. If KWallet is not available on your system (e.g., headless server), switch to **Plain Config** mode in the widget Settings instead.
+
+4. Re-enter your API key in Settings — it will be stored to whichever mode is currently selected.
 
 ---
 
