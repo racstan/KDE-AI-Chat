@@ -172,7 +172,7 @@ For developers packaging the widget from local sources, standard procedures are 
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kdeaichat-v1.2.6.plasmoid" org.kde.plasma.kdeaichat \
+zip -r "dist/org.kde.plasma.kdeaichat-v1.2.7.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
 
