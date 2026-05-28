@@ -24,7 +24,7 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 ## Key Features
 
 - **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
-- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy (Beta).
+- **🔄 17 Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy.
 - **🔑 3-Way API Key Storage**: Choose between **Session Only** (keys live in memory), **Plain Config** (saved to `~/.config/kdeaichatrc`), or **Secure KWallet** (native DBus-encrypted storage). Open, reload, or clear the config file directly from the settings panel.
 - **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
 
@@ -69,38 +69,38 @@ See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential vid
 
 ---
 
-## What's New Since v1.2.6
+## What's New in v1.2.9
 
-The following features have been added after the v1.2.6 release and are available in the latest development build:
+### 🧭 4-Section Interactive Setup Guides
+Every major section of the settings panel now has its own dedicated, context-aware interactive guide card:
 
-### 🗄️ Flexible API Key Storage (3-Way Mode)
-Replaced the old KWallet on/off toggle with a full **3-mode key storage selector**:
-- **Session Only** — keys are kept purely in memory and discarded when the widget is closed.
-- **Plain Config** — keys are saved persistently to `~/.config/kdeaichatrc` and auto-loaded on startup.
-- **Secure KWallet** — keys are stored in and loaded from your desktop's secure credentials vault via DBus.
+- **General Guide** (top of settings): Explains the Appearance dropdown, Notification sound toggle, and OpenCode mode. Dynamically switches to a full OpenCode setup walkthrough (Start Server → Check Server → pick provider/model → Apply) when OpenCode mode is enabled.
+- **Provider Guide** (Provider section): Per-provider setup guide that updates live as you change the provider dropdown. Includes the exact URL where you can get your API key for all 17 cloud providers, and step-by-step local server setup for Ollama, LM Studio, LiteLLM, vLLM, and more.
+- **API Storage Guide** (API Key Storage section, before the mode selector): Explains the active storage mode with precise button-level instructions — which buttons to click, in which order, for Session-only, Plain config, and KWallet modes.
+- **Other Settings Guide** (Other settings section): Explains App name, System prompt, Chat storage path with Browse..., and Reset to defaults.
 
-Settings are **automatically persisted** as you type — no need to click Apply to save your configuration changes.
+### 🗄️ Custom Chat History Directory (Beta)
+Users can now store chat logs in a custom directory:
+- Enter any absolute directory path under **Chat storage path (beta)** in settings, or click **Browse...** to open a native folder picker.
+- The widget saves history as `kdeaichat_history.json` inside the chosen directory.
+- Defaults to `~/.config`. Resetting to defaults restores this path correctly.
 
 ### 🛠️ Settings Panel Utilities
-New action buttons in the settings panel:
+Action buttons available in the settings panel:
 - **Open Config File** — opens `~/.config/kdeaichatrc` directly in your default text editor.
 - **Reload from Config** — manually re-reads the config file and populates all API key fields without restarting.
 - **Launch KWallet Manager** — opens the KDE Wallet Manager so you can inspect or manage stored keys.
-- **Clear Chat** — wipes the active conversation with one click directly from the settings panel.
+- **Detect wallets / Create wallet / Sync to KWallet / Refresh from KWallet** — full KWallet key management workflow directly in settings.
 
 ### 📤 Chat Export
 Export any conversation to a file from the chat toolbar:
 - Choose between **Markdown (`.md`)** or **plain text (`.txt`)** output.
 - The save dialog is pre-filled with a descriptive filename: `<chat_title>_<timestamp>.<ext>`.
-- Exported files use full **UTF-8 encoding** and include a formatted header with the export timestamp.
-- Messages are cleanly formatted with role labels, timestamps, and proper wrapping.
 
-### 🔗 LiteLLM Proxy Support (Beta)
-LiteLLM Proxy has been added as a fully supported provider:
+### 🔗 17 Provider Support
+Full support for all 17 providers including LiteLLM Proxy:
 - Connects to any LiteLLM-compatible proxy server (default: `http://localhost:4000/v1`).
-- API key is optional — works with keyless local proxy setups.
-- Full model discovery, KWallet/plain config key storage, and model selection are all supported.
-- Enables routing to 100+ LLMs (GPT, Claude, Gemini, Mistral, etc.) through a single unified interface.
+- Enables routing to 100+ LLMs through a single unified interface.
 
 ---
 
@@ -191,7 +191,7 @@ For developers packaging the widget from local sources, building the distributio
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kdeaichat-v1.2.8.plasmoid" org.kde.plasma.kdeaichat \
+zip -r "dist/org.kde.plasma.kdeaichat-v1.2.9.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
 

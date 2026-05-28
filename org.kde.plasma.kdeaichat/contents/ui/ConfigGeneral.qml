@@ -1381,127 +1381,163 @@ KCM.SimpleKCM {
 
             readonly property string guideText: {
                 if (openCodeToggle.checked) {
-                    return "<b>OpenCode Setup Steps:</b><br/>" +
-                           "1. Scroll down to the <b>OpenCode</b> section.<br/>" +
-                           "2. Click <b>Start Server</b> to run your local environment.<br/>" +
-                           "3. Click <b>Check Server</b> to verify the connection status.<br/>" +
-                           "4. Select your preferred local <b>Provider</b> and <b>Model</b> from the detected dropdowns.<br/>" +
-                           "5. Click <b>Apply</b>/<b>OK</b> at the bottom to save your active layout.";
+                    return "<b>OpenCode Mode Guide:</b><br/>" +
+                           "1. Tick <b>Enable OpenCode mode</b> (this checkbox).<br/>" +
+                           "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" +
+                           "3. Click <b>Start Server</b> to launch OpenCode in the background.<br/>" +
+                           "4. Click <b>Check Server</b> to verify it is running.<br/>" +
+                           "5. Once online, the <b>Providers</b> and <b>Models</b> dropdowns will populate — select your preferred ones.<br/>" +
+                           "6. Click <b>Apply</b>/<b>OK</b> to save and start chatting.";
                 }
-                
-                var text = "";
+                return "<b>Appearance &amp; Notifications Guide:</b><br/>" +
+                       "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" +
+                       "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" +
+                       "• <b>OpenCode mode:</b> Tick <b>Enable OpenCode mode</b> to switch to a fully local AI coding agent — all cloud provider fields will be hidden.";
+            }
+
+            readonly property string providerGuideText: {
                 var provider = providerBox.currentValue || "openai";
-                var needsApiKey = true;
-
                 if (provider === "openai") {
-                    text = "<b>OpenAI Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>OpenAI settings</b> and enter your <b>API Key</b> (starts with <code>sk-</code>).<br/>" +
-                           "2. Select or type your preferred <b>Model</b> (default: <code>gpt-4o-mini</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>OpenAI Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>platform.openai.com → API Keys</b> (starts with <code>sk-</code>).<br/>" +
+                           "2. Paste it into the <b>OpenAI key</b> field below.<br/>" +
+                           "3. Choose a model from the <b>OpenAI model</b> dropdown or type one (e.g. <code>gpt-4o</code>, <code>gpt-4o-mini</code>).<br/>" +
+                           "4. (Optional) Override the base URL only if using a compatible proxy.<br/>" +
+                           "5. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "anthropic") {
-                    text = "<b>Anthropic Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>Anthropic settings</b> and enter your <b>API Key</b> (starts with <code>sk-ant-</code>).<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>claude-3-5-sonnet-latest</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Anthropic Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>console.anthropic.com → API Keys</b> (starts with <code>sk-ant-</code>).<br/>" +
+                           "2. Paste it into the <b>Anthropic key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>claude-opus-4-5</code>, <code>claude-3-5-sonnet-latest</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "groq") {
-                    text = "<b>Groq Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>Groq settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Select or type your preferred high-speed <b>Model</b> (e.g. <code>llama-3.3-70b-versatile</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Groq Setup Guide:</b><br/>" +
+                           "1. Get your free API key at <b>console.groq.com → API Keys</b>.<br/>" +
+                           "2. Paste it into the <b>Groq key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>llama-3.3-70b-versatile</code>, <code>gemma2-9b-it</code>) — Groq inference is extremely fast.<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "deepseek") {
-                    text = "<b>DeepSeek Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>DeepSeek settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>deepseek-chat</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>DeepSeek Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>platform.deepseek.com → API Keys</b>.<br/>" +
+                           "2. Paste it into the <b>DeepSeek key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>deepseek-chat</code> or <code>deepseek-reasoner</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "minimax") {
-                    text = "<b>MiniMax Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>MiniMax settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>MiniMax-M2.7</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>MiniMax Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>www.minimaxi.com → API Key</b>.<br/>" +
+                           "2. Paste it into the <b>MiniMax key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>MiniMax-M2.7</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "fireworks") {
-                    text = "<b>Fireworks AI Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>Fireworks AI settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>accounts/fireworks/models/llama-v3p3-70b-instruct</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Fireworks AI Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>fireworks.ai → Account → API Keys</b>.<br/>" +
+                           "2. Paste it into the <b>Fireworks key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>accounts/fireworks/models/llama-v3p3-70b-instruct</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "google") {
-                    text = "<b>Google Gemini Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>Google Gemini settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>gemini-3-flash-preview</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Google Gemini Setup Guide:</b><br/>" +
+                           "1. Get your free API key at <b>aistudio.google.com → Get API Key</b>.<br/>" +
+                           "2. Paste it into the <b>Google key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>gemini-2.5-flash-preview-05-20</code>, <code>gemini-2.0-flash</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "openrouter") {
-                    text = "<b>OpenRouter Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>OpenRouter settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>openai/gpt-4o-mini</code> or <code>openrouter/auto</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>OpenRouter Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>openrouter.ai → Keys</b>.<br/>" +
+                           "2. Paste it into the <b>OpenRouter key</b> field below.<br/>" +
+                           "3. Choose any model from 100+ providers (e.g. <code>openai/gpt-4o-mini</code>, <code>google/gemini-flash-1.5</code>, <code>openrouter/auto</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "mistral") {
-                    text = "<b>Mistral Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>Mistral settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>mistral-small-latest</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Mistral Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>console.mistral.ai → API Keys</b>.<br/>" +
+                           "2. Paste it into the <b>Mistral key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>mistral-small-latest</code>, <code>mistral-large-latest</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "cloudflare") {
-                    text = "<b>Cloudflare Workers AI Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>Cloudflare settings</b>, replace <code>YOUR_ACCOUNT_ID</code> in the Base URL, and enter your <b>API Token</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>@cf/meta/llama-3.1-8b-instruct</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Cloudflare Workers AI Setup Guide:</b><br/>" +
+                           "1. Log in to <b>dash.cloudflare.com → AI → Workers AI</b>.<br/>" +
+                           "2. Copy your <b>Account ID</b> from the right sidebar and replace <code>YOUR_ACCOUNT_ID</code> in the <b>Cloudflare URL</b> field below.<br/>" +
+                           "3. Create an API Token (with Workers AI permission) at <b>dash.cloudflare.com → Profile → API Tokens</b> and paste it into the <b>Cloudflare key</b> field.<br/>" +
+                           "4. Choose a model (e.g. <code>@cf/meta/llama-3.1-8b-instruct</code>).<br/>" +
+                           "5. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "nvidia") {
-                    text = "<b>NVIDIA NIM Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>NVIDIA settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred NIM <b>Model</b> (e.g. <code>meta/llama-3.1-70b-instruct</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>NVIDIA NIM Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>build.nvidia.com → Get API Key</b>.<br/>" +
+                           "2. Paste it into the <b>NVIDIA key</b> field below.<br/>" +
+                           "3. Choose a NIM model (e.g. <code>meta/llama-3.1-70b-instruct</code>, <code>nvidia/nemotron-4-340b-instruct</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "huggingface") {
-                    text = "<b>Hugging Face Router Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>Hugging Face settings</b> and enter your <b>API Token</b>.<br/>" +
-                           "2. Choose or type your preferred inference <b>Model</b> (e.g. <code>openai/gpt-oss-120b:groq</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Hugging Face Router Setup Guide:</b><br/>" +
+                           "1. Get your access token at <b>huggingface.co → Settings → Access Tokens</b> (use a token with Inference permissions).<br/>" +
+                           "2. Paste it into the <b>Hugging Face key</b> field below.<br/>" +
+                           "3. Enter a supported inference model (e.g. <code>openai/gpt-oss-120b:groq</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "xai") {
-                    text = "<b>xAI (Grok) Setup Steps:</b><br/>" +
-                           "1. Scroll down to <b>xAI settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>grok-2-latest</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>xAI (Grok) Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>console.x.ai → API Keys</b>.<br/>" +
+                           "2. Paste it into the <b>xAI key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>grok-3-mini</code>, <code>grok-2-latest</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "lmstudio") {
-                    needsApiKey = false;
-                    text = "<b>LM Studio Setup Steps:</b><br/>" +
-                           "1. Open <b>LM Studio</b> and start the Local Server (default: <code>http://localhost:1234/v1</code>).<br/>" +
-                           "2. Ensure a model is loaded in the LM Studio server.<br/>" +
-                           "3. Under <b>LM Studio settings</b>, type your loaded model name.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>LM Studio Setup Guide:</b><br/>" +
+                           "1. Download and open <b>LM Studio</b> (lmstudio.ai) — no API key needed.<br/>" +
+                           "2. In LM Studio, go to the <b>Local Server</b> tab and load a model.<br/>" +
+                           "3. Click <b>Start Server</b> in LM Studio (default URL: <code>http://localhost:1234/v1</code>).<br/>" +
+                           "4. Enter the loaded model name in the <b>LM Studio model</b> field below.<br/>" +
+                           "5. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "local") {
-                    needsApiKey = false;
-                    text = "<b>Local Server Setup Steps:</b><br/>" +
-                           "1. Ensure your local OpenAI-compatible server (e.g. vLLM or llama.cpp) is running.<br/>" +
-                           "2. Under <b>Local settings</b>, enter/verify your Base URL and model identifier.<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Local Server (OpenAI-compatible) Setup Guide:</b><br/>" +
+                           "1. Start your local server (e.g. <b>vLLM</b>, <b>llama.cpp</b>, <b>Jan</b>) — no API key needed.<br/>" +
+                           "2. Enter the server's base URL in the <b>Local URL</b> field below (e.g. <code>http://localhost:8000/v1</code>).<br/>" +
+                           "3. Enter the model identifier your server is serving in the <b>Local model</b> field.<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "ollama") {
-                    needsApiKey = false;
-                    text = "<b>Ollama Setup Steps:</b><br/>" +
-                           "1. Ensure your local <b>Ollama Server</b> is running (default: <code>http://localhost:11434</code>).<br/>" +
-                           "2. Under <b>Ollama settings</b>, enter/verify your Base URL and model identifier (e.g. <code>llama3.2</code>).<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                    return "<b>Ollama Setup Guide:</b><br/>" +
+                           "1. Install Ollama from <b>ollama.com</b> and run it — no API key needed.<br/>" +
+                           "2. Pull a model by running <code>ollama pull llama3.2</code> in a terminal.<br/>" +
+                           "3. Ollama starts automatically (default URL: <code>http://localhost:11434</code>).<br/>" +
+                           "4. Verify/update the <b>Ollama URL</b> field below and enter your model name (e.g. <code>llama3.2</code>).<br/>" +
+                           "5. Click <b>Apply</b>/<b>OK</b> to save.";
                 } else if (provider === "litellm") {
-                    needsApiKey = false;
-                    text = "<b>LiteLLM Proxy Setup Steps:</b><br/>" +
-                           "1. Run your local <b>LiteLLM Proxy</b>.<br/>" +
-                           "2. Under <b>LiteLLM settings</b>, enter the Base URL and model identifier.<br/>" +
-                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
-                } else {
-                    text = "<b>Setup Steps:</b> Select your preferred Provider, fill in the API keys, choose a storage method, and click Apply/OK to start chatting!";
+                    return "<b>LiteLLM Proxy Setup Guide:</b><br/>" +
+                           "1. Install LiteLLM: <code>pip install litellm</code> — no API key needed for the proxy itself.<br/>" +
+                           "2. Start your proxy: <code>litellm --model ollama/llama3.2</code> (or your preferred model).<br/>" +
+                           "3. Enter the proxy URL in the <b>LiteLLM URL</b> field below (default: <code>http://localhost:4000</code>).<br/>" +
+                           "4. Enter the model identifier in the <b>LiteLLM model</b> field.<br/>" +
+                           "5. Click <b>Apply</b>/<b>OK</b> to save.";
                 }
+                return "<b>Provider Setup Guide:</b> Select a provider from the <b>Default provider</b> dropdown above to see setup instructions.";
+            }
 
-                if (needsApiKey) {
-                    var storageIdx = storageModeCombo.currentIndex;
-                    text += "<br/><br/><b>🔑 API Key Security Guide:</b><br/>";
-                    if (storageIdx === 0) {
-                        text += "• Current storage: <b>Session-only memory</b>.<br/>" +
-                                "• Key will be forgotten immediately when Plasmoid closes or system logs out. You must enter it again next time.";
-                    } else if (storageIdx === 1) {
-                        text += "• Current storage: <b>Plain config file</b> (unencrypted).<br/>" +
-                                "• Key will be written as plain-text to <code>~/.config/kdeaichatrc</code>. Convenient but readable by other local processes.";
-                    } else if (storageIdx === 2) {
-                        text += "• Current storage: <b>KDE KWallet</b> (fully encrypted).<br/>" +
-                                "• Key is stored securely inside your encrypted KDE system wallet. Choose your wallet, click <b>Create wallet folder</b> if not initialized, then click Apply.";
-                    }
+            readonly property string apiGuideText: {
+                var storageIdx = storageModeCombo.currentIndex;
+                var text = "<b>API Key Storage Guide:</b><br/>";
+                if (storageIdx === 0) {
+                    text += "• Current mode: <b>🔒 Session-only memory</b>.<br/>" +
+                            "• Enter your API keys in the provider fields below. No extra steps needed — keys are held in memory only.<br/>" +
+                            "• Keys are wiped completely when the widget closes. You must re-enter them every session.";
+                } else if (storageIdx === 1) {
+                    text += "• Current mode: <b>📄 Plain config file</b> (unencrypted).<br/>" +
+                            "• Enter your keys in the provider fields below, then click <b>Apply</b>/<b>OK</b> to save them to <code>~/.config/kdeaichatrc</code>.<br/>" +
+                            "• (Optional) Click <b>Reload from config file</b> if you edited the file externally.<br/>" +
+                            "• (Optional) Click <b>Open config file</b> to view or paste keys directly into the file.<br/>" +
+                            "• Security: Keys are stored as plain text — suitable for single-user machines only.";
+                } else if (storageIdx === 2) {
+                    text += "• Current mode: <b>🔑 KWallet</b> (encrypted).<br/>" +
+                            "• Click <b>Detect wallets</b> to find available KDE wallets.<br/>" +
+                            "• If none are found, click <b>Create wallet</b> — KWallet will prompt for a password to create one.<br/>" +
+                            "• Select your wallet from the <b>Wallet name</b> dropdown, enter your keys, then click <b>Sync to KWallet</b>.<br/>" +
+                            "• (Optional) Click <b>Launch KWalletManager</b> to inspect or manage your wallet via the system app.<br/>" +
+                            "• Security: Keys are fully encrypted. Best for shared or multi-user systems.";
                 }
                 return text;
+            }
+
+            readonly property string otherSettingsGuideText: {
+                return "<b>Other Settings Guide:</b><br/>" +
+                       "• <b>App name:</b> Change the display name shown in the widget title bar. After clicking Apply/OK, restart the shell with the command shown to apply it.<br/>" +
+                       "• <b>System prompt:</b> Set a default system instruction for every chat session (e.g. <i>\"You are a helpful Linux assistant.\"</i>). Leave blank to use the default.<br/>" +
+                       "• <b>Chat storage path (beta):</b> Choose a folder to save your chat history. Click <b>Browse...</b> to pick a folder, or type a path directly. History is saved as <code>kdeaichat_history.json</code> inside that folder. Default is <code>~/.config</code>.<br/>" +
+                       "• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.";
             }
 
             x: 0
@@ -1518,7 +1554,7 @@ KCM.SimpleKCM {
                 spacing: Kirigami.Units.gridUnit
                 
                 Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: "Interactive Guide"
+                Kirigami.FormData.label: "General Guide"
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -1603,6 +1639,42 @@ KCM.SimpleKCM {
                 visible: !openCodeToggle.checked
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "Provider"
+            }
+
+            RowLayout {
+                visible: !openCodeToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.gridUnit
+                Kirigami.FormData.label: "Provider Guide"
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: providerGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+                    border.width: 1
+                    RowLayout {
+                        id: providerGuideLayout
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.gridUnit * 0.6
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon {
+                            source: "help-hint"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                            Layout.alignment: Qt.AlignTop
+                        }
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: formLayout.providerGuideText
+                            wrapMode: Text.Wrap
+                            textFormat: Text.RichText
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                            color: Kirigami.Theme.textColor
+                        }
+                    }
+                }
             }
 
             QQC2.ComboBox {
@@ -2761,6 +2833,42 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "API Key Storage"
             }
 
+            RowLayout {
+                visible: !openCodeToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.gridUnit
+                Kirigami.FormData.label: "Storage Guide"
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: apiGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+                    border.width: 1
+                    RowLayout {
+                        id: apiGuideLayout
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.gridUnit * 0.6
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon {
+                            source: "security-high"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                            Layout.alignment: Qt.AlignTop
+                        }
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: formLayout.apiGuideText
+                            wrapMode: Text.Wrap
+                            textFormat: Text.RichText
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                            color: Kirigami.Theme.textColor
+                        }
+                    }
+                }
+            }
+
             QQC2.Label {
                 visible: !openCodeToggle.checked
                 Kirigami.FormData.label: "Storage mode:"
@@ -2796,23 +2904,7 @@ KCM.SimpleKCM {
                 }
             }
 
-            QQC2.Label {
-                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 0
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "⚠️  Your keys are held in memory only and wiped from the config file on close. You will need to re-enter them every time you restart the widget."
-                wrapMode: Text.Wrap
-                opacity: 0.75
-            }
 
-            QQC2.Label {
-                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 1
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "Config file location: ~/.config/kdeaichatrc — Keys are stored in plain text. Suitable for single-user machines where disk access is trusted."
-                wrapMode: Text.Wrap
-                opacity: 0.75
-            }
 
             RowLayout {
                 visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 1
@@ -2965,6 +3057,41 @@ KCM.SimpleKCM {
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "Other settings"
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.gridUnit
+                Kirigami.FormData.label: "Settings Guide"
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: otherGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+                    border.width: 1
+                    RowLayout {
+                        id: otherGuideLayout
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.gridUnit * 0.6
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon {
+                            source: "help-hint"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                            Layout.alignment: Qt.AlignTop
+                        }
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: formLayout.otherSettingsGuideText
+                            wrapMode: Text.Wrap
+                            textFormat: Text.RichText
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                            color: Kirigami.Theme.textColor
+                        }
+                    }
+                }
             }
 
             QQC2.TextField {
