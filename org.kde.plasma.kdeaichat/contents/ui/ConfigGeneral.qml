@@ -1389,55 +1389,119 @@ KCM.SimpleKCM {
                            "5. Click <b>Apply</b>/<b>OK</b> at the bottom to save your active layout.";
                 }
                 
+                var text = "";
                 var provider = providerBox.currentValue || "openai";
+                var needsApiKey = true;
+
                 if (provider === "openai") {
-                    return "<b>OpenAI Setup Steps:</b><br/>" +
+                    text = "<b>OpenAI Setup Steps:</b><br/>" +
                            "1. Scroll down to <b>OpenAI settings</b> and enter your <b>API Key</b> (starts with <code>sk-</code>).<br/>" +
-                           "2. Select or type your preferred <b>Model</b> (default: <code>gpt-4o</code>).<br/>" +
-                           "3. Choose an <b>API Key Storage Mode</b> at the bottom (Session, Plain config, or secure KWallet).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                           "2. Select or type your preferred <b>Model</b> (default: <code>gpt-4o-mini</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
                 } else if (provider === "anthropic") {
-                    return "<b>Anthropic Setup Steps:</b><br/>" +
+                    text = "<b>Anthropic Setup Steps:</b><br/>" +
                            "1. Scroll down to <b>Anthropic settings</b> and enter your <b>API Key</b> (starts with <code>sk-ant-</code>).<br/>" +
                            "2. Choose or type your preferred <b>Model</b> (e.g. <code>claude-3-5-sonnet-latest</code>).<br/>" +
-                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
                 } else if (provider === "groq") {
-                    return "<b>Groq Setup Steps:</b><br/>" +
+                    text = "<b>Groq Setup Steps:</b><br/>" +
                            "1. Scroll down to <b>Groq settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Select or type your preferred <b>Model</b> (e.g. <code>llama3-8b-8192</code>).<br/>" +
-                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                           "2. Select or type your preferred high-speed <b>Model</b> (e.g. <code>llama-3.3-70b-versatile</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
                 } else if (provider === "deepseek") {
-                    return "<b>DeepSeek Setup Steps:</b><br/>" +
+                    text = "<b>DeepSeek Setup Steps:</b><br/>" +
                            "1. Scroll down to <b>DeepSeek settings</b> and enter your <b>API Key</b>.<br/>" +
                            "2. Choose or type your preferred <b>Model</b> (e.g. <code>deepseek-chat</code>).<br/>" +
-                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "minimax") {
+                    text = "<b>MiniMax Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>MiniMax settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>MiniMax-M2.7</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "fireworks") {
+                    text = "<b>Fireworks AI Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>Fireworks AI settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>accounts/fireworks/models/llama-v3p3-70b-instruct</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
                 } else if (provider === "google") {
-                    return "<b>Gemini Setup Steps:</b><br/>" +
+                    text = "<b>Google Gemini Setup Steps:</b><br/>" +
                            "1. Scroll down to <b>Google Gemini settings</b> and enter your <b>API Key</b>.<br/>" +
-                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>gemini-1.5-pro</code>).<br/>" +
-                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
-                } else if (provider === "ollama") {
-                    return "<b>Ollama Setup Steps:</b><br/>" +
-                           "1. Ensure your local <b>Ollama Server</b> is running (default: <code>http://localhost:11434</code>).<br/>" +
-                           "2. Under <b>Ollama settings</b>, enter/verify your Base URL and model identifier (e.g. <code>llama3</code>).<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>gemini-3-flash-preview</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "openrouter") {
+                    text = "<b>OpenRouter Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>OpenRouter settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>openai/gpt-4o-mini</code> or <code>openrouter/auto</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "mistral") {
+                    text = "<b>Mistral Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>Mistral settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>mistral-small-latest</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "cloudflare") {
+                    text = "<b>Cloudflare Workers AI Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>Cloudflare settings</b>, replace <code>YOUR_ACCOUNT_ID</code> in the Base URL, and enter your <b>API Token</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>@cf/meta/llama-3.1-8b-instruct</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "nvidia") {
+                    text = "<b>NVIDIA NIM Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>NVIDIA settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred NIM <b>Model</b> (e.g. <code>meta/llama-3.1-70b-instruct</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "huggingface") {
+                    text = "<b>Hugging Face Router Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>Hugging Face settings</b> and enter your <b>API Token</b>.<br/>" +
+                           "2. Choose or type your preferred inference <b>Model</b> (e.g. <code>openai/gpt-oss-120b:groq</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "xai") {
+                    text = "<b>xAI (Grok) Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>xAI settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>grok-2-latest</code>).<br/>" +
                            "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
                 } else if (provider === "lmstudio") {
-                    return "<b>LM Studio Setup Steps:</b><br/>" +
-                           "1. Open <b>LM Studio</b> and start the Local Server (default: <code>http://localhost:1234</code>).<br/>" +
+                    needsApiKey = false;
+                    text = "<b>LM Studio Setup Steps:</b><br/>" +
+                           "1. Open <b>LM Studio</b> and start the Local Server (default: <code>http://localhost:1234/v1</code>).<br/>" +
                            "2. Ensure a model is loaded in the LM Studio server.<br/>" +
                            "3. Under <b>LM Studio settings</b>, type your loaded model name.<br/>" +
                            "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "local") {
+                    needsApiKey = false;
+                    text = "<b>Local Server Setup Steps:</b><br/>" +
+                           "1. Ensure your local OpenAI-compatible server (e.g. vLLM or llama.cpp) is running.<br/>" +
+                           "2. Under <b>Local settings</b>, enter/verify your Base URL and model identifier.<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "ollama") {
+                    needsApiKey = false;
+                    text = "<b>Ollama Setup Steps:</b><br/>" +
+                           "1. Ensure your local <b>Ollama Server</b> is running (default: <code>http://localhost:11434</code>).<br/>" +
+                           "2. Under <b>Ollama settings</b>, enter/verify your Base URL and model identifier (e.g. <code>llama3.2</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
                 } else if (provider === "litellm") {
-                    return "<b>LiteLLM Proxy Setup Steps:</b><br/>" +
+                    needsApiKey = false;
+                    text = "<b>LiteLLM Proxy Setup Steps:</b><br/>" +
                            "1. Run your local <b>LiteLLM Proxy</b>.<br/>" +
                            "2. Under <b>LiteLLM settings</b>, enter the Base URL and model identifier.<br/>" +
                            "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else {
+                    text = "<b>Setup Steps:</b> Select your preferred Provider, fill in the API keys, choose a storage method, and click Apply/OK to start chatting!";
                 }
-                return "<b>Setup Steps:</b> Select your preferred Provider, fill in the API keys, choose a storage method, and click Apply/OK to start chatting!";
+
+                if (needsApiKey) {
+                    var storageIdx = storageModeCombo.currentIndex;
+                    text += "<br/><br/><b>🔑 API Key Security Guide:</b><br/>";
+                    if (storageIdx === 0) {
+                        text += "• Current storage: <b>Session-only memory</b>.<br/>" +
+                                "• Key will be forgotten immediately when Plasmoid closes or system logs out. You must enter it again next time.";
+                    } else if (storageIdx === 1) {
+                        text += "• Current storage: <b>Plain config file</b> (unencrypted).<br/>" +
+                                "• Key will be written as plain-text to <code>~/.config/kdeaichatrc</code>. Convenient but readable by other local processes.";
+                    } else if (storageIdx === 2) {
+                        text += "• Current storage: <b>KDE KWallet</b> (fully encrypted).<br/>" +
+                                "• Key is stored securely inside your encrypted KDE system wallet. Choose your wallet, click <b>Create wallet folder</b> if not initialized, then click Apply.";
+                    }
+                }
+                return text;
             }
 
             x: 0
