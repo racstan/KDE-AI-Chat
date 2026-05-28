@@ -215,6 +215,22 @@ We are planning multiple active development rounds to implement new requested fe
 
 ---
 
+## 🛠️ System Dependencies & Inline Diagnostics
+
+KDE AI Chat is built strictly using Plasma 6 native libraries. However, specific features (like reading PDF/Word files, or saving credentials securely to KWallet) rely on standard Linux system tools. 
+
+If any tool is missing, the widget **will not crash**. Instead, it uses **intelligent inline diagnostics** to warn you and explain exactly what commands to run to resolve the issue!
+
+### Recommended Optional Packages
+
+| Feature | Required CLI Utility | Debian/Ubuntu | Arch Linux | Fedora |
+| :--- | :--- | :--- | :--- | :--- |
+| **PDF Attachment Reading** | `pdftotext` | `sudo apt install poppler-utils` | `sudo pacman -S poppler` | `sudo dnf install poppler-utils` |
+| **Word Document Reading** | `pandoc` (Optional Fallback) | `sudo apt install pandoc` | `sudo pacman -S pandoc-cli` | `sudo dnf install pandoc` |
+| **Secure KWallet Storage** | `qdbus6` or `qdbus` | *Pre-installed* (part of `qt6-tools` / `qttools`) | *Pre-installed* (part of `qt6-base` / `qttools`) | *Pre-installed* (part of `qt6-tools` / `qttools`) |
+
+---
+
 ## 🔒 Secure Storage & 🛠️ OpenCode Developer Bridge
 
 ### Flexible API Key Storage

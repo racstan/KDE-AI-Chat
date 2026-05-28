@@ -32,14 +32,16 @@ def extract_docx_text(path):
                 paragraphs.append("".join(p_text))
             return "\n".join(paragraphs)
     except Exception as e:
-        return f"Error extracting DOCX text: {str(e)}"
+        raise Exception(f"Failed to read docx. Try installing 'pandoc' (Debian/Ubuntu: apt install pandoc, Arch: pacman -S pandoc-cli, Fedora: dnf install pandoc) for robust parsing. Error: {str(e)}")
 
 def extract_pdf_text(path):
     try:
         result = subprocess.run(['pdftotext', path, '-'], capture_output=True, text=True, check=True)
         return result.stdout
+    except FileNotFoundError:
+        raise Exception("pdftotext is not installed. Please install 'poppler-utils' (Debian/Ubuntu: apt install poppler-utils, Arch: pacman -S poppler, Fedora: dnf install poppler-utils) to enable PDF attachment reading.")
     except Exception as e:
-        return f"Error extracting PDF text (is pdftotext installed?): {str(e)}"
+        raise Exception(f"Failed to extract PDF contents. Error: {str(e)}")
 
 def extract_single_file(file_path):
     if not os.path.exists(file_path):
