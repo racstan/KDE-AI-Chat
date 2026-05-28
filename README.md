@@ -12,7 +12,7 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 | Screenshot | Feature & Explanation |
 | :--- | :--- |
-| ![Live Chat UI](.github/assets/image.png) | **Live Chat UI with Right-Aligned User Messages**: User prompts appear right-aligned with a distinct colored bubble layout, while AI responses are left-aligned for a modern, fluid messaging feel. Rich markdown elements (headers, lists, etc.) are rendered instantly with high performance. |
+| ![Live Chat UI](.github/assets/image.png) | **Premium Native Chat UI**: Features a beautiful, high-performance conversational interface with rich Markdown support (headers, lists, tables, and nested elements) rendered instantly with smooth layout scrolling. |
 | ![OpenCode Bridge](.github/assets/image2.png) | **OpenCode Developer Bridge**: Build an interactive execution link between the chat widget and your local OpenCode workspace. When active, it displays the unique session ID header and utilizes developer-focused models (e.g. `deepseek`) for CLI or scripting tasks. |
 | ![Conversations Sidebar](.github/assets/image3.png) | **Sidebar Chat History**: Conveniently manage your conversations grouped by calendar history. Supports one-click thread renaming, archiving, and deletion. OpenCode developmental streams are clearly badged with a distinct blue `OC` icon. |
 | ![OpenCode Settings](.github/assets/image4.png) | **OpenCode General Settings**: Easily toggle developer mode, verify/restart the local server engine using interactive status controls, customize custom service ports, and auto-discover provider backends. |
@@ -24,10 +24,10 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 ## Key Features
 
 - **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
-- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and **LiteLLM Proxy**.
+- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy.
 - **🔑 3-Way API Key Storage**: Choose between **Session Only** (keys live in memory), **Plain Config** (saved to `~/.config/kdeaichatrc`), or **Secure KWallet** (native DBus-encrypted storage). Open, reload, or clear the config file directly from the settings panel.
 - **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
-- **💬 Directional Chat Bubbles**: User messages appear **right-aligned** in the live chat UI with a distinct bubble colour, while AI responses and system messages are left-aligned — just like any modern messaging app. Exported files mirror this layout too.
+
 - **🌳 Conversation Forking (Branch Editing)**: Editing any older user message automatically deletes subsequent logs and forks the branch as a fresh request, maintaining clean conversation histories.
 - **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
 - **📊 Token Usage & Cost Diagnostics**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
@@ -94,11 +94,8 @@ Export any conversation to a file from the chat toolbar:
 - Exported files use full **UTF-8 encoding** and include a formatted header with the export timestamp.
 - Messages are cleanly formatted with role labels, timestamps, and proper wrapping.
 
-### 💬 Right-Aligned User Messages (Live Chat UI)
-User messages now appear **right-aligned** with a distinct bubble colour directly in the **live chat popup**, mirroring familiar mobile and web chat interfaces. AI responses and system messages remain left-aligned. Exported files also reflect this layout with right-aligned user text blocks.
-
 ### 🔗 LiteLLM Proxy Support
-**LiteLLM Proxy** has been added as a fully supported provider:
+LiteLLM Proxy has been added as a fully supported provider:
 - Connects to any LiteLLM-compatible proxy server (default: `http://localhost:4000/v1`).
 - API key is optional — works with keyless local proxy setups.
 - Full model discovery, KWallet/plain config key storage, and model selection are all supported.
