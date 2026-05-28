@@ -42,11 +42,11 @@ See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential vid
 
 | Screenshot | Feature & Explanation |
 | :--- | :--- |
-| ![Model Switcher & API Config](.github/assets/image.png) | **Providers & Models Dropdown**: Use any provider from our extensive list with your custom API keys, or run offline local models through local engines (Ollama, LM Studio, LiteLLM Proxy). For persistent saving of API keys, utilize the secure native **KWallet** storage backend, save to a plain config file, or keep them in-session only — your choice! |
-| ![OpenCode Mode & Bridge Integration](.github/assets/image2.png) | **OpenCode Bridge**: Build an interactive execution bridge between the chat widget and your local OpenCode environment. Simply toggle the **OpenCode** selector to make it the default conversation mode. Start the local OpenCode server, click refresh, and select your preferred providers and model weights. |
-| ![Session History Management](.github/assets/image3.png) | **Conversations Sidebar**: Efficiently manage all your active chats in the sidebar history panel. Supports renaming, archiving, and deleting threads in a click. OpenCode developmental chats are visually styled differently so you can tell them apart at a glance! |
-| ![Widget Customizations](.github/assets/image4.png) | **Widget Settings Panel**: Custom tuning, custom system prompt templates, theme overrides (Dark/Light follow system), audio chime notifications, and dynamic scaling controls. We highly recommend users look after this panel to tinker and play with each custom option! |
-| ![About & Contributing Page](.github/assets/image5.png) | **About KDE AI Chat**: Showcases licensing, version metrics, and project credits. We are fully open to contributions and community feedback to expand Plasmoid AI integrations! |
+| ![Live Chat UI](.github/assets/image.png) | **Live Chat UI with Right-Aligned User Messages**: User prompts appear right-aligned with a distinct colored bubble layout, while AI responses are left-aligned for a modern, fluid messaging feel. Rich markdown elements (headers, lists, etc.) are rendered instantly with high performance. |
+| ![OpenCode Bridge](.github/assets/image2.png) | **OpenCode Developer Bridge**: Build an interactive execution link between the chat widget and your local OpenCode workspace. When active, it displays the unique session ID header and utilizes developer-focused models (e.g. `deepseek`) for CLI or scripting tasks. |
+| ![Conversations Sidebar](.github/assets/image3.png) | **Sidebar Chat History**: Conveniently manage your conversations grouped by calendar history. Supports one-click thread renaming, archiving, and deletion. OpenCode developmental streams are clearly badged with a distinct blue `OC` icon. |
+| ![OpenCode Settings](.github/assets/image4.png) | **OpenCode General Settings**: Easily toggle developer mode, verify/restart the local server engine using interactive status controls, customize custom service ports, and auto-discover provider backends. |
+| ![API Key Storage Settings](.github/assets/image5.png) | **Flexible API Key Storage & Prompts**: Tailor custom system prompts and switch API credentials storage between Session-Only, persistent Plain Config, or encrypted KWallet. DBus-backed KWallet controls allow selecting secure keyrings on-the-fly. |
 
 
 ---
