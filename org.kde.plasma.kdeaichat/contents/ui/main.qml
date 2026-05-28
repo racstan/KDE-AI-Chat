@@ -3676,7 +3676,15 @@ PlasmoidItem {
                         console.log("Failed to parse custom history: " + e)
                     }
                 }
-                loadSessions()
+
+                // Fallback & Seamless Migration:
+                var oldJson = plasmoid.configuration.chatSessionsJson || ""
+                if (oldJson !== "" && oldJson !== "[]") {
+                    loadSessions()
+                    persistSessions()
+                } else {
+                    loadSessions()
+                }
             }
             disconnectSource(sourceName)
         }

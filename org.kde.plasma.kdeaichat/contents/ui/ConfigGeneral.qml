@@ -2817,7 +2817,7 @@ KCM.SimpleKCM {
                 QQC2.TextField {
                     id: customHistoryPathField
                     Layout.fillWidth: true
-                    placeholderText: "Default (Recommended)"
+                    placeholderText: "~/.config/kdeaichat_history.json"
                 }
 
                 QQC2.Button {
@@ -2831,7 +2831,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 wrapMode: Text.Wrap
-                text: "Specify an absolute file path (e.g. <b>~/.config/kdeaichat_history.json</b>) or click <b>Browse...</b> to select a custom directory to save your chat logs. Leave blank to use the standard KDE Plasma configuration storage (Recommended)."
+                text: "Specify an absolute file path or click <b>Browse...</b> to select a custom directory to save your chat logs. The recommended default path is <b>~/.config/kdeaichat_history.json</b>."
                 opacity: 0.75
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
             }
