@@ -72,6 +72,7 @@ KCM.SimpleKCM {
     property alias cfg_openCodeStopCommand: openCodeStopCommandField.text
     property alias cfg_kwalletName: walletNameField.text
     property alias cfg_systemPrompt: systemPromptArea.text
+    property alias cfg_customHistoryPath: customHistoryPathField.text
     property string keyringStatus: ""
     property string discoveryStatus: ""
     property var pendingOps: ({
@@ -2805,6 +2806,24 @@ KCM.SimpleKCM {
                         page.discoveryStatus = "Tip: After changing the app name and pressing Apply/OK, restart plasmashell with: systemctl --user restart plasma-plasmashell.service";
 
                 }
+            }
+
+            QQC2.TextField {
+                id: customHistoryPathField
+
+                Kirigami.FormData.label: "Chat storage path:"
+                placeholderText: "Default (Recommended)"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                text: "Specify an absolute file path (e.g. <b>~/.config/kdeaichat_history.json</b>) to save your chat logs to a custom location. Leave blank to use the standard KDE Plasma configuration storage (Recommended)."
+                opacity: 0.75
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
             }
 
             RowLayout {

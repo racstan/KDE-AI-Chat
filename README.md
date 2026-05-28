@@ -244,6 +244,10 @@ KDE AI Chat offers three modes of API key storage to suit any workflow:
 
 Switch modes instantly from the settings panel — no restart needed. You can also open the config file, reload keys from disk, or launch KWallet Manager directly from the same panel.
 
+### Custom Chat History Storage Path (New in v1.2.9)
+By default, the widget persists your conversation histories inside Plasma's central containment file (`~/.config/plasma-org.kde.plasma.desktop-appletsrc`).
+If you prefer to save your chat logs to a custom location (e.g., a shared folder, backup drive, or specific file), you can enter an absolute path under **Chat storage path** in the settings panel (e.g., `~/.config/kdeaichat_history.json`). The widget will automatically synchronize all session records directly to this file, ensuring portability and full local control.
+
 ### Secure KWallet Integration
 KDE AI Chat integrates natively with your desktop's secure credentials subsystem, **[KWallet](https://apps.kde.org/kwalletmanager5/)**, using secure DBus transactions (`qdbus6 org.kde.kwalletd6`). When active, it safeguards all your sensitive API keys, preventing them from being stored in plain text configuration files.
 - For complete setup instructions and troubleshooting, refer to the [KWallet Secure Storage Guide](user_manual.md#3-secure-storage-kwallet-vs-plain-configs).

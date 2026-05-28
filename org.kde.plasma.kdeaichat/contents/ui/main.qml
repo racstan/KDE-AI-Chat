@@ -83,8 +83,15 @@ PlasmoidItem {
     }
 
     Component.onCompleted: {
-        loadSessions()
         loadKWalletKeysAtStartup()
+        var customPath = (plasmoid.configuration.customHistoryPath || "").trim()
+        if (customPath !== "") {
+            var escapedPath = customPath.replace(/'/g, "'\\''")
+            var readCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\""
+            customStorageDs.connectSource(readCmd)
+        } else {
+            loadSessions()
+        }
     }
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp)
@@ -1437,8 +1444,17 @@ PlasmoidItem {
     }
 
     function persistSessions() {
-        plasmoid.configuration.chatSessionsJson = JSON.stringify(root.sessions)
+        var jsonStr = JSON.stringify(root.sessions)
+        plasmoid.configuration.chatSessionsJson = jsonStr
         plasmoid.configuration.lastSessionId = root.currentSessionId
+
+        var customPath = (plasmoid.configuration.customHistoryPath || "").trim()
+        if (customPath !== "") {
+            var b64Str = Qt.btoa(jsonStr)
+            var escapedPath = customPath.replace(/'/g, "'\\''")
+            var writeCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()\""
+            customStorageDs.connectSource(writeCmd)
+        }
     }
 
     function sortSessionsByUpdated() {
@@ -3624,6 +3640,44 @@ PlasmoidItem {
 
             files[matchedIndex] = fileObj
             root.attachedFiles = files
+            disconnectSource(sourceName)
+        }
+    }
+
+    P5Support.DataSource {
+        id: customStorageDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var exitCode = data["exit code"]
+            var stdout = data["stdout"] || ""
+            if (sourceName.indexOf("open(path, 'rb').read()") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    try {
+                        var jsonStr = Qt.atob(stdout.trim())
+                        var arr = JSON.parse(jsonStr)
+                        if (Array.isArray(arr)) {
+                            root.sessions = arr
+                            root.sessions = parseSessions()
+                            if (root.sessions.length === 0)
+                                createSession(true)
+                            var preferred = plasmoid.configuration.lastSessionId || ""
+                            var idx = sessionIndexById(preferred)
+                            if (idx < 0)
+                                idx = 0
+                            root.currentSessionId = root.sessions[idx].value
+                            root.currentSessionTitle = root.sessions[idx].text
+                            root.messages = root.sessions[idx].messages || []
+                            sortSessionsByUpdated()
+                            disconnectSource(sourceName)
+                            return
+                        }
+                    } catch (e) {
+                        console.log("Failed to parse custom history: " + e)
+                    }
+                }
+                loadSessions()
+            }
             disconnectSource(sourceName)
         }
     }
