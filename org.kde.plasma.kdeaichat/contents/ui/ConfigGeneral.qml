@@ -2589,11 +2589,13 @@ KCM.SimpleKCM {
             }
 
             Kirigami.Separator {
+                visible: !openCodeToggle.checked
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "API Key Storage"
             }
 
             QQC2.Label {
+                visible: !openCodeToggle.checked
                 Kirigami.FormData.label: "Storage mode:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2605,6 +2607,7 @@ KCM.SimpleKCM {
             QQC2.ComboBox {
                 id: storageModeCombo
 
+                visible: !openCodeToggle.checked
                 Kirigami.FormData.label: "Storage mode:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2627,7 +2630,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.Label {
-                visible: storageModeCombo.currentIndex === 0
+                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 0
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "⚠️  Your keys are held in memory only and wiped from the config file on close. You will need to re-enter them every time you restart the widget."
@@ -2636,7 +2639,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.Label {
-                visible: storageModeCombo.currentIndex === 1
+                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 1
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Config file location: ~/.config/kdeaichatrc — Keys are stored in plain text. Suitable for single-user machines where disk access is trusted."
@@ -2645,7 +2648,7 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                visible: storageModeCombo.currentIndex === 1
+                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 1
                 Kirigami.FormData.label: "Config actions:"
                 Layout.fillWidth: true
 
@@ -2662,7 +2665,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.Label {
-                visible: storageModeCombo.currentIndex === 2
+                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 2
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Keys are encrypted and stored via DBus in your system KWallet. Recommended for shared or multi-user machines."
@@ -2671,7 +2674,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.ComboBox {
-                visible: kwalletModeActive && availableWalletNames.length > 0
+                visible: !openCodeToggle.checked && kwalletModeActive && availableWalletNames.length > 0
                 Kirigami.FormData.label: "Wallet name:"
                 Layout.fillWidth: true
                 model: availableWalletNames
@@ -2684,7 +2687,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.TextField {
-                visible: kwalletModeActive && availableWalletNames.length === 0
+                visible: !openCodeToggle.checked && kwalletModeActive && availableWalletNames.length === 0
                 Kirigami.FormData.label: "Wallet name:"
                 Layout.fillWidth: true
                 text: walletNameField.text
@@ -2693,7 +2696,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.Label {
-                visible: kwalletModeActive && availableWalletNames.length > 0
+                visible: !openCodeToggle.checked && kwalletModeActive && availableWalletNames.length > 0
                 Kirigami.FormData.label: "Detected wallets:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2703,7 +2706,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.Label {
-                visible: kwalletModeActive
+                visible: !openCodeToggle.checked && kwalletModeActive
                 Kirigami.FormData.label: "Wallet info:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2713,7 +2716,7 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                visible: kwalletModeActive
+                visible: !openCodeToggle.checked && kwalletModeActive
                 Kirigami.FormData.label: "Wallet actions:"
                 Layout.fillWidth: true
 
@@ -2745,7 +2748,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.Button {
-                visible: kwalletModeActive
+                visible: !openCodeToggle.checked && kwalletModeActive
                 Kirigami.FormData.label: "Wallet status:"
                 text: "Check wallet status"
                 enabled: !keyringBusy
@@ -2757,7 +2760,7 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                visible: kwalletModeActive
+                visible: !openCodeToggle.checked && kwalletModeActive
                 Kirigami.FormData.label: "KWallet sync:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2777,13 +2780,13 @@ KCM.SimpleKCM {
             }
 
             QQC2.BusyIndicator {
-                visible: kwalletModeActive && keyringBusy
+                visible: !openCodeToggle.checked && kwalletModeActive && keyringBusy
                 running: visible
                 Kirigami.FormData.label: "Working:"
             }
 
             QQC2.Label {
-                visible: keyringStatus !== ""
+                visible: !openCodeToggle.checked && keyringStatus !== ""
                 Kirigami.FormData.label: "Status:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
