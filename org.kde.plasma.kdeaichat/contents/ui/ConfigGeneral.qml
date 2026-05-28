@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
+import QtQuick.Dialogs
 
 KCM.SimpleKCM {
     id: page
@@ -2808,20 +2809,29 @@ KCM.SimpleKCM {
                 }
             }
 
-            QQC2.TextField {
-                id: customHistoryPathField
-
+            RowLayout {
                 Kirigami.FormData.label: "Chat storage path:"
-                placeholderText: "Default (Recommended)"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: customHistoryPathField
+                    Layout.fillWidth: true
+                    placeholderText: "Default (Recommended)"
+                }
+
+                QQC2.Button {
+                    text: "Browse..."
+                    icon.name: "folder-open"
+                    onClicked: folderDialog.open()
+                }
             }
 
             QQC2.Label {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 wrapMode: Text.Wrap
-                text: "Specify an absolute file path (e.g. <b>~/.config/kdeaichat_history.json</b>) to save your chat logs to a custom location. Leave blank to use the standard KDE Plasma configuration storage (Recommended)."
+                text: "Specify an absolute file path (e.g. <b>~/.config/kdeaichat_history.json</b>) or click <b>Browse...</b> to select a custom directory to save your chat logs. Leave blank to use the standard KDE Plasma configuration storage (Recommended)."
                 opacity: 0.75
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
             }
@@ -2865,6 +2875,21 @@ KCM.SimpleKCM {
 
         }
 
+    }
+
+    FolderDialog {
+        id: folderDialog
+        title: "Select Chat History Directory"
+        onAccepted: {
+            var path = selectedFolder.toString()
+            if (path.indexOf("file://") === 0) {
+                path = decodeURIComponent(path.slice(7))
+            }
+            if (path.slice(-1) !== "/") {
+                path += "/"
+            }
+            customHistoryPathField.text = path + "kdeaichat_history.json"
+        }
     }
 
 }
