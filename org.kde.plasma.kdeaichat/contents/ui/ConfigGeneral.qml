@@ -1378,6 +1378,67 @@ KCM.SimpleKCM {
             //* FormLayout treats preferredWidth 0 as "unset" and uses implicitWidth — cap fields to the form instead.
             readonly property real fieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, boundedWidth)
 
+            readonly property string guideText: {
+                if (openCodeToggle.checked) {
+                    return "<b>OpenCode Setup Steps:</b><br/>" +
+                           "1. Scroll down to the <b>OpenCode</b> section.<br/>" +
+                           "2. Click <b>Start Server</b> to run your local environment.<br/>" +
+                           "3. Click <b>Check Server</b> to verify the connection status.<br/>" +
+                           "4. Select your preferred local <b>Provider</b> and <b>Model</b> from the detected dropdowns.<br/>" +
+                           "5. Click <b>Apply</b>/<b>OK</b> at the bottom to save your active layout.";
+                }
+                
+                var provider = providerBox.currentValue || "openai";
+                if (provider === "openai") {
+                    return "<b>OpenAI Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>OpenAI settings</b> and enter your <b>API Key</b> (starts with <code>sk-</code>).<br/>" +
+                           "2. Select or type your preferred <b>Model</b> (default: <code>gpt-4o</code>).<br/>" +
+                           "3. Choose an <b>API Key Storage Mode</b> at the bottom (Session, Plain config, or secure KWallet).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "anthropic") {
+                    return "<b>Anthropic Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>Anthropic settings</b> and enter your <b>API Key</b> (starts with <code>sk-ant-</code>).<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>claude-3-5-sonnet-latest</code>).<br/>" +
+                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "groq") {
+                    return "<b>Groq Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>Groq settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Select or type your preferred <b>Model</b> (e.g. <code>llama3-8b-8192</code>).<br/>" +
+                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "deepseek") {
+                    return "<b>DeepSeek Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>DeepSeek settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>deepseek-chat</code>).<br/>" +
+                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "google") {
+                    return "<b>Gemini Setup Steps:</b><br/>" +
+                           "1. Scroll down to <b>Google Gemini settings</b> and enter your <b>API Key</b>.<br/>" +
+                           "2. Choose or type your preferred <b>Model</b> (e.g. <code>gemini-1.5-pro</code>).<br/>" +
+                           "3. Choose an <b>API Key Storage Mode</b> at the bottom.<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "ollama") {
+                    return "<b>Ollama Setup Steps:</b><br/>" +
+                           "1. Ensure your local <b>Ollama Server</b> is running (default: <code>http://localhost:11434</code>).<br/>" +
+                           "2. Under <b>Ollama settings</b>, enter/verify your Base URL and model identifier (e.g. <code>llama3</code>).<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "lmstudio") {
+                    return "<b>LM Studio Setup Steps:</b><br/>" +
+                           "1. Open <b>LM Studio</b> and start the Local Server (default: <code>http://localhost:1234</code>).<br/>" +
+                           "2. Ensure a model is loaded in the LM Studio server.<br/>" +
+                           "3. Under <b>LM Studio settings</b>, type your loaded model name.<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                } else if (provider === "litellm") {
+                    return "<b>LiteLLM Proxy Setup Steps:</b><br/>" +
+                           "1. Run your local <b>LiteLLM Proxy</b>.<br/>" +
+                           "2. Under <b>LiteLLM settings</b>, enter the Base URL and model identifier.<br/>" +
+                           "3. Click <b>Apply</b>/<b>OK</b> to save and start chatting!";
+                }
+                return "<b>Setup Steps:</b> Select your preferred Provider, fill in the API keys, choose a storage method, and click Apply/OK to start chatting!";
+            }
+
             x: 0
             clip: true
             scale: page.configZoom
@@ -1385,6 +1446,47 @@ KCM.SimpleKCM {
             //* Single column: wideMode uses implicitWidth for grid width and centers it, which clips labels in narrow config dialogs.
             wideMode: false
             width: boundedWidth
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.gridUnit
+                
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: "Interactive Guide"
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: guideLayout.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+                    border.width: 1
+
+                    RowLayout {
+                        id: guideLayout
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.gridUnit * 0.6
+                        spacing: Kirigami.Units.smallSpacing
+
+                        Kirigami.Icon {
+                            source: "help-hint"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                            Layout.alignment: Qt.AlignTop
+                        }
+
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: formLayout.guideText
+                            wrapMode: Text.Wrap
+                            textFormat: Text.RichText
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                            color: Kirigami.Theme.textColor
+                        }
+                    }
+                }
+            }
 
             ColumnLayout {
                 Kirigami.FormData.label: "Appearance:"
