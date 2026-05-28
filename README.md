@@ -8,36 +8,6 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ### 📸 Showcase & Feature Walkthrough
 
-#### 🎥 Feature Demonstration Video (6-Part Walkthrough)
-
-See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential video demonstration of the widget's capabilities and end-to-end features:
-
-##### 🎬 Part 0: Introduction & UI Walkthrough
-*Overview of the native Qt/QML user interface, directional chat bubble layouts, and scrolling fluidities:*
-<video src=".github/assets/part_00.mp4" width="100%" controls></video>
-
-##### 🎬 Part 1: Multi-Provider & Model Selection
-*Showcases real-time searchable dropdown lists, dynamic model discovery, and 15+ built-in API providers:*
-<video src=".github/assets/part_01.mp4" width="100%" controls></video>
-
-##### 🎬 Part 2: 3-Way API Key Storage
-*Detailed walk-through of the flexible credentials vault setups — Session Only, persistent Plain Config, and secure DBus KWallet:*
-<video src=".github/assets/part_02.mp4" width="100%" controls></video>
-
-##### 🎬 Part 3: Document & File Attachments
-*Demonstration of prompt-less and multi-format file attachment parsing with drag-and-drop:*
-<video src=".github/assets/part_03.mp4" width="100%" controls></video>
-
-##### 🎬 Part 4: OpenCode Developer Bridge
-*Connecting the local OpenCode execution bridge to render structured choice buttons, code previews, and token usage diagnostics:*
-<video src=".github/assets/part_04.mp4" width="100%" controls></video>
-
-##### 🎬 Part 5: Settings Customizations & Chat Export
-*Tinkering with config canvas scaling, custom system prompts, audio chimes, and exporting threads to Markdown or text:*
-<video src=".github/assets/part_05.mp4" width="100%" controls></video>
-
----
-
 #### 🖼️ Screenshot Gallery & Walkthrough
 
 | Screenshot | Feature & Explanation |
@@ -65,6 +35,36 @@ See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential vid
 - **🛡️ Offline & Local AI Priority**: Keyless out-of-the-box integration with offline local LLM engines (Ollama, LM Studio, LiteLLM Proxy), ensuring absolute privacy.
 - **🔍 Dynamic Model Discovery**: Auto-detects and populates model lists directly from API endpoints, featuring a real-time searchable combobox.
 - **🎨 Custom Popup Canvas Scaling**: Bottom-right drag-to-resize handle with coordinates persisted via KConfigXT backend.
+
+---
+
+#### 🎥 Feature Demonstration Video (6-Part Walkthrough)
+
+See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential video demonstration of the widget's capabilities and end-to-end features:
+
+##### 🎬 Part 0: Introduction & UI Walkthrough
+*Overview of the native Qt/QML user interface, directional chat bubble layouts, and scrolling fluidities:*
+<video src="https://github.com/user-attachments/assets/f46ac923-6602-4d05-aedc-a6a64f8fa7c8" width="100%" controls></video>
+
+##### 🎬 Part 1: Multi-Provider & Model Selection
+*Showcases real-time searchable dropdown lists, dynamic model discovery, and 15+ built-in API providers:*
+<video src="https://github.com/user-attachments/assets/6e2c8050-630a-4f1d-8efb-2d562754149f" width="100%" controls></video>
+
+##### 🎬 Part 2: 3-Way API Key Storage
+*Detailed walk-through of the flexible credentials vault setups — Session Only, persistent Plain Config, and secure DBus KWallet:*
+<video src="https://github.com/user-attachments/assets/a85601cf-f7ae-43ca-9c06-6eb78595d651" width="100%" controls></video>
+
+##### 🎬 Part 3: Document & File Attachments
+*Demonstration of prompt-less and multi-format file attachment parsing with drag-and-drop:*
+<video src="https://github.com/user-attachments/assets/8b93e6da-b40b-46f9-88f8-18be440bb6af" width="100%" controls></video>
+
+##### 🎬 Part 4: OpenCode Developer Bridge
+*Connecting the local OpenCode execution bridge to render structured choice buttons, code previews, and token usage diagnostics:*
+<video src="https://github.com/user-attachments/assets/c9a62f2b-240d-40ea-b785-e118f43c9780" width="100%" controls></video>
+
+##### 🎬 Part 5: Settings Customizations & Chat Export
+*Tinkering with config canvas scaling, custom system prompts, audio chimes, and exporting threads to Markdown or text:*
+<video src="https://github.com/user-attachments/assets/3c65c3e9-b96d-482c-a471-9c54c5abc9fb" width="100%" controls></video>
 
 ---
 
@@ -133,24 +133,31 @@ KDE-AI-Chat/
 ├── .gitignore                    # Git file tracking safety guard
 ├── install.sh                    # One-click developer clean-reinstall script
 ├── audit.md                      # Detailed technical audit report
-├── SETUP.md                      # End-user credentials & provider setup guide
-└── FORUSER.md                    # Release and publishing runbook
+└── SETUP.md                      # End-user credentials & provider setup guide
 ```
 
 ---
 
 ## Installation
 
-You can install **KDE AI Chat** either directly through your desktop interface (recommended for general users) or build it directly from source (for developers and power users).
+You can install **KDE AI Chat** directly via the KDE Store, through your Plasma desktop interface, or build it directly from source for custom developer options.
 
-### Option 1: Native Desktop Installation (Recommended)
+### Option 1: Web Browser Download (KDE Store)
+1. Open the official **[KDE Store Page for KDE AI Chat](https://store.kde.org/p/2360152/)**.
+2. Click the **Download** button on the right to download the pre-compiled `.plasmoid` bundle package.
+3. Install the package using the native Plasma widget installer or via terminal:
+   ```bash
+   kpackagetool6 -i /path/to/downloaded-package.plasmoid
+   ```
+
+### Option 2: Native Desktop Installation (GUI)
 1. Right-click your desktop background or the Plasma panel and select **Add Widgets...**
 2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
 3. In the search box, search for **"KDE AI Chat"** and click **Install**.
 
 *This automatically fetches and registers the pre-compiled, verified release package from the KDE Store.*
 
-### Option 2: Clone and Install from Source (For Developers)
+### Option 3: Clone and Install from Source (For Developers)
 If you want to run the latest development build or customize the source files:
 1. Clone the open-source repository:
    ```bash
@@ -182,7 +189,7 @@ For detailed analysis, refer to the [Technical Audit Report](audit.md).
 
 ## Build & Publishing Flow (For Developers)
 
-For developers packaging the widget from local sources, standard procedures are detailed in the [Release Operator Playbook](FORUSER.md). Building the distribution archive requires zipping the QML package structure:
+For developers packaging the widget from local sources, building the distribution archive requires zipping the QML package structure:
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
@@ -241,7 +248,6 @@ Turn your chat interface into an interactive code execution workspace with the n
 - [User Operations Manual & FAQ](user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
 - [End-User Setup & API Keys Guide](SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all supported providers.
 - [Technical Audit & Code Quality Report](audit.md) — Detailed results of the May 2026 quality assurance audit.
-- [Release Operator Playbook](FORUSER.md) — Bumping versioning, tag management, and release steps.
 
 ---
 
