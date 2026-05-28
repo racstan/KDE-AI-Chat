@@ -217,7 +217,7 @@
       <default>[]</default>
     </entry>
     <entry name="customHistoryPath" type="String">
-      <default>~/.config/kdeaichat_history.json</default>
+      <default>~/.config</default>
     </entry>
     <entry name="lastSessionId" type="String">
       <default></default>

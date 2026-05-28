@@ -1153,6 +1153,7 @@ KCM.SimpleKCM {
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
         walletNameField.text = availableWalletNames.length > 0 ? availableWalletNames[0] : "kdewallet";
         systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
+        customHistoryPathField.text = "~/.config";
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
         openCodeModelCandidates = [];
@@ -2915,14 +2916,14 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                Kirigami.FormData.label: "Chat storage path:"
+                Kirigami.FormData.label: "Chat storage path (beta):"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
 
                 QQC2.TextField {
                     id: customHistoryPathField
                     Layout.fillWidth: true
-                    placeholderText: "~/.config/kdeaichat_history.json"
+                    placeholderText: "~/.config"
                 }
 
                 QQC2.Button {
@@ -2936,7 +2937,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 wrapMode: Text.Wrap
-                text: "Specify an absolute file path or click <b>Browse...</b> to select a custom directory to save your chat logs. The recommended default path is <b>~/.config/kdeaichat_history.json</b>."
+                text: "Specify an absolute directory path or click <b>Browse...</b> to select a custom directory to save your chat logs. The system will automatically save them to a file named <b>kdeaichat_history.json</b> inside that directory. The recommended default is <b>~/.config</b>."
                 opacity: 0.75
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
             }
@@ -2990,10 +2991,10 @@ KCM.SimpleKCM {
             if (path.indexOf("file://") === 0) {
                 path = decodeURIComponent(path.slice(7))
             }
-            if (path.slice(-1) !== "/") {
-                path += "/"
+            if (path.length > 1 && path.slice(-1) === "/") {
+                path = path.slice(0, -1)
             }
-            customHistoryPathField.text = path + "kdeaichat_history.json"
+            customHistoryPathField.text = path
         }
     }
 

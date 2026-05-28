@@ -84,9 +84,17 @@ PlasmoidItem {
 
     Component.onCompleted: {
         loadKWalletKeysAtStartup()
-        var customPath = (plasmoid.configuration.customHistoryPath || "").trim()
-        if (customPath !== "") {
-            var escapedPath = customPath.replace(/'/g, "'\\''")
+        var customDir = (plasmoid.configuration.customHistoryPath || "").trim()
+        if (customDir !== "") {
+            var fullPath = customDir
+            if (!fullPath.endsWith(".json")) {
+                if (fullPath.endsWith("/")) {
+                    fullPath += "kdeaichat_history.json"
+                } else {
+                    fullPath += "/kdeaichat_history.json"
+                }
+            }
+            var escapedPath = fullPath.replace(/'/g, "'\\''")
             var readCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\""
             customStorageDs.connectSource(readCmd)
         } else {
@@ -1448,10 +1456,18 @@ PlasmoidItem {
         plasmoid.configuration.chatSessionsJson = jsonStr
         plasmoid.configuration.lastSessionId = root.currentSessionId
 
-        var customPath = (plasmoid.configuration.customHistoryPath || "").trim()
-        if (customPath !== "") {
+        var customDir = (plasmoid.configuration.customHistoryPath || "").trim()
+        if (customDir !== "") {
+            var fullPath = customDir
+            if (!fullPath.endsWith(".json")) {
+                if (fullPath.endsWith("/")) {
+                    fullPath += "kdeaichat_history.json"
+                } else {
+                    fullPath += "/kdeaichat_history.json"
+                }
+            }
             var b64Str = Qt.btoa(jsonStr)
-            var escapedPath = customPath.replace(/'/g, "'\\''")
+            var escapedPath = fullPath.replace(/'/g, "'\\''")
             var writeCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()\""
             customStorageDs.connectSource(writeCmd)
         }
