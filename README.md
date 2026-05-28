@@ -8,19 +8,33 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ### 📸 Showcase & Feature Walkthrough
 
-#### 🎥 Feature Demonstration Video (Two-Part Walkthrough)
+#### 🎥 Feature Demonstration Video (6-Part Walkthrough)
 
-See **KDE AI Chat** in action! Below is a detailed walkthrough of the widget's capabilities, split into two sequential parts. Viewers are advised to watch the continuation in **Part 2** immediately after finishing **Part 1**:
+See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential video demonstration of the widget's capabilities and end-to-end features:
 
-##### 🎬 Part 1: Core Interface, Model Selection & Secure Key Setup
-*Showcases interactive provider and model switching, local offline prioritizing, and secure native KWallet integration:*
+##### 🎬 Part 0: Introduction & UI Walkthrough
+*Overview of the native Qt/QML user interface, directional chat bubble layouts, and scrolling fluidities:*
+<video src=".github/assets/part_00.mp4" width="100%" controls></video>
 
-<video src="https://github.com/user-attachments/assets/b0af2ca7-f556-469e-a136-3006f8ee582f" width="100%" controls></video>
+##### 🎬 Part 1: Multi-Provider & Model Selection
+*Showcases real-time searchable dropdown lists, dynamic model discovery, and 15+ built-in API providers:*
+<video src=".github/assets/part_01.mp4" width="100%" controls></video>
 
-##### 🎬 Part 2: OpenCode Developer Bridge, Document Attachments & Scaling Customization
-*Continuation detailing chat session management, document and multi-format attachment analysis, settings tuning, and local OpenCode developer execution:*
+##### 🎬 Part 2: 3-Way API Key Storage
+*Detailed walk-through of the flexible credentials vault setups — Session Only, persistent Plain Config, and secure DBus KWallet:*
+<video src=".github/assets/part_02.mp4" width="100%" controls></video>
 
-<video src="https://github.com/user-attachments/assets/32d8b39e-7357-4543-ab97-7834031f5f40" width="100%" controls></video>
+##### 🎬 Part 3: Document & File Attachments
+*Demonstration of prompt-less and multi-format file attachment parsing with drag-and-drop:*
+<video src=".github/assets/part_03.mp4" width="100%" controls></video>
+
+##### 🎬 Part 4: OpenCode Developer Bridge
+*Connecting the local OpenCode execution bridge to render structured choice buttons, code previews, and token usage diagnostics:*
+<video src=".github/assets/part_04.mp4" width="100%" controls></video>
+
+##### 🎬 Part 5: Settings Customizations & Chat Export
+*Tinkering with config canvas scaling, custom system prompts, audio chimes, and exporting threads to Markdown or text:*
+<video src=".github/assets/part_05.mp4" width="100%" controls></video>
 
 ---
 
@@ -172,7 +186,7 @@ For developers packaging the widget from local sources, standard procedures are 
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kdeaichat-v1.2.7.plasmoid" org.kde.plasma.kdeaichat \
+zip -r "dist/org.kde.plasma.kdeaichat-v1.2.8.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
 

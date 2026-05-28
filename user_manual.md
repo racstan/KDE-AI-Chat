@@ -210,7 +210,7 @@ Export any conversation to a file directly from the chat toolbar.
 **A**: Plain keys are saved to `~/.config/kdeaichatrc`. You can open this file directly from the Settings panel using the **Open Config File** button, or reload it with **Reload from Config**.
 
 ### Q: The config file was blank when I opened it — why?
-**A**: This was a known bug in older versions where KConfig's in-memory cache hadn't been flushed to disk yet. It is fully fixed in v1.2.7 — the widget now writes to disk synchronously before opening the file.
+**A**: This was a known bug in older versions where KConfig's in-memory cache hadn't been flushed to disk yet. It is fully fixed in v1.2.8 — the widget now writes to disk synchronously before opening the file.
 
 ### Q: Do I need an API key for Ollama / LM Studio / LiteLLM?
 **A**: No. Ollama, LM Studio, and the local provider are keyless by default. LiteLLM Proxy is also keyless unless your specific proxy configuration requires authentication.

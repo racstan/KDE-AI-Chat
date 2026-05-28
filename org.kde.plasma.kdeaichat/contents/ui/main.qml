@@ -273,11 +273,11 @@ PlasmoidItem {
                 }
 
                 PC3.ToolButton {
-                    visible: !root.historyOnlyMode && root.messages.length > 0
+                    visible: !root.historyOnlyMode
                     icon.name: "edit-clear-all"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "Clear current chat history"
-                    enabled: !root.loading
+                    enabled: !root.loading && root.messages.length > 0
                     onClicked: {
                         root.messages = []
                         root.editingMessageIndex = -1

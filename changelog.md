@@ -5,6 +5,19 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.8] - 2026-05-28
+
+### Added
+- **6-Part Demonstration Walkthrough Videos**: Replaced the outdated 2-part walkthrough with a brand new, highly comprehensive 6-part video walkthrough series under `.github/assets/` spanning all widget capabilities.
+
+### Fixed
+- **API Key Config Save Fix**: Resolved a critical race condition in the KCM initialization lifecycle where empty API key values were flushed over user credentials before `cfg_` aliases fully loaded.
+- **Settings Auto-Save & Cleanup**: Removed the redundant manual "Save keys to config file" action button; keys are now fully auto-saved on switch and when closing/destroying the settings panel.
+- **Always-Visible Clear Chat Button**: Kept the "Clear current chat history" button visible at all times in the chat view to prevent header layout shifting, disabling it dynamically when there are no messages to clear.
+- **Repository Streamlining & Clean Packaging**: Purged unused development assets and the deprecated scratchpad file `scratch_config_v126.qml` from the root directory.
+
+---
+
 ## [1.2.7] - 2026-05-27
 
 ### Added
