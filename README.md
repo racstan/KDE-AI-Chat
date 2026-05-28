@@ -24,16 +24,17 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 ## Key Features
 
 - **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
-- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy.
+- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy (Beta).
 - **🔑 3-Way API Key Storage**: Choose between **Session Only** (keys live in memory), **Plain Config** (saved to `~/.config/kdeaichatrc`), or **Secure KWallet** (native DBus-encrypted storage). Open, reload, or clear the config file directly from the settings panel.
 - **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
 
 - **🌳 Conversation Forking (Branch Editing)**: Editing any older user message automatically deletes subsequent logs and forks the branch as a fresh request, maintaining clean conversation histories.
 - **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
-- **📊 Token Usage & Cost Diagnostics**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
+- **📊 Token Usage & Cost Diagnostics (Beta)**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
 - **⚡ Ultra-Stable Scrolling**: Features huge caching (`cacheBuffer`) and mouse wheel/scrollbar interaction hooks to eliminate scroll layout jumping and auto-snap collisions.
 - **🛡️ Offline & Local AI Priority**: Keyless out-of-the-box integration with offline local LLM engines (Ollama, LM Studio, LiteLLM Proxy), ensuring absolute privacy.
 - **🔍 Dynamic Model Discovery**: Auto-detects and populates model lists directly from API endpoints, featuring a real-time searchable combobox.
+- **🛡️ OpenCode Developer Bridge (Beta)**: Establish a local connection bridge to your OpenCode workspace and interact with the widget just like the OpenCode CLI. If you have MCPs, custom providers, or skills configured in OpenCode, you can utilize them directly here—enabling you to write/debug code, run web searches, and execute complex local developer workflows directly from your Plasma panel (active development).
 - **🎨 Custom Popup Canvas Scaling**: Bottom-right drag-to-resize handle with coordinates persisted via KConfigXT backend.
 
 ---
@@ -94,7 +95,7 @@ Export any conversation to a file from the chat toolbar:
 - Exported files use full **UTF-8 encoding** and include a formatted header with the export timestamp.
 - Messages are cleanly formatted with role labels, timestamps, and proper wrapping.
 
-### 🔗 LiteLLM Proxy Support
+### 🔗 LiteLLM Proxy Support (Beta)
 LiteLLM Proxy has been added as a fully supported provider:
 - Connects to any LiteLLM-compatible proxy server (default: `http://localhost:4000/v1`).
 - API key is optional — works with keyless local proxy setups.
