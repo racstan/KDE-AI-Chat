@@ -1503,25 +1503,24 @@ KCM.SimpleKCM {
             readonly property real fieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, boundedWidth)
 
             readonly property string guideText: {
-                if (openCodeToggle.checked) {
-                    return "<b>OpenCode Mode Guide:</b><br/>" +
-                           "1. Tick <b>Enable OpenCode mode</b> (this checkbox).<br/>" +
-                           "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" +
-                           "3. Click <b>Start Server</b> to launch OpenCode in the background.<br/>" +
-                           "4. Click <b>Check Server</b> to verify it is running.<br/>" +
-                           "5. Once online, the <b>Providers</b> and <b>Models</b> dropdowns will populate — select your preferred ones.<br/>" +
-                           "6. Click <b>Apply</b>/<b>OK</b> to save and start chatting.";
-                }
                 return "<b>Appearance, Language &amp; Notifications Guide:</b><br/>" +
                        "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" +
                        "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" +
                        "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" +
                        "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" +
-                       "• <b>OpenCode mode:</b> Tick <b>Enable OpenCode mode</b> to switch to a local AI coding agent — cloud provider fields are hidden in this mode.<br/>" +
                        "• <b>User Memory:</b> In the <b>Behavior</b> section, enable <b>User Memory</b> and write facts (your name, preferences, context) the AI should always remember — injected into every prompt.";
             }
 
             readonly property string providerGuideText: {
+                if (openCodeToggle.checked) {
+                    return "<b>OpenCode Setup Guide:</b><br/>" +
+                           "1. Select <b>OpenCode Mode (Local Coding Server)</b> under Operating Mode.<br/>" +
+                           "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" +
+                           "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" +
+                           "4. Click <b>Check Server</b> to verify it is online.<br/>" +
+                           "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" +
+                           "6. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.";
+                }
                 var provider = providerBox.currentValue || "openai";
                 if (provider === "openai") {
                     return "<b>OpenAI Setup Guide:</b><br/>" +
@@ -1850,16 +1849,60 @@ KCM.SimpleKCM {
                 text: "Shows contextual setup guides in the settings panel to help you configure providers, API keys, and features."
             }
 
+
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: "Provider & Mode"
+            }
+
+            QQC2.CheckBox {
+                id: normalModeToggle
+
+                Kirigami.FormData.label: "Operating mode:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: "Normal Mode (Cloud API Providers)"
+                checked: !openCodeToggle.checked
+
+                onClicked: {
+                    if (checked) {
+                        openCodeToggle.checked = false;
+                    } else {
+                        checked = true;
+                    }
+                }
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Use cloud-based Large Language Models (OpenAI, Anthropic, Gemini, Groq, DeepSeek, etc.). You can configure API keys and select models below."
+            }
+
             QQC2.CheckBox {
                 id: openCodeToggle
 
-                Kirigami.FormData.label: "OpenCode mode:"
+                Kirigami.FormData.label: ""
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "Enable OpenCode mode"
+                text: "OpenCode Mode (Local Coding Server)"
+
+                onClicked: {
+                    if (checked) {
+                        normalModeToggle.checked = false;
+                    } else {
+                        checked = true;
+                    }
+                }
+
                 onCheckedChanged: {
                     if (checked) {
+                        normalModeToggle.checked = false;
                         checkAndAutoStartOpenCodeServer();
                     } else {
+                        normalModeToggle.checked = true;
                         if (cfg_keyStorageMode === 2 && availableWalletNames.length === 0)
                             detectWallets();
                     }
@@ -1872,21 +1915,15 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: "Switches to a fully local AI coding agent via OpenCode. All cloud provider fields are hidden when this is active."
-            }
-
-            Kirigami.Separator {
-                visible: !openCodeToggle.checked
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: "Provider"
+                text: "Use your local offline OpenCode agent server for secure, private developer assistance and system scripting without sending data to the cloud."
             }
 
             RowLayout {
-                visible: !openCodeToggle.checked && showGuidesToggle.checked
+                visible: showGuidesToggle.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
-                Kirigami.FormData.label: "Provider Guide"
+                Kirigami.FormData.label: openCodeToggle.checked ? "OpenCode Guide" : "Provider Guide"
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: providerGuideLayout.implicitHeight + Kirigami.Units.gridUnit
