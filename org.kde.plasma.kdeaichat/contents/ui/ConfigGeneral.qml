@@ -3251,6 +3251,7 @@ KCM.SimpleKCM {
                 id: systemPromptScrollView
 
                 Kirigami.FormData.label: "System prompt:"
+                implicitHeight: Kirigami.Units.gridUnit * 5
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 5
@@ -3306,6 +3307,7 @@ KCM.SimpleKCM {
                 id: userMemoryScrollView
 
                 visible: memoryEnabledToggle.checked
+                implicitHeight: Kirigami.Units.gridUnit * 6
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 6
