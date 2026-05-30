@@ -3420,7 +3420,7 @@ PlasmoidItem {
             }
 
             RowLayout {
-                visible: !root.historyOnlyMode && root.openCodeMode
+                visible: !root.historyOnlyMode && root.openCodeMode && root.messages.length > 0
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
 
