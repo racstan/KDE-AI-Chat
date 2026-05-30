@@ -64,6 +64,21 @@ KCM.SimpleKCM {
     property alias cfg_litellmBaseUrl: litellmBaseUrlField.text
     property alias cfg_litellmApiKey: litellmApiKeyField.text
     property alias cfg_litellmModel: litellmModelField.text
+    property alias cfg_qwenBaseUrl: qwenBaseUrlField.text
+    property alias cfg_qwenApiKey: qwenApiKeyField.text
+    property alias cfg_qwenModel: qwenModelField.text
+    property alias cfg_moonshotBaseUrl: moonshotBaseUrlField.text
+    property alias cfg_moonshotApiKey: moonshotApiKeyField.text
+    property alias cfg_moonshotModel: moonshotModelField.text
+    property alias cfg_mimoBaseUrl: mimoBaseUrlField.text
+    property alias cfg_mimoApiKey: mimoApiKeyField.text
+    property alias cfg_mimoModel: mimoModelField.text
+    property alias cfg_maritacaBaseUrl: maritacaBaseUrlField.text
+    property alias cfg_maritacaApiKey: maritacaApiKeyField.text
+    property alias cfg_maritacaModel: maritacaModelField.text
+    property alias cfg_language: languageCombo.currentValue
+    property alias cfg_showInteractiveGuides: showGuidesToggle.checked
+    property alias cfg_autoStartOpenCodeServer: autoStartOpenCodeToggle.checked
     property alias cfg_useOpenCode: openCodeToggle.checked
     property alias cfg_playNotificationSound: playSoundToggle.checked
     property alias cfg_openCodeUrl: openCodeUrlField.text
@@ -73,6 +88,8 @@ KCM.SimpleKCM {
     property alias cfg_openCodeStopCommand: openCodeStopCommandField.text
     property alias cfg_kwalletName: walletNameField.text
     property alias cfg_systemPrompt: systemPromptArea.text
+    property alias cfg_memoryEnabled: memoryEnabledToggle.checked
+    property alias cfg_userMemory: userMemoryArea.text
     property alias cfg_customHistoryPath: customHistoryPathField.text
     property string keyringStatus: ""
     property string discoveryStatus: ""
@@ -436,6 +453,42 @@ KCM.SimpleKCM {
                 "modelField": litellmModelField
             };
 
+        if (p === "qwen")
+            return {
+                "id": p,
+                "type": "openai-compat",
+                "baseUrl": qwenBaseUrlField.text,
+                "apiKey": qwenApiKeyField.text,
+                "modelField": qwenModelField
+            };
+
+        if (p === "moonshot")
+            return {
+                "id": p,
+                "type": "openai-compat",
+                "baseUrl": moonshotBaseUrlField.text,
+                "apiKey": moonshotApiKeyField.text,
+                "modelField": moonshotModelField
+            };
+
+        if (p === "mimo")
+            return {
+                "id": p,
+                "type": "openai-compat",
+                "baseUrl": mimoBaseUrlField.text,
+                "apiKey": mimoApiKeyField.text,
+                "modelField": mimoModelField
+            };
+
+        if (p === "maritaca")
+            return {
+                "id": p,
+                "type": "openai-compat",
+                "baseUrl": maritacaBaseUrlField.text,
+                "apiKey": maritacaApiKeyField.text,
+                "modelField": maritacaModelField
+            };
+
         return {
             "id": "openai",
             "type": "openai-compat",
@@ -688,6 +741,38 @@ KCM.SimpleKCM {
 
     function refreshOpenCodeDiscovery() {
         probeOpenCodeProviders(openCodeUrlField.text);
+    }
+
+    function startOpenCodeServerAutomatically() {
+        discoveryStatus = "Starting OpenCode server automatically...";
+        var startCmd = openCodeStartCommandField.text || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 &";
+        var cmd = "sh -lc '" + shellEscape(startCmd) + "'";
+        utilityDs.connectSource(cmd + " #opencode-autostart");
+        // After a short delay, attempt discovery again
+        openCodeAutoStartTimer.restart();
+    }
+
+    function checkAndAutoStartOpenCodeServer() {
+        var url = openCodeServerRoot(openCodeUrlField.text) + "/config/providers";
+        discoveryStatus = "Checking OpenCode server...";
+        requestJson(url, {}, function(obj) {
+            // Server is already running — just do normal discovery
+            refreshOpenCodeDiscovery();
+        }, function(err) {
+            // Server not reachable — auto-start it
+            if (autoStartOpenCodeToggle.checked) {
+                startOpenCodeServerAutomatically();
+            } else {
+                discoveryStatus = "OpenCode server check failed: " + err + ". Click \"Start server\" or enable Auto-start.";
+            }
+        });
+    }
+
+    Timer {
+        id: openCodeAutoStartTimer
+        interval: 2500
+        repeat: false
+        onTriggered: refreshOpenCodeDiscovery()
     }
 
     function probeOpenCodeProviders(baseUrl) {
@@ -1071,6 +1156,21 @@ KCM.SimpleKCM {
         plasmoid.configuration.ollamaModel = ollamaModelField.text;
         plasmoid.configuration.litellmBaseUrl = litellmBaseUrlField.text;
         plasmoid.configuration.litellmModel = litellmModelField.text;
+        plasmoid.configuration.qwenBaseUrl = qwenBaseUrlField.text;
+        plasmoid.configuration.qwenApiKey = qwenApiKeyField.text;
+        plasmoid.configuration.qwenModel = qwenModelField.text;
+        plasmoid.configuration.moonshotBaseUrl = moonshotBaseUrlField.text;
+        plasmoid.configuration.moonshotApiKey = moonshotApiKeyField.text;
+        plasmoid.configuration.moonshotModel = moonshotModelField.text;
+        plasmoid.configuration.mimoBaseUrl = mimoBaseUrlField.text;
+        plasmoid.configuration.mimoApiKey = mimoApiKeyField.text;
+        plasmoid.configuration.mimoModel = mimoModelField.text;
+        plasmoid.configuration.maritacaBaseUrl = maritacaBaseUrlField.text;
+        plasmoid.configuration.maritacaApiKey = maritacaApiKeyField.text;
+        plasmoid.configuration.maritacaModel = maritacaModelField.text;
+        plasmoid.configuration.language = languageCombo.currentValue || "";
+        plasmoid.configuration.showInteractiveGuides = showGuidesToggle.checked;
+        plasmoid.configuration.autoStartOpenCodeServer = autoStartOpenCodeToggle.checked;
         plasmoid.configuration.useOpenCode = openCodeToggle.checked;
         plasmoid.configuration.playNotificationSound = playSoundToggle.checked;
         plasmoid.configuration.openCodeUrl = openCodeUrlField.text;
@@ -1080,6 +1180,8 @@ KCM.SimpleKCM {
         plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text;
         plasmoid.configuration.kwalletName = walletNameField.text;
         plasmoid.configuration.systemPrompt = systemPromptArea.text;
+        plasmoid.configuration.memoryEnabled = memoryEnabledToggle.checked;
+        plasmoid.configuration.userMemory = userMemoryArea.text;
     }
 
     function cancelKeyringOps() {
@@ -1145,6 +1247,21 @@ KCM.SimpleKCM {
         litellmBaseUrlField.text = "http://localhost:4000/v1";
         litellmApiKeyField.text = "";
         litellmModelField.text = "";
+        qwenBaseUrlField.text = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+        qwenApiKeyField.text = "";
+        qwenModelField.text = "qwen-max";
+        moonshotBaseUrlField.text = "https://api.moonshot.ai/v1";
+        moonshotApiKeyField.text = "";
+        moonshotModelField.text = "moonshot-v1-8k";
+        mimoBaseUrlField.text = "https://api.xiaomimimo.com/v1";
+        mimoApiKeyField.text = "";
+        mimoModelField.text = "mimo-v2-pro";
+        maritacaBaseUrlField.text = "https://chat.maritaca.ai/api";
+        maritacaApiKeyField.text = "";
+        maritacaModelField.text = "sabia-4";
+        languageCombo.currentIndex = 0;
+        showGuidesToggle.checked = true;
+        autoStartOpenCodeToggle.checked = false;
         openCodeToggle.checked = false;
         openCodeUrlField.text = "http://127.0.0.1:4096/v1";
         openCodeProviderValueField.text = "";
@@ -1153,6 +1270,8 @@ KCM.SimpleKCM {
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
         walletNameField.text = availableWalletNames.length > 0 ? availableWalletNames[0] : "kdewallet";
         systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
+        memoryEnabledToggle.checked = false;
+        userMemoryArea.text = "";
         customHistoryPathField.text = "~/.config";
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
@@ -1170,12 +1289,16 @@ KCM.SimpleKCM {
         // cfg_ aliases already load the Plasma-stored values automatically.
         // For KWallet mode, trigger wallet detection to populate the fields.
         // For session-only mode, wipe the fields so stale cfg values aren't used.
-        if (plasmoid.configuration.keyStorageMode === 2)
+        if (!openCodeToggle.checked && plasmoid.configuration.keyStorageMode === 2)
             detectWallets();
         else if (plasmoid.configuration.keyStorageMode === 0)
             clearAllApiKeyFields();
-        if (openCodeToggle.checked)
-            refreshOpenCodeDiscovery();
+        if (openCodeToggle.checked) {
+            if (plasmoid.configuration.autoStartOpenCodeServer)
+                checkAndAutoStartOpenCodeServer();
+            else
+                refreshOpenCodeDiscovery();
+        }
 
         // Mark page as fully initialised — cfg_ aliases are now populated.
         // Any storage-mode handler that fires before this point is a no-op
@@ -1389,10 +1512,13 @@ KCM.SimpleKCM {
                            "5. Once online, the <b>Providers</b> and <b>Models</b> dropdowns will populate — select your preferred ones.<br/>" +
                            "6. Click <b>Apply</b>/<b>OK</b> to save and start chatting.";
                 }
-                return "<b>Appearance &amp; Notifications Guide:</b><br/>" +
+                return "<b>Appearance, Language &amp; Notifications Guide:</b><br/>" +
                        "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" +
+                       "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" +
                        "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" +
-                       "• <b>OpenCode mode:</b> Tick <b>Enable OpenCode mode</b> to switch to a fully local AI coding agent — all cloud provider fields will be hidden.";
+                       "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" +
+                       "• <b>OpenCode mode:</b> Tick <b>Enable OpenCode mode</b> to switch to a local AI coding agent — cloud provider fields are hidden in this mode.<br/>" +
+                       "• <b>User Memory:</b> In the <b>Behavior</b> section, enable <b>User Memory</b> and write facts (your name, preferences, context) the AI should always remember — injected into every prompt.";
             }
 
             readonly property string providerGuideText: {
@@ -1504,6 +1630,31 @@ KCM.SimpleKCM {
                            "3. Enter the proxy URL in the <b>LiteLLM URL</b> field below (default: <code>http://localhost:4000</code>).<br/>" +
                            "4. Enter the model identifier in the <b>LiteLLM model</b> field.<br/>" +
                            "5. Click <b>Apply</b>/<b>OK</b> to save.";
+                 } else if (provider === "qwen") {
+                    return "<b>Qwen (Alibaba Cloud) Setup Guide:</b><br/>" +
+                           "1. Register at <b>dashscope.aliyuncs.com</b> and go to <b>API Keys</b>.<br/>" +
+                           "2. Paste your key into the <b>Qwen key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>qwen-max</code>, <code>qwen-plus</code>, <code>qwen-turbo</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                } else if (provider === "moonshot") {
+                    return "<b>Moonshot AI (Kimi) Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>platform.moonshot.cn → API Keys</b>.<br/>" +
+                           "2. Paste it into the <b>Moonshot key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>moonshot-v1-8k</code>, <code>moonshot-v1-32k</code>, <code>moonshot-v1-128k</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                } else if (provider === "mimo") {
+                    return "<b>MiMo (Xiaomi) Setup Guide:</b><br/>" +
+                           "1. Get access at <b>api.xiaomimimo.com</b> and copy your API key.<br/>" +
+                           "2. Paste it into the <b>MiMo key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>mimo-v2-pro</code>, <code>mimo-v2</code>).<br/>" +
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                } else if (provider === "maritaca") {
+                    return "<b>Maritaca AI (Sabiá) Setup Guide:</b><br/>" +
+                           "1. Get your API key at <b>chat.maritaca.ai → Settings → API Keys</b>.<br/>" +
+                           "2. Paste it into the <b>Maritaca key</b> field below.<br/>" +
+                           "3. Choose a model (e.g. <code>sabia-4</code> — optimised for Portuguese).<br/>" +
+                           "4. The default URL <code>https://chat.maritaca.ai/api</code> is correct — do not change it.<br/>" +
+                           "5. Click <b>Apply</b>/<b>OK</b> to save.";
                 }
                 return "<b>Provider Setup Guide:</b> Select a provider from the <b>Default provider</b> dropdown above to see setup instructions.";
             }
@@ -1549,10 +1700,10 @@ KCM.SimpleKCM {
             width: boundedWidth
 
             RowLayout {
+                visible: showGuidesToggle.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
-                
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "General Guide"
 
@@ -1609,7 +1760,57 @@ KCM.SimpleKCM {
                     wrapMode: Text.Wrap
                     opacity: 0.72
                     font: Kirigami.Theme.smallFont
-                    text: "Light mode and Dark mode pin the widget to bright UI with dark text or dark UI with light text. Follow system uses your Plasma colors and updates with the desktop theme. Note: These appearance themes apply only to the chat widget popup; they do not apply to this settings page itself, which is styled by the system host settings."
+                    text: "Controls the color theme of the chat popup. Follow system tracks your Plasma theme automatically."
+                }
+
+            }
+
+            ColumnLayout {
+                Kirigami.FormData.label: "Language:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.ComboBox {
+                    id: languageCombo
+
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: formLayout.fieldMaxWidth
+                    textRole: "text"
+                    valueRole: "value"
+                    model: [
+                        { "value": "", "text": "Follow system language" },
+                        { "value": "en", "text": "English" },
+                        { "value": "ar", "text": "Arabic (عربي)" },
+                        { "value": "zh", "text": "Chinese (中文)" },
+                        { "value": "fr", "text": "French (Français)" },
+                        { "value": "de", "text": "German (Deutsch)" },
+                        { "value": "hi", "text": "Hindi (हिंदी)" },
+                        { "value": "it", "text": "Italian (Italiano)" },
+                        { "value": "ja", "text": "Japanese (日本語)" },
+                        { "value": "pt", "text": "Portuguese (Português)" },
+                        { "value": "ru", "text": "Russian (Русский)" },
+                        { "value": "es", "text": "Spanish (Español)" }
+                    ]
+                    Component.onCompleted: {
+                        var saved = plasmoid.configuration.language || "";
+                        for (var i = 0; i < model.length; i++) {
+                            if (model[i].value === saved) {
+                                currentIndex = i;
+                                return;
+                            }
+                        }
+                        currentIndex = 0;
+                    }
+                }
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: formLayout.fieldMaxWidth
+                    wrapMode: Text.Wrap
+                    opacity: 0.72
+                    font: Kirigami.Theme.smallFont
+                    text: "Changes the UI language of the settings panel and the chat widget. 'Follow system language' uses your system locale."
                 }
 
             }
@@ -1617,9 +1818,36 @@ KCM.SimpleKCM {
             QQC2.CheckBox {
                 id: playSoundToggle
 
+
                 Kirigami.FormData.label: "Notification sound:"
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Play sound when AI finishes a response"
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Plays a short chime when the AI finishes generating a response."
+            }
+
+            QQC2.CheckBox {
+                id: showGuidesToggle
+
+                Kirigami.FormData.label: "Interactive guides:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: "Turn on interactive guides (Recommended)"
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Shows contextual setup guides in the settings panel to help you configure providers, API keys, and features."
             }
 
             QQC2.CheckBox {
@@ -1629,10 +1857,22 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Enable OpenCode mode"
                 onCheckedChanged: {
-                    if (checked)
-                        refreshOpenCodeDiscovery();
-
+                    if (checked) {
+                        checkAndAutoStartOpenCodeServer();
+                    } else {
+                        if (cfg_keyStorageMode === 2 && availableWalletNames.length === 0)
+                            detectWallets();
+                    }
                 }
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Switches to a fully local AI coding agent via OpenCode. All cloud provider fields are hidden when this is active."
             }
 
             Kirigami.Separator {
@@ -1642,7 +1882,7 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                visible: !openCodeToggle.checked
+                visible: !openCodeToggle.checked && showGuidesToggle.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
@@ -1737,6 +1977,18 @@ KCM.SimpleKCM {
                 }, {
                     "value": "litellm",
                     "text": "LiteLLM Proxy"
+                }, {
+                    "value": "qwen",
+                    "text": "Qwen (Alibaba)"
+                }, {
+                    "value": "moonshot",
+                    "text": "Moonshot AI"
+                }, {
+                    "value": "mimo",
+                    "text": "Xiaomi MiMo"
+                }, {
+                    "value": "maritaca",
+                    "text": "Maritaca AI"
                 }]
                 onActivated: {
                     providerModelCandidates = [];
@@ -1802,9 +2054,14 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "Status:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: discoveryStatus
+                text: {
+                    if (discoveryStatus.indexOf("check failed") >= 0 || discoveryStatus.indexOf("error") >= 0 || discoveryStatus.indexOf("Network error") >= 0)
+                        return discoveryStatus + (openCodeToggle.checked ? " → Click \"Start server\" or \"Refresh\" to retry." : "");
+                    return discoveryStatus;
+                }
                 wrapMode: Text.Wrap
                 opacity: 0.8
+                color: (discoveryStatus.indexOf("check failed") >= 0 || discoveryStatus.indexOf("error") >= 0 || discoveryStatus.indexOf("Network error") >= 0) ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
             }
 
             Kirigami.Separator {
@@ -1821,6 +2078,35 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "http://127.0.0.1:4096/v1"
+            }
+
+            QQC2.Label {
+                visible: openCodeToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Address of the running OpenCode server. Default: http://127.0.0.1:4096/v1."
+            }
+
+            QQC2.CheckBox {
+                id: autoStartOpenCodeToggle
+
+                visible: openCodeToggle.checked
+                Kirigami.FormData.label: "Auto-start server:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: "Automatically start OpenCode when settings open"
+            }
+
+            QQC2.Label {
+                visible: openCodeToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Runs the start command automatically each time the settings panel is opened (uses the Start command below)."
             }
 
             Flow {
@@ -2812,6 +3098,150 @@ KCM.SimpleKCM {
                 placeholderText: "gpt-4o-mini"
             }
 
+            /* ── Qwen (Alibaba Cloud) ── */
+            QQC2.TextField {
+                id: qwenBaseUrlField
+                visible: page.providerModelVisible("qwen")
+                Kirigami.FormData.label: "Qwen URL:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+            }
+            QQC2.TextField {
+                id: qwenApiKeyField
+                visible: page.providerModelVisible("qwen")
+                Kirigami.FormData.label: "Qwen key:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "sk-..."
+                echoMode: TextInput.Password
+            }
+            QQC2.Label {
+                visible: page.providerModelVisible("qwen")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Get your API key at dashscope.aliyuncs.com. Supports qwen-max, qwen-plus, qwen-turbo."
+            }
+            QQC2.TextField {
+                id: qwenModelField
+                visible: page.providerModelVisible("qwen")
+                Kirigami.FormData.label: "Qwen model:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "qwen-max"
+            }
+
+            /* ── Moonshot AI ── */
+            QQC2.TextField {
+                id: moonshotBaseUrlField
+                visible: page.providerModelVisible("moonshot")
+                Kirigami.FormData.label: "Moonshot URL:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.moonshot.ai/v1"
+            }
+            QQC2.TextField {
+                id: moonshotApiKeyField
+                visible: page.providerModelVisible("moonshot")
+                Kirigami.FormData.label: "Moonshot key:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "sk-..."
+                echoMode: TextInput.Password
+            }
+            QQC2.Label {
+                visible: page.providerModelVisible("moonshot")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Get your API key at platform.moonshot.ai. Supports moonshot-v1-8k, moonshot-v1-32k."
+            }
+            QQC2.TextField {
+                id: moonshotModelField
+                visible: page.providerModelVisible("moonshot")
+                Kirigami.FormData.label: "Moonshot model:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "moonshot-v1-8k"
+            }
+
+            /* ── Xiaomi MiMo ── */
+            QQC2.TextField {
+                id: mimoBaseUrlField
+                visible: page.providerModelVisible("mimo")
+                Kirigami.FormData.label: "MiMo URL:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.xiaomimimo.com/v1"
+            }
+            QQC2.TextField {
+                id: mimoApiKeyField
+                visible: page.providerModelVisible("mimo")
+                Kirigami.FormData.label: "MiMo key:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "sk-..."
+                echoMode: TextInput.Password
+            }
+            QQC2.Label {
+                visible: page.providerModelVisible("mimo")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Get your API key at xiaomimimo.com. Supports mimo-v2-pro and other MiMo models."
+            }
+            QQC2.TextField {
+                id: mimoModelField
+                visible: page.providerModelVisible("mimo")
+                Kirigami.FormData.label: "MiMo model:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "mimo-v2-pro"
+            }
+
+            /* ── Maritaca AI ── */
+            QQC2.TextField {
+                id: maritacaBaseUrlField
+                visible: page.providerModelVisible("maritaca")
+                Kirigami.FormData.label: "Maritaca URL:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://chat.maritaca.ai/api"
+            }
+            QQC2.TextField {
+                id: maritacaApiKeyField
+                visible: page.providerModelVisible("maritaca")
+                Kirigami.FormData.label: "Maritaca key:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "Enter your Maritaca API key"
+                echoMode: TextInput.Password
+            }
+            QQC2.Label {
+                visible: page.providerModelVisible("maritaca")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Get your API key at chat.maritaca.ai. Default model: sabia-4 (Portuguese-optimised)."
+            }
+            QQC2.TextField {
+                id: maritacaModelField
+                visible: page.providerModelVisible("maritaca")
+                Kirigami.FormData.label: "Maritaca model:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "sabia-4"
+            }
+
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "Behavior"
@@ -2827,6 +3257,71 @@ KCM.SimpleKCM {
                 placeholderText: "You are KDE AI Chat, a precise and helpful assistant."
             }
 
+            QQC2.Label {
+                Kirigami.FormData.label: ""
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Sets a default instruction sent to the AI at the start of every conversation. Leave blank for the built-in default."
+            }
+
+            QQC2.CheckBox {
+                id: memoryEnabledToggle
+
+                Kirigami.FormData.label: "User Memory:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: memoryEnabledToggle.checked ? "Enabled — memory is injected into every prompt" : "Disabled"
+            }
+
+            QQC2.Label {
+                Kirigami.FormData.label: ""
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Write facts you want the AI to always remember — your name, preferences, context. Injected at the start of every prompt when enabled."
+            }
+
+            QQC2.ScrollView {
+                id: userMemoryScrollView
+
+                visible: memoryEnabledToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+                clip: true
+                background: Rectangle {
+                    color: Kirigami.Theme.backgroundColor
+                    radius: 4
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
+                    border.width: 1
+                }
+
+                QQC2.TextArea {
+                    id: userMemoryArea
+
+                    width: userMemoryScrollView.availableWidth
+                    wrapMode: Text.Wrap
+                    placeholderText: "E.g., My name is Alex. I use KDE Plasma 6. I prefer Python for scripting. Always be concise."
+                    background: null
+                    padding: Kirigami.Units.smallSpacing + 2
+                }
+            }
+
+            QQC2.Label {
+                visible: memoryEnabledToggle.checked
+                Kirigami.FormData.label: ""
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: "Memory is saved with your settings (Apply/OK). It persists across sessions and is prepended to the system prompt."
+            }
+
             Kirigami.Separator {
                 visible: !openCodeToggle.checked
                 Kirigami.FormData.isSection: true
@@ -2834,7 +3329,7 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                visible: !openCodeToggle.checked
+                visible: !openCodeToggle.checked && showGuidesToggle.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
@@ -3060,6 +3555,7 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
+                visible: showGuidesToggle.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit

@@ -181,6 +181,59 @@
       <default></default>
     </entry>
 
+    <entry name="qwenBaseUrl" type="String">
+      <default>https://dashscope-intl.aliyuncs.com/compatible-mode/v1</default>
+    </entry>
+    <entry name="qwenApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="qwenModel" type="String">
+      <default>qwen-max</default>
+    </entry>
+
+    <entry name="moonshotBaseUrl" type="String">
+      <default>https://api.moonshot.ai/v1</default>
+    </entry>
+    <entry name="moonshotApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="moonshotModel" type="String">
+      <default>moonshot-v1-8k</default>
+    </entry>
+
+    <entry name="mimoBaseUrl" type="String">
+      <default>https://api.xiaomimimo.com/v1</default>
+    </entry>
+    <entry name="mimoApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="mimoModel" type="String">
+      <default>mimo-v2-pro</default>
+    </entry>
+
+    <entry name="maritacaBaseUrl" type="String">
+      <default>https://chat.maritaca.ai/api</default>
+    </entry>
+    <entry name="maritacaApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="maritacaModel" type="String">
+      <default>sabia-4</default>
+    </entry>
+
+    <!-- language: "" = system default, "en" = English, "pt" = Portuguese, etc. -->
+    <entry name="language" type="String">
+      <default></default>
+    </entry>
+
+    <entry name="showInteractiveGuides" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="autoStartOpenCodeServer" type="Bool">
+      <default>false</default>
+    </entry>
+
     <entry name="useOpenCode" type="Bool">
       <default>false</default>
     </entry>
@@ -230,6 +283,12 @@
     </entry>
     <entry name="playNotificationSound" type="Bool">
       <default>true</default>
+    </entry>
+    <entry name="memoryEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="userMemory" type="String">
+      <default></default>
     </entry>
   </group>
 </kcfg>
