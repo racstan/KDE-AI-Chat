@@ -3247,14 +3247,31 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "Behavior"
             }
 
-            QQC2.TextArea {
-                id: systemPromptArea
+            QQC2.ScrollView {
+                id: systemPromptScrollView
 
                 Kirigami.FormData.label: "System prompt:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                wrapMode: Text.Wrap
-                placeholderText: "You are KDE AI Chat, a precise and helpful assistant."
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+                Layout.maximumHeight: Kirigami.Units.gridUnit * 5
+                clip: true
+                background: Rectangle {
+                    color: Kirigami.Theme.backgroundColor
+                    radius: 4
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
+                    border.width: 1
+                }
+
+                QQC2.TextArea {
+                    id: systemPromptArea
+
+                    width: systemPromptScrollView.availableWidth
+                    wrapMode: Text.Wrap
+                    placeholderText: "You are KDE AI Chat, a precise and helpful assistant."
+                    background: null
+                    padding: Kirigami.Units.smallSpacing + 2
+                }
             }
 
             QQC2.Label {
@@ -3292,6 +3309,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+                Layout.maximumHeight: Kirigami.Units.gridUnit * 6
                 clip: true
                 background: Rectangle {
                     color: Kirigami.Theme.backgroundColor
