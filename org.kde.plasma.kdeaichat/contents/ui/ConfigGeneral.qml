@@ -92,6 +92,8 @@ KCM.SimpleKCM {
     property alias cfg_memoryEnabled: memoryEnabledToggle.checked
     property alias cfg_userMemory: userMemoryArea.text
     property alias cfg_customHistoryPath: customHistoryPathField.text
+    property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
+    property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
     property string keyringStatus: ""
     property string discoveryStatus: ""
     // ── Scheduler ──────────────────────────────────────────────────────────
@@ -1349,6 +1351,38 @@ KCM.SimpleKCM {
     }
 
     // ── Scheduler helpers ──────────────────────────────────────────────────────
+    function schedAutoSetup() {
+        var srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
+        var pyScript = 
+            "import os, shutil\n" +
+            "src = '" + srcPath + "'\n" +
+            "dest = os.path.expanduser('~/.local/share/kdeaichat/kde-ai-scheduler.py')\n" +
+            "os.makedirs(os.path.dirname(dest), exist_ok=True)\n" +
+            "os.makedirs(os.path.expanduser('~/.local/share/kdeaichat/results'), exist_ok=True)\n" +
+            "if os.path.exists(src):\n" +
+            "    shutil.copy2(src, dest)\n" +
+            "    os.chmod(dest, 0o755)\n" +
+            "sjson = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')\n" +
+            "if not os.path.exists(sjson):\n" +
+            "    with open(sjson, 'w') as f:\n" +
+            "        f.write('{\"version\":1,\"schedules\":[]}')\n" +
+            "    os.chmod(sjson, 0o600)\n" +
+            "sdir = os.path.expanduser('~/.config/systemd/user')\n" +
+            "os.makedirs(sdir, exist_ok=True)\n" +
+            "sfile = sdir + '/kde-ai-scheduler.service'\n" +
+            "content = '[Unit]\\nDescription=KDE AI Chat Scheduler Daemon\\nAfter=network-online.target\\nWants=network-online.target\\n\\n[Service]\\nType=simple\\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\\nRestart=on-failure\\nRestartSec=30\\nStandardOutput=journal\\nStandardError=journal\\nExecReload=/bin/kill -HUP $MAINPID\\nKillMode=process\\n\\n[Install]\\nWantedBy=default.target\\n'\n" +
+            "with open(sfile, 'w') as f: f.write(content)\n" +
+            "os.system('systemctl --user daemon-reload')\n" +
+            "if os.system('systemctl --user is-enabled kde-ai-scheduler.service >/dev/null 2>&1') == 0:\n" +
+            "    print('AUTO_ENABLED')\n" +
+            "else:\n" +
+            "    print('AUTO_DISABLED')\n";
+
+        var b64 = Qt.btoa(pyScript);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64 + "').decode('utf-8'))\"";
+        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-auto-setup");
+    }
+
     function schedLoadSchedules() {
         var cmd = "cat ~/.local/share/kdeaichat/schedules.json 2>/dev/null || echo '{\"schedules\":[]}'";
         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-load");
@@ -1757,6 +1791,8 @@ KCM.SimpleKCM {
         pageReady = true;
         // Load existing schedules so the count badge shows immediately.
         schedLoadSchedules();
+        // Run scheduler auto deployment & systemd check
+        schedAutoSetup();
     }
     Component.onDestruction: {
         saveGeneralSettingsOnly();
@@ -1935,6 +1971,12 @@ KCM.SimpleKCM {
                 page.schedulerStatus = "Schedules reloaded (SIGHUP sent).";
             } else if (sourceName.indexOf("sched-enable") >= 0) {
                 page.schedulerStatus = out.indexOf("SCHED_ENABLE_OK") >= 0 ? "Auto-start updated." : (err || out);
+            } else if (sourceName.indexOf("sched-auto-setup") >= 0) {
+                if (out.indexOf("AUTO_ENABLED") >= 0) {
+                    schedAutoStartToggle.checked = true;
+                } else if (out.indexOf("AUTO_DISABLED") >= 0) {
+                    schedAutoStartToggle.checked = false;
+                }
             } else if (sourceName.indexOf("sched-load") >= 0) {
                 if (out !== "") {
                     try {
@@ -4239,8 +4281,32 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "Scheduler"
             }
 
+            // Master Enabled switch
+            QQC2.Switch {
+                id: schedulerMasterSwitch
+                Kirigami.FormData.label: "Enable AI Scheduler:"
+                text: "Activate background scheduler daemon"
+                checked: false
+                onCheckedChanged: {
+                    if (!page.pageReady) return
+                    if (checked) {
+                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " +
+                                  "(pkill -f kde-ai-scheduler.py; sleep 0.5; " +
+                                  "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " +
+                                  "echo SCHED_START_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start")
+                    } else {
+                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null || " +
+                                  "pkill -f kde-ai-scheduler.py; echo SCHED_STOP_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop")
+                    }
+                    schedPollTimer.restart()
+                }
+            }
+
             // Daemon status row
             RowLayout {
+                visible: schedulerMasterSwitch.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 Kirigami.FormData.label: "Daemon:"
@@ -4303,9 +4369,9 @@ KCM.SimpleKCM {
                     text: "Reload"
                     icon.name: "document-revert"
                     visible: page.schedulerDaemonRunning
-                    ToolTip.text: "Send SIGHUP — daemon reloads schedules.json without restart"
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 600
+                    QQC2.ToolTip.text: "Send SIGHUP — daemon reloads schedules.json without restart"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.delay: 600
                     onClicked: {
                         utilityDs.connectSource("sh -lc 'pkill -HUP -f kde-ai-scheduler.py; echo SCHED_HUP_OK' #sched-hup")
                     }
@@ -4317,7 +4383,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 Kirigami.FormData.label: "Status:"
-                visible: page.schedulerStatus !== ""
+                visible: schedulerMasterSwitch.checked && page.schedulerStatus !== ""
                 text: page.schedulerStatus
                 wrapMode: Text.Wrap
                 opacity: 0.75
@@ -4327,6 +4393,7 @@ KCM.SimpleKCM {
             // Enable at login toggle
             QQC2.CheckBox {
                 id: schedAutoStartToggle
+                visible: schedulerMasterSwitch.checked
                 Kirigami.FormData.label: "Auto-start:"
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Start scheduler daemon at login (via systemd user service)"
@@ -4341,6 +4408,7 @@ KCM.SimpleKCM {
 
             // Schedules list header
             RowLayout {
+                visible: schedulerMasterSwitch.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 Kirigami.FormData.label: "Schedules:"
@@ -4362,9 +4430,9 @@ KCM.SimpleKCM {
                 QQC2.Button {
                     text: "Open results folder"
                     icon.name: "folder-open"
-                    ToolTip.text: "~/.local/share/kdeaichat/results/"
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 600
+                    QQC2.ToolTip.text: "~/.local/share/kdeaichat/results/"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.delay: 600
                     onClicked: {
                         utilityDs.connectSource(
                             "sh -lc 'mkdir -p ~/.local/share/kdeaichat/results && xdg-open ~/.local/share/kdeaichat/results' #sched-open-results")
@@ -4376,6 +4444,7 @@ KCM.SimpleKCM {
             Repeater {
                 model: page.schedulerList.slice(0, 5)
                 RowLayout {
+                    visible: schedulerMasterSwitch.checked
                     Layout.fillWidth: true
                     Layout.maximumWidth: formLayout.fieldMaxWidth
                     spacing: Kirigami.Units.smallSpacing
@@ -4395,15 +4464,15 @@ KCM.SimpleKCM {
                     }
                     QQC2.ToolButton {
                         icon.name: "media-playback-start"
-                        ToolTip.text: "Trigger now"
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 600
+                        QQC2.ToolTip.text: "Trigger now"
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.delay: 600
                         onClicked: schedTriggerNow(index)
                     }
                 }
             }
             QQC2.Label {
-                visible: page.schedulerList.length > 5
+                visible: schedulerMasterSwitch.checked && page.schedulerList.length > 5
                 text: "… and " + (page.schedulerList.length - 5) + " more. Open Manage Schedules to see all."
                 font.pixelSize: 11
                 opacity: 0.6
@@ -4416,7 +4485,7 @@ KCM.SimpleKCM {
                 id: schedPollTimer
                 interval: 3000
                 repeat: true
-                running: true
+                running: schedulerMasterSwitch.checked
                 onTriggered: {
                     utilityDs.connectSource("sh -lc 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now())
                 }

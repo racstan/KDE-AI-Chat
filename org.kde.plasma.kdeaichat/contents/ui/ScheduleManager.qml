@@ -259,9 +259,9 @@ Item {
                         QQC2.Switch {
                             checked: modelData.enabled
                             onToggled: scheduleManager.toggleEnabled(index)
-                            ToolTip.text: checked ? "Disable this schedule" : "Enable this schedule"
-                            ToolTip.visible: hovered
-                            ToolTip.delay: 600
+                            QQC2.ToolTip.text: checked ? "Disable this schedule" : "Enable this schedule"
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: 600
                         }
 
                         // Info column
@@ -300,23 +300,23 @@ Item {
                         // Action buttons
                         QQC2.ToolButton {
                             icon.name: "media-playback-start"
-                            ToolTip.text: "Run now (triggers within 30s)"
-                            ToolTip.visible: hovered
-                            ToolTip.delay: 600
+                            QQC2.ToolTip.text: "Run now (triggers within 30s)"
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: 600
                             onClicked: scheduleManager.triggerNow(index)
                         }
                         QQC2.ToolButton {
                             icon.name: "document-edit"
-                            ToolTip.text: "Edit schedule"
-                            ToolTip.visible: hovered
-                            ToolTip.delay: 600
+                            QQC2.ToolTip.text: "Edit schedule"
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: 600
                             onClicked: scheduleManager.startEdit(index)
                         }
                         QQC2.ToolButton {
                             icon.name: "edit-delete"
-                            ToolTip.text: "Delete schedule"
-                            ToolTip.visible: hovered
-                            ToolTip.delay: 600
+                            QQC2.ToolTip.text: "Delete schedule"
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: 600
                             onClicked: deleteConfirmDialog.openFor(index)
                         }
                     }
@@ -508,8 +508,8 @@ Item {
                             onClicked: editorApiKey.echoMode =
                                 editorApiKey.echoMode === TextInput.Password
                                 ? TextInput.Normal : TextInput.Password
-                            ToolTip.text: "Show/hide key"
-                            ToolTip.visible: hovered
+                            QQC2.ToolTip.text: "Show/hide key"
+                            QQC2.ToolTip.visible: hovered
                         }
                     }
 
