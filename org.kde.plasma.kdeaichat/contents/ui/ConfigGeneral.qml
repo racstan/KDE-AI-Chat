@@ -4390,55 +4390,77 @@ KCM.SimpleKCM {
                 font: Kirigami.Theme.smallFont
             }
 
-            // Enable at login toggle
-            QQC2.CheckBox {
-                id: schedAutoStartToggle
-                visible: schedulerMasterSwitch.checked
-                Kirigami.FormData.label: "Auto-start:"
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "Start scheduler daemon at login (via systemd user service)"
-                checked: false
-                onCheckedChanged: {
-                    if (!page.pageReady) return
-                    var verb = checked ? "enable" : "disable"
-                    utilityDs.connectSource(
-                        "sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable")
-                }
-            }
+             // Enable at login toggle
+             QQC2.Switch {
+                 id: schedAutoStartToggle
+                 visible: schedulerMasterSwitch.checked
+                 Kirigami.FormData.label: "Auto-start:"
+                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                 text: "Auto-start scheduler daemon at login (via systemd)"
+                 checked: false
+                 onCheckedChanged: {
+                     if (!page.pageReady) return
+                     var verb = checked ? "enable" : "disable"
+                     utilityDs.connectSource(
+                         "sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable")
+                 }
+             }
 
-            // Schedules list header
-            RowLayout {
-                visible: schedulerMasterSwitch.checked
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                Kirigami.FormData.label: "Schedules:"
-                spacing: Kirigami.Units.smallSpacing
+             // Schedules list header
+             RowLayout {
+                 visible: schedulerMasterSwitch.checked
+                 Layout.fillWidth: true
+                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                 Kirigami.FormData.label: "Schedules:"
+                 spacing: Kirigami.Units.smallSpacing
 
-                QQC2.Label {
-                    text: page.schedulerList.length === 0
-                          ? "No schedules yet"
-                          : page.schedulerList.length + " schedule" + (page.schedulerList.length === 1 ? "" : "s")
-                    opacity: 0.7
-                    Layout.fillWidth: true
-                }
-                QQC2.Button {
-                    text: "Manage Schedules"
-                    icon.name: "appointment-new"
-                    highlighted: true
-                    onClicked: scheduleDialog.open()
-                }
-                QQC2.Button {
-                    text: "Open results folder"
-                    icon.name: "folder-open"
-                    QQC2.ToolTip.text: "~/.local/share/kdeaichat/results/"
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.delay: 600
-                    onClicked: {
-                        utilityDs.connectSource(
-                            "sh -lc 'mkdir -p ~/.local/share/kdeaichat/results && xdg-open ~/.local/share/kdeaichat/results' #sched-open-results")
-                    }
-                }
-            }
+                 QQC2.Label {
+                     text: page.schedulerList.length === 0
+                           ? "No schedules yet"
+                           : page.schedulerList.length + " schedule" + (page.schedulerList.length === 1 ? "" : "s")
+                     opacity: 0.7
+                     Layout.fillWidth: true
+                 }
+                 QQC2.Button {
+                     text: "Manage"
+                     icon.name: "appointment-new"
+                     highlighted: true
+                     onClicked: scheduleDialog.open()
+                 }
+                 QQC2.Button {
+                     text: "Open Results"
+                     icon.name: "folder-open"
+                     QQC2.ToolTip.text: "Open results directory: ~/.local/share/kdeaichat/results/"
+                     QQC2.ToolTip.visible: hovered
+                     QQC2.ToolTip.delay: 600
+                     onClicked: {
+                         utilityDs.connectSource(
+                             "sh -lc 'mkdir -p ~/.local/share/kdeaichat/results && xdg-open ~/.local/share/kdeaichat/results' #sched-open-results")
+                     }
+                 }
+                 QQC2.Button {
+                     text: "Open schedules.json"
+                     icon.name: "document-open"
+                     QQC2.ToolTip.text: "Open schedule rules file: ~/.local/share/kdeaichat/schedules.json"
+                     QQC2.ToolTip.visible: hovered
+                     QQC2.ToolTip.delay: 600
+                     onClicked: {
+                         utilityDs.connectSource(
+                             "sh -lc 'xdg-open ~/.local/share/kdeaichat/schedules.json' #sched-open-json")
+                     }
+                 }
+                 QQC2.Button {
+                     text: "Open Scheduler Daemon"
+                     icon.name: "text-x-python"
+                     QQC2.ToolTip.text: "Open daemon execution script: ~/.local/share/kdeaichat/kde-ai-scheduler.py"
+                     QQC2.ToolTip.visible: hovered
+                     QQC2.ToolTip.delay: 600
+                     onClicked: {
+                         utilityDs.connectSource(
+                             "sh -lc 'xdg-open ~/.local/share/kdeaichat/kde-ai-scheduler.py' #sched-open-py")
+                     }
+                 }
+             }
 
             // Quick schedule list (read-only preview)
             Repeater {

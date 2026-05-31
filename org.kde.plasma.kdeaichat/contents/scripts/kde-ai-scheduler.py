@@ -263,6 +263,22 @@ def notify(title, body, urgency="normal"):
         dlog(f"notify-send failed: {e}")
 
 
+def play_sound():
+    try:
+        import subprocess
+        cmd = (
+            "pw-play /usr/share/sounds/ocean/stereo/dialog-information.oga || "
+            "paplay /usr/share/sounds/ocean/stereo/dialog-information.oga || "
+            "pw-play /usr/share/sounds/ocean/stereo/audio-volume-change.oga || "
+            "paplay /usr/share/sounds/ocean/stereo/audio-volume-change.oga || "
+            "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || "
+            "canberra-gtk-play -i dialog-information"
+        )
+        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        dlog(f"play_sound failed: {e}")
+
+
 # ── AI API call ────────────────────────────────────────────────────────────────
 DEFAULT_SYSTEM_PROMPT = (
     "You are KDE AI Chat, a precise and helpful assistant. "
@@ -332,6 +348,7 @@ def run_schedule(s):
         response = call_ai(base_url, api_key, model, system_prompt, prompt, max_tokens)
         log(f"[{name}] Completed in {int((time.time()-t0)*1000)}ms")
         if should_notify:
+            play_sound()
             preview = response[:180].replace("\n", " ") + ("…" if len(response) > 180 else "")
             notify(notify_title, preview)
     except urllib.error.HTTPError as e:
