@@ -1559,10 +1559,10 @@ KCM.SimpleKCM {
                                 }
                             }
 
-                            QQC2.ToolButton { icon.name: "media-playback-start"; ToolTip.text: "Run now"; ToolTip.visible: hovered; ToolTip.delay: 500; onClicked: page.schedTriggerNow(index) }
-                            QQC2.ToolButton { icon.name: "document-edit"; ToolTip.text: "Edit"; ToolTip.visible: hovered; ToolTip.delay: 500; onClicked: { scheduleDialog.draft = JSON.parse(JSON.stringify(modelData)); scheduleDialog.editingIndex = index; } }
+                            QQC2.ToolButton { icon.name: "media-playback-start"; QQC2.ToolTip.text: "Run now"; QQC2.ToolTip.visible: hovered; QQC2.ToolTip.delay: 500; onClicked: page.schedTriggerNow(index) }
+                            QQC2.ToolButton { icon.name: "document-edit"; QQC2.ToolTip.text: "Edit"; QQC2.ToolTip.visible: hovered; QQC2.ToolTip.delay: 500; onClicked: { scheduleDialog.draft = JSON.parse(JSON.stringify(modelData)); scheduleDialog.editingIndex = index; } }
                             QQC2.ToolButton {
-                                icon.name: "edit-delete"; ToolTip.text: "Delete"; ToolTip.visible: hovered; ToolTip.delay: 500
+                                icon.name: "edit-delete"; QQC2.ToolTip.text: "Delete"; QQC2.ToolTip.visible: hovered; QQC2.ToolTip.delay: 500
                                 onClicked: {
                                     var copy = page.schedulerList.slice(); copy.splice(index, 1);
                                     page.schedulerList = copy; page.schedSaveSchedules(copy);
