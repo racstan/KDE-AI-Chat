@@ -1,14 +1,88 @@
 #!/bin/bash
+# install.sh — KDE AI Chat full installer
+# Installs the Plasma widget AND the optional scheduler daemon + systemd service.
 set -e
 
 WIDGET_DIR="org.kde.plasma.kdeaichat"
 WIDGET_ID="org.kde.plasma.kdeaichat"
+DAEMON_SRC="$WIDGET_DIR/contents/scripts/kde-ai-scheduler.py"
+DATA_DIR="$HOME/.local/share/kdeaichat"
+SERVICE_DIR="$HOME/.config/systemd/user"
+SERVICE_FILE="kde-ai-scheduler.service"
 
-echo "Installing / upgrading $WIDGET_ID ..."
+echo "═══════════════════════════════════════════════"
+echo "  KDE AI Chat — Installer"
+echo "═══════════════════════════════════════════════"
 
-# Clean reinstall to avoid stale metadata/config binding issues.
+# ── 1. Install the Plasma widget ──────────────────────────────────────────────
+echo ""
+echo "[1/3] Installing Plasma widget..."
 kpackagetool6 --type Plasma/Applet --remove "$WIDGET_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$WIDGET_DIR"
+echo "      ✓ Widget installed."
 
-echo "Done. Restart plasmashell to load the new version:"
-echo "  systemctl --user restart plasma-plasmashell.service"
+# ── 2. Deploy the scheduler daemon ───────────────────────────────────────────
+echo ""
+echo "[2/3] Deploying scheduler daemon..."
+mkdir -p "$DATA_DIR"
+mkdir -p "$DATA_DIR/results"
+chmod 700 "$DATA_DIR"
+
+if [ -f "$DAEMON_SRC" ]; then
+    cp "$DAEMON_SRC" "$DATA_DIR/kde-ai-scheduler.py"
+    chmod 700 "$DATA_DIR/kde-ai-scheduler.py"
+    echo "      ✓ Daemon copied to $DATA_DIR/kde-ai-scheduler.py"
+else
+    echo "      ⚠ Daemon source not found at $DAEMON_SRC — skipping."
+fi
+
+# Ensure an empty schedules.json exists if it doesn't already
+if [ ! -f "$DATA_DIR/schedules.json" ]; then
+    echo '{"version":1,"schedules":[]}' > "$DATA_DIR/schedules.json"
+    chmod 600 "$DATA_DIR/schedules.json"
+    echo "      ✓ Created empty schedules.json"
+fi
+
+# ── 3. Register the systemd user service ─────────────────────────────────────
+echo ""
+echo "[3/3] Registering systemd user service..."
+mkdir -p "$SERVICE_DIR"
+
+cat > "$SERVICE_DIR/$SERVICE_FILE" << 'EOF'
+[Unit]
+Description=KDE AI Chat Scheduler Daemon
+Documentation=https://github.com/racstan/KDE-AI-Chat
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+# Reload schedules.json on SIGHUP without killing the daemon
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+echo "      ✓ Service file installed: $SERVICE_DIR/$SERVICE_FILE"
+echo "      ✓ systemd daemon-reload done."
+echo ""
+echo "      To start the daemon now:"
+echo "        systemctl --user start kde-ai-scheduler.service"
+echo "      To start it automatically at login:"
+echo "        systemctl --user enable kde-ai-scheduler.service"
+
+# ── Done ──────────────────────────────────────────────────────────────────────
+echo ""
+echo "═══════════════════════════════════════════════"
+echo "  Installation complete!"
+echo "  Restart plasmashell to load the new widget:"
+echo "    systemctl --user restart plasma-plasmashell.service"
+echo "═══════════════════════════════════════════════"

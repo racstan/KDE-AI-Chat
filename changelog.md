@@ -5,7 +5,22 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.9] - 2026-05-31
+
+### Added
+- **Native AI Scheduler — Python Daemon**: Introduced `kde-ai-scheduler.py`, a zero-dependency Python 3 daemon (stdlib only — no pip) that runs independently of the widget UI via a **systemd user service** (`kde-ai-scheduler.service`). The daemon parses standard 5-field cron expressions, fires scheduled prompts at any OpenAI-compatible `/chat/completions` REST API, writes timestamped JSON results to `~/.local/share/kdeaichat/results/`, and sends KDE desktop notifications via `notify-send`.
+- **Provider-Agnostic Scheduling**: Every schedule stores its own `baseUrl + apiKey + model` tuple — fully independent of the active widget provider. Any of the 21 supported providers can be targeted per schedule.
+- **Cron Expression Support**: Full 5-field cron parser with step values (`*/2`), ranges (`1-5`), comma lists (`0,6`), and named weekdays (`mon`-`sun`). SIGHUP hot-reloads `schedules.json` without restarting the daemon.
+- **Schedules Section in Settings**: New **Scheduler** section in the widget settings panel with: live daemon status badge (green/red pill), Start / Stop / Reload / Auto-start buttons, a preview list of schedules with per-schedule enable toggles and "Run now" buttons, and a **Manage Schedules** dialog.
+- **Full-Featured Schedule Manager Dialog**: Modal dialog with full CRUD — create, edit, delete, enable/disable, trigger-now. Per-schedule settings: name, cron expression with human-readable preview, 6 quick presets (hourly / daily 9am / weekdays / etc.), provider dropdown (all 21 providers), base URL, model, API key (masked), prompt, system prompt override, max tokens, notification toggle + custom title, result retention (days).
+- **Auto-start Integration**: Single checkbox in settings enables/disables the systemd user service at login (`systemctl --user enable/disable`).
+- **Result Auto-cleanup**: Each schedule can define a `keepResultDays` retention window; the daemon auto-deletes old result files on each run.
+- **Updated `install.sh`**: The installer now deploys the daemon to `~/.local/share/kdeaichat/`, creates an empty `schedules.json`, installs and reloads the systemd user service unit, and prints clear post-install instructions.
+
+---
+
 ## [1.2.8] - 2026-05-28
+
 
 ### Added
 - **6-Part Demonstration Walkthrough Videos**: Replaced the outdated 2-part walkthrough with a brand new, highly comprehensive 6-part video walkthrough series under `.github/assets/` spanning all widget capabilities.
