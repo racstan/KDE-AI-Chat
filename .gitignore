@@ -19,3 +19,6 @@ Thumbs.db
 audit.md
 ailogo.webp
 
+# Internal research scratch notes (design doc is tracked, raw research is not)
+docs/scheduling-system-research.md
+

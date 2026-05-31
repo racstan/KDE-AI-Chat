@@ -9,6 +9,11 @@ import org.kde.plasma.plasmoid
 import "translations.js" as Translations
 
 PlasmoidItem {
+    // No custom text and no way to read options from here,
+    // so prompt user to type something or click an option
+    // The option buttons themselves handle single-click submit
+    // for non-multiple mode
+
     id: root
 
     property var sessions: []
@@ -38,6 +43,7 @@ PlasmoidItem {
     property bool openCodeMode: false
     property var plasmoidRef: plasmoid
     property bool kwalletKeysLoaded: false
+    property int kwalletOpenAttempts: 0
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
     property string chatInputText: ""
     property var msgListViewRef: null
@@ -1626,101 +1632,101 @@ PlasmoidItem {
     function getProviderConfig(provider) {
         if (provider === "anthropic")
             return {
-                "type": "anthropic",
-                "apiKey": (plasmoid.configuration.anthropicApiKey || "").trim(),
-                "model": plasmoid.configuration.anthropicModel || "",
-                "allowEmptyKey": false
-            };
+            "type": "anthropic",
+            "apiKey": (plasmoid.configuration.anthropicApiKey || "").trim(),
+            "model": plasmoid.configuration.anthropicModel || "",
+            "allowEmptyKey": false
+        };
 
         if (provider === "local")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
-                "apiKey": "",
-                "model": plasmoid.configuration.localModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
+            "apiKey": "",
+            "model": plasmoid.configuration.localModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
 
         if (provider === "ollama")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.ollamaBaseUrl || "http://localhost:11434/v1",
-                "apiKey": "",
-                "model": plasmoid.configuration.ollamaModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.ollamaBaseUrl || "http://localhost:11434/v1",
+            "apiKey": "",
+            "model": plasmoid.configuration.ollamaModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
 
         if (provider === "litellm")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.litellmBaseUrl || "http://localhost:4000/v1",
-                "apiKey": (plasmoid.configuration.litellmApiKey || "").trim(),
-                "model": plasmoid.configuration.litellmModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.litellmBaseUrl || "http://localhost:4000/v1",
+            "apiKey": (plasmoid.configuration.litellmApiKey || "").trim(),
+            "model": plasmoid.configuration.litellmModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
 
         if (provider === "lmstudio")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.lmStudioBaseUrl || "http://localhost:1234/v1",
-                "apiKey": "",
-                "model": plasmoid.configuration.lmStudioModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.lmStudioBaseUrl || "http://localhost:1234/v1",
+            "apiKey": "",
+            "model": plasmoid.configuration.lmStudioModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
 
         if (provider === "groq")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.groqBaseUrl || "https://api.groq.com/openai/v1",
-                "apiKey": (plasmoid.configuration.groqApiKey || "").trim(),
-                "model": plasmoid.configuration.groqModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.groqBaseUrl || "https://api.groq.com/openai/v1",
+            "apiKey": (plasmoid.configuration.groqApiKey || "").trim(),
+            "model": plasmoid.configuration.groqModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "deepseek")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.deepSeekBaseUrl || "https://api.deepseek.com",
-                "apiKey": (plasmoid.configuration.deepSeekApiKey || "").trim(),
-                "model": plasmoid.configuration.deepSeekModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.deepSeekBaseUrl || "https://api.deepseek.com",
+            "apiKey": (plasmoid.configuration.deepSeekApiKey || "").trim(),
+            "model": plasmoid.configuration.deepSeekModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "minimax")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.miniMaxBaseUrl || "https://api.minimax.io/v1",
-                "apiKey": (plasmoid.configuration.miniMaxApiKey || "").trim(),
-                "model": plasmoid.configuration.miniMaxModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.miniMaxBaseUrl || "https://api.minimax.io/v1",
+            "apiKey": (plasmoid.configuration.miniMaxApiKey || "").trim(),
+            "model": plasmoid.configuration.miniMaxModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "fireworks")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.fireworksBaseUrl || "https://api.fireworks.ai/inference/v1",
-                "apiKey": (plasmoid.configuration.fireworksApiKey || "").trim(),
-                "model": plasmoid.configuration.fireworksModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.fireworksBaseUrl || "https://api.fireworks.ai/inference/v1",
+            "apiKey": (plasmoid.configuration.fireworksApiKey || "").trim(),
+            "model": plasmoid.configuration.fireworksModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "google")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.googleBaseUrl || "https://generativelanguage.googleapis.com/v1beta/openai/",
-                "apiKey": (plasmoid.configuration.googleApiKey || "").trim(),
-                "model": plasmoid.configuration.googleModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.googleBaseUrl || "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "apiKey": (plasmoid.configuration.googleApiKey || "").trim(),
+            "model": plasmoid.configuration.googleModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "openrouter") {
             var headers = {
@@ -1740,93 +1746,93 @@ PlasmoidItem {
         }
         if (provider === "mistral")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.mistralBaseUrl || "https://api.mistral.ai/v1",
-                "apiKey": (plasmoid.configuration.mistralApiKey || "").trim(),
-                "model": plasmoid.configuration.mistralModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.mistralBaseUrl || "https://api.mistral.ai/v1",
+            "apiKey": (plasmoid.configuration.mistralApiKey || "").trim(),
+            "model": plasmoid.configuration.mistralModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "cloudflare")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.cloudflareBaseUrl || "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
-                "apiKey": (plasmoid.configuration.cloudflareApiKey || "").trim(),
-                "model": plasmoid.configuration.cloudflareModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.cloudflareBaseUrl || "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
+            "apiKey": (plasmoid.configuration.cloudflareApiKey || "").trim(),
+            "model": plasmoid.configuration.cloudflareModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "nvidia")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.nvidiaBaseUrl || "https://integrate.api.nvidia.com/v1",
-                "apiKey": (plasmoid.configuration.nvidiaApiKey || "").trim(),
-                "model": plasmoid.configuration.nvidiaModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.nvidiaBaseUrl || "https://integrate.api.nvidia.com/v1",
+            "apiKey": (plasmoid.configuration.nvidiaApiKey || "").trim(),
+            "model": plasmoid.configuration.nvidiaModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "huggingface")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.huggingFaceBaseUrl || "https://router.huggingface.co/v1",
-                "apiKey": (plasmoid.configuration.huggingFaceApiKey || "").trim(),
-                "model": plasmoid.configuration.huggingFaceModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.huggingFaceBaseUrl || "https://router.huggingface.co/v1",
+            "apiKey": (plasmoid.configuration.huggingFaceApiKey || "").trim(),
+            "model": plasmoid.configuration.huggingFaceModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "xai")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.xaiBaseUrl || "https://api.x.ai/v1",
-                "apiKey": (plasmoid.configuration.xaiApiKey || "").trim(),
-                "model": plasmoid.configuration.xaiModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.xaiBaseUrl || "https://api.x.ai/v1",
+            "apiKey": (plasmoid.configuration.xaiApiKey || "").trim(),
+            "model": plasmoid.configuration.xaiModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "qwen")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.qwenBaseUrl || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-                "apiKey": (plasmoid.configuration.qwenApiKey || "").trim(),
-                "model": plasmoid.configuration.qwenModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.qwenBaseUrl || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            "apiKey": (plasmoid.configuration.qwenApiKey || "").trim(),
+            "model": plasmoid.configuration.qwenModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "moonshot")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.moonshotBaseUrl || "https://api.moonshot.ai/v1",
-                "apiKey": (plasmoid.configuration.moonshotApiKey || "").trim(),
-                "model": plasmoid.configuration.moonshotModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.moonshotBaseUrl || "https://api.moonshot.ai/v1",
+            "apiKey": (plasmoid.configuration.moonshotApiKey || "").trim(),
+            "model": plasmoid.configuration.moonshotModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "mimo")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.mimoBaseUrl || "https://api.xiaomimimo.com/v1",
-                "apiKey": (plasmoid.configuration.mimoApiKey || "").trim(),
-                "model": plasmoid.configuration.mimoModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.mimoBaseUrl || "https://api.xiaomimimo.com/v1",
+            "apiKey": (plasmoid.configuration.mimoApiKey || "").trim(),
+            "model": plasmoid.configuration.mimoModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         if (provider === "maritaca")
             return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.maritacaBaseUrl || "https://chat.maritaca.ai/api",
-                "apiKey": (plasmoid.configuration.maritacaApiKey || "").trim(),
-                "model": plasmoid.configuration.maritacaModel || "sabia-4",
-                "headers": null,
-                "allowEmptyKey": false
-            };
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.maritacaBaseUrl || "https://chat.maritaca.ai/api",
+            "apiKey": (plasmoid.configuration.maritacaApiKey || "").trim(),
+            "model": plasmoid.configuration.maritacaModel || "sabia-4",
+            "headers": null,
+            "allowEmptyKey": false
+        };
 
         return {
             "type": "openai-compat",
@@ -1988,9 +1994,9 @@ PlasmoidItem {
                     };
                     if (parsed.usage)
                         msgObj.tokens = {
-                            "input": parsed.usage.prompt_tokens || 0,
-                            "output": parsed.usage.completion_tokens || 0
-                        };
+                        "input": parsed.usage.prompt_tokens || 0,
+                        "output": parsed.usage.completion_tokens || 0
+                    };
 
                     root.messages = root.messages.concat([msgObj]);
                     if (!root.userScrolledUp)
@@ -2071,9 +2077,9 @@ PlasmoidItem {
                     };
                     if (obj.usage)
                         msgObj.tokens = {
-                            "input": obj.usage.input_tokens || 0,
-                            "output": obj.usage.output_tokens || 0
-                        };
+                        "input": obj.usage.input_tokens || 0,
+                        "output": obj.usage.output_tokens || 0
+                    };
 
                     root.messages = root.messages.concat([msgObj]);
                 } catch (e) {
@@ -2207,11 +2213,6 @@ PlasmoidItem {
 
     // Collect selected options from the question UI and submit the answer
     function submitQuestionAnswer(questionId, questions, customField) {
-        // No custom text and no way to read options from here,
-        // so prompt user to type something or click an option
-        // The option buttons themselves handle single-click submit
-        // for non-multiple mode
-
         // Find the question_request message to access its question data
         var msgIdx = -1;
         for (var i = 0; i < root.messages.length; i++) {
@@ -2372,35 +2373,30 @@ PlasmoidItem {
         var codeBlocks = [];
         html = html.replace(/```([a-zA-Z0-9+#\-_]*)\n([\s\S]*?)```/g, function(match, lang, code) {
             var blockIdx = codeBlocks.length;
-            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">'
-                + '<div style="font-size: 0.8em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">'
-                + (lang ? lang : 'code')
-                + '</div>'
-                + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">'
-                + code.replace(/\n$/, '')
-                + '</pre></div>';
+            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<div style="font-size: 0.8em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">' + (lang ? lang : 'code') + '</div>' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
             codeBlocks.push(rendered);
             return "%%CB" + blockIdx + "%%";
         });
         html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
             var blockIdx = codeBlocks.length;
-            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">'
-                + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">'
-                + code.replace(/\n$/, '')
-                + '</pre></div>';
+            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
             codeBlocks.push(rendered);
             return "%%CB" + blockIdx + "%%";
         });
         // 3. Markdown tables  |col|col| with optional alignment row
         html = html.replace(/((?:[ \t]*\|.+\|[ \t]*\n)+)/g, function(block) {
             var rows = block.trim().split("\n");
-            if (rows.length < 2) return block;
+            if (rows.length < 2)
+                return block;
+
             // Check row 1 is separator (---|---)
             var isSep = /^[\s|:\-]+$/.test(rows[1]);
             var headerRow = rows[0];
             var bodyRows = isSep ? rows.slice(2) : rows.slice(1);
-            var parseCells = function(row) {
-                return row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split("|").map(function(c) { return c.trim(); });
+            var parseCells = function parseCells(row) {
+                return row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split("|").map(function(c) {
+                    return c.trim();
+                });
             };
             var t = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em;">';
             // Header
@@ -2411,7 +2407,9 @@ PlasmoidItem {
             t += '</tr></thead><tbody>';
             // Body rows
             bodyRows.forEach(function(row, ri) {
-                if (row.trim() === '' || /^[\s|:\-]+$/.test(row)) return;
+                if (row.trim() === '' || /^[\s|:\-]+$/.test(row))
+                    return ;
+
                 var bg = (ri % 2 === 1) ? ' background: ' + tableRowAltBg + ';' : '';
                 t += '<tr>';
                 parseCells(row).forEach(function(cell) {
@@ -2522,7 +2520,13 @@ PlasmoidItem {
 
     // Split raw markdown into typed blocks: {type:"text"|"code"|"table", content, lang}
     function parseMessageBlocks(markdown) {
-        if (!markdown) return [{"type": "text", "content": "", "lang": ""}];
+        if (!markdown)
+            return [{
+            "type": "text",
+            "content": "",
+            "lang": ""
+        }];
+
         var blocks = [];
         var lines = markdown.split("\n");
         var i = 0;
@@ -2538,7 +2542,11 @@ PlasmoidItem {
                     i++;
                 }
                 i++; // skip closing ```
-                blocks.push({"type": "code", "content": codeLines.join("\n"), "lang": lang});
+                blocks.push({
+                    "type": "code",
+                    "content": codeLines.join("\n"),
+                    "lang": lang
+                });
                 continue;
             }
             // Detect markdown table block (consecutive lines with |)
@@ -2548,7 +2556,11 @@ PlasmoidItem {
                     tableLines.push(lines[i]);
                     i++;
                 }
-                blocks.push({"type": "table", "content": tableLines.join("\n") + "\n", "lang": ""});
+                blocks.push({
+                    "type": "table",
+                    "content": tableLines.join("\n") + "\n",
+                    "lang": ""
+                });
                 continue;
             }
             // Regular text — accumulate until next code/table block
@@ -2559,10 +2571,20 @@ PlasmoidItem {
             }
             var textContent = textLines.join("\n").replace(/^\n+/, "").replace(/\n+$/, "");
             if (textContent !== "")
-                blocks.push({"type": "text", "content": textContent, "lang": ""});
+                blocks.push({
+                "type": "text",
+                "content": textContent,
+                "lang": ""
+            });
+
         }
         if (blocks.length === 0)
-            blocks.push({"type": "text", "content": markdown, "lang": ""});
+            blocks.push({
+            "type": "text",
+            "content": markdown,
+            "lang": ""
+        });
+
         return blocks;
     }
 
@@ -2573,12 +2595,15 @@ PlasmoidItem {
         for (var i = 0; i < rows.length; i++) {
             var row = rows[i];
             // Skip separator rows (---|---)
-            if (/^[\s|:\-]+$/.test(row)) continue;
+            if (/^[\s|:\-]+$/.test(row))
+                continue;
+
             var cells = row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|");
             var csvCells = cells.map(function(c) {
                 var v = c.trim();
                 if (v.indexOf(",") >= 0 || v.indexOf("\"") >= 0 || v.indexOf("\n") >= 0)
                     v = "\"" + v.replace(/"/g, "\"\"") + "\"";
+
                 return v;
             });
             csvRows.push(csvCells.join(","));
@@ -2610,28 +2635,28 @@ PlasmoidItem {
         var contentList = [];
         if (compiledPrompt.trim() !== "")
             contentList.push({
-                "type": "text",
-                "text": compiledPrompt
-            });
+            "type": "text",
+            "text": compiledPrompt
+        });
 
         for (var imgIdx = 0; imgIdx < imgs.length; imgIdx++) {
             var image = imgs[imgIdx];
             if (apiType === "anthropic")
                 contentList.push({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": image.mimeType || "image/jpeg",
-                        "data": image.content
-                    }
-                });
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": image.mimeType || "image/jpeg",
+                    "data": image.content
+                }
+            });
             else
                 contentList.push({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": "data:" + (image.mimeType || "image/jpeg") + ";base64," + image.content
-                    }
-                });
+                "type": "image_url",
+                "image_url": {
+                    "url": "data:" + (image.mimeType || "image/jpeg") + ";base64," + image.content
+                }
+            });
         }
         return contentList;
     }
@@ -2677,19 +2702,31 @@ PlasmoidItem {
             plasmoid.configuration.xaiApiKey = secretValue;
         else if (targetId === "litellm")
             plasmoid.configuration.litellmApiKey = secretValue;
+        else if (targetId === "qwen")
+            plasmoid.configuration.qwenApiKey = secretValue;
+        else if (targetId === "moonshot")
+            plasmoid.configuration.moonshotApiKey = secretValue;
+        else if (targetId === "mimo")
+            plasmoid.configuration.mimoApiKey = secretValue;
+        else if (targetId === "maritaca")
+            plasmoid.configuration.maritacaApiKey = secretValue;
     }
 
     function walletBulkReadCommand(walletName) {
         var escapedWallet = (walletName || "").replace(/'/g, "'\\''");
         var escapedFolder = "KaiChat";
         var escapedAppId = "org.kde.plasma.kdeaichat";
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "wallets=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; " + "handle=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; " + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm; do " + "key=\"kai-chat-${target}-api-key\"; " + "hasEntry=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" = true ]; then secret=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; " + "done; " + "qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_BULK__:DONE\"'";
+        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; " + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm qwen moonshot mimo maritaca; do " + "key=\"kai-chat-${target}-api-key\"; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" = true ]; then secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; " + "done; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_BULK__:DONE\"'";
     }
 
     function loadKWalletKeysIfNeeded() {
         if (root.kwalletKeysLoaded)
             return ;
 
+        if (root.kwalletOpenAttempts >= 3) {
+            console.log("[KAI-DEBUG] loadKWalletKeysIfNeeded open attempts limit of 3 exceeded. Skipping KWallet load.");
+            return ;
+        }
         if (plasmoid.configuration.keyStorageMode === 2) {
             root.kwalletKeysLoaded = true;
             var walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
@@ -2862,6 +2899,14 @@ PlasmoidItem {
             }
         }
 
+        function onKeyStorageModeChanged() {
+            if (plasmoid.configuration.keyStorageMode === 2) {
+                root.kwalletKeysLoaded = false;
+                root.kwalletOpenAttempts = 0;
+                loadKWalletKeysIfNeeded();
+            }
+        }
+
         target: plasmoid.configuration
     }
 
@@ -2922,15 +2967,15 @@ PlasmoidItem {
                                     }
                                     if (!exists)
                                         currentFiles.push({
-                                            "name": fInfo.filename || fInfo.name,
-                                            "path": fInfo.path,
-                                            "type": fInfo.type,
-                                            "content": fInfo.content,
-                                            "mimeType": fInfo.mimeType,
-                                            "size": fInfo.size,
-                                            "loading": false,
-                                            "error": ""
-                                        });
+                                        "name": fInfo.filename || fInfo.name,
+                                        "path": fInfo.path,
+                                        "type": fInfo.type,
+                                        "content": fInfo.content,
+                                        "mimeType": fInfo.mimeType,
+                                        "size": fInfo.size,
+                                        "loading": false,
+                                        "error": ""
+                                    });
 
                                 }
                             } else if (res.mode === "image" && res.file) {
@@ -2944,15 +2989,15 @@ PlasmoidItem {
                                 }
                                 if (!exists)
                                     currentFiles.push({
-                                        "name": fInfo.name,
-                                        "path": fInfo.path,
-                                        "type": fInfo.type,
-                                        "content": fInfo.content,
-                                        "mimeType": fInfo.mimeType,
-                                        "size": fInfo.size,
-                                        "loading": false,
-                                        "error": ""
-                                    });
+                                    "name": fInfo.name,
+                                    "path": fInfo.path,
+                                    "type": fInfo.type,
+                                    "content": fInfo.content,
+                                    "mimeType": fInfo.mimeType,
+                                    "size": fInfo.size,
+                                    "loading": false,
+                                    "error": ""
+                                });
 
                             }
                             root.attachedFiles = currentFiles;
@@ -3098,9 +3143,12 @@ PlasmoidItem {
             var stdout = data["stdout"] || "";
             if (sourceName.indexOf("kwallet-startup-load") >= 0) {
                 var lines = stdout.split(/\r?\n/);
+                var openFailed = false;
                 for (var i = 0; i < lines.length; i++) {
                     var line = lines[i].trim();
-                    if (line.indexOf("__KAI_SECRET__:") === 0) {
+                    if (line.indexOf("__KAI_BULK__:OPEN_FAILED") === 0) {
+                        openFailed = true;
+                    } else if (line.indexOf("__KAI_SECRET__:") === 0) {
                         var rest = line.slice("__KAI_SECRET__:".length);
                         var sep = rest.indexOf(":");
                         if (sep > 0) {
@@ -3109,6 +3157,13 @@ PlasmoidItem {
                             applyKWalletKeyToMemory(targetId, secretValue);
                         }
                     }
+                }
+                if (openFailed) {
+                    root.kwalletKeysLoaded = false;
+                    root.kwalletOpenAttempts++;
+                    console.log("[KAI-DEBUG] KWallet open failed on startup (attempt " + root.kwalletOpenAttempts + " of 3)");
+                } else {
+                    root.kwalletOpenAttempts = 0;
                 }
             }
             disconnectSource(sourceName);
@@ -3132,7 +3187,7 @@ PlasmoidItem {
                     finishOpenCodeRequest();
                     pushErrorMessage("**OpenCode is not installed or not in PATH.**\nInstall it with:\n```\nnpm install -g opencode-ai\n```\nor visit https://opencode.ai for instructions.");
                     disconnectSource(sourceName);
-                    return;
+                    return ;
                 }
                 if (output !== "")
                     updateAssistantStreamingContent(output, "OpenCode CLI");
@@ -3616,6 +3671,8 @@ PlasmoidItem {
                                                 anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" ? parent.left : undefined
 
                                                 Column {
+                                                    // ── end message body ───────────────────────────────────────
+
                                                     id: bubbleCol
 
                                                     width: parent.width - Kirigami.Units.largeSpacing
@@ -3688,14 +3745,14 @@ PlasmoidItem {
 
                                                             delegate: Item {
                                                                 required property var modelData
+
                                                                 width: parent.width
-                                                                implicitHeight: modelData.type === "code"
-                                                                    ? codeLoader.implicitHeight
-                                                                    : htmlEdit.implicitHeight
+                                                                implicitHeight: modelData.type === "code" ? codeLoader.implicitHeight : htmlEdit.implicitHeight
 
                                                                 // ── HTML / Markdown text block ───────────────────────
                                                                 TextEdit {
                                                                     id: htmlEdit
+
                                                                     visible: modelData.type === "text"
                                                                     width: parent.width
                                                                     wrapMode: Text.Wrap
@@ -3716,12 +3773,14 @@ PlasmoidItem {
                                                                 // ── Code block with copy button ───────────────────────
                                                                 Item {
                                                                     id: codeLoader
+
                                                                     visible: modelData.type === "code"
                                                                     width: parent.width
                                                                     implicitHeight: codeContainer.implicitHeight + 2
 
                                                                     Rectangle {
                                                                         id: codeContainer
+
                                                                         width: parent.width
                                                                         implicitHeight: codeLangRow.implicitHeight + codeBody.implicitHeight + Kirigami.Units.smallSpacing * 3
                                                                         radius: 6
@@ -3733,12 +3792,14 @@ PlasmoidItem {
                                                                         // Lang label + copy button row
                                                                         Row {
                                                                             id: codeLangRow
+
                                                                             width: parent.width
                                                                             height: Math.max(langLabel.implicitHeight + Kirigami.Units.smallSpacing, copyCodeBtn.implicitHeight + Kirigami.Units.smallSpacing)
                                                                             spacing: 0
 
                                                                             PC3.Label {
                                                                                 id: langLabel
+
                                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                                 leftPadding: Kirigami.Units.smallSpacing + 4
                                                                                 text: modelData.lang || "code"
@@ -3750,6 +3811,7 @@ PlasmoidItem {
 
                                                                             PC3.ToolButton {
                                                                                 id: copyCodeBtn
+
                                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                                 icon.name: "edit-copy"
                                                                                 display: PC3.AbstractButton.IconOnly
@@ -3762,6 +3824,7 @@ PlasmoidItem {
                                                                                     clipboardHelper.copy();
                                                                                 }
                                                                             }
+
                                                                         }
 
                                                                         // Thin divider
@@ -3775,6 +3838,7 @@ PlasmoidItem {
                                                                         // Code text
                                                                         TextEdit {
                                                                             id: codeBody
+
                                                                             y: codeLangRow.height + 1
                                                                             width: parent.width
                                                                             leftPadding: Kirigami.Units.smallSpacing + 4
@@ -3795,6 +3859,7 @@ PlasmoidItem {
                                                                         }
 
                                                                     }
+
                                                                 }
 
                                                                 // ── Markdown table with CSV export button ─────────────
@@ -3805,6 +3870,7 @@ PlasmoidItem {
 
                                                                     Column {
                                                                         id: tableOuterCol
+
                                                                         width: parent.width
                                                                         spacing: 2
 
@@ -3830,6 +3896,7 @@ PlasmoidItem {
                                                                                     customStorageDs.connectSource("bash -c \"printf '%s' '" + csv.replace(/'/g, "'\\''") + "' > '" + escaped + "' && xdg-open '" + escaped + "'\" #csv-export-" + ts);
                                                                                 }
                                                                             }
+
                                                                         }
 
                                                                         // Table rendered as HTML
@@ -3846,12 +3913,16 @@ PlasmoidItem {
                                                                             selectionColor: Kirigami.Theme.highlightColor
                                                                             font: Kirigami.Theme.defaultFont
                                                                         }
+
                                                                     }
+
                                                                 }
+
                                                             }
+
                                                         }
+
                                                     }
-                                                    // ── end message body ───────────────────────────────────────
 
                                                     Row {
                                                         visible: modelData.role === "error"
@@ -3868,6 +3939,7 @@ PlasmoidItem {
                                                                         var act = root.plasmoidRef.action("configure");
                                                                         if (act && typeof act.trigger === "function")
                                                                             act.trigger();
+
                                                                     }
                                                                 }
                                                             }
