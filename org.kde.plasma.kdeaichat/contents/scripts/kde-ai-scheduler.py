@@ -232,6 +232,36 @@ def run_schedule(s):
 
 
 # ── Main loop ──────────────────────────────────────────────────────────────────
+def is_start_date_passed(s, now):
+    start_date_str = s.get("startDate")
+    if not start_date_str:
+        return True
+    try:
+        clean_str = start_date_str
+        if clean_str.endswith("Z"):
+            clean_str = clean_str[:-1]
+        if "." in clean_str:
+            clean_str = clean_str.split(".")[0]
+        parts = clean_str.split("T")
+        if len(parts) != 2:
+            parts = clean_str.split(" ")
+        if len(parts) == 2:
+            dt_part = parts[0]
+            tm_part = parts[1]
+            dp = dt_part.split("-")
+            tp = tm_part.split(":")
+            year = int(dp[0])
+            month = int(dp[1])
+            day = int(dp[2])
+            hour = int(tp[0])
+            minute = int(tp[1])
+            start_dt = datetime(year, month, day, hour, minute)
+            return now >= start_dt
+    except Exception as e:
+        log(f"Error parsing startDate '{start_date_str}': {e}", "WARN")
+    return True
+
+
 def update_schedule_timestamps(items, sid, now_iso, status, next_iso):
     updated = []
     for s in items:
@@ -298,16 +328,56 @@ def main():
             sid = s.get("id", "")
             cron = s.get("cron", "").strip()
             trigger_now = s.get("triggerNow", False)
+            task_type = s.get("taskType", "repeat")
+
+            # Start date filter
+            start_passed = is_start_date_passed(s, now)
+            if not start_passed and not trigger_now:
+                continue
+
+            # Limit checking
+            if task_type == "repeat" and s.get("limitEnabled", False):
+                run_count = int(s.get("runCount", 0))
+                limit_count = int(s.get("limitCount", 5))
+                if run_count >= limit_count:
+                    s["enabled"] = False
+                    changed = True
+                    continue
 
             should_run = trigger_now
-            if not should_run and cron:
-                should_run = cron_matches(cron, now)
+            if not should_run:
+                if task_type == "single":
+                    should_run = not s.get("lastRunAt")
+                elif cron:
+                    should_run = cron_matches(cron, now)
 
             if should_run:
                 status = run_schedule(s)
-                next_iso = next_run_iso(cron) if cron else ""
+                
+                # Update run counts and limits
+                new_count = int(s.get("runCount", 0)) + 1
+                s["runCount"] = new_count
+
+                disable_task = False
+                if task_type == "single":
+                    disable_task = True
+                elif s.get("limitEnabled", False) and new_count >= int(s.get("limitCount", 5)):
+                    disable_task = True
+
+                next_iso = ""
+                if not disable_task and cron:
+                    next_iso = next_run_iso(cron)
+
                 schedules = update_schedule_timestamps(schedules, sid, now_iso,
                                                        status or "success", next_iso)
+                
+                # Disable task in state list if done
+                if disable_task:
+                    for item in schedules:
+                        if item.get("id") == sid:
+                            item["enabled"] = False
+                            item["nextRunAt"] = ""
+
                 changed = True
 
         if changed:

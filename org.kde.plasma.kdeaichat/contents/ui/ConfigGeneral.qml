@@ -1474,6 +1474,7 @@ KCM.SimpleKCM {
 
         // Helper: build cron from draft
         function buildCron(d) {
+            if (d.taskType === "single") return "";
             var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1
             var tp = (d.schedTime || "09:00").split(":")
             var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0
@@ -1491,28 +1492,73 @@ KCM.SimpleKCM {
             return "0 9 * * *"
         }
 
+        function getStartYear(dateStr) {
+            if (!dateStr) return new Date().getFullYear();
+            return new Date(dateStr).getFullYear();
+        }
+        function getStartMonth(dateStr) {
+            if (!dateStr) return new Date().getMonth();
+            return new Date(dateStr).getMonth();
+        }
+        function getStartDay(dateStr) {
+            if (!dateStr) return new Date().getDate();
+            return new Date(dateStr).getDate();
+        }
+        function getStartHour(dateStr) {
+            if (!dateStr) return 9;
+            return new Date(dateStr).getHours();
+        }
+        function getStartMin(dateStr) {
+            if (!dateStr) return 0;
+            return new Date(dateStr).getMinutes();
+        }
+        function setStartDateField(field, value) {
+            var d = new Date(scheduleDialog.draft.startDate || new Date().toISOString());
+            if (field === "year") d.setFullYear(value);
+            else if (field === "month") d.setMonth(value);
+            else if (field === "day") d.setDate(value);
+            else if (field === "hour") d.setHours(value);
+            else if (field === "minute") d.setMinutes(value);
+            scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, { startDate: d.toISOString() });
+        }
+
         // Helper: human-readable summary
         function humanText(d) {
+            if (d.taskType === "single") {
+                var sDate = new Date(d.startDate || new Date().toISOString());
+                var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                var shr = sDate.getHours(), smn = sDate.getMinutes();
+                var sap = shr >= 12 ? "PM" : "AM", sh12 = shr % 12 || 12;
+                var sms = smn < 10 ? "0" + smn : "" + smn;
+                var stimeStr = sh12 + ":" + sms + " " + sap;
+                return "Once on " + monthNames[sDate.getMonth()] + " " + sDate.getDate() + ", " + sDate.getFullYear() + " at " + stimeStr;
+            }
+
             var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1
             var tp = (d.schedTime || "09:00").split(":")
             var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0
             var ap = hr >= 12 ? "PM" : "AM", h12 = hr % 12 || 12
             var ms = mn < 10 ? "0" + mn : "" + mn
             var timeStr = h12 + ":" + ms + " " + ap
-            if (t === "minutes") return "Every " + (n === 1 ? "minute" : n + " minutes")
-            if (t === "hours")   return "Every " + (n === 1 ? "hour" : n + " hours")
-            if (t === "days")    return "Every " + (n === 1 ? "day" : n + " days") + " at " + timeStr
-            if (t === "weeks") {
+            var baseText = "";
+            if (t === "minutes") baseText = "Every " + (n === 1 ? "minute" : n + " minutes");
+            else if (t === "hours")   baseText = "Every " + (n === 1 ? "hour" : n + " hours");
+            else if (t === "days")    baseText = "Every " + (n === 1 ? "day" : n + " days") + " at " + timeStr;
+            else if (t === "weeks") {
                 var dn = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
                 var days = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.map(function(x){ return dn[x] }).join(", ") : "Mon"
-                return "Every " + (n === 1 ? "week" : n + " weeks") + " on " + days + " at " + timeStr
+                baseText = "Every " + (n === 1 ? "week" : n + " weeks") + " on " + days + " at " + timeStr
             }
-            if (t === "months") {
+            else if (t === "months") {
                 var dom = d.schedDayOfMonth || 1
                 var sfx = dom === 1 ? "st" : dom === 2 ? "nd" : dom === 3 ? "rd" : "th"
-                return "Every " + (n === 1 ? "month" : n + " months") + " on the " + dom + sfx + " at " + timeStr
+                baseText = "Every " + (n === 1 ? "month" : n + " months") + " on the " + dom + sfx + " at " + timeStr
             }
-            return ""
+            
+            if (d.limitEnabled && d.limitCount) {
+                baseText += " (Limit: " + d.limitCount + " run" + (d.limitCount === 1 ? "" : "s") + ")"
+            }
+            return baseText;
         }
 
         onOpened: { schedLoadSchedules(); editingIndex = -1 }
@@ -1531,14 +1577,19 @@ KCM.SimpleKCM {
                     opacity: 0.7; Layout.fillWidth: true
                 }
                 QQC2.Button {
-                    text: "+ New Schedule"; icon.name: "list-add"; highlighted: true
+                    text: "New Schedule"; icon.name: "list-add"; highlighted: true
                     onClicked: {
+                        var now = new Date()
+                        now.setMinutes(now.getMinutes() + 5)
                         scheduleDialog.draft = {
                             id: page.schedMakeUuid(), name: "", enabled: true,
                             chatId: "", chatName: "",
                             message: "",
+                            taskType: "single",
+                            startDate: now.toISOString(),
                             schedType: "days", schedEvery: 1, schedTime: "09:00",
                             schedDays: [1], schedDayOfMonth: 1,
+                            limitEnabled: false, limitCount: 5,
                             notify: true, createdAt: new Date().toISOString()
                         }
                         scheduleDialog.editingIndex = -2
@@ -1550,7 +1601,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 visible: page.schedulerList.length === 0
                 type: Kirigami.MessageType.Information
-                text: "No scheduled messages yet. Click <b>+ New Schedule</b> to create one, " +
+                text: "No scheduled messages yet. Click <b>New Schedule</b> to create one, " +
                       "or type <b>/schedule</b> in any chat."
             }
 
@@ -1608,6 +1659,12 @@ KCM.SimpleKCM {
                                 QQC2.ToolTip.visible: hovered; QQC2.ToolTip.delay: 500
                                 onClicked: {
                                     var d = JSON.parse(JSON.stringify(modelData))
+                                    if (!d.taskType) d.taskType = "repeat"
+                                    if (!d.startDate) {
+                                        var now = new Date()
+                                        now.setMinutes(now.getMinutes() + 5)
+                                        d.startDate = now.toISOString()
+                                    }
                                     if (!d.schedType) d.schedType = "days"
                                     if (!d.schedEvery) d.schedEvery = 1
                                     if (!d.schedTime) d.schedTime = "09:00"
@@ -1638,7 +1695,7 @@ KCM.SimpleKCM {
             clip: true
 
             ColumnLayout {
-                width: scheduleDialog.width - Kirigami.Units.largeSpacing * 2
+                width: parent.width - Kirigami.Units.gridUnit
                 spacing: Kirigami.Units.largeSpacing
 
                 Kirigami.Heading { level: 4; text: scheduleDialog.editingIndex === -2 ? "New Scheduled Message" : "Edit Scheduled Message" }
@@ -1664,80 +1721,192 @@ KCM.SimpleKCM {
                 // Schedule builder
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                    QQC2.Label { text: "When to send:"; font.bold: true }
 
-                    Flow {
-                        Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                        Repeater {
-                            model: [
-                                {key:"minutes",label:"Every X minutes"},
-                                {key:"hours",  label:"Every X hours"},
-                                {key:"days",   label:"Every X days"},
-                                {key:"weeks",  label:"Every X weeks"},
-                                {key:"months", label:"Every X months"},
-                            ]
-                            QQC2.Button {
-                                text: modelData.label
-                                flat: (scheduleDialog.draft.schedType || "days") !== modelData.key
-                                highlighted: (scheduleDialog.draft.schedType || "days") === modelData.key
-                                padding: Kirigami.Units.smallSpacing * 1.5; font.pixelSize: 12
-                                onClicked: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedType: modelData.key})
-                            }
-                        }
-                    }
+                    QQC2.Label { text: "Task Type:"; font.bold: true }
 
-                    // Every N
                     RowLayout {
                         spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "Every" }
-                        QQC2.SpinBox {
-                            id: dlgEvery; from: 1; to: 999
-                            value: scheduleDialog.draft.schedEvery || 1
-                            onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedEvery: value})
+                        QQC2.Button {
+                            text: "Single Run"
+                            highlighted: (scheduleDialog.draft.taskType || "single") === "single"
+                            flat: (scheduleDialog.draft.taskType || "single") !== "single"
+                            onClicked: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {taskType: "single"})
                         }
+                        QQC2.Button {
+                            text: "Recurring (Repeatable)"
+                            highlighted: (scheduleDialog.draft.taskType || "single") === "repeat"
+                            flat: (scheduleDialog.draft.taskType || "single") !== "repeat"
+                            onClicked: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {taskType: "repeat"})
+                        }
+                    }
+                }
+
+                // ── Date and Time picker ──
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.mediumSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
                         QQC2.Label {
-                            text: {
-                                var t = scheduleDialog.draft.schedType || "days", n = scheduleDialog.draft.schedEvery || 1
-                                var labels = {minutes: "minute", hours: "hour", days: "day", weeks: "week", months: "month"}
-                                var base = labels[t] || t
-                                return n === 1 ? base : base + "s"
+                            text: (scheduleDialog.draft.taskType || "single") === "single" ? "Scheduled Date:" : "Start Date (Optional):"
+                            font.bold: true
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+                            
+                            QQC2.ComboBox {
+                                id: startMonthCombo
+                                Layout.fillWidth: true
+                                model: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                                currentIndex: scheduleDialog.getStartMonth(scheduleDialog.draft.startDate)
+                                onCurrentIndexChanged: {
+                                    if (activeFocus) scheduleDialog.setStartDateField("month", currentIndex)
+                                }
+                            }
+                            
+                            QQC2.SpinBox {
+                                id: startDaySpin
+                                from: 1; to: 31
+                                value: scheduleDialog.getStartDay(scheduleDialog.draft.startDate)
+                                onValueChanged: {
+                                    if (activeFocus) scheduleDialog.setStartDateField("day", value)
+                                }
+                            }
+                            
+                            QQC2.SpinBox {
+                                id: startYearSpin
+                                from: 2026; to: 2035
+                                value: scheduleDialog.getStartYear(scheduleDialog.draft.startDate)
+                                onValueChanged: {
+                                    if (activeFocus) scheduleDialog.setStartDateField("year", value)
+                                }
                             }
                         }
                     }
 
-                    // Time picker
-                    RowLayout {
-                        visible: ["days","weeks","months"].indexOf(scheduleDialog.draft.schedType || "days") >= 0
+                    ColumnLayout {
+                        Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "At time:" }
-                        QQC2.SpinBox {
-                            id: dlgHour; from: 0; to: 23
-                            value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
-                            textFromValue: function(v) { return (v<10?"0":"") + v }
-                            onValueChanged: {
-                                var m = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[1])||0
-                                scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
-                                    {schedTime: (value<10?"0":"")+value+":"+(m<10?"0":"")+m})
+                        QQC2.Label {
+                            text: "Scheduled Time:"
+                            font.bold: true
+                        }
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            QQC2.SpinBox {
+                                id: startHourSpin
+                                from: 0; to: 23
+                                value: scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
+                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
+                                onValueChanged: {
+                                    if (activeFocus) scheduleDialog.setStartDateField("hour", value)
+                                }
+                            }
+                            QQC2.Label { text: ":" }
+                            QQC2.SpinBox {
+                                id: startMinSpin
+                                from: 0; to: 59
+                                value: scheduleDialog.getStartMin(scheduleDialog.draft.startDate)
+                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
+                                onValueChanged: {
+                                    if (activeFocus) scheduleDialog.setStartDateField("minute", value)
+                                }
                             }
                         }
-                        QQC2.Label { text: ":" }
-                        QQC2.SpinBox {
-                            id: dlgMin; from: 0; to: 59; stepSize: 5
-                            value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0
-                            textFromValue: function(v) { return (v<10?"0":"") + v }
-                            onValueChanged: {
-                                var h = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[0])||9
-                                scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
-                                    {schedTime: (h<10?"0":"")+h+":"+(value<10?"0":"")+value})
+                    }
+                }
+
+                // ── Recurrence options ──
+                ColumnLayout {
+                    visible: (scheduleDialog.draft.taskType || "single") === "repeat"
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.largeSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        QQC2.Label { text: "Frequency:"; font.bold: true }
+                        Flow {
+                            Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
+                            Repeater {
+                                model: [
+                                    {key:"minutes",label:"Every X minutes"},
+                                    {key:"hours",  label:"Every X hours"},
+                                    {key:"days",   label:"Every X days"},
+                                    {key:"weeks",  label:"Every X weeks"},
+                                    {key:"months", label:"Every X months"},
+                                ]
+                                QQC2.Button {
+                                    text: modelData.label
+                                    flat: (scheduleDialog.draft.schedType || "days") !== modelData.key
+                                    highlighted: (scheduleDialog.draft.schedType || "days") === modelData.key
+                                    padding: Kirigami.Units.smallSpacing * 1.5; font.pixelSize: 12
+                                    onClicked: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedType: modelData.key})
+                                }
                             }
                         }
                     }
 
-                    // Day-of-week chips (for weeks)
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        QQC2.Label { text: "Repeat Every:"; font.bold: true }
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            QQC2.SpinBox {
+                                id: dlgEvery; from: 1; to: 999
+                                value: scheduleDialog.draft.schedEvery || 1
+                                onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedEvery: value})
+                            }
+                            QQC2.Label {
+                                text: {
+                                    var t = scheduleDialog.draft.schedType || "days", n = scheduleDialog.draft.schedEvery || 1
+                                    var labels = {minutes: "minute", hours: "hour", days: "day", weeks: "week", months: "month"}
+                                    var base = labels[t] || t
+                                    return n === 1 ? base : base + "s"
+                                }
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        visible: ["days","weeks","months"].indexOf(scheduleDialog.draft.schedType || "days") >= 0
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        QQC2.Label { text: "At Recurring Time:"; font.bold: true }
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            QQC2.SpinBox {
+                                id: dlgHour; from: 0; to: 23
+                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
+                                textFromValue: function(v) { return (v<10?"0":"") + v }
+                                onValueChanged: {
+                                    var m = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[1])||0
+                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
+                                        {schedTime: (value<10?"0":"")+value+":"+(m<10?"0":"")+m})
+                                }
+                            }
+                            QQC2.Label { text: ":" }
+                            QQC2.SpinBox {
+                                id: dlgMin; from: 0; to: 59; stepSize: 5
+                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0
+                                textFromValue: function(v) { return (v<10?"0":"") + v }
+                                onValueChanged: {
+                                    var h = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[0])||9
+                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
+                                        {schedTime: (h<10?"0":"")+h+":"+(value<10?"0":"")+value})
+                                }
+                            }
+                        }
+                    }
+
                     ColumnLayout {
                         visible: (scheduleDialog.draft.schedType || "") === "weeks"
                         spacing: Kirigami.Units.smallSpacing; Layout.fillWidth: true
-                        QQC2.Label { text: "On these days:" }
+                        QQC2.Label { text: "On these days:"; font.bold: true }
                         Flow {
                             Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
                             Repeater {
@@ -1766,38 +1935,68 @@ KCM.SimpleKCM {
                         }
                     }
 
-                    // Day of month (for months)
-                    RowLayout {
+                    ColumnLayout {
                         visible: (scheduleDialog.draft.schedType || "") === "months"
+                        Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "On day:" }
-                        QQC2.SpinBox {
-                            from: 1; to: 28; value: scheduleDialog.draft.schedDayOfMonth || 1
-                            onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedDayOfMonth: value})
+                        QQC2.Label { text: "On Day of Month:"; font.bold: true }
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            QQC2.SpinBox {
+                                from: 1; to: 28; value: scheduleDialog.draft.schedDayOfMonth || 1
+                                onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedDayOfMonth: value})
+                            }
+                            QQC2.Label { text: "of the month"; opacity: 0.7 }
                         }
-                        QQC2.Label { text: "of the month"; opacity: 0.7 }
                     }
 
-                    // Summary chip
-                    Rectangle {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        height: dlgSummary.implicitHeight + Kirigami.Units.gridUnit
-                        radius: 6
-                        color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.10)
-                        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.30)
-                        border.width: 1
-                        QQC2.Label {
-                            id: dlgSummary
-                            anchors { verticalCenter: parent.verticalCenter; left: parent.left; right: parent.right; margins: Kirigami.Units.gridUnit * 0.6 }
-                            text: "📅 " + scheduleDialog.humanText(scheduleDialog.draft)
-                            font.bold: true; wrapMode: Text.Wrap; color: Kirigami.Theme.highlightColor
+                        spacing: Kirigami.Units.smallSpacing
+                        QQC2.Label { text: "Execution Limit:"; font.bold: true }
+                        RowLayout {
+                            spacing: Kirigami.Units.mediumSpacing
+                            QQC2.CheckBox {
+                                id: limitCheckbox
+                                text: "Limit number of runs"
+                                checked: !!scheduleDialog.draft.limitEnabled
+                                onCheckedChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {limitEnabled: checked})
+                            }
+                            QQC2.SpinBox {
+                                visible: limitCheckbox.checked
+                                id: limitSpin
+                                from: 1; to: 9999
+                                value: scheduleDialog.draft.limitCount || 5
+                                onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {limitCount: value})
+                            }
+                            QQC2.Label {
+                                visible: limitCheckbox.checked
+                                text: "times"
+                                opacity: 0.7
+                            }
                         }
+                    }
+                }
+
+                // Summary chip
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: dlgSummary.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 6
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.10)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.30)
+                    border.width: 1
+                    QQC2.Label {
+                        id: dlgSummary
+                        anchors { verticalCenter: parent.verticalCenter; left: parent.left; right: parent.right; margins: Kirigami.Units.gridUnit * 0.6 }
+                        text: "📅 " + scheduleDialog.humanText(scheduleDialog.draft)
+                        font.bold: true; wrapMode: Text.Wrap; color: Kirigami.Theme.highlightColor
                     }
                 }
 
                 Kirigami.Separator { Layout.fillWidth: true }
 
-                // Label + Notify
+                // Label (always on top)
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
                     QQC2.Label { text: "Label (optional):"; font.bold: true }
@@ -4484,11 +4683,12 @@ KCM.SimpleKCM {
                     font.pixelSize: 11
                     onClicked: {
                         page.schedulerStatus = "Restarting…"
-                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " +
+                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " +
+                                  "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " +
                                   "(pkill -f kde-ai-scheduler.py; sleep 0.5; " +
-                                  "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " +
+                                  "nohup python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py >/dev/null 2>&1 &) ; " +
                                   "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start")
+                        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-start")
                         schedPollTimer.restart()
                     }
                 }

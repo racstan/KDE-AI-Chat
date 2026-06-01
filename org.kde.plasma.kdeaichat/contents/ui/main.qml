@@ -116,12 +116,12 @@ PlasmoidItem {
         }
 
         // Play the custom scheduled execution sound
-        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/dialog-information.oga || " +
-                       "paplay /usr/share/sounds/ocean/stereo/dialog-information.oga || " +
-                       "pw-play /usr/share/sounds/ocean/stereo/audio-volume-change.oga || " +
-                       "paplay /usr/share/sounds/ocean/stereo/audio-volume-change.oga || " +
+        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " +
+                       "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " +
+                       "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " +
+                       "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " +
                        "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " +
-                       "canberra-gtk-play -i dialog-information";
+                       "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
 
         // Append user message

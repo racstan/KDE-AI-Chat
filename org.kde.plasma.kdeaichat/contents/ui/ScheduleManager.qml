@@ -205,7 +205,7 @@ Item {
             }
 
             QQC2.Button {
-                text: "+ New Schedule"
+                text: "New Schedule"
                 icon.name: "list-add"
                 highlighted: true
                 visible: editingIndex === -1
