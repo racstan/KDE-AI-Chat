@@ -1577,9 +1577,14 @@ KCM.SimpleKCM {
                 if (Array.isArray(arr)) {
                     for (var i = 0; i < arr.length; i++) {
                         if (arr[i] && arr[i].value && !arr[i].archived) {
+                            var rawId = arr[i].value;
+                            var displayId = rawId;
+                            if (rawId.length > 10) {
+                                displayId = rawId.substring(0, 8) + "...";
+                            }
                             list.push({
-                                "id": arr[i].value,
-                                "name": arr[i].text || "Chat"
+                                "id": rawId,
+                                "name": (arr[i].text || "Chat") + " (" + displayId + ")"
                             });
                         }
                     }

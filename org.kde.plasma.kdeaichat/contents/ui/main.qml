@@ -128,7 +128,12 @@ PlasmoidItem {
     }
 
     function makeSessionId() {
-        return "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+        var chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        var str = "";
+        for (var i = 0; i < 6; i++) {
+            str += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return "s-" + str;
     }
 
     // ── /schedule command handler ──────────────────────────────────────────────
