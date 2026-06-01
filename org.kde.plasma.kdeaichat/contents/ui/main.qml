@@ -79,6 +79,24 @@ PlasmoidItem {
         return false;
     }
 
+    function triggerConfigure() {
+        if (typeof plasmoid.containment !== "undefined" && typeof plasmoid.containment.configureRequested === "function") {
+            plasmoid.containment.configureRequested(plasmoid);
+        } else if (typeof root.plasmoidRef !== "undefined" && typeof root.plasmoidRef.configureRequested === "function") {
+            root.plasmoidRef.configureRequested();
+        } else if (typeof plasmoid.configureRequested === "function") {
+            plasmoid.configureRequested();
+        } else if (typeof root.plasmoidRef !== "undefined" && typeof root.plasmoidRef.action === "function") {
+            var act = root.plasmoidRef.action("configure");
+            if (act && typeof act.trigger === "function")
+                act.trigger();
+        } else if (typeof plasmoid.action === "function") {
+            var act2 = plasmoid.action("configure");
+            if (act2 && typeof act2.trigger === "function")
+                act2.trigger();
+        }
+    }
+
     function focusInput() {
         Qt.callLater(function() {
             if (typeof msgInput !== "undefined" && msgInput) {
@@ -4010,16 +4028,7 @@ PlasmoidItem {
                     chatScheduleManagerDialog.close();
                     plasmoid.configuration.preselectedChatId = chatScheduleManagerDialog.chatId;
                     plasmoid.configuration.preselectedChatName = chatScheduleManagerDialog.chatName || "Current Chat";
-                    if (typeof root.plasmoidRef !== "undefined" && typeof root.plasmoidRef.configureRequested === "function") {
-                        root.plasmoidRef.configureRequested();
-                    } else if (typeof plasmoid.configureRequested === "function") {
-                        plasmoid.configureRequested();
-                    } else {
-                        var act = plasmoid.action("configure");
-                        if (act)
-                            act.trigger();
-
-                    }
+                    root.triggerConfigure();
                 }
             }
 
@@ -4726,17 +4735,8 @@ PlasmoidItem {
                                                             text: root.translate("Open Settings")
                                                             icon.name: "configure"
                                                             onClicked: {
-                                                                if (root.plasmoidRef) {
-                                                                    if (typeof root.plasmoidRef.configureRequested === "function") {
-                                                                        root.plasmoidRef.configureRequested();
-                                                                    } else if (typeof root.plasmoidRef.action === "function") {
-                                                                        var act = root.plasmoidRef.action("configure");
-                                                                        if (act && typeof act.trigger === "function")
-                                                                            act.trigger();
-
-                                                                    }
-                                                                }
-                                                            }
+                                                                 root.triggerConfigure();
+                                                             }
                                                         }
 
                                                     }
@@ -5119,19 +5119,10 @@ PlasmoidItem {
                                                                 icon.name: "appointment-new"
                                                                 highlighted: true
                                                                 onClicked: {
-                                                                    plasmoid.configuration.preselectedChatId = root.currentSessionId;
-                                                                    plasmoid.configuration.preselectedChatName = root.currentSessionTitle || "Current Chat";
-                                                                    if (typeof root.plasmoidRef !== "undefined" && typeof root.plasmoidRef.configureRequested === "function") {
-                                                                        root.plasmoidRef.configureRequested();
-                                                                    } else if (typeof plasmoid.configureRequested === "function") {
-                                                                        plasmoid.configureRequested();
-                                                                    } else {
-                                                                        var act = plasmoid.action("configure");
-                                                                        if (act)
-                                                                            act.trigger();
-
-                                                                    }
-                                                                }
+                                                                     plasmoid.configuration.preselectedChatId = root.currentSessionId;
+                                                                     plasmoid.configuration.preselectedChatName = root.currentSessionTitle || "Current Chat";
+                                                                     root.triggerConfigure();
+                                                                 }
                                                             }
 
                                                         }
