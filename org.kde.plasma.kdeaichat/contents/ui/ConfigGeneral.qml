@@ -94,6 +94,8 @@ KCM.SimpleKCM {
     property alias cfg_customHistoryPath: customHistoryPathField.text
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
+    property string cfg_preselectedChatId: ""
+    property string cfg_preselectedChatName: ""
     property string keyringStatus: ""
     property string discoveryStatus: ""
     // ── Scheduler ──────────────────────────────────────────────────────────
@@ -1468,15 +1470,24 @@ KCM.SimpleKCM {
         // Poll immediately so the status badge updates instantly
         pollSchedulerState();
         // If opened from chat via "Create Schedule", immediately open the scheduling dialog prefilled
-        if (typeof plasmoid.configuration.preselectedChatId !== "undefined" && plasmoid.configuration.preselectedChatId !== "") {
+        var pId = "";
+        var pName = "Chat";
+        if (typeof page.cfg_preselectedChatId !== "undefined" && page.cfg_preselectedChatId !== "") {
+            pId = page.cfg_preselectedChatId;
+            pName = page.cfg_preselectedChatName || "Chat";
+        } else if (plasmoid.configuration && "preselectedChatId" in plasmoid.configuration && plasmoid.configuration["preselectedChatId"] !== "") {
+            pId = plasmoid.configuration["preselectedChatId"];
+            pName = plasmoid.configuration["preselectedChatName"] || "Chat";
+        }
+        if (pId !== "") {
             var now = new Date();
             now.setMinutes(now.getMinutes() + 5);
             scheduleDialog.draft = {
                 "id": page.schedMakeUuid(),
                 "name": "",
                 "enabled": true,
-                "chatId": plasmoid.configuration.preselectedChatId,
-                "chatName": plasmoid.configuration.preselectedChatName || "Chat",
+                "chatId": pId,
+                "chatName": pName,
                 "message": "",
                 "taskType": "single",
                 "startDate": now.toISOString(),
@@ -1493,8 +1504,14 @@ KCM.SimpleKCM {
             scheduleDialog.editingIndex = -2;
             scheduleDialog.open();
             // Clear configuration values immediately so it doesn't pop up again next time!
-            plasmoid.configuration.preselectedChatId = "";
-            plasmoid.configuration.preselectedChatName = "";
+            if (typeof page.cfg_preselectedChatId !== "undefined") {
+                page.cfg_preselectedChatId = "";
+                page.cfg_preselectedChatName = "";
+            }
+            if (plasmoid.configuration && "preselectedChatId" in plasmoid.configuration) {
+                plasmoid.configuration.preselectedChatId = "";
+                plasmoid.configuration.preselectedChatName = "";
+            }
         }
     }
     Component.onDestruction: {
