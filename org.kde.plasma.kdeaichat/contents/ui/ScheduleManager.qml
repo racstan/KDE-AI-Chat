@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import "translations.js" as Translations
 
 // ScheduleManager.qml — Redesigned schedule list + editor for KDE AI Chat
 // Schedules are per-chat. Each schedule injects a message into its linked chat at a set time.
@@ -17,6 +18,13 @@ Item {
     property string currentChatName: "this chat"
 
     signal schedulesChanged(var newList)
+
+    function translate(text) {
+        if (typeof plasmoid !== "undefined" && plasmoid && plasmoid.configuration) {
+            return Translations.translate(text, plasmoid.configuration.language);
+        }
+        return Translations.translate(text, "");
+    }
 
     // ── UUID helper ────────────────────────────────────────────────────────────
     function makeUuid() {
@@ -73,40 +81,46 @@ Item {
             var tp = time.split(":")
             var hr = parseInt(tp[0]) || 9
             var mn = parseInt(tp[1]) || 0
-            var ampm = hr >= 12 ? "PM" : "AM"
+            var ampm = hr >= 12 ? translate("PM") : translate("AM")
             var h12 = hr % 12 || 12
             var mStr = mn < 10 ? "0" + mn : "" + mn
             var timeStr = h12 + ":" + mStr + " " + ampm
 
-            if (t === "minutes") return "Every " + (n === 1 ? "minute" : n + " minutes")
-            if (t === "hours")   return "Every " + (n === 1 ? "hour" : n + " hours")
-            if (t === "days")    return "Every " + (n === 1 ? "day" : n + " days") + " at " + timeStr
+            if (t === "minutes") return translate("Every") + " " + (n === 1 ? translate("minute") : n + " " + translate("minutes"))
+            if (t === "hours")   return translate("Every") + " " + (n === 1 ? translate("hour") : n + " " + translate("hours"))
+            if (t === "days")    return translate("Every") + " " + (n === 1 ? translate("day") : n + " " + translate("days")) + " " + translate("at") + " " + timeStr
             if (t === "weeks") {
-                var dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+                var dayNames = [translate("Sun"), translate("Mon"), translate("Tue"), translate("Wed"), translate("Thu"), translate("Fri"), translate("Sat")]
                 var days = draft.schedDays && draft.schedDays.length > 0
                     ? draft.schedDays.map(function(d){ return dayNames[d] }).join(", ")
-                    : "Mon"
-                return "Every " + (n === 1 ? "week" : n + " weeks") + " on " + days + " at " + timeStr
+                    : translate("Mon")
+                return translate("Every") + " " + (n === 1 ? translate("week") : n + " " + translate("weeks")) + " " + translate("on") + " " + days + " " + translate("at") + " " + timeStr
             }
             if (t === "months") {
                 var dom = draft.schedDayOfMonth || 1
-                var suffix = dom === 1 ? "st" : dom === 2 ? "nd" : dom === 3 ? "rd" : "th"
-                return "Every " + (n === 1 ? "month" : n + " months") + " on the " + dom + suffix + " at " + timeStr
+                var suffix = dom === 1 ? translate("st") : dom === 2 ? translate("nd") : dom === 3 ? translate("rd") : translate("th")
+                return translate("Every") + " " + (n === 1 ? translate("month") : n + " " + translate("months")) + " " + translate("on the") + " " + dom + suffix + " " + translate("at") + " " + timeStr
             }
         }
 
-        if (!expr) return "No schedule set"
+        if (!expr) return translate("No schedule set")
         var parts = expr.trim().split(/\s+/)
         if (parts.length !== 5) return expr
         var min = parts[0], hr2 = parts[1]
-        if (min.startsWith("*/")) return "Every " + min.slice(2) + " minutes"
-        if (hr2.startsWith("*/")) return "Every " + hr2.slice(2) + " hours"
+        if (min.startsWith("*/")) return translate("Every") + " " + min.slice(2) + " " + translate("minutes")
+        if (hr2.startsWith("*/")) return translate("Every") + " " + hr2.slice(2) + " " + translate("hours")
         if (min === "0" && hr2 !== "*") {
             var h = parseInt(hr2)
-            var ap = h >= 12 ? "PM" : "AM"
+            var ap = h >= 12 ? translate("PM") : translate("AM")
             var h1 = h % 12 || 12
-            var dayMap = {"*":"every day","1-5":"weekdays","0,6":"weekends","6,0":"weekends","1":"Mondays"}
-            return "Daily at " + h1 + ":00 " + ap + (dayMap[parts[4]] ? " (" + dayMap[parts[4]] + ")" : "")
+            var dayMap = {
+                "*": translate("every day"),
+                "1-5": translate("weekdays"),
+                "0,6": translate("weekends"),
+                "6,0": translate("weekends"),
+                "1": translate("Mondays")
+            }
+            return translate("Daily at") + " " + h1 + ":00 " + ap + (dayMap[parts[4]] ? " (" + dayMap[parts[4]] + ")" : "")
         }
         return expr
     }
@@ -200,12 +214,12 @@ Item {
 
             Kirigami.Heading {
                 level: 3
-                text: "Scheduled Messages"
+                text: translate("Scheduled Messages")
                 Layout.fillWidth: true
             }
 
             QQC2.Button {
-                text: "New Schedule"
+                text: translate("New Schedule")
                 icon.name: "list-add"
                 highlighted: true
                 visible: editingIndex === -1
@@ -218,9 +232,9 @@ Item {
             Layout.fillWidth: true
             visible: scheduleList.length === 0 && editingIndex === -1
             type: Kirigami.MessageType.Information
-            text: "<b>How scheduled messages work:</b> At the set time, your message is automatically " +
-                  "sent into the linked chat and the AI responds — just like you typed it yourself. " +
-                  "Use <b>/schedule</b> in any chat to create one instantly."
+            text: translate("<b>How scheduled messages work:</b> At the set time, your message is automatically ") +
+                  translate("sent into the linked chat and the AI responds — just like you typed it yourself. ") +
+                  translate("Use <b>/schedule</b> in any chat to create one instantly.")
         }
 
         // ── Schedule list ──────────────────────────────────────────────────────
@@ -264,7 +278,7 @@ Item {
                         QQC2.Switch {
                             checked: modelData.enabled
                             onToggled: scheduleManager.toggleEnabled(index)
-                            QQC2.ToolTip.text: checked ? "Pause this schedule" : "Activate this schedule"
+                            QQC2.ToolTip.text: checked ? translate("Pause this schedule") : translate("Activate this schedule")
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.delay: 500
                         }
@@ -302,14 +316,14 @@ Item {
                         // Action buttons
                         QQC2.ToolButton {
                             icon.name: "document-edit"
-                            QQC2.ToolTip.text: "Edit"
+                            QQC2.ToolTip.text: translate("Edit")
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.delay: 500
                             onClicked: scheduleManager.startEdit(index)
                         }
                         QQC2.ToolButton {
                             icon.name: "edit-delete"
-                            QQC2.ToolTip.text: "Remove"
+                            QQC2.ToolTip.text: translate("Remove")
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.delay: 500
                             onClicked: deleteConfirmDialog.openFor(index)
@@ -342,7 +356,7 @@ Item {
                     // Title
                     Kirigami.Heading {
                         level: 4
-                        text: editingIndex === -2 ? "New Scheduled Message" : "Edit Scheduled Message"
+                        text: editingIndex === -2 ? translate("New Scheduled Message") : translate("Edit Scheduled Message")
                     }
 
                     // ── Message to send ────────────────────────────────────────
@@ -351,11 +365,11 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
-                            text: "Message to send:"
+                            text: translate("Message to send:")
                             font.bold: true
                         }
                         QQC2.Label {
-                            text: "This message will be sent into the chat at the scheduled time, and the AI will reply."
+                            text: translate("This message will be sent into the chat at the scheduled time, and the AI will reply.")
                             font.pixelSize: 11
                             opacity: 0.65
                             wrapMode: Text.Wrap
@@ -366,7 +380,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 80
                             text: editingDraft.message || ""
-                            placeholderText: "e.g. Summarize what I should focus on today"
+                            placeholderText: translate("e.g. Summarize what I should focus on today")
                             wrapMode: TextEdit.Wrap
                             onTextChanged: editingDraft = Object.assign({}, editingDraft, {message: text})
                         }
@@ -380,7 +394,7 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
-                            text: "When to send:"
+                            text: translate("When to send:")
                             font.bold: true
                         }
 
@@ -391,11 +405,11 @@ Item {
 
                             Repeater {
                                 model: [
-                                    {key: "minutes", label: "Every X minutes"},
-                                    {key: "hours",   label: "Every X hours"},
-                                    {key: "days",    label: "Every X days"},
-                                    {key: "weeks",   label: "Every X weeks"},
-                                    {key: "months",  label: "Every X months"},
+                                    {key: "minutes", label: translate("Every X minutes")},
+                                    {key: "hours",   label: translate("Every X hours")},
+                                    {key: "days",    label: translate("Every X days")},
+                                    {key: "weeks",   label: translate("Every X weeks")},
+                                    {key: "months",  label: translate("Every X months")},
                                 ]
                                 QQC2.Button {
                                     text: modelData.label
@@ -415,7 +429,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
 
-                            QQC2.Label { text: "Every" }
+                            QQC2.Label { text: translate("Every") }
 
                             QQC2.SpinBox {
                                 id: everySpinBox
@@ -444,7 +458,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
 
-                            QQC2.Label { text: "At time:" }
+                            QQC2.Label { text: translate("At time:") }
 
                             QQC2.SpinBox {
                                 id: hourSpinBox
@@ -479,7 +493,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
 
-                            QQC2.Label { text: "On these days:" }
+                            QQC2.Label { text: translate("On these days:") }
 
                             Flow {
                                 Layout.fillWidth: true
@@ -540,7 +554,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
 
-                            QQC2.Label { text: "On day:" }
+                            QQC2.Label { text: translate("On day:") }
 
                             QQC2.SpinBox {
                                 from: 1; to: 28
@@ -548,7 +562,7 @@ Item {
                                 onValueChanged: editingDraft = Object.assign({}, editingDraft, {schedDayOfMonth: value})
                             }
 
-                            QQC2.Label { text: "of the month"; opacity: 0.7 }
+                            QQC2.Label { text: translate("of the month"); opacity: 0.7 }
                         }
 
                         // Human readable summary
@@ -588,14 +602,14 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
-                            text: "Label (optional):"
+                            text: translate("Label (optional):")
                             font.bold: true
                         }
                         QQC2.TextField {
                             id: editorName
                             Layout.fillWidth: true
                             text: editingDraft.name || ""
-                            placeholderText: "Leave blank to auto-name from schedule"
+                            placeholderText: translate("Leave blank to auto-name from schedule")
                             onTextChanged: editingDraft = Object.assign({}, editingDraft, {name: text})
                         }
                     }
@@ -610,8 +624,8 @@ Item {
                         }
                         QQC2.Label {
                             text: editorNotify.checked
-                                  ? "Show a desktop notification when the AI replies"
-                                  : "Silent — no notification"
+                                  ? translate("Show a desktop notification when the AI replies")
+                                  : translate("Silent — no notification")
                             opacity: 0.75
                             wrapMode: Text.Wrap
                         }
@@ -622,11 +636,11 @@ Item {
                         Layout.fillWidth: true
                         Item { Layout.fillWidth: true }
                         QQC2.Button {
-                            text: "Cancel"
+                            text: translate("Cancel")
                             onClicked: scheduleManager.cancelEdit()
                         }
                         QQC2.Button {
-                            text: editingIndex === -2 ? "Create Schedule" : "Save Changes"
+                            text: editingIndex === -2 ? translate("Create Schedule") : translate("Save Changes")
                             highlighted: true
                             enabled: editorMessage.text.trim() !== ""
                             onClicked: scheduleManager.saveEdit()
@@ -640,17 +654,17 @@ Item {
     // ── Delete confirmation ────────────────────────────────────────────────────
     QQC2.Dialog {
         id: deleteConfirmDialog
-        title: "Remove Schedule"
+        title: translate("Remove Schedule")
         modal: true
         standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Ok
         property int targetIndex: -1
         function openFor(index) { targetIndex = index; open() }
         QQC2.Label {
             text: deleteConfirmDialog.targetIndex >= 0 && scheduleManager.scheduleList.length > deleteConfirmDialog.targetIndex
-                  ? "Remove \"" + (scheduleManager.scheduleList[deleteConfirmDialog.targetIndex].name ||
+                  ? translate("Remove \"") + (scheduleManager.scheduleList[deleteConfirmDialog.targetIndex].name ||
                                    scheduleManager.humanCron(scheduleManager.scheduleList[deleteConfirmDialog.targetIndex].cron,
                                                              scheduleManager.scheduleList[deleteConfirmDialog.targetIndex])) + "\"?"
-                  : "Remove this schedule?"
+                  : translate("Remove this schedule?")
             wrapMode: Text.Wrap
         }
         onAccepted: { if (targetIndex >= 0) scheduleManager.deleteSchedule(targetIndex) }
