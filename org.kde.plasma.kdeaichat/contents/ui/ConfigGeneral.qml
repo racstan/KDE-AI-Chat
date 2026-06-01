@@ -1472,26 +1472,6 @@ KCM.SimpleKCM {
         property int editingIndex: -1   // -2=new, >=0=edit, -1=list
         property var draft: ({})
 
-        function getSavedChatsList() {
-            var jsonStr = plasmoid.configuration.chatSessionsJson || "";
-            if (jsonStr === "") return [{ value: "", text: "New Chat / Reply in New Session" }];
-            try {
-                var parsed = JSON.parse(jsonStr);
-                if (Array.isArray(parsed)) {
-                    var list = [];
-                    list.push({ value: "", text: "New Chat / Reply in New Session" });
-                    for (var i = 0; i < parsed.length; i++) {
-                        var s = parsed[i];
-                        if (s && s.value) {
-                            list.push({ value: s.value, text: s.text || "Untitled Chat" });
-                        }
-                    }
-                    return list;
-                }
-            } catch(e) {}
-            return [{ value: "", text: "New Chat / Reply in New Session" }];
-        }
-
         // Helper: build cron from draft
         function buildCron(d) {
             if (d.taskType === "single") return "";
@@ -1581,12 +1561,7 @@ KCM.SimpleKCM {
             return baseText;
         }
 
-        onOpened: {
-            schedLoadSchedules()
-            if (editingIndex !== -2) {
-                editingIndex = -1
-            }
-        }
+        onOpened: { schedLoadSchedules(); editingIndex = -1 }
 
         // ── List view ──────────────────────────────────────────────────────────
         ColumnLayout {
@@ -1602,7 +1577,7 @@ KCM.SimpleKCM {
                     opacity: 0.7; Layout.fillWidth: true
                 }
                 QQC2.Button {
-                    text: translate("New Schedule"); icon.name: "list-add"; highlighted: true
+                    text: "New Schedule"; icon.name: "list-add"; highlighted: true
                     onClicked: {
                         var now = new Date()
                         now.setMinutes(now.getMinutes() + 5)
@@ -1668,7 +1643,7 @@ KCM.SimpleKCM {
                                 }
                                 QQC2.Label {
                                     text: "⏱ " + (modelData.humanReadable || modelData.cron || "") +
-                                          (modelData.chatName ? " · 💬 " + modelData.chatName : "") + (modelData.chatId ? " (ID: " + modelData.chatId + ")" : "")
+                                          (modelData.chatName ? " · 💬 " + modelData.chatName : "")
                                     font.pixelSize: 11; opacity: 0.7; elide: Text.ElideRight; Layout.fillWidth: true
                                 }
                                 QQC2.Label {
@@ -1723,90 +1698,7 @@ KCM.SimpleKCM {
                 width: parent.width - Kirigami.Units.gridUnit
                 spacing: Kirigami.Units.largeSpacing
 
-                Kirigami.Heading { level: 4; text: scheduleDialog.editingIndex === -2 ? "Create New Schedule" : "Edit Scheduled Message" }
-
-                // Label (always on top)
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                    QQC2.Label { text: "Label (optional):"; font.bold: true }
-                    QQC2.TextField {
-                        id: dlgName; Layout.fillWidth: true
-                        text: scheduleDialog.draft.name || ""
-                        placeholderText: "Leave blank to auto-name"
-                        onTextChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {name: text})
-                    }
-                }
-
-                // Target Chat Session (optional select chat)
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                    QQC2.Label { text: "Target Chat Session (optional):"; font.bold: true }
-                    
-                    QQC2.ScrollView {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 7
-                        clip: true
-                        background: Rectangle {
-                            color: Kirigami.Theme.backgroundColor
-                            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.2)
-                            border.width: 1
-                            radius: 4
-                        }
-
-                        ListView {
-                            id: targetChatList
-                            model: scheduleDialog.getSavedChatsList()
-                            anchors.fill: parent
-                            clip: true
-                            delegate: Rectangle {
-                                width: ListView.view.width
-                                height: Kirigami.Units.gridUnit * 1.8
-                                color: (scheduleDialog.draft.chatId || "") === modelData.value
-                                       ? Kirigami.Theme.highlightColor
-                                       : (mouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05) : "transparent")
-                                radius: 4
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: Kirigami.Units.smallSpacing
-                                    anchors.rightMargin: Kirigami.Units.smallSpacing
-                                    spacing: Kirigami.Units.smallSpacing
-                                    
-                                    // Chat icon
-                                    Kirigami.Icon {
-                                        source: modelData.value === "" ? "list-add" : "chat"
-                                        implicitWidth: 16; implicitHeight: 16
-                                        color: (scheduleDialog.draft.chatId || "") === modelData.value ? "white" : Kirigami.Theme.textColor
-                                    }
-
-                                    QQC2.Label {
-                                        Layout.fillWidth: true
-                                        text: modelData.text + (modelData.value ? " (ID: " + modelData.value + ")" : "")
-                                        elide: Text.ElideRight
-                                        font.bold: (scheduleDialog.draft.chatId || "") === modelData.value
-                                        color: (scheduleDialog.draft.chatId || "") === modelData.value ? "white" : Kirigami.Theme.textColor
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: mouseArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: {
-                                        scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {
-                                            chatId: modelData.value,
-                                            chatName: modelData.value === "" ? "" : modelData.text
-                                        })
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    QQC2.Label {
-                        text: "If set to 'New Chat / Reply in New Session', a fresh chat session will be opened automatically when the message executes."
-                        font.pixelSize: 11; opacity: 0.65; wrapMode: Text.Wrap; Layout.fillWidth: true
-                    }
-                }
+                Kirigami.Heading { level: 4; text: scheduleDialog.editingIndex === -2 ? "New Scheduled Message" : "Edit Scheduled Message" }
 
                 // Message
                 ColumnLayout {
@@ -1906,24 +1798,11 @@ KCM.SimpleKCM {
                             spacing: Kirigami.Units.smallSpacing
                             QQC2.SpinBox {
                                 id: startHourSpin
-                                from: 1; to: 12
-                                value: {
-                                    var h = scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
-                                    return (h % 12) || 12
-                                }
+                                from: 0; to: 23
+                                value: scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
                                 textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
                                 onValueChanged: {
-                                    if (activeFocus) {
-                                        var curH = scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
-                                        var isPm = curH >= 12
-                                        var targetHour = value
-                                        if (isPm) {
-                                            if (value < 12) targetHour = value + 12
-                                        } else {
-                                            if (value === 12) targetHour = 0
-                                        }
-                                        scheduleDialog.setStartDateField("hour", targetHour)
-                                    }
+                                    if (activeFocus) scheduleDialog.setStartDateField("hour", value)
                                 }
                             }
                             QQC2.Label { text: ":" }
@@ -1934,20 +1813,6 @@ KCM.SimpleKCM {
                                 textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
                                 onValueChanged: {
                                     if (activeFocus) scheduleDialog.setStartDateField("minute", value)
-                                }
-                            }
-                            QQC2.Button {
-                                text: scheduleDialog.getStartHour(scheduleDialog.draft.startDate) >= 12 ? "PM" : "AM"
-                                font.bold: true
-                                onClicked: {
-                                    var curHour = scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
-                                    var newHour = curHour
-                                    if (curHour >= 12) {
-                                        newHour = curHour - 12
-                                    } else {
-                                        newHour = curHour + 12
-                                    }
-                                    scheduleDialog.setStartDateField("hour", newHour)
                                 }
                             }
                         }
@@ -2015,54 +1880,24 @@ KCM.SimpleKCM {
                         RowLayout {
                             spacing: Kirigami.Units.smallSpacing
                             QQC2.SpinBox {
-                                id: dlgHour; from: 1; to: 12
-                                value: {
-                                    var h = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
-                                    return (h % 12) || 12
-                                }
-                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
+                                id: dlgHour; from: 0; to: 23
+                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
+                                textFromValue: function(v) { return (v<10?"0":"") + v }
                                 onValueChanged: {
-                                    var parts = (scheduleDialog.draft.schedTime || "09:00").split(":")
-                                    var curH = parseInt(parts[0]) || 0
-                                    var m = parseInt(parts[1]) || 0
-                                    var isPm = curH >= 12
-                                    var targetH = value
-                                    if (isPm) {
-                                        if (value < 12) targetH = value + 12
-                                    } else {
-                                        if (value === 12) targetH = 0
-                                    }
+                                    var m = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[1])||0
                                     scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
-                                        {schedTime: (targetH < 10 ? "0" : "") + targetH + ":" + (m < 10 ? "0" : "") + m})
+                                        {schedTime: (value<10?"0":"")+value+":"+(m<10?"0":"")+m})
                                 }
                             }
                             QQC2.Label { text: ":" }
                             QQC2.SpinBox {
                                 id: dlgMin; from: 0; to: 59; stepSize: 5
                                 value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0
-                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
+                                textFromValue: function(v) { return (v<10?"0":"") + v }
                                 onValueChanged: {
-                                    var parts = (scheduleDialog.draft.schedTime || "09:00").split(":")
-                                    var h = parseInt(parts[0]) || 9
+                                    var h = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[0])||9
                                     scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
-                                        {schedTime: (h < 10 ? "0" : "") + h + ":" + (value < 10 ? "0" : "") + value})
-                                }
-                            }
-                            QQC2.Button {
-                                text: (parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) >= 12 ? "PM" : "AM")
-                                font.bold: true
-                                onClicked: {
-                                    var parts = (scheduleDialog.draft.schedTime || "09:00").split(":")
-                                    var curH = parseInt(parts[0]) || 0
-                                    var m = parseInt(parts[1]) || 0
-                                    var targetH = curH
-                                    if (curH >= 12) {
-                                        targetH = curH - 12
-                                    } else {
-                                        targetH = curH + 12
-                                    }
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
-                                        {schedTime: (targetH < 10 ? "0" : "") + targetH + ":" + (m < 10 ? "0" : "") + m})
+                                        {schedTime: (h<10?"0":"")+h+":"+(value<10?"0":"")+value})
                                 }
                             }
                         }
@@ -2161,7 +1996,17 @@ KCM.SimpleKCM {
 
                 Kirigami.Separator { Layout.fillWidth: true }
 
-
+                // Label (always on top)
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
+                    QQC2.Label { text: "Label (optional):"; font.bold: true }
+                    QQC2.TextField {
+                        id: dlgName; Layout.fillWidth: true
+                        text: scheduleDialog.draft.name || ""
+                        placeholderText: "Leave blank to auto-name"
+                        onTextChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {name: text})
+                    }
+                }
 
                 RowLayout {
                     QQC2.Switch {
@@ -2231,30 +2076,6 @@ KCM.SimpleKCM {
         schedAutoSetup();
         // Poll immediately so the status badge updates instantly
         pollSchedulerState();
-
-        // Check if we came from a specific chat via "Create Schedule" button
-        if (typeof plasmoid.preselectedChatId !== "undefined" && plasmoid.preselectedChatId !== "") {
-            var targetChatId = plasmoid.preselectedChatId;
-            var targetChatName = plasmoid.preselectedChatName || "Current Chat";
-            plasmoid.preselectedChatId = undefined;
-            plasmoid.preselectedChatName = undefined;
-
-            var now = new Date()
-            now.setMinutes(now.getMinutes() + 5)
-            scheduleDialog.draft = {
-                id: page.schedMakeUuid(), name: "", enabled: true,
-                chatId: targetChatId, chatName: targetChatName,
-                message: "",
-                taskType: "single",
-                startDate: now.toISOString(),
-                schedType: "days", schedEvery: 1, schedTime: "09:00",
-                schedDays: [1], schedDayOfMonth: 1,
-                limitEnabled: false, limitCount: 5,
-                notify: true, createdAt: new Date().toISOString()
-            }
-            scheduleDialog.editingIndex = -2
-            scheduleDialog.open()
-        }
     }
     Component.onDestruction: {
         saveGeneralSettingsOnly();
@@ -2425,21 +2246,12 @@ KCM.SimpleKCM {
                     keyringStatus = "Error saving to config file: " + err;
             } else if (sourceName.indexOf("sched-poll-") >= 0) {
                 page.schedulerDaemonRunning = (out === "SCHED_RUNNING");
-                if (page.schedulerDaemonRunning) {
-                    if (page.schedulerStatus === "" || page.schedulerStatus === "Starting…" || page.schedulerStatus === "Restarting…") {
-                        page.schedulerStatus = "Scheduler daemon is active and running.";
-                    }
-                } else {
-                    page.schedulerStatus = "Scheduler daemon is stopped or inactive.";
-                }
             } else if (sourceName.indexOf("sched-start") >= 0) {
-                page.schedulerStatus = "Scheduler daemon restarted successfully.";
-                pollSchedulerState();
+                page.schedulerStatus = "";   // badge shows state, no separate text needed
             } else if (sourceName.indexOf("sched-stop") >= 0) {
-                page.schedulerStatus = "Scheduler daemon stopped successfully.";
-                pollSchedulerState();
+                page.schedulerStatus = "";
             } else if (sourceName.indexOf("sched-hup") >= 0) {
-                page.schedulerStatus = "Schedules reloaded (SIGHUP sent to daemon).";
+                page.schedulerStatus = "Schedules reloaded (SIGHUP sent).";
             } else if (sourceName.indexOf("sched-enable") >= 0) {
                 page.schedulerStatus = out.indexOf("SCHED_ENABLE_OK") >= 0 ? "Auto-start updated." : (err || out);
             } else if (sourceName.indexOf("sched-auto-setup") >= 0) {
@@ -2456,7 +2268,7 @@ KCM.SimpleKCM {
                     } catch(e) { page.schedulerList = []; }
                 }
             } else if (sourceName.indexOf("sched-save") >= 0) {
-                page.schedulerStatus = "Schedules saved successfully.";
+                page.schedulerStatus = "Schedules saved.";
                 // hot-reload daemon
                 utilityDs.connectSource("sh -lc 'pkill -HUP -f kde-ai-scheduler.py; echo ok' #sched-hup2");
             } else {
@@ -2492,8 +2304,7 @@ KCM.SimpleKCM {
                        "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" +
                        "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" +
                        "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" +
-                       "• <b>User Memory:</b> In the <b>Behavior</b> section, enable <b>User Memory</b> and write facts (your name, preferences, context) the AI should always remember — injected into every prompt.<br/>" +
-                       "• <b>Schedules:</b> Use the <b>Schedules</b> tool to schedule automated questions. Type <code>/schedule</code> inside any chat to list or create automated prompts.");
+                       "• <b>User Memory:</b> In the <b>Behavior</b> section, enable <b>User Memory</b> and write facts (your name, preferences, context) the AI should always remember — injected into every prompt.");
             }
 
             readonly property string providerGuideText: {
@@ -2515,125 +2326,125 @@ KCM.SimpleKCM {
                            "4. (Optional) Override the base URL only if using a compatible proxy.<br/>" +
                            "5. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "anthropic") {
-                    return "<b>Anthropic Setup Guide:</b><br/>" +
+                    return translate("<b>Anthropic Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>console.anthropic.com → API Keys</b> (starts with <code>sk-ant-</code>).<br/>" +
                            "2. Paste it into the <b>Anthropic key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>claude-opus-4-5</code>, <code>claude-3-5-sonnet-latest</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "groq") {
-                    return "<b>Groq Setup Guide:</b><br/>" +
+                    return translate("<b>Groq Setup Guide:</b><br/>" +
                            "1. Get your free API key at <b>console.groq.com → API Keys</b>.<br/>" +
                            "2. Paste it into the <b>Groq key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>llama-3.3-70b-versatile</code>, <code>gemma2-9b-it</code>) — Groq inference is extremely fast.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "deepseek") {
-                    return "<b>DeepSeek Setup Guide:</b><br/>" +
+                    return translate("<b>DeepSeek Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>platform.deepseek.com → API Keys</b>.<br/>" +
                            "2. Paste it into the <b>DeepSeek key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>deepseek-chat</code> or <code>deepseek-reasoner</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "minimax") {
-                    return "<b>MiniMax Setup Guide:</b><br/>" +
+                    return translate("<b>MiniMax Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>www.minimaxi.com → API Key</b>.<br/>" +
                            "2. Paste it into the <b>MiniMax key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>MiniMax-M2.7</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "fireworks") {
-                    return "<b>Fireworks AI Setup Guide:</b><br/>" +
+                    return translate("<b>Fireworks AI Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>fireworks.ai → Account → API Keys</b>.<br/>" +
                            "2. Paste it into the <b>Fireworks key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>accounts/fireworks/models/llama-v3p3-70b-instruct</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "google") {
-                    return "<b>Google Gemini Setup Guide:</b><br/>" +
+                    return translate("<b>Google Gemini Setup Guide:</b><br/>" +
                            "1. Get your free API key at <b>aistudio.google.com → Get API Key</b>.<br/>" +
                            "2. Paste it into the <b>Google key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>gemini-2.5-flash-preview-05-20</code>, <code>gemini-2.0-flash</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "openrouter") {
-                    return "<b>OpenRouter Setup Guide:</b><br/>" +
+                    return translate("<b>OpenRouter Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>openrouter.ai → Keys</b>.<br/>" +
                            "2. Paste it into the <b>OpenRouter key</b> field below.<br/>" +
                            "3. Choose any model from 100+ providers (e.g. <code>openai/gpt-4o-mini</code>, <code>google/gemini-flash-1.5</code>, <code>openrouter/auto</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "mistral") {
-                    return "<b>Mistral Setup Guide:</b><br/>" +
+                    return translate("<b>Mistral Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>console.mistral.ai → API Keys</b>.<br/>" +
                            "2. Paste it into the <b>Mistral key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>mistral-small-latest</code>, <code>mistral-large-latest</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "cloudflare") {
-                    return "<b>Cloudflare Workers AI Setup Guide:</b><br/>" +
+                    return translate("<b>Cloudflare Workers AI Setup Guide:</b><br/>" +
                            "1. Log in to <b>dash.cloudflare.com → AI → Workers AI</b>.<br/>" +
                            "2. Copy your <b>Account ID</b> from the right sidebar and replace <code>YOUR_ACCOUNT_ID</code> in the <b>Cloudflare URL</b> field below.<br/>" +
                            "3. Create an API Token (with Workers AI permission) at <b>dash.cloudflare.com → Profile → API Tokens</b> and paste it into the <b>Cloudflare key</b> field.<br/>" +
                            "4. Choose a model (e.g. <code>@cf/meta/llama-3.1-8b-instruct</code>).<br/>" +
                            "5. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "nvidia") {
-                    return "<b>NVIDIA NIM Setup Guide:</b><br/>" +
+                    return translate("<b>NVIDIA NIM Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>build.nvidia.com → Get API Key</b>.<br/>" +
                            "2. Paste it into the <b>NVIDIA key</b> field below.<br/>" +
                            "3. Choose a NIM model (e.g. <code>meta/llama-3.1-70b-instruct</code>, <code>nvidia/nemotron-4-340b-instruct</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "huggingface") {
-                    return "<b>Hugging Face Router Setup Guide:</b><br/>" +
+                    return translate("<b>Hugging Face Router Setup Guide:</b><br/>" +
                            "1. Get your access token at <b>huggingface.co → Settings → Access Tokens</b> (use a token with Inference permissions).<br/>" +
                            "2. Paste it into the <b>Hugging Face key</b> field below.<br/>" +
                            "3. Enter a supported inference model (e.g. <code>openai/gpt-oss-120b:groq</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "xai") {
-                    return "<b>xAI (Grok) Setup Guide:</b><br/>" +
+                    return translate("<b>xAI (Grok) Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>console.x.ai → API Keys</b>.<br/>" +
                            "2. Paste it into the <b>xAI key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>grok-3-mini</code>, <code>grok-2-latest</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "lmstudio") {
-                    return "<b>LM Studio Setup Guide:</b><br/>" +
+                    return translate("<b>LM Studio Setup Guide:</b><br/>" +
                            "1. Download and open <b>LM Studio</b> (lmstudio.ai) — no API key needed.<br/>" +
                            "2. In LM Studio, go to the <b>Local Server</b> tab and load a model.<br/>" +
                            "3. Click <b>Start Server</b> in LM Studio (default URL: <code>http://localhost:1234/v1</code>).<br/>" +
                            "4. Enter the loaded model name in the <b>LM Studio model</b> field below.<br/>" +
                            "5. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "local") {
-                    return "<b>Local Server (OpenAI-compatible) Setup Guide:</b><br/>" +
+                    return translate("<b>Local Server (OpenAI-compatible) Setup Guide:</b><br/>" +
                            "1. Start your local server (e.g. <b>vLLM</b>, <b>llama.cpp</b>, <b>Jan</b>) — no API key needed.<br/>" +
                            "2. Enter the server's base URL in the <b>Local URL</b> field below (e.g. <code>http://localhost:8000/v1</code>).<br/>" +
                            "3. Enter the model identifier your server is serving in the <b>Local model</b> field.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "ollama") {
-                    return "<b>Ollama Setup Guide:</b><br/>" +
+                    return translate("<b>Ollama Setup Guide:</b><br/>" +
                            "1. Install Ollama from <b>ollama.com</b> and run it — no API key needed.<br/>" +
                            "2. Pull a model by running <code>ollama pull llama3.2</code> in a terminal.<br/>" +
                            "3. Ollama starts automatically (default URL: <code>http://localhost:11434</code>).<br/>" +
                            "4. Verify/update the <b>Ollama URL</b> field below and enter your model name (e.g. <code>llama3.2</code>).<br/>" +
                            "5. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "litellm") {
-                    return "<b>LiteLLM Proxy Setup Guide:</b><br/>" +
+                    return translate("<b>LiteLLM Proxy Setup Guide:</b><br/>" +
                            "1. Install LiteLLM: <code>pip install litellm</code> — no API key needed for the proxy itself.<br/>" +
                            "2. Start your proxy: <code>litellm --model ollama/llama3.2</code> (or your preferred model).<br/>" +
                            "3. Enter the proxy URL in the <b>LiteLLM URL</b> field below (default: <code>http://localhost:4000</code>).<br/>" +
                            "4. Enter the model identifier in the <b>LiteLLM model</b> field.<br/>" +
                            "5. Click <b>Apply</b>/<b>OK</b> to save.");
                  } else if (provider === "qwen") {
-                    return "<b>Qwen (Alibaba Cloud) Setup Guide:</b><br/>" +
+                    return translate("<b>Qwen (Alibaba Cloud) Setup Guide:</b><br/>" +
                            "1. Register at <b>dashscope.aliyuncs.com</b> and go to <b>API Keys</b>.<br/>" +
                            "2. Paste your key into the <b>Qwen key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>qwen-max</code>, <code>qwen-plus</code>, <code>qwen-turbo</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "moonshot") {
-                    return "<b>Moonshot AI (Kimi) Setup Guide:</b><br/>" +
+                    return translate("<b>Moonshot AI (Kimi) Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>platform.moonshot.cn → API Keys</b>.<br/>" +
                            "2. Paste it into the <b>Moonshot key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>moonshot-v1-8k</code>, <code>moonshot-v1-32k</code>, <code>moonshot-v1-128k</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "mimo") {
-                    return "<b>MiMo (Xiaomi) Setup Guide:</b><br/>" +
+                    return translate("<b>MiMo (Xiaomi) Setup Guide:</b><br/>" +
                            "1. Get access at <b>api.xiaomimimo.com</b> and copy your API key.<br/>" +
                            "2. Paste it into the <b>MiMo key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>mimo-v2-pro</code>, <code>mimo-v2</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.";
+                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
                 } else if (provider === "maritaca") {
-                    return "<b>Maritaca AI (Sabiá) Setup Guide:</b><br/>" +
+                    return translate("<b>Maritaca AI (Sabiá) Setup Guide:</b><br/>" +
                            "1. Get your API key at <b>chat.maritaca.ai → Settings → API Keys</b>.<br/>" +
                            "2. Paste it into the <b>Maritaca key</b> field below.<br/>" +
                            "3. Choose a model (e.g. <code>sabia-4</code> — optimised for Portuguese).<br/>" +
@@ -2645,34 +2456,36 @@ KCM.SimpleKCM {
 
             readonly property string apiGuideText: {
                 var storageIdx = storageModeCombo.currentIndex;
-                var text = translate("<b>API Key Storage Guide:</b><br/>");
                 if (storageIdx === 0) {
-                    text += translate("• Current mode: <b>🔒 Session-only memory</b>.<br/>") +
-                            translate("• Enter your API keys in the provider fields below. No extra steps needed — keys are held in memory only.<br/>") +
-                            translate("• Keys are wiped completely when the widget closes. You must re-enter them every session.");
+                    return translate("<b>API Key Storage Guide:</b><br/>" +
+                            "• Current mode: <b>🔒 Session-only memory</b>.<br/>" +
+                            "• Enter your API keys in the provider fields below. No extra steps needed — keys are held in memory only.<br/>" +
+                            "• Keys are wiped completely when the widget closes. You must re-enter them every session.");
                 } else if (storageIdx === 1) {
-                    text += translate("• Current mode: <b>📄 Plain config file</b> (unencrypted).<br/>") +
-                            translate("• Enter your keys in the provider fields below, then click <b>Apply</b>/<b>OK</b> to save them to <code>~/.config/kdeaichatrc</code>.<br/>") +
-                            translate("• (Optional) Click <b>Reload from config file</b> if you edited the file externally.<br/>") +
-                            translate("• (Optional) Click <b>Open config file</b> to view or paste keys directly into the file.<br/>") +
-                            translate("• Security: Keys are stored as plain text — suitable for single-user machines only.");
+                    return translate("<b>API Key Storage Guide:</b><br/>" +
+                            "• Current mode: <b>📄 Plain config file</b> (unencrypted).<br/>" +
+                            "• Enter your keys in the provider fields below, then click <b>Apply</b>/<b>OK</b> to save them to <code>~/.config/kdeaichatrc</code>.<br/>" +
+                            "• (Optional) Click <b>Reload from config file</b> if you edited the file externally.<br/>" +
+                            "• (Optional) Click <b>Open config file</b> to view or paste keys directly into the file.<br/>" +
+                            "• Security: Keys are stored as plain text — suitable for single-user machines only.");
                 } else if (storageIdx === 2) {
-                    text += translate("• Current mode: <b>🔑 KWallet</b> (encrypted).<br/>") +
-                            translate("• Click <b>Detect wallets</b> to find available KDE wallets.<br/>") +
-                            translate("• If none are found, click <b>Create wallet</b> — KWallet will prompt for a password to create one.<br/>") +
-                            translate("• Select your wallet from the <b>Wallet name</b> dropdown, enter your keys, then click <b>Sync to KWallet</b>.<br/>") +
-                            translate("• (Optional) Click <b>Launch KWalletManager</b> to inspect or manage your wallet via the system app.<br/>") +
-                            translate("• Security: Keys are fully encrypted. Best for shared or multi-user systems.");
+                    return translate("<b>API Key Storage Guide:</b><br/>" +
+                            "• Current mode: <b>🔑 KWallet</b> (encrypted).<br/>" +
+                            "• Click <b>Detect wallets</b> to find available KDE wallets.<br/>" +
+                            "• If none are found, click <b>Create wallet</b> — KWallet will prompt for a password to create one.<br/>" +
+                            "• Select your wallet from the <b>Wallet name</b> dropdown, enter your keys, then click <b>Sync to KWallet</b>.<br/>" +
+                            "• (Optional) Click <b>Launch KWalletManager</b> to inspect or manage your wallet via the system app.<br/>" +
+                            "• Security: Keys are fully encrypted. Best for shared or multi-user systems.");
                 }
-                return text;
+                return "";
             }
 
             readonly property string otherSettingsGuideText: {
-                return translate("<b>Other Settings Guide:</b><br/>" +
+                return "<b>Other Settings Guide:</b><br/>" +
                        "• <b>App name:</b> Change the display name shown in the widget title bar. After clicking Apply/OK, restart the shell with the command shown to apply it.<br/>" +
                        "• <b>System prompt:</b> Set a default system instruction for every chat session (e.g. <i>\"You are a helpful Linux assistant.\"</i>). Leave blank to use the default.<br/>" +
                        "• <b>Chat storage path (beta):</b> Choose a folder to save your chat history. Click <b>Browse...</b> to pick a folder, or type a path directly. History is saved as <code>kdeaichat_history.json</code> inside that folder. Default is <code>~/.config</code>.<br/>" +
-                       "• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.");
+                       "• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.";
             }
 
             x: 0
@@ -2689,7 +2502,7 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
                 Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: translate("General Guide")
+                Kirigami.FormData.label: "General Guide"
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -2798,20 +2611,6 @@ KCM.SimpleKCM {
                     text: translate("Choose the display language for the widget interface.")
                 }
 
-                QQC2.Label {
-                    visible: {
-                        var activeLang = cfg_language === "" ? Translations.getSystemLanguage() : cfg_language;
-                        return activeLang !== "en";
-                    }
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: formLayout.fieldMaxWidth
-                    wrapMode: Text.Wrap
-                    color: Kirigami.Theme.highlightColor
-                    font.italic: true
-                    font.pixelSize: 11
-                    text: translate("This plasmoid is being built in English so there maybe errors in translation. Switch to English language if any problem arises.")
-                }
-
             }
 
             QQC2.CheckBox {
@@ -2853,15 +2652,15 @@ KCM.SimpleKCM {
 
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: translate("Provider & Mode")
+                Kirigami.FormData.label: "Provider & Mode"
             }
 
             QQC2.CheckBox {
                 id: normalModeToggle
 
-                Kirigami.FormData.label: translate("Operating mode:")
+                Kirigami.FormData.label: "Operating mode:"
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("Normal Mode (Cloud & Local API Providers)")
+                text: "Normal Mode (Cloud & Local API Providers)"
                 checked: !openCodeToggle.checked
 
                 onClicked: {
@@ -2879,7 +2678,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: translate("Use cloud-based (OpenAI, Anthropic, Gemini, Groq, DeepSeek, etc.) or local API providers (Ollama, LM Studio, LiteLLM) to power your chat. Select your provider and configure API keys below.")
+                text: "Use cloud-based (OpenAI, Anthropic, Gemini, Groq, DeepSeek, etc.) or local API providers (Ollama, LM Studio, LiteLLM) to power your chat. Select your provider and configure API keys below."
             }
 
             QQC2.CheckBox {
@@ -2887,7 +2686,7 @@ KCM.SimpleKCM {
 
                 Kirigami.FormData.label: ""
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("OpenCode Mode (Local Coding Server)")
+                text: "OpenCode Mode (Local Coding Server)"
 
                 onClicked: {
                     if (checked) {
@@ -2915,7 +2714,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: translate("Use your local offline OpenCode agent server for secure, private developer assistance and system scripting without sending data to the cloud.")
+                text: "Use your local offline OpenCode agent server for secure, private developer assistance and system scripting without sending data to the cloud."
             }
 
             RowLayout {
@@ -2923,7 +2722,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
-                Kirigami.FormData.label: openCodeToggle.checked ? translate("OpenCode Guide") : translate("Provider Guide")
+                Kirigami.FormData.label: openCodeToggle.checked ? "OpenCode Guide" : "Provider Guide"
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: providerGuideLayout.implicitHeight + Kirigami.Units.gridUnit
@@ -3075,7 +2874,7 @@ KCM.SimpleKCM {
             QQC2.BusyIndicator {
                 visible: !openCodeToggle.checked && openCodeBusy
                 running: visible
-                Kirigami.FormData.label: translate("Loading:")
+                Kirigami.FormData.label: "Loading:"
             }
 
             QQC2.ComboBox {
@@ -3093,7 +2892,7 @@ KCM.SimpleKCM {
                 }
 
                 visible: !openCodeToggle.checked && providerModelVisible(providerBox.currentValue || "openai")
-                Kirigami.FormData.label: translate("Model:")
+                Kirigami.FormData.label: "Model:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 editable: true
@@ -3117,7 +2916,7 @@ KCM.SimpleKCM {
 
             QQC2.Label {
                 visible: discoveryStatus !== ""
-                Kirigami.FormData.label: translate("Status:")
+                Kirigami.FormData.label: "Status:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: {
@@ -3133,14 +2932,14 @@ KCM.SimpleKCM {
             Kirigami.Separator {
                 visible: openCodeToggle.checked
                 Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: translate("OpenCode")
+                Kirigami.FormData.label: "OpenCode"
             }
 
             QQC2.TextField {
                 id: openCodeUrlField
 
                 visible: openCodeToggle.checked
-                Kirigami.FormData.label: translate("OpenCode URL:")
+                Kirigami.FormData.label: "OpenCode URL:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "http://127.0.0.1:4096/v1"
@@ -3153,16 +2952,16 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: translate("Address of the running OpenCode server. Default: http://127.0.0.1:4096/v1.")
+                text: "Address of the running OpenCode server. Default: http://127.0.0.1:4096/v1."
             }
 
             QQC2.CheckBox {
                 id: autoStartOpenCodeToggle
 
                 visible: openCodeToggle.checked
-                Kirigami.FormData.label: translate("Auto-start server:")
+                Kirigami.FormData.label: "Auto-start server:"
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("Automatically start OpenCode when settings open")
+                text: "Automatically start OpenCode when settings open"
             }
 
             QQC2.Label {
@@ -3172,18 +2971,18 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: translate("Runs the start command automatically each time the settings panel is opened (uses the Start command below).")
+                text: "Runs the start command automatically each time the settings panel is opened (uses the Start command below)."
             }
 
             Flow {
                 visible: openCodeToggle.checked
-                Kirigami.FormData.label: translate("OpenCode server:")
+                Kirigami.FormData.label: "OpenCode server:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.smallSpacing
 
                 QQC2.Button {
-                    text: translate("Start server")
+                    text: "Start server"
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode start command...";
@@ -3193,7 +2992,7 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: translate("Check server")
+                    text: "Check server"
                     enabled: !openCodeBusy
                     onClicked: probeOpenCodeProviders(openCodeUrlField.text)
                 }
@@ -3205,7 +3004,7 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: translate("Kill server")
+                    text: "Kill server"
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode stop command...";
@@ -3219,14 +3018,14 @@ KCM.SimpleKCM {
             QQC2.BusyIndicator {
                 visible: openCodeToggle.checked && openCodeBusy
                 running: visible
-                Kirigami.FormData.label: translate("Loading:")
+                Kirigami.FormData.label: "Loading:"
             }
 
             QQC2.ComboBox {
                 id: openCodeProvidersCombo
 
                 visible: openCodeToggle.checked && openCodeProviderCandidates.length > 0
-                Kirigami.FormData.label: translate("Providers:")
+                Kirigami.FormData.label: "Providers:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 model: openCodeProviderCandidates
@@ -3238,8 +3037,8 @@ KCM.SimpleKCM {
 
             QQC2.Button {
                 visible: openCodeToggle.checked
-                Kirigami.FormData.label: translate("OpenCode models:")
-                text: translate("Refresh models")
+                Kirigami.FormData.label: "OpenCode models:"
+                text: "Refresh models"
                 onClicked: probeOpenCodeModels(openCodeUrlField.text, activeOpenCodeProvider())
             }
 
@@ -3258,7 +3057,7 @@ KCM.SimpleKCM {
                 }
 
                 visible: openCodeToggle.checked
-                Kirigami.FormData.label: translate("Model:")
+                Kirigami.FormData.label: "Model:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 editable: true
@@ -3282,7 +3081,7 @@ KCM.SimpleKCM {
 
             QQC2.TextField {
                 visible: openCodeToggle.checked && (false)
-                Kirigami.FormData.label: filteredOpenCodeModels.length > 0 ? translate("Custom model:") : translate("OpenCode model (optional):")
+                Kirigami.FormData.label: filteredOpenCodeModels.length > 0 ? "Custom model:" : "OpenCode model (optional):"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "Enter your OpenCode model id"
@@ -4434,7 +4233,7 @@ KCM.SimpleKCM {
 
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: translate("Behavior")
+                Kirigami.FormData.label: "Behavior"
             }
 
             QQC2.ScrollView {
@@ -4515,7 +4314,7 @@ KCM.SimpleKCM {
 
                     width: userMemoryScrollView.availableWidth
                     wrapMode: Text.Wrap
-                    placeholderText: "E.g., My name is Alex, I use KDE Plasma 6, I prefer Python for scripting, Always be concise."
+                    placeholderText: "E.g., My name is Alex. I use KDE Plasma 6. I prefer Python for scripting. Always be concise."
                     background: null
                     padding: Kirigami.Units.smallSpacing + 2
                 }
@@ -4535,7 +4334,7 @@ KCM.SimpleKCM {
             Kirigami.Separator {
                 visible: !openCodeToggle.checked
                 Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: translate("API Key Storage")
+                Kirigami.FormData.label: "API Key Storage"
             }
 
             RowLayout {
@@ -4617,12 +4416,12 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
 
                 QQC2.Button {
-                    text: translate("Reload from config file")
+                    text: "Reload from config file"
                     onClicked: loadKeysFromPlainConfig()
                 }
 
                 QQC2.Button {
-                    text: translate("Open config file")
+                    text: "Open config file"
                     onClicked: writeKeysToDiskAndOpen()
                 }
 
@@ -4639,7 +4438,7 @@ KCM.SimpleKCM {
 
             QQC2.ComboBox {
                 visible: !openCodeToggle.checked && kwalletModeActive && availableWalletNames.length > 0
-                Kirigami.FormData.label: translate("Wallet name:")
+                Kirigami.FormData.label: "Wallet name:"
                 Layout.fillWidth: true
                 model: availableWalletNames
                 currentIndex: availableWalletNames.indexOf(walletNameField.text)
@@ -4652,7 +4451,7 @@ KCM.SimpleKCM {
 
             QQC2.TextField {
                 visible: !openCodeToggle.checked && kwalletModeActive && availableWalletNames.length === 0
-                Kirigami.FormData.label: translate("Wallet name:")
+                Kirigami.FormData.label: "Wallet name:"
                 Layout.fillWidth: true
                 text: walletNameField.text
                 placeholderText: "kdewallet"
@@ -4685,20 +4484,20 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
 
                 QQC2.Button {
-                    text: translate("Detect wallets")
+                    text: "Detect wallets"
                     enabled: !keyringBusy
                     onClicked: detectWallets()
                 }
 
                 QQC2.Button {
-                    text: translate("Launch KWalletManager")
+                    text: "Launch KWalletManager"
                     onClicked: {
                         utilityDs.connectSource("kwalletmanager6 || kwalletmanager5 || kwalletmanager #launch-kwallet");
                     }
                 }
 
                 QQC2.Button {
-                    text: translate("Create wallet")
+                    text: "Create wallet"
                     visible: availableWalletNames.length === 0
                     enabled: !keyringBusy
                     onClicked: {
@@ -4736,7 +4535,7 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: translate("Sync to KWallet")
+                    text: "Sync to KWallet"
                     enabled: !keyringBusy
                     onClicked: page.kwalletStoreAll()
                 }
@@ -4751,7 +4550,7 @@ KCM.SimpleKCM {
 
             QQC2.Label {
                 visible: !openCodeToggle.checked && keyringStatus !== ""
-                Kirigami.FormData.label: translate("Status:")
+                Kirigami.FormData.label: "Status:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: keyringStatus
@@ -4792,34 +4591,18 @@ KCM.SimpleKCM {
                         QQC2.Label {
                             id: schedGuideLabel
                             Layout.fillWidth: true
-                            text: "<b>📅 AI Chat Scheduler Guide:</b><br/>" +
-                                  "The scheduler runs quietly as a systemd user daemon (or background process). At your specified time, it injects the chosen prompt directly into your target chat, triggering the AI to respond as if you sent it yourself.<br/><br/>" +
-                                  "• <b>Activating the Scheduler:</b> Turn the master switch <b>ON</b> to start the background process. Enable <b>Auto-start at login</b> so your schedules run automatically after you reboot.<br/>" +
-                                  "• <b>Quick Chat Setup:</b> In any chat session, type <b>/schedule</b> to display the active schedules for that chat, pause/resume/delete them, or click <b>Create Schedule</b> to instantly pre-select that chat.<br/>" +
-                                  "• <b>Schedules Management:</b> Below, you can see the number of schedules, add new ones (linking to existing chats or creating a new chat), manage/pause/resume them, or view the raw JSON data."
+                            text: "<b>How scheduled messages work:</b><br/>" +
+                                  "The scheduler runs quietly in the background. At the time you choose, it automatically " +
+                                  "sends a message into your chat and the AI replies — just like you typed it yourself.<br/><br/>" +
+                                  "• Turn the scheduler <b>ON</b> below to activate it.<br/>" +
+                                  "• Use <b>Manage Schedules</b> to add, edit, or remove scheduled messages.<br/>" +
+                                  "• Or just type <b>/schedule</b> in any chat to create one instantly."
                             wrapMode: Text.Wrap
                             textFormat: Text.RichText
                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                             color: Kirigami.Theme.textColor
                         }
                     }
-                }
-            }
-
-            // Auto-start at login (separate setting)
-            QQC2.Switch {
-                id: schedAutoStartToggle
-                Kirigami.FormData.label: "Auto-start at login:"
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: schedAutoStartToggle.checked
-                      ? "Scheduler starts automatically when you log in"
-                      : "Off — start manually each session"
-                checked: false
-                onCheckedChanged: {
-                    if (!page.pageReady) return
-                    var verb = checked ? "enable" : "disable"
-                    utilityDs.connectSource(
-                        "sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable")
                 }
             }
 
@@ -4856,7 +4639,7 @@ KCM.SimpleKCM {
                 visible: schedulerMasterSwitch.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                Kirigami.FormData.label: translate("Status:")
+                Kirigami.FormData.label: "Status:"
                 spacing: Kirigami.Units.smallSpacing
 
                 Rectangle {
@@ -4913,6 +4696,23 @@ KCM.SimpleKCM {
                 }
             }
 
+            // Auto-start at login (separate setting)
+            QQC2.Switch {
+                id: schedAutoStartToggle
+                Kirigami.FormData.label: "Auto-start at login:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: schedAutoStartToggle.checked
+                      ? "Scheduler starts automatically when you log in"
+                      : "Off — start manually each session"
+                checked: false
+                onCheckedChanged: {
+                    if (!page.pageReady) return
+                    var verb = checked ? "enable" : "disable"
+                    utilityDs.connectSource(
+                        "sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable")
+                }
+            }
+
             // Schedules management row
             RowLayout {
                 visible: schedulerMasterSwitch.checked
@@ -4921,42 +4721,23 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "Schedules:"
                 spacing: Kirigami.Units.smallSpacing
 
-                QQC2.Button {
-                    text: "Create Schedule"
-                    icon.name: "list-add"
-                    highlighted: true
+                QQC2.Label {
+                    text: page.schedulerList.length === 0
+                          ? "No scheduled messages yet"
+                          : page.schedulerList.length + " scheduled message" +
+                            (page.schedulerList.length === 1 ? "" : "s")
+                    opacity: 0.7
                     Layout.fillWidth: true
-                    onClicked: {
-                        var now = new Date()
-                        now.setMinutes(now.getMinutes() + 5)
-                        scheduleDialog.draft = {
-                            id: page.schedMakeUuid(), name: "", enabled: true,
-                            chatId: "", chatName: "",
-                            message: "",
-                            taskType: "single",
-                            startDate: now.toISOString(),
-                            schedType: "days", schedEvery: 1, schedTime: "09:00",
-                            schedDays: [1], schedDayOfMonth: 1,
-                            limitEnabled: false, limitCount: 5,
-                            notify: true, createdAt: new Date().toISOString()
-                        }
-                        scheduleDialog.editingIndex = -2
-                        scheduleDialog.open()
-                    }
                 }
                 QQC2.Button {
                     text: "Manage Schedules"
                     icon.name: "appointment-new"
-                    Layout.fillWidth: true
-                    onClicked: {
-                        scheduleDialog.editingIndex = -1
-                        scheduleDialog.open()
-                    }
+                    highlighted: true
+                    onClicked: scheduleDialog.open()
                 }
                 QQC2.Button {
                     text: "Open File"
                     icon.name: "document-open"
-                    Layout.fillWidth: true
                     onClicked: {
                         utilityDs.connectSource("xdg-open ~/.local/share/kdeaichat/schedules.json || kde-open ~/.local/share/kdeaichat/schedules.json || kwrite ~/.local/share/kdeaichat/schedules.json || kate ~/.local/share/kdeaichat/schedules.json || nano ~/.local/share/kdeaichat/schedules.json #open-sched-file");
                     }
@@ -5064,7 +4845,7 @@ KCM.SimpleKCM {
             QQC2.TextField {
                 id: appDisplayNameField
 
-                Kirigami.FormData.label: translate("App name:")
+                Kirigami.FormData.label: "App name:"
                 placeholderText: "KDE AI Chat"
                 onTextChanged: {
                     if (text !== (plasmoid.configuration.appDisplayName || "KDE AI Chat"))
@@ -5074,7 +4855,7 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                Kirigami.FormData.label: translate("Chat storage path (beta):")
+                Kirigami.FormData.label: "Chat storage path (beta):"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
 
@@ -5133,7 +4914,7 @@ KCM.SimpleKCM {
 
             QQC2.Button {
                 Kirigami.FormData.label: "Reset settings:"
-                text: translate("Reset to defaults")
+                text: "Reset to defaults"
                 onClicked: page.resetToDefaults()
             }
 
