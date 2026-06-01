@@ -1,10 +1,10 @@
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
-import QtQuick.Dialogs
 import "translations.js" as Translations
 
 KCM.SimpleKCM {
@@ -102,13 +102,11 @@ KCM.SimpleKCM {
     property var schedulerList: []
     property string schedulerStatus: ""
     readonly property string schedulerDataPath: {
-        var home = Qt.resolvedUrl("~").toString().replace("file://", "")
-        if (home === "~") home = ""
-        return home
-    }
+        var home = Qt.resolvedUrl("~").toString().replace("file://", "");
+        if (home === "~")
+            home = "";
 
-    function translate(text) {
-        return Translations.translate(text, cfg_language);
+        return home;
     }
     property var pendingOps: ({
     })
@@ -133,6 +131,10 @@ KCM.SimpleKCM {
     property var filteredOpenCodeModels: []
     readonly property string walletFolderName: "KaiChat"
     readonly property string walletAppId: "org.kde.plasma.kdeaichat"
+
+    function translate(text) {
+        return Translations.translate(text, cfg_language);
+    }
 
     function updateFilteredProviderModels(searchText) {
         var search = (searchText || "").toLowerCase();
@@ -340,183 +342,183 @@ KCM.SimpleKCM {
         var p = providerBox.currentValue || "openai";
         if (p === "anthropic")
             return {
-                "id": p,
-                "type": "anthropic",
-                "baseUrl": "https://api.anthropic.com/v1",
-                "apiKey": anthropicApiKeyField.text,
-                "modelField": anthropicModelField
-            };
+            "id": p,
+            "type": "anthropic",
+            "baseUrl": "https://api.anthropic.com/v1",
+            "apiKey": anthropicApiKeyField.text,
+            "modelField": anthropicModelField
+        };
 
         if (p === "local")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": localBaseUrlField.text,
-                "apiKey": "",
-                "modelField": localModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": localBaseUrlField.text,
+            "apiKey": "",
+            "modelField": localModelField
+        };
 
         if (p === "groq")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": groqBaseUrlField.text,
-                "apiKey": groqApiKeyField.text,
-                "modelField": groqModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": groqBaseUrlField.text,
+            "apiKey": groqApiKeyField.text,
+            "modelField": groqModelField
+        };
 
         if (p === "deepseek")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": deepSeekBaseUrlField.text,
-                "apiKey": deepSeekApiKeyField.text,
-                "modelField": deepSeekModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": deepSeekBaseUrlField.text,
+            "apiKey": deepSeekApiKeyField.text,
+            "modelField": deepSeekModelField
+        };
 
         if (p === "minimax")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": miniMaxBaseUrlField.text,
-                "apiKey": miniMaxApiKeyField.text,
-                "modelField": miniMaxModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": miniMaxBaseUrlField.text,
+            "apiKey": miniMaxApiKeyField.text,
+            "modelField": miniMaxModelField
+        };
 
         if (p === "fireworks")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": fireworksBaseUrlField.text,
-                "apiKey": fireworksApiKeyField.text,
-                "modelField": fireworksModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": fireworksBaseUrlField.text,
+            "apiKey": fireworksApiKeyField.text,
+            "modelField": fireworksModelField
+        };
 
         if (p === "google")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": googleBaseUrlField.text,
-                "apiKey": googleApiKeyField.text,
-                "modelField": googleModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": googleBaseUrlField.text,
+            "apiKey": googleApiKeyField.text,
+            "modelField": googleModelField
+        };
 
         if (p === "openrouter")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": openRouterBaseUrlField.text,
-                "apiKey": openRouterApiKeyField.text,
-                "modelField": openRouterModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": openRouterBaseUrlField.text,
+            "apiKey": openRouterApiKeyField.text,
+            "modelField": openRouterModelField
+        };
 
         if (p === "mistral")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": mistralBaseUrlField.text,
-                "apiKey": mistralApiKeyField.text,
-                "modelField": mistralModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": mistralBaseUrlField.text,
+            "apiKey": mistralApiKeyField.text,
+            "modelField": mistralModelField
+        };
 
         if (p === "cloudflare")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": cloudflareBaseUrlField.text,
-                "apiKey": cloudflareApiKeyField.text,
-                "modelField": cloudflareModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": cloudflareBaseUrlField.text,
+            "apiKey": cloudflareApiKeyField.text,
+            "modelField": cloudflareModelField
+        };
 
         if (p === "nvidia")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": nvidiaBaseUrlField.text,
-                "apiKey": nvidiaApiKeyField.text,
-                "modelField": nvidiaModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": nvidiaBaseUrlField.text,
+            "apiKey": nvidiaApiKeyField.text,
+            "modelField": nvidiaModelField
+        };
 
         if (p === "huggingface")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": huggingFaceBaseUrlField.text,
-                "apiKey": huggingFaceApiKeyField.text,
-                "modelField": huggingFaceModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": huggingFaceBaseUrlField.text,
+            "apiKey": huggingFaceApiKeyField.text,
+            "modelField": huggingFaceModelField
+        };
 
         if (p === "xai")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": xaiBaseUrlField.text,
-                "apiKey": xaiApiKeyField.text,
-                "modelField": xaiModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": xaiBaseUrlField.text,
+            "apiKey": xaiApiKeyField.text,
+            "modelField": xaiModelField
+        };
 
         if (p === "lmstudio")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": lmStudioBaseUrlField.text,
-                "apiKey": "",
-                "modelField": lmStudioModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": lmStudioBaseUrlField.text,
+            "apiKey": "",
+            "modelField": lmStudioModelField
+        };
 
         if (p === "ollama")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": ollamaBaseUrlField.text,
-                "apiKey": "",
-                "modelField": ollamaModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": ollamaBaseUrlField.text,
+            "apiKey": "",
+            "modelField": ollamaModelField
+        };
 
         if (p === "litellm")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": litellmBaseUrlField.text,
-                "apiKey": litellmApiKeyField.text,
-                "modelField": litellmModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": litellmBaseUrlField.text,
+            "apiKey": litellmApiKeyField.text,
+            "modelField": litellmModelField
+        };
 
         if (p === "qwen")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": qwenBaseUrlField.text,
-                "apiKey": qwenApiKeyField.text,
-                "modelField": qwenModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": qwenBaseUrlField.text,
+            "apiKey": qwenApiKeyField.text,
+            "modelField": qwenModelField
+        };
 
         if (p === "moonshot")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": moonshotBaseUrlField.text,
-                "apiKey": moonshotApiKeyField.text,
-                "modelField": moonshotModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": moonshotBaseUrlField.text,
+            "apiKey": moonshotApiKeyField.text,
+            "modelField": moonshotModelField
+        };
 
         if (p === "mimo")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": mimoBaseUrlField.text,
-                "apiKey": mimoApiKeyField.text,
-                "modelField": mimoModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": mimoBaseUrlField.text,
+            "apiKey": mimoApiKeyField.text,
+            "modelField": mimoModelField
+        };
 
         if (p === "maritaca")
             return {
-                "id": p,
-                "type": "openai-compat",
-                "baseUrl": maritacaBaseUrlField.text,
-                "apiKey": maritacaApiKeyField.text,
-                "modelField": maritacaModelField
-            };
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": maritacaBaseUrlField.text,
+            "apiKey": maritacaApiKeyField.text,
+            "modelField": maritacaModelField
+        };
 
         return {
             "id": "openai",
@@ -784,24 +786,17 @@ KCM.SimpleKCM {
     function checkAndAutoStartOpenCodeServer() {
         var url = openCodeServerRoot(openCodeUrlField.text) + "/config/providers";
         discoveryStatus = "Checking OpenCode server...";
-        requestJson(url, {}, function(obj) {
+        requestJson(url, {
+        }, function(obj) {
             // Server is already running — just do normal discovery
             refreshOpenCodeDiscovery();
         }, function(err) {
             // Server not reachable — auto-start it
-            if (autoStartOpenCodeToggle.checked) {
+            if (autoStartOpenCodeToggle.checked)
                 startOpenCodeServerAutomatically();
-            } else {
+            else
                 discoveryStatus = "OpenCode server check failed: " + err + ". Click \"Start server\" or enable Auto-start.";
-            }
         });
-    }
-
-    Timer {
-        id: openCodeAutoStartTimer
-        interval: 2500
-        repeat: false
-        onTriggered: refreshOpenCodeDiscovery()
     }
 
     function probeOpenCodeProviders(baseUrl) {
@@ -1347,44 +1342,20 @@ KCM.SimpleKCM {
         openCodeModelCandidates = [];
         openCodeProviderModelMap = ({
         });
-        discoveryStatus = "Settings reset to defaults."
+        discoveryStatus = "Settings reset to defaults.";
     }
 
     // ── Scheduler helpers ──────────────────────────────────────────────────────
     function schedAutoSetup() {
         var srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
-        var pyScript = 
-            "import os, shutil\n" +
-            "src = '" + srcPath + "'\n" +
-            "dest = os.path.expanduser('~/.local/share/kdeaichat/kde-ai-scheduler.py')\n" +
-            "os.makedirs(os.path.dirname(dest), exist_ok=True)\n" +
-            "os.makedirs(os.path.expanduser('~/.local/share/kdeaichat/results'), exist_ok=True)\n" +
-            "if os.path.exists(src):\n" +
-            "    shutil.copy2(src, dest)\n" +
-            "    os.chmod(dest, 0o755)\n" +
-            "sjson = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')\n" +
-            "if not os.path.exists(sjson):\n" +
-            "    with open(sjson, 'w') as f:\n" +
-            "        f.write('{\"version\":1,\"schedules\":[]}')\n" +
-            "    os.chmod(sjson, 0o600)\n" +
-            "sdir = os.path.expanduser('~/.config/systemd/user')\n" +
-            "os.makedirs(sdir, exist_ok=True)\n" +
-            "sfile = sdir + '/kde-ai-scheduler.service'\n" +
-            "content = '[Unit]\\nDescription=KDE AI Chat Scheduler Daemon\\nAfter=network-online.target\\nWants=network-online.target\\n\\n[Service]\\nType=simple\\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\\nRestart=on-failure\\nRestartSec=30\\nStandardOutput=journal\\nStandardError=journal\\nExecReload=/bin/kill -HUP $MAINPID\\nKillMode=process\\n\\n[Install]\\nWantedBy=default.target\\n'\n" +
-            "with open(sfile, 'w') as f: f.write(content)\n" +
-            "os.system('systemctl --user daemon-reload')\n" +
-            "if os.system('systemctl --user is-enabled kde-ai-scheduler.service >/dev/null 2>&1') == 0:\n" +
-            "    print('AUTO_ENABLED')\n" +
-            "else:\n" +
-            "    print('AUTO_DISABLED')\n";
-
+        var pyScript = "import os, shutil\n" + "src = '" + srcPath + "'\n" + "dest = os.path.expanduser('~/.local/share/kdeaichat/kde-ai-scheduler.py')\n" + "os.makedirs(os.path.dirname(dest), exist_ok=True)\n" + "os.makedirs(os.path.expanduser('~/.local/share/kdeaichat/results'), exist_ok=True)\n" + "if os.path.exists(src):\n" + "    shutil.copy2(src, dest)\n" + "    os.chmod(dest, 0o755)\n" + "sjson = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')\n" + "if not os.path.exists(sjson):\n" + "    with open(sjson, 'w') as f:\n" + "        f.write('{\"version\":1,\"schedules\":[]}')\n" + "    os.chmod(sjson, 0o600)\n" + "sdir = os.path.expanduser('~/.config/systemd/user')\n" + "os.makedirs(sdir, exist_ok=True)\n" + "sfile = sdir + '/kde-ai-scheduler.service'\n" + "content = '[Unit]\\nDescription=KDE AI Chat Scheduler Daemon\\nAfter=network-online.target\\nWants=network-online.target\\n\\n[Service]\\nType=simple\\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\\nRestart=on-failure\\nRestartSec=30\\nStandardOutput=journal\\nStandardError=journal\\nExecReload=/bin/kill -HUP $MAINPID\\nKillMode=process\\n\\n[Install]\\nWantedBy=default.target\\n'\n" + "with open(sfile, 'w') as f: f.write(content)\n" + "os.system('systemctl --user daemon-reload')\n" + "if os.system('systemctl --user is-enabled kde-ai-scheduler.service >/dev/null 2>&1') == 0:\n" + "    print('AUTO_ENABLED')\n" + "else:\n" + "    print('AUTO_DISABLED')\n";
         var b64 = Qt.btoa(pyScript);
         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64 + "').decode('utf-8'))\"";
         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-auto-setup");
     }
 
     function pollSchedulerState() {
-        utilityDs.connectSource("sh -lc 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now())
+        utilityDs.connectSource("sh -lc 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now());
     }
 
     function schedLoadSchedules() {
@@ -1393,17 +1364,20 @@ KCM.SimpleKCM {
     }
 
     function schedSaveSchedules(items) {
-        var payload = { version: 1, schedules: items };
+        var payload = {
+            "version": 1,
+            "schedules": items
+        };
         var b64 = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import base64,json,os; d=base64.b64decode('" + b64 + "'); " +
-                  "p=os.path.expanduser('~/.local/share/kdeaichat'); os.makedirs(p,exist_ok=True); " +
-                  "f=open(p+'/schedules.json','w',encoding='utf-8'); f.write(d.decode('utf-8')); f.close(); print('SCHED_SAVE_OK')\"";
+        var cmd = "python3 -c \"import base64,json,os; d=base64.b64decode('" + b64 + "'); " + "p=os.path.expanduser('~/.local/share/kdeaichat'); os.makedirs(p,exist_ok=True); " + "f=open(p+'/schedules.json','w',encoding='utf-8'); f.write(d.decode('utf-8')); f.close(); print('SCHED_SAVE_OK')\"";
         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-save");
     }
 
     function schedTriggerNow(index) {
         var copy = page.schedulerList.slice();
-        if (index < 0 || index >= copy.length) return;
+        if (index < 0 || index >= copy.length)
+            return ;
+
         var s = JSON.parse(JSON.stringify(copy[index]));
         s.triggerNow = true;
         copy[index] = s;
@@ -1414,640 +1388,58 @@ KCM.SimpleKCM {
     function schedMakeUuid() {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0;
-            return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+            return (c === "x" ? r : (r & 3 | 8)).toString(16);
         });
     }
 
     function schedDefaultBaseUrl(provider) {
         var urls = {
-            "openai":      "https://api.openai.com/v1",
-            "anthropic":   "https://api.anthropic.com/v1",
-            "groq":        "https://api.groq.com/openai/v1",
-            "google":      "https://generativelanguage.googleapis.com/v1beta/openai/",
-            "deepseek":    "https://api.deepseek.com",
-            "mistral":     "https://api.mistral.ai/v1",
-            "openrouter":  "https://openrouter.ai/api/v1",
-            "xai":         "https://api.x.ai/v1",
-            "nvidia":      "https://integrate.api.nvidia.com/v1",
-            "fireworks":   "https://api.fireworks.ai/inference/v1",
-            "minimax":     "https://api.minimax.io/v1",
-            "cloudflare":  "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
+            "openai": "https://api.openai.com/v1",
+            "anthropic": "https://api.anthropic.com/v1",
+            "groq": "https://api.groq.com/openai/v1",
+            "google": "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "deepseek": "https://api.deepseek.com",
+            "mistral": "https://api.mistral.ai/v1",
+            "openrouter": "https://openrouter.ai/api/v1",
+            "xai": "https://api.x.ai/v1",
+            "nvidia": "https://integrate.api.nvidia.com/v1",
+            "fireworks": "https://api.fireworks.ai/inference/v1",
+            "minimax": "https://api.minimax.io/v1",
+            "cloudflare": "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
             "huggingface": "https://router.huggingface.co/v1",
-            "ollama":      "http://localhost:11434/v1",
-            "lmstudio":    "http://localhost:1234/v1",
-            "local":       "http://localhost:11434/v1",
-            "litellm":     "http://localhost:4000/v1",
-            "qwen":        "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-            "moonshot":    "https://api.moonshot.ai/v1",
-            "mimo":        "https://api.xiaomimimo.com/v1",
-            "maritaca":    "https://chat.maritaca.ai/api"
+            "ollama": "http://localhost:11434/v1",
+            "lmstudio": "http://localhost:1234/v1",
+            "local": "http://localhost:11434/v1",
+            "litellm": "http://localhost:4000/v1",
+            "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            "moonshot": "https://api.moonshot.ai/v1",
+            "mimo": "https://api.xiaomimimo.com/v1",
+            "maritaca": "https://chat.maritaca.ai/api"
         };
         return urls[provider] || "https://api.openai.com/v1";
     }
 
     function schedHumanCron(expr) {
-        if (!expr) return "No schedule";
+        if (!expr)
+            return "No schedule";
+
         var parts = expr.trim().split(/\s+/);
-        if (parts.length !== 5) return expr;
+        if (parts.length !== 5)
+            return expr;
+
         var min = parts[0], hr = parts[1], dom = parts[2], mon = parts[3], dow = parts[4];
         if (min === "0" && hr !== "*" && dom === "*" && mon === "*") {
             var h = parseInt(hr), ampm = h >= 12 ? "PM" : "AM", h12 = h % 12 || 12;
-            var dayStr = dow === "*" ? "every day" : dow === "1-5" ? "weekdays" :
-                         dow === "6,0" || dow === "0,6" ? "weekends" : "on selected days";
+            var dayStr = dow === "*" ? "every day" : dow === "1-5" ? "weekdays" : dow === "6,0" || dow === "0,6" ? "weekends" : "on selected days";
             return "Daily at " + h12 + ":00 " + ampm + " " + dayStr;
         }
-        if (hr.startsWith && hr.startsWith("*/")) return "Every " + hr.slice(2) + " hours";
+        if (hr.startsWith && hr.startsWith("*/"))
+            return "Every " + hr.slice(2) + " hours";
+
         return expr;
     }
 
-    // ── Schedule Management Dialog (human-friendly) ────────────────────────────
-    QQC2.Dialog {
-        id: scheduleDialog
-        title: "Scheduled Messages"
-        modal: true
-        width: Math.min(parent.width * 0.95, Kirigami.Units.gridUnit * 50)
-        height: Math.min(parent.height * 0.92, Kirigami.Units.gridUnit * 46)
-        standardButtons: QQC2.Dialog.Close
-
-        property int editingIndex: -1   // -2=new, >=0=edit, -1=list
-        property var draft: ({})
-
-        // Helper: build cron from draft
-        function buildCron(d) {
-            if (d.taskType === "single") return "";
-            var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1
-            var tp = (d.schedTime || "09:00").split(":")
-            var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0
-            if (t === "minutes") return "*/" + n + " * * * *"
-            if (t === "hours")   return "0 */" + n + " * * *"
-            if (t === "days")    return (n === 1 ? mn + " " + hr + " * * *" : mn + " " + hr + " */" + n + " * *")
-            if (t === "weeks") {
-                var ds = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.slice().sort().join(",") : "1"
-                return mn + " " + hr + " * * " + ds
-            }
-            if (t === "months") {
-                var dom = d.schedDayOfMonth || 1
-                return (n === 1 ? mn + " " + hr + " " + dom + " * *" : mn + " " + hr + " " + dom + " */" + n + " *")
-            }
-            return "0 9 * * *"
-        }
-
-        function getStartYear(dateStr) {
-            if (!dateStr) return new Date().getFullYear();
-            return new Date(dateStr).getFullYear();
-        }
-        function getStartMonth(dateStr) {
-            if (!dateStr) return new Date().getMonth();
-            return new Date(dateStr).getMonth();
-        }
-        function getStartDay(dateStr) {
-            if (!dateStr) return new Date().getDate();
-            return new Date(dateStr).getDate();
-        }
-        function getStartHour(dateStr) {
-            if (!dateStr) return 9;
-            return new Date(dateStr).getHours();
-        }
-        function getStartMin(dateStr) {
-            if (!dateStr) return 0;
-            return new Date(dateStr).getMinutes();
-        }
-        function setStartDateField(field, value) {
-            var d = new Date(scheduleDialog.draft.startDate || new Date().toISOString());
-            if (field === "year") d.setFullYear(value);
-            else if (field === "month") d.setMonth(value);
-            else if (field === "day") d.setDate(value);
-            else if (field === "hour") d.setHours(value);
-            else if (field === "minute") d.setMinutes(value);
-            scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, { startDate: d.toISOString() });
-        }
-
-        // Helper: human-readable summary
-        function humanText(d) {
-            if (d.taskType === "single") {
-                var sDate = new Date(d.startDate || new Date().toISOString());
-                var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                var shr = sDate.getHours(), smn = sDate.getMinutes();
-                var sap = shr >= 12 ? "PM" : "AM", sh12 = shr % 12 || 12;
-                var sms = smn < 10 ? "0" + smn : "" + smn;
-                var stimeStr = sh12 + ":" + sms + " " + sap;
-                return "Once on " + monthNames[sDate.getMonth()] + " " + sDate.getDate() + ", " + sDate.getFullYear() + " at " + stimeStr;
-            }
-
-            var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1
-            var tp = (d.schedTime || "09:00").split(":")
-            var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0
-            var ap = hr >= 12 ? "PM" : "AM", h12 = hr % 12 || 12
-            var ms = mn < 10 ? "0" + mn : "" + mn
-            var timeStr = h12 + ":" + ms + " " + ap
-            var baseText = "";
-            if (t === "minutes") baseText = "Every " + (n === 1 ? "minute" : n + " minutes");
-            else if (t === "hours")   baseText = "Every " + (n === 1 ? "hour" : n + " hours");
-            else if (t === "days")    baseText = "Every " + (n === 1 ? "day" : n + " days") + " at " + timeStr;
-            else if (t === "weeks") {
-                var dn = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-                var days = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.map(function(x){ return dn[x] }).join(", ") : "Mon"
-                baseText = "Every " + (n === 1 ? "week" : n + " weeks") + " on " + days + " at " + timeStr
-            }
-            else if (t === "months") {
-                var dom = d.schedDayOfMonth || 1
-                var sfx = dom === 1 ? "st" : dom === 2 ? "nd" : dom === 3 ? "rd" : "th"
-                baseText = "Every " + (n === 1 ? "month" : n + " months") + " on the " + dom + sfx + " at " + timeStr
-            }
-            
-            if (d.limitEnabled && d.limitCount) {
-                baseText += " (Limit: " + d.limitCount + " run" + (d.limitCount === 1 ? "" : "s") + ")"
-            }
-            return baseText;
-        }
-
-        onOpened: { schedLoadSchedules(); editingIndex = -1 }
-
-        // ── List view ──────────────────────────────────────────────────────────
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: Kirigami.Units.smallSpacing
-            visible: scheduleDialog.editingIndex === -1
-
-            RowLayout {
-                Layout.fillWidth: true
-                QQC2.Label {
-                    text: page.schedulerList.length === 0 ? "No scheduled messages yet"
-                          : page.schedulerList.length + " scheduled message" + (page.schedulerList.length === 1 ? "" : "s")
-                    opacity: 0.7; Layout.fillWidth: true
-                }
-                QQC2.Button {
-                    text: "New Schedule"; icon.name: "list-add"; highlighted: true
-                    onClicked: {
-                        var now = new Date()
-                        now.setMinutes(now.getMinutes() + 5)
-                        scheduleDialog.draft = {
-                            id: page.schedMakeUuid(), name: "", enabled: true,
-                            chatId: "", chatName: "",
-                            message: "",
-                            taskType: "single",
-                            startDate: now.toISOString(),
-                            schedType: "days", schedEvery: 1, schedTime: "09:00",
-                            schedDays: [1], schedDayOfMonth: 1,
-                            limitEnabled: false, limitCount: 5,
-                            notify: true, createdAt: new Date().toISOString()
-                        }
-                        scheduleDialog.editingIndex = -2
-                    }
-                }
-            }
-
-            Kirigami.InlineMessage {
-                Layout.fillWidth: true
-                visible: page.schedulerList.length === 0
-                type: Kirigami.MessageType.Information
-                text: "No scheduled messages yet. Click <b>New Schedule</b> to create one, " +
-                      "or type <b>/schedule</b> in any chat."
-            }
-
-            QQC2.ScrollView {
-                Layout.fillWidth: true; Layout.fillHeight: true; clip: true
-
-                ListView {
-                    id: schedListView
-                    model: page.schedulerList
-                    spacing: Kirigami.Units.smallSpacing
-
-                    delegate: Rectangle {
-                        width: schedListView.width; height: 74; radius: 6
-                        color: modelData.enabled
-                               ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.07)
-                               : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
-                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
-                        border.width: 1; opacity: modelData.enabled ? 1.0 : 0.55
-
-                        RowLayout {
-                            anchors { fill: parent; margins: Kirigami.Units.smallSpacing * 1.5 }
-                            spacing: Kirigami.Units.smallSpacing
-
-                            QQC2.Switch {
-                                checked: modelData.enabled
-                                onToggled: {
-                                    var copy = page.schedulerList.slice()
-                                    var s = JSON.parse(JSON.stringify(copy[index]))
-                                    s.enabled = checked; copy[index] = s
-                                    page.schedulerList = copy; page.schedSaveSchedules(copy)
-                                }
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true; spacing: 2
-                                QQC2.Label {
-                                    text: modelData.name || modelData.humanReadable || "Unnamed"
-                                    font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true
-                                }
-                                QQC2.Label {
-                                    text: "⏱ " + (modelData.humanReadable || modelData.cron || "") +
-                                          (modelData.chatName ? " · 💬 " + modelData.chatName : "")
-                                    font.pixelSize: 11; opacity: 0.7; elide: Text.ElideRight; Layout.fillWidth: true
-                                }
-                                QQC2.Label {
-                                    text: "\"" + (modelData.message || "").substring(0,60) +
-                                          ((modelData.message||"").length > 60 ? "…" : "") + "\""
-                                    font.pixelSize: 10; opacity: 0.5; elide: Text.ElideRight
-                                    font.italic: true; Layout.fillWidth: true
-                                }
-                            }
-
-                            QQC2.ToolButton {
-                                icon.name: "document-edit"; QQC2.ToolTip.text: "Edit"
-                                QQC2.ToolTip.visible: hovered; QQC2.ToolTip.delay: 500
-                                onClicked: {
-                                    var d = JSON.parse(JSON.stringify(modelData))
-                                    if (!d.taskType) d.taskType = "repeat"
-                                    if (!d.startDate) {
-                                        var now = new Date()
-                                        now.setMinutes(now.getMinutes() + 5)
-                                        d.startDate = now.toISOString()
-                                    }
-                                    if (!d.schedType) d.schedType = "days"
-                                    if (!d.schedEvery) d.schedEvery = 1
-                                    if (!d.schedTime) d.schedTime = "09:00"
-                                    if (!d.schedDays) d.schedDays = [1]
-                                    if (!d.schedDayOfMonth) d.schedDayOfMonth = 1
-                                    scheduleDialog.draft = d
-                                    scheduleDialog.editingIndex = index
-                                }
-                            }
-                            QQC2.ToolButton {
-                                icon.name: "edit-delete"; QQC2.ToolTip.text: "Remove"
-                                QQC2.ToolTip.visible: hovered; QQC2.ToolTip.delay: 500
-                                onClicked: {
-                                    var copy = page.schedulerList.slice(); copy.splice(index, 1)
-                                    page.schedulerList = copy; page.schedSaveSchedules(copy)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Editor view ────────────────────────────────────────────────────────
-        QQC2.ScrollView {
-            anchors.fill: parent
-            visible: scheduleDialog.editingIndex !== -1
-            clip: true
-
-            ColumnLayout {
-                width: parent.width - Kirigami.Units.gridUnit
-                spacing: Kirigami.Units.largeSpacing
-
-                Kirigami.Heading { level: 4; text: scheduleDialog.editingIndex === -2 ? "New Scheduled Message" : "Edit Scheduled Message" }
-
-                // Message
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                    QQC2.Label { text: "Message to send:"; font.bold: true }
-                    QQC2.Label {
-                        text: "This message will be sent into the chat at the scheduled time, and the AI will reply."
-                        font.pixelSize: 11; opacity: 0.65; wrapMode: Text.Wrap; Layout.fillWidth: true
-                    }
-                    QQC2.TextArea {
-                        id: dlgMessage; Layout.fillWidth: true; Layout.preferredHeight: 80; wrapMode: TextEdit.Wrap
-                        text: scheduleDialog.draft.message || ""
-                        placeholderText: "e.g. What should I focus on today?"
-                        onTextChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {message: text})
-                    }
-                }
-
-                Kirigami.Separator { Layout.fillWidth: true }
-
-                // Schedule builder
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-
-                    QQC2.Label { text: "Task Type:"; font.bold: true }
-
-                    RowLayout {
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Button {
-                            text: "Single Run"
-                            highlighted: (scheduleDialog.draft.taskType || "single") === "single"
-                            flat: (scheduleDialog.draft.taskType || "single") !== "single"
-                            onClicked: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {taskType: "single"})
-                        }
-                        QQC2.Button {
-                            text: "Recurring (Repeatable)"
-                            highlighted: (scheduleDialog.draft.taskType || "single") === "repeat"
-                            flat: (scheduleDialog.draft.taskType || "single") !== "repeat"
-                            onClicked: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {taskType: "repeat"})
-                        }
-                    }
-                }
-
-                // ── Date and Time picker ──
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.mediumSpacing
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label {
-                            text: (scheduleDialog.draft.taskType || "single") === "single" ? "Scheduled Date:" : "Start Date (Optional):"
-                            font.bold: true
-                        }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
-                            
-                            QQC2.ComboBox {
-                                id: startMonthCombo
-                                Layout.fillWidth: true
-                                model: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-                                currentIndex: scheduleDialog.getStartMonth(scheduleDialog.draft.startDate)
-                                onCurrentIndexChanged: {
-                                    if (activeFocus) scheduleDialog.setStartDateField("month", currentIndex)
-                                }
-                            }
-                            
-                            QQC2.SpinBox {
-                                id: startDaySpin
-                                from: 1; to: 31
-                                value: scheduleDialog.getStartDay(scheduleDialog.draft.startDate)
-                                onValueChanged: {
-                                    if (activeFocus) scheduleDialog.setStartDateField("day", value)
-                                }
-                            }
-                            
-                            QQC2.SpinBox {
-                                id: startYearSpin
-                                from: 2026; to: 2035
-                                value: scheduleDialog.getStartYear(scheduleDialog.draft.startDate)
-                                onValueChanged: {
-                                    if (activeFocus) scheduleDialog.setStartDateField("year", value)
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label {
-                            text: "Scheduled Time:"
-                            font.bold: true
-                        }
-                        RowLayout {
-                            spacing: Kirigami.Units.smallSpacing
-                            QQC2.SpinBox {
-                                id: startHourSpin
-                                from: 0; to: 23
-                                value: scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
-                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
-                                onValueChanged: {
-                                    if (activeFocus) scheduleDialog.setStartDateField("hour", value)
-                                }
-                            }
-                            QQC2.Label { text: ":" }
-                            QQC2.SpinBox {
-                                id: startMinSpin
-                                from: 0; to: 59
-                                value: scheduleDialog.getStartMin(scheduleDialog.draft.startDate)
-                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
-                                onValueChanged: {
-                                    if (activeFocus) scheduleDialog.setStartDateField("minute", value)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Recurrence options ──
-                ColumnLayout {
-                    visible: (scheduleDialog.draft.taskType || "single") === "repeat"
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.largeSpacing
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "Frequency:"; font.bold: true }
-                        Flow {
-                            Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                            Repeater {
-                                model: [
-                                    {key:"minutes",label:"Every X minutes"},
-                                    {key:"hours",  label:"Every X hours"},
-                                    {key:"days",   label:"Every X days"},
-                                    {key:"weeks",  label:"Every X weeks"},
-                                    {key:"months", label:"Every X months"},
-                                ]
-                                QQC2.Button {
-                                    text: modelData.label
-                                    flat: (scheduleDialog.draft.schedType || "days") !== modelData.key
-                                    highlighted: (scheduleDialog.draft.schedType || "days") === modelData.key
-                                    padding: Kirigami.Units.smallSpacing * 1.5; font.pixelSize: 12
-                                    onClicked: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedType: modelData.key})
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "Repeat Every:"; font.bold: true }
-                        RowLayout {
-                            spacing: Kirigami.Units.smallSpacing
-                            QQC2.SpinBox {
-                                id: dlgEvery; from: 1; to: 999
-                                value: scheduleDialog.draft.schedEvery || 1
-                                onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedEvery: value})
-                            }
-                            QQC2.Label {
-                                text: {
-                                    var t = scheduleDialog.draft.schedType || "days", n = scheduleDialog.draft.schedEvery || 1
-                                    var labels = {minutes: "minute", hours: "hour", days: "day", weeks: "week", months: "month"}
-                                    var base = labels[t] || t
-                                    return n === 1 ? base : base + "s"
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        visible: ["days","weeks","months"].indexOf(scheduleDialog.draft.schedType || "days") >= 0
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "At Recurring Time:"; font.bold: true }
-                        RowLayout {
-                            spacing: Kirigami.Units.smallSpacing
-                            QQC2.SpinBox {
-                                id: dlgHour; from: 0; to: 23
-                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
-                                textFromValue: function(v) { return (v<10?"0":"") + v }
-                                onValueChanged: {
-                                    var m = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[1])||0
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
-                                        {schedTime: (value<10?"0":"")+value+":"+(m<10?"0":"")+m})
-                                }
-                            }
-                            QQC2.Label { text: ":" }
-                            QQC2.SpinBox {
-                                id: dlgMin; from: 0; to: 59; stepSize: 5
-                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0
-                                textFromValue: function(v) { return (v<10?"0":"") + v }
-                                onValueChanged: {
-                                    var h = parseInt((scheduleDialog.draft.schedTime||"09:00").split(":")[0])||9
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft,
-                                        {schedTime: (h<10?"0":"")+h+":"+(value<10?"0":"")+value})
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        visible: (scheduleDialog.draft.schedType || "") === "weeks"
-                        spacing: Kirigami.Units.smallSpacing; Layout.fillWidth: true
-                        QQC2.Label { text: "On these days:"; font.bold: true }
-                        Flow {
-                            Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                            Repeater {
-                                model: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-                                Rectangle {
-                                    width: 44; height: 28; radius: 5
-                                    property bool sel: {
-                                        var ds = scheduleDialog.draft.schedDays || [1]
-                                        return ds.indexOf(index) >= 0
-                                    }
-                                    color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
-                                    border.color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.18)
-                                    border.width: 1
-                                    QQC2.Label { anchors.centerIn: parent; text: modelData; font.pixelSize: 11; font.bold: sel; color: sel ? "white" : Kirigami.Theme.textColor }
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: {
-                                            var ds = (scheduleDialog.draft.schedDays || [1]).slice()
-                                            var pos = ds.indexOf(index)
-                                            if (pos >= 0) { if (ds.length > 1) ds.splice(pos,1) } else { ds.push(index); ds.sort() }
-                                            scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedDays: ds})
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        visible: (scheduleDialog.draft.schedType || "") === "months"
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "On Day of Month:"; font.bold: true }
-                        RowLayout {
-                            spacing: Kirigami.Units.smallSpacing
-                            QQC2.SpinBox {
-                                from: 1; to: 28; value: scheduleDialog.draft.schedDayOfMonth || 1
-                                onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {schedDayOfMonth: value})
-                            }
-                            QQC2.Label { text: "of the month"; opacity: 0.7 }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        QQC2.Label { text: "Execution Limit:"; font.bold: true }
-                        RowLayout {
-                            spacing: Kirigami.Units.mediumSpacing
-                            QQC2.CheckBox {
-                                id: limitCheckbox
-                                text: "Limit number of runs"
-                                checked: !!scheduleDialog.draft.limitEnabled
-                                onCheckedChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {limitEnabled: checked})
-                            }
-                            QQC2.SpinBox {
-                                visible: limitCheckbox.checked
-                                id: limitSpin
-                                from: 1; to: 9999
-                                value: scheduleDialog.draft.limitCount || 5
-                                onValueChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {limitCount: value})
-                            }
-                            QQC2.Label {
-                                visible: limitCheckbox.checked
-                                text: "times"
-                                opacity: 0.7
-                            }
-                        }
-                    }
-                }
-
-                // Summary chip
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: dlgSummary.implicitHeight + Kirigami.Units.gridUnit
-                    radius: 6
-                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.10)
-                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.30)
-                    border.width: 1
-                    QQC2.Label {
-                        id: dlgSummary
-                        anchors { verticalCenter: parent.verticalCenter; left: parent.left; right: parent.right; margins: Kirigami.Units.gridUnit * 0.6 }
-                        text: "📅 " + scheduleDialog.humanText(scheduleDialog.draft)
-                        font.bold: true; wrapMode: Text.Wrap; color: Kirigami.Theme.highlightColor
-                    }
-                }
-
-                Kirigami.Separator { Layout.fillWidth: true }
-
-                // Label (always on top)
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing
-                    QQC2.Label { text: "Label (optional):"; font.bold: true }
-                    QQC2.TextField {
-                        id: dlgName; Layout.fillWidth: true
-                        text: scheduleDialog.draft.name || ""
-                        placeholderText: "Leave blank to auto-name"
-                        onTextChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {name: text})
-                    }
-                }
-
-                RowLayout {
-                    QQC2.Switch {
-                        id: dlgNotify; checked: scheduleDialog.draft.notify !== false
-                        onCheckedChanged: scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {notify: checked})
-                    }
-                    QQC2.Label {
-                        text: dlgNotify.checked ? "Show a notification when the AI replies" : "Silent — no notification"
-                        opacity: 0.75; wrapMode: Text.Wrap
-                    }
-                }
-
-                // Buttons
-                RowLayout {
-                    Layout.fillWidth: true
-                    Item { Layout.fillWidth: true }
-                    QQC2.Button { text: "Cancel"; onClicked: scheduleDialog.editingIndex = -1 }
-                    QQC2.Button {
-                        text: scheduleDialog.editingIndex === -2 ? "Create Schedule" : "Save Changes"
-                        highlighted: true
-                        enabled: dlgMessage.text.trim() !== ""
-                        onClicked: {
-                            var d = Object.assign({}, scheduleDialog.draft)
-                            d.cron = scheduleDialog.buildCron(d)
-                            d.humanReadable = scheduleDialog.humanText(d)
-                            if (!d.name || d.name.trim() === "") d.name = d.humanReadable
-                            var copy = page.schedulerList.slice()
-                            if (scheduleDialog.editingIndex === -2) copy.push(d)
-                            else copy[scheduleDialog.editingIndex] = d
-                            page.schedulerList = copy
-                            page.schedSaveSchedules(copy)
-                            scheduleDialog.editingIndex = -1
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     horizontalScrollBarPolicy: configZoom > 1.01 ? QQC2.ScrollBar.AsNeeded : QQC2.ScrollBar.AlwaysOff
-
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0;
@@ -2065,7 +1457,6 @@ KCM.SimpleKCM {
             else
                 refreshOpenCodeDiscovery();
         }
-
         // Mark page as fully initialised — cfg_ aliases are now populated.
         // Any storage-mode handler that fires before this point is a no-op
         // for write operations so we don't flush empty fields to disk.
@@ -2076,19 +1467,1003 @@ KCM.SimpleKCM {
         schedAutoSetup();
         // Poll immediately so the status badge updates instantly
         pollSchedulerState();
+        // If opened from chat via "Create Schedule", immediately open the scheduling dialog prefilled
+        if (typeof plasmoid.configuration.preselectedChatId !== "undefined" && plasmoid.configuration.preselectedChatId !== "") {
+            var now = new Date();
+            now.setMinutes(now.getMinutes() + 5);
+            scheduleDialog.draft = {
+                "id": page.schedMakeUuid(),
+                "name": "",
+                "enabled": true,
+                "chatId": plasmoid.configuration.preselectedChatId,
+                "chatName": plasmoid.configuration.preselectedChatName || "Chat",
+                "message": "",
+                "taskType": "single",
+                "startDate": now.toISOString(),
+                "schedType": "days",
+                "schedEvery": 1,
+                "schedTime": "09:00",
+                "schedDays": [1],
+                "schedDayOfMonth": 1,
+                "limitEnabled": false,
+                "limitCount": 5,
+                "notify": true,
+                "createdAt": new Date().toISOString()
+            };
+            scheduleDialog.editingIndex = -2;
+            scheduleDialog.open();
+            // Clear configuration values immediately so it doesn't pop up again next time!
+            plasmoid.configuration.preselectedChatId = "";
+            plasmoid.configuration.preselectedChatName = "";
+        }
     }
     Component.onDestruction: {
         saveGeneralSettingsOnly();
         // cfg_ aliases are auto-saved by KCM on OK/Apply — no async work needed here.
         // For KWallet mode, sync the current fields to KWallet before closing.
         // For Plain Config mode, persist keys to disk on close as well.
-        if (plasmoid.configuration.keyStorageMode === 2) {
+        if (plasmoid.configuration.keyStorageMode === 2)
             kwalletStoreAll();
-        } else if (plasmoid.configuration.keyStorageMode === 1) {
+        else if (plasmoid.configuration.keyStorageMode === 1)
             syncKeysToDisk();
-        } else if (plasmoid.configuration.keyStorageMode === 0) {
+        else if (plasmoid.configuration.keyStorageMode === 0)
             clearKeysFromDisk();
+    }
+
+    Timer {
+        id: openCodeAutoStartTimer
+
+        interval: 2500
+        repeat: false
+        onTriggered: refreshOpenCodeDiscovery()
+    }
+
+    // ── Schedule Management Dialog (human-friendly) ────────────────────────────
+    QQC2.Dialog {
+        id: scheduleDialog
+
+        property int editingIndex: -1 // -2=new, >=0=edit, -1=list
+        property var draft: ({
+        })
+
+        // Helper: build cron from draft
+        function buildCron(d) {
+            if (d.taskType === "single")
+                return "";
+
+            var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1;
+            var tp = (d.schedTime || "09:00").split(":");
+            var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            if (t === "minutes")
+                return "*/" + n + " * * * *";
+
+            if (t === "hours")
+                return "0 */" + n + " * * *";
+
+            if (t === "days")
+                return (n === 1 ? mn + " " + hr + " * * *" : mn + " " + hr + " */" + n + " * *");
+
+            if (t === "weeks") {
+                var ds = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.slice().sort().join(",") : "1";
+                return mn + " " + hr + " * * " + ds;
+            }
+            if (t === "months") {
+                var dom = d.schedDayOfMonth || 1;
+                return (n === 1 ? mn + " " + hr + " " + dom + " * *" : mn + " " + hr + " " + dom + " */" + n + " *");
+            }
+            return "0 9 * * *";
         }
+
+        function getStartYear(dateStr) {
+            if (!dateStr)
+                return new Date().getFullYear();
+
+            return new Date(dateStr).getFullYear();
+        }
+
+        function getStartMonth(dateStr) {
+            if (!dateStr)
+                return new Date().getMonth();
+
+            return new Date(dateStr).getMonth();
+        }
+
+        function getStartDay(dateStr) {
+            if (!dateStr)
+                return new Date().getDate();
+
+            return new Date(dateStr).getDate();
+        }
+
+        function getStartHour(dateStr) {
+            if (!dateStr)
+                return 9;
+
+            return new Date(dateStr).getHours();
+        }
+
+        function getStartMin(dateStr) {
+            if (!dateStr)
+                return 0;
+
+            return new Date(dateStr).getMinutes();
+        }
+
+        function setStartDateField(field, value) {
+            var d = new Date(scheduleDialog.draft.startDate || new Date().toISOString());
+            if (field === "year")
+                d.setFullYear(value);
+            else if (field === "month")
+                d.setMonth(value);
+            else if (field === "day")
+                d.setDate(value);
+            else if (field === "hour")
+                d.setHours(value);
+            else if (field === "minute")
+                d.setMinutes(value);
+            scheduleDialog.draft = Object.assign({
+            }, scheduleDialog.draft, {
+                "startDate": d.toISOString()
+            });
+        }
+
+        // Helper: human-readable summary
+        function humanText(d) {
+            if (d.taskType === "single") {
+                var sDate = new Date(d.startDate || new Date().toISOString());
+                var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                var shr = sDate.getHours(), smn = sDate.getMinutes();
+                var sap = shr >= 12 ? "PM" : "AM", sh12 = shr % 12 || 12;
+                var sms = smn < 10 ? "0" + smn : "" + smn;
+                var stimeStr = sh12 + ":" + sms + " " + sap;
+                return "Once on " + monthNames[sDate.getMonth()] + " " + sDate.getDate() + ", " + sDate.getFullYear() + " at " + stimeStr;
+            }
+            var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1;
+            var tp = (d.schedTime || "09:00").split(":");
+            var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            var ap = hr >= 12 ? "PM" : "AM", h12 = hr % 12 || 12;
+            var ms = mn < 10 ? "0" + mn : "" + mn;
+            var timeStr = h12 + ":" + ms + " " + ap;
+            var baseText = "";
+            if (t === "minutes") {
+                baseText = "Every " + (n === 1 ? "minute" : n + " minutes");
+            } else if (t === "hours") {
+                baseText = "Every " + (n === 1 ? "hour" : n + " hours");
+            } else if (t === "days") {
+                baseText = "Every " + (n === 1 ? "day" : n + " days") + " at " + timeStr;
+            } else if (t === "weeks") {
+                var dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                var days = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.map(function(x) {
+                    return dn[x];
+                }).join(", ") : "Mon";
+                baseText = "Every " + (n === 1 ? "week" : n + " weeks") + " on " + days + " at " + timeStr;
+            } else if (t === "months") {
+                var dom = d.schedDayOfMonth || 1;
+                var sfx = dom === 1 ? "st" : dom === 2 ? "nd" : dom === 3 ? "rd" : "th";
+                baseText = "Every " + (n === 1 ? "month" : n + " months") + " on the " + dom + sfx + " at " + timeStr;
+            }
+            if (d.limitEnabled && d.limitCount)
+                baseText += " (Limit: " + d.limitCount + " run" + (d.limitCount === 1 ? "" : "s") + ")";
+
+            return baseText;
+        }
+
+        title: "Scheduled Messages"
+        modal: true
+        width: Math.min(parent.width * 0.95, Kirigami.Units.gridUnit * 50)
+        height: Math.min(parent.height * 0.92, Kirigami.Units.gridUnit * 46)
+        standardButtons: QQC2.Dialog.Close
+        onOpened: {
+            schedLoadSchedules();
+            editingIndex = -1;
+        }
+
+        // ── List view ──────────────────────────────────────────────────────────
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: Kirigami.Units.smallSpacing
+            visible: scheduleDialog.editingIndex === -1
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                QQC2.Label {
+                    text: page.schedulerList.length === 0 ? "No scheduled messages yet" : page.schedulerList.length + " scheduled message" + (page.schedulerList.length === 1 ? "" : "s")
+                    opacity: 0.7
+                    Layout.fillWidth: true
+                }
+
+                QQC2.Button {
+                    text: "New Schedule"
+                    icon.name: "list-add"
+                    highlighted: true
+                    onClicked: {
+                        var now = new Date();
+                        now.setMinutes(now.getMinutes() + 5);
+                        scheduleDialog.draft = {
+                            "id": page.schedMakeUuid(),
+                            "name": "",
+                            "enabled": true,
+                            "chatId": "",
+                            "chatName": "",
+                            "message": "",
+                            "taskType": "single",
+                            "startDate": now.toISOString(),
+                            "schedType": "days",
+                            "schedEvery": 1,
+                            "schedTime": "09:00",
+                            "schedDays": [1],
+                            "schedDayOfMonth": 1,
+                            "limitEnabled": false,
+                            "limitCount": 5,
+                            "notify": true,
+                            "createdAt": new Date().toISOString()
+                        };
+                        scheduleDialog.editingIndex = -2;
+                    }
+                }
+
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: page.schedulerList.length === 0
+                type: Kirigami.MessageType.Information
+                text: "No scheduled messages yet. Click <b>New Schedule</b> to create one, " + "or type <b>/schedule</b> in any chat."
+            }
+
+            QQC2.ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                ListView {
+                    id: schedListView
+
+                    model: page.schedulerList
+                    spacing: Kirigami.Units.smallSpacing
+
+                    delegate: Rectangle {
+                        width: schedListView.width
+                        height: 74
+                        radius: 6
+                        color: modelData.enabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.07) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+                        border.width: 1
+                        opacity: modelData.enabled ? 1 : 0.55
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            anchors {
+                                fill: parent
+                                margins: Kirigami.Units.smallSpacing * 1.5
+                            }
+
+                            QQC2.Switch {
+                                checked: modelData.enabled
+                                onToggled: {
+                                    var copy = page.schedulerList.slice();
+                                    var s = JSON.parse(JSON.stringify(copy[index]));
+                                    s.enabled = checked;
+                                    copy[index] = s;
+                                    page.schedulerList = copy;
+                                    page.schedSaveSchedules(copy);
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                QQC2.Label {
+                                    text: modelData.name || modelData.humanReadable || "Unnamed"
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "⏱ " + (modelData.humanReadable || modelData.cron || "") + (modelData.chatName ? " · 💬 " + modelData.chatName : "")
+                                    font.pixelSize: 11
+                                    opacity: 0.7
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
+                                    font.pixelSize: 10
+                                    opacity: 0.5
+                                    elide: Text.ElideRight
+                                    font.italic: true
+                                    Layout.fillWidth: true
+                                }
+
+                            }
+
+                            QQC2.ToolButton {
+                                icon.name: "document-edit"
+                                QQC2.ToolTip.text: "Edit"
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 500
+                                onClicked: {
+                                    var d = JSON.parse(JSON.stringify(modelData));
+                                    if (!d.taskType)
+                                        d.taskType = "repeat";
+
+                                    if (!d.startDate) {
+                                        var now = new Date();
+                                        now.setMinutes(now.getMinutes() + 5);
+                                        d.startDate = now.toISOString();
+                                    }
+                                    if (!d.schedType)
+                                        d.schedType = "days";
+
+                                    if (!d.schedEvery)
+                                        d.schedEvery = 1;
+
+                                    if (!d.schedTime)
+                                        d.schedTime = "09:00";
+
+                                    if (!d.schedDays)
+                                        d.schedDays = [1];
+
+                                    if (!d.schedDayOfMonth)
+                                        d.schedDayOfMonth = 1;
+
+                                    scheduleDialog.draft = d;
+                                    scheduleDialog.editingIndex = index;
+                                }
+                            }
+
+                            QQC2.ToolButton {
+                                icon.name: "edit-delete"
+                                QQC2.ToolTip.text: "Remove"
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 500
+                                onClicked: {
+                                    var copy = page.schedulerList.slice();
+                                    copy.splice(index, 1);
+                                    page.schedulerList = copy;
+                                    page.schedSaveSchedules(copy);
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        // ── Editor view ────────────────────────────────────────────────────────
+        QQC2.ScrollView {
+            anchors.fill: parent
+            visible: scheduleDialog.editingIndex !== -1
+            clip: true
+
+            ColumnLayout {
+                width: parent.width - Kirigami.Units.gridUnit
+                spacing: Kirigami.Units.largeSpacing
+
+                Kirigami.Heading {
+                    level: 4
+                    text: scheduleDialog.editingIndex === -2 ? "New Scheduled Message" : "Edit Scheduled Message"
+                }
+
+                // Message
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: "Message to send:"
+                        font.bold: true
+                    }
+
+                    QQC2.Label {
+                        text: "This message will be sent into the chat at the scheduled time, and the AI will reply."
+                        font.pixelSize: 11
+                        opacity: 0.65
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.TextArea {
+                        id: dlgMessage
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 80
+                        wrapMode: TextEdit.Wrap
+                        text: scheduleDialog.draft.message || ""
+                        placeholderText: "e.g. What should I focus on today?"
+                        onTextChanged: scheduleDialog.draft = Object.assign({
+                        }, scheduleDialog.draft, {
+                            "message": text
+                        })
+                    }
+
+                }
+
+                Kirigami.Separator {
+                    Layout.fillWidth: true
+                }
+
+                // Schedule builder
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: "Task Type:"
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Button {
+                            text: "Single Run"
+                            highlighted: (scheduleDialog.draft.taskType || "single") === "single"
+                            flat: (scheduleDialog.draft.taskType || "single") !== "single"
+                            onClicked: scheduleDialog.draft = Object.assign({
+                            }, scheduleDialog.draft, {
+                                "taskType": "single"
+                            })
+                        }
+
+                        QQC2.Button {
+                            text: "Recurring (Repeatable)"
+                            highlighted: (scheduleDialog.draft.taskType || "single") === "repeat"
+                            flat: (scheduleDialog.draft.taskType || "single") !== "repeat"
+                            onClicked: scheduleDialog.draft = Object.assign({
+                            }, scheduleDialog.draft, {
+                                "taskType": "repeat"
+                            })
+                        }
+
+                    }
+
+                }
+
+                // ── Date and Time picker ──
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.mediumSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: (scheduleDialog.draft.taskType || "single") === "single" ? "Scheduled Date:" : "Start Date (Optional):"
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.ComboBox {
+                                id: startMonthCombo
+
+                                Layout.fillWidth: true
+                                model: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                                currentIndex: scheduleDialog.getStartMonth(scheduleDialog.draft.startDate)
+                                onCurrentIndexChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("month", currentIndex);
+
+                                }
+                            }
+
+                            QQC2.SpinBox {
+                                id: startDaySpin
+
+                                from: 1
+                                to: 31
+                                value: scheduleDialog.getStartDay(scheduleDialog.draft.startDate)
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("day", value);
+
+                                }
+                            }
+
+                            QQC2.SpinBox {
+                                id: startYearSpin
+
+                                from: 2026
+                                to: 2035
+                                value: scheduleDialog.getStartYear(scheduleDialog.draft.startDate)
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("year", value);
+
+                                }
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: "Scheduled Time:"
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                id: startHourSpin
+
+                                from: 0
+                                to: 23
+                                value: scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("hour", value);
+
+                                }
+                            }
+
+                            QQC2.Label {
+                                text: ":"
+                            }
+
+                            QQC2.SpinBox {
+                                id: startMinSpin
+
+                                from: 0
+                                to: 59
+                                value: scheduleDialog.getStartMin(scheduleDialog.draft.startDate)
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("minute", value);
+
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // ── Recurrence options ──
+                ColumnLayout {
+                    visible: (scheduleDialog.draft.taskType || "single") === "repeat"
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.largeSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: "Frequency:"
+                            font.bold: true
+                        }
+
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Repeater {
+                                model: [{
+                                    "key": "minutes",
+                                    "label": "Every X minutes"
+                                }, {
+                                    "key": "hours",
+                                    "label": "Every X hours"
+                                }, {
+                                    "key": "days",
+                                    "label": "Every X days"
+                                }, {
+                                    "key": "weeks",
+                                    "label": "Every X weeks"
+                                }, {
+                                    "key": "months",
+                                    "label": "Every X months"
+                                }]
+
+                                QQC2.Button {
+                                    text: modelData.label
+                                    flat: (scheduleDialog.draft.schedType || "days") !== modelData.key
+                                    highlighted: (scheduleDialog.draft.schedType || "days") === modelData.key
+                                    padding: Kirigami.Units.smallSpacing * 1.5
+                                    font.pixelSize: 12
+                                    onClicked: scheduleDialog.draft = Object.assign({
+                                    }, scheduleDialog.draft, {
+                                        "schedType": modelData.key
+                                    })
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: "Repeat Every:"
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                id: dlgEvery
+
+                                from: 1
+                                to: 999
+                                value: scheduleDialog.draft.schedEvery || 1
+                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "schedEvery": value
+                                })
+                            }
+
+                            QQC2.Label {
+                                text: {
+                                    var t = scheduleDialog.draft.schedType || "days", n = scheduleDialog.draft.schedEvery || 1;
+                                    var labels = {
+                                        "minutes": "minute",
+                                        "hours": "hour",
+                                        "days": "day",
+                                        "weeks": "week",
+                                        "months": "month"
+                                    };
+                                    var base = labels[t] || t;
+                                    return n === 1 ? base : base + "s";
+                                }
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        visible: ["days", "weeks", "months"].indexOf(scheduleDialog.draft.schedType || "days") >= 0
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: "At Recurring Time:"
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                id: dlgHour
+
+                                from: 0
+                                to: 23
+                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    var m = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0;
+                                    scheduleDialog.draft = Object.assign({
+                                    }, scheduleDialog.draft, {
+                                        "schedTime": (value < 10 ? "0" : "") + value + ":" + (m < 10 ? "0" : "") + m
+                                    });
+                                }
+                            }
+
+                            QQC2.Label {
+                                text: ":"
+                            }
+
+                            QQC2.SpinBox {
+                                id: dlgMin
+
+                                from: 0
+                                to: 59
+                                stepSize: 5
+                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    var h = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9;
+                                    scheduleDialog.draft = Object.assign({
+                                    }, scheduleDialog.draft, {
+                                        "schedTime": (h < 10 ? "0" : "") + h + ":" + (value < 10 ? "0" : "") + value
+                                    });
+                                }
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        visible: (scheduleDialog.draft.schedType || "") === "weeks"
+                        spacing: Kirigami.Units.smallSpacing
+                        Layout.fillWidth: true
+
+                        QQC2.Label {
+                            text: "On these days:"
+                            font.bold: true
+                        }
+
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Repeater {
+                                model: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+                                Rectangle {
+                                    property bool sel: {
+                                        var ds = scheduleDialog.draft.schedDays || [1];
+                                        return ds.indexOf(index) >= 0;
+                                    }
+
+                                    width: 44
+                                    height: 28
+                                    radius: 5
+                                    color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
+                                    border.color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.18)
+                                    border.width: 1
+
+                                    QQC2.Label {
+                                        anchors.centerIn: parent
+                                        text: modelData
+                                        font.pixelSize: 11
+                                        font.bold: sel
+                                        color: sel ? "white" : Kirigami.Theme.textColor
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            var ds = (scheduleDialog.draft.schedDays || [1]).slice();
+                                            var pos = ds.indexOf(index);
+                                            if (pos >= 0) {
+                                                if (ds.length > 1)
+                                                    ds.splice(pos, 1);
+
+                                            } else {
+                                                ds.push(index);
+                                                ds.sort();
+                                            }
+                                            scheduleDialog.draft = Object.assign({
+                                            }, scheduleDialog.draft, {
+                                                "schedDays": ds
+                                            });
+                                        }
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        visible: (scheduleDialog.draft.schedType || "") === "months"
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: "On Day of Month:"
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                from: 1
+                                to: 28
+                                value: scheduleDialog.draft.schedDayOfMonth || 1
+                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "schedDayOfMonth": value
+                                })
+                            }
+
+                            QQC2.Label {
+                                text: "of the month"
+                                opacity: 0.7
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: "Execution Limit:"
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.mediumSpacing
+
+                            QQC2.CheckBox {
+                                id: limitCheckbox
+
+                                text: "Limit number of runs"
+                                checked: !!scheduleDialog.draft.limitEnabled
+                                onCheckedChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "limitEnabled": checked
+                                })
+                            }
+
+                            QQC2.SpinBox {
+                                id: limitSpin
+
+                                visible: limitCheckbox.checked
+                                from: 1
+                                to: 9999
+                                value: scheduleDialog.draft.limitCount || 5
+                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "limitCount": value
+                                })
+                            }
+
+                            QQC2.Label {
+                                visible: limitCheckbox.checked
+                                text: "times"
+                                opacity: 0.7
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // Summary chip
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: dlgSummary.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 6
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.1)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.3)
+                    border.width: 1
+
+                    QQC2.Label {
+                        id: dlgSummary
+
+                        text: "📅 " + scheduleDialog.humanText(scheduleDialog.draft)
+                        font.bold: true
+                        wrapMode: Text.Wrap
+                        color: Kirigami.Theme.highlightColor
+
+                        anchors {
+                            verticalCenter: parent.verticalCenter
+                            left: parent.left
+                            right: parent.right
+                            margins: Kirigami.Units.gridUnit * 0.6
+                        }
+
+                    }
+
+                }
+
+                Kirigami.Separator {
+                    Layout.fillWidth: true
+                }
+
+                // Label (always on top)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: "Label (optional):"
+                        font.bold: true
+                    }
+
+                    QQC2.TextField {
+                        id: dlgName
+
+                        Layout.fillWidth: true
+                        text: scheduleDialog.draft.name || ""
+                        placeholderText: "Leave blank to auto-name"
+                        onTextChanged: scheduleDialog.draft = Object.assign({
+                        }, scheduleDialog.draft, {
+                            "name": text
+                        })
+                    }
+
+                }
+
+                RowLayout {
+                    QQC2.Switch {
+                        id: dlgNotify
+
+                        checked: scheduleDialog.draft.notify !== false
+                        onCheckedChanged: scheduleDialog.draft = Object.assign({
+                        }, scheduleDialog.draft, {
+                            "notify": checked
+                        })
+                    }
+
+                    QQC2.Label {
+                        text: dlgNotify.checked ? "Show a notification when the AI replies" : "Silent — no notification"
+                        opacity: 0.75
+                        wrapMode: Text.Wrap
+                    }
+
+                }
+
+                // Buttons
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.Button {
+                        text: "Cancel"
+                        onClicked: scheduleDialog.editingIndex = -1
+                    }
+
+                    QQC2.Button {
+                        text: scheduleDialog.editingIndex === -2 ? "Create Schedule" : "Save Changes"
+                        highlighted: true
+                        enabled: dlgMessage.text.trim() !== ""
+                        onClicked: {
+                            var d = Object.assign({
+                            }, scheduleDialog.draft);
+                            d.cron = scheduleDialog.buildCron(d);
+                            d.humanReadable = scheduleDialog.humanText(d);
+                            if (!d.name || d.name.trim() === "")
+                                d.name = d.humanReadable;
+
+                            var copy = page.schedulerList.slice();
+                            if (scheduleDialog.editingIndex === -2)
+                                copy.push(d);
+                            else
+                                copy[scheduleDialog.editingIndex] = d;
+                            page.schedulerList = copy;
+                            page.schedSaveSchedules(copy);
+                            scheduleDialog.editingIndex = -1;
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+
     }
 
     WheelHandler {
@@ -2166,7 +2541,7 @@ KCM.SimpleKCM {
                     availableWalletNames = [];
                     keyringStatus = "qdbus6 / qdbus is missing! KWallet requires Qt DBus tools. Please install 'qt6-tools' (or 'qttools' depending on your Linux distribution) to enable secure KWallet credentials storage.";
                     disconnectSource(sourceName);
-                    return;
+                    return ;
                 }
                 availableWalletNames = out === "" ? [] : out.split(/\n+/).filter(function(name) {
                     return name.trim() !== "";
@@ -2244,10 +2619,11 @@ KCM.SimpleKCM {
             } else if (sourceName.indexOf("plainconfig-sync") >= 0) {
                 if (err !== "")
                     keyringStatus = "Error saving to config file: " + err;
+
             } else if (sourceName.indexOf("sched-poll-") >= 0) {
                 page.schedulerDaemonRunning = (out === "SCHED_RUNNING");
             } else if (sourceName.indexOf("sched-start") >= 0) {
-                page.schedulerStatus = "";   // badge shows state, no separate text needed
+                page.schedulerStatus = ""; // badge shows state, no separate text needed
             } else if (sourceName.indexOf("sched-stop") >= 0) {
                 page.schedulerStatus = "";
             } else if (sourceName.indexOf("sched-hup") >= 0) {
@@ -2255,17 +2631,18 @@ KCM.SimpleKCM {
             } else if (sourceName.indexOf("sched-enable") >= 0) {
                 page.schedulerStatus = out.indexOf("SCHED_ENABLE_OK") >= 0 ? "Auto-start updated." : (err || out);
             } else if (sourceName.indexOf("sched-auto-setup") >= 0) {
-                if (out.indexOf("AUTO_ENABLED") >= 0) {
+                if (out.indexOf("AUTO_ENABLED") >= 0)
                     schedAutoStartToggle.checked = true;
-                } else if (out.indexOf("AUTO_DISABLED") >= 0) {
+                else if (out.indexOf("AUTO_DISABLED") >= 0)
                     schedAutoStartToggle.checked = false;
-                }
             } else if (sourceName.indexOf("sched-load") >= 0) {
                 if (out !== "") {
                     try {
                         var parsed = JSON.parse(out);
                         page.schedulerList = parsed.schedules || [];
-                    } catch(e) { page.schedulerList = []; }
+                    } catch (e) {
+                        page.schedulerList = [];
+                    }
                 }
             } else if (sourceName.indexOf("sched-save") >= 0) {
                 page.schedulerStatus = "Schedules saved.";
@@ -2297,195 +2674,70 @@ KCM.SimpleKCM {
             }
             //* FormLayout treats preferredWidth 0 as "unset" and uses implicitWidth — cap fields to the form instead.
             readonly property real fieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, boundedWidth)
-
             readonly property string guideText: {
-                return translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>" +
-                       "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" +
-                       "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" +
-                       "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" +
-                       "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" +
-                       "• <b>User Memory:</b> In the <b>Behavior</b> section, enable <b>User Memory</b> and write facts (your name, preferences, context) the AI should always remember — injected into every prompt.");
+                return translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>" + "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" + "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" + "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" + "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" + "• <b>User Memory:</b> In the <b>Behavior</b> section, enable <b>User Memory</b> and write facts (your name, preferences, context) the AI should always remember — injected into every prompt.");
             }
-
             readonly property string providerGuideText: {
-                if (openCodeToggle.checked) {
-                    return translate("<b>OpenCode Setup Guide:</b><br/>" +
-                           "1. Select <b>OpenCode Mode (Local Coding Server)</b> under Operating Mode.<br/>" +
-                           "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" +
-                           "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" +
-                           "4. Click <b>Check Server</b> to verify it is online.<br/>" +
-                           "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" +
-                           "6. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
-                }
+                if (openCodeToggle.checked)
+                    return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Local Coding Server)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
+
                 var provider = providerBox.currentValue || "openai";
-                if (provider === "openai") {
-                    return translate("<b>OpenAI Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>platform.openai.com → API Keys</b> (starts with <code>sk-</code>).<br/>" +
-                           "2. Paste it into the <b>OpenAI key</b> field below.<br/>" +
-                           "3. Choose a model from the <b>OpenAI model</b> dropdown or type one (e.g. <code>gpt-4o</code>, <code>gpt-4o-mini</code>).<br/>" +
-                           "4. (Optional) Override the base URL only if using a compatible proxy.<br/>" +
-                           "5. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "anthropic") {
-                    return translate("<b>Anthropic Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>console.anthropic.com → API Keys</b> (starts with <code>sk-ant-</code>).<br/>" +
-                           "2. Paste it into the <b>Anthropic key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>claude-opus-4-5</code>, <code>claude-3-5-sonnet-latest</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "groq") {
-                    return translate("<b>Groq Setup Guide:</b><br/>" +
-                           "1. Get your free API key at <b>console.groq.com → API Keys</b>.<br/>" +
-                           "2. Paste it into the <b>Groq key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>llama-3.3-70b-versatile</code>, <code>gemma2-9b-it</code>) — Groq inference is extremely fast.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "deepseek") {
-                    return translate("<b>DeepSeek Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>platform.deepseek.com → API Keys</b>.<br/>" +
-                           "2. Paste it into the <b>DeepSeek key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>deepseek-chat</code> or <code>deepseek-reasoner</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "minimax") {
-                    return translate("<b>MiniMax Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>www.minimaxi.com → API Key</b>.<br/>" +
-                           "2. Paste it into the <b>MiniMax key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>MiniMax-M2.7</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "fireworks") {
-                    return translate("<b>Fireworks AI Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>fireworks.ai → Account → API Keys</b>.<br/>" +
-                           "2. Paste it into the <b>Fireworks key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>accounts/fireworks/models/llama-v3p3-70b-instruct</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "google") {
-                    return translate("<b>Google Gemini Setup Guide:</b><br/>" +
-                           "1. Get your free API key at <b>aistudio.google.com → Get API Key</b>.<br/>" +
-                           "2. Paste it into the <b>Google key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>gemini-2.5-flash-preview-05-20</code>, <code>gemini-2.0-flash</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "openrouter") {
-                    return translate("<b>OpenRouter Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>openrouter.ai → Keys</b>.<br/>" +
-                           "2. Paste it into the <b>OpenRouter key</b> field below.<br/>" +
-                           "3. Choose any model from 100+ providers (e.g. <code>openai/gpt-4o-mini</code>, <code>google/gemini-flash-1.5</code>, <code>openrouter/auto</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "mistral") {
-                    return translate("<b>Mistral Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>console.mistral.ai → API Keys</b>.<br/>" +
-                           "2. Paste it into the <b>Mistral key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>mistral-small-latest</code>, <code>mistral-large-latest</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "cloudflare") {
-                    return translate("<b>Cloudflare Workers AI Setup Guide:</b><br/>" +
-                           "1. Log in to <b>dash.cloudflare.com → AI → Workers AI</b>.<br/>" +
-                           "2. Copy your <b>Account ID</b> from the right sidebar and replace <code>YOUR_ACCOUNT_ID</code> in the <b>Cloudflare URL</b> field below.<br/>" +
-                           "3. Create an API Token (with Workers AI permission) at <b>dash.cloudflare.com → Profile → API Tokens</b> and paste it into the <b>Cloudflare key</b> field.<br/>" +
-                           "4. Choose a model (e.g. <code>@cf/meta/llama-3.1-8b-instruct</code>).<br/>" +
-                           "5. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "nvidia") {
-                    return translate("<b>NVIDIA NIM Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>build.nvidia.com → Get API Key</b>.<br/>" +
-                           "2. Paste it into the <b>NVIDIA key</b> field below.<br/>" +
-                           "3. Choose a NIM model (e.g. <code>meta/llama-3.1-70b-instruct</code>, <code>nvidia/nemotron-4-340b-instruct</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "huggingface") {
-                    return translate("<b>Hugging Face Router Setup Guide:</b><br/>" +
-                           "1. Get your access token at <b>huggingface.co → Settings → Access Tokens</b> (use a token with Inference permissions).<br/>" +
-                           "2. Paste it into the <b>Hugging Face key</b> field below.<br/>" +
-                           "3. Enter a supported inference model (e.g. <code>openai/gpt-oss-120b:groq</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "xai") {
-                    return translate("<b>xAI (Grok) Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>console.x.ai → API Keys</b>.<br/>" +
-                           "2. Paste it into the <b>xAI key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>grok-3-mini</code>, <code>grok-2-latest</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "lmstudio") {
-                    return translate("<b>LM Studio Setup Guide:</b><br/>" +
-                           "1. Download and open <b>LM Studio</b> (lmstudio.ai) — no API key needed.<br/>" +
-                           "2. In LM Studio, go to the <b>Local Server</b> tab and load a model.<br/>" +
-                           "3. Click <b>Start Server</b> in LM Studio (default URL: <code>http://localhost:1234/v1</code>).<br/>" +
-                           "4. Enter the loaded model name in the <b>LM Studio model</b> field below.<br/>" +
-                           "5. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "local") {
-                    return translate("<b>Local Server (OpenAI-compatible) Setup Guide:</b><br/>" +
-                           "1. Start your local server (e.g. <b>vLLM</b>, <b>llama.cpp</b>, <b>Jan</b>) — no API key needed.<br/>" +
-                           "2. Enter the server's base URL in the <b>Local URL</b> field below (e.g. <code>http://localhost:8000/v1</code>).<br/>" +
-                           "3. Enter the model identifier your server is serving in the <b>Local model</b> field.<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "ollama") {
-                    return translate("<b>Ollama Setup Guide:</b><br/>" +
-                           "1. Install Ollama from <b>ollama.com</b> and run it — no API key needed.<br/>" +
-                           "2. Pull a model by running <code>ollama pull llama3.2</code> in a terminal.<br/>" +
-                           "3. Ollama starts automatically (default URL: <code>http://localhost:11434</code>).<br/>" +
-                           "4. Verify/update the <b>Ollama URL</b> field below and enter your model name (e.g. <code>llama3.2</code>).<br/>" +
-                           "5. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "litellm") {
-                    return translate("<b>LiteLLM Proxy Setup Guide:</b><br/>" +
-                           "1. Install LiteLLM: <code>pip install litellm</code> — no API key needed for the proxy itself.<br/>" +
-                           "2. Start your proxy: <code>litellm --model ollama/llama3.2</code> (or your preferred model).<br/>" +
-                           "3. Enter the proxy URL in the <b>LiteLLM URL</b> field below (default: <code>http://localhost:4000</code>).<br/>" +
-                           "4. Enter the model identifier in the <b>LiteLLM model</b> field.<br/>" +
-                           "5. Click <b>Apply</b>/<b>OK</b> to save.");
-                 } else if (provider === "qwen") {
-                    return translate("<b>Qwen (Alibaba Cloud) Setup Guide:</b><br/>" +
-                           "1. Register at <b>dashscope.aliyuncs.com</b> and go to <b>API Keys</b>.<br/>" +
-                           "2. Paste your key into the <b>Qwen key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>qwen-max</code>, <code>qwen-plus</code>, <code>qwen-turbo</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "moonshot") {
-                    return translate("<b>Moonshot AI (Kimi) Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>platform.moonshot.cn → API Keys</b>.<br/>" +
-                           "2. Paste it into the <b>Moonshot key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>moonshot-v1-8k</code>, <code>moonshot-v1-32k</code>, <code>moonshot-v1-128k</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "mimo") {
-                    return translate("<b>MiMo (Xiaomi) Setup Guide:</b><br/>" +
-                           "1. Get access at <b>api.xiaomimimo.com</b> and copy your API key.<br/>" +
-                           "2. Paste it into the <b>MiMo key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>mimo-v2-pro</code>, <code>mimo-v2</code>).<br/>" +
-                           "4. Click <b>Apply</b>/<b>OK</b> to save.");
-                } else if (provider === "maritaca") {
-                    return translate("<b>Maritaca AI (Sabiá) Setup Guide:</b><br/>" +
-                           "1. Get your API key at <b>chat.maritaca.ai → Settings → API Keys</b>.<br/>" +
-                           "2. Paste it into the <b>Maritaca key</b> field below.<br/>" +
-                           "3. Choose a model (e.g. <code>sabia-4</code> — optimised for Portuguese).<br/>" +
-                           "4. The default URL <code>https://chat.maritaca.ai/api</code> is correct — do not change it.<br/>" +
-                           "5. Click <b>Apply</b>/<b>OK</b> to save.");
-                }
+                if (provider === "openai")
+                    return translate("<b>OpenAI Setup Guide:</b><br/>" + "1. Get your API key at <b>platform.openai.com → API Keys</b> (starts with <code>sk-</code>).<br/>" + "2. Paste it into the <b>OpenAI key</b> field below.<br/>" + "3. Choose a model from the <b>OpenAI model</b> dropdown or type one (e.g. <code>gpt-4o</code>, <code>gpt-4o-mini</code>).<br/>" + "4. (Optional) Override the base URL only if using a compatible proxy.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "anthropic")
+                    return translate("<b>Anthropic Setup Guide:</b><br/>" + "1. Get your API key at <b>console.anthropic.com → API Keys</b> (starts with <code>sk-ant-</code>).<br/>" + "2. Paste it into the <b>Anthropic key</b> field below.<br/>" + "3. Choose a model (e.g. <code>claude-opus-4-5</code>, <code>claude-3-5-sonnet-latest</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "groq")
+                    return translate("<b>Groq Setup Guide:</b><br/>" + "1. Get your free API key at <b>console.groq.com → API Keys</b>.<br/>" + "2. Paste it into the <b>Groq key</b> field below.<br/>" + "3. Choose a model (e.g. <code>llama-3.3-70b-versatile</code>, <code>gemma2-9b-it</code>) — Groq inference is extremely fast.<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "deepseek")
+                    return translate("<b>DeepSeek Setup Guide:</b><br/>" + "1. Get your API key at <b>platform.deepseek.com → API Keys</b>.<br/>" + "2. Paste it into the <b>DeepSeek key</b> field below.<br/>" + "3. Choose a model (e.g. <code>deepseek-chat</code> or <code>deepseek-reasoner</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "minimax")
+                    return translate("<b>MiniMax Setup Guide:</b><br/>" + "1. Get your API key at <b>www.minimaxi.com → API Key</b>.<br/>" + "2. Paste it into the <b>MiniMax key</b> field below.<br/>" + "3. Choose a model (e.g. <code>MiniMax-M2.7</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "fireworks")
+                    return translate("<b>Fireworks AI Setup Guide:</b><br/>" + "1. Get your API key at <b>fireworks.ai → Account → API Keys</b>.<br/>" + "2. Paste it into the <b>Fireworks key</b> field below.<br/>" + "3. Choose a model (e.g. <code>accounts/fireworks/models/llama-v3p3-70b-instruct</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "google")
+                    return translate("<b>Google Gemini Setup Guide:</b><br/>" + "1. Get your free API key at <b>aistudio.google.com → Get API Key</b>.<br/>" + "2. Paste it into the <b>Google key</b> field below.<br/>" + "3. Choose a model (e.g. <code>gemini-2.5-flash-preview-05-20</code>, <code>gemini-2.0-flash</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "openrouter")
+                    return translate("<b>OpenRouter Setup Guide:</b><br/>" + "1. Get your API key at <b>openrouter.ai → Keys</b>.<br/>" + "2. Paste it into the <b>OpenRouter key</b> field below.<br/>" + "3. Choose any model from 100+ providers (e.g. <code>openai/gpt-4o-mini</code>, <code>google/gemini-flash-1.5</code>, <code>openrouter/auto</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "mistral")
+                    return translate("<b>Mistral Setup Guide:</b><br/>" + "1. Get your API key at <b>console.mistral.ai → API Keys</b>.<br/>" + "2. Paste it into the <b>Mistral key</b> field below.<br/>" + "3. Choose a model (e.g. <code>mistral-small-latest</code>, <code>mistral-large-latest</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "cloudflare")
+                    return translate("<b>Cloudflare Workers AI Setup Guide:</b><br/>" + "1. Log in to <b>dash.cloudflare.com → AI → Workers AI</b>.<br/>" + "2. Copy your <b>Account ID</b> from the right sidebar and replace <code>YOUR_ACCOUNT_ID</code> in the <b>Cloudflare URL</b> field below.<br/>" + "3. Create an API Token (with Workers AI permission) at <b>dash.cloudflare.com → Profile → API Tokens</b> and paste it into the <b>Cloudflare key</b> field.<br/>" + "4. Choose a model (e.g. <code>@cf/meta/llama-3.1-8b-instruct</code>).<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "nvidia")
+                    return translate("<b>NVIDIA NIM Setup Guide:</b><br/>" + "1. Get your API key at <b>build.nvidia.com → Get API Key</b>.<br/>" + "2. Paste it into the <b>NVIDIA key</b> field below.<br/>" + "3. Choose a NIM model (e.g. <code>meta/llama-3.1-70b-instruct</code>, <code>nvidia/nemotron-4-340b-instruct</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "huggingface")
+                    return translate("<b>Hugging Face Router Setup Guide:</b><br/>" + "1. Get your access token at <b>huggingface.co → Settings → Access Tokens</b> (use a token with Inference permissions).<br/>" + "2. Paste it into the <b>Hugging Face key</b> field below.<br/>" + "3. Enter a supported inference model (e.g. <code>openai/gpt-oss-120b:groq</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "xai")
+                    return translate("<b>xAI (Grok) Setup Guide:</b><br/>" + "1. Get your API key at <b>console.x.ai → API Keys</b>.<br/>" + "2. Paste it into the <b>xAI key</b> field below.<br/>" + "3. Choose a model (e.g. <code>grok-3-mini</code>, <code>grok-2-latest</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "lmstudio")
+                    return translate("<b>LM Studio Setup Guide:</b><br/>" + "1. Download and open <b>LM Studio</b> (lmstudio.ai) — no API key needed.<br/>" + "2. In LM Studio, go to the <b>Local Server</b> tab and load a model.<br/>" + "3. Click <b>Start Server</b> in LM Studio (default URL: <code>http://localhost:1234/v1</code>).<br/>" + "4. Enter the loaded model name in the <b>LM Studio model</b> field below.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "local")
+                    return translate("<b>Local Server (OpenAI-compatible) Setup Guide:</b><br/>" + "1. Start your local server (e.g. <b>vLLM</b>, <b>llama.cpp</b>, <b>Jan</b>) — no API key needed.<br/>" + "2. Enter the server's base URL in the <b>Local URL</b> field below (e.g. <code>http://localhost:8000/v1</code>).<br/>" + "3. Enter the model identifier your server is serving in the <b>Local model</b> field.<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "ollama")
+                    return translate("<b>Ollama Setup Guide:</b><br/>" + "1. Install Ollama from <b>ollama.com</b> and run it — no API key needed.<br/>" + "2. Pull a model by running <code>ollama pull llama3.2</code> in a terminal.<br/>" + "3. Ollama starts automatically (default URL: <code>http://localhost:11434</code>).<br/>" + "4. Verify/update the <b>Ollama URL</b> field below and enter your model name (e.g. <code>llama3.2</code>).<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "litellm")
+                    return translate("<b>LiteLLM Proxy Setup Guide:</b><br/>" + "1. Install LiteLLM: <code>pip install litellm</code> — no API key needed for the proxy itself.<br/>" + "2. Start your proxy: <code>litellm --model ollama/llama3.2</code> (or your preferred model).<br/>" + "3. Enter the proxy URL in the <b>LiteLLM URL</b> field below (default: <code>http://localhost:4000</code>).<br/>" + "4. Enter the model identifier in the <b>LiteLLM model</b> field.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "qwen")
+                    return translate("<b>Qwen (Alibaba Cloud) Setup Guide:</b><br/>" + "1. Register at <b>dashscope.aliyuncs.com</b> and go to <b>API Keys</b>.<br/>" + "2. Paste your key into the <b>Qwen key</b> field below.<br/>" + "3. Choose a model (e.g. <code>qwen-max</code>, <code>qwen-plus</code>, <code>qwen-turbo</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "moonshot")
+                    return translate("<b>Moonshot AI (Kimi) Setup Guide:</b><br/>" + "1. Get your API key at <b>platform.moonshot.cn → API Keys</b>.<br/>" + "2. Paste it into the <b>Moonshot key</b> field below.<br/>" + "3. Choose a model (e.g. <code>moonshot-v1-8k</code>, <code>moonshot-v1-32k</code>, <code>moonshot-v1-128k</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "mimo")
+                    return translate("<b>MiMo (Xiaomi) Setup Guide:</b><br/>" + "1. Get access at <b>api.xiaomimimo.com</b> and copy your API key.<br/>" + "2. Paste it into the <b>MiMo key</b> field below.<br/>" + "3. Choose a model (e.g. <code>mimo-v2-pro</code>, <code>mimo-v2</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "maritaca")
+                    return translate("<b>Maritaca AI (Sabiá) Setup Guide:</b><br/>" + "1. Get your API key at <b>chat.maritaca.ai → Settings → API Keys</b>.<br/>" + "2. Paste it into the <b>Maritaca key</b> field below.<br/>" + "3. Choose a model (e.g. <code>sabia-4</code> — optimised for Portuguese).<br/>" + "4. The default URL <code>https://chat.maritaca.ai/api</code> is correct — do not change it.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
                 return translate("<b>Provider Setup Guide:</b> Select a provider from the <b>Default provider</b> dropdown above to see setup instructions.");
             }
-
             readonly property string apiGuideText: {
                 var storageIdx = storageModeCombo.currentIndex;
-                if (storageIdx === 0) {
-                    return translate("<b>API Key Storage Guide:</b><br/>" +
-                            "• Current mode: <b>🔒 Session-only memory</b>.<br/>" +
-                            "• Enter your API keys in the provider fields below. No extra steps needed — keys are held in memory only.<br/>" +
-                            "• Keys are wiped completely when the widget closes. You must re-enter them every session.");
-                } else if (storageIdx === 1) {
-                    return translate("<b>API Key Storage Guide:</b><br/>" +
-                            "• Current mode: <b>📄 Plain config file</b> (unencrypted).<br/>" +
-                            "• Enter your keys in the provider fields below, then click <b>Apply</b>/<b>OK</b> to save them to <code>~/.config/kdeaichatrc</code>.<br/>" +
-                            "• (Optional) Click <b>Reload from config file</b> if you edited the file externally.<br/>" +
-                            "• (Optional) Click <b>Open config file</b> to view or paste keys directly into the file.<br/>" +
-                            "• Security: Keys are stored as plain text — suitable for single-user machines only.");
-                } else if (storageIdx === 2) {
-                    return translate("<b>API Key Storage Guide:</b><br/>" +
-                            "• Current mode: <b>🔑 KWallet</b> (encrypted).<br/>" +
-                            "• Click <b>Detect wallets</b> to find available KDE wallets.<br/>" +
-                            "• If none are found, click <b>Create wallet</b> — KWallet will prompt for a password to create one.<br/>" +
-                            "• Select your wallet from the <b>Wallet name</b> dropdown, enter your keys, then click <b>Sync to KWallet</b>.<br/>" +
-                            "• (Optional) Click <b>Launch KWalletManager</b> to inspect or manage your wallet via the system app.<br/>" +
-                            "• Security: Keys are fully encrypted. Best for shared or multi-user systems.");
-                }
+                if (storageIdx === 0)
+                    return translate("<b>API Key Storage Guide:</b><br/>" + "• Current mode: <b>🔒 Session-only memory</b>.<br/>" + "• Enter your API keys in the provider fields below. No extra steps needed — keys are held in memory only.<br/>" + "• Keys are wiped completely when the widget closes. You must re-enter them every session.");
+                else if (storageIdx === 1)
+                    return translate("<b>API Key Storage Guide:</b><br/>" + "• Current mode: <b>📄 Plain config file</b> (unencrypted).<br/>" + "• Enter your keys in the provider fields below, then click <b>Apply</b>/<b>OK</b> to save them to <code>~/.config/kdeaichatrc</code>.<br/>" + "• (Optional) Click <b>Reload from config file</b> if you edited the file externally.<br/>" + "• (Optional) Click <b>Open config file</b> to view or paste keys directly into the file.<br/>" + "• Security: Keys are stored as plain text — suitable for single-user machines only.");
+                else if (storageIdx === 2)
+                    return translate("<b>API Key Storage Guide:</b><br/>" + "• Current mode: <b>🔑 KWallet</b> (encrypted).<br/>" + "• Click <b>Detect wallets</b> to find available KDE wallets.<br/>" + "• If none are found, click <b>Create wallet</b> — KWallet will prompt for a password to create one.<br/>" + "• Select your wallet from the <b>Wallet name</b> dropdown, enter your keys, then click <b>Sync to KWallet</b>.<br/>" + "• (Optional) Click <b>Launch KWalletManager</b> to inspect or manage your wallet via the system app.<br/>" + "• Security: Keys are fully encrypted. Best for shared or multi-user systems.");
                 return "";
             }
-
             readonly property string otherSettingsGuideText: {
-                return "<b>Other Settings Guide:</b><br/>" +
-                       "• <b>App name:</b> Change the display name shown in the widget title bar. After clicking Apply/OK, restart the shell with the command shown to apply it.<br/>" +
-                       "• <b>System prompt:</b> Set a default system instruction for every chat session (e.g. <i>\"You are a helpful Linux assistant.\"</i>). Leave blank to use the default.<br/>" +
-                       "• <b>Chat storage path (beta):</b> Choose a folder to save your chat history. Click <b>Browse...</b> to pick a folder, or type a path directly. History is saved as <code>kdeaichat_history.json</code> inside that folder. Default is <code>~/.config</code>.<br/>" +
-                       "• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.";
+                return "<b>Other Settings Guide:</b><br/>" + "• <b>App name:</b> Change the display name shown in the widget title bar. After clicking Apply/OK, restart the shell with the command shown to apply it.<br/>" + "• <b>System prompt:</b> Set a default system instruction for every chat session (e.g. <i>\"You are a helpful Linux assistant.\"</i>). Leave blank to use the default.<br/>" + "• <b>Chat storage path (beta):</b> Choose a folder to save your chat history. Click <b>Browse...</b> to pick a folder, or type a path directly. History is saved as <code>kdeaichat_history.json</code> inside that folder. Default is <code>~/.config</code>.<br/>" + "• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.";
             }
 
             x: 0
@@ -2514,6 +2766,7 @@ KCM.SimpleKCM {
 
                     RowLayout {
                         id: guideLayout
+
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.gridUnit * 0.6
                         spacing: Kirigami.Units.smallSpacing
@@ -2533,8 +2786,11 @@ KCM.SimpleKCM {
                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                             color: Kirigami.Theme.textColor
                         }
+
                     }
+
                 }
+
             }
 
             ColumnLayout {
@@ -2575,25 +2831,48 @@ KCM.SimpleKCM {
                     Layout.maximumWidth: formLayout.fieldMaxWidth
                     textRole: "text"
                     valueRole: "value"
-                    model: [
-                        { "value": "", "text": translate("Choose system language") },
-                        { "value": "en", "text": "English" },
-                        { "value": "ar", "text": "Arabic (عربي)" },
-                        { "value": "zh", "text": "Chinese (中文)" },
-                        { "value": "fr", "text": "French (Français)" },
-                        { "value": "de", "text": "German (Deutsch)" },
-                        { "value": "hi", "text": "Hindi (हिंदी)" },
-                        { "value": "it", "text": "Italian (Italiano)" },
-                        { "value": "ja", "text": "Japanese (日本語)" },
-                        { "value": "pt", "text": "Portuguese (Português)" },
-                        { "value": "ru", "text": "Russian (Русский)" },
-                        { "value": "es", "text": "Spanish (Español)" }
-                    ]
+                    model: [{
+                        "value": "",
+                        "text": translate("Choose system language")
+                    }, {
+                        "value": "en",
+                        "text": "English"
+                    }, {
+                        "value": "ar",
+                        "text": "Arabic (عربي)"
+                    }, {
+                        "value": "zh",
+                        "text": "Chinese (中文)"
+                    }, {
+                        "value": "fr",
+                        "text": "French (Français)"
+                    }, {
+                        "value": "de",
+                        "text": "German (Deutsch)"
+                    }, {
+                        "value": "hi",
+                        "text": "Hindi (हिंदी)"
+                    }, {
+                        "value": "it",
+                        "text": "Italian (Italiano)"
+                    }, {
+                        "value": "ja",
+                        "text": "Japanese (日本語)"
+                    }, {
+                        "value": "pt",
+                        "text": "Portuguese (Português)"
+                    }, {
+                        "value": "ru",
+                        "text": "Russian (Русский)"
+                    }, {
+                        "value": "es",
+                        "text": "Spanish (Español)"
+                    }]
                     currentIndex: {
                         for (var i = 0; i < model.length; i++) {
-                            if (model[i].value === cfg_language) {
+                            if (model[i].value === cfg_language)
                                 return i;
-                            }
+
                         }
                         return 0;
                     }
@@ -2615,7 +2894,6 @@ KCM.SimpleKCM {
 
             QQC2.CheckBox {
                 id: playSoundToggle
-
 
                 Kirigami.FormData.label: translate("Notification sound:")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2648,8 +2926,6 @@ KCM.SimpleKCM {
                 text: translate("Displays detailed setup and configuration guides at the top of the settings page.")
             }
 
-
-
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "Provider & Mode"
@@ -2662,13 +2938,11 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Normal Mode (Cloud & Local API Providers)"
                 checked: !openCodeToggle.checked
-
                 onClicked: {
-                    if (checked) {
+                    if (checked)
                         openCodeToggle.checked = false;
-                    } else {
+                    else
                         checked = true;
-                    }
                 }
             }
 
@@ -2687,15 +2961,12 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: ""
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "OpenCode Mode (Local Coding Server)"
-
                 onClicked: {
-                    if (checked) {
+                    if (checked)
                         normalModeToggle.checked = false;
-                    } else {
+                    else
                         checked = true;
-                    }
                 }
-
                 onCheckedChanged: {
                     if (checked) {
                         normalModeToggle.checked = false;
@@ -2704,6 +2975,7 @@ KCM.SimpleKCM {
                         normalModeToggle.checked = true;
                         if (cfg_keyStorageMode === 2 && availableWalletNames.length === 0)
                             detectWallets();
+
                     }
                 }
             }
@@ -2723,6 +2995,7 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
                 Kirigami.FormData.label: openCodeToggle.checked ? "OpenCode Guide" : "Provider Guide"
+
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: providerGuideLayout.implicitHeight + Kirigami.Units.gridUnit
@@ -2730,17 +3003,21 @@ KCM.SimpleKCM {
                     color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
                     border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
                     border.width: 1
+
                     RowLayout {
                         id: providerGuideLayout
+
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.gridUnit * 0.6
                         spacing: Kirigami.Units.smallSpacing
+
                         Kirigami.Icon {
                             source: "help-hint"
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
                             Layout.alignment: Qt.AlignTop
                         }
+
                         QQC2.Label {
                             Layout.fillWidth: true
                             text: formLayout.providerGuideText
@@ -2749,8 +3026,11 @@ KCM.SimpleKCM {
                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                             color: Kirigami.Theme.textColor
                         }
+
                     }
+
                 }
+
             }
 
             QQC2.ComboBox {
@@ -2828,9 +3108,9 @@ KCM.SimpleKCM {
                 }]
                 currentIndex: {
                     for (var i = 0; i < model.length; i++) {
-                        if (model[i].value === cfg_provider) {
+                        if (model[i].value === cfg_provider)
                             return i;
-                        }
+
                     }
                     return 0;
                 }
@@ -2922,6 +3202,7 @@ KCM.SimpleKCM {
                 text: {
                     if (discoveryStatus.indexOf("check failed") >= 0 || discoveryStatus.indexOf("error") >= 0 || discoveryStatus.indexOf("Network error") >= 0)
                         return discoveryStatus + (openCodeToggle.checked ? " → Click \"Start server\" or \"Refresh\" to retry." : "");
+
                     return discoveryStatus;
                 }
                 wrapMode: Text.Wrap
@@ -3963,9 +4244,10 @@ KCM.SimpleKCM {
                 placeholderText: "gpt-4o-mini"
             }
 
-            /* ── Qwen (Alibaba Cloud) ── */
+            // ── Qwen (Alibaba Cloud) ──
             QQC2.TextField {
                 id: qwenBaseUrlField
+
                 visible: false
                 Kirigami.FormData.label: "Qwen URL:"
                 Layout.fillWidth: true
@@ -4030,9 +4312,10 @@ KCM.SimpleKCM {
                 placeholderText: "qwen-max"
             }
 
-            /* ── Moonshot AI ── */
+            // ── Moonshot AI ──
             QQC2.TextField {
                 id: moonshotBaseUrlField
+
                 visible: false
                 Kirigami.FormData.label: "Moonshot URL:"
                 Layout.fillWidth: true
@@ -4097,9 +4380,10 @@ KCM.SimpleKCM {
                 placeholderText: "moonshot-v1-8k"
             }
 
-            /* ── Xiaomi MiMo ── */
+            // ── Xiaomi MiMo ──
             QQC2.TextField {
                 id: mimoBaseUrlField
+
                 visible: false
                 Kirigami.FormData.label: "MiMo URL:"
                 Layout.fillWidth: true
@@ -4164,9 +4448,10 @@ KCM.SimpleKCM {
                 placeholderText: "mimo-v2-pro"
             }
 
-            /* ── Maritaca AI ── */
+            // ── Maritaca AI ──
             QQC2.TextField {
                 id: maritacaBaseUrlField
+
                 visible: false
                 Kirigami.FormData.label: "Maritaca URL:"
                 Layout.fillWidth: true
@@ -4246,12 +4531,6 @@ KCM.SimpleKCM {
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 5
                 Layout.maximumHeight: Kirigami.Units.gridUnit * 5
                 clip: true
-                background: Rectangle {
-                    color: Kirigami.Theme.backgroundColor
-                    radius: 4
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
-                    border.width: 1
-                }
 
                 QQC2.TextArea {
                     id: systemPromptArea
@@ -4262,6 +4541,14 @@ KCM.SimpleKCM {
                     background: null
                     padding: Kirigami.Units.smallSpacing + 2
                 }
+
+                background: Rectangle {
+                    color: Kirigami.Theme.backgroundColor
+                    radius: 4
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
+                    border.width: 1
+                }
+
             }
 
             QQC2.Label {
@@ -4302,12 +4589,6 @@ KCM.SimpleKCM {
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 6
                 Layout.maximumHeight: Kirigami.Units.gridUnit * 6
                 clip: true
-                background: Rectangle {
-                    color: Kirigami.Theme.backgroundColor
-                    radius: 4
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
-                    border.width: 1
-                }
 
                 QQC2.TextArea {
                     id: userMemoryArea
@@ -4318,6 +4599,14 @@ KCM.SimpleKCM {
                     background: null
                     padding: Kirigami.Units.smallSpacing + 2
                 }
+
+                background: Rectangle {
+                    color: Kirigami.Theme.backgroundColor
+                    radius: 4
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
+                    border.width: 1
+                }
+
             }
 
             QQC2.Label {
@@ -4343,6 +4632,7 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
                 Kirigami.FormData.label: "Storage Guide"
+
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: apiGuideLayout.implicitHeight + Kirigami.Units.gridUnit
@@ -4350,17 +4640,21 @@ KCM.SimpleKCM {
                     color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
                     border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
                     border.width: 1
+
                     RowLayout {
                         id: apiGuideLayout
+
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.gridUnit * 0.6
                         spacing: Kirigami.Units.smallSpacing
+
                         Kirigami.Icon {
                             source: "security-high"
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
                             Layout.alignment: Qt.AlignTop
                         }
+
                         QQC2.Label {
                             Layout.fillWidth: true
                             text: formLayout.apiGuideText
@@ -4369,8 +4663,11 @@ KCM.SimpleKCM {
                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                             color: Kirigami.Theme.textColor
                         }
+
                     }
+
                 }
+
             }
 
             QQC2.Label {
@@ -4395,7 +4692,8 @@ KCM.SimpleKCM {
                     // Guard: do not write anything during KCM initialisation;
                     // cfg_ aliases may not be populated yet at that point.
                     if (!page.pageReady)
-                        return;
+                        return ;
+
                     keyringStatus = "";
                     if (currentIndex === 1) {
                         page.syncKeysToDisk();
@@ -4407,8 +4705,6 @@ KCM.SimpleKCM {
                     }
                 }
             }
-
-
 
             RowLayout {
                 visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 1
@@ -4572,6 +4868,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 Kirigami.FormData.label: " "
+
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: schedGuideLabel.implicitHeight + Kirigami.Units.gridUnit
@@ -4579,60 +4876,64 @@ KCM.SimpleKCM {
                     color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
                     border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
                     border.width: 1
+
                     RowLayout {
-                        anchors { fill: parent; margins: Kirigami.Units.gridUnit * 0.6 }
                         spacing: Kirigami.Units.smallSpacing
+
+                        anchors {
+                            fill: parent
+                            margins: Kirigami.Units.gridUnit * 0.6
+                        }
+
                         Kirigami.Icon {
                             source: "help-hint"
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
                             Layout.alignment: Qt.AlignTop
                         }
+
                         QQC2.Label {
                             id: schedGuideLabel
+
                             Layout.fillWidth: true
-                            text: "<b>How scheduled messages work:</b><br/>" +
-                                  "The scheduler runs quietly in the background. At the time you choose, it automatically " +
-                                  "sends a message into your chat and the AI replies — just like you typed it yourself.<br/><br/>" +
-                                  "• Turn the scheduler <b>ON</b> below to activate it.<br/>" +
-                                  "• Use <b>Manage Schedules</b> to add, edit, or remove scheduled messages.<br/>" +
-                                  "• Or just type <b>/schedule</b> in any chat to create one instantly."
+                            text: "<b>How scheduled messages work:</b><br/>" + "The scheduler runs quietly in the background. At the time you choose, it automatically " + "sends a message into your chat and the AI replies — just like you typed it yourself.<br/><br/>" + "• Turn the scheduler <b>ON</b> below to activate it.<br/>" + "• Use <b>Manage Schedules</b> to add, edit, or remove scheduled messages.<br/>" + "• Or just type <b>/schedule</b> in any chat to create one instantly."
                             wrapMode: Text.Wrap
                             textFormat: Text.RichText
                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                             color: Kirigami.Theme.textColor
                         }
+
                     }
+
                 }
+
             }
 
             // Master ON/OFF switch
             QQC2.Switch {
                 id: schedulerMasterSwitch
+
                 Kirigami.FormData.label: "Scheduler:"
                 text: schedulerMasterSwitch.checked ? "ON — scheduler is running" : "OFF — scheduler is stopped"
                 checked: false
                 onCheckedChanged: {
-                    if (!page.pageReady) return
+                    if (!page.pageReady)
+                        return ;
+
                     if (checked) {
-                        page.schedulerStatus = "Starting…"
-                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " +
-                                  "(pkill -f kde-ai-scheduler.py; sleep 0.5; " +
-                                  "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " +
-                                  "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start")
+                        page.schedulerStatus = "Starting…";
+                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " + "echo SCHED_START_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start");
                     } else {
-                        page.schedulerStatus = ""
-                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null || " +
-                                  "pkill -f kde-ai-scheduler.py; echo SCHED_STOP_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop")
+                        page.schedulerStatus = "";
+                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null || " + "pkill -f kde-ai-scheduler.py; echo SCHED_STOP_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop");
                     }
-                    schedPollTimer.restart()
+                    schedPollTimer.restart();
                     // Immediately trigger a poll check to reflect the start/stop actions
-                    pollSchedulerState()
+                    pollSchedulerState();
                 }
             }
-
 
             // Status badge (shown when scheduler is ON)
             RowLayout {
@@ -4646,36 +4947,50 @@ KCM.SimpleKCM {
                     implicitWidth: schedDotLabel.implicitWidth + schedDot.width + Kirigami.Units.smallSpacing * 3
                     height: Kirigami.Units.gridUnit * 1.4
                     radius: height / 2
-                    color: page.schedulerDaemonRunning
-                           ? Qt.rgba(0.13, 0.69, 0.30, 0.18)
-                           : Qt.rgba(0.80, 0.60, 0.00, 0.15)
-                    border.color: page.schedulerDaemonRunning
-                                  ? Qt.rgba(0.13, 0.69, 0.30, 0.55)
-                                  : Qt.rgba(0.80, 0.60, 0.00, 0.45)
+                    color: page.schedulerDaemonRunning ? Qt.rgba(0.13, 0.69, 0.3, 0.18) : Qt.rgba(0.8, 0.6, 0, 0.15)
+                    border.color: page.schedulerDaemonRunning ? Qt.rgba(0.13, 0.69, 0.3, 0.55) : Qt.rgba(0.8, 0.6, 0, 0.45)
                     border.width: 1
+
                     RowLayout {
                         anchors.centerIn: parent
                         spacing: Kirigami.Units.smallSpacing / 2
+
                         Rectangle {
                             id: schedDot
-                            width: 8; height: 8; radius: 4
+
+                            width: 8
+                            height: 8
+                            radius: 4
                             color: page.schedulerDaemonRunning ? "#22b14c" : "#cc8800"
+
                             SequentialAnimation on opacity {
                                 running: !page.schedulerDaemonRunning && schedulerMasterSwitch.checked
                                 loops: Animation.Infinite
-                                NumberAnimation { to: 0.2; duration: 700 }
-                                NumberAnimation { to: 1.0; duration: 700 }
+
+                                NumberAnimation {
+                                    to: 0.2
+                                    duration: 700
+                                }
+
+                                NumberAnimation {
+                                    to: 1
+                                    duration: 700
+                                }
+
                             }
+
                         }
+
                         QQC2.Label {
                             id: schedDotLabel
+
                             text: page.schedulerDaemonRunning ? "Active" : "Starting…"
                             font.pixelSize: 11
-                            color: page.schedulerDaemonRunning
-                                   ? Qt.rgba(0.05, 0.55, 0.20, 1.0)
-                                   : Qt.rgba(0.65, 0.45, 0.00, 1.0)
+                            color: page.schedulerDaemonRunning ? Qt.rgba(0.05, 0.55, 0.2, 1) : Qt.rgba(0.65, 0.45, 0, 1)
                         }
+
                     }
+
                 }
 
                 QQC2.Button {
@@ -4684,32 +4999,29 @@ KCM.SimpleKCM {
                     flat: true
                     font.pixelSize: 11
                     onClicked: {
-                        page.schedulerStatus = "Restarting…"
-                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " +
-                                  "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " +
-                                  "(pkill -f kde-ai-scheduler.py; sleep 0.5; " +
-                                  "nohup python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py >/dev/null 2>&1 &) ; " +
-                                  "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-start")
-                        schedPollTimer.restart()
+                        page.schedulerStatus = "Restarting…";
+                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-start");
+                        schedPollTimer.restart();
                     }
                 }
+
             }
 
             // Auto-start at login (separate setting)
             QQC2.Switch {
                 id: schedAutoStartToggle
+
                 Kirigami.FormData.label: "Auto-start at login:"
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: schedAutoStartToggle.checked
-                      ? "Scheduler starts automatically when you log in"
-                      : "Off — start manually each session"
+                text: schedAutoStartToggle.checked ? "Scheduler starts automatically when you log in" : "Off — start manually each session"
                 checked: false
                 onCheckedChanged: {
-                    if (!page.pageReady) return
-                    var verb = checked ? "enable" : "disable"
-                    utilityDs.connectSource(
-                        "sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable")
+                    if (!page.pageReady)
+                        return ;
+
+                    var verb = checked ? "enable" : "disable";
+                    utilityDs.connectSource("sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable");
                 }
             }
 
@@ -4722,19 +5034,18 @@ KCM.SimpleKCM {
                 spacing: Kirigami.Units.smallSpacing
 
                 QQC2.Label {
-                    text: page.schedulerList.length === 0
-                          ? "No scheduled messages yet"
-                          : page.schedulerList.length + " scheduled message" +
-                            (page.schedulerList.length === 1 ? "" : "s")
+                    text: page.schedulerList.length === 0 ? "No scheduled messages yet" : page.schedulerList.length + " scheduled message" + (page.schedulerList.length === 1 ? "" : "s")
                     opacity: 0.7
                     Layout.fillWidth: true
                 }
+
                 QQC2.Button {
                     text: "Manage Schedules"
                     icon.name: "appointment-new"
                     highlighted: true
                     onClicked: scheduleDialog.open()
                 }
+
                 QQC2.Button {
                     text: "Open File"
                     icon.name: "document-open"
@@ -4742,11 +5053,13 @@ KCM.SimpleKCM {
                         utilityDs.connectSource("xdg-open ~/.local/share/kdeaichat/schedules.json || kde-open ~/.local/share/kdeaichat/schedules.json || kwrite ~/.local/share/kdeaichat/schedules.json || kate ~/.local/share/kdeaichat/schedules.json || nano ~/.local/share/kdeaichat/schedules.json #open-sched-file");
                     }
                 }
+
             }
 
             // Quick preview of schedules (compact, clean)
             Repeater {
                 model: page.schedulerList.slice(0, 4)
+
                 RowLayout {
                     visible: schedulerMasterSwitch.checked
                     Layout.fillWidth: true
@@ -4754,20 +5067,25 @@ KCM.SimpleKCM {
                     spacing: Kirigami.Units.smallSpacing
 
                     Rectangle {
-                        width: 8; height: 8; radius: 4
+                        width: 8
+                        height: 8
+                        radius: 4
                         color: modelData.enabled ? "#22b14c" : "#888"
                         Layout.alignment: Qt.AlignVCenter
                     }
+
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 0
+
                         QQC2.Label {
                             text: modelData.name || modelData.humanReadable || modelData.cron || "Unnamed"
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                             font.pixelSize: 12
-                            opacity: modelData.enabled ? 1.0 : 0.5
+                            opacity: modelData.enabled ? 1 : 0.5
                         }
+
                         QQC2.Label {
                             text: modelData.humanReadable || modelData.cron || ""
                             elide: Text.ElideRight
@@ -4776,9 +5094,13 @@ KCM.SimpleKCM {
                             opacity: 0.5
                             visible: !!(modelData.humanReadable || modelData.cron)
                         }
+
                     }
+
                 }
+
             }
+
             QQC2.Label {
                 visible: schedulerMasterSwitch.checked && page.schedulerList.length > 4
                 text: "… and " + (page.schedulerList.length - 4) + " more — open Manage Schedules to see all."
@@ -4791,14 +5113,14 @@ KCM.SimpleKCM {
             // Background poll timer
             Timer {
                 id: schedPollTimer
+
                 interval: 3000
                 repeat: true
                 running: schedulerMasterSwitch.checked
                 onTriggered: {
-                    pollSchedulerState()
+                    pollSchedulerState();
                 }
             }
-
 
             // ─────────────────────────────────────────────────────────────
             Kirigami.Separator {
@@ -4812,6 +5134,7 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.gridUnit
                 Kirigami.FormData.label: "Settings Guide"
+
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: otherGuideLayout.implicitHeight + Kirigami.Units.gridUnit
@@ -4819,17 +5142,21 @@ KCM.SimpleKCM {
                     color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
                     border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
                     border.width: 1
+
                     RowLayout {
                         id: otherGuideLayout
+
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.gridUnit * 0.6
                         spacing: Kirigami.Units.smallSpacing
+
                         Kirigami.Icon {
                             source: "help-hint"
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
                             Layout.alignment: Qt.AlignTop
                         }
+
                         QQC2.Label {
                             Layout.fillWidth: true
                             text: formLayout.otherSettingsGuideText
@@ -4838,8 +5165,11 @@ KCM.SimpleKCM {
                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                             color: Kirigami.Theme.textColor
                         }
+
                     }
+
                 }
+
             }
 
             QQC2.TextField {
@@ -4861,6 +5191,7 @@ KCM.SimpleKCM {
 
                 QQC2.TextField {
                     id: customHistoryPathField
+
                     Layout.fillWidth: true
                     placeholderText: "~/.config"
                 }
@@ -4870,6 +5201,7 @@ KCM.SimpleKCM {
                     icon.name: "folder-open"
                     onClicked: folderDialog.open()
                 }
+
             }
 
             QQC2.Label {
@@ -4924,16 +5256,17 @@ KCM.SimpleKCM {
 
     FolderDialog {
         id: folderDialog
+
         title: "Select Chat History Directory"
         onAccepted: {
-            var path = selectedFolder.toString()
-            if (path.indexOf("file://") === 0) {
-                path = decodeURIComponent(path.slice(7))
-            }
-            if (path.length > 1 && path.slice(-1) === "/") {
-                path = path.slice(0, -1)
-            }
-            customHistoryPathField.text = path
+            var path = selectedFolder.toString();
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+
+            if (path.length > 1 && path.slice(-1) === "/")
+                path = path.slice(0, -1);
+
+            customHistoryPathField.text = path;
         }
     }
 
