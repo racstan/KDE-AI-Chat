@@ -183,7 +183,34 @@ var dictionary = {
         "Open OpenCode TUI in a terminal window": "افتح واجهة TUI لـ OpenCode في نافذة الطرفية",
         "Sync chat history from this OpenCode session": "مزامنة سجل الدردشة من جلسة OpenCode هذه",
         "OpenCode Session: <b>%1...</b>": "جلسة OpenCode: <b>%1...</b>",
-        "OpenCode Session: <b>Not started</b>": "جلسة OpenCode: <b>لم تبدأ</b>"
+        "OpenCode Session: <b>Not started</b>": "جلسة OpenCode: <b>لم تبدأ</b>",
+        "Auto-start at login:": "التشغيل التلقائي عند تسجيل الدخول:",
+        "Scheduler starts automatically when you log in": "يبدأ المجدول تلقائيًا عند تسجيل الدخول",
+        "Off — start manually each session": "إيقاف — البدء يدويًا في كل جلسة",
+        "Scheduler:": "المجدول:",
+        "ON — scheduler is running": "تشغيل — المجدول قيد التشغيل",
+        "OFF — scheduler is stopped": "إيقاف — المجدول متوقف",
+        "Active": "نشط",
+        "Starting…": "جاري البدء…",
+        "Restart": "إعادة تشغيل",
+        "Force Start": "بدء إجباري",
+        "Schedules:": "الجداول:",
+        "Create Schedule": "إنشاء جدول",
+        "Manage Schedules": "إدارة الجداول",
+        "Open File": "فتح الملف",
+        "Unnamed": "بلا اسم",
+        "… and ": "… و ",
+        " more — open Manage Schedules to see all.": " إضافية — افتح إدارة الجداول لرؤيتها جميعًا.",
+        "Other settings": "إعدادات أخرى",
+        "Settings Guide": "دليل الإعدادات",
+        "Next step:": "الخطوة التالية:",
+        "Copy": "نسخ",
+        "Browse...": "تصفح...",
+        "Select Chat History Directory": "حدد مجلق سجل الدردشة",
+        "Specify an absolute directory path or click <b>Browse...</b> to select a custom directory to save your chat logs. The system will automatically save them to a file named <b>kdeaichat_history.json</b> inside that directory. The recommended default is <b>~/.config</b>.": "حدد مسار مجلد مطلق أو انقر فوق <b>تصفح...</b> لتحديد مجلد مخصص لحفظ سجلات الدردشة الخاصة بك. سيقوم النظام تلقائيًا بحفظها في ملف باسم <b>kdeaichat_history.json</b> داخل هذا المجلد. المجلد الافتراضي الموصى به هو <b>~/.config</b>.",
+        "<b>How scheduled messages work:</b><br/>The scheduler runs quietly in the background. At the time you choose, it automatically sends a message into your chat and the AI replies — just like you typed it yourself.<br/><br/>• Turn the scheduler <b>ON</b> below to activate it.<br/>• Use <b>Manage Schedules</b> to add, edit, or remove scheduled messages.<br/>• Or just type <b>/schedule</b> in any chat to create one instantly.": "<b>كيف تعمل الرسائل المجدولة:</b><br/>يعمل المجدول بهدوء في الخلفية. في الوقت الذي تختاره، يرسل المجدول تلقائيًا رسالة في دردشتك ويرد الذكاء الاصطناعي — تمامًا كما لو كنت قد كتبتها بنفسك.<br/><br/>• قم بتبديل المجدول إلى <b>ON</b> أدناه لتنشيطه.<br/>• استخدم <b>إدارة الجداول</b> لإضافة أو تعديل أو إزالة الرسائل المجدولة.<br/>• أو اكتب فقط <b>/schedule</b> في أي دردشة لإنشاء جدول على الفور.",
+        "Show": "إظهار",
+        "Hide": "إخفاء"
     },
     "zh": {
         "New Chat": "新建对话",
@@ -842,11 +869,130 @@ function getSystemLanguage() {
 
 function translate(text, configLanguage) {
     var lang = configLanguage || "system";
-    if (lang === "system") {
+    if (lang === "system" || lang === "") {
         lang = getSystemLanguage();
+    }
+    if (lang === "en") {
+        return text;
     }
     if (!dictionary[lang]) {
         return text;
     }
-    return dictionary[lang][text] || text;
+    var val = dictionary[lang][text];
+    if (val !== undefined) {
+        return val;
+    }
+
+    // Dynamic pattern translations for provider settings dynamically loaded
+    if (lang === "ar") {
+        if (text.endsWith(" key:")) {
+            return "مفتاح " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" URL:")) {
+            return "رابط " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" model:")) {
+            return "نموذج " + text.slice(0, -7) + ":";
+        }
+        if (text.indexOf("Enter the ") === 0 && text.indexOf(", then refresh models") > 0) {
+            var part = text.substring(10);
+            var endIdx = part.indexOf(" first");
+            if (endIdx > 0) {
+                var providerPart = part.substring(0, endIdx);
+                return "أدخل " + providerPart + " أولاً، ثم قم بتنشيط الموديلات أو كتابة اسم الموديل.";
+            }
+        }
+    } else if (lang === "zh") {
+        if (text.endsWith(" key:")) {
+            return text.slice(0, -5) + " 密钥：";
+        }
+        if (text.endsWith(" URL:")) {
+            return text.slice(0, -5) + " 地址：";
+        }
+        if (text.endsWith(" model:")) {
+            return text.slice(0, -7) + " 模型：";
+        }
+    } else if (lang === "de") {
+        if (text.endsWith(" key:")) {
+            return text.slice(0, -5) + "-Schlüssel:";
+        }
+        if (text.endsWith(" URL:")) {
+            return text.slice(0, -5) + "-URL:";
+        }
+        if (text.endsWith(" model:")) {
+            return text.slice(0, -7) + "-Modell:";
+        }
+    } else if (lang === "fr") {
+        if (text.endsWith(" key:")) {
+            return "Clé " + text.slice(0, -5) + " :";
+        }
+        if (text.endsWith(" URL:")) {
+            return "URL " + text.slice(0, -5) + " :";
+        }
+        if (text.endsWith(" model:")) {
+            return "Modèle " + text.slice(0, -7) + " :";
+        }
+    } else if (lang === "es") {
+        if (text.endsWith(" key:")) {
+            return "Clave de " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" URL:")) {
+            return "URL de " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" model:")) {
+            return "Modelo de " + text.slice(0, -7) + ":";
+        }
+    } else if (lang === "it") {
+        if (text.endsWith(" key:")) {
+            return "Chiave " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" URL:")) {
+            return "URL " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" model:")) {
+            return "Modello " + text.slice(0, -7) + ":";
+        }
+    } else if (lang === "pt") {
+        if (text.endsWith(" key:")) {
+            return "Chave " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" URL:")) {
+            return "URL " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" model:")) {
+            return "Modelo " + text.slice(0, -7) + ":";
+        }
+    } else if (lang === "ru") {
+        if (text.endsWith(" key:")) {
+            return "Ключ " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" URL:")) {
+            return "URL " + text.slice(0, -5) + ":";
+        }
+        if (text.endsWith(" model:")) {
+            return "Модель " + text.slice(0, -7) + ":";
+        }
+    } else if (lang === "ja") {
+        if (text.endsWith(" key:")) {
+            return text.slice(0, -5) + "キー:";
+        }
+        if (text.endsWith(" URL:")) {
+            return text.slice(0, -5) + "URL:";
+        }
+        if (text.endsWith(" model:")) {
+            return text.slice(0, -7) + "モデル:";
+        }
+    } else if (lang === "hi") {
+        if (text.endsWith(" key:")) {
+            return text.slice(0, -5) + " कुंजी:";
+        }
+        if (text.endsWith(" URL:")) {
+            return text.slice(0, -5) + " URL:";
+        }
+        if (text.endsWith(" model:")) {
+            return text.slice(0, -7) + " मॉडल:";
+        }
+    }
+
+    return text;
 }
