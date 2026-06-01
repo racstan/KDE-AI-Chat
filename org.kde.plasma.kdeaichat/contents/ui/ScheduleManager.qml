@@ -3,63 +3,139 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// ScheduleManager.qml — Schedule list + editor for KDE AI Chat
-// Embedded inside ConfigGeneral.qml as a Loader target.
-// Communicates upward via schedulerBridge object passed as `bridge`.
+// ScheduleManager.qml — Redesigned schedule list + editor for KDE AI Chat
+// Schedules are per-chat. Each schedule injects a message into its linked chat at a set time.
 
 Item {
     id: scheduleManager
 
-    // Bridge object passed from ConfigGeneral with helper functions
     property var bridge: null
-    // List of schedule objects (JS array)
     property var scheduleList: []
-    // Index of the schedule being edited (-1 = none, -2 = new)
     property int editingIndex: -1
-    // Draft object being edited
     property var editingDraft: ({})
-    property bool daemonRunning: false
-    property string daemonStatus: "Checking..."
+    property string currentChatId: ""
+    property string currentChatName: "this chat"
 
     signal schedulesChanged(var newList)
 
-    function loadFromFile() {
-        if (bridge) bridge.loadSchedules()
-    }
-
-    function saveToFile() {
-        if (bridge) bridge.saveSchedules(scheduleList)
-        schedulesChanged(scheduleList)
-    }
-
+    // ── UUID helper ────────────────────────────────────────────────────────────
     function makeUuid() {
-        // Simple UUID v4 using Math.random
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0
             return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16)
         })
     }
 
-    function startNew() {
+    // ── Cron builder → expression ──────────────────────────────────────────────
+    // draft fields used by builder:
+    //   schedType: "minutes" | "hours" | "days" | "weeks" | "months" | "custom"
+    //   schedEvery: number (X)
+    //   schedTime: "HH:MM" string (for daily/weekly/monthly)
+    //   schedDays: array of 0-6 (0=Sun) for weekly
+    //   schedDayOfMonth: 1-28 for monthly
+
+    function buildCron(draft) {
+        var t = draft.schedType || "days"
+        var n = parseInt(draft.schedEvery) || 1
+        var timeParts = (draft.schedTime || "09:00").split(":")
+        var hr = parseInt(timeParts[0]) || 9
+        var mn = parseInt(timeParts[1]) || 0
+
+        if (t === "minutes") return "*/" + n + " * * * *"
+        if (t === "hours")   return "0 */" + n + " * * *"
+        if (t === "days" && n === 1) return mn + " " + hr + " * * *"
+        if (t === "days")    return mn + " " + hr + " */" + n + " * *"
+        if (t === "weeks") {
+            var days = (draft.schedDays && draft.schedDays.length > 0)
+                ? draft.schedDays.slice().sort().join(",")
+                : "1"
+            if (n === 1) return mn + " " + hr + " * * " + days
+            // Every N weeks: use step on weeks approximated with day-of-month steps
+            return mn + " " + hr + " * * " + days
+        }
+        if (t === "months" && n === 1) {
+            var dom = draft.schedDayOfMonth || 1
+            return mn + " " + hr + " " + dom + " * *"
+        }
+        if (t === "months") {
+            var dom2 = draft.schedDayOfMonth || 1
+            return mn + " " + hr + " " + dom2 + " */" + n + " *"
+        }
+        return draft.cron || "0 9 * * *"
+    }
+
+    // ── Cron → human readable ─────────────────────────────────────────────────
+    function humanCron(expr, draft) {
+        if (draft && draft.schedType) {
+            var t = draft.schedType
+            var n = parseInt(draft.schedEvery) || 1
+            var time = draft.schedTime || "09:00"
+            var tp = time.split(":")
+            var hr = parseInt(tp[0]) || 9
+            var mn = parseInt(tp[1]) || 0
+            var ampm = hr >= 12 ? "PM" : "AM"
+            var h12 = hr % 12 || 12
+            var mStr = mn < 10 ? "0" + mn : "" + mn
+            var timeStr = h12 + ":" + mStr + " " + ampm
+
+            if (t === "minutes") return "Every " + (n === 1 ? "minute" : n + " minutes")
+            if (t === "hours")   return "Every " + (n === 1 ? "hour" : n + " hours")
+            if (t === "days")    return "Every " + (n === 1 ? "day" : n + " days") + " at " + timeStr
+            if (t === "weeks") {
+                var dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+                var days = draft.schedDays && draft.schedDays.length > 0
+                    ? draft.schedDays.map(function(d){ return dayNames[d] }).join(", ")
+                    : "Mon"
+                return "Every " + (n === 1 ? "week" : n + " weeks") + " on " + days + " at " + timeStr
+            }
+            if (t === "months") {
+                var dom = draft.schedDayOfMonth || 1
+                var suffix = dom === 1 ? "st" : dom === 2 ? "nd" : dom === 3 ? "rd" : "th"
+                return "Every " + (n === 1 ? "month" : n + " months") + " on the " + dom + suffix + " at " + timeStr
+            }
+        }
+
+        if (!expr) return "No schedule set"
+        var parts = expr.trim().split(/\s+/)
+        if (parts.length !== 5) return expr
+        var min = parts[0], hr2 = parts[1]
+        if (min.startsWith("*/")) return "Every " + min.slice(2) + " minutes"
+        if (hr2.startsWith("*/")) return "Every " + hr2.slice(2) + " hours"
+        if (min === "0" && hr2 !== "*") {
+            var h = parseInt(hr2)
+            var ap = h >= 12 ? "PM" : "AM"
+            var h1 = h % 12 || 12
+            var dayMap = {"*":"every day","1-5":"weekdays","0,6":"weekends","6,0":"weekends","1":"Mondays"}
+            return "Daily at " + h1 + ":00 " + ap + (dayMap[parts[4]] ? " (" + dayMap[parts[4]] + ")" : "")
+        }
+        return expr
+    }
+
+    function loadFromFile() { if (bridge) bridge.loadSchedules() }
+    function saveToFile() {
+        if (bridge) bridge.saveSchedules(scheduleList)
+        schedulesChanged(scheduleList)
+    }
+
+    function startNew(chatId, chatName) {
+        currentChatId = chatId || ""
+        currentChatName = chatName || "this chat"
         editingDraft = {
             id: makeUuid(),
-            name: "New Schedule",
+            name: "",
             enabled: true,
-            cron: "0 9 * * 1-5",
-            prompt: "",
-            systemPrompt: "",
-            provider: "",
-            baseUrl: "",
-            model: "",
-            apiKey: "",
-            maxTokens: 1000,
+            chatId: chatId || "",
+            chatName: chatName || "",
+            message: "",
+            cron: "0 9 * * *",
+            schedType: "days",
+            schedEvery: 1,
+            schedTime: "09:00",
+            schedDays: [1],
+            schedDayOfMonth: 1,
             notify: true,
-            notifyTitle: "",
-            saveResults: true,
-            keepResultDays: 30,
             createdAt: new Date().toISOString(),
             lastRunAt: "",
-            lastRunStatus: "",
             nextRunAt: ""
         }
         editingIndex = -2
@@ -68,21 +144,27 @@ Item {
     function startEdit(index) {
         var s = scheduleList[index]
         editingDraft = JSON.parse(JSON.stringify(s))
+        // Ensure builder fields exist
+        if (!editingDraft.schedType) editingDraft.schedType = "days"
+        if (!editingDraft.schedEvery) editingDraft.schedEvery = 1
+        if (!editingDraft.schedTime) editingDraft.schedTime = "09:00"
+        if (!editingDraft.schedDays) editingDraft.schedDays = [1]
+        if (!editingDraft.schedDayOfMonth) editingDraft.schedDayOfMonth = 1
         editingIndex = index
     }
 
-    function cancelEdit() {
-        editingIndex = -1
-        editingDraft = {}
-    }
+    function cancelEdit() { editingIndex = -1; editingDraft = {} }
 
     function saveEdit() {
+        // Build cron from builder state
+        var d = Object.assign({}, editingDraft)
+        d.cron = buildCron(d)
+        d.humanReadable = humanCron(d.cron, d)
+        if (!d.name || d.name.trim() === "") d.name = d.humanReadable
+
         var copy = scheduleList.slice()
-        if (editingIndex === -2) {
-            copy.push(editingDraft)
-        } else if (editingIndex >= 0) {
-            copy[editingIndex] = editingDraft
-        }
+        if (editingIndex === -2) copy.push(d)
+        else if (editingIndex >= 0) copy[editingIndex] = d
         scheduleList = copy
         editingIndex = -1
         editingDraft = {}
@@ -106,126 +188,45 @@ Item {
         saveToFile()
     }
 
-    function triggerNow(index) {
-        var copy = scheduleList.slice()
-        var s = JSON.parse(JSON.stringify(copy[index]))
-        s.triggerNow = true
-        copy[index] = s
-        scheduleList = copy
-        saveToFile()
-        if (bridge) bridge.reloadDaemon()
-    }
-
-    function humanCron(expr) {
-        if (!expr) return "No schedule"
-        var parts = expr.trim().split(/\s+/)
-        if (parts.length !== 5) return expr
-        var min = parts[0], hr = parts[1], dom = parts[2], mon = parts[3], dow = parts[4]
-        if (min === "0" && hr !== "*" && dom === "*" && mon === "*") {
-            var h = parseInt(hr)
-            var ampm = h >= 12 ? "PM" : "AM"
-            var h12 = h % 12 || 12
-            var dayStr = dow === "*" ? "every day" :
-                         dow === "1-5" ? "weekdays" :
-                         dow === "6,0" || dow === "0,6" ? "weekends" : "on selected days"
-            return "Daily at " + h12 + ":00 " + ampm + " " + dayStr
-        }
-        if (hr.startsWith("*/")) return "Every " + hr.slice(2) + " hours"
-        return expr
-    }
-
+    // ── Main Layout ────────────────────────────────────────────────────────────
     ColumnLayout {
         anchors.fill: parent
-        spacing: Kirigami.Units.smallSpacing
+        spacing: Kirigami.Units.largeSpacing
 
-        // ── Header row ─────────────────────────────────────────────────────
+        // ── Header ─────────────────────────────────────────────────────────────
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
             Kirigami.Heading {
                 level: 3
-                text: "Scheduled Tasks"
+                text: "Scheduled Messages"
                 Layout.fillWidth: true
-            }
-
-            // Daemon status badge
-            Rectangle {
-                width: statusDot.implicitWidth + statusLabel.implicitWidth + Kirigami.Units.smallSpacing * 3
-                height: Kirigami.Units.gridUnit * 1.4
-                radius: height / 2
-                color: daemonRunning
-                       ? Qt.rgba(0.13, 0.69, 0.30, 0.18)
-                       : Qt.rgba(0.85, 0.17, 0.17, 0.14)
-                border.color: daemonRunning
-                              ? Qt.rgba(0.13, 0.69, 0.30, 0.55)
-                              : Qt.rgba(0.85, 0.17, 0.17, 0.40)
-                border.width: 1
-
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: Kirigami.Units.smallSpacing / 2
-
-                    Rectangle {
-                        id: statusDot
-                        width: 8; height: 8; radius: 4
-                        color: daemonRunning ? "#22b14c" : "#cc2222"
-                    }
-                    QQC2.Label {
-                        id: statusLabel
-                        text: daemonRunning ? "Daemon running" : "Daemon stopped"
-                        font.pixelSize: 11
-                        color: daemonRunning
-                               ? Qt.rgba(0.05, 0.55, 0.20, 1.0)
-                               : Qt.rgba(0.75, 0.10, 0.10, 1.0)
-                    }
-                }
-            }
-
-            QQC2.Button {
-                text: daemonRunning ? "Restart Daemon" : "Start Daemon"
-                icon.name: daemonRunning ? "view-refresh" : "media-playback-start"
-                onClicked: {
-                    if (bridge) bridge.startDaemon()
-                    daemonStatusPollTimer.restart()
-                }
             }
 
             QQC2.Button {
                 text: "+ New Schedule"
                 icon.name: "list-add"
                 highlighted: true
-                onClicked: startNew()
+                visible: editingIndex === -1
+                onClicked: startNew(currentChatId, currentChatName)
             }
         }
 
-        // Daemon status timer
-        Timer {
-            id: daemonStatusPollTimer
-            interval: 2000
-            repeat: true
-            running: true
-            onTriggered: {
-                if (bridge) {
-                    daemonRunning = bridge.isDaemonRunning()
-                    daemonStatus = daemonRunning ? "Running" : "Stopped"
-                }
-            }
-        }
-
-        // ── Info banner ────────────────────────────────────────────────────
+        // ── How it works info box ──────────────────────────────────────────────
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             visible: scheduleList.length === 0 && editingIndex === -1
             type: Kirigami.MessageType.Information
-            text: "No schedules yet. Click <b>+ New Schedule</b> to create your first automated AI task. " +
-                  "Schedules run independently via a background daemon — even when the widget is closed."
+            text: "<b>How scheduled messages work:</b> At the set time, your message is automatically " +
+                  "sent into the linked chat and the AI responds — just like you typed it yourself. " +
+                  "Use <b>/schedule</b> in any chat to create one instantly."
         }
 
-        // ── Schedule list ──────────────────────────────────────────────────
+        // ── Schedule list ──────────────────────────────────────────────────────
         QQC2.ScrollView {
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(scheduleList.length * 72 + 8, 320)
+            Layout.preferredHeight: Math.min(scheduleList.length * 80 + 8, 360)
             visible: scheduleList.length > 0 && editingIndex === -1
             clip: true
 
@@ -236,7 +237,7 @@ Item {
 
                 delegate: Rectangle {
                     width: scheduleListView.width
-                    height: 66
+                    height: 74
                     radius: Kirigami.Units.smallSpacing
                     color: modelData.enabled
                            ? Qt.rgba(Kirigami.Theme.highlightColor.r,
@@ -244,10 +245,14 @@ Item {
                                      Kirigami.Theme.highlightColor.b, 0.06)
                            : Qt.rgba(Kirigami.Theme.textColor.r,
                                      Kirigami.Theme.textColor.g,
-                                     Kirigami.Theme.textColor.b, 0.04)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                          Kirigami.Theme.textColor.g,
-                                          Kirigami.Theme.textColor.b, 0.12)
+                                     Kirigami.Theme.textColor.b, 0.03)
+                    border.color: modelData.enabled
+                                  ? Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                            Kirigami.Theme.highlightColor.g,
+                                            Kirigami.Theme.highlightColor.b, 0.22)
+                                  : Qt.rgba(Kirigami.Theme.textColor.r,
+                                            Kirigami.Theme.textColor.g,
+                                            Kirigami.Theme.textColor.b, 0.10)
                     border.width: 1
                     opacity: modelData.enabled ? 1.0 : 0.55
 
@@ -259,64 +264,54 @@ Item {
                         QQC2.Switch {
                             checked: modelData.enabled
                             onToggled: scheduleManager.toggleEnabled(index)
-                            QQC2.ToolTip.text: checked ? "Disable this schedule" : "Enable this schedule"
+                            QQC2.ToolTip.text: checked ? "Pause this schedule" : "Activate this schedule"
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.delay: 600
+                            QQC2.ToolTip.delay: 500
                         }
 
                         // Info column
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 1
+                            spacing: 2
 
                             QQC2.Label {
-                                text: modelData.name || "Unnamed"
+                                text: modelData.name || scheduleManager.humanCron(modelData.cron, modelData)
                                 font.bold: true
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
                             QQC2.Label {
-                                text: scheduleManager.humanCron(modelData.cron) +
-                                      " · " + (modelData.provider || "provider") +
-                                      " · " + (modelData.model || "model")
+                                text: "⏱ " + scheduleManager.humanCron(modelData.cron, modelData) +
+                                      (modelData.chatName ? " · 💬 " + modelData.chatName : "")
                                 font.pixelSize: 11
                                 opacity: 0.7
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
                             QQC2.Label {
-                                visible: !!modelData.lastRunAt
-                                text: "Last run: " + (modelData.lastRunStatus || "—") +
-                                      " · " + (modelData.lastRunAt ? new Date(modelData.lastRunAt).toLocaleString() : "Never")
+                                text: "\"" + (modelData.message || "").substring(0, 60) +
+                                      ((modelData.message || "").length > 60 ? "…" : "") + "\""
                                 font.pixelSize: 10
-                                opacity: 0.55
-                                color: modelData.lastRunStatus === "error"
-                                       ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                                opacity: 0.50
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
+                                font.italic: true
                             }
                         }
 
                         // Action buttons
                         QQC2.ToolButton {
-                            icon.name: "media-playback-start"
-                            QQC2.ToolTip.text: "Run now (triggers within 30s)"
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.delay: 600
-                            onClicked: scheduleManager.triggerNow(index)
-                        }
-                        QQC2.ToolButton {
                             icon.name: "document-edit"
-                            QQC2.ToolTip.text: "Edit schedule"
+                            QQC2.ToolTip.text: "Edit"
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.delay: 600
+                            QQC2.ToolTip.delay: 500
                             onClicked: scheduleManager.startEdit(index)
                         }
                         QQC2.ToolButton {
                             icon.name: "edit-delete"
-                            QQC2.ToolTip.text: "Delete schedule"
+                            QQC2.ToolTip.text: "Remove"
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.delay: 600
+                            QQC2.ToolTip.delay: 500
                             onClicked: deleteConfirmDialog.openFor(index)
                         }
                     }
@@ -324,14 +319,14 @@ Item {
             }
         }
 
-        // ── Editor panel ───────────────────────────────────────────────────
+        // ── Editor panel ───────────────────────────────────────────────────────
         Rectangle {
             visible: editingIndex !== -1
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
                            Kirigami.Theme.backgroundColor.g,
-                           Kirigami.Theme.backgroundColor.b, 0.6)
+                           Kirigami.Theme.backgroundColor.b, 0.5)
             border.color: Kirigami.Theme.highlightColor
             border.width: 1
             radius: Kirigami.Units.smallSpacing
@@ -342,237 +337,272 @@ Item {
 
                 ColumnLayout {
                     width: parent.parent.width - Kirigami.Units.largeSpacing * 2
-                    spacing: Kirigami.Units.smallSpacing
+                    spacing: Kirigami.Units.largeSpacing
 
+                    // Title
                     Kirigami.Heading {
                         level: 4
-                        text: editingIndex === -2 ? "New Schedule" : "Edit Schedule"
+                        text: editingIndex === -2 ? "New Scheduled Message" : "Edit Scheduled Message"
                     }
 
-                    // Name
-                    RowLayout {
+                    // ── Message to send ────────────────────────────────────────
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        QQC2.Label { text: "Name:"; Layout.preferredWidth: 120 }
-                        QQC2.TextField {
-                            id: editorName
-                            Layout.fillWidth: true
-                            text: editingDraft.name || ""
-                            placeholderText: "Daily standup summary"
-                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {name: text})
-                        }
-                    }
+                        spacing: Kirigami.Units.smallSpacing
 
-                    // Enabled toggle
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Enabled:"; Layout.preferredWidth: 120 }
-                        QQC2.Switch {
-                            id: editorEnabled
-                            checked: editingDraft.enabled !== false
-                            onCheckedChanged: editingDraft = Object.assign({}, editingDraft, {enabled: checked})
+                        QQC2.Label {
+                            text: "Message to send:"
+                            font.bold: true
                         }
                         QQC2.Label {
-                            text: editorEnabled.checked ? "Schedule is active" : "Schedule is paused"
-                            opacity: 0.6; font.pixelSize: 11
-                        }
-                    }
-
-                    // Cron expression
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Schedule (cron):"; Layout.preferredWidth: 120 }
-                        ColumnLayout {
+                            text: "This message will be sent into the chat at the scheduled time, and the AI will reply."
+                            font.pixelSize: 11
+                            opacity: 0.65
+                            wrapMode: Text.Wrap
                             Layout.fillWidth: true
-                            spacing: 2
-                            QQC2.TextField {
-                                id: editorCron
-                                Layout.fillWidth: true
-                                text: editingDraft.cron || "0 9 * * 1-5"
-                                placeholderText: "0 9 * * 1-5"
-                                font.family: "monospace"
-                                onTextChanged: editingDraft = Object.assign({}, editingDraft, {cron: text})
-                            }
-                            QQC2.Label {
-                                text: "→ " + scheduleManager.humanCron(editorCron.text)
-                                font.pixelSize: 11; opacity: 0.65
-                            }
-                            QQC2.Label {
-                                text: "Format: minute hour day month weekday  (0=Sun, 1=Mon … 5=Fri, 6=Sat)"
-                                font.pixelSize: 10; opacity: 0.50; wrapMode: Text.Wrap
-                                Layout.fillWidth: true
-                            }
+                        }
+                        QQC2.TextArea {
+                            id: editorMessage
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 80
+                            text: editingDraft.message || ""
+                            placeholderText: "e.g. Summarize what I should focus on today"
+                            wrapMode: TextEdit.Wrap
+                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {message: text})
                         }
                     }
 
-                    // Quick cron presets
-                    RowLayout {
+                    Kirigami.Separator { Layout.fillWidth: true }
+
+                    // ── Schedule builder ───────────────────────────────────────
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        QQC2.Label { text: "Quick presets:"; Layout.preferredWidth: 120 }
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: "When to send:"
+                            font.bold: true
+                        }
+
+                        // Schedule type selector
                         Flow {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
+
                             Repeater {
                                 model: [
-                                    {label: "Every hour",    cron: "0 * * * *"},
-                                    {label: "Daily 9am",     cron: "0 9 * * *"},
-                                    {label: "Weekdays 9am",  cron: "0 9 * * 1-5"},
-                                    {label: "Daily 8pm",     cron: "0 20 * * *"},
-                                    {label: "Weekly Mon",    cron: "0 9 * * 1"},
-                                    {label: "Monthly 1st",   cron: "0 9 1 * *"},
+                                    {key: "minutes", label: "Every X minutes"},
+                                    {key: "hours",   label: "Every X hours"},
+                                    {key: "days",    label: "Every X days"},
+                                    {key: "weeks",   label: "Every X weeks"},
+                                    {key: "months",  label: "Every X months"},
                                 ]
                                 QQC2.Button {
                                     text: modelData.label
-                                    flat: true
-                                    font.pixelSize: 11
-                                    padding: 4
+                                    flat: (editingDraft.schedType || "days") !== modelData.key
+                                    highlighted: (editingDraft.schedType || "days") === modelData.key
+                                    padding: Kirigami.Units.smallSpacing * 1.5
+                                    font.pixelSize: 12
                                     onClicked: {
-                                        editorCron.text = modelData.cron
-                                        editingDraft = Object.assign({}, editingDraft, {cron: modelData.cron})
+                                        editingDraft = Object.assign({}, editingDraft, {schedType: modelData.key})
                                     }
                                 }
                             }
                         }
-                    }
 
-                    Kirigami.Separator { Layout.fillWidth: true }
+                        // Every N
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
 
-                    // Provider
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Provider:"; Layout.preferredWidth: 120 }
-                        QQC2.ComboBox {
-                            id: editorProvider
-                            Layout.preferredWidth: 180
-                            model: [
-                                "openai", "anthropic", "groq", "google", "deepseek",
-                                "mistral", "openrouter", "xai", "nvidia", "fireworks",
-                                "minimax", "cloudflare", "huggingface", "ollama",
-                                "lmstudio", "local", "litellm", "qwen", "moonshot",
-                                "mimo", "maritaca"
-                            ]
-                            currentIndex: {
-                                var idx = model.indexOf(editingDraft.provider || "openai")
-                                return idx >= 0 ? idx : 0
+                            QQC2.Label { text: "Every" }
+
+                            QQC2.SpinBox {
+                                id: everySpinBox
+                                from: 1; to: 999
+                                value: editingDraft.schedEvery || 1
+                                onValueChanged: editingDraft = Object.assign({}, editingDraft, {schedEvery: value})
                             }
-                            onCurrentValueChanged: {
-                                editingDraft = Object.assign({}, editingDraft, {
-                                    provider: currentValue,
-                                    baseUrl: defaultBaseUrl(currentValue)
-                                })
-                                editorBaseUrl.text = editingDraft.baseUrl
+
+                            QQC2.Label {
+                                text: {
+                                    var t = editingDraft.schedType || "days"
+                                    var n = editingDraft.schedEvery || 1
+                                    if (t === "minutes") return n === 1 ? "minute" : "minutes"
+                                    if (t === "hours")   return n === 1 ? "hour" : "hours"
+                                    if (t === "days")    return n === 1 ? "day" : "days"
+                                    if (t === "weeks")   return n === 1 ? "week" : "weeks"
+                                    if (t === "months")  return n === 1 ? "month" : "months"
+                                    return ""
+                                }
                             }
                         }
-                    }
 
-                    // Base URL
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Base URL:"; Layout.preferredWidth: 120 }
-                        QQC2.TextField {
-                            id: editorBaseUrl
+                        // Time picker (for days/weeks/months)
+                        RowLayout {
+                            visible: ["days","weeks","months"].indexOf(editingDraft.schedType || "days") >= 0
                             Layout.fillWidth: true
-                            text: editingDraft.baseUrl || ""
-                            placeholderText: "https://api.openai.com/v1"
-                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {baseUrl: text})
-                        }
-                    }
+                            spacing: Kirigami.Units.smallSpacing
 
-                    // Model
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Model:"; Layout.preferredWidth: 120 }
-                        QQC2.TextField {
-                            id: editorModel
-                            Layout.fillWidth: true
-                            text: editingDraft.model || ""
-                            placeholderText: "gpt-4o-mini"
-                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {model: text})
-                        }
-                    }
+                            QQC2.Label { text: "At time:" }
 
-                    // API Key
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "API Key:"; Layout.preferredWidth: 120 }
-                        QQC2.TextField {
-                            id: editorApiKey
-                            Layout.fillWidth: true
-                            text: editingDraft.apiKey || ""
-                            placeholderText: "sk-… (leave empty for keyless providers)"
-                            echoMode: TextInput.Password
-                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {apiKey: text})
+                            QQC2.SpinBox {
+                                id: hourSpinBox
+                                from: 0; to: 23
+                                value: parseInt((editingDraft.schedTime || "09:00").split(":")[0]) || 9
+                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
+                                onValueChanged: {
+                                    var m = parseInt((editingDraft.schedTime || "09:00").split(":")[1]) || 0
+                                    editingDraft = Object.assign({}, editingDraft,
+                                        {schedTime: (value < 10 ? "0":"") + value + ":" + (m < 10 ? "0":"") + m})
+                                }
+                            }
+
+                            QQC2.Label { text: ":" }
+
+                            QQC2.SpinBox {
+                                id: minSpinBox
+                                from: 0; to: 59; stepSize: 5
+                                value: parseInt((editingDraft.schedTime || "09:00").split(":")[1]) || 0
+                                textFromValue: function(v) { return (v < 10 ? "0" : "") + v }
+                                onValueChanged: {
+                                    var h = parseInt((editingDraft.schedTime || "09:00").split(":")[0]) || 9
+                                    editingDraft = Object.assign({}, editingDraft,
+                                        {schedTime: (h < 10 ? "0":"") + h + ":" + (value < 10 ? "0":"") + value})
+                                }
+                            }
                         }
-                        QQC2.ToolButton {
-                            icon.name: editorApiKey.echoMode === TextInput.Password
-                                       ? "password-show-off" : "password-show-on"
-                            onClicked: editorApiKey.echoMode =
-                                editorApiKey.echoMode === TextInput.Password
-                                ? TextInput.Normal : TextInput.Password
-                            QQC2.ToolTip.text: "Show/hide key"
-                            QQC2.ToolTip.visible: hovered
+
+                        // Day of week selector (for weeks)
+                        ColumnLayout {
+                            visible: (editingDraft.schedType || "") === "weeks"
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.Label { text: "On these days:" }
+
+                            Flow {
+                                Layout.fillWidth: true
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Repeater {
+                                    model: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+
+                                    Rectangle {
+                                        width: 44; height: 28
+                                        radius: 5
+                                        property bool sel: {
+                                            var days = editingDraft.schedDays || [1]
+                                            return days.indexOf(index) >= 0
+                                        }
+                                        color: sel
+                                               ? Kirigami.Theme.highlightColor
+                                               : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                         Kirigami.Theme.textColor.g,
+                                                         Kirigami.Theme.textColor.b, 0.08)
+                                        border.color: sel
+                                                      ? Kirigami.Theme.highlightColor
+                                                      : Qt.rgba(Kirigami.Theme.textColor.r,
+                                                                Kirigami.Theme.textColor.g,
+                                                                Kirigami.Theme.textColor.b, 0.18)
+                                        border.width: 1
+
+                                        QQC2.Label {
+                                            anchors.centerIn: parent
+                                            text: modelData
+                                            font.pixelSize: 11
+                                            font.bold: sel
+                                            color: sel ? "white" : Kirigami.Theme.textColor
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onClicked: {
+                                                var days = (editingDraft.schedDays || [1]).slice()
+                                                var pos = days.indexOf(index)
+                                                if (pos >= 0) {
+                                                    if (days.length > 1) days.splice(pos, 1)
+                                                } else {
+                                                    days.push(index)
+                                                    days.sort()
+                                                }
+                                                editingDraft = Object.assign({}, editingDraft, {schedDays: days})
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Day of month selector (for months)
+                        RowLayout {
+                            visible: (editingDraft.schedType || "") === "months"
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.Label { text: "On day:" }
+
+                            QQC2.SpinBox {
+                                from: 1; to: 28
+                                value: editingDraft.schedDayOfMonth || 1
+                                onValueChanged: editingDraft = Object.assign({}, editingDraft, {schedDayOfMonth: value})
+                            }
+
+                            QQC2.Label { text: "of the month"; opacity: 0.7 }
+                        }
+
+                        // Human readable summary
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: cronSummaryLabel.implicitHeight + Kirigami.Units.gridUnit
+                            radius: 6
+                            color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                           Kirigami.Theme.highlightColor.g,
+                                           Kirigami.Theme.highlightColor.b, 0.10)
+                            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                                  Kirigami.Theme.highlightColor.g,
+                                                  Kirigami.Theme.highlightColor.b, 0.30)
+                            border.width: 1
+
+                            QQC2.Label {
+                                id: cronSummaryLabel
+                                anchors {
+                                    verticalCenter: parent.verticalCenter
+                                    left: parent.left; right: parent.right
+                                    margins: Kirigami.Units.gridUnit * 0.6
+                                }
+                                text: "📅 " + scheduleManager.humanCron(
+                                    scheduleManager.buildCron(editingDraft), editingDraft)
+                                font.bold: true
+                                wrapMode: Text.Wrap
+                                color: Kirigami.Theme.highlightColor
+                            }
                         }
                     }
 
                     Kirigami.Separator { Layout.fillWidth: true }
 
-                    // Prompt
-                    RowLayout {
+                    // ── Optional name ──────────────────────────────────────────
+                    ColumnLayout {
                         Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
                         QQC2.Label {
-                            text: "Prompt:"
-                            Layout.preferredWidth: 120
-                            Layout.alignment: Qt.AlignTop
+                            text: "Label (optional):"
+                            font.bold: true
                         }
-                        QQC2.TextArea {
-                            id: editorPrompt
+                        QQC2.TextField {
+                            id: editorName
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 80
-                            text: editingDraft.prompt || ""
-                            placeholderText: "What would you like the AI to do on this schedule?"
-                            wrapMode: TextEdit.Wrap
-                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {prompt: text})
+                            text: editingDraft.name || ""
+                            placeholderText: "Leave blank to auto-name from schedule"
+                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {name: text})
                         }
                     }
 
-                    // System prompt (optional override)
+                    // ── Notify toggle ──────────────────────────────────────────
                     RowLayout {
                         Layout.fillWidth: true
-                        QQC2.Label {
-                            text: "System prompt\n(optional):"
-                            Layout.preferredWidth: 120
-                            Layout.alignment: Qt.AlignTop
-                            wrapMode: Text.Wrap
-                        }
-                        QQC2.TextArea {
-                            id: editorSystemPrompt
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 56
-                            text: editingDraft.systemPrompt || ""
-                            placeholderText: "Override system prompt (leave blank to use global setting)"
-                            wrapMode: TextEdit.Wrap
-                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {systemPrompt: text})
-                        }
-                    }
-
-                    // Max tokens
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Max tokens:"; Layout.preferredWidth: 120 }
-                        QQC2.SpinBox {
-                            id: editorMaxTokens
-                            from: 50; to: 8000; stepSize: 50
-                            value: editingDraft.maxTokens || 1000
-                            onValueChanged: editingDraft = Object.assign({}, editingDraft, {maxTokens: value})
-                        }
-                        QQC2.Label { text: "tokens"; opacity: 0.6 }
-                    }
-
-                    Kirigami.Separator { Layout.fillWidth: true }
-
-                    // Notifications toggle
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Notify on complete:"; Layout.preferredWidth: 140 }
                         QQC2.Switch {
                             id: editorNotify
                             checked: editingDraft.notify !== false
@@ -580,59 +610,14 @@ Item {
                         }
                         QQC2.Label {
                             text: editorNotify.checked
-                                  ? "Shows a KDE desktop notification when done"
+                                  ? "Show a desktop notification when the AI replies"
                                   : "Silent — no notification"
-                            opacity: 0.6; font.pixelSize: 11
+                            opacity: 0.75
+                            wrapMode: Text.Wrap
                         }
                     }
 
-                    // Notification title
-                    RowLayout {
-                        Layout.fillWidth: true
-                        visible: editorNotify.checked
-                        QQC2.Label { text: "Notification title:"; Layout.preferredWidth: 140 }
-                        QQC2.TextField {
-                            id: editorNotifyTitle
-                            Layout.fillWidth: true
-                            text: editingDraft.notifyTitle || ""
-                            placeholderText: editingDraft.name || "Schedule name"
-                            onTextChanged: editingDraft = Object.assign({}, editingDraft, {notifyTitle: text})
-                        }
-                    }
-
-                    // Save results toggle
-                    RowLayout {
-                        Layout.fillWidth: true
-                        QQC2.Label { text: "Save results:"; Layout.preferredWidth: 140 }
-                        QQC2.Switch {
-                            id: editorSaveResults
-                            checked: editingDraft.saveResults !== false
-                            onCheckedChanged: editingDraft = Object.assign({}, editingDraft, {saveResults: checked})
-                        }
-                        QQC2.Label {
-                            text: editorSaveResults.checked
-                                  ? "Results stored in ~/.local/share/kdeaichat/results/"
-                                  : "Results discarded after notification"
-                            opacity: 0.6; font.pixelSize: 11; wrapMode: Text.Wrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    // Keep results days
-                    RowLayout {
-                        Layout.fillWidth: true
-                        visible: editorSaveResults.checked
-                        QQC2.Label { text: "Keep results for:"; Layout.preferredWidth: 140 }
-                        QQC2.SpinBox {
-                            id: editorKeepDays
-                            from: 1; to: 365; stepSize: 1
-                            value: editingDraft.keepResultDays || 30
-                            onValueChanged: editingDraft = Object.assign({}, editingDraft, {keepResultDays: value})
-                        }
-                        QQC2.Label { text: "days, then auto-delete"; opacity: 0.6 }
-                    }
-
-                    // Buttons
+                    // ── Action buttons ─────────────────────────────────────────
                     RowLayout {
                         Layout.fillWidth: true
                         Item { Layout.fillWidth: true }
@@ -641,9 +626,9 @@ Item {
                             onClicked: scheduleManager.cancelEdit()
                         }
                         QQC2.Button {
-                            text: "Save Schedule"
+                            text: editingIndex === -2 ? "Create Schedule" : "Save Changes"
                             highlighted: true
-                            enabled: editorName.text.trim() !== "" && editorPrompt.text.trim() !== ""
+                            enabled: editorMessage.text.trim() !== ""
                             onClicked: scheduleManager.saveEdit()
                         }
                     }
@@ -652,55 +637,22 @@ Item {
         }
     }
 
-    // ── Delete confirmation dialog ─────────────────────────────────────────
+    // ── Delete confirmation ────────────────────────────────────────────────────
     QQC2.Dialog {
         id: deleteConfirmDialog
-        title: "Delete Schedule"
+        title: "Remove Schedule"
         modal: true
         standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Ok
         property int targetIndex: -1
-
-        function openFor(index) {
-            targetIndex = index
-            open()
-        }
-
+        function openFor(index) { targetIndex = index; open() }
         QQC2.Label {
             text: deleteConfirmDialog.targetIndex >= 0 && scheduleManager.scheduleList.length > deleteConfirmDialog.targetIndex
-                  ? "Delete \"" + scheduleManager.scheduleList[deleteConfirmDialog.targetIndex].name + "\"?\nThis cannot be undone."
-                  : "Delete this schedule?"
+                  ? "Remove \"" + (scheduleManager.scheduleList[deleteConfirmDialog.targetIndex].name ||
+                                   scheduleManager.humanCron(scheduleManager.scheduleList[deleteConfirmDialog.targetIndex].cron,
+                                                             scheduleManager.scheduleList[deleteConfirmDialog.targetIndex])) + "\"?"
+                  : "Remove this schedule?"
             wrapMode: Text.Wrap
         }
-        onAccepted: {
-            if (targetIndex >= 0) scheduleManager.deleteSchedule(targetIndex)
-        }
-    }
-
-    // ── Helper: default base URLs per provider ─────────────────────────────
-    function defaultBaseUrl(provider) {
-        var urls = {
-            "openai":       "https://api.openai.com/v1",
-            "anthropic":    "https://api.anthropic.com/v1",
-            "groq":         "https://api.groq.com/openai/v1",
-            "google":       "https://generativelanguage.googleapis.com/v1beta/openai/",
-            "deepseek":     "https://api.deepseek.com",
-            "mistral":      "https://api.mistral.ai/v1",
-            "openrouter":   "https://openrouter.ai/api/v1",
-            "xai":          "https://api.x.ai/v1",
-            "nvidia":       "https://integrate.api.nvidia.com/v1",
-            "fireworks":    "https://api.fireworks.ai/inference/v1",
-            "minimax":      "https://api.minimax.io/v1",
-            "cloudflare":   "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
-            "huggingface":  "https://router.huggingface.co/v1",
-            "ollama":       "http://localhost:11434/v1",
-            "lmstudio":     "http://localhost:1234/v1",
-            "local":        "http://localhost:11434/v1",
-            "litellm":      "http://localhost:4000/v1",
-            "qwen":         "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-            "moonshot":     "https://api.moonshot.ai/v1",
-            "mimo":         "https://api.xiaomimimo.com/v1",
-            "maritaca":     "https://chat.maritaca.ai/api",
-        }
-        return urls[provider] || "https://api.openai.com/v1"
+        onAccepted: { if (targetIndex >= 0) scheduleManager.deleteSchedule(targetIndex) }
     }
 }

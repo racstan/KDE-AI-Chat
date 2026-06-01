@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-kde-ai-scheduler.py — KDE AI Chat Scheduling Daemon
-====================================================
+kde-ai-scheduler.py — KDE AI Chat Scheduling Daemon (Simplified Message Injector)
+================================================================================
 Runs as a systemd user service. Reads ~/.local/share/kdeaichat/schedules.json,
-fires cron-triggered prompts at any OpenAI-compatible provider REST API,
-writes results to ~/.local/share/kdeaichat/results/, and sends KDE desktop
-notifications. Zero external Python dependencies — stdlib only.
+and when a cron rule is due, writes a pending trigger JSON file to:
+~/.local/share/kdeaichat/pending/sched-{id}-{timestamp}.json
+
+This is picked up by the KDE AI Chat front-end widget, which injects it
+directly into the active chat session.
 
 Reload schedules without restart: kill -HUP <pid>
 """
@@ -16,19 +18,16 @@ import re
 import signal
 import sys
 import time
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 HOME = os.path.expanduser("~")
 DATA_DIR = os.path.join(HOME, ".local", "share", "kdeaichat")
 SCHEDULES_FILE = os.path.join(DATA_DIR, "schedules.json")
-RESULTS_DIR = os.path.join(DATA_DIR, "results")
 LOCK_FILE = os.path.join(DATA_DIR, "scheduler.lock")
 
-# Tick interval in seconds — how often we check for due schedules
-TICK_SECONDS = 30
+# Tick interval in seconds
+TICK_SECONDS = 15
 
 # ── Globals ────────────────────────────────────────────────────────────────────
 schedules = []
@@ -66,7 +65,7 @@ signal.signal(signal.SIGTERM, handle_sigterm)
 # ── Filesystem helpers ─────────────────────────────────────────────────────────
 def ensure_dirs():
     os.makedirs(DATA_DIR, mode=0o700, exist_ok=True)
-    os.makedirs(RESULTS_DIR, mode=0o700, exist_ok=True)
+    os.makedirs(os.path.join(DATA_DIR, "pending"), mode=0o700, exist_ok=True)
 
 
 def write_lock():
@@ -94,7 +93,12 @@ def load_schedules():
     try:
         with open(SCHEDULES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        items = data.get("schedules", [])
+        if isinstance(data, list):
+            items = data
+        elif isinstance(data, dict):
+            items = data.get("schedules", [])
+        else:
+            items = []
         log(f"Loaded {len(items)} schedule(s) from {SCHEDULES_FILE}")
         return items
     except (json.JSONDecodeError, OSError) as e:
@@ -115,57 +119,6 @@ def save_schedules(items):
         log(f"Failed to save schedules: {e}", "ERROR")
 
 
-def save_result(schedule_id, schedule_name, prompt, response, provider, model,
-                status, error_msg, duration_ms):
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
-    filename = f"{schedule_id}-{ts}.json"
-    path = os.path.join(RESULTS_DIR, filename)
-    result = {
-        "scheduleId": schedule_id,
-        "scheduleName": schedule_name,
-        "ranAt": datetime.now(timezone.utc).isoformat(),
-        "status": status,
-        "prompt": prompt,
-        "response": response,
-        "provider": provider,
-        "model": model,
-        "durationMs": duration_ms,
-        "error": error_msg,
-    }
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
-        os.chmod(path, 0o600)
-        dlog(f"Result saved: {path}")
-    except OSError as e:
-        log(f"Failed to save result: {e}", "ERROR")
-    # Cleanup old results
-    cleanup_old_results(schedule_id, keep_days=schedule_get(schedule_id, "keepResultDays", 30))
-
-
-def schedule_get(schedule_id, key, default=None):
-    for s in schedules:
-        if s.get("id") == schedule_id:
-            return s.get(key, default)
-    return default
-
-
-def cleanup_old_results(schedule_id, keep_days=30):
-    if keep_days <= 0:
-        return
-    cutoff = time.time() - (keep_days * 86400)
-    prefix = schedule_id + "-"
-    try:
-        for fname in os.listdir(RESULTS_DIR):
-            if fname.startswith(prefix) and fname.endswith(".json"):
-                fpath = os.path.join(RESULTS_DIR, fname)
-                if os.path.getmtime(fpath) < cutoff:
-                    os.remove(fpath)
-                    dlog(f"Cleaned up old result: {fname}")
-    except OSError:
-        pass
-
-
 # ── Cron parser ────────────────────────────────────────────────────────────────
 WEEKDAY_NAMES = {
     "sun": 0, "mon": 1, "tue": 2, "wed": 3,
@@ -174,9 +127,7 @@ WEEKDAY_NAMES = {
 
 
 def parse_cron_field(field_str, min_val, max_val):
-    """Parse a single cron field into a sorted set of matching integers."""
     field_str = field_str.strip().lower()
-    # Replace named weekdays
     for name, num in WEEKDAY_NAMES.items():
         field_str = field_str.replace(name, str(num))
 
@@ -206,7 +157,6 @@ def parse_cron_field(field_str, min_val, max_val):
 
 
 def cron_matches(cron_expr, dt):
-    """Return True if dt matches the 5-field cron expression."""
     parts = cron_expr.strip().split()
     if len(parts) != 5:
         return False
@@ -215,13 +165,12 @@ def cron_matches(cron_expr, dt):
         hours = parse_cron_field(parts[1], 0, 23)
         mdays = parse_cron_field(parts[2], 1, 31)
         months = parse_cron_field(parts[3], 1, 12)
-        wdays = parse_cron_field(parts[4], 0, 6)  # 0=Sun
+        wdays = parse_cron_field(parts[4], 0, 6)
     except (ValueError, IndexError):
         return False
 
-    # Convert Python weekday (Mon=0) to cron weekday (Sun=0)
-    py_wd = dt.weekday()  # Mon=0..Sun=6
-    cron_wd = (py_wd + 1) % 7  # Mon=1..Sun=0
+    py_wd = dt.weekday()
+    cron_wd = (py_wd + 1) % 7
 
     dom_star = parts[2].strip() == "*"
     dow_star = parts[4].strip() == "*"
@@ -243,143 +192,47 @@ def cron_matches(cron_expr, dt):
     )
 
 
-# ── KDE notification ───────────────────────────────────────────────────────────
-def notify(title, body, urgency="normal"):
-    try:
-        import subprocess
-        subprocess.run(
-            [
-                "notify-send",
-                "--app-name=KDE AI Chat",
-                "--icon=dialog-information",
-                f"--urgency={urgency}",
-                str(title)[:80],
-                str(body)[:240],
-            ],
-            check=False,
-            timeout=5,
-        )
-    except Exception as e:
-        dlog(f"notify-send failed: {e}")
-
-
-def play_sound():
-    try:
-        import subprocess
-        cmd = (
-            "pw-play /usr/share/sounds/ocean/stereo/dialog-information.oga || "
-            "paplay /usr/share/sounds/ocean/stereo/dialog-information.oga || "
-            "pw-play /usr/share/sounds/ocean/stereo/audio-volume-change.oga || "
-            "paplay /usr/share/sounds/ocean/stereo/audio-volume-change.oga || "
-            "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || "
-            "canberra-gtk-play -i dialog-information"
-        )
-        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception as e:
-        dlog(f"play_sound failed: {e}")
-
-
-# ── AI API call ────────────────────────────────────────────────────────────────
-DEFAULT_SYSTEM_PROMPT = (
-    "You are KDE AI Chat, a precise and helpful assistant. "
-    "Give accurate answers and clearly state uncertainty instead of inventing facts."
-)
-
-
-def call_ai(base_url, api_key, model, system_prompt, user_prompt, max_tokens=1000):
-    """
-    Call any OpenAI-compatible /chat/completions endpoint.
-    Uses only stdlib urllib — no external packages required.
-    """
-    url = base_url.rstrip("/") + "/chat/completions"
-    messages = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    messages.append({"role": "user", "content": user_prompt})
-
-    payload = json.dumps({
-        "model": model,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "stream": False,
-    }).encode("utf-8")
-
-    headers = {"Content-Type": "application/json"}
-    if api_key and api_key.strip() and api_key.strip() != "__FROM_WALLET__":
-        headers["Authorization"] = f"Bearer {api_key.strip()}"
-
-    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-
-    choices = data.get("choices", [])
-    if not choices:
-        raise ValueError("API returned no choices")
-    content = choices[0].get("message", {}).get("content", "")
-    return content
-
-
 # ── Schedule runner ────────────────────────────────────────────────────────────
 def run_schedule(s):
     sid = s.get("id", "unknown")
     name = s.get("name", "Unnamed")
-    prompt = s.get("prompt", "").strip()
-    system_prompt = s.get("systemPrompt", "").strip() or DEFAULT_SYSTEM_PROMPT
-    base_url = s.get("baseUrl", "https://api.openai.com/v1").rstrip("/")
-    api_key = s.get("apiKey", "")
-    model = s.get("model", "gpt-4o-mini")
-    max_tokens = int(s.get("maxTokens", 1000))
+    chat_id = s.get("chatId", "")
+    message = s.get("message", "").strip()
     should_notify = s.get("notify", True)
-    notify_title = s.get("notifyTitle", "") or name
-    save_results = s.get("saveResults", True)
-    provider = s.get("provider", "unknown")
 
-    if not prompt:
-        log(f"[{name}] Skipping — no prompt configured", "WARN")
-        return
+    if not chat_id or not message:
+        log(f"[{name}] Skipping — missing chatId or message", "WARN")
+        return "error"
 
-    log(f"[{name}] Running scheduled task (provider={provider}, model={model})")
-    t0 = time.time()
-    status = "success"
-    error_msg = None
-    response = ""
+    log(f"[{name}] Triggering schedule message injection to chat {chat_id}")
+    
+    pending_dir = os.path.join(DATA_DIR, "pending")
+    ts = int(time.time() * 1000)
+    filename = f"sched-{sid}-{ts}.json"
+    path = os.path.join(pending_dir, filename)
+
+    payload = {
+        "id": sid,
+        "chatId": chat_id,
+        "message": message,
+        "notify": should_notify,
+        "name": name,
+        "timestamp": ts
+    }
 
     try:
-        response = call_ai(base_url, api_key, model, system_prompt, prompt, max_tokens)
-        log(f"[{name}] Completed in {int((time.time()-t0)*1000)}ms")
-        if should_notify:
-            play_sound()
-            preview = response[:180].replace("\n", " ") + ("…" if len(response) > 180 else "")
-            notify(notify_title, preview)
-    except urllib.error.HTTPError as e:
-        status = "error"
-        try:
-            body = e.read().decode("utf-8", errors="replace")[:300]
-        except Exception:
-            body = str(e)
-        error_msg = f"HTTP {e.code}: {body}"
-        log(f"[{name}] HTTP error: {error_msg}", "ERROR")
-        if should_notify:
-            notify(f"Schedule failed: {name}", error_msg[:120], urgency="critical")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+        os.chmod(path, 0o600)
+        log(f"[{name}] Wrote pending trigger file successfully: {path}")
+        return "success"
     except Exception as e:
-        status = "error"
-        error_msg = str(e)
-        log(f"[{name}] Error: {error_msg}", "ERROR")
-        if should_notify:
-            notify(f"Schedule failed: {name}", error_msg[:120], urgency="critical")
-
-    duration_ms = int((time.time() - t0) * 1000)
-
-    if save_results:
-        save_result(sid, name, prompt, response, provider, model,
-                    status, error_msg, duration_ms)
-
-    return status
+        log(f"[{name}] Failed to write pending trigger: {e}", "ERROR")
+        return "error"
 
 
 # ── Main loop ──────────────────────────────────────────────────────────────────
 def update_schedule_timestamps(items, sid, now_iso, status, next_iso):
-    """Return a new list with the given schedule's timestamps updated."""
     updated = []
     for s in items:
         if s.get("id") == sid:
@@ -387,26 +240,21 @@ def update_schedule_timestamps(items, sid, now_iso, status, next_iso):
             s["lastRunAt"] = now_iso
             s["lastRunStatus"] = status
             s["nextRunAt"] = next_iso
-            # Clear one-shot triggerNow flag
             s.pop("triggerNow", None)
         updated.append(s)
     return updated
 
 
 def next_run_iso(cron_expr):
-    """Return an ISO8601 string for the next cron trigger from now."""
     now = datetime.now()
-    # Step forward minute by minute for up to 1 year
     for _ in range(525600):
         now = now.replace(second=0, microsecond=0)
-        # Advance by one minute
         mins = now.minute + 1
         now = now.replace(minute=mins % 60)
         if mins >= 60:
             hrs = now.hour + 1
             now = now.replace(hour=hrs % 24)
             if hrs >= 24:
-                # Crude day advance — datetime handles month/year rollover
                 import datetime as dt_mod
                 now = (now + dt_mod.timedelta(days=1)).replace(hour=0, minute=0)
         if cron_matches(cron_expr, now):
@@ -417,7 +265,7 @@ def next_run_iso(cron_expr):
 def main():
     global schedules, reload_requested
 
-    log("KDE AI Chat Scheduler starting up")
+    log("KDE AI Chat Scheduler daemon starting up")
     ensure_dirs()
     write_lock()
 

@@ -25,7 +25,7 @@ echo "      ✓ Widget installed."
 echo ""
 echo "[2/3] Deploying scheduler daemon..."
 mkdir -p "$DATA_DIR"
-mkdir -p "$DATA_DIR/results"
+mkdir -p "$DATA_DIR/pending"
 chmod 700 "$DATA_DIR"
 
 if [ -f "$DAEMON_SRC" ]; then

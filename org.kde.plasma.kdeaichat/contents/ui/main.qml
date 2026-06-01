@@ -99,6 +99,46 @@ PlasmoidItem {
         return "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
     }
 
+    // ── /schedule command handler ──────────────────────────────────────────────
+    function handleScheduleCommand(messageText) {
+        scheduleCommandDialog.prefillMessage = messageText
+        scheduleCommandDialog.chatId = root.currentSessionId
+        scheduleCommandDialog.chatName = root.currentSessionTitle || "Current chat"
+        scheduleCommandDialog.open()
+    }
+
+    function injectScheduledMessage(chatId, messageText, notify) {
+        if (!chatId || !messageText) return;
+
+        // Switch to the correct session
+        if (chatId !== root.currentSessionId) {
+            switchSession(chatId);
+        }
+
+        // Play the custom scheduled execution sound
+        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/dialog-information.oga || " +
+                       "paplay /usr/share/sounds/ocean/stereo/dialog-information.oga || " +
+                       "pw-play /usr/share/sounds/ocean/stereo/audio-volume-change.oga || " +
+                       "paplay /usr/share/sounds/ocean/stereo/audio-volume-change.oga || " +
+                       "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " +
+                       "canberra-gtk-play -i dialog-information";
+        soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
+
+        // Append user message
+        appendUserMessage(messageText, "user", []);
+
+        // Trigger LLM generation
+        sendMessageByIndex(root.messages.length - 1);
+
+        // Show a desktop notification
+        if (notify) {
+            var escapedText = messageText.substring(0, 150).replace(/'/g, "'\\''") + (messageText.length > 150 ? "…" : "");
+            var title = "Scheduled: " + (root.currentSessionTitle || "Chat");
+            var escapedTitle = title.replace(/'/g, "'\\''");
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify");
+        }
+    }
+
     function parseSessions() {
         var raw = plasmoid.configuration.chatSessionsJson || "[]";
         try {
@@ -1611,6 +1651,16 @@ PlasmoidItem {
             if (text === "" && attachments.length === 0)
                 return ;
 
+            // ── /schedule command ──────────────────────────────────────────
+            if (text.toLowerCase().startsWith("/schedule")) {
+                var schedText = text.slice("/schedule".length).trim()
+                root.chatInputText = ""
+                root.clearChatInput()
+                root.handleScheduleCommand(schedText)
+                return
+            }
+            // ──────────────────────────────────────────────────────────────
+
             root.attachedFiles = [];
             root.chatInputText = "";
             root.clearChatInput();
@@ -2915,6 +2965,54 @@ PlasmoidItem {
 
         engine: "executable"
         connectedSources: []
+    }
+
+    P5Support.DataSource {
+        id: schedulerDs
+
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var stdout = (data["stdout"] || "").trim();
+            disconnectSource(sourceName);
+            if (stdout !== "" && stdout !== "[]") {
+                try {
+                    var triggers = JSON.parse(stdout);
+                    if (Array.isArray(triggers) && triggers.length > 0) {
+                        for (var i = 0; i < triggers.length; i++) {
+                            var t = triggers[i];
+                            if (t && t.chatId && t.message) {
+                                root.injectScheduledMessage(t.chatId, t.message, t.notify);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log("[KAI-DEBUG] Failed to parse pending triggers JSON:", e);
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: schedulerPollTimer
+        interval: 4000
+        repeat: true
+        running: true
+        triggeredOnStart: false
+        onTriggered: {
+            var py = "import os, json; d = os.path.expanduser('~/.local/share/kdeaichat/pending'); " +
+                     "res = []; " +
+                     "if os.path.exists(d): " +
+                     "  for f in os.listdir(d): " +
+                     "    if f.endswith('.json'): " +
+                     "      p = os.path.join(d, f); " +
+                     "      try: " +
+                     "        res.append(json.load(open(p))); " +
+                     "        os.remove(p); " +
+                     "      except Exception: pass; " +
+                     "print(json.dumps(res))"
+            schedulerDs.connectSource("python3 -c \"" + py + "\" #sched-poll-" + Date.now())
+        }
     }
 
     // Fires after a short delay on startup when autoStartOpenCodeServer is enabled,
@@ -4913,6 +5011,218 @@ PlasmoidItem {
 
         }
 
+    }
+
+    // ── Inline /schedule command dialog ───────────────────────────────────────
+    QQC2.Dialog {
+        id: scheduleCommandDialog
+        title: "Create Scheduled Message"
+        modal: true
+        anchors.centerIn: parent
+        width: Math.min(parent ? parent.width * 0.92 : 600, 540)
+        standardButtons: QQC2.Dialog.Close
+
+        property string prefillMessage: ""
+        property string chatId: ""
+        property string chatName: ""
+        property string schedType: "days"
+        property int    schedEvery: 1
+        property string schedTime: "09:00"
+        property var    schedDays: [1]
+        property int    schedDayOfMonth: 1
+        property bool   schedNotify: true
+
+        function buildCron() {
+            var t = schedType, n = schedEvery
+            var tp = schedTime.split(":"), hr = parseInt(tp[0])||9, mn = parseInt(tp[1])||0
+            if (t === "minutes") return "*/" + n + " * * * *"
+            if (t === "hours")   return "0 */" + n + " * * *"
+            if (t === "days")    return (n===1 ? mn+" "+hr+" * * *" : mn+" "+hr+" */"+n+" * *")
+            if (t === "weeks") {
+                var ds = schedDays.length > 0 ? schedDays.slice().sort().join(",") : "1"
+                return mn + " " + hr + " * * " + ds
+            }
+            return (n===1 ? mn+" "+hr+" "+schedDayOfMonth+" * *" : mn+" "+hr+" "+schedDayOfMonth+" */"+n+" *")
+        }
+
+        function humanText() {
+            var t = schedType, n = schedEvery
+            var tp = schedTime.split(":"), hr = parseInt(tp[0])||9, mn = parseInt(tp[1])||0
+            var ap = hr>=12?"PM":"AM", h12 = hr%12||12, ms = mn<10?"0"+mn:""+mn
+            var ts = h12+":"+ms+" "+ap
+            if (t === "minutes") return "Every " + (n===1 ? "minute" : n+" minutes")
+            if (t === "hours")   return "Every " + (n===1 ? "hour" : n+" hours")
+            if (t === "days")    return "Every " + (n===1 ? "day" : n+" days") + " at " + ts
+            if (t === "weeks") {
+                var dn=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+                return "Every "+(n===1?"week":n+" weeks")+" on "+schedDays.map(function(x){return dn[x]}).join(", ")+" at "+ts
+            }
+            var sfx=schedDayOfMonth===1?"st":schedDayOfMonth===2?"nd":schedDayOfMonth===3?"rd":"th"
+            return "Every "+(n===1?"month":n+" months")+" on the "+schedDayOfMonth+sfx+" at "+ts
+        }
+
+        onOpened: { cmdMessage.text = scheduleCommandDialog.prefillMessage }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Kirigami.Units.largeSpacing
+
+            QQC2.Label {
+                visible: !!scheduleCommandDialog.chatName
+                text: "In chat: " + scheduleCommandDialog.chatName
+                font.italic: true; font.pixelSize: 11; opacity: 0.65
+            }
+
+            ColumnLayout { Layout.fillWidth: true; spacing: 4
+                QQC2.Label { text: "Message to send:"; font.bold: true }
+                QQC2.TextArea {
+                    id: cmdMessage; Layout.fillWidth: true; Layout.preferredHeight: 68
+                    wrapMode: TextEdit.Wrap
+                    placeholderText: "e.g. What should I focus on today?"
+                }
+            }
+
+            Kirigami.Separator { Layout.fillWidth: true }
+
+            ColumnLayout { Layout.fillWidth: true; spacing: 4
+                QQC2.Label { text: "When to send:"; font.bold: true }
+
+                Flow { Layout.fillWidth: true; spacing: 4
+                    Repeater {
+                        model: [{k:"minutes",l:"Minutes"},{k:"hours",l:"Hours"},
+                                {k:"days",l:"Days"},{k:"weeks",l:"Weeks"},{k:"months",l:"Months"}]
+                        QQC2.Button {
+                            text: modelData.l; font.pixelSize: 11
+                            highlighted: scheduleCommandDialog.schedType === modelData.k
+                            flat: scheduleCommandDialog.schedType !== modelData.k
+                            onClicked: scheduleCommandDialog.schedType = modelData.k
+                        }
+                    }
+                }
+
+                RowLayout { spacing: Kirigami.Units.smallSpacing
+                    QQC2.Label { text: "Every" }
+                    QQC2.SpinBox {
+                        from: 1; to: 999; value: scheduleCommandDialog.schedEvery
+                        onValueChanged: scheduleCommandDialog.schedEvery = value
+                    }
+                    QQC2.Label {
+                        text: { var t=scheduleCommandDialog.schedType,n=scheduleCommandDialog.schedEvery
+                                var m={minutes:"minute",hours:"hour",days:"day",weeks:"week",months:"month"}
+                                return n===1?(m[t]||t):(m[t]||t)+"s" }
+                    }
+                }
+
+                RowLayout {
+                    visible: ["days","weeks","months"].indexOf(scheduleCommandDialog.schedType) >= 0
+                    spacing: Kirigami.Units.smallSpacing
+                    QQC2.Label { text: "At:" }
+                    QQC2.SpinBox {
+                        from: 0; to: 23; value: 9
+                        textFromValue: function(v){return(v<10?"0":"")+v}
+                        onValueChanged: {
+                            var m2=parseInt(scheduleCommandDialog.schedTime.split(":")[1])||0
+                            scheduleCommandDialog.schedTime=(value<10?"0":"")+value+":"+(m2<10?"0":"")+m2
+                        }
+                    }
+                    QQC2.Label { text: ":" }
+                    QQC2.SpinBox {
+                        from: 0; to: 59; stepSize: 5; value: 0
+                        textFromValue: function(v){return(v<10?"0":"")+v}
+                        onValueChanged: {
+                            var h2=parseInt(scheduleCommandDialog.schedTime.split(":")[0])||9
+                            scheduleCommandDialog.schedTime=(h2<10?"0":"")+h2+":"+(value<10?"0":"")+value
+                        }
+                    }
+                }
+
+                Flow {
+                    visible: scheduleCommandDialog.schedType === "weeks"
+                    Layout.fillWidth: true; spacing: 4
+                    Repeater {
+                        model: ["Su","Mo","Tu","We","Th","Fr","Sa"]
+                        Rectangle {
+                            width: 32; height: 26; radius: 4
+                            property bool sel: scheduleCommandDialog.schedDays.indexOf(index) >= 0
+                            color: sel ? Kirigami.Theme.highlightColor : "transparent"
+                            border.color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r,Kirigami.Theme.textColor.g,Kirigami.Theme.textColor.b,0.25)
+                            border.width: 1
+                            QQC2.Label { anchors.centerIn:parent; text:modelData; font.pixelSize:10; font.bold:sel; color:sel?"white":Kirigami.Theme.textColor }
+                            MouseArea { anchors.fill:parent; onClicked: {
+                                var ds2=scheduleCommandDialog.schedDays.slice(), pos=ds2.indexOf(index)
+                                if(pos>=0){if(ds2.length>1)ds2.splice(pos,1)}else{ds2.push(index);ds2.sort()}
+                                scheduleCommandDialog.schedDays=ds2
+                            }}
+                        }
+                    }
+                }
+
+                RowLayout {
+                    visible: scheduleCommandDialog.schedType === "months"
+                    QQC2.Label{text:"On day:"}
+                    QQC2.SpinBox{from:1;to:28;value:scheduleCommandDialog.schedDayOfMonth;onValueChanged:scheduleCommandDialog.schedDayOfMonth=value}
+                    QQC2.Label{text:"of the month";opacity:0.7}
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: cmdSummaryLbl.implicitHeight + Kirigami.Units.gridUnit; radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r,Kirigami.Theme.highlightColor.g,Kirigami.Theme.highlightColor.b,0.10)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,Kirigami.Theme.highlightColor.g,Kirigami.Theme.highlightColor.b,0.30)
+                    border.width: 1
+                    QQC2.Label {
+                        id: cmdSummaryLbl
+                        anchors{fill:parent;margins:Kirigami.Units.smallSpacing*1.5}
+                        text: "📅 " + scheduleCommandDialog.humanText()
+                        font.bold:true; wrapMode:Text.Wrap; color:Kirigami.Theme.highlightColor
+                    }
+                }
+            }
+
+            RowLayout {
+                QQC2.Switch { id: cmdNotify; checked: true; onCheckedChanged: scheduleCommandDialog.schedNotify = checked }
+                QQC2.Label { text: cmdNotify.checked ? "Notify me when done" : "Silent" }
+            }
+
+            RowLayout { Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                QQC2.Button { text: "Cancel"; onClicked: scheduleCommandDialog.close() }
+                QQC2.Button {
+                    text: "Schedule It"; highlighted: true
+                    enabled: cmdMessage.text.trim() !== ""
+                    onClicked: {
+                        var hr2 = scheduleCommandDialog.humanText()
+                        var msg = cmdMessage.text.trim()
+                        var jsonEntry = JSON.stringify({
+                            id: "s-"+Date.now()+"-"+Math.floor(Math.random()*100000),
+                            name: hr2, enabled: true,
+                            chatId: scheduleCommandDialog.chatId,
+                            chatName: scheduleCommandDialog.chatName,
+                            message: msg,
+                            schedType: scheduleCommandDialog.schedType,
+                            schedEvery: scheduleCommandDialog.schedEvery,
+                            schedTime: scheduleCommandDialog.schedTime,
+                            schedDays: scheduleCommandDialog.schedDays,
+                            schedDayOfMonth: scheduleCommandDialog.schedDayOfMonth,
+                            cron: scheduleCommandDialog.buildCron(),
+                            humanReadable: hr2,
+                            notify: scheduleCommandDialog.schedNotify,
+                            createdAt: new Date().toISOString()
+                        })
+                        var escaped = jsonEntry.replace(/'/g, "'\\''")
+                        var py = "import json,os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
+                                 "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
+                                 "if isinstance(data, list): data={'version':1,'schedules':data}; " +
+                                 "data.setdefault('schedules', []).append(json.loads('" + escaped + "')); " +
+                                 "json.dump(data,open(p,'w'),indent=2)"
+                        schedulerDs.connectSource("sh -lc 'python3 -c \"" + py + "\" && pkill -HUP -f kde-ai-scheduler.py' #sched-save-" + Date.now())
+                        scheduleCommandDialog.close()
+                        root.appendSystemMessage("✅ Scheduled! I'll send \"" +
+                            msg.substring(0,50)+(msg.length>50?"…":"")+"\" " + hr2 + ".")
+                    }
+                }
+            }
+        }
     }
 
 }
