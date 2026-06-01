@@ -110,6 +110,8 @@ KCM.SimpleKCM {
     property bool schedulerDaemonRunning: false
     property string schedulerDataDir: ""
     property var schedulerList: []
+    property var schedulerArchivedList: []
+    property var schedulerHistory: []
     property string schedulerStatus: ""
     readonly property string schedulerDataPath: {
         var home = Qt.resolvedUrl("~").toString().replace("file://", "");
@@ -1369,14 +1371,33 @@ KCM.SimpleKCM {
     }
 
     function schedLoadSchedules() {
-        var cmd = "cat ~/.local/share/kdeaichat/schedules.json 2>/dev/null || echo '{\"schedules\":[]}'";
+        var cmd = "cat ~/.local/share/kdeaichat/schedules.json 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-load");
     }
 
     function schedSaveSchedules(items) {
+        page.schedulerList = items;
+        page.schedSaveAll();
+    }
+
+    function schedSaveAll() {
+        var all = [];
+        // Add active
+        for (var i = 0; i < page.schedulerList.length; i++) {
+            var s = Object.assign({}, page.schedulerList[i]);
+            s.archived = false;
+            all.push(s);
+        }
+        // Add archived
+        for (var j = 0; j < page.schedulerArchivedList.length; j++) {
+            var sa = Object.assign({}, page.schedulerArchivedList[j]);
+            sa.archived = true;
+            all.push(sa);
+        }
         var payload = {
             "version": 1,
-            "schedules": items
+            "schedules": all,
+            "history": page.schedulerHistory
         };
         var b64 = Qt.btoa(JSON.stringify(payload));
         var cmd = "python3 -c \"import base64,json,os; d=base64.b64decode('" + b64 + "'); " + "p=os.path.expanduser('~/.local/share/kdeaichat'); os.makedirs(p,exist_ok=True); " + "f=open(p+'/schedules.json','w',encoding='utf-8'); f.write(d.decode('utf-8')); f.close(); print('SCHED_SAVE_OK')\"";
@@ -1392,7 +1413,7 @@ KCM.SimpleKCM {
         s.triggerNow = true;
         copy[index] = s;
         page.schedulerList = copy;
-        schedSaveSchedules(copy);
+        page.schedSaveAll();
     }
 
     function schedMakeUuid() {
@@ -1739,9 +1760,25 @@ KCM.SimpleKCM {
                 if (out !== "") {
                     try {
                         var parsed = JSON.parse(out);
-                        page.schedulerList = parsed.schedules || [];
+                        var allSchedules = parsed.schedules || [];
+                        var active = [];
+                        var archived = [];
+                        for (var i = 0; i < allSchedules.length; i++) {
+                            if (allSchedules[i]) {
+                                if (allSchedules[i].archived) {
+                                    archived.push(allSchedules[i]);
+                                } else {
+                                    active.push(allSchedules[i]);
+                                }
+                            }
+                        }
+                        page.schedulerList = active;
+                        page.schedulerArchivedList = archived;
+                        page.schedulerHistory = parsed.history || [];
                     } catch (e) {
                         page.schedulerList = [];
+                        page.schedulerArchivedList = [];
+                        page.schedulerHistory = [];
                     }
                 }
             } else if (sourceName.indexOf("sched-save") >= 0) {

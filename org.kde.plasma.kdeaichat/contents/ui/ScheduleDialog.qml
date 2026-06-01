@@ -11,6 +11,7 @@ import org.kde.plasma.plasma5support as P5Support
         property int editingIndex: -1 // -2=new, >=0=edit, -1=list
         property var draft: ({
         })
+        property string currentTab: "active"
 
         function translate(text) {
             return page.translate(text);
@@ -182,11 +183,46 @@ import org.kde.plasma.plasma5support as P5Support
             spacing: Kirigami.Units.smallSpacing
             visible: scheduleDialog.editingIndex === -1
 
+            // ── Segmented Tab Selector ──
             RowLayout {
                 Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+                
+                QQC2.Button {
+                    text: translate("Active") + " (" + page.schedulerList.length + ")"
+                    icon.name: "appointment-new"
+                    highlighted: scheduleDialog.currentTab === "active"
+                    flat: scheduleDialog.currentTab !== "active"
+                    Layout.fillWidth: true
+                    onClicked: scheduleDialog.currentTab = "active"
+                }
+
+                QQC2.Button {
+                    text: translate("Archived") + " (" + page.schedulerArchivedList.length + ")"
+                    icon.name: "archive-insert"
+                    highlighted: scheduleDialog.currentTab === "archived"
+                    flat: scheduleDialog.currentTab !== "archived"
+                    Layout.fillWidth: true
+                    onClicked: scheduleDialog.currentTab = "archived"
+                }
+
+                QQC2.Button {
+                    text: translate("History") + " (" + page.schedulerHistory.length + ")"
+                    icon.name: "view-history"
+                    highlighted: scheduleDialog.currentTab === "history"
+                    flat: scheduleDialog.currentTab !== "history"
+                    Layout.fillWidth: true
+                    onClicked: scheduleDialog.currentTab = "history"
+                }
+            }
+
+            // ── Active Tab Header ──
+            RowLayout {
+                Layout.fillWidth: true
+                visible: scheduleDialog.currentTab === "active"
 
                 QQC2.Label {
-                    text: page.schedulerList.length === 0 ? translate("No schedules configured yet") : (page.schedulerList.length === 1 ? translate("1 schedule configured") : translate("%1 schedules configured").arg(page.schedulerList.length))
+                    text: page.schedulerList.length === 0 ? translate("No schedules configured yet") : (page.schedulerList.length === 1 ? translate("1 active schedule") : translate("%1 active schedules").arg(page.schedulerList.length))
                     opacity: 0.7
                     Layout.fillWidth: true
                 }
@@ -223,29 +259,80 @@ import org.kde.plasma.plasma5support as P5Support
                         scheduleDialog.editingIndex = -2;
                     }
                 }
+            }
 
+            // ── Archived Tab Header ──
+            RowLayout {
+                Layout.fillWidth: true
+                visible: scheduleDialog.currentTab === "archived"
+
+                QQC2.Label {
+                    text: page.schedulerArchivedList.length === 0 ? translate("No archived schedules") : (page.schedulerArchivedList.length === 1 ? translate("1 archived schedule") : translate("%1 archived schedules").arg(page.schedulerArchivedList.length))
+                    opacity: 0.7
+                    Layout.fillWidth: true
+                }
+            }
+
+            // ── History Tab Header ──
+            RowLayout {
+                Layout.fillWidth: true
+                visible: scheduleDialog.currentTab === "history"
+
+                QQC2.Label {
+                    text: page.schedulerHistory.length === 0 ? translate("No executed runs history") : (page.schedulerHistory.length === 1 ? translate("1 executed run logged") : translate("%1 executed runs logged").arg(page.schedulerHistory.length))
+                    opacity: 0.7
+                    Layout.fillWidth: true
+                }
+
+                QQC2.Button {
+                    text: translate("Clear History")
+                    icon.name: "edit-clear-all"
+                    enabled: page.schedulerHistory.length > 0
+                    onClicked: {
+                        page.schedulerHistory = [];
+                        page.schedSaveAll();
+                    }
+                }
+            }
+
+            // ── Empty State Inline Messages ──
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: scheduleDialog.currentTab === "active" && page.schedulerList.length === 0
+                type: Kirigami.MessageType.Information
+                text: translate("No active schedules configured yet. Click <b>New Schedule</b> to create one, or type <b>/schedule</b> in any chat.")
             }
 
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
-                visible: page.schedulerList.length === 0
+                visible: scheduleDialog.currentTab === "archived" && page.schedulerArchivedList.length === 0
                 type: Kirigami.MessageType.Information
-                text: translate("No schedules configured yet. Click <b>New Schedule</b> to create one, or type <b>/schedule</b> in any chat.")
+                text: translate("No archived schedules. You can archive active schedules to temporarily pause them without losing their settings.")
             }
 
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: scheduleDialog.currentTab === "history" && page.schedulerHistory.length === 0
+                type: Kirigami.MessageType.Information
+                text: translate("No history logs yet. Completed schedules and recurring run results will automatically appear here once triggered.")
+            }
+
+            // ── Scrollable Lists Area ──
             QQC2.ScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
 
+                // ── 1. ACTIVE SCHEDULES LIST ──
                 ListView {
-                    id: schedListView
-
+                    id: activeSchedListView
+                    visible: scheduleDialog.currentTab === "active"
+                    anchors.fill: parent
                     model: page.schedulerList
                     spacing: Kirigami.Units.smallSpacing
 
                     delegate: Rectangle {
-                        width: schedListView.width
+                        width: activeSchedListView.width
                         height: 74
                         radius: 6
                         color: modelData.enabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.07) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
@@ -255,7 +342,6 @@ import org.kde.plasma.plasma5support as P5Support
 
                         RowLayout {
                             spacing: Kirigami.Units.smallSpacing
-
                             anchors {
                                 fill: parent
                                 margins: Kirigami.Units.smallSpacing * 1.5
@@ -280,7 +366,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 QQC2.Label {
                                     text: modelData.name || modelData.humanReadable || translate("Unnamed")
                                     font.bold: true
-                                elide: Text.ElideRight
+                                    elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
 
@@ -300,7 +386,6 @@ import org.kde.plasma.plasma5support as P5Support
                                     font.italic: true
                                     Layout.fillWidth: true
                                 }
-
                             }
 
                             QQC2.ToolButton {
@@ -339,6 +424,25 @@ import org.kde.plasma.plasma5support as P5Support
                             }
 
                             QQC2.ToolButton {
+                                icon.name: "archive-insert"
+                                QQC2.ToolTip.text: translate("Archive")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 500
+                                onClicked: {
+                                    var copyActive = page.schedulerList.slice();
+                                    var item = copyActive.splice(index, 1)[0];
+                                    item.archived = true;
+
+                                    var copyArchived = page.schedulerArchivedList.slice();
+                                    copyArchived.push(item);
+
+                                    page.schedulerList = copyActive;
+                                    page.schedulerArchivedList = copyArchived;
+                                    page.schedSaveAll();
+                                }
+                            }
+
+                            QQC2.ToolButton {
                                 icon.name: "edit-delete"
                                 QQC2.ToolTip.text: translate("Remove")
                                 QQC2.ToolTip.visible: hovered
@@ -350,14 +454,163 @@ import org.kde.plasma.plasma5support as P5Support
                                     page.schedSaveSchedules(copy);
                                 }
                             }
-
                         }
-
                     }
+                }
 
+                // ── 2. ARCHIVED SCHEDULES LIST ──
+                ListView {
+                    id: archivedSchedListView
+                    visible: scheduleDialog.currentTab === "archived"
+                    anchors.fill: parent
+                    model: page.schedulerArchivedList
+                    spacing: Kirigami.Units.smallSpacing
+
+                    delegate: Rectangle {
+                        width: archivedSchedListView.width
+                        height: 74
+                        radius: 6
+                        color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+                        border.width: 1
+                        opacity: 0.7
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            anchors {
+                                fill: parent
+                                margins: Kirigami.Units.smallSpacing * 1.5
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                QQC2.Label {
+                                    text: modelData.name || modelData.humanReadable || translate("Unnamed")
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "📁 " + (modelData.humanReadable || modelData.cron || "") + (modelData.chatName ? " · 💬 " + modelData.chatName : "")
+                                    font.pixelSize: 11
+                                    opacity: 0.7
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
+                                    font.pixelSize: 10
+                                    opacity: 0.5
+                                    elide: Text.ElideRight
+                                    font.italic: true
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            QQC2.ToolButton {
+                                icon.name: "archive-extract"
+                                QQC2.ToolTip.text: translate("Restore to Active")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 500
+                                onClicked: {
+                                    var copyArchived = page.schedulerArchivedList.slice();
+                                    var item = copyArchived.splice(index, 1)[0];
+                                    item.archived = false;
+
+                                    var copyActive = page.schedulerList.slice();
+                                    copyActive.push(item);
+
+                                    page.schedulerList = copyActive;
+                                    page.schedulerArchivedList = copyArchived;
+                                    page.schedSaveAll();
+                                }
+                            }
+
+                            QQC2.ToolButton {
+                                icon.name: "edit-delete"
+                                QQC2.ToolTip.text: translate("Delete Permanently")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 500
+                                onClicked: {
+                                    var copyArchived = page.schedulerArchivedList.slice();
+                                    copyArchived.splice(index, 1);
+                                    page.schedulerArchivedList = copyArchived;
+                                    page.schedSaveAll();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── 3. RUN HISTORY LIST ──
+                ListView {
+                    id: historySchedListView
+                    visible: scheduleDialog.currentTab === "history"
+                    anchors.fill: parent
+                    model: page.schedulerHistory
+                    spacing: Kirigami.Units.smallSpacing
+
+                    delegate: Rectangle {
+                        width: historySchedListView.width
+                        height: 74
+                        radius: 6
+                        color: modelData.status === "success" ? Qt.rgba(0.18, 0.8, 0.44, 0.05) : Qt.rgba(0.9, 0.22, 0.22, 0.05)
+                        border.color: modelData.status === "success" ? Qt.rgba(0.18, 0.8, 0.44, 0.15) : Qt.rgba(0.9, 0.22, 0.22, 0.15)
+                        border.width: 1
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            anchors {
+                                fill: parent
+                                margins: Kirigami.Units.smallSpacing * 1.5
+                            }
+
+                            Kirigami.Icon {
+                                source: modelData.status === "success" ? "dialog-ok" : "dialog-error"
+                                color: modelData.status === "success" ? "#2ecc71" : "#e74c3c"
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.2
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 1.2
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                QQC2.Label {
+                                    text: modelData.scheduleName || translate("Unnamed Run")
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "💬 " + (modelData.chatName || "Chat") + " · ⏱ " + modelData.timestamp
+                                    font.pixelSize: 11
+                                    opacity: 0.7
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
+                                    font.pixelSize: 10
+                                    opacity: 0.5
+                                    elide: Text.ElideRight
+                                    font.italic: true
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+                    }
                 }
 
             }
+
+        }
 
         }
 

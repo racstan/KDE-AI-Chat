@@ -31,6 +31,7 @@ TICK_SECONDS = 15
 
 # ── Globals ────────────────────────────────────────────────────────────────────
 schedules = []
+history = []
 reload_requested = False
 debug = "--debug" in sys.argv
 
@@ -87,34 +88,45 @@ def cleanup():
 
 # ── Schedules I/O ──────────────────────────────────────────────────────────────
 def load_schedules():
+    global history
     if not os.path.exists(SCHEDULES_FILE):
         dlog(f"Schedules file not found: {SCHEDULES_FILE}")
+        history = []
         return []
     try:
         with open(SCHEDULES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, list):
             items = data
+            history = []
         elif isinstance(data, dict):
             items = data.get("schedules", [])
+            history = data.get("history", [])
         else:
             items = []
-        log(f"Loaded {len(items)} schedule(s) from {SCHEDULES_FILE}")
+            history = []
+        log(f"Loaded {len(items)} schedule(s) and {len(history)} history entry(s) from {SCHEDULES_FILE}")
         return items
     except (json.JSONDecodeError, OSError) as e:
         log(f"Failed to load schedules: {e}", "ERROR")
+        history = []
         return []
 
 
 def save_schedules(items):
+    global history
     try:
-        payload = {"version": 1, "schedules": items}
+        payload = {
+            "version": 1,
+            "schedules": items,
+            "history": history
+        }
         tmp = SCHEDULES_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
         os.replace(tmp, SCHEDULES_FILE)
         os.chmod(SCHEDULES_FILE, 0o600)
-        dlog("Schedules saved")
+        dlog("Schedules and history saved")
     except OSError as e:
         log(f"Failed to save schedules: {e}", "ERROR")
 
@@ -322,6 +334,9 @@ def main():
         changed = False
 
         for s in schedules:
+            if s.get("archived", False):
+                continue
+
             if not s.get("enabled", True):
                 continue
 
@@ -349,11 +364,34 @@ def main():
                 if task_type == "single":
                     should_run = not s.get("lastRunAt")
                 elif cron:
-                    should_run = cron_matches(cron, now)
+                    # Prevent multiple runs within the same minute
+                    last_run = s.get("lastRunAt", "")
+                    if last_run and last_run.startswith(now_iso[:16]):
+                        should_run = False
+                    else:
+                        should_run = cron_matches(cron, now)
 
             if should_run:
                 status = run_schedule(s)
                 
+                # Append to history
+                try:
+                    entry = {
+                        "id": f"h-{int(time.time() * 1000)}",
+                        "scheduleId": sid,
+                        "scheduleName": s.get("name", "Unnamed"),
+                        "chatId": s.get("chatId", ""),
+                        "chatName": s.get("chatName", "Chat"),
+                        "message": s.get("message", ""),
+                        "timestamp": now_iso,
+                        "status": status or "success"
+                    }
+                    history.append(entry)
+                    if len(history) > 100:
+                        history = history[-100:]
+                except Exception as ex:
+                    log(f"Failed to append to history: {ex}", "ERROR")
+
                 # Update run counts and limits
                 new_count = int(s.get("runCount", 0)) + 1
                 s["runCount"] = new_count
