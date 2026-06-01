@@ -1569,6 +1569,27 @@ KCM.SimpleKCM {
         property var draft: ({
         })
 
+        function getChatsList() {
+            var raw = plasmoid.configuration.chatSessionsJson || "[]";
+            try {
+                var arr = JSON.parse(raw);
+                var list = [];
+                if (Array.isArray(arr)) {
+                    for (var i = 0; i < arr.length; i++) {
+                        if (arr[i] && arr[i].value && !arr[i].archived) {
+                            list.push({
+                                "id": arr[i].value,
+                                "name": arr[i].text || "Chat"
+                            });
+                        }
+                    }
+                }
+                return list;
+            } catch (e) {
+                return [];
+            }
+        }
+
         // Helper: build cron from draft
         function buildCron(d) {
             if (d.taskType === "single")
@@ -1725,12 +1746,15 @@ KCM.SimpleKCM {
                     onClicked: {
                         var now = new Date();
                         now.setMinutes(now.getMinutes() + 5);
+                        var chats = scheduleDialog.getChatsList();
+                        var firstChatId = (chats.length > 0) ? chats[0].id : "";
+                        var firstChatName = (chats.length > 0) ? chats[0].name : "";
                         scheduleDialog.draft = {
                             "id": page.schedMakeUuid(),
                             "name": "",
                             "enabled": true,
-                            "chatId": "",
-                            "chatName": "",
+                            "chatId": firstChatId,
+                            "chatName": firstChatName,
                             "message": "",
                             "taskType": "single",
                             "startDate": now.toISOString(),
@@ -1894,6 +1918,63 @@ KCM.SimpleKCM {
             ColumnLayout {
                 width: parent.width - Kirigami.Units.gridUnit
                 spacing: Kirigami.Units.largeSpacing
+
+                // Target Chat Selection
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: translate("Target Chat:")
+                        font.bold: true
+                    }
+
+                    QQC2.ComboBox {
+                        id: chatComboBox
+                        Layout.fillWidth: true
+                        textRole: "name"
+                        model: scheduleDialog.getChatsList()
+
+                        Component.onCompleted: {
+                            syncIndex();
+                        }
+
+                        Connections {
+                            target: scheduleDialog
+                            function onDraftChanged() {
+                                chatComboBox.syncIndex();
+                            }
+                        }
+
+                        function syncIndex() {
+                            var targetId = scheduleDialog.draft.chatId || "";
+                            var currentModel = chatComboBox.model;
+                            if (currentModel && currentModel.length) {
+                                for (var i = 0; i < currentModel.length; i++) {
+                                    if (currentModel[i] && currentModel[i].id === targetId) {
+                                        chatComboBox.currentIndex = i;
+                                        return;
+                                    }
+                                }
+                            }
+                            chatComboBox.currentIndex = 0;
+                        }
+
+                        onActivated: {
+                            var selected = model[index];
+                            if (selected && selected.id) {
+                                scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {
+                                    "chatId": selected.id,
+                                    "chatName": selected.name
+                                });
+                            }
+                        }
+                    }
+                }
+
+                Kirigami.Separator {
+                    Layout.fillWidth: true
+                }
 
                 // Message
                 ColumnLayout {
