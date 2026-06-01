@@ -4926,6 +4926,23 @@ KCM.SimpleKCM {
 
             }
 
+            // Auto-start at login (separate setting)
+            QQC2.Switch {
+                id: schedAutoStartToggle
+
+                Kirigami.FormData.label: "Auto-start at login:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: schedAutoStartToggle.checked ? "Scheduler starts automatically when you log in" : "Off — start manually each session"
+                checked: false
+                onCheckedChanged: {
+                    if (!page.pageReady)
+                        return ;
+
+                    var verb = checked ? "enable" : "disable";
+                    utilityDs.connectSource("sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable");
+                }
+            }
+
             // Master ON/OFF switch
             QQC2.Switch {
                 id: schedulerMasterSwitch
@@ -5025,23 +5042,6 @@ KCM.SimpleKCM {
 
             }
 
-            // Auto-start at login (separate setting)
-            QQC2.Switch {
-                id: schedAutoStartToggle
-
-                Kirigami.FormData.label: "Auto-start at login:"
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: schedAutoStartToggle.checked ? "Scheduler starts automatically when you log in" : "Off — start manually each session"
-                checked: false
-                onCheckedChanged: {
-                    if (!page.pageReady)
-                        return ;
-
-                    var verb = checked ? "enable" : "disable";
-                    utilityDs.connectSource("sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable");
-                }
-            }
-
             // Schedules management row
             RowLayout {
                 visible: schedulerMasterSwitch.checked
@@ -5050,22 +5050,52 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "Schedules:"
                 spacing: Kirigami.Units.smallSpacing
 
-                QQC2.Label {
-                    text: page.schedulerList.length === 0 ? "No scheduled messages yet" : page.schedulerList.length + " scheduled message" + (page.schedulerList.length === 1 ? "" : "s")
-                    opacity: 0.7
+                QQC2.Button {
+                    text: "Create Schedule"
+                    icon.name: "list-add"
+                    highlighted: true
                     Layout.fillWidth: true
+                    onClicked: {
+                        var now = new Date();
+                        now.setMinutes(now.getMinutes() + 5);
+                        scheduleDialog.draft = {
+                            "id": page.schedMakeUuid(),
+                            "name": "",
+                            "enabled": true,
+                            "chatId": "",
+                            "chatName": "",
+                            "message": "",
+                            "taskType": "single",
+                            "startDate": now.toISOString(),
+                            "schedType": "days",
+                            "schedEvery": 1,
+                            "schedTime": "09:00",
+                            "schedDays": [1],
+                            "schedDayOfMonth": 1,
+                            "limitEnabled": false,
+                            "limitCount": 5,
+                            "notify": true,
+                            "createdAt": new Date().toISOString()
+                        };
+                        scheduleDialog.editingIndex = -2;
+                        scheduleDialog.open();
+                    }
                 }
 
                 QQC2.Button {
                     text: "Manage Schedules"
                     icon.name: "appointment-new"
-                    highlighted: true
-                    onClicked: scheduleDialog.open()
+                    Layout.fillWidth: true
+                    onClicked: {
+                        scheduleDialog.editingIndex = -1;
+                        scheduleDialog.open();
+                    }
                 }
 
                 QQC2.Button {
                     text: "Open File"
                     icon.name: "document-open"
+                    Layout.fillWidth: true
                     onClicked: {
                         utilityDs.connectSource("xdg-open ~/.local/share/kdeaichat/schedules.json || kde-open ~/.local/share/kdeaichat/schedules.json || kwrite ~/.local/share/kdeaichat/schedules.json || kate ~/.local/share/kdeaichat/schedules.json || nano ~/.local/share/kdeaichat/schedules.json #open-sched-file");
                     }
