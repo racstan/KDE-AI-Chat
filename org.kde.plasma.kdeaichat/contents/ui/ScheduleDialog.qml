@@ -1,0 +1,1040 @@
+import QtQuick
+import QtQuick.Controls as QQC2
+import QtQuick.Dialogs
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.plasma5support as P5Support
+
+    QQC2.Dialog {
+        id: scheduleDialog
+
+        property int editingIndex: -1 // -2=new, >=0=edit, -1=list
+        property var draft: ({
+        })
+
+        function translate(text) {
+            return page.translate(text);
+        }
+
+        function getChatsList() {
+            var raw = plasmoid.configuration.chatSessionsJson || "[]";
+            try {
+                var arr = JSON.parse(raw);
+                var list = [];
+                if (Array.isArray(arr)) {
+                    for (var i = 0; i < arr.length; i++) {
+                        if (arr[i] && arr[i].value && !arr[i].archived) {
+                            var rawId = arr[i].value;
+                            var displayId = rawId;
+                            if (rawId.length > 10) {
+                                displayId = rawId.substring(0, 8) + "...";
+                            }
+                            list.push({
+                                "id": rawId,
+                                "name": (arr[i].text || "Chat") + " (" + displayId + ")"
+                            });
+                        }
+                    }
+                }
+                return list;
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // Helper: build cron from draft
+        function buildCron(d) {
+            if (d.taskType === "single")
+                return "";
+
+            var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1;
+            var tp = (d.schedTime || "09:00").split(":");
+            var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            if (t === "minutes")
+                return "*/" + n + " * * * *";
+
+            if (t === "hours")
+                return "0 */" + n + " * * *";
+
+            if (t === "days")
+                return (n === 1 ? mn + " " + hr + " * * *" : mn + " " + hr + " */" + n + " * *");
+
+            if (t === "weeks") {
+                var ds = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.slice().sort().join(",") : "1";
+                return mn + " " + hr + " * * " + ds;
+            }
+            if (t === "months") {
+                var dom = d.schedDayOfMonth || 1;
+                return (n === 1 ? mn + " " + hr + " " + dom + " * *" : mn + " " + hr + " " + dom + " */" + n + " *");
+            }
+            return "0 9 * * *";
+        }
+
+        function getStartYear(dateStr) {
+            if (!dateStr)
+                return new Date().getFullYear();
+
+            return new Date(dateStr).getFullYear();
+        }
+
+        function getStartMonth(dateStr) {
+            if (!dateStr)
+                return new Date().getMonth();
+
+            return new Date(dateStr).getMonth();
+        }
+
+        function getStartDay(dateStr) {
+            if (!dateStr)
+                return new Date().getDate();
+
+            return new Date(dateStr).getDate();
+        }
+
+        function getStartHour(dateStr) {
+            if (!dateStr)
+                return 9;
+
+            return new Date(dateStr).getHours();
+        }
+
+        function getStartMin(dateStr) {
+            if (!dateStr)
+                return 0;
+
+            return new Date(dateStr).getMinutes();
+        }
+
+        function setStartDateField(field, value) {
+            var d = new Date(scheduleDialog.draft.startDate || new Date().toISOString());
+            if (field === "year")
+                d.setFullYear(value);
+            else if (field === "month")
+                d.setMonth(value);
+            else if (field === "day")
+                d.setDate(value);
+            else if (field === "hour")
+                d.setHours(value);
+            else if (field === "minute")
+                d.setMinutes(value);
+            scheduleDialog.draft = Object.assign({
+            }, scheduleDialog.draft, {
+                "startDate": d.toISOString()
+            });
+        }
+
+        // Helper: human-readable summary
+        function humanText(d) {
+            if (d.taskType === "single") {
+                var sDate = new Date(d.startDate || new Date().toISOString());
+                var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                var shr = sDate.getHours(), smn = sDate.getMinutes();
+                var sap = shr >= 12 ? translate("PM") : translate("AM"), sh12 = shr % 12 || 12;
+                var sms = smn < 10 ? "0" + smn : "" + smn;
+                var stimeStr = sh12 + ":" + sms + " " + sap;
+                return translate("Once on") + " " + translate(monthNames[sDate.getMonth()]) + " " + sDate.getDate() + ", " + sDate.getFullYear() + " " + translate("at") + " " + stimeStr;
+            }
+            var t = d.schedType || "days", n = parseInt(d.schedEvery) || 1;
+            var tp = (d.schedTime || "09:00").split(":");
+            var hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            var ap = hr >= 12 ? translate("PM") : translate("AM"), h12 = hr % 12 || 12;
+            var ms = mn < 10 ? "0" + mn : "" + mn;
+            var timeStr = h12 + ":" + ms + " " + ap;
+            var baseText = "";
+            if (t === "minutes") {
+                baseText = translate("Every") + " " + (n === 1 ? translate("minute") : n + " " + translate("minutes"));
+            } else if (t === "hours") {
+                baseText = translate("Every") + " " + (n === 1 ? translate("hour") : n + " " + translate("hours"));
+            } else if (t === "days") {
+                baseText = translate("Every") + " " + (n === 1 ? translate("day") : n + " " + translate("days")) + " " + translate("at") + " " + timeStr;
+            } else if (t === "weeks") {
+                var dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                var days = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.map(function(x) {
+                    return translate(dn[x]);
+                }).join(", ") : translate("Mon");
+                baseText = translate("Every") + " " + (n === 1 ? translate("week") : n + " " + translate("weeks")) + " " + translate("on") + " " + days + " " + translate("at") + " " + timeStr;
+            } else if (t === "months") {
+                var dom = d.schedDayOfMonth || 1;
+                var sfx = dom === 1 ? translate("st") : dom === 2 ? translate("nd") : dom === 3 ? translate("rd") : translate("th");
+                baseText = translate("Every") + " " + (n === 1 ? translate("month") : n + " " + translate("months")) + " " + translate("on the") + " " + dom + sfx + " " + translate("at") + " " + timeStr;
+            }
+            if (d.limitEnabled && d.limitCount)
+                baseText += " (" + translate("Limit:") + " " + d.limitCount + " " + (d.limitCount === 1 ? translate("run") : translate("runs")) + ")";
+
+            return baseText;
+        }
+
+        title: (editingIndex === -2) ? translate("Create Schedule") : ((editingIndex >= 0) ? translate("Edit Schedule") : translate("Schedules"))
+        modal: true
+        width: Math.min(parent.width * 0.95, Kirigami.Units.gridUnit * 50)
+        height: Math.min(parent.height * 0.92, Kirigami.Units.gridUnit * 46)
+        standardButtons: QQC2.Dialog.Close
+        onOpened: {
+            schedLoadSchedules();
+            if (editingIndex !== -2 && editingIndex < 0) {
+                editingIndex = -1;
+            }
+        }
+
+        // ── List view ──────────────────────────────────────────────────────────
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: Kirigami.Units.smallSpacing
+            visible: scheduleDialog.editingIndex === -1
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                QQC2.Label {
+                    text: page.schedulerList.length === 0 ? translate("No schedules configured yet") : (page.schedulerList.length === 1 ? translate("1 schedule configured") : translate("%1 schedules configured").arg(page.schedulerList.length))
+                    opacity: 0.7
+                    Layout.fillWidth: true
+                }
+
+                QQC2.Button {
+                    text: translate("New Schedule")
+                    icon.name: "list-add"
+                    highlighted: true
+                    onClicked: {
+                        var now = new Date();
+                        now.setMinutes(now.getMinutes() + 5);
+                        var chats = scheduleDialog.getChatsList();
+                        var firstChatId = (chats.length > 0) ? chats[0].id : "";
+                        var firstChatName = (chats.length > 0) ? chats[0].name : "";
+                        scheduleDialog.draft = {
+                            "id": page.schedMakeUuid(),
+                            "name": "",
+                            "enabled": true,
+                            "chatId": firstChatId,
+                            "chatName": firstChatName,
+                            "message": "",
+                            "taskType": "single",
+                            "startDate": now.toISOString(),
+                            "schedType": "days",
+                            "schedEvery": 1,
+                            "schedTime": "09:00",
+                            "schedDays": [1],
+                            "schedDayOfMonth": 1,
+                            "limitEnabled": false,
+                            "limitCount": 5,
+                            "notify": true,
+                            "createdAt": new Date().toISOString()
+                        };
+                        scheduleDialog.editingIndex = -2;
+                    }
+                }
+
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: page.schedulerList.length === 0
+                type: Kirigami.MessageType.Information
+                text: translate("No schedules configured yet. Click <b>New Schedule</b> to create one, or type <b>/schedule</b> in any chat.")
+            }
+
+            QQC2.ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                ListView {
+                    id: schedListView
+
+                    model: page.schedulerList
+                    spacing: Kirigami.Units.smallSpacing
+
+                    delegate: Rectangle {
+                        width: schedListView.width
+                        height: 74
+                        radius: 6
+                        color: modelData.enabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.07) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+                        border.width: 1
+                        opacity: modelData.enabled ? 1 : 0.55
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            anchors {
+                                fill: parent
+                                margins: Kirigami.Units.smallSpacing * 1.5
+                            }
+
+                            QQC2.Switch {
+                                checked: modelData.enabled
+                                onToggled: {
+                                    var copy = page.schedulerList.slice();
+                                    var s = JSON.parse(JSON.stringify(copy[index]));
+                                    s.enabled = checked;
+                                    copy[index] = s;
+                                    page.schedulerList = copy;
+                                    page.schedSaveSchedules(copy);
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                QQC2.Label {
+                                    text: modelData.name || modelData.humanReadable || translate("Unnamed")
+                                    font.bold: true
+                                elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "⏱ " + (modelData.humanReadable || modelData.cron || "") + (modelData.chatName ? " · 💬 " + modelData.chatName : "")
+                                    font.pixelSize: 11
+                                    opacity: 0.7
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
+                                    font.pixelSize: 10
+                                    opacity: 0.5
+                                    elide: Text.ElideRight
+                                    font.italic: true
+                                    Layout.fillWidth: true
+                                }
+
+                            }
+
+                            QQC2.ToolButton {
+                                icon.name: "document-edit"
+                                QQC2.ToolTip.text: translate("Edit")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 500
+                                onClicked: {
+                                    var d = JSON.parse(JSON.stringify(modelData));
+                                    if (!d.taskType)
+                                        d.taskType = "repeat";
+
+                                    if (!d.startDate) {
+                                        var now = new Date();
+                                        now.setMinutes(now.getMinutes() + 5);
+                                        d.startDate = now.toISOString();
+                                    }
+                                    if (!d.schedType)
+                                        d.schedType = "days";
+
+                                    if (!d.schedEvery)
+                                        d.schedEvery = 1;
+
+                                    if (!d.schedTime)
+                                        d.schedTime = "09:00";
+
+                                    if (!d.schedDays)
+                                        d.schedDays = [1];
+
+                                    if (!d.schedDayOfMonth)
+                                        d.schedDayOfMonth = 1;
+
+                                    scheduleDialog.draft = d;
+                                    scheduleDialog.editingIndex = index;
+                                }
+                            }
+
+                            QQC2.ToolButton {
+                                icon.name: "edit-delete"
+                                QQC2.ToolTip.text: translate("Remove")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 500
+                                onClicked: {
+                                    var copy = page.schedulerList.slice();
+                                    copy.splice(index, 1);
+                                    page.schedulerList = copy;
+                                    page.schedSaveSchedules(copy);
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        // ── Editor view ────────────────────────────────────────────────────────
+        QQC2.ScrollView {
+            anchors.fill: parent
+            visible: scheduleDialog.editingIndex !== -1
+            clip: true
+
+            ColumnLayout {
+                width: parent.width - Kirigami.Units.gridUnit
+                spacing: Kirigami.Units.largeSpacing
+
+                // Target Chat Selection
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: translate("Target Chat:")
+                        font.bold: true
+                    }
+
+                    QQC2.ComboBox {
+                        id: chatComboBox
+                        Layout.fillWidth: true
+                        textRole: "name"
+                        model: scheduleDialog.getChatsList()
+
+                        Component.onCompleted: {
+                            syncIndex();
+                        }
+
+                        Connections {
+                            target: scheduleDialog
+                            function onDraftChanged() {
+                                chatComboBox.syncIndex();
+                            }
+                        }
+
+                        function syncIndex() {
+                            var targetId = scheduleDialog.draft.chatId || "";
+                            var currentModel = chatComboBox.model;
+                            if (currentModel && currentModel.length) {
+                                for (var i = 0; i < currentModel.length; i++) {
+                                    if (currentModel[i] && currentModel[i].id === targetId) {
+                                        chatComboBox.currentIndex = i;
+                                        return;
+                                    }
+                                }
+                            }
+                            chatComboBox.currentIndex = 0;
+                        }
+
+                        onActivated: {
+                            var selected = model[index];
+                            if (selected && selected.id) {
+                                scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {
+                                    "chatId": selected.id,
+                                    "chatName": selected.name
+                                });
+                            }
+                        }
+                    }
+                }
+
+                Kirigami.Separator {
+                    Layout.fillWidth: true
+                }
+
+                // Message
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: translate("Message to send:")
+                        font.bold: true
+                    }
+
+                    QQC2.Label {
+                        text: translate("This message will be sent into the chat at the scheduled time, and the AI will reply.")
+                        font.pixelSize: 11
+                        opacity: 0.65
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.TextArea {
+                        id: dlgMessage
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 80
+                        wrapMode: TextEdit.Wrap
+                        text: scheduleDialog.draft.message || ""
+                        placeholderText: translate("e.g. What should I focus on today?")
+                        onTextChanged: scheduleDialog.draft = Object.assign({
+                        }, scheduleDialog.draft, {
+                            "message": text
+                        })
+                    }
+
+                }
+
+                Kirigami.Separator {
+                    Layout.fillWidth: true
+                }
+
+                // Schedule builder
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: translate("Task Type:")
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Button {
+                            text: translate("Single Run")
+                            highlighted: (scheduleDialog.draft.taskType || "single") === "single"
+                            flat: (scheduleDialog.draft.taskType || "single") !== "single"
+                            onClicked: scheduleDialog.draft = Object.assign({
+                            }, scheduleDialog.draft, {
+                                "taskType": "single"
+                            })
+                        }
+
+                        QQC2.Button {
+                            text: translate("Recurring (Repeatable)")
+                            highlighted: (scheduleDialog.draft.taskType || "single") === "repeat"
+                            flat: (scheduleDialog.draft.taskType || "single") !== "repeat"
+                            onClicked: scheduleDialog.draft = Object.assign({
+                            }, scheduleDialog.draft, {
+                                "taskType": "repeat"
+                            })
+                        }
+
+                    }
+
+                }
+
+                // ── Date and Time picker ──
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.mediumSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: (scheduleDialog.draft.taskType || "single") === "single" ? translate("Scheduled Date:") : translate("Start Date (Optional):")
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.ComboBox {
+                                id: startMonthCombo
+
+                                Layout.fillWidth: true
+                                model: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(function(x) { return translate(x); })
+                                currentIndex: scheduleDialog.getStartMonth(scheduleDialog.draft.startDate)
+                                onCurrentIndexChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("month", currentIndex);
+
+                                }
+                            }
+
+                            QQC2.SpinBox {
+                                id: startDaySpin
+
+                                from: 1
+                                to: 31
+                                value: scheduleDialog.getStartDay(scheduleDialog.draft.startDate)
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("day", value);
+
+                                }
+                            }
+
+                            QQC2.SpinBox {
+                                id: startYearSpin
+
+                                from: 2026
+                                to: 2035
+                                value: scheduleDialog.getStartYear(scheduleDialog.draft.startDate)
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("year", value);
+
+                                }
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: translate("Scheduled Time (Local):")
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                id: startHourSpin
+
+                                from: 0
+                                to: 23
+                                value: scheduleDialog.getStartHour(scheduleDialog.draft.startDate)
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("hour", value);
+
+                                }
+                            }
+
+                            QQC2.Label {
+                                text: ":"
+                            }
+
+                            QQC2.SpinBox {
+                                id: startMinSpin
+
+                                from: 0
+                                to: 59
+                                value: scheduleDialog.getStartMin(scheduleDialog.draft.startDate)
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    if (activeFocus)
+                                        scheduleDialog.setStartDateField("minute", value);
+
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // ── Recurrence options ──
+                ColumnLayout {
+                    visible: (scheduleDialog.draft.taskType || "single") === "repeat"
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.largeSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: translate("Repeat Every:")
+                            font.bold: true
+                        }
+
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Repeater {
+                                model: [{
+                                    "key": "minutes",
+                                    "label": "Minutes"
+                                }, {
+                                    "key": "hours",
+                                    "label": "Hours"
+                                }, {
+                                    "key": "days",
+                                    "label": "Days"
+                                }, {
+                                    "key": "weeks",
+                                    "label": "Weeks"
+                                }, {
+                                    "key": "months",
+                                    "label": "Months"
+                                }]
+
+                                QQC2.Button {
+                                    text: translate(modelData.label)
+                                    flat: (scheduleDialog.draft.schedType || "days") !== modelData.key
+                                    highlighted: (scheduleDialog.draft.schedType || "days") === modelData.key
+                                    padding: Kirigami.Units.smallSpacing * 1.5
+                                    font.pixelSize: 12
+                                    onClicked: scheduleDialog.draft = Object.assign({
+                                    }, scheduleDialog.draft, {
+                                        "schedType": modelData.key
+                                    })
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: translate("Repeat Every:")
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                id: dlgEvery
+
+                                from: 1
+                                to: 999
+                                value: scheduleDialog.draft.schedEvery || 1
+                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "schedEvery": value
+                                })
+                            }
+
+                            QQC2.Label {
+                                text: {
+                                    var t = scheduleDialog.draft.schedType || "days", n = scheduleDialog.draft.schedEvery || 1;
+                                    var labels = {
+                                        "minutes": "minute",
+                                        "hours": "hour",
+                                        "days": "day",
+                                        "weeks": "week",
+                                        "months": "month"
+                                    };
+                                    var base = labels[t] || t;
+                                    return n === 1 ? translate(base) : translate(base + "s");
+                                }
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        visible: ["days", "weeks", "months"].indexOf(scheduleDialog.draft.schedType || "days") >= 0
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: translate("Scheduled Time (Local):")
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                id: dlgHour
+
+                                from: 0
+                                to: 23
+                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    var m = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0;
+                                    scheduleDialog.draft = Object.assign({
+                                    }, scheduleDialog.draft, {
+                                        "schedTime": (value < 10 ? "0" : "") + value + ":" + (m < 10 ? "0" : "") + m
+                                    });
+                                }
+                            }
+
+                            QQC2.Label {
+                                text: ":"
+                            }
+
+                            QQC2.SpinBox {
+                                id: dlgMin
+
+                                from: 0
+                                to: 59
+                                stepSize: 5
+                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0
+                                textFromValue: function(v) {
+                                    return (v < 10 ? "0" : "") + v;
+                                }
+                                onValueChanged: {
+                                    var h = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9;
+                                    scheduleDialog.draft = Object.assign({
+                                    }, scheduleDialog.draft, {
+                                        "schedTime": (h < 10 ? "0" : "") + h + ":" + (value < 10 ? "0" : "") + value
+                                    });
+                                }
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        visible: (scheduleDialog.draft.schedType || "") === "weeks"
+                        spacing: Kirigami.Units.smallSpacing
+                        Layout.fillWidth: true
+
+                        QQC2.Label {
+                            text: translate("On these days:")
+                            font.bold: true
+                        }
+
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Repeater {
+                                model: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+                                Rectangle {
+                                    property bool sel: {
+                                        var ds = scheduleDialog.draft.schedDays || [1];
+                                        return ds.indexOf(index) >= 0;
+                                    }
+
+                                    width: 44
+                                    height: 28
+                                    radius: 5
+                                    color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
+                                    border.color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.18)
+                                    border.width: 1
+
+                                    QQC2.Label {
+                                        anchors.centerIn: parent
+                                        text: translate(modelData)
+                                        font.pixelSize: 11
+                                        font.bold: sel
+                                        color: sel ? "white" : Kirigami.Theme.textColor
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            var ds = (scheduleDialog.draft.schedDays || [1]).slice();
+                                            var pos = ds.indexOf(index);
+                                            if (pos >= 0) {
+                                                if (ds.length > 1)
+                                                    ds.splice(pos, 1);
+
+                                            } else {
+                                                ds.push(index);
+                                                ds.sort();
+                                            }
+                                            scheduleDialog.draft = Object.assign({
+                                            }, scheduleDialog.draft, {
+                                                "schedDays": ds
+                                            });
+                                        }
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        visible: (scheduleDialog.draft.schedType || "") === "months"
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: translate("On Day of Month:")
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.SpinBox {
+                                from: 1
+                                to: 28
+                                value: scheduleDialog.draft.schedDayOfMonth || 1
+                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "schedDayOfMonth": value
+                                })
+                            }
+
+                            QQC2.Label {
+                                text: translate("of the month")
+                                opacity: 0.7
+                            }
+
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: translate("Execution Limit:")
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            spacing: Kirigami.Units.mediumSpacing
+
+                            QQC2.CheckBox {
+                                id: limitCheckbox
+
+                                text: translate("Limit number of runs")
+                                checked: !!scheduleDialog.draft.limitEnabled
+                                onCheckedChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "limitEnabled": checked
+                                })
+                            }
+
+                            QQC2.SpinBox {
+                                id: limitSpin
+
+                                visible: limitCheckbox.checked
+                                from: 1
+                                to: 9999
+                                value: scheduleDialog.draft.limitCount || 5
+                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                }, scheduleDialog.draft, {
+                                    "limitCount": value
+                                })
+                            }
+
+                            QQC2.Label {
+                                visible: limitCheckbox.checked
+                                text: translate("times")
+                                opacity: 0.7
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // Summary chip
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: dlgSummary.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 6
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.1)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.3)
+                    border.width: 1
+
+                    QQC2.Label {
+                        id: dlgSummary
+
+                        text: "📅 " + scheduleDialog.humanText(scheduleDialog.draft)
+                        font.bold: true
+                        wrapMode: Text.Wrap
+                        color: Kirigami.Theme.highlightColor
+
+                        anchors {
+                            verticalCenter: parent.verticalCenter
+                            left: parent.left
+                            right: parent.right
+                            margins: Kirigami.Units.gridUnit * 0.6
+                        }
+
+                    }
+
+                }
+
+                Kirigami.Separator {
+                    Layout.fillWidth: true
+                }
+
+                // Label (always on top)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: translate("Label (optional):")
+                        font.bold: true
+                    }
+
+                    QQC2.TextField {
+                        id: dlgName
+
+                        Layout.fillWidth: true
+                        text: scheduleDialog.draft.name || ""
+                        placeholderText: translate("Leave blank to auto-name")
+                        onTextChanged: scheduleDialog.draft = Object.assign({
+                        }, scheduleDialog.draft, {
+                            "name": text
+                        })
+                    }
+
+                }
+
+                RowLayout {
+                    QQC2.Switch {
+                        id: dlgNotify
+
+                        checked: scheduleDialog.draft.notify !== false
+                        onCheckedChanged: scheduleDialog.draft = Object.assign({
+                        }, scheduleDialog.draft, {
+                            "notify": checked
+                        })
+                    }
+
+                    QQC2.Label {
+                        text: dlgNotify.checked ? translate("Show a notification when the AI replies") : translate("Silent — no notification")
+                        opacity: 0.75
+                        wrapMode: Text.Wrap
+                    }
+
+                }
+
+                // Buttons
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.Button {
+                        text: translate("Cancel")
+                        onClicked: scheduleDialog.editingIndex = -1
+                    }
+
+                    QQC2.Button {
+                        text: scheduleDialog.editingIndex === -2 ? translate("Create Schedule") : translate("Save Changes")
+                        highlighted: true
+                        enabled: dlgMessage.text.trim() !== ""
+                        onClicked: {
+                            var d = Object.assign({
+                            }, scheduleDialog.draft);
+                            d.cron = scheduleDialog.buildCron(d);
+                            d.humanReadable = scheduleDialog.humanText(d);
+                            if (!d.name || d.name.trim() === "")
+                                d.name = d.humanReadable;
+
+                            var copy = page.schedulerList.slice();
+                            if (scheduleDialog.editingIndex === -2)
+                                copy.push(d);
+                            else
+                                copy[scheduleDialog.editingIndex] = d;
+                            page.schedulerList = copy;
+                            page.schedSaveSchedules(copy);
+                            scheduleDialog.editingIndex = -1;
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
