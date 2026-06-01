@@ -1402,6 +1402,44 @@ KCM.SimpleKCM {
         });
     }
 
+    function openPrefilledScheduleDialog(pId, pName) {
+        if (!pId || pId === "")
+            return;
+        var now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        scheduleDialog.draft = {
+            "id": page.schedMakeUuid(),
+            "name": "",
+            "enabled": true,
+            "chatId": pId,
+            "chatName": pName || "Chat",
+            "message": "",
+            "taskType": "single",
+            "startDate": now.toISOString(),
+            "schedType": "days",
+            "schedEvery": 1,
+            "schedTime": "09:00",
+            "schedDays": [1],
+            "schedDayOfMonth": 1,
+            "limitEnabled": false,
+            "limitCount": 5,
+            "notify": true,
+            "createdAt": new Date().toISOString()
+        };
+        scheduleDialog.editingIndex = -2;
+        scheduleDialog.open();
+
+        // Clear configuration values immediately so it doesn't pop up again next time!
+        if (typeof page.cfg_preselectedChatId !== "undefined") {
+            page.cfg_preselectedChatId = "";
+            page.cfg_preselectedChatName = "";
+        }
+        if (plasmoid.configuration && "preselectedChatId" in plasmoid.configuration) {
+            plasmoid.configuration.preselectedChatId = "";
+            plasmoid.configuration.preselectedChatName = "";
+        }
+    }
+
     function schedDefaultBaseUrl(provider) {
         var urls = {
             "openai": "https://api.openai.com/v1",
@@ -1488,37 +1526,17 @@ KCM.SimpleKCM {
             pName = plasmoid.configuration["preselectedChatName"] || "Chat";
         }
         if (pId !== "") {
-            var now = new Date();
-            now.setMinutes(now.getMinutes() + 5);
-            scheduleDialog.draft = {
-                "id": page.schedMakeUuid(),
-                "name": "",
-                "enabled": true,
-                "chatId": pId,
-                "chatName": pName,
-                "message": "",
-                "taskType": "single",
-                "startDate": now.toISOString(),
-                "schedType": "days",
-                "schedEvery": 1,
-                "schedTime": "09:00",
-                "schedDays": [1],
-                "schedDayOfMonth": 1,
-                "limitEnabled": false,
-                "limitCount": 5,
-                "notify": true,
-                "createdAt": new Date().toISOString()
-            };
-            scheduleDialog.editingIndex = -2;
-            scheduleDialog.open();
-            // Clear configuration values immediately so it doesn't pop up again next time!
-            if (typeof page.cfg_preselectedChatId !== "undefined") {
-                page.cfg_preselectedChatId = "";
-                page.cfg_preselectedChatName = "";
-            }
-            if (plasmoid.configuration && "preselectedChatId" in plasmoid.configuration) {
-                plasmoid.configuration.preselectedChatId = "";
-                plasmoid.configuration.preselectedChatName = "";
+            openPrefilledScheduleDialog(pId, pName);
+        }
+    }
+
+    Connections {
+        target: plasmoid.configuration
+        function onPreselectedChatIdChanged() {
+            var pId = plasmoid.configuration.preselectedChatId;
+            if (pId && pId !== "") {
+                var pName = plasmoid.configuration.preselectedChatName || "Chat";
+                openPrefilledScheduleDialog(pId, pName);
             }
         }
     }
