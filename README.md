@@ -266,6 +266,12 @@ Turn your chat interface into an interactive code execution workspace with the n
 - [User Operations Manual & FAQ](user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
 - [End-User Setup & API Keys Guide](SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all supported providers.
 - [Technical Audit & Code Quality Report](audit.md) — Detailed results of the May 2026 quality assurance audit.
+- [Architecture Overview](ARCHITECTURE.md) — Codebase architecture, component descriptions, and data flow diagrams.
+- [Contributing Guidelines](CONTRIBUTING.md) — How to contribute, code conventions, and pull request process.
+- [Security Policy](SECURITY.md) — API key storage security, vulnerability reporting, and hardening details.
+- [OpenCode Developer Bridge](docs/opencode-bridge.md) — Guide to using the OpenCode integration for local AI coding.
+- [Scheduled Prompts User Guide](docs/scheduler-usage.md) — Automating AI prompts with the scheduling system.
+- [Translation Guide](docs/translation-guide.md) — Adding or updating language translations.
 
 ---
 

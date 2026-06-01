@@ -161,7 +161,7 @@ PlasmoidItem {
         root.appendSystemMessage(newEnabled ? "▶️ Schedule resumed successfully." : "⏸️ Schedule paused successfully.");
     }
 
-    function injectScheduledMessage(chatId, messageText, notify) {
+    function injectScheduledMessage(chatId, messageText, notify, schedId, schedName) {
         if (!chatId || !messageText)
             return ;
 
@@ -172,6 +172,40 @@ PlasmoidItem {
         // Play the custom scheduled execution sound
         var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
+
+        // Validate provider/model configuration before executing
+        var validationError = validateCurrentSendTarget();
+        if (validationError !== "") {
+            // Push validation error into chat window
+            pushErrorMessage(validationError);
+
+            // Display critical desktop notification popup of the configuration failure
+            if (notify) {
+                var escapedErr = validationError.replace(/'/g, "'\\''");
+                var errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
+                var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
+                soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-notify-err");
+            }
+
+            // Sync the detailed failure back to the scheduler's run history log
+            if (schedId) {
+                var historyPy = "import json, os; " +
+                    "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
+                    "if os.path.exists(p): " +
+                    "  try: " +
+                    "    data = json.load(open(p)); " +
+                    "    history = data.setdefault('history', []); " +
+                    "    for entry in reversed(history): " +
+                    "      if entry.get('scheduleId') == '" + schedId + "': " +
+                    "        entry['status'] = '" + validationError.replace(/'/g, "\\'") + "'; " +
+                    "        break; " +
+                    "    json.dump(data, open(p, 'w'), indent=2); " +
+                    "  except Exception: pass";
+                soundDs.connectSource("python3 -c \"" + historyPy + "\" #sched-history-err");
+            }
+            return ;
+        }
+
         // Append user message
         appendUserMessage(messageText, "user", []);
         // Trigger LLM generation
@@ -3106,7 +3140,7 @@ PlasmoidItem {
                                     root.createSession(true);
                                     cid = root.currentSessionId;
                                 }
-                                root.injectScheduledMessage(cid, t.message, t.notify);
+                                root.injectScheduledMessage(cid, t.message, t.notify, t.id, t.name);
                             }
                         }
                     }
