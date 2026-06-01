@@ -564,12 +564,12 @@ PlasmoidItem {
                 });
                 all.push({
                     "name": "/schedule",
-                    "desc": "Create/manage scheduled messages (System Scheduler)"
+                    "desc": "Create/manage schedules (System Scheduler)"
                 });
             } else {
                 all.push({
                     "name": "/schedule",
-                    "desc": "Create/manage scheduled messages"
+                    "desc": "Create/manage schedules"
                 });
             }
             for (var i = 0; i < all.length; i++) {
@@ -3496,7 +3496,7 @@ PlasmoidItem {
             return "Every " + (n === 1 ? "month" : n + " months") + " on the " + schedDayOfMonth + sfx + " at " + ts;
         }
 
-        title: "Create Scheduled Message"
+        title: translate("Create Schedule")
         modal: true
         x: Math.round((parent.width - width) / 2)
         y: Math.round((parent.height - height) / 2)
@@ -3941,7 +3941,7 @@ PlasmoidItem {
                                 spacing: 2
 
                                 QQC2.Label {
-                                    text: (modelData.name || "Scheduled Message") + ((modelData.enabled !== false) ? "" : " (Paused)")
+                                    text: (modelData.name || translate("Unnamed Schedule")) + ((modelData.enabled !== false) ? "" : " (" + translate("Paused") + ")")
                                     font.bold: true
                                     wrapMode: Text.Wrap
                                     Layout.fillWidth: true
