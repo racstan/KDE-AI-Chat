@@ -612,8 +612,6 @@ import org.kde.plasma.plasma5support as P5Support
 
         }
 
-        }
-
         // ── Editor view ────────────────────────────────────────────────────────
         QQC2.ScrollView {
             anchors.fill: parent
