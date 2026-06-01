@@ -2658,7 +2658,7 @@ KCM.SimpleKCM {
 
                 Kirigami.FormData.label: "Operating mode:"
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "Normal Mode (Cloud API Providers)"
+                text: "Normal Mode (Cloud & Local API Providers)"
                 checked: !openCodeToggle.checked
 
                 onClicked: {
@@ -2676,7 +2676,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: "Use cloud-based Large Language Models (OpenAI, Anthropic, Gemini, Groq, DeepSeek, etc.). You can configure API keys and select models below."
+                text: "Use cloud-based (OpenAI, Anthropic, Gemini, Groq, DeepSeek, etc.) or local API providers (Ollama, LM Studio, LiteLLM) to power your chat. Select your provider and configure API keys below."
             }
 
             QQC2.CheckBox {
@@ -3233,7 +3233,7 @@ KCM.SimpleKCM {
                 id: groqBaseUrlField
 
                 Kirigami.FormData.label: "Groq URL:"
-                visible: page.providerEnabled("groq")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.groq.com/openai/v1"
@@ -3289,7 +3289,7 @@ KCM.SimpleKCM {
                 id: deepSeekBaseUrlField
 
                 Kirigami.FormData.label: "DeepSeek URL:"
-                visible: page.providerEnabled("deepseek")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.deepseek.com"
@@ -3345,7 +3345,7 @@ KCM.SimpleKCM {
                 id: miniMaxBaseUrlField
 
                 Kirigami.FormData.label: "MiniMax URL:"
-                visible: page.providerEnabled("minimax")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.minimax.io/v1"
@@ -3401,7 +3401,7 @@ KCM.SimpleKCM {
                 id: fireworksBaseUrlField
 
                 Kirigami.FormData.label: "Fireworks URL:"
-                visible: page.providerEnabled("fireworks")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.fireworks.ai/inference/v1"
@@ -3457,7 +3457,7 @@ KCM.SimpleKCM {
                 id: googleBaseUrlField
 
                 Kirigami.FormData.label: "Google URL:"
-                visible: page.providerEnabled("google")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -3513,7 +3513,7 @@ KCM.SimpleKCM {
                 id: openRouterBaseUrlField
 
                 Kirigami.FormData.label: "OpenRouter URL:"
-                visible: page.providerEnabled("openrouter")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://openrouter.ai/api/v1"
@@ -3569,7 +3569,7 @@ KCM.SimpleKCM {
                 id: mistralBaseUrlField
 
                 Kirigami.FormData.label: "Mistral URL:"
-                visible: page.providerEnabled("mistral")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.mistral.ai/v1"
@@ -3625,7 +3625,7 @@ KCM.SimpleKCM {
                 id: cloudflareBaseUrlField
 
                 Kirigami.FormData.label: "Cloudflare URL:"
-                visible: page.providerEnabled("cloudflare")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1"
@@ -3681,7 +3681,7 @@ KCM.SimpleKCM {
                 id: nvidiaBaseUrlField
 
                 Kirigami.FormData.label: "NVIDIA NIM URL:"
-                visible: page.providerEnabled("nvidia")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://integrate.api.nvidia.com/v1"
@@ -3737,7 +3737,7 @@ KCM.SimpleKCM {
                 id: huggingFaceBaseUrlField
 
                 Kirigami.FormData.label: "HF URL:"
-                visible: page.providerEnabled("huggingface")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://router.huggingface.co/v1"
@@ -3793,7 +3793,7 @@ KCM.SimpleKCM {
                 id: xaiBaseUrlField
 
                 Kirigami.FormData.label: "xAI URL:"
-                visible: page.providerEnabled("xai")
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.x.ai/v1"
@@ -3964,7 +3964,7 @@ KCM.SimpleKCM {
             /* ── Qwen (Alibaba Cloud) ── */
             QQC2.TextField {
                 id: qwenBaseUrlField
-                visible: page.providerEnabled("qwen")
+                visible: false
                 Kirigami.FormData.label: "Qwen URL:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -4031,7 +4031,7 @@ KCM.SimpleKCM {
             /* ── Moonshot AI ── */
             QQC2.TextField {
                 id: moonshotBaseUrlField
-                visible: page.providerEnabled("moonshot")
+                visible: false
                 Kirigami.FormData.label: "Moonshot URL:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -4098,7 +4098,7 @@ KCM.SimpleKCM {
             /* ── Xiaomi MiMo ── */
             QQC2.TextField {
                 id: mimoBaseUrlField
-                visible: page.providerEnabled("mimo")
+                visible: false
                 Kirigami.FormData.label: "MiMo URL:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -4165,7 +4165,7 @@ KCM.SimpleKCM {
             /* ── Maritaca AI ── */
             QQC2.TextField {
                 id: maritacaBaseUrlField
-                visible: page.providerEnabled("maritaca")
+                visible: false
                 Kirigami.FormData.label: "Maritaca URL:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
