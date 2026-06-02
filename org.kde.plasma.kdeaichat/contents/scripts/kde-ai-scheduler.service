@@ -1,0 +1,14 @@
+[Unit]
+Description=KDE AI Chat Scheduler Daemon
+Documentation=https://github.com/racstan/KDE-AI-Chat
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

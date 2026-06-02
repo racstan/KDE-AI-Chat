@@ -24,16 +24,20 @@ import org.kde.plasma.plasma5support as P5Support
                 var list = [];
                 if (Array.isArray(arr)) {
                     for (var i = 0; i < arr.length; i++) {
-                        if (arr[i] && arr[i].value && !arr[i].archived) {
-                            var rawId = arr[i].value;
-                            var displayId = rawId;
-                            if (rawId.length > 10) {
-                                displayId = rawId.substring(0, 8) + "...";
+                        var session = arr[i];
+                        if (session && !session.archived) {
+                            var rawId = session.id || session.value || "";
+                            var rawTitle = session.title || session.text || "Chat";
+                            if (rawId) {
+                                var displayId = rawId;
+                                if (rawId.length > 10) {
+                                    displayId = rawId.substring(0, 8) + "...";
+                                }
+                                list.push({
+                                    "id": rawId,
+                                    "name": rawTitle + " (" + displayId + ")"
+                                });
                             }
-                            list.push({
-                                "id": rawId,
-                                "name": (arr[i].text || "Chat") + " (" + displayId + ")"
-                            });
                         }
                     }
                 }

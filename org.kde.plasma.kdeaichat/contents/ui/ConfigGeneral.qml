@@ -6,6 +6,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
 import "translations.js" as Translations
+import "ProviderData.js" as ProviderData
 
 KCM.SimpleKCM {
     id: page
@@ -144,6 +145,82 @@ KCM.SimpleKCM {
     readonly property string walletFolderName: "KaiChat"
     readonly property string walletAppId: "org.kde.plasma.kdeaichat"
 
+    // ── Lazy field registry to eliminate 21-arm if/else chains ──────────
+    var _fieldRegistry = null;
+    function _ensureRegistry() {
+        if (_fieldRegistry)
+            return _fieldRegistry;
+        _fieldRegistry = {
+            apiKeyFields: {
+                "openai": apiKeyField,
+                "anthropic": anthropicApiKeyField,
+                "groq": groqApiKeyField,
+                "deepseek": deepSeekApiKeyField,
+                "minimax": miniMaxApiKeyField,
+                "fireworks": fireworksApiKeyField,
+                "google": googleApiKeyField,
+                "openrouter": openRouterApiKeyField,
+                "mistral": mistralApiKeyField,
+                "cloudflare": cloudflareApiKeyField,
+                "nvidia": nvidiaApiKeyField,
+                "huggingface": huggingFaceApiKeyField,
+                "xai": xaiApiKeyField,
+                "litellm": litellmApiKeyField,
+                "qwen": qwenApiKeyField,
+                "moonshot": moonshotApiKeyField,
+                "mimo": mimoApiKeyField,
+                "maritaca": maritacaApiKeyField
+            },
+            modelFields: {
+                "openai": modelField,
+                "anthropic": anthropicModelField,
+                "groq": groqModelField,
+                "deepseek": deepSeekModelField,
+                "minimax": miniMaxModelField,
+                "fireworks": fireworksModelField,
+                "google": googleModelField,
+                "openrouter": openRouterModelField,
+                "mistral": mistralModelField,
+                "cloudflare": cloudflareModelField,
+                "nvidia": nvidiaModelField,
+                "huggingface": huggingFaceModelField,
+                "xai": xaiModelField,
+                "lmstudio": lmStudioModelField,
+                "local": localModelField,
+                "ollama": ollamaModelField,
+                "litellm": litellmModelField,
+                "qwen": qwenModelField,
+                "moonshot": moonshotModelField,
+                "mimo": mimoModelField,
+                "maritaca": maritacaModelField
+            },
+            urlFields: {
+                "openai": baseUrlField,
+                "groq": groqBaseUrlField,
+                "deepseek": deepSeekBaseUrlField,
+                "minimax": miniMaxBaseUrlField,
+                "fireworks": fireworksBaseUrlField,
+                "google": googleBaseUrlField,
+                "openrouter": openRouterBaseUrlField,
+                "mistral": mistralBaseUrlField,
+                "cloudflare": cloudflareBaseUrlField,
+                "nvidia": nvidiaBaseUrlField,
+                "huggingface": huggingFaceBaseUrlField,
+                "xai": xaiBaseUrlField,
+                "lmstudio": lmStudioBaseUrlField,
+                "local": localBaseUrlField,
+                "ollama": ollamaBaseUrlField,
+                "litellm": litellmBaseUrlField,
+                "qwen": qwenBaseUrlField,
+                "moonshot": moonshotBaseUrlField,
+                "mimo": mimoBaseUrlField,
+                "maritaca": maritacaBaseUrlField
+            },
+            keyTargetIds: ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "qwen", "moonshot", "mimo", "maritaca"]
+        };
+        return _fieldRegistry;
+    }
+
     function translate(text) {
         return Translations.translate(text, cfg_language);
     }
@@ -271,65 +348,13 @@ KCM.SimpleKCM {
     }
 
     function providerNeedsApiKey(providerId) {
-        return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama" && providerId !== "litellm";
+        return ProviderData.needsApiKey(providerId);
     }
 
     function providerHasConfiguredKey(providerId) {
-        if (providerId === "anthropic")
-            return (anthropicApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "groq")
-            return (groqApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "deepseek")
-            return (deepSeekApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "minimax")
-            return (miniMaxApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "fireworks")
-            return (fireworksApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "google")
-            return (googleApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "openrouter")
-            return (openRouterApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "mistral")
-            return (mistralApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "cloudflare")
-            return (cloudflareApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "nvidia")
-            return (nvidiaApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "huggingface")
-            return (huggingFaceApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "xai")
-            return (xaiApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "litellm")
-            return (litellmApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "qwen")
-            return (qwenApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "moonshot")
-            return (moonshotApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "mimo")
-            return (mimoApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "maritaca")
-            return (maritacaApiKeyField.text || "").trim() !== "";
-
-        if (providerId === "openai")
-            return (apiKeyField.text || "").trim() !== "";
-
-        return true;
+        var reg = _ensureRegistry();
+        var field = reg.apiKeyFields[providerId];
+        return field ? (field.text || "").trim() !== "" : true;
     }
 
     function refreshIfActiveProvider(providerId) {
@@ -352,192 +377,17 @@ KCM.SimpleKCM {
 
     function currentProviderConfig() {
         var p = providerBox.currentValue || "openai";
-        if (p === "anthropic")
-            return {
-            "id": p,
-            "type": "anthropic",
-            "baseUrl": "https://api.anthropic.com/v1",
-            "apiKey": anthropicApiKeyField.text,
-            "modelField": anthropicModelField
-        };
-
-        if (p === "local")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": localBaseUrlField.text,
-            "apiKey": "",
-            "modelField": localModelField
-        };
-
-        if (p === "groq")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": groqBaseUrlField.text,
-            "apiKey": groqApiKeyField.text,
-            "modelField": groqModelField
-        };
-
-        if (p === "deepseek")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": deepSeekBaseUrlField.text,
-            "apiKey": deepSeekApiKeyField.text,
-            "modelField": deepSeekModelField
-        };
-
-        if (p === "minimax")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": miniMaxBaseUrlField.text,
-            "apiKey": miniMaxApiKeyField.text,
-            "modelField": miniMaxModelField
-        };
-
-        if (p === "fireworks")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": fireworksBaseUrlField.text,
-            "apiKey": fireworksApiKeyField.text,
-            "modelField": fireworksModelField
-        };
-
-        if (p === "google")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": googleBaseUrlField.text,
-            "apiKey": googleApiKeyField.text,
-            "modelField": googleModelField
-        };
-
-        if (p === "openrouter")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": openRouterBaseUrlField.text,
-            "apiKey": openRouterApiKeyField.text,
-            "modelField": openRouterModelField
-        };
-
-        if (p === "mistral")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": mistralBaseUrlField.text,
-            "apiKey": mistralApiKeyField.text,
-            "modelField": mistralModelField
-        };
-
-        if (p === "cloudflare")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": cloudflareBaseUrlField.text,
-            "apiKey": cloudflareApiKeyField.text,
-            "modelField": cloudflareModelField
-        };
-
-        if (p === "nvidia")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": nvidiaBaseUrlField.text,
-            "apiKey": nvidiaApiKeyField.text,
-            "modelField": nvidiaModelField
-        };
-
-        if (p === "huggingface")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": huggingFaceBaseUrlField.text,
-            "apiKey": huggingFaceApiKeyField.text,
-            "modelField": huggingFaceModelField
-        };
-
-        if (p === "xai")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": xaiBaseUrlField.text,
-            "apiKey": xaiApiKeyField.text,
-            "modelField": xaiModelField
-        };
-
-        if (p === "lmstudio")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": lmStudioBaseUrlField.text,
-            "apiKey": "",
-            "modelField": lmStudioModelField
-        };
-
-        if (p === "ollama")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": ollamaBaseUrlField.text,
-            "apiKey": "",
-            "modelField": ollamaModelField
-        };
-
-        if (p === "litellm")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": litellmBaseUrlField.text,
-            "apiKey": litellmApiKeyField.text,
-            "modelField": litellmModelField
-        };
-
-        if (p === "qwen")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": qwenBaseUrlField.text,
-            "apiKey": qwenApiKeyField.text,
-            "modelField": qwenModelField
-        };
-
-        if (p === "moonshot")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": moonshotBaseUrlField.text,
-            "apiKey": moonshotApiKeyField.text,
-            "modelField": moonshotModelField
-        };
-
-        if (p === "mimo")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": mimoBaseUrlField.text,
-            "apiKey": mimoApiKeyField.text,
-            "modelField": mimoModelField
-        };
-
-        if (p === "maritaca")
-            return {
-            "id": p,
-            "type": "openai-compat",
-            "baseUrl": maritacaBaseUrlField.text,
-            "apiKey": maritacaApiKeyField.text,
-            "modelField": maritacaModelField
-        };
-
+        var reg = _ensureRegistry();
+        var info = ProviderData.getProvider(p);
+        var urlField = reg.urlFields[p];
+        var keyField = reg.apiKeyFields[p];
+        var modelF = reg.modelFields[p];
         return {
-            "id": "openai",
-            "type": "openai-compat",
-            "baseUrl": baseUrlField.text,
-            "apiKey": apiKeyField.text,
-            "modelField": modelField
+            "id": p,
+            "type": info ? info.type : "openai-compat",
+            "baseUrl": urlField ? urlField.text : (info ? info.defaultUrl : ""),
+            "apiKey": keyField ? keyField.text : "",
+            "modelField": modelF || null
         };
     }
 
@@ -942,42 +792,10 @@ KCM.SimpleKCM {
             return ;
 
         var before = apiKeyForTarget(targetId);
-        if (targetId === "openai")
-            apiKeyField.text = normalized;
-        else if (targetId === "anthropic")
-            anthropicApiKeyField.text = normalized;
-        else if (targetId === "groq")
-            groqApiKeyField.text = normalized;
-        else if (targetId === "deepseek")
-            deepSeekApiKeyField.text = normalized;
-        else if (targetId === "minimax")
-            miniMaxApiKeyField.text = normalized;
-        else if (targetId === "fireworks")
-            fireworksApiKeyField.text = normalized;
-        else if (targetId === "google")
-            googleApiKeyField.text = normalized;
-        else if (targetId === "openrouter")
-            openRouterApiKeyField.text = normalized;
-        else if (targetId === "mistral")
-            mistralApiKeyField.text = normalized;
-        else if (targetId === "cloudflare")
-            cloudflareApiKeyField.text = normalized;
-        else if (targetId === "nvidia")
-            nvidiaApiKeyField.text = normalized;
-        else if (targetId === "huggingface")
-            huggingFaceApiKeyField.text = normalized;
-        else if (targetId === "xai")
-            xaiApiKeyField.text = normalized;
-        else if (targetId === "litellm")
-            litellmApiKeyField.text = normalized;
-        else if (targetId === "qwen")
-            qwenApiKeyField.text = normalized;
-        else if (targetId === "moonshot")
-            moonshotApiKeyField.text = normalized;
-        else if (targetId === "mimo")
-            mimoApiKeyField.text = normalized;
-        else if (targetId === "maritaca")
-            maritacaApiKeyField.text = normalized;
+        var reg = _ensureRegistry();
+        var field = reg.apiKeyFields[targetId];
+        if (field)
+            field.text = normalized;
         var after = apiKeyForTarget(targetId);
         if (before !== after && providerBox.currentValue === targetId)
             refreshCurrentProviderModels();
@@ -985,65 +803,13 @@ KCM.SimpleKCM {
     }
 
     function keyTargetIds() {
-        return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "qwen", "moonshot", "mimo", "maritaca"];
+        return _ensureRegistry().keyTargetIds;
     }
 
     function apiKeyForTarget(targetId) {
-        if (targetId === "openai")
-            return apiKeyField.text;
-
-        if (targetId === "anthropic")
-            return anthropicApiKeyField.text;
-
-        if (targetId === "groq")
-            return groqApiKeyField.text;
-
-        if (targetId === "deepseek")
-            return deepSeekApiKeyField.text;
-
-        if (targetId === "minimax")
-            return miniMaxApiKeyField.text;
-
-        if (targetId === "fireworks")
-            return fireworksApiKeyField.text;
-
-        if (targetId === "google")
-            return googleApiKeyField.text;
-
-        if (targetId === "openrouter")
-            return openRouterApiKeyField.text;
-
-        if (targetId === "mistral")
-            return mistralApiKeyField.text;
-
-        if (targetId === "cloudflare")
-            return cloudflareApiKeyField.text;
-
-        if (targetId === "nvidia")
-            return nvidiaApiKeyField.text;
-
-        if (targetId === "huggingface")
-            return huggingFaceApiKeyField.text;
-
-        if (targetId === "xai")
-            return xaiApiKeyField.text;
-
-        if (targetId === "litellm")
-            return litellmApiKeyField.text;
-
-        if (targetId === "qwen")
-            return qwenApiKeyField.text;
-
-        if (targetId === "moonshot")
-            return moonshotApiKeyField.text;
-
-        if (targetId === "mimo")
-            return mimoApiKeyField.text;
-
-        if (targetId === "maritaca")
-            return maritacaApiKeyField.text;
-
-        return "";
+        var reg = _ensureRegistry();
+        var field = reg.apiKeyFields[targetId];
+        return field ? field.text : "";
     }
 
     function kwalletLoadAll() {
@@ -1072,24 +838,13 @@ KCM.SimpleKCM {
     }
 
     function clearAllApiKeyFields() {
-        apiKeyField.text = "";
-        anthropicApiKeyField.text = "";
-        groqApiKeyField.text = "";
-        deepSeekApiKeyField.text = "";
-        miniMaxApiKeyField.text = "";
-        fireworksApiKeyField.text = "";
-        googleApiKeyField.text = "";
-        openRouterApiKeyField.text = "";
-        mistralApiKeyField.text = "";
-        cloudflareApiKeyField.text = "";
-        nvidiaApiKeyField.text = "";
-        huggingFaceApiKeyField.text = "";
-        xaiApiKeyField.text = "";
-        litellmApiKeyField.text = "";
-        qwenApiKeyField.text = "";
-        moonshotApiKeyField.text = "";
-        mimoApiKeyField.text = "";
-        maritacaApiKeyField.text = "";
+        var reg = _ensureRegistry();
+        var ids = reg.keyTargetIds;
+        for (var i = 0; i < ids.length; i++) {
+            var field = reg.apiKeyFields[ids[i]];
+            if (field)
+                field.text = "";
+        }
     }
 
     function loadKeysFromPlainConfig() {
@@ -1097,153 +852,83 @@ KCM.SimpleKCM {
     }
 
     function applyPlainConfigKeys(keys) {
-        apiKeyField.text = keys["apiKey"] || "";
-        anthropicApiKeyField.text = keys["anthropicApiKey"] || "";
-        groqApiKeyField.text = keys["groqApiKey"] || "";
-        deepSeekApiKeyField.text = keys["deepSeekApiKey"] || "";
-        miniMaxApiKeyField.text = keys["miniMaxApiKey"] || "";
-        fireworksApiKeyField.text = keys["fireworksApiKey"] || "";
-        googleApiKeyField.text = keys["googleApiKey"] || "";
-        openRouterApiKeyField.text = keys["openRouterApiKey"] || "";
-        mistralApiKeyField.text = keys["mistralApiKey"] || "";
-        cloudflareApiKeyField.text = keys["cloudflareApiKey"] || "";
-        nvidiaApiKeyField.text = keys["nvidiaApiKey"] || "";
-        huggingFaceApiKeyField.text = keys["huggingFaceApiKey"] || "";
-        xaiApiKeyField.text = keys["xaiApiKey"] || "";
-        litellmApiKeyField.text = keys["litellmApiKey"] || "";
-        qwenApiKeyField.text = keys["qwenApiKey"] || "";
-        moonshotApiKeyField.text = keys["moonshotApiKey"] || "";
-        mimoApiKeyField.text = keys["mimoApiKey"] || "";
-        maritacaApiKeyField.text = keys["maritacaApiKey"] || "";
+        var reg = _ensureRegistry();
+        var ids = reg.keyTargetIds;
+        for (var i = 0; i < ids.length; i++) {
+            var field = reg.apiKeyFields[ids[i]];
+            if (field)
+                field.text = keys[ProviderData.configField(ids[i], "ApiKey")] || "";
+        }
+    }
+
+    function _buildKeyPayload() {
+        var reg = _ensureRegistry();
+        var payload = {};
+        var ids = reg.keyTargetIds;
+        for (var i = 0; i < ids.length; i++) {
+            var configName = ProviderData.configField(ids[i], "ApiKey");
+            var field = reg.apiKeyFields[ids[i]];
+            payload[configName] = field ? field.text : "";
+        }
+        return payload;
+    }
+
+    function _keysToB64Cmd(extraSuffix) {
+        var payload = _buildKeyPayload();
+        var b64Str = Qt.btoa(JSON.stringify(payload));
+        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"" + (extraSuffix || "");
+        return cmd;
     }
 
     function writeKeysToDiskAndOpen() {
-        var payload = {
-            "apiKey": apiKeyField.text,
-            "anthropicApiKey": anthropicApiKeyField.text,
-            "groqApiKey": groqApiKeyField.text,
-            "deepSeekApiKey": deepSeekApiKeyField.text,
-            "miniMaxApiKey": miniMaxApiKeyField.text,
-            "fireworksApiKey": fireworksApiKeyField.text,
-            "googleApiKey": googleApiKeyField.text,
-            "openRouterApiKey": openRouterApiKeyField.text,
-            "mistralApiKey": mistralApiKeyField.text,
-            "cloudflareApiKey": cloudflareApiKeyField.text,
-            "nvidiaApiKey": nvidiaApiKeyField.text,
-            "huggingFaceApiKey": huggingFaceApiKeyField.text,
-            "xaiApiKey": xaiApiKeyField.text,
-            "litellmApiKey": litellmApiKeyField.text,
-            "qwenApiKey": qwenApiKeyField.text,
-            "moonshotApiKey": moonshotApiKeyField.text,
-            "mimoApiKey": mimoApiKeyField.text,
-            "maritacaApiKey": maritacaApiKeyField.text
-        };
-        var b64Str = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config";
-        utilityDs.connectSource(cmd);
+        utilityDs.connectSource(_keysToB64Cmd(" && xdg-open ~/.config/kdeaichatrc") + " #open-config");
     }
 
     function syncKeysToDisk() {
-        // Write current key fields to ~/.config/kdeaichatrc (plain-config extra copy).
-        // cfg_ aliases handle saving to the Plasma config automatically on OK/Apply.
-        var payload = {
-            "apiKey": apiKeyField.text,
-            "anthropicApiKey": anthropicApiKeyField.text,
-            "groqApiKey": groqApiKeyField.text,
-            "deepSeekApiKey": deepSeekApiKeyField.text,
-            "miniMaxApiKey": miniMaxApiKeyField.text,
-            "fireworksApiKey": fireworksApiKeyField.text,
-            "googleApiKey": googleApiKeyField.text,
-            "openRouterApiKey": openRouterApiKeyField.text,
-            "mistralApiKey": mistralApiKeyField.text,
-            "cloudflareApiKey": cloudflareApiKeyField.text,
-            "nvidiaApiKey": nvidiaApiKeyField.text,
-            "huggingFaceApiKey": huggingFaceApiKeyField.text,
-            "xaiApiKey": xaiApiKeyField.text,
-            "litellmApiKey": litellmApiKeyField.text,
-            "qwenApiKey": qwenApiKeyField.text,
-            "moonshotApiKey": moonshotApiKeyField.text,
-            "mimoApiKey": mimoApiKeyField.text,
-            "maritacaApiKey": maritacaApiKeyField.text
-        };
-        var b64Str = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
-        utilityDs.connectSource(cmd + " #plainconfig-sync");
+        utilityDs.connectSource(_keysToB64Cmd("") + " #plainconfig-sync");
+    }
+
+    function _configNamesForPython() {
+        var reg = _ensureRegistry();
+        var names = [];
+        for (var i = 0; i < reg.keyTargetIds.length; i++)
+            names.push(ProviderData.configField(reg.keyTargetIds[i], "ApiKey"));
+        return names;
     }
 
     function clearKeysFromDisk() {
-        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
+        var names = _configNamesForPython();
+        var listStr = "[" + names.map(function(n) { return "'" + n + "'"; }).join(",") + "]";
+        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in " + listStr + "]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
         utilityDs.connectSource(cmd + " #plainconfig-clear");
-        plasmoid.configuration.apiKey = "";
-        plasmoid.configuration.anthropicApiKey = "";
-        plasmoid.configuration.groqApiKey = "";
-        plasmoid.configuration.deepSeekApiKey = "";
-        plasmoid.configuration.miniMaxApiKey = "";
-        plasmoid.configuration.fireworksApiKey = "";
-        plasmoid.configuration.googleApiKey = "";
-        plasmoid.configuration.openRouterApiKey = "";
-        plasmoid.configuration.mistralApiKey = "";
-        plasmoid.configuration.cloudflareApiKey = "";
-        plasmoid.configuration.nvidiaApiKey = "";
-        plasmoid.configuration.huggingFaceApiKey = "";
-        plasmoid.configuration.xaiApiKey = "";
-        plasmoid.configuration.litellmApiKey = "";
-        plasmoid.configuration.qwenApiKey = "";
-        plasmoid.configuration.moonshotApiKey = "";
-        plasmoid.configuration.mimoApiKey = "";
-        plasmoid.configuration.maritacaApiKey = "";
+        var reg = _ensureRegistry();
+        for (var i = 0; i < reg.keyTargetIds.length; i++) {
+            var configName = ProviderData.configField(reg.keyTargetIds[i], "ApiKey");
+            plasmoid.configuration[configName] = "";
+        }
     }
 
     function saveGeneralSettingsOnly() {
+        var reg = _ensureRegistry();
         plasmoid.configuration.appDisplayName = appDisplayNameField.text;
         plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex;
         plasmoid.configuration.keyStorageMode = cfg_keyStorageMode;
         plasmoid.configuration.provider = cfg_provider;
-        plasmoid.configuration.baseUrl = baseUrlField.text;
-        plasmoid.configuration.model = modelField.text;
-        plasmoid.configuration.anthropicModel = anthropicModelField.text;
-        plasmoid.configuration.groqBaseUrl = groqBaseUrlField.text;
-        plasmoid.configuration.groqModel = groqModelField.text;
-        plasmoid.configuration.deepSeekBaseUrl = deepSeekBaseUrlField.text;
-        plasmoid.configuration.deepSeekModel = deepSeekModelField.text;
-        plasmoid.configuration.miniMaxBaseUrl = miniMaxBaseUrlField.text;
-        plasmoid.configuration.miniMaxModel = miniMaxModelField.text;
-        plasmoid.configuration.fireworksBaseUrl = fireworksBaseUrlField.text;
-        plasmoid.configuration.fireworksModel = fireworksModelField.text;
-        plasmoid.configuration.googleBaseUrl = googleBaseUrlField.text;
-        plasmoid.configuration.googleModel = googleModelField.text;
-        plasmoid.configuration.openRouterBaseUrl = openRouterBaseUrlField.text;
-        plasmoid.configuration.openRouterModel = openRouterModelField.text;
-        plasmoid.configuration.mistralBaseUrl = mistralBaseUrlField.text;
-        plasmoid.configuration.mistralModel = mistralModelField.text;
-        plasmoid.configuration.cloudflareBaseUrl = cloudflareBaseUrlField.text;
-        plasmoid.configuration.cloudflareModel = cloudflareModelField.text;
-        plasmoid.configuration.nvidiaBaseUrl = nvidiaBaseUrlField.text;
-        plasmoid.configuration.nvidiaModel = nvidiaModelField.text;
-        plasmoid.configuration.huggingFaceBaseUrl = huggingFaceBaseUrlField.text;
-        plasmoid.configuration.huggingFaceModel = huggingFaceModelField.text;
-        plasmoid.configuration.xaiBaseUrl = xaiBaseUrlField.text;
-        plasmoid.configuration.xaiModel = xaiModelField.text;
-        plasmoid.configuration.lmStudioBaseUrl = lmStudioBaseUrlField.text;
-        plasmoid.configuration.lmStudioModel = lmStudioModelField.text;
-        plasmoid.configuration.localBaseUrl = localBaseUrlField.text;
-        plasmoid.configuration.localModel = localModelField.text;
-        plasmoid.configuration.ollamaBaseUrl = ollamaBaseUrlField.text;
-        plasmoid.configuration.ollamaModel = ollamaModelField.text;
-        plasmoid.configuration.litellmBaseUrl = litellmBaseUrlField.text;
-        plasmoid.configuration.litellmModel = litellmModelField.text;
-        plasmoid.configuration.qwenBaseUrl = qwenBaseUrlField.text;
-        plasmoid.configuration.qwenApiKey = qwenApiKeyField.text;
-        plasmoid.configuration.qwenModel = qwenModelField.text;
-        plasmoid.configuration.moonshotBaseUrl = moonshotBaseUrlField.text;
-        plasmoid.configuration.moonshotApiKey = moonshotApiKeyField.text;
-        plasmoid.configuration.moonshotModel = moonshotModelField.text;
-        plasmoid.configuration.mimoBaseUrl = mimoBaseUrlField.text;
-        plasmoid.configuration.mimoApiKey = mimoApiKeyField.text;
-        plasmoid.configuration.mimoModel = mimoModelField.text;
-        plasmoid.configuration.maritacaBaseUrl = maritacaBaseUrlField.text;
-        plasmoid.configuration.maritacaApiKey = maritacaApiKeyField.text;
-        plasmoid.configuration.maritacaModel = maritacaModelField.text;
+        // Save all provider URL, API key, and model fields
+        var allIds = ProviderData.idList();
+        for (var pi = 0; pi < allIds.length; pi++) {
+            var id = allIds[pi];
+            var info = ProviderData.getProvider(id);
+            var urlField = reg.urlFields[id];
+            var keyField = reg.apiKeyFields[id];
+            var modelF = reg.modelFields[id];
+            if (urlField && urlField.visible)
+                plasmoid.configuration[ProviderData.configField(id, "BaseUrl")] = urlField.text;
+            if (keyField)
+                plasmoid.configuration[ProviderData.configField(id, "ApiKey")] = keyField.text;
+            if (modelF)
+                plasmoid.configuration[ProviderData.configField(id, "Model")] = modelF.text;
+        }
         plasmoid.configuration.language = cfg_language || "";
         plasmoid.configuration.showInteractiveGuides = showGuidesToggle.checked;
         plasmoid.configuration.autoStartOpenCodeServer = autoStartOpenCodeToggle.checked;
@@ -1276,65 +961,22 @@ KCM.SimpleKCM {
     function resetToDefaults() {
         appDisplayNameField.text = "KDE AI Chat";
         providerBox.currentIndex = 0;
-        baseUrlField.text = "https://api.openai.com/v1";
-        apiKeyField.text = "";
-        modelField.text = "gpt-4o-mini";
-        anthropicApiKeyField.text = "";
-        anthropicModelField.text = "claude-3-5-sonnet-latest";
-        groqBaseUrlField.text = "https://api.groq.com/openai/v1";
-        groqApiKeyField.text = "";
-        groqModelField.text = "llama-3.3-70b-versatile";
-        deepSeekBaseUrlField.text = "https://api.deepseek.com";
-        deepSeekApiKeyField.text = "";
-        deepSeekModelField.text = "deepseek-v4-pro";
-        miniMaxBaseUrlField.text = "https://api.minimax.io/v1";
-        miniMaxApiKeyField.text = "";
-        miniMaxModelField.text = "MiniMax-M2.7";
-        fireworksBaseUrlField.text = "https://api.fireworks.ai/inference/v1";
-        fireworksApiKeyField.text = "";
-        fireworksModelField.text = "accounts/fireworks/models/llama-v3p3-70b-instruct";
-        googleBaseUrlField.text = "https://generativelanguage.googleapis.com/v1beta/openai/";
-        googleApiKeyField.text = "";
-        googleModelField.text = "gemini-3-flash-preview";
-        openRouterBaseUrlField.text = "https://openrouter.ai/api/v1";
-        openRouterApiKeyField.text = "";
-        openRouterModelField.text = "openai/gpt-4o-mini";
-        mistralBaseUrlField.text = "https://api.mistral.ai/v1";
-        mistralApiKeyField.text = "";
-        mistralModelField.text = "mistral-small-latest";
-        cloudflareBaseUrlField.text = "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1";
-        cloudflareApiKeyField.text = "";
-        cloudflareModelField.text = "@cf/meta/llama-3.1-8b-instruct";
-        nvidiaBaseUrlField.text = "https://integrate.api.nvidia.com/v1";
-        nvidiaApiKeyField.text = "";
-        nvidiaModelField.text = "meta/llama-3.1-70b-instruct";
-        huggingFaceBaseUrlField.text = "https://router.huggingface.co/v1";
-        huggingFaceApiKeyField.text = "";
-        huggingFaceModelField.text = "openai/gpt-oss-120b:groq";
-        xaiBaseUrlField.text = "https://api.x.ai/v1";
-        xaiApiKeyField.text = "";
-        xaiModelField.text = "grok-2-latest";
-        lmStudioBaseUrlField.text = "http://localhost:1234/v1";
-        lmStudioModelField.text = "";
-        localBaseUrlField.text = "http://localhost:11434/v1";
-        localModelField.text = "llama3.2";
-        ollamaBaseUrlField.text = "http://localhost:11434/v1";
-        ollamaModelField.text = "llama3.2";
-        litellmBaseUrlField.text = "http://localhost:4000/v1";
-        litellmApiKeyField.text = "";
-        litellmModelField.text = "";
-        qwenBaseUrlField.text = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-        qwenApiKeyField.text = "";
-        qwenModelField.text = "qwen-max";
-        moonshotBaseUrlField.text = "https://api.moonshot.ai/v1";
-        moonshotApiKeyField.text = "";
-        moonshotModelField.text = "moonshot-v1-8k";
-        mimoBaseUrlField.text = "https://api.xiaomimimo.com/v1";
-        mimoApiKeyField.text = "";
-        mimoModelField.text = "mimo-v2-pro";
-        maritacaBaseUrlField.text = "https://chat.maritaca.ai/api";
-        maritacaApiKeyField.text = "";
-        maritacaModelField.text = "sabia-4";
+        // Reset all provider fields to their default values from ProviderData
+        var reg = _ensureRegistry();
+        var allIds = ProviderData.idList();
+        for (var pi = 0; pi < allIds.length; pi++) {
+            var id = allIds[pi];
+            var info = ProviderData.getProvider(id);
+            var urlField = reg.urlFields[id];
+            var keyField = reg.apiKeyFields[id];
+            var modelF = reg.modelFields[id];
+            if (urlField)
+                urlField.text = info ? info.defaultUrl : "";
+            if (keyField)
+                keyField.text = "";
+            if (modelF)
+                modelF.text = info ? info.defaultModel : "";
+        }
         languageCombo.currentIndex = 0;
         showGuidesToggle.checked = true;
         autoStartOpenCodeToggle.checked = false;
@@ -2223,70 +1865,7 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 textRole: "text"
                 valueRole: "value"
-                model: [{
-                    "value": "openai",
-                    "text": "OpenAI"
-                }, {
-                    "value": "anthropic",
-                    "text": "Anthropic"
-                }, {
-                    "value": "groq",
-                    "text": "Groq"
-                }, {
-                    "value": "deepseek",
-                    "text": "DeepSeek"
-                }, {
-                    "value": "minimax",
-                    "text": "MiniMax"
-                }, {
-                    "value": "fireworks",
-                    "text": "Fireworks"
-                }, {
-                    "value": "google",
-                    "text": "Google Gemini"
-                }, {
-                    "value": "openrouter",
-                    "text": "OpenRouter"
-                }, {
-                    "value": "mistral",
-                    "text": "Mistral"
-                }, {
-                    "value": "cloudflare",
-                    "text": "Cloudflare Workers AI"
-                }, {
-                    "value": "nvidia",
-                    "text": "NVIDIA NIM"
-                }, {
-                    "value": "huggingface",
-                    "text": "Hugging Face"
-                }, {
-                    "value": "xai",
-                    "text": "xAI Grok"
-                }, {
-                    "value": "lmstudio",
-                    "text": "LM Studio"
-                }, {
-                    "value": "local",
-                    "text": "Local / OpenAI-compatible"
-                }, {
-                    "value": "ollama",
-                    "text": "Ollama"
-                }, {
-                    "value": "litellm",
-                    "text": "LiteLLM"
-                }, {
-                    "value": "qwen",
-                    "text": "Alibaba Qwen"
-                }, {
-                    "value": "moonshot",
-                    "text": "Moonshot AI"
-                }, {
-                    "value": "mimo",
-                    "text": "Xiaomi MiMo"
-                }, {
-                    "value": "maritaca",
-                    "text": "Maritaca AI"
-                }]
+                model: ProviderData.comboModel()
                 currentIndex: {
                     for (var i = 0; i < model.length; i++) {
                         if (model[i].value === cfg_provider)
@@ -2598,31 +2177,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.openai.com/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: apiKeyField
                 Kirigami.FormData.label: translate("OpenAI key:")
                 visible: page.providerEnabled("openai")
-                Layout.fillWidth: true
+                providerId: "openai"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: apiKeyField
-
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: parent.width - apiKeyShowHide.implicitWidth - parent.spacing
-                    echoMode: apiKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("openai", text);
-                        page.refreshIfActiveProvider("openai");
-                    }
+                onEditingFinished: {
+                    page.saveKey("openai", text);
+                    page.refreshIfActiveProvider("openai");
                 }
-
-                QQC2.Button {
-                    id: apiKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -2647,30 +2213,18 @@ KCM.SimpleKCM {
                 onTextChanged: setActiveProviderModelValue(text)
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: anthropicApiKeyField
                 Kirigami.FormData.label: translate("Anthropic key:")
                 visible: page.providerEnabled("anthropic")
-                Layout.fillWidth: true
+                providerId: "anthropic"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: anthropicApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: anthropicKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("anthropic", text);
-                        page.refreshIfActiveProvider("anthropic");
-                    }
+                onEditingFinished: {
+                    page.saveKey("anthropic", text);
+                    page.refreshIfActiveProvider("anthropic");
                 }
-
-                QQC2.Button {
-                    id: anthropicKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -2703,30 +2257,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.groq.com/openai/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: groqApiKeyField
                 Kirigami.FormData.label: translate("Groq key:")
                 visible: page.providerEnabled("groq")
-                Layout.fillWidth: true
+                providerId: "groq"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: groqApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: groqKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("groq", text);
-                        page.refreshIfActiveProvider("groq");
-                    }
+                onEditingFinished: {
+                    page.saveKey("groq", text);
+                    page.refreshIfActiveProvider("groq");
                 }
-
-                QQC2.Button {
-                    id: groqKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -2759,30 +2301,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.deepseek.com"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: deepSeekApiKeyField
                 Kirigami.FormData.label: translate("DeepSeek key:")
                 visible: page.providerEnabled("deepseek")
-                Layout.fillWidth: true
+                providerId: "deepseek"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: deepSeekApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: deepSeekKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("deepseek", text);
-                        page.refreshIfActiveProvider("deepseek");
-                    }
+                onEditingFinished: {
+                    page.saveKey("deepseek", text);
+                    page.refreshIfActiveProvider("deepseek");
                 }
-
-                QQC2.Button {
-                    id: deepSeekKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -2815,30 +2345,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.minimax.io/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: miniMaxApiKeyField
                 Kirigami.FormData.label: translate("MiniMax key:")
                 visible: page.providerEnabled("minimax")
-                Layout.fillWidth: true
+                providerId: "minimax"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: miniMaxApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: miniMaxKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("minimax", text);
-                        page.refreshIfActiveProvider("minimax");
-                    }
+                onEditingFinished: {
+                    page.saveKey("minimax", text);
+                    page.refreshIfActiveProvider("minimax");
                 }
-
-                QQC2.Button {
-                    id: miniMaxKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -2871,30 +2389,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.fireworks.ai/inference/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: fireworksApiKeyField
                 Kirigami.FormData.label: translate("Fireworks key:")
                 visible: page.providerEnabled("fireworks")
-                Layout.fillWidth: true
+                providerId: "fireworks"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: fireworksApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: fireworksKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("fireworks", text);
-                        page.refreshIfActiveProvider("fireworks");
-                    }
+                onEditingFinished: {
+                    page.saveKey("fireworks", text);
+                    page.refreshIfActiveProvider("fireworks");
                 }
-
-                QQC2.Button {
-                    id: fireworksKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -2927,30 +2433,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://generativelanguage.googleapis.com/v1beta/openai/"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: googleApiKeyField
                 Kirigami.FormData.label: translate("Google key:")
                 visible: page.providerEnabled("google")
-                Layout.fillWidth: true
+                providerId: "google"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: googleApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: googleKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("google", text);
-                        page.refreshIfActiveProvider("google");
-                    }
+                onEditingFinished: {
+                    page.saveKey("google", text);
+                    page.refreshIfActiveProvider("google");
                 }
-
-                QQC2.Button {
-                    id: googleKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -2983,30 +2477,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://openrouter.ai/api/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: openRouterApiKeyField
                 Kirigami.FormData.label: translate("OpenRouter key:")
                 visible: page.providerEnabled("openrouter")
-                Layout.fillWidth: true
+                providerId: "openrouter"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: openRouterApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: openRouterKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("openrouter", text);
-                        page.refreshIfActiveProvider("openrouter");
-                    }
+                onEditingFinished: {
+                    page.saveKey("openrouter", text);
+                    page.refreshIfActiveProvider("openrouter");
                 }
-
-                QQC2.Button {
-                    id: openRouterKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3039,30 +2521,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.mistral.ai/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: mistralApiKeyField
                 Kirigami.FormData.label: translate("Mistral key:")
                 visible: page.providerEnabled("mistral")
-                Layout.fillWidth: true
+                providerId: "mistral"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: mistralApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: mistralKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("mistral", text);
-                        page.refreshIfActiveProvider("mistral");
-                    }
+                onEditingFinished: {
+                    page.saveKey("mistral", text);
+                    page.refreshIfActiveProvider("mistral");
                 }
-
-                QQC2.Button {
-                    id: mistralKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3095,30 +2565,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: cloudflareApiKeyField
                 Kirigami.FormData.label: translate("Cloudflare key:")
                 visible: page.providerEnabled("cloudflare")
-                Layout.fillWidth: true
+                providerId: "cloudflare"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: cloudflareApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: cloudflareKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("cloudflare", text);
-                        page.refreshIfActiveProvider("cloudflare");
-                    }
+                onEditingFinished: {
+                    page.saveKey("cloudflare", text);
+                    page.refreshIfActiveProvider("cloudflare");
                 }
-
-                QQC2.Button {
-                    id: cloudflareKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3151,30 +2609,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://integrate.api.nvidia.com/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: nvidiaApiKeyField
                 Kirigami.FormData.label: translate("NVIDIA NIM key:")
                 visible: page.providerEnabled("nvidia")
-                Layout.fillWidth: true
+                providerId: "nvidia"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: nvidiaApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: nvidiaKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("nvidia", text);
-                        page.refreshIfActiveProvider("nvidia");
-                    }
+                onEditingFinished: {
+                    page.saveKey("nvidia", text);
+                    page.refreshIfActiveProvider("nvidia");
                 }
-
-                QQC2.Button {
-                    id: nvidiaKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3207,30 +2653,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://router.huggingface.co/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: huggingFaceApiKeyField
                 Kirigami.FormData.label: translate("HF token:")
                 visible: page.providerEnabled("huggingface")
-                Layout.fillWidth: true
+                providerId: "huggingface"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: huggingFaceApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: huggingFaceKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("huggingface", text);
-                        page.refreshIfActiveProvider("huggingface");
-                    }
+                onEditingFinished: {
+                    page.saveKey("huggingface", text);
+                    page.refreshIfActiveProvider("huggingface");
                 }
-
-                QQC2.Button {
-                    id: huggingFaceKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3263,30 +2697,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.x.ai/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: xaiApiKeyField
                 Kirigami.FormData.label: translate("xAI key:")
                 visible: page.providerEnabled("xai")
-                Layout.fillWidth: true
+                providerId: "xai"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: xaiApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: xaiKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("xai", text);
-                        page.refreshIfActiveProvider("xai");
-                    }
+                onEditingFinished: {
+                    page.saveKey("xai", text);
+                    page.refreshIfActiveProvider("xai");
                 }
-
-                QQC2.Button {
-                    id: xaiKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3379,30 +2801,18 @@ KCM.SimpleKCM {
                 placeholderText: "http://localhost:4000/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: litellmApiKeyField
                 Kirigami.FormData.label: translate("LiteLLM key:")
                 visible: page.providerEnabled("litellm")
-                Layout.fillWidth: true
+                providerId: "litellm"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: litellmApiKeyField
-
-                    Layout.fillWidth: true
-                    echoMode: litellmKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("litellm", text);
-                        page.refreshIfActiveProvider("litellm");
-                    }
+                onEditingFinished: {
+                    page.saveKey("litellm", text);
+                    page.refreshIfActiveProvider("litellm");
                 }
-
-                QQC2.Button {
-                    id: litellmKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3436,31 +2846,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: qwenApiKeyField
                 Kirigami.FormData.label: translate("Qwen key:")
                 visible: page.providerEnabled("qwen")
-                Layout.fillWidth: true
+                providerId: "qwen"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: qwenApiKeyField
-
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: parent.width - qwenKeyShowHide.implicitWidth - parent.spacing
-                    echoMode: qwenKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("qwen", text);
-                        page.refreshIfActiveProvider("qwen");
-                    }
+                onEditingFinished: {
+                    page.saveKey("qwen", text);
+                    page.refreshIfActiveProvider("qwen");
                 }
-
-                QQC2.Button {
-                    id: qwenKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3504,31 +2901,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.moonshot.ai/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: moonshotApiKeyField
                 Kirigami.FormData.label: translate("Moonshot key:")
                 visible: page.providerEnabled("moonshot")
-                Layout.fillWidth: true
+                providerId: "moonshot"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: moonshotApiKeyField
-
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: parent.width - moonshotKeyShowHide.implicitWidth - parent.spacing
-                    echoMode: moonshotKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("moonshot", text);
-                        page.refreshIfActiveProvider("moonshot");
-                    }
+                onEditingFinished: {
+                    page.saveKey("moonshot", text);
+                    page.refreshIfActiveProvider("moonshot");
                 }
-
-                QQC2.Button {
-                    id: moonshotKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3572,31 +2956,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://api.xiaomimimo.com/v1"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: mimoApiKeyField
                 Kirigami.FormData.label: translate("MiMo key:")
                 visible: page.providerEnabled("mimo")
-                Layout.fillWidth: true
+                providerId: "mimo"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: mimoApiKeyField
-
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: parent.width - mimoKeyShowHide.implicitWidth - parent.spacing
-                    echoMode: mimoKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("mimo", text);
-                        page.refreshIfActiveProvider("mimo");
-                    }
+                onEditingFinished: {
+                    page.saveKey("mimo", text);
+                    page.refreshIfActiveProvider("mimo");
                 }
-
-                QQC2.Button {
-                    id: mimoKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {
@@ -3640,31 +3011,18 @@ KCM.SimpleKCM {
                 placeholderText: "https://chat.maritaca.ai/api"
             }
 
-            RowLayout {
+            ApiKeyRow {
+                id: maritacaApiKeyField
                 Kirigami.FormData.label: translate("Maritaca key:")
                 visible: page.providerEnabled("maritaca")
-                Layout.fillWidth: true
+                providerId: "maritaca"
+                hideText: translate("Hide")
+                showText: translate("Show")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    id: maritacaApiKeyField
-
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: parent.width - maritacaKeyShowHide.implicitWidth - parent.spacing
-                    echoMode: maritacaKeyShowHide.checked ? TextInput.Normal : TextInput.Password
-                    onEditingFinished: {
-                        page.saveKey("maritaca", text);
-                        page.refreshIfActiveProvider("maritaca");
-                    }
+                onEditingFinished: {
+                    page.saveKey("maritaca", text);
+                    page.refreshIfActiveProvider("maritaca");
                 }
-
-                QQC2.Button {
-                    id: maritacaKeyShowHide
-
-                    checkable: true
-                    text: checked ? translate("Hide") : translate("Show")
-                }
-
             }
 
             QQC2.Label {

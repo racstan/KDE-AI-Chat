@@ -1,0 +1,8 @@
+# KDE AI Chat — Python Dependencies
+# The Python scripts (doc_extractor.py, kde-ai-scheduler.py) use only stdlib.
+# No pip packages required.
+#
+# System-level dependencies (install via your package manager):
+#   - pandoc          (DOCX → markdown extraction)
+#   - poppler-utils   (pdftotext for PDF extraction)
+#   - python3         (runtime)

@@ -13,12 +13,20 @@ Reload schedules without restart: kill -HUP <pid>
 """
 
 import json
+import logging
 import os
 import re
 import signal
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+logging.basicConfig(
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.DEBUG if "--debug" in sys.argv else logging.INFO,
+)
+log = logging.getLogger(__name__)
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 HOME = os.path.expanduser("~")
@@ -33,28 +41,17 @@ TICK_SECONDS = 15
 schedules = []
 history = []
 reload_requested = False
-debug = "--debug" in sys.argv
-
-
-def log(msg, level="INFO"):
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts}] [{level}] {msg}", flush=True)
-
-
-def dlog(msg):
-    if debug:
-        log(msg, "DEBUG")
 
 
 # ── Signal handlers ────────────────────────────────────────────────────────────
 def handle_sighup(signum, frame):
     global reload_requested
     reload_requested = True
-    log("SIGHUP received — will reload schedules.json on next tick")
+    log.info("SIGHUP received — will reload schedules.json on next tick")
 
 
 def handle_sigterm(signum, frame):
-    log("SIGTERM received — shutting down gracefully")
+    log.info("SIGTERM received — shutting down gracefully")
     cleanup()
     sys.exit(0)
 
@@ -75,7 +72,7 @@ def write_lock():
             f.write(str(os.getpid()))
         os.chmod(LOCK_FILE, 0o600)
     except OSError as e:
-        log(f"Could not write lock file: {e}", "WARN")
+        log.warning("Could not write lock file: %s", e)
 
 
 def cleanup():
@@ -90,7 +87,7 @@ def cleanup():
 def load_schedules():
     global history
     if not os.path.exists(SCHEDULES_FILE):
-        dlog(f"Schedules file not found: {SCHEDULES_FILE}")
+        log.debug(f"Schedules file not found: {SCHEDULES_FILE}")
         history = []
         return []
     try:
@@ -105,10 +102,10 @@ def load_schedules():
         else:
             items = []
             history = []
-        log(f"Loaded {len(items)} schedule(s) and {len(history)} history entry(s) from {SCHEDULES_FILE}")
+        log.info(f"Loaded {len(items)} schedule(s) and {len(history)} history entry(s) from {SCHEDULES_FILE}")
         return items
     except (json.JSONDecodeError, OSError) as e:
-        log(f"Failed to load schedules: {e}", "ERROR")
+        log.error("Failed to load schedules: %s", e)
         history = []
         return []
 
@@ -126,9 +123,9 @@ def save_schedules(items):
             json.dump(payload, f, indent=2, ensure_ascii=False)
         os.replace(tmp, SCHEDULES_FILE)
         os.chmod(SCHEDULES_FILE, 0o600)
-        dlog("Schedules and history saved")
+        log.debug("Schedules and history saved")
     except OSError as e:
-        log(f"Failed to save schedules: {e}", "ERROR")
+        log.error("Failed to save schedules: %s", e)
 
 
 # ── Cron parser ────────────────────────────────────────────────────────────────
@@ -213,10 +210,10 @@ def run_schedule(s):
     should_notify = s.get("notify", True)
 
     if not chat_id or not message:
-        log(f"[{name}] Skipping — missing chatId or message", "WARN")
+        log.warning("[%s] Skipping — missing chatId or message", name)
         return "error"
 
-    log(f"[{name}] Triggering schedule message injection to chat {chat_id}")
+    log.info(f"[{name}] Triggering schedule message injection to chat {chat_id}")
     
     pending_dir = os.path.join(DATA_DIR, "pending")
     ts = int(time.time() * 1000)
@@ -236,10 +233,10 @@ def run_schedule(s):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
         os.chmod(path, 0o600)
-        log(f"[{name}] Wrote pending trigger file successfully: {path}")
+        log.info(f"[{name}] Wrote pending trigger file successfully: {path}")
         return "success"
     except Exception as e:
-        log(f"[{name}] Failed to write pending trigger: {e}", "ERROR")
+        log.error("[%s] Failed to write pending trigger: %s", name, e)
         return "error"
 
 
@@ -270,7 +267,7 @@ def is_start_date_passed(s, now):
             start_dt = datetime(year, month, day, hour, minute)
             return now >= start_dt
     except Exception as e:
-        log(f"Error parsing startDate '{start_date_str}': {e}", "WARN")
+        log.warning("Error parsing startDate '%s': %s", start_date_str, e)
     return True
 
 
@@ -307,7 +304,7 @@ def next_run_iso(cron_expr):
 def main():
     global schedules, reload_requested
 
-    log("KDE AI Chat Scheduler daemon starting up")
+    log.info("KDE AI Chat Scheduler daemon starting up")
     ensure_dirs()
     write_lock()
 
@@ -321,13 +318,13 @@ def main():
                 s["nextRunAt"] = next_run_iso(cron)
     save_schedules(schedules)
 
-    log(f"Tick interval: {TICK_SECONDS}s — monitoring {len(schedules)} schedule(s)")
+    log.info(f"Tick interval: {TICK_SECONDS}s — monitoring {len(schedules)} schedule(s)")
 
     while True:
         if reload_requested:
             reload_requested = False
             schedules = load_schedules()
-            log(f"Schedules reloaded — {len(schedules)} schedule(s) active")
+            log.info(f"Schedules reloaded — {len(schedules)} schedule(s) active")
 
         now = datetime.now()
         now_iso = now.isoformat(timespec="seconds")
@@ -345,6 +342,25 @@ def main():
             trigger_now = s.get("triggerNow", False)
             task_type = s.get("taskType", "repeat")
 
+            # Missed execution catch-up detection (backfill)
+            is_missed = False
+            next_run_str = s.get("nextRunAt", "")
+            if next_run_str and not trigger_now:
+                try:
+                    clean_next = next_run_str
+                    if clean_next.endswith("Z"):
+                        clean_next = clean_next[:-1]
+                    if "." in clean_next:
+                        clean_next = clean_next.split(".")[0]
+                    next_dt = datetime.fromisoformat(clean_next)
+                    
+                    # Trigger immediately if scheduled run is in the past by at least 1 minute
+                    if next_dt < now - timedelta(minutes=1):
+                        is_missed = True
+                        log.info(f"[{s.get('name', 'Unnamed')}] Missed execution detected (scheduled: {next_run_str}, now: {now_iso}). Catching up now!")
+                except Exception as ex:
+                    log.debug(f"Failed to parse nextRunAt '{next_run_str}': {ex}")
+
             # Start date filter
             start_passed = is_start_date_passed(s, now)
             if not start_passed and not trigger_now:
@@ -359,7 +375,7 @@ def main():
                     changed = True
                     continue
 
-            should_run = trigger_now
+            should_run = trigger_now or is_missed
             if not should_run:
                 if task_type == "single":
                     should_run = not s.get("lastRunAt")
@@ -384,13 +400,13 @@ def main():
                         "chatName": s.get("chatName", "Chat"),
                         "message": s.get("message", ""),
                         "timestamp": now_iso,
-                        "status": status or "success"
+                        "status": "success (missed execution catch-up)" if (is_missed and (not status or status == "success")) else (status or "success")
                     }
                     history.append(entry)
                     if len(history) > 100:
                         history = history[-100:]
                 except Exception as ex:
-                    log(f"Failed to append to history: {ex}", "ERROR")
+                    log.error("Failed to append to history: %s", ex)
 
                 # Update run counts and limits
                 new_count = int(s.get("runCount", 0)) + 1
@@ -428,10 +444,10 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        log("Interrupted — shutting down")
+        log.info("Interrupted — shutting down")
         cleanup()
         sys.exit(0)
     except Exception as e:
-        log(f"Fatal error: {e}", "ERROR")
+        log.error("Fatal error: %s", e)
         cleanup()
         sys.exit(1)
