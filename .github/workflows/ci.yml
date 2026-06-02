@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python3 -m py_compile org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py
+      - run: python3 -m py_compile org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
+      - run: pipx run ruff check --select=E9,F --output-format=github org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
+
+  qml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install qmllint
+        run: sudo apt-get update && sudo apt-get install -y qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-layouts qml6-module-qtquick-dialogs qt6-declarative-tools
+      - name: Lint QML
+        working-directory: org.kde.plasma.kdeaichat/contents/ui
+        run: |
+          for f in *.qml; do
+            echo "Checking $f..."
+            qmllint --nowarnings $f 2>&1 || true
+          done
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check YAML syntax
+        run: |
+          pipx install yamllint
+          yamllint -d '{extends: relaxed, rules: {line-length: disable}}' .github/workflows/ci.yml
+      - name: Check Markdown
+        run: |
+          pipx install markdownlint-cli
+          markdownlint --ignore node_modules '**/*.md' 2>&1 || true

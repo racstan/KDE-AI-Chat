@@ -22,11 +22,24 @@ QtObject {
         };
     }
 
+    // Reusable style fragments — eliminates inline style literal repetition
+    readonly property string _sCodeBlock:    "background:" + _colors.codeBg + ";color:" + _colors.codeColor + ";font-family:monospace;padding:10px 12px;margin:8px 0;border-radius:6px;border:1px solid " + _colors.borderColor + ";overflow-x:auto;"
+    readonly property string _sPreBlock:    "margin:0;white-space:pre-wrap;font-family:monospace;line-height:1.5;"
+    readonly property string _sCodeHeader:  "font-size:0.8em;color:" + _colors.codeHeaderColor + ";margin-bottom:6px;font-weight:bold;border-bottom:1px solid " + _colors.borderColor + ";padding-bottom:4px;"
+    readonly property string _sInlineCode:  "background:" + _colors.inlineBg + ";color:" + _colors.inlineColor + ";font-family:monospace;padding:2px 5px;border-radius:3px;font-size:0.92em;"
+    readonly property string _sLink:        "color:" + _colors.linkColor + ";text-decoration:underline;"
+    readonly property string _sH:           "font-weight:bold;"
+    readonly property string _sHr:          "border:none;border-top:1px solid " + _colors.hrColor + ";margin:10px 0;"
+    readonly property string _sQuote:       "margin:4px 0 4px 12px;padding:4px 10px;border-left:3px solid " + _colors.borderColor + ";opacity:0.8;"
+    readonly property string _sTableCell:   "border:1px solid " + _colors.tableBorderColor + ";padding:5px 10px;"
+    readonly property string _sTableHead:   _sTableCell + "background:" + _colors.tableHeadBg + ";text-align:left;font-weight:bold;"
+    readonly property string _sTableHeaderCell: "border:1px solid " + _colors.tableBorderColor + ";padding:6px 10px;background:" + _colors.tableHeadBg + ";text-align:left;font-weight:bold;"
+
     function toHtml(markdown) {
         if (!markdown)
             return "";
 
-        var c = root._colors;
+        var s = root;
         var html = markdown;
 
         // 1. Escape HTML
@@ -36,26 +49,19 @@ QtObject {
         var codeBlocks = [];
         html = html.replace(/```([a-zA-Z0-9+#\-_]*)\n([\s\S]*?)```/g, function(match, lang, code) {
             var idx = codeBlocks.length;
+            var langLabel = (lang || 'code');
             codeBlocks.push(
-                '<div style="background-color: ' + c.codeBg + '; color: ' + c.codeColor
-                + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid '
-                + c.borderColor + '; overflow-x: auto;">'
-                + '<div style="font-size: 0.8em; color: ' + c.codeHeaderColor
-                + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + c.borderColor
-                + '; padding-bottom: 4px;">' + (lang || 'code') + '</div>'
-                + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">'
-                + code.replace(/\n$/, '') + '</pre></div>'
+                '<div style="' + s._sCodeBlock + '">'
+                + '<div style="' + s._sCodeHeader + '">' + langLabel + '</div>'
+                + '<pre style="' + s._sPreBlock + '">' + code.replace(/\n$/, '') + '</pre></div>'
             );
             return "%%CB" + idx + "%%";
         });
         html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
             var idx = codeBlocks.length;
             codeBlocks.push(
-                '<div style="background-color: ' + c.codeBg + '; color: ' + c.codeColor
-                + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid '
-                + c.borderColor + '; overflow-x: auto;">'
-                + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">'
-                + code.replace(/\n$/, '') + '</pre></div>'
+                '<div style="' + s._sCodeBlock + '">'
+                + '<pre style="' + s._sPreBlock + '">' + code.replace(/\n$/, '') + '</pre></div>'
             );
             return "%%CB" + idx + "%%";
         });
@@ -73,15 +79,15 @@ QtObject {
             var t = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em;">';
             t += '<thead><tr>';
             parseCells(headerRow).forEach(function(cell) {
-                t += '<th style="border: 1px solid ' + c.tableBorderColor + '; padding: 6px 10px; background: ' + c.tableHeadBg + '; text-align: left; font-weight: bold;">' + cell + '</th>';
+                t += '<th style="' + s._sTableHeaderCell + '">' + cell + '</th>';
             });
             t += '</tr></thead><tbody>';
             bodyRows.forEach(function(row, ri) {
                 if (row.trim() === '' || /^[\s|:\-]+$/.test(row)) return;
-                var bg = (ri % 2 === 1) ? ' background: ' + c.tableRowAltBg + ';' : '';
+                var bg = (ri % 2 === 1) ? 'background:' + root._colors.tableRowAltBg + ';' : '';
                 t += '<tr>';
                 parseCells(row).forEach(function(cell) {
-                    t += '<td style="border: 1px solid ' + c.tableBorderColor + '; padding: 5px 10px;' + bg + '">' + cell + '</td>';
+                    t += '<td style="' + s._sTableCell + bg + '">' + cell + '</td>';
                 });
                 t += '</tr>';
             });
@@ -91,14 +97,13 @@ QtObject {
 
         // 4. Inline code
         html = html.replace(/`([^`\n]+)`/g,
-            '<code style="background-color: ' + c.inlineBg + '; color: ' + c.inlineColor
-            + '; font-family: monospace; padding: 2px 5px; border-radius: 3px; font-size: 0.92em;">$1</code>');
+            '<code style="' + s._sInlineCode + '">$1</code>');
 
         // 5. Headers
-        html = html.replace(/^#### (.*?)$/gm, '<h4 style="margin: 8px 0; font-weight: bold;">$1</h4>');
-        html = html.replace(/^### (.*?)$/gm, '<h3 style="margin: 10px 0; font-weight: bold;">$1</h3>');
-        html = html.replace(/^## (.*?)$/gm, '<h2 style="margin: 12px 0; font-weight: bold;">$1</h2>');
-        html = html.replace(/^# (.*?)$/gm, '<h1 style="margin: 14px 0; font-weight: bold;">$1</h1>');
+        html = html.replace(/^#### (.*?)$/gm, '<h4 style="margin: 8px 0;' + s._sH + '">$1</h4>');
+        html = html.replace(/^### (.*?)$/gm, '<h3 style="margin: 10px 0;' + s._sH + '">$1</h3>');
+        html = html.replace(/^## (.*?)$/gm, '<h2 style="margin: 12px 0;' + s._sH + '">$1</h2>');
+        html = html.replace(/^# (.*?)$/gm, '<h1 style="margin: 14px 0;' + s._sH + '">$1</h1>');
 
         // 6. Bold & Italic
         html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<b>$1</b>');
@@ -108,15 +113,15 @@ QtObject {
 
         // 7. Links
         html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g,
-            '<a href="$2" style="color: ' + c.linkColor + '; text-decoration: underline;">$1</a>');
+            '<a href="$2" style="' + s._sLink + '">$1</a>');
 
         // 8. Horizontal rule
         html = html.replace(/^---+$/gm,
-            '<hr style="border: none; border-top: 1px solid ' + c.hrColor + '; margin: 10px 0;"/>');
+            '<hr style="' + s._sHr + '"/>');
 
         // 9. Blockquote
         html = html.replace(/^&gt;\s?(.*?)$/gm,
-            '<blockquote style="margin: 4px 0 4px 12px; padding: 4px 10px; border-left: 3px solid ' + c.borderColor + '; opacity: 0.8;">$1</blockquote>');
+            '<blockquote style="' + s._sQuote + '">$1</blockquote>');
 
         // 10. Bullet lists
         html = html.replace(/^\s*[-*+]\s+(.*?)$/gm, '<ul><li>$1</li></ul>');

@@ -24,6 +24,7 @@ PlasmoidItem {
     property var attachedFiles: []
     property bool historyOnlyMode: false
     property bool loading: false
+    property bool connectionTimedOut: false
     property var activeXhr: null
     property var openCodeEventXhr: null
     property string openCodeActiveSessionId: ""
@@ -68,6 +69,17 @@ PlasmoidItem {
     MarkdownRenderer {
         id: markdownRenderer
         isDark: root.popupIsDark
+    }
+
+    Timer {
+        id: connectionTimeoutTimer
+        interval: 45000
+        running: root.loading && !root.streamingResponse
+        repeat: false
+        onTriggered: {
+            if (root.loading && !root.streamingResponse)
+                root.connectionTimedOut = true;
+        }
     }
 
     signal clearChatInput()
@@ -723,6 +735,7 @@ PlasmoidItem {
 
     function finishOpenCodeRequest() {
         root.loading = false;
+        root.connectionTimedOut = false;
         root.activeXhr = null;
         root.openCodeActiveSessionId = "";
         root.openCodeAssistantMessageIndex = -1;
@@ -1261,6 +1274,7 @@ PlasmoidItem {
 
         ensureOpenCodeEventStream();
         root.loading = true;
+        root.connectionTimedOut = false;
         root.streamingResponse = false;
         root.openCodeAssistantMessageIndex = -1;
         root.openCodeAssistantServerMessageId = "";
@@ -2285,6 +2299,7 @@ PlasmoidItem {
             root.activeXhr = null;
         }
         root.loading = false;
+        root.connectionTimedOut = false;
         saveCurrentSessionState(true);
         processNextQueuedMessage();
     }
@@ -4933,6 +4948,21 @@ PlasmoidItem {
                             PC3.Label {
                                 text: root.streamingResponse ? "Streaming response..." : "Thinking..."
                                 opacity: 0.8
+                            }
+
+                            PC3.Label {
+                                visible: root.connectionTimedOut
+                                text: "⚠ " + translate("No response yet — check if the server is running")
+                                color: "#e74c3c"
+                                font.bold: true
+                            }
+
+                            QQC2.Button {
+                                visible: root.connectionTimedOut
+                                text: translate("Cancel request")
+                                icon.name: "dialog-cancel"
+                                flat: true
+                                onClicked: stopStreaming()
                             }
 
                         }

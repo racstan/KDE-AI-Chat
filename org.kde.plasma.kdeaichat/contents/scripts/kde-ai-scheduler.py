@@ -12,6 +12,7 @@ directly into the active chat session.
 Reload schedules without restart: kill -HUP <pid>
 """
 
+import argparse
 import json
 import logging
 import os
@@ -21,10 +22,17 @@ import sys
 import time
 from datetime import datetime, timezone, timedelta
 
+parser = argparse.ArgumentParser(
+    description="KDE AI Chat scheduling daemon — reads schedule files and triggers pending jobs via cron rules."
+)
+parser.add_argument("--debug", action="store_true", help="Enable debug-level logging")
+parser.add_argument("--dry-run", action="store_true", help="Simulate without creating trigger files")
+args, _ = parser.parse_known_args()
+
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    level=logging.DEBUG if "--debug" in sys.argv else logging.INFO,
+    level=logging.DEBUG if args.debug else logging.INFO,
 )
 log = logging.getLogger(__name__)
 
@@ -228,6 +236,10 @@ def run_schedule(s):
         "name": name,
         "timestamp": ts
     }
+
+    if args.dry_run:
+        log.info("[%s] DRY-RUN: would write trigger to %s", name, path)
+        return "success"  # pretend it worked
 
     try:
         with open(path, "w", encoding="utf-8") as f:

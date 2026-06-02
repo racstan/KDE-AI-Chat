@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import sys
 import os
 import json
@@ -258,16 +259,20 @@ def handle_clipboard():
     }))
 
 def main():
-    if len(sys.argv) < 2:
-        print(json.dumps({"status": "error", "message": "No file path provided"}))
-        return
+    parser = argparse.ArgumentParser(
+        description="Extract text from documents (PDF, DOCX, PPTX, XLSX, images, archives) for KDE AI Chat."
+    )
+    parser.add_argument("path", nargs="?", help="Path to a file to extract text from")
+    parser.add_argument("--clipboard", action="store_true", help="Extract text from clipboard contents (files or images)")
+    args = parser.parse_args()
 
-    arg = sys.argv[1]
-    if arg == '--clipboard':
+    if args.clipboard:
         handle_clipboard()
-    else:
-        result = extract_single_file(arg)
+    elif args.path:
+        result = extract_single_file(args.path)
         print(json.dumps(result))
+    else:
+        parser.print_help()
 
 if __name__ == '__main__':
     main()

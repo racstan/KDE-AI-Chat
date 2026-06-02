@@ -47,6 +47,65 @@ import org.kde.plasma.plasma5support as P5Support
             }
         }
 
+        // Validate a 5-field cron expression; returns {valid:bool, message:string}
+        function validateCron(cronStr) {
+            if (!cronStr || cronStr.trim() === "")
+                return {valid: true, message: ""};
+
+            var parts = cronStr.trim().split(/\s+/);
+            if (parts.length !== 5)
+                return {valid: false, message: translate("Cron must have 5 fields (min hour day month weekday)")};
+
+            var ranges = [
+                {name: "minute", lo: 0, hi: 59},
+                {name: "hour", lo: 0, hi: 23},
+                {name: "day", lo: 1, hi: 31},
+                {name: "month", lo: 1, hi: 12},
+                {name: "weekday", lo: 0, hi: 7}
+            ];
+            for (var i = 0; i < 5; i++) {
+                var r = ranges[i];
+                var items = parts[i].split(",");
+                for (var j = 0; j < items.length; j++) {
+                    var v = items[j];
+                    if (v === "*") continue;
+                    
+                    var mSingle = v.match(/^\d+$/);
+                    var mRange = v.match(/^(\d+)-(\d+)$/);
+                    var mStep = v.match(/^(\d+|\*)\/(\d+)$/);
+                    var mRangeStep = v.match(/^(\d+)-(\d+)\/(\d+)$/);
+                    
+                    if (mSingle) {
+                        var n = parseInt(v);
+                        if (n < r.lo || n > r.hi)
+                            return {valid: false, message: translate("'%1' out of range %2-%3 for %4").arg(v).arg(r.lo).arg(r.hi).arg(r.name)};
+                    } else if (mRange) {
+                        var a = parseInt(mRange[1]), b = parseInt(mRange[2]);
+                        if (a < r.lo || b > r.hi || a > b)
+                            return {valid: false, message: translate("Range %1-%2 invalid for %3").arg(a).arg(b).arg(r.name)};
+                    } else if (mStep) {
+                        var base = mStep[1], step = parseInt(mStep[2]);
+                        if (step < 1)
+                            return {valid: false, message: translate("Step < 1 in %1 field").arg(r.name)};
+                        if (base !== "*") {
+                            var bVal = parseInt(base);
+                            if (bVal < r.lo || bVal > r.hi)
+                                return {valid: false, message: translate("Base out of range in %1").arg(r.name)};
+                        }
+                    } else if (mRangeStep) {
+                        var ra = parseInt(mRangeStep[1]), rb = parseInt(mRangeStep[2]), rstep = parseInt(mRangeStep[3]);
+                        if (rstep < 1)
+                            return {valid: false, message: translate("Step < 1 in %1 field").arg(r.name)};
+                        if (ra < r.lo || rb > r.hi || ra > rb)
+                            return {valid: false, message: translate("Range %1-%2 invalid for %3").arg(ra).arg(rb).arg(r.name)};
+                    } else {
+                        return {valid: false, message: translate("Invalid cron item '%1' in %2 field").arg(v).arg(r.name)};
+                    }
+                }
+            }
+            return {valid: true, message: ""};
+        }
+
         // Helper: build cron from draft
         function buildCron(d) {
             if (d.taskType === "single")
@@ -1250,6 +1309,16 @@ import org.kde.plasma.plasma5support as P5Support
 
                 }
 
+                // Validation error
+                QQC2.Label {
+                    id: dlgCronError
+                    Layout.fillWidth: true
+                    visible: text !== ""
+                    color: "#e74c3c"
+                    wrapMode: Text.Wrap
+                    font.bold: true
+                }
+
                 // Buttons
                 RowLayout {
                     Layout.fillWidth: true
@@ -1260,7 +1329,10 @@ import org.kde.plasma.plasma5support as P5Support
 
                     QQC2.Button {
                         text: translate("Cancel")
-                        onClicked: scheduleDialog.editingIndex = -1
+                        onClicked: {
+                            dlgCronError.text = "";
+                            scheduleDialog.editingIndex = -1;
+                        }
                     }
 
                     QQC2.Button {
@@ -1271,6 +1343,14 @@ import org.kde.plasma.plasma5support as P5Support
                             var d = Object.assign({
                             }, scheduleDialog.draft);
                             d.cron = scheduleDialog.buildCron(d);
+                            if (d.cron && d.cron.trim() !== "") {
+                                var cv = scheduleDialog.validateCron(d.cron);
+                                if (!cv.valid) {
+                                    dlgCronError.text = cv.message;
+                                    return;
+                                }
+                            }
+                            dlgCronError.text = "";
                             d.humanReadable = scheduleDialog.humanText(d);
                             if (!d.name || d.name.trim() === "")
                                 d.name = d.humanReadable;
