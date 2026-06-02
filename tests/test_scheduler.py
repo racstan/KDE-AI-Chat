@@ -1,0 +1,154 @@
+"""Unit tests for the KDE AI Chat scheduler cron parser."""
+
+import sys
+import os
+import importlib.util
+from datetime import datetime
+
+SCRIPTS_DIR = os.path.join(os.path.dirname(__file__),
+                           "..", "org.kde.plasma.kdeaichat", "contents", "scripts")
+SCHEDULER_PATH = os.path.join(SCRIPTS_DIR, "kde-ai-scheduler.py")
+
+spec = importlib.util.spec_from_file_location("kde_ai_scheduler", SCHEDULER_PATH)
+sched = importlib.util.module_from_spec(spec)
+sys.modules["kde_ai_scheduler"] = sched
+spec.loader.exec_module(sched)
+
+parse_cron_field = sched.parse_cron_field
+cron_matches = sched.cron_matches
+is_start_date_passed = sched.is_start_date_passed
+
+
+class TestParseCronField:
+    def test_wildcard(self):
+        assert parse_cron_field("*", 0, 59) == list(range(0, 60))
+
+    def test_single_value(self):
+        assert parse_cron_field("5", 0, 59) == [5]
+
+    def test_range(self):
+        assert parse_cron_field("1-5", 0, 59) == [1, 2, 3, 4, 5]
+
+    def test_step(self):
+        assert parse_cron_field("*/10", 0, 59) == [0, 10, 20, 30, 40, 50]
+
+    def test_range_step(self):
+        assert parse_cron_field("1-10/3", 0, 59) == [1, 4, 7, 10]
+
+    def test_list(self):
+        assert parse_cron_field("1,3,5", 0, 59) == [1, 3, 5]
+
+    def test_single_value_hour(self):
+        assert parse_cron_field("9", 0, 23) == [9]
+
+    def test_named_weekday(self):
+        result = parse_cron_field("mon,wed,fri", 0, 6)
+        assert result == [1, 3, 5]
+
+    def test_named_weekday_range(self):
+        result = parse_cron_field("mon-fri", 0, 6)
+        assert result == [1, 2, 3, 4, 5]
+
+    def test_min_boundary(self):
+        assert parse_cron_field("0", 0, 59) == [0]
+
+    def test_max_boundary(self):
+        assert parse_cron_field("59", 0, 59) == [59]
+
+    def test_invalid_raises(self):
+        import pytest
+        with pytest.raises(ValueError):
+            parse_cron_field("abc", 0, 59)
+
+
+class TestCronMatches:
+    def test_every_minute(self):
+        dt = datetime(2026, 6, 2, 14, 30)
+        assert cron_matches("* * * * *", dt)
+
+    def test_exact_minute(self):
+        dt = datetime(2026, 6, 2, 14, 30)
+        assert cron_matches("30 14 * * *", dt)
+
+    def test_wrong_minute(self):
+        dt = datetime(2026, 6, 2, 14, 31)
+        assert not cron_matches("30 14 * * *", dt)
+
+    def test_wrong_hour(self):
+        dt = datetime(2026, 6, 2, 15, 30)
+        assert not cron_matches("30 14 * * *", dt)
+
+    def test_step_minutes(self):
+        dt = datetime(2026, 6, 2, 14, 20)
+        assert cron_matches("*/10 * * * *", dt)
+
+    def test_step_minutes_no_match(self):
+        dt = datetime(2026, 6, 2, 14, 25)
+        assert not cron_matches("*/10 * * * *", dt)
+
+    def test_specific_weekday(self):
+        dt = datetime(2026, 6, 2, 9, 0)
+        assert cron_matches("0 9 * * 2", dt)
+
+    def test_wrong_weekday(self):
+        dt = datetime(2026, 6, 2, 9, 0)
+        assert not cron_matches("0 9 * * 1", dt)
+
+    def test_named_weekday_mon(self):
+        dt = datetime(2026, 6, 1, 9, 0)
+        assert cron_matches("0 9 * * mon", dt)
+
+    def test_named_weekday_fri(self):
+        dt = datetime(2026, 6, 5, 9, 0)
+        assert cron_matches("0 9 * * fri", dt)
+
+    def test_invalid_cron_returns_false(self):
+        dt = datetime(2026, 6, 2, 9, 0)
+        assert not cron_matches("invalid", dt)
+
+    def test_short_cron_returns_false(self):
+        dt = datetime(2026, 6, 2, 9, 0)
+        assert not cron_matches("* * *", dt)
+
+    def test_every_6_hours(self):
+        for h in [0, 6, 12, 18]:
+            dt = datetime(2026, 6, 2, h, 0)
+            assert cron_matches("0 */6 * * *", dt)
+        for h in [1, 5, 7, 13]:
+            dt = datetime(2026, 6, 2, h, 0)
+            assert not cron_matches("0 */6 * * *", dt)
+
+    def test_dom_and_dow_both_set(self):
+        dt = datetime(2026, 6, 15, 9, 0)
+        assert cron_matches("0 9 15 * 2", dt)
+
+    def test_weekdays_9_to_5(self):
+        mon_9am = datetime(2026, 6, 1, 9, 0)
+        assert cron_matches("0 9-17 * * 1-5", mon_9am)
+        sun_9am = datetime(2026, 6, 7, 9, 0)
+        assert not cron_matches("0 9-17 * * 1-5", sun_9am)
+
+    def test_boundary_midnight(self):
+        dt = datetime(2026, 6, 2, 0, 0)
+        assert cron_matches("0 0 * * *", dt)
+
+
+class TestIsStartDatePassed:
+    def test_no_start_date(self):
+        assert is_start_date_passed({}, datetime.now()) is True
+
+    def test_start_date_in_past(self):
+        s = {"startDate": "2026-01-01T00:00:00"}
+        assert is_start_date_passed(s, datetime(2026, 6, 2)) is True
+
+    def test_start_date_in_future(self):
+        s = {"startDate": "2026-12-31T23:59:00"}
+        assert is_start_date_passed(s, datetime(2026, 6, 2)) is False
+
+    def test_start_date_with_z_suffix(self):
+        s = {"startDate": "2026-01-01T00:00:00Z"}
+        assert is_start_date_passed(s, datetime(2026, 6, 2)) is True
+
+    def test_start_date_with_microseconds(self):
+        s = {"startDate": "2026-01-01T00:00:00.123456"}
+        assert is_start_date_passed(s, datetime(2026, 6, 2)) is True

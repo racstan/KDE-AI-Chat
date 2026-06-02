@@ -13,6 +13,7 @@ Reload schedules without restart: kill -HUP <pid>
 """
 
 import argparse
+import fcntl
 import json
 import logging
 import os
@@ -41,6 +42,7 @@ HOME = os.path.expanduser("~")
 DATA_DIR = os.path.join(HOME, ".local", "share", "kdeaichat")
 SCHEDULES_FILE = os.path.join(DATA_DIR, "schedules.json")
 LOCK_FILE = os.path.join(DATA_DIR, "scheduler.lock")
+LOCK_FD = None
 
 # Tick interval in seconds
 TICK_SECONDS = 15
@@ -75,15 +77,24 @@ def ensure_dirs():
 
 
 def write_lock():
+    global LOCK_FD
     try:
-        with open(LOCK_FILE, "w") as f:
-            f.write(str(os.getpid()))
-        os.chmod(LOCK_FILE, 0o600)
-    except OSError as e:
-        log.warning("Could not write lock file: %s", e)
+        LOCK_FD = os.open(LOCK_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        fcntl.lockf(LOCK_FD, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        os.write(LOCK_FD, str(os.getpid()).encode())
+    except (OSError, IOError) as e:
+        log.error("Lock file %s: %s — another instance may be running", LOCK_FILE, e)
+        sys.exit(1)
 
 
 def cleanup():
+    global LOCK_FD
+    if LOCK_FD is not None:
+        try:
+            os.close(LOCK_FD)
+        except OSError:
+            pass
+        LOCK_FD = None
     try:
         if os.path.exists(LOCK_FILE):
             os.remove(LOCK_FILE)

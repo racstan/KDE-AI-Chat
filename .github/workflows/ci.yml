@@ -14,9 +14,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: python3 -m py_compile org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py
-      - run: python3 -m py_compile org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
-      - run: pipx run ruff check --select=E9,F --output-format=github org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
+      - name: Syntax check
+        run: |
+          python3 -m py_compile org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py
+          python3 -m py_compile org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
+      - name: Lint
+        run: pipx run ruff check --select=E9,F --output-format=github org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
+      - name: Run unit tests
+        run: |
+          pip install pytest
+          pytest tests/ -v
 
   qml:
     runs-on: ubuntu-latest
@@ -36,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check YAML syntax
+      - name: Check YAML
         run: |
           pipx install yamllint
           yamllint -d '{extends: relaxed, rules: {line-length: disable}}' .github/workflows/ci.yml
