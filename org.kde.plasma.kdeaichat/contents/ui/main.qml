@@ -145,8 +145,15 @@ PlasmoidItem {
     }
 
     function toggleScheduleEnabled(schedId, newEnabled) {
-        var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " + "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " + "if isinstance(data, list): data={'version':1,'schedules':data}; " + "for s in data.get('schedules', []): " + "    if s.get('id') == '" + schedId + "': s['enabled'] = " + (newEnabled ? "True" : "False") + "; " + "json.dump(data, open(p,'w'), indent=2)";
-        schedulerDs.connectSource("sh -lc 'python3 -c \"" + py + "\" && pkill -HUP -f kde-ai-scheduler.py' #sched-toggle-" + Date.now());
+        var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
+                 "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
+                 "if isinstance(data, list): data={'version':1,'schedules':data}; " +
+                 "for s in data.get('schedules', []): " +
+                 "    if s.get('id') == '" + schedId + "': s['enabled'] = " + (newEnabled ? "True" : "False") + "; " +
+                 "json.dump(data, open(p,'w'), indent=2)";
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-toggle-" + Date.now());
         // Update local schedulesList immediately
         var copy = root.schedulesList.slice();
         for (var i = 0; i < copy.length; i++) {
@@ -254,6 +261,15 @@ PlasmoidItem {
         }
     }
 
+    function base64Encode(str) {
+        try {
+            return Qt.btoa(unescape(encodeURIComponent(str)));
+        } catch (e) {
+            console.log("base64Encode error:", e);
+            return "";
+        }
+    }
+
     function persistSessions() {
         var jsonStr = JSON.stringify(root.sessions);
         plasmoid.configuration.chatSessionsJson = jsonStr;
@@ -267,9 +283,10 @@ PlasmoidItem {
                 else
                     fullPath += "/kdeaichat_history.json";
             }
-            var b64Str = Qt.btoa(jsonStr);
-            var escapedPath = fullPath.replace(/'/g, "'\\''");
-            var writeCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()\"";
+            var b64Str = base64Encode(jsonStr);
+            var py = "import base64, os; path=os.path.expanduser('" + fullPath.replace(/'/g, "\\'") + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()";
+            var b64Py = base64Encode(py);
+            var writeCmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
             customStorageDs.connectSource(writeCmd);
         }
     }
@@ -2999,9 +3016,10 @@ PlasmoidItem {
                 }
             }
         }
-        var b64Str = Qt.btoa(content);
-        var pythonCode = "import base64; f = open('" + filePath.replace(/'/g, "'\\''") + "', 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()";
-        var cmd = "python3 -c \"" + pythonCode + "\" && notify-send -i document-export 'KDE AI Chat' 'Chat session successfully exported to " + filePath.replace(/'/g, "'\\''") + "'";
+        var b64Str = base64Encode(content);
+        var py = "import base64; f = open('" + filePath.replace(/'/g, "\\'") + "', 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()";
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && notify-send -i document-export 'KDE AI Chat' 'Chat session successfully exported to " + filePath.replace(/'/g, "'\\''") + "'";
         fileReaderDs.connectSource(cmd + " #export-chat-save");
     }
 
@@ -3892,9 +3910,16 @@ PlasmoidItem {
                             "notify": scheduleCommandDialog.schedNotify,
                             "createdAt": new Date().toISOString()
                         });
-                        var escaped = jsonEntry.replace(/'/g, "'\\''");
-                        var py = "import json,os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " + "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " + "if isinstance(data, list): data={'version':1,'schedules':data}; " + "data.setdefault('schedules', []).append(json.loads('" + escaped + "')); " + "json.dump(data,open(p,'w'),indent=2)";
-                        schedulerDs.connectSource("sh -lc 'python3 -c \"" + py + "\" && pkill -HUP -f kde-ai-scheduler.py' #sched-save-" + Date.now());
+                        var b64Entry = base64Encode(jsonEntry);
+                        var py = "import json,os,base64; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
+                                 "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
+                                 "if isinstance(data, list): data={'version':1,'schedules':data}; " +
+                                 "entry=json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8')); " +
+                                 "data.setdefault('schedules', []).append(entry); " +
+                                 "json.dump(data,open(p,'w'),indent=2)";
+                        var b64Py = base64Encode(py);
+                        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+                        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
                     }
@@ -3925,8 +3950,14 @@ PlasmoidItem {
         }
 
         function deleteSchedule(schedId) {
-            var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " + "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " + "if isinstance(data, list): data={'version':1,'schedules':data}; " + "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']; " + "json.dump(data, open(p,'w'), indent=2)";
-            schedulerDs.connectSource("sh -lc 'python3 -c \"" + py + "\" && pkill -HUP -f kde-ai-scheduler.py' #sched-delete-" + Date.now());
+            var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
+                     "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
+                     "if isinstance(data, list): data={'version':1,'schedules':data}; " +
+                     "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']; " +
+                     "json.dump(data, open(p,'w'), indent=2)";
+            var b64Py = base64Encode(py);
+            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+            schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
             root.appendSystemMessage("🗑️ Schedule deleted successfully.");
         }
 
@@ -5107,8 +5138,14 @@ PlasmoidItem {
                                                                                 QQC2.ToolTip.visible: hovered
                                                                                 onClicked: {
                                                                                     var schedId = modelData.id;
-                                                                                    var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " + "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " + "if isinstance(data, list): data={'version':1,'schedules':data}; " + "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']; " + "json.dump(data, open(p,'w'), indent=2)";
-                                                                                    schedulerDs.connectSource("sh -lc 'python3 -c \"" + py + "\" && pkill -HUP -f kde-ai-scheduler.py' #sched-delete-" + Date.now());
+                                                                                    var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
+                                                                                             "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
+                                                                                             "if isinstance(data, list): data={'version':1,'schedules':data}; " +
+                                                                                             "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']; " +
+                                                                                             "json.dump(data, open(p,'w'), indent=2)";
+                                                                                    var b64Py = base64Encode(py);
+                                                                                    var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+                                                                                    schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
                                                                                     // Remove immediately from UI to be responsive!
                                                                                     var copy = root.schedulesList.slice();
                                                                                     root.schedulesList = copy.filter(function(s) {

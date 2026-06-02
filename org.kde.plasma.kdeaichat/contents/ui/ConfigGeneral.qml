@@ -1092,6 +1092,15 @@ KCM.SimpleKCM {
         maritacaApiKeyField.text = "";
     }
 
+    function base64Encode(str) {
+        try {
+            return Qt.btoa(unescape(encodeURIComponent(str)));
+        } catch (e) {
+            console.log("base64Encode error:", e);
+            return "";
+        }
+    }
+
     function loadKeysFromPlainConfig() {
         utilityDs.connectSource("python3 -c \"import configparser, json; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); print(json.dumps(dict(config['General']) if 'General' in config else {}))\" #plainconfig-load");
     }
@@ -1138,8 +1147,10 @@ KCM.SimpleKCM {
             "mimoApiKey": mimoApiKeyField.text,
             "maritacaApiKey": maritacaApiKeyField.text
         };
-        var b64Str = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config";
+        var b64Str = base64Encode(JSON.stringify(payload));
+        var py = "import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()";
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && xdg-open ~/.config/kdeaichatrc #open-config";
         utilityDs.connectSource(cmd);
     }
 
@@ -1166,13 +1177,17 @@ KCM.SimpleKCM {
             "mimoApiKey": mimoApiKeyField.text,
             "maritacaApiKey": maritacaApiKeyField.text
         };
-        var b64Str = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
+        var b64Str = base64Encode(JSON.stringify(payload));
+        var py = "import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()";
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
         utilityDs.connectSource(cmd + " #plainconfig-sync");
     }
 
     function clearKeysFromDisk() {
-        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
+        var py = "import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()";
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
         utilityDs.connectSource(cmd + " #plainconfig-clear");
         plasmoid.configuration.apiKey = "";
         plasmoid.configuration.anthropicApiKey = "";
@@ -1361,7 +1376,7 @@ KCM.SimpleKCM {
     function schedAutoSetup() {
         var srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
         var pyScript = "import os, shutil\n" + "src = '" + srcPath + "'\n" + "dest = os.path.expanduser('~/.local/share/kdeaichat/kde-ai-scheduler.py')\n" + "os.makedirs(os.path.dirname(dest), exist_ok=True)\n" + "os.makedirs(os.path.expanduser('~/.local/share/kdeaichat/results'), exist_ok=True)\n" + "if os.path.exists(src):\n" + "    shutil.copy2(src, dest)\n" + "    os.chmod(dest, 0o755)\n" + "sjson = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')\n" + "if not os.path.exists(sjson):\n" + "    with open(sjson, 'w') as f:\n" + "        f.write('{\"version\":1,\"schedules\":[]}')\n" + "    os.chmod(sjson, 0o600)\n" + "sdir = os.path.expanduser('~/.config/systemd/user')\n" + "os.makedirs(sdir, exist_ok=True)\n" + "sfile = sdir + '/kde-ai-scheduler.service'\n" + "content = '[Unit]\\nDescription=KDE AI Chat Scheduler Daemon\\nAfter=network-online.target\\nWants=network-online.target\\n\\n[Service]\\nType=simple\\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\\nRestart=on-failure\\nRestartSec=30\\nStandardOutput=journal\\nStandardError=journal\\nExecReload=/bin/kill -HUP $MAINPID\\nKillMode=process\\n\\n[Install]\\nWantedBy=default.target\\n'\n" + "with open(sfile, 'w') as f: f.write(content)\n" + "os.system('systemctl --user daemon-reload')\n" + "if os.system('systemctl --user is-enabled kde-ai-scheduler.service >/dev/null 2>&1') == 0:\n" + "    print('AUTO_ENABLED')\n" + "else:\n" + "    print('AUTO_DISABLED')\n";
-        var b64 = Qt.btoa(pyScript);
+        var b64 = base64Encode(pyScript);
         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64 + "').decode('utf-8'))\"";
         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-auto-setup");
     }
@@ -1399,9 +1414,13 @@ KCM.SimpleKCM {
             "schedules": all,
             "history": page.schedulerHistory
         };
-        var b64 = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import base64,json,os; d=base64.b64decode('" + b64 + "'); " + "p=os.path.expanduser('~/.local/share/kdeaichat'); os.makedirs(p,exist_ok=True); " + "f=open(p+'/schedules.json','w',encoding='utf-8'); f.write(d.decode('utf-8')); f.close(); print('SCHED_SAVE_OK')\"";
-        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-save");
+        var b64 = base64Encode(JSON.stringify(payload));
+        var py = "import base64,json,os; d=base64.b64decode('" + b64 + "'); " +
+                 "p=os.path.expanduser('~/.local/share/kdeaichat'); os.makedirs(p,exist_ok=True); " +
+                 "f=open(p+'/schedules.json','w',encoding='utf-8'); f.write(d.decode('utf-8')); f.close(); print('SCHED_SAVE_OK')";
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save");
     }
 
     function schedTriggerNow(index) {
