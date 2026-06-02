@@ -64,12 +64,14 @@ PlasmoidItem {
         if (mode === 2)
             return true;
 
-        return Qt.styleHints.colorScheme === Qt.Dark;
+        return Kirigami.Theme.colorGroup === Kirigami.Theme.Dark;
     }
 
     MarkdownRenderer {
         id: markdownRenderer
         isDark: root.popupIsDark
+        themeBackgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
+        themeTextColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
     }
 
     Timer {

@@ -5,6 +5,8 @@ QtObject {
     id: root
 
     property bool isDark: false
+    property color themeBackgroundColor: Kirigami.Theme.backgroundColor
+    property color themeTextColor: Kirigami.Theme.textColor
 
     function _c(color) {
         return "rgba(" + Math.round(color.r * 255) + "," + Math.round(color.g * 255) + "," + Math.round(color.b * 255) + "," + color.a + ")";
@@ -12,8 +14,8 @@ QtObject {
 
     readonly property var _colors: {
         var t = Kirigami.Theme;
-        var bg = t.backgroundColor;
-        var fg = t.textColor;
+        var bg = root.themeBackgroundColor;
+        var fg = root.themeTextColor;
         var d = root.isDark;
         return {
             codeBg:              d ? _c(Qt.lighter(bg, 1.25)) : _c(Qt.darker(bg, 1.04)),
