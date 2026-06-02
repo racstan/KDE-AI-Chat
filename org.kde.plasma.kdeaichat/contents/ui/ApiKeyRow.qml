@@ -8,6 +8,7 @@ RowLayout {
     id: root
 
     property string providerId: ""
+    visible: (typeof page !== "undefined" && typeof page.providerEnabled === "function") ? page.providerEnabled(providerId) : true
     property alias text: field.text
     property alias field: field
     property bool autoSave: true
