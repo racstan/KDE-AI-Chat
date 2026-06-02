@@ -157,7 +157,7 @@ function translate(text, configLanguage) {
     return text;
 }
 
-var rtlLanguages = ["ar"];
+var rtlLanguages = ["ar", "he", "fa", "ur", "sd", "ps", "ku", "ug", "dv", "yi"];
 
 function isRtlLanguage(lang) {
     lang = lang || "system";
