@@ -12,6 +12,10 @@ import org.kde.plasma.plasma5support as P5Support
         property var draft: ({
         })
         property string currentTab: "active"
+        property bool rtlLayout: false
+
+        LayoutMirroring.enabled: rtlLayout
+        LayoutMirroring.childrenInherit: true
 
         function translate(text) {
             return page.translate(text);

@@ -156,3 +156,13 @@ function translate(text, configLanguage) {
 
     return text;
 }
+
+var rtlLanguages = ["ar"];
+
+function isRtlLanguage(lang) {
+    lang = lang || "system";
+    if (lang === "system" || lang === "") {
+        lang = getSystemLanguage();
+    }
+    return rtlLanguages.indexOf(lang) >= 0;
+}

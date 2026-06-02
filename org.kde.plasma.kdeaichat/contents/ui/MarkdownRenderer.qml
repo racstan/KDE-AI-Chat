@@ -140,7 +140,7 @@ QtObject {
             html = html.replace("%%CB" + idx + "%%", codeBlocks[idx]);
         }
 
-        return html;
+        return '<div dir="auto">' + html + '</div>';
     }
 
     // Split raw markdown into typed blocks: {type:"text"|"code"|"table", content, lang}

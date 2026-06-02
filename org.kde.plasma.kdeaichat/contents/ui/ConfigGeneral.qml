@@ -11,6 +11,9 @@ import "ProviderData.js" as ProviderData
 KCM.SimpleKCM {
     id: page
 
+    LayoutMirroring.enabled: Translations.isRtlLanguage(cfg_language)
+    LayoutMirroring.childrenInherit: true
+
     //* Ctrl+scroll zoom for the settings form (0.75–1.5).
     property real configZoom: 1
     property alias cfg_appDisplayName: appDisplayNameField.text
@@ -1227,6 +1230,7 @@ KCM.SimpleKCM {
     // ── Schedule Management Dialog (human-friendly) ────────────────────────────
     ScheduleDialog {
         id: scheduleDialog
+        rtlLayout: Translations.isRtlLanguage(cfg_language)
     }
 
     WheelHandler {
