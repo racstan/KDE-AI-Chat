@@ -1,24 +1,32 @@
 import QtQuick
+import org.kde.kirigami as Kirigami
 
 QtObject {
     id: root
 
     property bool isDark: false
 
+    function _c(color) {
+        return "rgba(" + Math.round(color.r * 255) + "," + Math.round(color.g * 255) + "," + Math.round(color.b * 255) + "," + color.a + ")";
+    }
+
     readonly property var _colors: {
+        var t = Kirigami.Theme;
+        var bg = t.backgroundColor;
+        var fg = t.textColor;
         var d = root.isDark;
         return {
-            codeBg:              d ? "#2d3139" : "#f0f2f5",
-            codeColor:           d ? "#abb2bf" : "#383a42",
-            inlineBg:            d ? "#3e4452" : "#e5e5e5",
-            inlineColor:         d ? "#e06c75" : "#a626a4",
-            linkColor:           d ? "#61afef" : "#4078f2",
-            borderColor:         d ? "#3e4452" : "#d0d4dc",
-            tableBorderColor:    d ? "#4a5165" : "#c8cdd8",
-            tableHeadBg:         d ? "#363b48" : "#e8eaf0",
-            tableRowAltBg:       d ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-            hrColor:             d ? "#3e4452" : "#d0d4dc",
-            codeHeaderColor:     d ? "#5c6370" : "#a0a1a7"
+            codeBg:              d ? _c(Qt.lighter(bg, 1.25)) : _c(Qt.darker(bg, 1.04)),
+            codeColor:           _c(fg),
+            inlineBg:            d ? _c(Qt.lighter(bg, 1.4)) : _c(Qt.darker(bg, 1.06)),
+            inlineColor:         _c(t.linkColor),
+            linkColor:           _c(t.linkColor),
+            borderColor:         d ? _c(Qt.lighter(bg, 1.5)) : _c(Qt.darker(bg, 1.15)),
+            tableBorderColor:    d ? _c(Qt.lighter(bg, 1.6)) : _c(Qt.darker(bg, 1.2)),
+            tableHeadBg:         d ? _c(Qt.lighter(bg, 1.3)) : _c(Qt.darker(bg, 1.05)),
+            tableRowAltBg:       d ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+            hrColor:             d ? _c(Qt.lighter(bg, 1.5)) : _c(Qt.darker(bg, 1.15)),
+            codeHeaderColor:     d ? _c(Qt.lighter(bg, 1.8)) : _c(Qt.darker(bg, 1.3))
         };
     }
 

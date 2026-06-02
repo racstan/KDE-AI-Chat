@@ -210,24 +210,23 @@ import org.kde.plasma.plasma5support as P5Support
             var timeStr = h12 + ":" + ms + " " + ap;
             var baseText = "";
             if (t === "minutes") {
-                baseText = translate("Every") + " " + (n === 1 ? translate("minute") : n + " " + translate("minutes"));
+                baseText = n === 1 ? translate("Every minute") : translate("Every %1 minutes").arg(n);
             } else if (t === "hours") {
-                baseText = translate("Every") + " " + (n === 1 ? translate("hour") : n + " " + translate("hours"));
+                baseText = n === 1 ? translate("Every hour") : translate("Every %1 hours").arg(n);
             } else if (t === "days") {
-                baseText = translate("Every") + " " + (n === 1 ? translate("day") : n + " " + translate("days")) + " " + translate("at") + " " + timeStr;
+                baseText = n === 1 ? translate("Every day at %1").arg(timeStr) : translate("Every %1 days at %2").arg(n).arg(timeStr);
             } else if (t === "weeks") {
                 var dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
                 var days = (d.schedDays && d.schedDays.length > 0) ? d.schedDays.map(function(x) {
                     return translate(dn[x]);
                 }).join(", ") : translate("Mon");
-                baseText = translate("Every") + " " + (n === 1 ? translate("week") : n + " " + translate("weeks")) + " " + translate("on") + " " + days + " " + translate("at") + " " + timeStr;
+                baseText = n === 1 ? translate("Every week on %1 at %2").arg(days).arg(timeStr) : translate("Every %1 weeks on %2 at %3").arg(n).arg(days).arg(timeStr);
             } else if (t === "months") {
                 var dom = d.schedDayOfMonth || 1;
-                var sfx = dom === 1 ? translate("st") : dom === 2 ? translate("nd") : dom === 3 ? translate("rd") : translate("th");
-                baseText = translate("Every") + " " + (n === 1 ? translate("month") : n + " " + translate("months")) + " " + translate("on the") + " " + dom + sfx + " " + translate("at") + " " + timeStr;
+                baseText = n === 1 ? translate("Every month on the %1 at %2").arg(dom).arg(timeStr) : translate("Every %1 months on the %2 at %3").arg(n).arg(dom).arg(timeStr);
             }
             if (d.limitEnabled && d.limitCount)
-                baseText += " (" + translate("Limit:") + " " + d.limitCount + " " + (d.limitCount === 1 ? translate("run") : translate("runs")) + ")";
+                baseText += " (" + translate("Limited to %1 runs").arg(d.limitCount) + ")";
 
             return baseText;
         }

@@ -8,6 +8,7 @@ import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 import "translations.js" as Translations
 import "ProviderData.js" as ProviderData
+import "Utils.js" as Utils
 
 PlasmoidItem {
     // No custom text and no way to read options from here,
@@ -127,31 +128,19 @@ PlasmoidItem {
     }
 
     function pad2(v) {
-        return v < 10 ? ("0" + v) : String(v);
+        return Utils.pad2(v);
     }
 
     function nowTime(ts) {
-        var d = ts ? new Date(ts) : new Date();
-        return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+        return Utils.nowTime(ts);
     }
 
     function formatDateTime(ts) {
-        return new Date(ts).toLocaleString(undefined, {
-            "year": "numeric",
-            "month": "short",
-            "day": "2-digit",
-            "hour": "2-digit",
-            "minute": "2-digit"
-        });
+        return Utils.formatDateTime(ts);
     }
 
     function makeSessionId() {
-        var chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-        var str = "";
-        for (var i = 0; i < 6; i++) {
-            str += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return "s-" + str;
+        return Utils.makeSessionId();
     }
 
     // ── /schedule command handler ──────────────────────────────────────────────
@@ -667,18 +656,7 @@ PlasmoidItem {
     }
 
     function extractReadableError(prefix, errObj, fallbackText) {
-        if (errObj) {
-            if (errObj.data && errObj.data.message)
-                return prefix + errObj.data.message;
-
-            if (errObj.message)
-                return prefix + errObj.message;
-
-            if (errObj.name)
-                return prefix + errObj.name;
-
-        }
-        return prefix + (fallbackText || "Unknown error");
+        return Utils.extractReadableError(prefix, errObj, fallbackText);
     }
 
     function beginAssistantStreaming(modelLabel) {
@@ -843,21 +821,7 @@ PlasmoidItem {
                                     }
                                 }
                             }
-                            // Normalize tokens
-                            var normalizedTokens = {
-                            };
-                            if (item.tokens) {
-                                var rawTokens = item.tokens || {
-                                };
-                                normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
-                                normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
-                                if (rawTokens.reasoning !== undefined)
-                                    normalizedTokens.reasoning = rawTokens.reasoning;
-
-                                if (rawTokens.cache !== undefined)
-                                    normalizedTokens.cache = rawTokens.cache;
-
-                            }
+                            var normalizedTokens = root._normalizeTokens(item.tokens) || {};
                             var ts = info.createdAt ? new Date(info.createdAt).getTime() : Date.now();
                             newMsgs.push({
                                 "role": role,
@@ -1073,19 +1037,7 @@ PlasmoidItem {
                 if (copy[idx].role === "assistant") {
                     var item = Object.assign({
                     }, copy[idx]);
-                    var normalizedTokens = {
-                    };
-                    var rawTokens = props.tokens || {
-                    };
-                    normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
-                    normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
-                    if (rawTokens.reasoning !== undefined)
-                        normalizedTokens.reasoning = rawTokens.reasoning;
-
-                    if (rawTokens.cache !== undefined)
-                        normalizedTokens.cache = rawTokens.cache;
-
-                    item.tokens = normalizedTokens;
+                    item.tokens = root._normalizeTokens(props.tokens);
                     item.cost = props.cost;
                     copy[idx] = item;
                     updated = true;
@@ -1532,28 +1484,24 @@ PlasmoidItem {
         }
     }
 
+    function _normalizeTokens(rawTokens) {
+        if (!rawTokens)
+            return undefined;
+
+        var t = {};
+        t.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
+        t.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
+        if (rawTokens.reasoning !== undefined)
+            t.reasoning = rawTokens.reasoning;
+
+        if (rawTokens.cache !== undefined)
+            t.cache = rawTokens.cache;
+
+        return t;
+    }
+
     function formatTokensUsage(tokens, cost) {
-        if (!tokens)
-            return "";
-
-        var parts = [];
-        if (tokens.input !== undefined)
-            parts.push("Input: " + tokens.input);
-
-        if (tokens.output !== undefined)
-            parts.push("Output: " + tokens.output);
-
-        if (tokens.reasoning !== undefined && tokens.reasoning > 0)
-            parts.push("Reasoning: " + tokens.reasoning);
-
-        if (tokens.cache && (tokens.cache.read > 0 || tokens.cache.write > 0))
-            parts.push("Cache R/W: " + tokens.cache.read + "/" + tokens.cache.write);
-
-        var res = parts.join(" | ");
-        if (cost !== undefined && cost > 0)
-            res += " | Cost: $" + cost.toFixed(5);
-
-        return res;
+        return Utils.formatTokensUsage(tokens, cost);
     }
 
     function pushErrorMessage(text) {
@@ -1692,8 +1640,11 @@ PlasmoidItem {
 
     function validateOpenCodeConfig() {
         var missing = [];
-        if (!(plasmoid.configuration.openCodeUrl || "").trim())
+        var url = (plasmoid.configuration.openCodeUrl || "").trim();
+        if (!url)
             missing.push("OpenCode URL");
+        else if (url.indexOf("://") < 0)
+            missing.push("valid OpenCode URL (must start with http:// or https://)");
 
         if (!(plasmoid.configuration.openCodeProvider || "").trim())
             missing.push("OpenCode provider");
@@ -1718,6 +1669,9 @@ PlasmoidItem {
 
         if (!cfg.baseUrl && cfg.type !== "anthropic")
             missing.push("base URL");
+
+        if (cfg.baseUrl && cfg.baseUrl.indexOf("://") < 0)
+            missing.push("valid base URL (must start with http:// or https://)");
 
         if (!cfg.model)
             missing.push("model");
@@ -2309,20 +2263,11 @@ PlasmoidItem {
     }
 
     function fileIconName(filename) {
-        var ext = filename.split('.').pop().toLowerCase();
-        if (ext === 'pdf')
-            return 'document-pdf';
+        return Utils.fileIconName(filename);
+    }
 
-        if (ext === 'csv')
-            return 'text-csv';
-
-        if (ext === 'docx' || ext === 'doc')
-            return 'document-word';
-
-        if (ext === 'md' || ext === 'txt')
-            return 'text-plain';
-
-        return 'document-text';
+    function tableMarkdownToCsv(tableMarkdown) {
+        return Utils.tableMarkdownToCsv(tableMarkdown);
     }
 
     function removeAttachedFile(index) {

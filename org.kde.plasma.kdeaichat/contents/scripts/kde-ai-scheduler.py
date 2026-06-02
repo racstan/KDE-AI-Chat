@@ -17,11 +17,10 @@ import fcntl
 import json
 import logging
 import os
-import re
 import signal
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 parser = argparse.ArgumentParser(
     description="KDE AI Chat scheduling daemon — reads schedule files and triggers pending jobs via cron rules."
@@ -45,7 +44,7 @@ LOCK_FILE = os.path.join(DATA_DIR, "scheduler.lock")
 LOCK_FD = None
 
 # Tick interval in seconds
-TICK_SECONDS = 15
+TICK_SECONDS = 5
 
 # ── Globals ────────────────────────────────────────────────────────────────────
 schedules = []
@@ -325,7 +324,7 @@ def next_run_iso(cron_expr):
 
 
 def main():
-    global schedules, reload_requested
+    global schedules, reload_requested, history
 
     log.info("KDE AI Chat Scheduler daemon starting up")
     ensure_dirs()

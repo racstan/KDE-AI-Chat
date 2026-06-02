@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import sys
 import os
 import json
 import base64
@@ -10,10 +9,12 @@ import zipfile
 import xml.etree.ElementTree as ET
 import urllib.parse
 
+SUBPROCESS_TIMEOUT = 30
+
 def extract_docx_text(path):
     # Try pandoc first
     try:
-        result = subprocess.run(['pandoc', '-f', 'docx', '-t', 'markdown', path], capture_output=True, text=True, check=True)
+        result = subprocess.run(['pandoc', '-f', 'docx', '-t', 'markdown', path], capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT)
         return result.stdout
     except Exception:
         pass
@@ -37,7 +38,7 @@ def extract_docx_text(path):
 
 def extract_pdf_text(path):
     try:
-        result = subprocess.run(['pdftotext', path, '-'], capture_output=True, text=True, check=True)
+        result = subprocess.run(['pdftotext', path, '-'], capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT)
         return result.stdout
     except FileNotFoundError:
         raise Exception("pdftotext is not installed. Please install 'poppler-utils' (Debian/Ubuntu: apt install poppler-utils, Arch: pacman -S poppler, Fedora: dnf install poppler-utils) to enable PDF attachment reading.")
@@ -151,14 +152,14 @@ def extract_single_file(file_path):
 def get_clipboard_targets():
     # Try wl-paste first (Wayland)
     try:
-        res = subprocess.run(['wl-paste', '-l'], capture_output=True, text=True, check=True)
+        res = subprocess.run(['wl-paste', '-l'], capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT)
         return res.stdout.splitlines()
     except Exception:
         pass
     
     # Try xclip (X11)
     try:
-        res = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'TARGETS', '-o'], capture_output=True, text=True, check=True)
+        res = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'TARGETS', '-o'], capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT)
         return res.stdout.splitlines()
     except Exception:
         pass
@@ -168,14 +169,14 @@ def get_clipboard_targets():
 def get_clipboard_data(mime_type):
     # Try wl-paste first (Wayland)
     try:
-        res = subprocess.run(['wl-paste', '-t', mime_type], capture_output=True, check=True)
+        res = subprocess.run(['wl-paste', '-t', mime_type], capture_output=True, check=True, timeout=SUBPROCESS_TIMEOUT)
         return res.stdout
     except Exception:
         pass
     
     # Try xclip (X11)
     try:
-        res = subprocess.run(['xclip', '-selection', 'clipboard', '-t', mime_type, '-o'], capture_output=True, check=True)
+        res = subprocess.run(['xclip', '-selection', 'clipboard', '-t', mime_type, '-o'], capture_output=True, check=True, timeout=SUBPROCESS_TIMEOUT)
         return res.stdout
     except Exception:
         pass
