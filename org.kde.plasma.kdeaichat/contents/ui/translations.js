@@ -1,26 +1,26 @@
-var _loadedLangs = {};
+Qt.include("translations_ar.js");
+Qt.include("translations_zh.js");
+Qt.include("translations_fr.js");
+Qt.include("translations_de.js");
+Qt.include("translations_it.js");
+Qt.include("translations_ja.js");
+Qt.include("translations_pt.js");
+Qt.include("translations_ru.js");
+Qt.include("translations_es.js");
+Qt.include("translations_hi.js");
 
-function _ensureLang(lang) {
-    if (_loadedLangs[lang] || lang === "en")
-        return;
-    _loadedLangs[lang] = true;
-    var files = {
-        "ar": "translations_ar.js",
-        "zh": "translations_zh.js",
-        "fr": "translations_fr.js",
-        "de": "translations_de.js",
-        "it": "translations_it.js",
-        "ja": "translations_ja.js",
-        "pt": "translations_pt.js",
-        "ru": "translations_ru.js",
-        "es": "translations_es.js",
-        "hi": "translations_hi.js"
-    };
-    if (files[lang])
-        Qt.include(files[lang]);
-}
-
-var dictionary = {};
+var dictionary = {
+    "ar": ar_dictionary,
+    "zh": zh_dictionary,
+    "fr": fr_dictionary,
+    "de": de_dictionary,
+    "it": it_dictionary,
+    "ja": ja_dictionary,
+    "pt": pt_dictionary,
+    "ru": ru_dictionary,
+    "es": es_dictionary,
+    "hi": hi_dictionary
+};
 
 function getSystemLanguage() {
     var localeName = Qt.locale().name || "en";
@@ -35,7 +35,6 @@ function translate(text, configLanguage) {
     if (lang === "en") {
         return text;
     }
-    _ensureLang(lang);
     if (!dictionary[lang]) {
         return text;
     }
@@ -156,14 +155,4 @@ function translate(text, configLanguage) {
     }
 
     return text;
-}
-
-var rtlLanguages = ["ar", "he", "fa", "ur", "sd", "ps", "ku", "ug", "dv", "yi"];
-
-function isRtlLanguage(lang) {
-    lang = lang || "system";
-    if (lang === "system" || lang === "") {
-        lang = getSystemLanguage();
-    }
-    return rtlLanguages.indexOf(lang) >= 0;
 }

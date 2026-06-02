@@ -7,8 +7,6 @@ import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 import "translations.js" as Translations
-import "ProviderData.js" as ProviderData
-import "Utils.js" as Utils
 
 PlasmoidItem {
     // No custom text and no way to read options from here,
@@ -25,7 +23,6 @@ PlasmoidItem {
     property var attachedFiles: []
     property bool historyOnlyMode: false
     property bool loading: false
-    property bool connectionTimedOut: false
     property var activeXhr: null
     property var openCodeEventXhr: null
     property string openCodeActiveSessionId: ""
@@ -64,25 +61,7 @@ PlasmoidItem {
         if (mode === 2)
             return true;
 
-        return Kirigami.Theme.colorGroup === Kirigami.Theme.Dark;
-    }
-
-    MarkdownRenderer {
-        id: markdownRenderer
-        isDark: root.popupIsDark
-        themeBackgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
-        themeTextColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
-    }
-
-    Timer {
-        id: connectionTimeoutTimer
-        interval: 45000
-        running: root.loading && !root.streamingResponse
-        repeat: false
-        onTriggered: {
-            if (root.loading && !root.streamingResponse)
-                root.connectionTimedOut = true;
-        }
+        return Qt.styleHints.colorScheme === Qt.Dark;
     }
 
     signal clearChatInput()
@@ -130,19 +109,31 @@ PlasmoidItem {
     }
 
     function pad2(v) {
-        return Utils.pad2(v);
+        return v < 10 ? ("0" + v) : String(v);
     }
 
     function nowTime(ts) {
-        return Utils.nowTime(ts);
+        var d = ts ? new Date(ts) : new Date();
+        return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
     }
 
     function formatDateTime(ts) {
-        return Utils.formatDateTime(ts);
+        return new Date(ts).toLocaleString(undefined, {
+            "year": "numeric",
+            "month": "short",
+            "day": "2-digit",
+            "hour": "2-digit",
+            "minute": "2-digit"
+        });
     }
 
     function makeSessionId() {
-        return Utils.makeSessionId();
+        var chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        var str = "";
+        for (var i = 0; i < 6; i++) {
+            str += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return "s-" + str;
     }
 
     // ── /schedule command handler ──────────────────────────────────────────────
@@ -658,7 +649,18 @@ PlasmoidItem {
     }
 
     function extractReadableError(prefix, errObj, fallbackText) {
-        return Utils.extractReadableError(prefix, errObj, fallbackText);
+        if (errObj) {
+            if (errObj.data && errObj.data.message)
+                return prefix + errObj.data.message;
+
+            if (errObj.message)
+                return prefix + errObj.message;
+
+            if (errObj.name)
+                return prefix + errObj.name;
+
+        }
+        return prefix + (fallbackText || "Unknown error");
     }
 
     function beginAssistantStreaming(modelLabel) {
@@ -715,7 +717,6 @@ PlasmoidItem {
 
     function finishOpenCodeRequest() {
         root.loading = false;
-        root.connectionTimedOut = false;
         root.activeXhr = null;
         root.openCodeActiveSessionId = "";
         root.openCodeAssistantMessageIndex = -1;
@@ -823,7 +824,21 @@ PlasmoidItem {
                                     }
                                 }
                             }
-                            var normalizedTokens = root._normalizeTokens(item.tokens) || {};
+                            // Normalize tokens
+                            var normalizedTokens = {
+                            };
+                            if (item.tokens) {
+                                var rawTokens = item.tokens || {
+                                };
+                                normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
+                                normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
+                                if (rawTokens.reasoning !== undefined)
+                                    normalizedTokens.reasoning = rawTokens.reasoning;
+
+                                if (rawTokens.cache !== undefined)
+                                    normalizedTokens.cache = rawTokens.cache;
+
+                            }
                             var ts = info.createdAt ? new Date(info.createdAt).getTime() : Date.now();
                             newMsgs.push({
                                 "role": role,
@@ -1039,7 +1054,19 @@ PlasmoidItem {
                 if (copy[idx].role === "assistant") {
                     var item = Object.assign({
                     }, copy[idx]);
-                    item.tokens = root._normalizeTokens(props.tokens);
+                    var normalizedTokens = {
+                    };
+                    var rawTokens = props.tokens || {
+                    };
+                    normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
+                    normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
+                    if (rawTokens.reasoning !== undefined)
+                        normalizedTokens.reasoning = rawTokens.reasoning;
+
+                    if (rawTokens.cache !== undefined)
+                        normalizedTokens.cache = rawTokens.cache;
+
+                    item.tokens = normalizedTokens;
                     item.cost = props.cost;
                     copy[idx] = item;
                     updated = true;
@@ -1228,7 +1255,6 @@ PlasmoidItem {
 
         ensureOpenCodeEventStream();
         root.loading = true;
-        root.connectionTimedOut = false;
         root.streamingResponse = false;
         root.openCodeAssistantMessageIndex = -1;
         root.openCodeAssistantServerMessageId = "";
@@ -1486,24 +1512,28 @@ PlasmoidItem {
         }
     }
 
-    function _normalizeTokens(rawTokens) {
-        if (!rawTokens)
-            return undefined;
-
-        var t = {};
-        t.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
-        t.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
-        if (rawTokens.reasoning !== undefined)
-            t.reasoning = rawTokens.reasoning;
-
-        if (rawTokens.cache !== undefined)
-            t.cache = rawTokens.cache;
-
-        return t;
-    }
-
     function formatTokensUsage(tokens, cost) {
-        return Utils.formatTokensUsage(tokens, cost);
+        if (!tokens)
+            return "";
+
+        var parts = [];
+        if (tokens.input !== undefined)
+            parts.push("Input: " + tokens.input);
+
+        if (tokens.output !== undefined)
+            parts.push("Output: " + tokens.output);
+
+        if (tokens.reasoning !== undefined && tokens.reasoning > 0)
+            parts.push("Reasoning: " + tokens.reasoning);
+
+        if (tokens.cache && (tokens.cache.read > 0 || tokens.cache.write > 0))
+            parts.push("Cache R/W: " + tokens.cache.read + "/" + tokens.cache.write);
+
+        var res = parts.join(" | ");
+        if (cost !== undefined && cost > 0)
+            res += " | Cost: $" + cost.toFixed(5);
+
+        return res;
     }
 
     function pushErrorMessage(text) {
@@ -1567,7 +1597,7 @@ PlasmoidItem {
         var res = [];
         for (var i = 0; i < root.schedulesList.length; i++) {
             var s = root.schedulesList[i];
-            if (s && s.chatId === sessionId && !s.archived)
+            if (s && s.chatId === sessionId)
                 res.push(s);
 
         }
@@ -1637,16 +1667,61 @@ PlasmoidItem {
     }
 
     function providerDisplayName(providerId) {
-        return ProviderData.displayName(providerId);
+        if (providerId === "openai")
+            return "OpenAI";
+
+        if (providerId === "anthropic")
+            return "Anthropic";
+
+        if (providerId === "groq")
+            return "Groq";
+
+        if (providerId === "deepseek")
+            return "DeepSeek";
+
+        if (providerId === "minimax")
+            return "MiniMax";
+
+        if (providerId === "fireworks")
+            return "Fireworks";
+
+        if (providerId === "google")
+            return "Google Gemini";
+
+        if (providerId === "openrouter")
+            return "OpenRouter";
+
+        if (providerId === "mistral")
+            return "Mistral";
+
+        if (providerId === "cloudflare")
+            return "Cloudflare";
+
+        if (providerId === "nvidia")
+            return "NVIDIA NIM";
+
+        if (providerId === "huggingface")
+            return "Hugging Face";
+
+        if (providerId === "xai")
+            return "xAI";
+
+        if (providerId === "litellm")
+            return "LiteLLM Proxy";
+
+        if (providerId === "lmstudio")
+            return "LM Studio";
+
+        if (providerId === "local")
+            return "Local";
+
+        return providerId || "Selected provider";
     }
 
     function validateOpenCodeConfig() {
         var missing = [];
-        var url = (plasmoid.configuration.openCodeUrl || "").trim();
-        if (!url)
+        if (!(plasmoid.configuration.openCodeUrl || "").trim())
             missing.push("OpenCode URL");
-        else if (url.indexOf("://") < 0)
-            missing.push("valid OpenCode URL (must start with http:// or https://)");
 
         if (!(plasmoid.configuration.openCodeProvider || "").trim())
             missing.push("OpenCode provider");
@@ -1671,9 +1746,6 @@ PlasmoidItem {
 
         if (!cfg.baseUrl && cfg.type !== "anthropic")
             missing.push("base URL");
-
-        if (cfg.baseUrl && cfg.baseUrl.indexOf("://") < 0)
-            missing.push("valid base URL (must start with http:// or https://)");
 
         if (!cfg.model)
             missing.push("model");
@@ -1748,7 +1820,218 @@ PlasmoidItem {
     }
 
     function getProviderConfig(provider) {
-        return ProviderData.buildRuntimeConfig(provider, plasmoid.configuration);
+        if (provider === "anthropic")
+            return {
+            "type": "anthropic",
+            "apiKey": (plasmoid.configuration.anthropicApiKey || "").trim(),
+            "model": plasmoid.configuration.anthropicModel || "",
+            "allowEmptyKey": false
+        };
+
+        if (provider === "local")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
+            "apiKey": "",
+            "model": plasmoid.configuration.localModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
+
+        if (provider === "ollama")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.ollamaBaseUrl || "http://localhost:11434/v1",
+            "apiKey": "",
+            "model": plasmoid.configuration.ollamaModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
+
+        if (provider === "litellm")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.litellmBaseUrl || "http://localhost:4000/v1",
+            "apiKey": (plasmoid.configuration.litellmApiKey || "").trim(),
+            "model": plasmoid.configuration.litellmModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
+
+        if (provider === "lmstudio")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.lmStudioBaseUrl || "http://localhost:1234/v1",
+            "apiKey": "",
+            "model": plasmoid.configuration.lmStudioModel || "",
+            "headers": null,
+            "allowEmptyKey": true
+        };
+
+        if (provider === "groq")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.groqBaseUrl || "https://api.groq.com/openai/v1",
+            "apiKey": (plasmoid.configuration.groqApiKey || "").trim(),
+            "model": plasmoid.configuration.groqModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "deepseek")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.deepSeekBaseUrl || "https://api.deepseek.com",
+            "apiKey": (plasmoid.configuration.deepSeekApiKey || "").trim(),
+            "model": plasmoid.configuration.deepSeekModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "minimax")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.miniMaxBaseUrl || "https://api.minimax.io/v1",
+            "apiKey": (plasmoid.configuration.miniMaxApiKey || "").trim(),
+            "model": plasmoid.configuration.miniMaxModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "fireworks")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.fireworksBaseUrl || "https://api.fireworks.ai/inference/v1",
+            "apiKey": (plasmoid.configuration.fireworksApiKey || "").trim(),
+            "model": plasmoid.configuration.fireworksModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "google")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.googleBaseUrl || "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "apiKey": (plasmoid.configuration.googleApiKey || "").trim(),
+            "model": plasmoid.configuration.googleModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "openrouter") {
+            var headers = {
+            };
+            var referer = plasmoid.configuration.openRouterReferer || "https://github.com/racstan/KDE-AI-Chat";
+            var title = plasmoid.configuration.openRouterTitle || "KDE AI Chat";
+            headers["HTTP-Referer"] = referer;
+            headers["X-Title"] = title;
+            return {
+                "type": "openai-compat",
+                "baseUrl": plasmoid.configuration.openRouterBaseUrl || "https://openrouter.ai/api/v1",
+                "apiKey": (plasmoid.configuration.openRouterApiKey || "").trim(),
+                "model": plasmoid.configuration.openRouterModel || "",
+                "headers": headers,
+                "allowEmptyKey": false
+            };
+        }
+        if (provider === "mistral")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.mistralBaseUrl || "https://api.mistral.ai/v1",
+            "apiKey": (plasmoid.configuration.mistralApiKey || "").trim(),
+            "model": plasmoid.configuration.mistralModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "cloudflare")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.cloudflareBaseUrl || "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
+            "apiKey": (plasmoid.configuration.cloudflareApiKey || "").trim(),
+            "model": plasmoid.configuration.cloudflareModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "nvidia")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.nvidiaBaseUrl || "https://integrate.api.nvidia.com/v1",
+            "apiKey": (plasmoid.configuration.nvidiaApiKey || "").trim(),
+            "model": plasmoid.configuration.nvidiaModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "huggingface")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.huggingFaceBaseUrl || "https://router.huggingface.co/v1",
+            "apiKey": (plasmoid.configuration.huggingFaceApiKey || "").trim(),
+            "model": plasmoid.configuration.huggingFaceModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "xai")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.xaiBaseUrl || "https://api.x.ai/v1",
+            "apiKey": (plasmoid.configuration.xaiApiKey || "").trim(),
+            "model": plasmoid.configuration.xaiModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "qwen")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.qwenBaseUrl || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            "apiKey": (plasmoid.configuration.qwenApiKey || "").trim(),
+            "model": plasmoid.configuration.qwenModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "moonshot")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.moonshotBaseUrl || "https://api.moonshot.ai/v1",
+            "apiKey": (plasmoid.configuration.moonshotApiKey || "").trim(),
+            "model": plasmoid.configuration.moonshotModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "mimo")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.mimoBaseUrl || "https://api.xiaomimimo.com/v1",
+            "apiKey": (plasmoid.configuration.mimoApiKey || "").trim(),
+            "model": plasmoid.configuration.mimoModel || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        if (provider === "maritaca")
+            return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.maritacaBaseUrl || "https://chat.maritaca.ai/api",
+            "apiKey": (plasmoid.configuration.maritacaApiKey || "").trim(),
+            "model": plasmoid.configuration.maritacaModel || "sabia-4",
+            "headers": null,
+            "allowEmptyKey": false
+        };
+
+        return {
+            "type": "openai-compat",
+            "baseUrl": plasmoid.configuration.baseUrl || "https://api.openai.com/v1",
+            "apiKey": (plasmoid.configuration.apiKey || "").trim(),
+            "model": plasmoid.configuration.model || "",
+            "headers": null,
+            "allowEmptyKey": false
+        };
     }
 
     function translate(text) {
@@ -2255,21 +2538,127 @@ PlasmoidItem {
             root.activeXhr = null;
         }
         root.loading = false;
-        root.connectionTimedOut = false;
         saveCurrentSessionState(true);
         processNextQueuedMessage();
     }
 
     function convertMarkdownToHtml(markdown) {
-        return markdownRenderer.toHtml(markdown);
+        if (!markdown)
+            return "";
+
+        var isDark = root.popupIsDark;
+        var codeBg = isDark ? "#2d3139" : "#f0f2f5";
+        var codeColor = isDark ? "#abb2bf" : "#383a42";
+        var inlineBg = isDark ? "#3e4452" : "#e5e5e5";
+        var inlineColor = isDark ? "#e06c75" : "#a626a4";
+        var linkColor = isDark ? "#61afef" : "#4078f2";
+        var borderColor = isDark ? "#3e4452" : "#d0d4dc";
+        var tableBorderColor = isDark ? "#4a5165" : "#c8cdd8";
+        var tableHeadBg = isDark ? "#363b48" : "#e8eaf0";
+        var tableRowAltBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)";
+        var html = markdown;
+        // 1. Escape HTML
+        html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        // 2. Extract fenced code blocks (with or without language)
+        var codeBlocks = [];
+        html = html.replace(/```([a-zA-Z0-9+#\-_]*)\n([\s\S]*?)```/g, function(match, lang, code) {
+            var blockIdx = codeBlocks.length;
+            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<div style="font-size: 0.8em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">' + (lang ? lang : 'code') + '</div>' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
+            codeBlocks.push(rendered);
+            return "%%CB" + blockIdx + "%%";
+        });
+        html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
+            var blockIdx = codeBlocks.length;
+            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
+            codeBlocks.push(rendered);
+            return "%%CB" + blockIdx + "%%";
+        });
+        // 3. Markdown tables  |col|col| with optional alignment row
+        html = html.replace(/((?:[ \t]*\|.+\|[ \t]*\n)+)/g, function(block) {
+            var rows = block.trim().split("\n");
+            if (rows.length < 2)
+                return block;
+
+            // Check row 1 is separator (---|---)
+            var isSep = /^[\s|:\-]+$/.test(rows[1]);
+            var headerRow = rows[0];
+            var bodyRows = isSep ? rows.slice(2) : rows.slice(1);
+            var parseCells = function parseCells(row) {
+                return row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split("|").map(function(c) {
+                    return c.trim();
+                });
+            };
+            var t = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em;">';
+            // Header
+            t += '<thead><tr>';
+            parseCells(headerRow).forEach(function(cell) {
+                t += '<th style="border: 1px solid ' + tableBorderColor + '; padding: 6px 10px; background: ' + tableHeadBg + '; text-align: left; font-weight: bold;">' + cell + '</th>';
+            });
+            t += '</tr></thead><tbody>';
+            // Body rows
+            bodyRows.forEach(function(row, ri) {
+                if (row.trim() === '' || /^[\s|:\-]+$/.test(row))
+                    return ;
+
+                var bg = (ri % 2 === 1) ? ' background: ' + tableRowAltBg + ';' : '';
+                t += '<tr>';
+                parseCells(row).forEach(function(cell) {
+                    t += '<td style="border: 1px solid ' + tableBorderColor + '; padding: 5px 10px;' + bg + '">' + cell + '</td>';
+                });
+                t += '</tr>';
+            });
+            t += '</tbody></table>';
+            return t;
+        });
+        // 4. Inline code
+        html = html.replace(/`([^`\n]+)`/g, '<code style="background-color: ' + inlineBg + '; color: ' + inlineColor + '; font-family: monospace; padding: 2px 5px; border-radius: 3px; font-size: 0.92em;">$1</code>');
+        // 5. Headers
+        html = html.replace(/^#### (.*?)$/gm, '<h4 style="margin: 8px 0; font-weight: bold;">$1</h4>');
+        html = html.replace(/^### (.*?)$/gm, '<h3 style="margin: 10px 0; font-weight: bold;">$1</h3>');
+        html = html.replace(/^## (.*?)$/gm, '<h2 style="margin: 12px 0; font-weight: bold;">$1</h2>');
+        html = html.replace(/^# (.*?)$/gm, '<h1 style="margin: 14px 0; font-weight: bold;">$1</h1>');
+        // 6. Bold & Italic
+        html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<b>$1</b>');
+        html = html.replace(/__([^\_\n]+)__/g, '<b>$1</b>');
+        html = html.replace(/\*([^\*\n]+)\*/g, '<i>$1</i>');
+        html = html.replace(/_([^\_\n]+)_/g, '<i>$1</i>');
+        // 7. Links [text](url)
+        html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, '<a href="$2" style="color: ' + linkColor + '; text-decoration: underline;">$1</a>');
+        // 8. Horizontal rule
+        html = html.replace(/^---+$/gm, '<hr style="border: none; border-top: 1px solid ' + borderColor + '; margin: 10px 0;"/>');
+        // 9. Blockquote
+        html = html.replace(/^&gt;\s?(.*?)$/gm, '<blockquote style="margin: 4px 0 4px 12px; padding: 4px 10px; border-left: 3px solid ' + borderColor + '; opacity: 0.8;">$1</blockquote>');
+        // 10. Bullet lists
+        html = html.replace(/^\s*[-*+]\s+(.*?)$/gm, '<ul><li>$1</li></ul>');
+        html = html.replace(/<\/ul>\s*\n?\s*<ul>/g, '');
+        // 11. Numbered lists
+        html = html.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<ol><li value="$1">$2</li></ol>');
+        html = html.replace(/<\/ol>\s*\n?\s*<ol>/g, '');
+        // 12. Paragraph breaks
+        html = html.replace(/\n\n/g, '<br/><br/>');
+        html = html.replace(/\n/g, '<br/>');
+        // 13. Restore code blocks
+        for (var idx = 0; idx < codeBlocks.length; idx++) {
+            html = html.replace("%%CB" + idx + "%%", codeBlocks[idx]);
+        }
+        return html;
     }
 
     function fileIconName(filename) {
-        return Utils.fileIconName(filename);
-    }
+        var ext = filename.split('.').pop().toLowerCase();
+        if (ext === 'pdf')
+            return 'document-pdf';
 
-    function tableMarkdownToCsv(tableMarkdown) {
-        return Utils.tableMarkdownToCsv(tableMarkdown);
+        if (ext === 'csv')
+            return 'text-csv';
+
+        if (ext === 'docx' || ext === 'doc')
+            return 'document-word';
+
+        if (ext === 'md' || ext === 'txt')
+            return 'text-plain';
+
+        return 'document-text';
     }
 
     function removeAttachedFile(index) {
@@ -2321,10 +2710,96 @@ PlasmoidItem {
 
     // Split raw markdown into typed blocks: {type:"text"|"code"|"table", content, lang}
     function parseMessageBlocks(markdown) {
-        return markdownRenderer.parseBlocks(markdown);
+        if (!markdown)
+            return [{
+            "type": "text",
+            "content": "",
+            "lang": ""
+        }];
+
+        var blocks = [];
+        var lines = markdown.split("\n");
+        var i = 0;
+        while (i < lines.length) {
+            // Detect fenced code block
+            var fenceMatch = lines[i].match(/^```([a-zA-Z0-9+#\-_]*)\s*$/);
+            if (fenceMatch) {
+                var lang = fenceMatch[1] || "";
+                var codeLines = [];
+                i++;
+                while (i < lines.length && !lines[i].match(/^```\s*$/)) {
+                    codeLines.push(lines[i]);
+                    i++;
+                }
+                i++; // skip closing ```
+                blocks.push({
+                    "type": "code",
+                    "content": codeLines.join("\n"),
+                    "lang": lang
+                });
+                continue;
+            }
+            // Detect markdown table block (consecutive lines with |)
+            if (/^\s*\|/.test(lines[i])) {
+                var tableLines = [];
+                while (i < lines.length && /^\s*\|/.test(lines[i])) {
+                    tableLines.push(lines[i]);
+                    i++;
+                }
+                blocks.push({
+                    "type": "table",
+                    "content": tableLines.join("\n") + "\n",
+                    "lang": ""
+                });
+                continue;
+            }
+            // Regular text — accumulate until next code/table block
+            var textLines = [];
+            while (i < lines.length && !lines[i].match(/^```/) && !/^\s*\|/.test(lines[i])) {
+                textLines.push(lines[i]);
+                i++;
+            }
+            var textContent = textLines.join("\n").replace(/^\n+/, "").replace(/\n+$/, "");
+            if (textContent !== "")
+                blocks.push({
+                "type": "text",
+                "content": textContent,
+                "lang": ""
+            });
+
+        }
+        if (blocks.length === 0)
+            blocks.push({
+            "type": "text",
+            "content": markdown,
+            "lang": ""
+        });
+
+        return blocks;
     }
 
+    // Convert markdown table to CSV string
+    function tableMarkdownToCsv(tableMarkdown) {
+        var rows = tableMarkdown.trim().split("\n");
+        var csvRows = [];
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            // Skip separator rows (---|---)
+            if (/^[\s|:\-]+$/.test(row))
+                continue;
 
+            var cells = row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|");
+            var csvCells = cells.map(function(c) {
+                var v = c.trim();
+                if (v.indexOf(",") >= 0 || v.indexOf("\"") >= 0 || v.indexOf("\n") >= 0)
+                    v = "\"" + v.replace(/"/g, "\"\"") + "\"";
+
+                return v;
+            });
+            csvRows.push(csvCells.join(","));
+        }
+        return csvRows.join("\n");
+    }
 
     function buildMessageContent(text, attachments, apiType) {
         var docs = [];
@@ -2389,9 +2864,42 @@ PlasmoidItem {
     }
 
     function applyKWalletKeyToMemory(targetId, secretValue) {
-        var keyName = ProviderData.apiKeyConfigName(targetId);
-        if (keyName)
-            plasmoid.configuration[keyName] = secretValue;
+        if (targetId === "openai")
+            plasmoid.configuration.apiKey = secretValue;
+        else if (targetId === "anthropic")
+            plasmoid.configuration.anthropicApiKey = secretValue;
+        else if (targetId === "groq")
+            plasmoid.configuration.groqApiKey = secretValue;
+        else if (targetId === "deepseek")
+            plasmoid.configuration.deepSeekApiKey = secretValue;
+        else if (targetId === "minimax")
+            plasmoid.configuration.miniMaxApiKey = secretValue;
+        else if (targetId === "fireworks")
+            plasmoid.configuration.fireworksApiKey = secretValue;
+        else if (targetId === "google")
+            plasmoid.configuration.googleApiKey = secretValue;
+        else if (targetId === "openrouter")
+            plasmoid.configuration.openRouterApiKey = secretValue;
+        else if (targetId === "mistral")
+            plasmoid.configuration.mistralApiKey = secretValue;
+        else if (targetId === "cloudflare")
+            plasmoid.configuration.cloudflareApiKey = secretValue;
+        else if (targetId === "nvidia")
+            plasmoid.configuration.nvidiaApiKey = secretValue;
+        else if (targetId === "huggingface")
+            plasmoid.configuration.huggingFaceApiKey = secretValue;
+        else if (targetId === "xai")
+            plasmoid.configuration.xaiApiKey = secretValue;
+        else if (targetId === "litellm")
+            plasmoid.configuration.litellmApiKey = secretValue;
+        else if (targetId === "qwen")
+            plasmoid.configuration.qwenApiKey = secretValue;
+        else if (targetId === "moonshot")
+            plasmoid.configuration.moonshotApiKey = secretValue;
+        else if (targetId === "mimo")
+            plasmoid.configuration.mimoApiKey = secretValue;
+        else if (targetId === "maritaca")
+            plasmoid.configuration.maritacaApiKey = secretValue;
     }
 
     function walletBulkReadCommand(walletName) {
@@ -2626,24 +3134,6 @@ PlasmoidItem {
                         for (var i = 0; i < triggers.length; i++) {
                             var t = triggers[i];
                             if (t && t.message) {
-                                // Double check if this schedule was deleted, paused, or archived in the meantime
-                                var activeSched = null;
-                                for (var k = 0; k < root.schedulesList.length; k++) {
-                                    if (root.schedulesList[k] && root.schedulesList[k].id === t.id) {
-                                        activeSched = root.schedulesList[k];
-                                        break;
-                                    }
-                                }
-                                if (activeSched) {
-                                    if (activeSched.enabled === false || activeSched.archived) {
-                                        console.log("[KAI-DEBUG] Skipping trigger for paused/archived schedule:", t.id);
-                                        continue;
-                                    }
-                                } else {
-                                    console.log("[KAI-DEBUG] Skipping trigger for deleted schedule:", t.id);
-                                    continue;
-                                }
-
                                 var cid = t.chatId || "";
                                 if (cid === "" || cid === "new") {
                                     // Create a new session first
@@ -3402,13 +3892,8 @@ PlasmoidItem {
                             "notify": scheduleCommandDialog.schedNotify,
                             "createdAt": new Date().toISOString()
                         });
-                        var b64 = Qt.btoa(encodeURIComponent(jsonEntry));
-                        var py = "import base64,json,os,urllib.parse; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
-                                 "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
-                                 "if isinstance(data, list): data={'version':1,'schedules':data}; " +
-                                 "entry_str = urllib.parse.unquote(base64.b64decode('" + b64 + "').decode('utf-8')); " +
-                                 "data.setdefault('schedules', []).append(json.loads(entry_str)); " +
-                                 "json.dump(data,open(p,'w'),indent=2)";
+                        var escaped = jsonEntry.replace(/'/g, "'\\''");
+                        var py = "import json,os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " + "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " + "if isinstance(data, list): data={'version':1,'schedules':data}; " + "data.setdefault('schedules', []).append(json.loads('" + escaped + "')); " + "json.dump(data,open(p,'w'),indent=2)";
                         schedulerDs.connectSource("sh -lc 'python3 -c \"" + py + "\" && pkill -HUP -f kde-ai-scheduler.py' #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
@@ -3689,8 +4174,6 @@ PlasmoidItem {
             anchors.fill: parent
             anchors.margins: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
-            LayoutMirroring.enabled: Translations.isRtlLanguage(plasmoid.configuration.language)
-            LayoutMirroring.childrenInherit: true
 
             RowLayout {
                 Layout.fillWidth: true
@@ -3973,14 +4456,890 @@ PlasmoidItem {
                                     id: verticalScrollBar
                                 }
 
-                                delegate: ChatBubble {
-                                    modelData: modelData
-                                    index: index
-                                    rootRef: root
-                                    availableWidth: msgList.width
-                                    clipboardHelper: clipboardHelper
-                                    customStorageDs: customStorageDs
-                                    schedulerDs: schedulerDs
+                                delegate: Item {
+                                    property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
+
+                                    width: msgList.width
+                                    implicitHeight: delegateCol.implicitHeight
+                                    height: implicitHeight
+
+                                    Column {
+                                        id: delegateCol
+
+                                        width: parent.width
+                                        spacing: Kirigami.Units.largeSpacing
+
+                                        Item {
+                                            visible: showDayHeader
+                                            width: parent.width
+                                            height: showDayHeader ? dayHeaderChip.implicitHeight : 0
+
+                                            Rectangle {
+                                                id: dayHeaderChip
+
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                radius: 999
+                                                color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+                                                implicitWidth: dayHeaderText.implicitWidth + Kirigami.Units.largeSpacing
+                                                implicitHeight: dayHeaderText.implicitHeight + Kirigami.Units.smallSpacing
+
+                                                PC3.Label {
+                                                    id: dayHeaderText
+
+                                                    anchors.centerIn: parent
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    opacity: 0.78
+                                                    text: root.dayDividerLabelForIndex(index)
+                                                }
+
+                                            }
+
+                                        }
+
+                                        Item {
+                                            width: parent.width
+                                            height: bubble.implicitHeight
+
+                                            Rectangle {
+                                                id: bubble
+
+                                                width: Math.min(msgList.width * 0.76, 560)
+                                                implicitHeight: bubbleCol.implicitHeight + Kirigami.Units.largeSpacing
+                                                radius: 10
+                                                color: modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor
+                                                border.width: modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" ? 2 : 1
+                                                border.color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
+                                                anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
+                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" ? parent.left : undefined
+
+                                                Column {
+                                                    // ── end message body ───────────────────────────────────────
+
+                                                    id: bubbleCol
+
+                                                    width: parent.width - Kirigami.Units.largeSpacing
+                                                    x: Kirigami.Units.smallSpacing + Kirigami.Units.smallSpacing / 2
+                                                    y: Kirigami.Units.smallSpacing + Kirigami.Units.smallSpacing / 2
+                                                    spacing: Kirigami.Units.smallSpacing
+
+                                                    Row {
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        PC3.Label {
+                                                            text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? "OpenCode Interactive Question" : modelData.role === "permission_request" ? "OpenCode Security Request" : modelData.role === "schedules_list" ? "Schedules Manager" : "AI"
+                                                            font.bold: true
+                                                        }
+
+                                                        PC3.Label {
+                                                            text: root.formatMessageTime(modelData, index)
+                                                            opacity: 0.7
+                                                            visible: text !== ""
+                                                        }
+
+                                                        PC3.Label {
+                                                            text: modelData.role === "assistant" && modelData.model ? ("(" + modelData.model + ")") : ""
+                                                            opacity: 0.6
+                                                            visible: text !== ""
+                                                        }
+
+                                                    }
+
+                                                    Loader {
+                                                        active: root.editingMessageIndex === index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                        width: parent.width
+
+                                                        sourceComponent: QQC2.TextArea {
+                                                            width: parent ? parent.width : implicitWidth
+                                                            text: root.editingDraft
+                                                            wrapMode: Text.WordWrap
+                                                            onTextChanged: root.editingDraft = text
+                                                        }
+
+                                                    }
+
+                                                    // ── Selectable / interactive message body ─────────────────
+                                                    Column {
+                                                        visible: root.editingMessageIndex !== index || modelData.role === "error"
+                                                        width: parent.width
+                                                        spacing: 4
+
+                                                        // For error messages just render plain selectable text
+                                                        TextEdit {
+                                                            visible: modelData.role === "error"
+                                                            width: parent.width
+                                                            wrapMode: Text.Wrap
+                                                            textFormat: Text.PlainText
+                                                            text: modelData.content
+                                                            color: Kirigami.Theme.negativeTextColor
+                                                            readOnly: true
+                                                            selectByMouse: true
+                                                            selectByKeyboard: true
+                                                            selectedTextColor: Kirigami.Theme.highlightedTextColor
+                                                            selectionColor: Kirigami.Theme.highlightColor
+                                                            font: Kirigami.Theme.defaultFont
+                                                        }
+
+                                                        // For non-error messages render block-by-block
+                                                        Repeater {
+                                                            visible: modelData.role !== "error" && modelData.role !== "schedules_list"
+                                                            model: modelData.role !== "error" && modelData.role !== "schedules_list" ? root.parseMessageBlocks(modelData.content) : []
+
+                                                            delegate: Item {
+                                                                required property var modelData
+
+                                                                width: parent.width
+                                                                implicitHeight: modelData.type === "code" ? codeLoader.implicitHeight : htmlEdit.implicitHeight
+
+                                                                // ── HTML / Markdown text block ───────────────────────
+                                                                TextEdit {
+                                                                    id: htmlEdit
+
+                                                                    visible: modelData.type === "text"
+                                                                    width: parent.width
+                                                                    wrapMode: Text.Wrap
+                                                                    textFormat: Text.RichText
+                                                                    text: root.convertMarkdownToHtml(modelData.content)
+                                                                    color: Kirigami.Theme.textColor
+                                                                    readOnly: true
+                                                                    selectByMouse: true
+                                                                    selectByKeyboard: true
+                                                                    selectedTextColor: Kirigami.Theme.highlightedTextColor
+                                                                    selectionColor: Kirigami.Theme.highlightColor
+                                                                    font: Kirigami.Theme.defaultFont
+                                                                    onLinkActivated: function(link) {
+                                                                        Qt.openUrlExternally(link);
+                                                                    }
+                                                                }
+
+                                                                // ── Code block with copy button ───────────────────────
+                                                                Item {
+                                                                    id: codeLoader
+
+                                                                    visible: modelData.type === "code"
+                                                                    width: parent.width
+                                                                    implicitHeight: codeContainer.implicitHeight + 2
+
+                                                                    Rectangle {
+                                                                        id: codeContainer
+
+                                                                        width: parent.width
+                                                                        implicitHeight: codeLangRow.implicitHeight + codeBody.implicitHeight + Kirigami.Units.smallSpacing * 3
+                                                                        radius: 6
+                                                                        color: root.popupIsDark ? "#2d3139" : "#f0f2f5"
+                                                                        border.width: 1
+                                                                        border.color: root.popupIsDark ? "#3e4452" : "#d0d4dc"
+                                                                        clip: true
+
+                                                                        // Lang label + copy button row
+                                                                        Row {
+                                                                            id: codeLangRow
+
+                                                                            width: parent.width
+                                                                            height: Math.max(langLabel.implicitHeight + Kirigami.Units.smallSpacing, copyCodeBtn.implicitHeight + Kirigami.Units.smallSpacing)
+                                                                            spacing: 0
+
+                                                                            PC3.Label {
+                                                                                id: langLabel
+
+                                                                                anchors.verticalCenter: parent.verticalCenter
+                                                                                leftPadding: Kirigami.Units.smallSpacing + 4
+                                                                                text: modelData.lang || "code"
+                                                                                font.pointSize: 8
+                                                                                font.bold: true
+                                                                                color: root.popupIsDark ? "#5c6370" : "#a0a1a7"
+                                                                                width: parent.width - copyCodeBtn.width - Kirigami.Units.smallSpacing
+                                                                            }
+
+                                                                            PC3.ToolButton {
+                                                                                id: copyCodeBtn
+
+                                                                                anchors.verticalCenter: parent.verticalCenter
+                                                                                icon.name: "edit-copy"
+                                                                                display: PC3.AbstractButton.IconOnly
+                                                                                flat: true
+                                                                                QQC2.ToolTip.visible: hovered
+                                                                                QQC2.ToolTip.text: "Copy code"
+                                                                                onClicked: {
+                                                                                    clipboardHelper.text = modelData.content;
+                                                                                    clipboardHelper.selectAll();
+                                                                                    clipboardHelper.copy();
+                                                                                }
+                                                                            }
+
+                                                                        }
+
+                                                                        // Thin divider
+                                                                        Rectangle {
+                                                                            y: codeLangRow.height
+                                                                            width: parent.width
+                                                                            height: 1
+                                                                            color: root.popupIsDark ? "#3e4452" : "#d0d4dc"
+                                                                        }
+
+                                                                        // Code text
+                                                                        TextEdit {
+                                                                            id: codeBody
+
+                                                                            y: codeLangRow.height + 1
+                                                                            width: parent.width
+                                                                            leftPadding: Kirigami.Units.smallSpacing + 4
+                                                                            rightPadding: Kirigami.Units.smallSpacing + 4
+                                                                            topPadding: Kirigami.Units.smallSpacing
+                                                                            bottomPadding: Kirigami.Units.smallSpacing
+                                                                            wrapMode: Text.Wrap
+                                                                            textFormat: Text.PlainText
+                                                                            text: modelData.content
+                                                                            color: root.popupIsDark ? "#abb2bf" : "#383a42"
+                                                                            font.family: "monospace"
+                                                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
+                                                                            readOnly: true
+                                                                            selectByMouse: true
+                                                                            selectByKeyboard: true
+                                                                            selectedTextColor: Kirigami.Theme.highlightedTextColor
+                                                                            selectionColor: Kirigami.Theme.highlightColor
+                                                                        }
+
+                                                                    }
+
+                                                                }
+
+                                                                // ── Markdown table with CSV export button ─────────────
+                                                                Item {
+                                                                    visible: modelData.type === "table"
+                                                                    width: parent.width
+                                                                    implicitHeight: tableOuterCol.implicitHeight
+
+                                                                    Column {
+                                                                        id: tableOuterCol
+
+                                                                        width: parent.width
+                                                                        spacing: 2
+
+                                                                        // Export button row
+                                                                        Row {
+                                                                            width: parent.width
+                                                                            layoutDirection: Qt.RightToLeft
+
+                                                                            PC3.ToolButton {
+                                                                                icon.name: "document-export"
+                                                                                display: PC3.AbstractButton.IconOnly
+                                                                                flat: true
+                                                                                QQC2.ToolTip.visible: hovered
+                                                                                QQC2.ToolTip.text: "Export table as CSV"
+                                                                                onClicked: {
+                                                                                    var csv = root.tableMarkdownToCsv(modelData.content);
+                                                                                    var ts = new Date().getTime();
+                                                                                    var path = "/tmp/kdeaichat-table-" + ts + ".csv";
+                                                                                    var escaped = path.replace(/'/g, "'\\''");
+                                                                                    clipboardHelper.text = csv;
+                                                                                    clipboardHelper.selectAll();
+                                                                                    clipboardHelper.copy();
+                                                                                    customStorageDs.connectSource("bash -c \"printf '%s' '" + csv.replace(/'/g, "'\\''") + "' > '" + escaped + "' && xdg-open '" + escaped + "'\" #csv-export-" + ts);
+                                                                                }
+                                                                            }
+
+                                                                        }
+
+                                                                        // Table rendered as HTML
+                                                                        TextEdit {
+                                                                            width: parent.width
+                                                                            wrapMode: Text.Wrap
+                                                                            textFormat: Text.RichText
+                                                                            text: root.convertMarkdownToHtml(modelData.content)
+                                                                            color: Kirigami.Theme.textColor
+                                                                            readOnly: true
+                                                                            selectByMouse: true
+                                                                            selectByKeyboard: true
+                                                                            selectedTextColor: Kirigami.Theme.highlightedTextColor
+                                                                            selectionColor: Kirigami.Theme.highlightColor
+                                                                            font: Kirigami.Theme.defaultFont
+                                                                        }
+
+                                                                    }
+
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    Row {
+                                                        visible: modelData.role === "error"
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        PC3.Button {
+                                                            text: root.translate("Open Settings")
+                                                            icon.name: "configure"
+                                                            onClicked: {
+                                                                 root.triggerConfigure();
+                                                             }
+                                                        }
+
+                                                    }
+
+                                                    Flow {
+                                                        width: parent.width
+                                                        visible: modelData.attachments && modelData.attachments.length > 0
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        Repeater {
+                                                            model: modelData.attachments || []
+
+                                                            delegate: Rectangle {
+                                                                width: Math.min(150, msgFilenameLabel.implicitWidth + 36)
+                                                                height: Kirigami.Units.gridUnit * 1.25
+                                                                radius: 6
+                                                                color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
+                                                                border.width: 1
+                                                                border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+
+                                                                RowLayout {
+                                                                    anchors.fill: parent
+                                                                    anchors.margins: Kirigami.Units.smallSpacing
+                                                                    spacing: Kirigami.Units.smallSpacing
+
+                                                                    Item {
+                                                                        Layout.preferredWidth: 16
+                                                                        Layout.preferredHeight: 16
+
+                                                                        Image {
+                                                                            anchors.fill: parent
+                                                                            visible: modelData.type === "image"
+                                                                            source: "file://" + modelData.path
+                                                                            fillMode: Image.PreserveAspectCrop
+                                                                            clip: true
+                                                                        }
+
+                                                                        Kirigami.Icon {
+                                                                            anchors.fill: parent
+                                                                            visible: modelData.type !== "image"
+                                                                            source: root.fileIconName(modelData.name)
+                                                                        }
+
+                                                                    }
+
+                                                                    PC3.Label {
+                                                                        id: msgFilenameLabel
+
+                                                                        Layout.fillWidth: true
+                                                                        text: modelData.name
+                                                                        elide: Text.ElideRight
+                                                                        font.pointSize: 8
+                                                                        color: Kirigami.Theme.textColor
+                                                                    }
+
+                                                                }
+
+                                                                MouseArea {
+                                                                    anchors.fill: parent
+                                                                    cursorShape: Qt.PointingHandCursor
+                                                                    QQC2.ToolTip.visible: hovered
+                                                                    QQC2.ToolTip.text: "Open: " + modelData.path
+                                                                    onClicked: Qt.openUrlExternally("file://" + modelData.path)
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    Row {
+                                                        visible: modelData.role === "permission_request"
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.largeSpacing
+                                                        Layout.topMargin: Kirigami.Units.smallSpacing
+
+                                                        PC3.Button {
+                                                            visible: modelData.status === "pending"
+                                                            text: "Allow"
+                                                            icon.name: "dialog-ok-apply"
+                                                            onClicked: root.respondToPermission(modelData.permissionId, true)
+                                                        }
+
+                                                        PC3.Button {
+                                                            visible: modelData.status === "pending"
+                                                            text: "Reject"
+                                                            icon.name: "dialog-cancel"
+                                                            onClicked: root.respondToPermission(modelData.permissionId, false)
+                                                        }
+
+                                                        PC3.Label {
+                                                            visible: modelData.status !== "pending"
+                                                            text: modelData.status === "allowed" ? "Approved ✅" : modelData.status === "denied" ? "Rejected ❌" : modelData.status === "allowing..." ? "Approving..." : "Rejecting..."
+                                                            font.bold: true
+                                                            color: modelData.status === "allowed" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                                                        }
+
+                                                    }
+
+                                                    Column {
+                                                        id: questionCol
+
+                                                        property string qId: modelData.questionId || ""
+                                                        property var qQuestions: modelData.questions || []
+                                                        property bool qAllowCustom: modelData.allowCustom !== false
+                                                        property string qStatus: modelData.status || ""
+
+                                                        visible: modelData.role === "question_request"
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        // Per-question sections when structured options are available
+                                                        Repeater {
+                                                            model: (questionCol.qStatus === "pending" && questionCol.qQuestions.length > 0) ? questionCol.qQuestions : []
+
+                                                            delegate: Column {
+                                                                id: questionItemCol
+
+                                                                required property var modelData
+                                                                required property int index
+                                                                property bool qMultiple: modelData.multiple || false
+
+                                                                width: parent.width
+                                                                spacing: Kirigami.Units.smallSpacing
+
+                                                                // Question header chip
+                                                                Rectangle {
+                                                                    visible: (modelData.header || "") !== ""
+                                                                    width: qHeaderLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
+                                                                    height: qHeaderLabel.implicitHeight + Kirigami.Units.smallSpacing
+                                                                    radius: 999
+                                                                    color: Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.18)
+
+                                                                    PC3.Label {
+                                                                        id: qHeaderLabel
+
+                                                                        anchors.centerIn: parent
+                                                                        text: modelData.header || ""
+                                                                        font.bold: true
+                                                                        font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                                                        color: Kirigami.Theme.focusColor
+                                                                    }
+
+                                                                }
+
+                                                                // Clickable option buttons
+                                                                Flow {
+                                                                    width: parent.width
+                                                                    spacing: Kirigami.Units.smallSpacing
+                                                                    visible: modelData.options && modelData.options.length > 0
+
+                                                                    Repeater {
+                                                                        model: modelData.options || []
+
+                                                                        delegate: Rectangle {
+                                                                            id: optionBtn
+
+                                                                            required property var modelData
+                                                                            required property int index
+                                                                            property bool selected: false
+
+                                                                            width: optBtnLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
+                                                                            height: optBtnLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                                                            radius: 6
+                                                                            color: selected ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.3) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
+                                                                            border.width: selected ? 2 : 1
+                                                                            border.color: selected ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.18)
+                                                                            QQC2.ToolTip.visible: optionMa.containsMouse && (optionBtn.modelData.description || "") !== ""
+                                                                            QQC2.ToolTip.text: optionBtn.modelData.description || ""
+
+                                                                            PC3.Label {
+                                                                                id: optBtnLabel
+
+                                                                                anchors.centerIn: parent
+                                                                                text: (optionBtn.selected ? "✓ " : "") + (optionBtn.modelData.label || "")
+                                                                                font.bold: optionBtn.selected
+                                                                                color: optionBtn.selected ? Kirigami.Theme.focusColor : Kirigami.Theme.textColor
+                                                                            }
+
+                                                                            MouseArea {
+                                                                                id: optionMa
+
+                                                                                anchors.fill: parent
+                                                                                hoverEnabled: true
+                                                                                cursorShape: Qt.PointingHandCursor
+                                                                                onClicked: {
+                                                                                    optionBtn.selected = !optionBtn.selected;
+                                                                                    // For non-multiple questions, submit immediately on click
+                                                                                    if (!questionItemCol.qMultiple && optionBtn.selected)
+                                                                                        root.respondToQuestion(questionCol.qId, optionBtn.modelData.label || "", false);
+
+                                                                                }
+                                                                            }
+
+                                                                        }
+
+                                                                    }
+
+                                                                }
+
+                                                                // Separator between questions
+                                                                Rectangle {
+                                                                    visible: index < (parent.model ? parent.model.length - 1 : 0)
+                                                                    width: parent.width
+                                                                    height: 1
+                                                                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                        // Custom answer text field (shown when custom is allowed or no options exist)
+                                                        PC3.Label {
+                                                            text: (questionCol.qQuestions.length > 0) ? "Or type a custom answer:" : "Your Answer:"
+                                                            font.bold: true
+                                                            visible: questionCol.qStatus === "pending" && questionCol.qAllowCustom
+                                                        }
+
+                                                        PC3.TextField {
+                                                            id: questionReplyField
+
+                                                            visible: questionCol.qStatus === "pending" && questionCol.qAllowCustom
+                                                            width: parent.width
+                                                            placeholderText: root.translate("Type your answer here...")
+                                                            onAccepted: {
+                                                                if (text.trim() !== "")
+                                                                    root.respondToQuestion(questionCol.qId, text, false);
+
+                                                            }
+                                                        }
+
+                                                        Row {
+                                                            width: parent.width
+                                                            spacing: Kirigami.Units.largeSpacing
+
+                                                            PC3.Button {
+                                                                visible: questionCol.qStatus === "pending"
+                                                                text: "Submit"
+                                                                icon.name: "mail-send"
+                                                                onClicked: root.submitQuestionAnswer(questionCol.qId, questionCol.qQuestions, questionReplyField)
+                                                            }
+
+                                                            PC3.Button {
+                                                                visible: questionCol.qStatus === "pending"
+                                                                text: "Dismiss"
+                                                                icon.name: "dialog-cancel"
+                                                                onClicked: root.respondToQuestion(questionCol.qId, "", true)
+                                                            }
+
+                                                            PC3.Label {
+                                                                visible: questionCol.qStatus !== "pending"
+                                                                text: questionCol.qStatus === "answered" ? "Answered: \"" + (modelData.submittedAnswer || "") + "\" ✅" : questionCol.qStatus === "dismissed" ? "Dismissed ❌" : questionCol.qStatus === "answering..." ? "Submitting..." : "Dismissing..."
+                                                                font.bold: true
+                                                                color: questionCol.qStatus === "answered" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    ColumnLayout {
+                                                        visible: modelData.role === "schedules_list"
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.largeSpacing
+
+                                                        PC3.Label {
+                                                            text: "📅 Active Schedules in this Chat"
+                                                            font.bold: true
+                                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize + 2
+                                                            color: Kirigami.Theme.highlightColor
+                                                        }
+
+                                                        Column {
+                                                            width: parent.width
+                                                            spacing: Kirigami.Units.smallSpacing
+
+                                                            // Repeater over schedules belonging to root.currentSessionId
+                                                            Repeater {
+                                                                model: root.getSchedulesForSession(root.currentSessionId)
+
+                                                                delegate: Rectangle {
+                                                                    width: parent.width
+                                                                    implicitHeight: rowCol.implicitHeight + Kirigami.Units.largeSpacing
+                                                                    color: (modelData.enabled !== false) ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.02)
+                                                                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+                                                                    radius: 6
+                                                                    opacity: (modelData.enabled !== false) ? 1 : 0.6
+
+                                                                    ColumnLayout {
+                                                                        id: rowCol
+
+                                                                        anchors.fill: parent
+                                                                        anchors.margins: Kirigami.Units.largeSpacing
+                                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                                        RowLayout {
+                                                                            Layout.fillWidth: true
+                                                                            spacing: Kirigami.Units.smallSpacing
+
+                                                                            Kirigami.Icon {
+                                                                                source: "appointment-new"
+                                                                                implicitWidth: Kirigami.Units.iconSizes.small
+                                                                                implicitHeight: Kirigami.Units.iconSizes.small
+                                                                            }
+
+                                                                            PC3.Label {
+                                                                                text: (modelData.label ? modelData.label : "Untitled Schedule") + ((modelData.enabled !== false) ? "" : " (Paused)")
+                                                                                font.bold: true
+                                                                                Layout.fillWidth: true
+                                                                                elide: Text.ElideRight
+                                                                            }
+
+                                                                            PC3.Button {
+                                                                                icon.name: (modelData.enabled !== false) ? "media-playback-pause" : "media-playback-start"
+                                                                                text: (modelData.enabled !== false) ? "Pause" : "Resume"
+                                                                                QQC2.ToolTip.text: (modelData.enabled !== false) ? "Pause this schedule" : "Resume this schedule"
+                                                                                QQC2.ToolTip.visible: hovered
+                                                                                onClicked: {
+                                                                                    root.toggleScheduleEnabled(modelData.id, !(modelData.enabled !== false));
+                                                                                }
+                                                                            }
+
+                                                                            PC3.Button {
+                                                                                icon.name: "edit-delete"
+                                                                                text: "Delete"
+                                                                                QQC2.ToolTip.text: "Delete this schedule"
+                                                                                QQC2.ToolTip.visible: hovered
+                                                                                onClicked: {
+                                                                                    var schedId = modelData.id;
+                                                                                    var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " + "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " + "if isinstance(data, list): data={'version':1,'schedules':data}; " + "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']; " + "json.dump(data, open(p,'w'), indent=2)";
+                                                                                    schedulerDs.connectSource("sh -lc 'python3 -c \"" + py + "\" && pkill -HUP -f kde-ai-scheduler.py' #sched-delete-" + Date.now());
+                                                                                    // Remove immediately from UI to be responsive!
+                                                                                    var copy = root.schedulesList.slice();
+                                                                                    root.schedulesList = copy.filter(function(s) {
+                                                                                        return s.id !== schedId;
+                                                                                    });
+                                                                                    root.appendSystemMessage("🗑️ Schedule deleted successfully.");
+                                                                                }
+                                                                            }
+
+                                                                        }
+
+                                                                        PC3.Label {
+                                                                            text: "Message: " + modelData.message
+                                                                            wrapMode: Text.Wrap
+                                                                            Layout.fillWidth: true
+                                                                            opacity: 0.85
+                                                                            font.italic: true
+                                                                        }
+
+                                                                        PC3.Label {
+                                                                            text: "⏰ " + modelData.humanText
+                                                                            color: Kirigami.Theme.highlightColor
+                                                                            font.bold: true
+                                                                        }
+
+                                                                    }
+
+                                                                }
+
+                                                            }
+
+                                                            PC3.Label {
+                                                                visible: root.getSchedulesForSession(root.currentSessionId).length === 0
+                                                                text: "No active schedules for this chat."
+                                                                font.italic: true
+                                                                opacity: 0.7
+                                                            }
+
+                                                        }
+
+                                                        RowLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: Kirigami.Units.largeSpacing
+
+                                                            PC3.Button {
+                                                                text: "Create Schedule"
+                                                                icon.name: "appointment-new"
+                                                                highlighted: true
+                                                                onClicked: {
+                                                                     plasmoid.configuration.preselectedChatId = root.currentSessionId;
+                                                                     plasmoid.configuration.preselectedChatName = root.currentSessionTitle || "Current Chat";
+                                                                     root.triggerConfigure();
+                                                                 }
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    Rectangle {
+                                                        visible: root.editingMessageIndex === index && modelData.role !== "error"
+                                                        width: parent.width
+                                                        height: editWarn.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                                        radius: 6
+                                                        color: Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.1)
+
+                                                        PC3.Label {
+                                                            id: editWarn
+
+                                                            anchors.fill: parent
+                                                            anchors.margins: Kirigami.Units.smallSpacing
+                                                            wrapMode: Text.Wrap
+                                                            text: "Saving this edit will remove all messages below this one and make this the latest message."
+                                                        }
+
+                                                    }
+
+                                                    PC3.Label {
+                                                        visible: modelData.role === "assistant" && modelData.tokens !== undefined
+                                                        width: parent.width
+                                                        horizontalAlignment: Text.AlignRight
+                                                        text: root.formatTokensUsage(modelData.tokens, modelData.cost)
+                                                        font.pointSize: 8
+                                                        opacity: 0.55
+                                                        elide: Text.ElideRight
+                                                    }
+
+                                                    // Context items (tool invocations) display
+                                                    Column {
+                                                        visible: modelData.role === "assistant" && modelData.contextItems !== undefined && modelData.contextItems.length > 0
+                                                        width: parent.width
+                                                        spacing: 2
+
+                                                        Row {
+                                                            spacing: Kirigami.Units.smallSpacing
+
+                                                            PC3.Label {
+                                                                text: "📂 Context (" + (modelData.contextItems ? modelData.contextItems.length : 0) + ")"
+                                                                font.pointSize: 7
+                                                                font.bold: true
+                                                                opacity: 0.6
+                                                            }
+
+                                                            PC3.Label {
+                                                                id: contextToggle
+
+                                                                property bool expanded: false
+
+                                                                text: expanded ? "▲ hide" : "▼ show"
+                                                                font.pointSize: 7
+                                                                opacity: 0.5
+
+                                                                MouseArea {
+                                                                    anchors.fill: parent
+                                                                    cursorShape: Qt.PointingHandCursor
+                                                                    onClicked: contextToggle.expanded = !contextToggle.expanded
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                        Flow {
+                                                            visible: contextToggle.expanded
+                                                            width: parent.width
+                                                            spacing: 3
+
+                                                            Repeater {
+                                                                model: modelData.contextItems || []
+
+                                                                delegate: Rectangle {
+                                                                    required property string modelData
+
+                                                                    width: ctxLabel.implicitWidth + 10
+                                                                    height: ctxLabel.implicitHeight + 4
+                                                                    radius: 999
+                                                                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.06)
+
+                                                                    PC3.Label {
+                                                                        id: ctxLabel
+
+                                                                        anchors.centerIn: parent
+                                                                        text: modelData
+                                                                        font.pointSize: 7
+                                                                        opacity: 0.6
+                                                                        elide: Text.ElideMiddle
+                                                                        maximumLineCount: 1
+                                                                    }
+
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    Row {
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        PC3.ToolButton {
+                                                            visible: root.editingMessageIndex !== index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                            icon.name: "document-edit"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: modelData.role === "queued" ? "Edit queued message" : "Edit message"
+                                                            onClicked: {
+                                                                root.editingMessageIndex = index;
+                                                                root.editingDraft = modelData.content;
+                                                            }
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            visible: root.editingMessageIndex === index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                            icon.name: "dialog-ok-apply"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Apply edit"
+                                                            onClicked: root.saveEditedMessage()
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            visible: root.editingMessageIndex === index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                            icon.name: "dialog-cancel"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Cancel edit"
+                                                            onClicked: {
+                                                                root.editingMessageIndex = -1;
+                                                                root.editingDraft = "";
+                                                            }
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            icon.name: "edit-copy"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Copy message"
+                                                            onClicked: {
+                                                                // Use an invisible text input to copy to clipboard in QML
+                                                                clipboardHelper.text = modelData.content || "";
+                                                                clipboardHelper.selectAll();
+                                                                clipboardHelper.copy();
+                                                            }
+                                                        }
+
+                                                        PC3.ToolButton {
+                                                            icon.name: "edit-delete"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: modelData.role === "queued" ? "Delete queued message" : "Delete message"
+                                                            onClicked: root.deleteMessage(index)
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        }
+
+                                        Rectangle {
+                                            width: parent.width
+                                            implicitHeight: 1
+                                            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.14)
+                                        }
+
+                                    }
+
                                 }
 
                             }
@@ -3999,21 +5358,6 @@ PlasmoidItem {
                             PC3.Label {
                                 text: root.streamingResponse ? "Streaming response..." : "Thinking..."
                                 opacity: 0.8
-                            }
-
-                            PC3.Label {
-                                visible: root.connectionTimedOut
-                                text: "⚠ " + translate("No response yet — check if the server is running")
-                                color: "#e74c3c"
-                                font.bold: true
-                            }
-
-                            QQC2.Button {
-                                visible: root.connectionTimedOut
-                                text: translate("Cancel request")
-                                icon.name: "dialog-cancel"
-                                flat: true
-                                onClicked: stopStreaming()
                             }
 
                         }

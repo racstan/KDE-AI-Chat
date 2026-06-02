@@ -6,27 +6,12 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
 import "translations.js" as Translations
-import "ProviderData.js" as ProviderData
 
 KCM.SimpleKCM {
     id: page
 
-    LayoutMirroring.enabled: Translations.isRtlLanguage(cfg_language)
-    LayoutMirroring.childrenInherit: true
-
-    RegularExpressionValidator {
-        id: urlValidator
-        regularExpression: /^https?:\/\/[^\s]+$/
-    }
-
     //* Ctrl+scroll zoom for the settings form (0.75–1.5).
     property real configZoom: 1
-    readonly property var urlRegExp: /^https?:\/\/[^\s]+$/
-    function validateUrl(url) {
-        if (!url || url.trim() === "")
-            return true; // empty is allowed (field may be unused)
-        return urlRegExp.test(url.trim());
-    }
     property alias cfg_appDisplayName: appDisplayNameField.text
     property alias cfg_appearanceMode: appearanceModeCombo.currentIndex
     property alias cfg_keyStorageMode: storageModeCombo.currentIndex
@@ -38,26 +23,37 @@ KCM.SimpleKCM {
     property alias cfg_model: modelField.text
     property alias cfg_anthropicApiKey: anthropicApiKeyField.text
     property alias cfg_anthropicModel: anthropicModelField.text
+    property alias cfg_groqBaseUrl: groqBaseUrlField.text
     property alias cfg_groqApiKey: groqApiKeyField.text
     property alias cfg_groqModel: groqModelField.text
+    property alias cfg_deepSeekBaseUrl: deepSeekBaseUrlField.text
     property alias cfg_deepSeekApiKey: deepSeekApiKeyField.text
     property alias cfg_deepSeekModel: deepSeekModelField.text
+    property alias cfg_miniMaxBaseUrl: miniMaxBaseUrlField.text
     property alias cfg_miniMaxApiKey: miniMaxApiKeyField.text
     property alias cfg_miniMaxModel: miniMaxModelField.text
+    property alias cfg_fireworksBaseUrl: fireworksBaseUrlField.text
     property alias cfg_fireworksApiKey: fireworksApiKeyField.text
     property alias cfg_fireworksModel: fireworksModelField.text
+    property alias cfg_googleBaseUrl: googleBaseUrlField.text
     property alias cfg_googleApiKey: googleApiKeyField.text
     property alias cfg_googleModel: googleModelField.text
+    property alias cfg_openRouterBaseUrl: openRouterBaseUrlField.text
     property alias cfg_openRouterApiKey: openRouterApiKeyField.text
     property alias cfg_openRouterModel: openRouterModelField.text
+    property alias cfg_mistralBaseUrl: mistralBaseUrlField.text
     property alias cfg_mistralApiKey: mistralApiKeyField.text
     property alias cfg_mistralModel: mistralModelField.text
+    property alias cfg_cloudflareBaseUrl: cloudflareBaseUrlField.text
     property alias cfg_cloudflareApiKey: cloudflareApiKeyField.text
     property alias cfg_cloudflareModel: cloudflareModelField.text
+    property alias cfg_nvidiaBaseUrl: nvidiaBaseUrlField.text
     property alias cfg_nvidiaApiKey: nvidiaApiKeyField.text
     property alias cfg_nvidiaModel: nvidiaModelField.text
+    property alias cfg_huggingFaceBaseUrl: huggingFaceBaseUrlField.text
     property alias cfg_huggingFaceApiKey: huggingFaceApiKeyField.text
     property alias cfg_huggingFaceModel: huggingFaceModelField.text
+    property alias cfg_xaiBaseUrl: xaiBaseUrlField.text
     property alias cfg_xaiApiKey: xaiApiKeyField.text
     property alias cfg_xaiModel: xaiModelField.text
     property alias cfg_lmStudioBaseUrl: lmStudioBaseUrlField.text
@@ -69,12 +65,16 @@ KCM.SimpleKCM {
     property alias cfg_litellmBaseUrl: litellmBaseUrlField.text
     property alias cfg_litellmApiKey: litellmApiKeyField.text
     property alias cfg_litellmModel: litellmModelField.text
+    property alias cfg_qwenBaseUrl: qwenBaseUrlField.text
     property alias cfg_qwenApiKey: qwenApiKeyField.text
     property alias cfg_qwenModel: qwenModelField.text
+    property alias cfg_moonshotBaseUrl: moonshotBaseUrlField.text
     property alias cfg_moonshotApiKey: moonshotApiKeyField.text
     property alias cfg_moonshotModel: moonshotModelField.text
+    property alias cfg_mimoBaseUrl: mimoBaseUrlField.text
     property alias cfg_mimoApiKey: mimoApiKeyField.text
     property alias cfg_mimoModel: mimoModelField.text
+    property alias cfg_maritacaBaseUrl: maritacaBaseUrlField.text
     property alias cfg_maritacaApiKey: maritacaApiKeyField.text
     property alias cfg_maritacaModel: maritacaModelField.text
     property string cfg_language: ""
@@ -113,17 +113,6 @@ KCM.SimpleKCM {
     property var schedulerArchivedList: []
     property var schedulerHistory: []
     property string schedulerStatus: ""
-
-    readonly property int configVersion: 1
-
-    function migrateConfig() {
-        var stored = parseInt(plasmoid.configuration["_configVersion"] || "0");
-        if (stored >= configVersion) return;
-        if (stored < 1) {
-            plasmoid.configuration["_configVersion"] = 1;
-        }
-    }
-
     readonly property string schedulerDataPath: {
         var home = Qt.resolvedUrl("~").toString().replace("file://", "");
         if (home === "~")
@@ -152,66 +141,8 @@ KCM.SimpleKCM {
     property string openCodeModelSearch: ""
     property var filteredProviderModels: []
     property var filteredOpenCodeModels: []
-    // ── Lazy field registry to eliminate 21-arm if/else chains ──────────
-    property var _fieldRegistry: null
-    function _ensureRegistry() {
-        if (_fieldRegistry)
-            return _fieldRegistry;
-        _fieldRegistry = {
-            apiKeyFields: {
-                "openai": apiKeyField,
-                "anthropic": anthropicApiKeyField,
-                "groq": groqApiKeyField,
-                "deepseek": deepSeekApiKeyField,
-                "minimax": miniMaxApiKeyField,
-                "fireworks": fireworksApiKeyField,
-                "google": googleApiKeyField,
-                "openrouter": openRouterApiKeyField,
-                "mistral": mistralApiKeyField,
-                "cloudflare": cloudflareApiKeyField,
-                "nvidia": nvidiaApiKeyField,
-                "huggingface": huggingFaceApiKeyField,
-                "xai": xaiApiKeyField,
-                "litellm": litellmApiKeyField,
-                "qwen": qwenApiKeyField,
-                "moonshot": moonshotApiKeyField,
-                "mimo": mimoApiKeyField,
-                "maritaca": maritacaApiKeyField
-            },
-            modelFields: {
-                "openai": modelField,
-                "anthropic": anthropicModelField,
-                "groq": groqModelField,
-                "deepseek": deepSeekModelField,
-                "minimax": miniMaxModelField,
-                "fireworks": fireworksModelField,
-                "google": googleModelField,
-                "openrouter": openRouterModelField,
-                "mistral": mistralModelField,
-                "cloudflare": cloudflareModelField,
-                "nvidia": nvidiaModelField,
-                "huggingface": huggingFaceModelField,
-                "xai": xaiModelField,
-                "lmstudio": lmStudioModelField,
-                "local": localModelField,
-                "ollama": ollamaModelField,
-                "litellm": litellmModelField,
-                "qwen": qwenModelField,
-                "moonshot": moonshotModelField,
-                "mimo": mimoModelField,
-                "maritaca": maritacaModelField
-            },
-            urlFields: {
-                "openai": baseUrlField,
-                "lmstudio": lmStudioBaseUrlField,
-                "local": localBaseUrlField,
-                "ollama": ollamaBaseUrlField,
-                "litellm": litellmBaseUrlField
-            },
-            keyTargetIds: ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "qwen", "moonshot", "mimo", "maritaca"]
-        };
-        return _fieldRegistry;
-    }
+    readonly property string walletFolderName: "KaiChat"
+    readonly property string walletAppId: "org.kde.plasma.kdeaichat"
 
     function translate(text) {
         return Translations.translate(text, cfg_language);
@@ -275,49 +206,54 @@ KCM.SimpleKCM {
         }
     }
 
-    function _jsonParseOrNull(text) {
-        try { return JSON.parse(text); } catch (e) { return null; }
-    }
-
-    function _kwalletScript() {
-        return String(Qt.resolvedUrl("kde-ai-kwallet.py")).replace("file://", "");
-    }
-
-    function _kwalletCmd(args) {
-        var scriptPath = shellEscape(_kwalletScript());
-        return "python3 '" + scriptPath + "' " + args;
-    }
-
     function detectWallets() {
-        utilityDs.connectSource("sh -lc '" + _kwalletCmd("wallets") + "' #kwallet-wallet-list");
+        utilityDs.connectSource("sh -lc \"if ! command -v qdbus6 >/dev/null 2>&1 && ! command -v qdbus >/dev/null 2>&1; then echo '__NO_QDBUS__'; else qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null || qdbus org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null; fi\" #kwallet-wallet-list");
+    }
+
+    function setActiveProviderModelValue(value) {
+        currentProviderConfig().modelField.text = value || "";
+    }
+
+    function activeProviderModelValue() {
+        return currentProviderConfig().modelField.text || "";
     }
 
     function walletReadCommand(walletName, keyName) {
         var escapedWallet = shellEscape(walletName);
+        var escapedFolder = shellEscape(walletFolderName);
         var escapedKey = shellEscape(keyName);
-        return _kwalletCmd("read '" + escapedWallet + "' '" + escapedKey + "'");
+        var escapedAppId = shellEscape(walletAppId);
+        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_LOAD__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_LOAD__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_FOLDER\"; exit 0; fi; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_ENTRY\"; exit 0; fi; " + "secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_SECRET__:%s\" \"$secret\"'";
     }
 
     function walletWriteCommand(walletName, keyName, value) {
         var escapedWallet = shellEscape(walletName);
+        var escapedFolder = shellEscape(walletFolderName);
         var escapedKey = shellEscape(keyName);
         var escapedValue = shellEscape(value);
-        return _kwalletCmd("write '" + escapedWallet + "' '" + escapedKey + "' '" + escapedValue + "'");
+        var escapedAppId = shellEscape(walletAppId);
+        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "value='\''" + escapedValue + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STORE__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " + "result=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_STORE__:%s\" \"$result\"'";
     }
 
     function walletInitCommand(walletName) {
         var escapedWallet = shellEscape(walletName);
-        return _kwalletCmd("init '" + escapedWallet + "'");
+        var escapedFolder = shellEscape(walletFolderName);
+        var escapedAppId = shellEscape(walletAppId);
+        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_INIT__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_INIT__:READY\"; else created=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); if [ \"$created\" = true ]; then printf \"__KAI_INIT__:CREATED\"; else printf \"__KAI_INIT__:CREATE_FAILED\"; fi; fi; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1'";
     }
 
     function walletStatusCommand(walletName) {
         var escapedWallet = shellEscape(walletName);
-        return _kwalletCmd("status '" + escapedWallet + "'");
+        var escapedFolder = shellEscape(walletFolderName);
+        var escapedAppId = shellEscape(walletAppId);
+        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_STATUS__:NO_WALLET:%s\" \"$wallets\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STATUS__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_STATUS__:READY\"; else printf \"__KAI_STATUS__:NO_FOLDER\"; fi'";
     }
 
     function walletBulkReadCommand(walletName) {
         var escapedWallet = shellEscape(walletName);
-        return _kwalletCmd("bulk-read '" + escapedWallet + "'");
+        var escapedFolder = shellEscape(walletFolderName);
+        var escapedAppId = shellEscape(walletAppId);
+        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; " + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm qwen moonshot mimo maritaca; do " + "key=\"kai-chat-${target}-api-key\"; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" = true ]; then secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; " + "done; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_BULK__:DONE\"'";
     }
 
     function shellEscape(s) {
@@ -335,13 +271,65 @@ KCM.SimpleKCM {
     }
 
     function providerNeedsApiKey(providerId) {
-        return ProviderData.needsApiKey(providerId);
+        return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama" && providerId !== "litellm";
     }
 
     function providerHasConfiguredKey(providerId) {
-        var reg = _ensureRegistry();
-        var field = reg.apiKeyFields[providerId];
-        return field ? (field.text || "").trim() !== "" : true;
+        if (providerId === "anthropic")
+            return (anthropicApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "groq")
+            return (groqApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "deepseek")
+            return (deepSeekApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "minimax")
+            return (miniMaxApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "fireworks")
+            return (fireworksApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "google")
+            return (googleApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "openrouter")
+            return (openRouterApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "mistral")
+            return (mistralApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "cloudflare")
+            return (cloudflareApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "nvidia")
+            return (nvidiaApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "huggingface")
+            return (huggingFaceApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "xai")
+            return (xaiApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "litellm")
+            return (litellmApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "qwen")
+            return (qwenApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "moonshot")
+            return (moonshotApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "mimo")
+            return (mimoApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "maritaca")
+            return (maritacaApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "openai")
+            return (apiKeyField.text || "").trim() !== "";
+
+        return true;
     }
 
     function refreshIfActiveProvider(providerId) {
@@ -364,17 +352,192 @@ KCM.SimpleKCM {
 
     function currentProviderConfig() {
         var p = providerBox.currentValue || "openai";
-        var reg = _ensureRegistry();
-        var info = ProviderData.getProvider(p);
-        var urlField = reg.urlFields[p];
-        var keyField = reg.apiKeyFields[p];
-        var modelF = reg.modelFields[p];
-        return {
+        if (p === "anthropic")
+            return {
             "id": p,
-            "type": info ? info.type : "openai-compat",
-            "baseUrl": urlField ? urlField.text : (info ? info.defaultUrl : ""),
-            "apiKey": keyField ? keyField.text : "",
-            "modelField": modelF || null
+            "type": "anthropic",
+            "baseUrl": "https://api.anthropic.com/v1",
+            "apiKey": anthropicApiKeyField.text,
+            "modelField": anthropicModelField
+        };
+
+        if (p === "local")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": localBaseUrlField.text,
+            "apiKey": "",
+            "modelField": localModelField
+        };
+
+        if (p === "groq")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": groqBaseUrlField.text,
+            "apiKey": groqApiKeyField.text,
+            "modelField": groqModelField
+        };
+
+        if (p === "deepseek")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": deepSeekBaseUrlField.text,
+            "apiKey": deepSeekApiKeyField.text,
+            "modelField": deepSeekModelField
+        };
+
+        if (p === "minimax")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": miniMaxBaseUrlField.text,
+            "apiKey": miniMaxApiKeyField.text,
+            "modelField": miniMaxModelField
+        };
+
+        if (p === "fireworks")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": fireworksBaseUrlField.text,
+            "apiKey": fireworksApiKeyField.text,
+            "modelField": fireworksModelField
+        };
+
+        if (p === "google")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": googleBaseUrlField.text,
+            "apiKey": googleApiKeyField.text,
+            "modelField": googleModelField
+        };
+
+        if (p === "openrouter")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": openRouterBaseUrlField.text,
+            "apiKey": openRouterApiKeyField.text,
+            "modelField": openRouterModelField
+        };
+
+        if (p === "mistral")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": mistralBaseUrlField.text,
+            "apiKey": mistralApiKeyField.text,
+            "modelField": mistralModelField
+        };
+
+        if (p === "cloudflare")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": cloudflareBaseUrlField.text,
+            "apiKey": cloudflareApiKeyField.text,
+            "modelField": cloudflareModelField
+        };
+
+        if (p === "nvidia")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": nvidiaBaseUrlField.text,
+            "apiKey": nvidiaApiKeyField.text,
+            "modelField": nvidiaModelField
+        };
+
+        if (p === "huggingface")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": huggingFaceBaseUrlField.text,
+            "apiKey": huggingFaceApiKeyField.text,
+            "modelField": huggingFaceModelField
+        };
+
+        if (p === "xai")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": xaiBaseUrlField.text,
+            "apiKey": xaiApiKeyField.text,
+            "modelField": xaiModelField
+        };
+
+        if (p === "lmstudio")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": lmStudioBaseUrlField.text,
+            "apiKey": "",
+            "modelField": lmStudioModelField
+        };
+
+        if (p === "ollama")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": ollamaBaseUrlField.text,
+            "apiKey": "",
+            "modelField": ollamaModelField
+        };
+
+        if (p === "litellm")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": litellmBaseUrlField.text,
+            "apiKey": litellmApiKeyField.text,
+            "modelField": litellmModelField
+        };
+
+        if (p === "qwen")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": qwenBaseUrlField.text,
+            "apiKey": qwenApiKeyField.text,
+            "modelField": qwenModelField
+        };
+
+        if (p === "moonshot")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": moonshotBaseUrlField.text,
+            "apiKey": moonshotApiKeyField.text,
+            "modelField": moonshotModelField
+        };
+
+        if (p === "mimo")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": mimoBaseUrlField.text,
+            "apiKey": mimoApiKeyField.text,
+            "modelField": mimoModelField
+        };
+
+        if (p === "maritaca")
+            return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": maritacaBaseUrlField.text,
+            "apiKey": maritacaApiKeyField.text,
+            "modelField": maritacaModelField
+        };
+
+        return {
+            "id": "openai",
+            "type": "openai-compat",
+            "baseUrl": baseUrlField.text,
+            "apiKey": apiKeyField.text,
+            "modelField": modelField
         };
     }
 
@@ -762,7 +925,8 @@ KCM.SimpleKCM {
 
     function applyLoadedKey(targetId, secretValue) {
         var normalized = (secretValue || "").trim();
-        if (normalized === "")
+        var lower = normalized.toLowerCase();
+        if (normalized === "" || normalized.indexOf("__KAI_") === 0)
             return ;
 
         if (lower.indexOf("not found") >= 0)
@@ -778,10 +942,42 @@ KCM.SimpleKCM {
             return ;
 
         var before = apiKeyForTarget(targetId);
-        var reg = _ensureRegistry();
-        var field = reg.apiKeyFields[targetId];
-        if (field)
-            field.text = normalized;
+        if (targetId === "openai")
+            apiKeyField.text = normalized;
+        else if (targetId === "anthropic")
+            anthropicApiKeyField.text = normalized;
+        else if (targetId === "groq")
+            groqApiKeyField.text = normalized;
+        else if (targetId === "deepseek")
+            deepSeekApiKeyField.text = normalized;
+        else if (targetId === "minimax")
+            miniMaxApiKeyField.text = normalized;
+        else if (targetId === "fireworks")
+            fireworksApiKeyField.text = normalized;
+        else if (targetId === "google")
+            googleApiKeyField.text = normalized;
+        else if (targetId === "openrouter")
+            openRouterApiKeyField.text = normalized;
+        else if (targetId === "mistral")
+            mistralApiKeyField.text = normalized;
+        else if (targetId === "cloudflare")
+            cloudflareApiKeyField.text = normalized;
+        else if (targetId === "nvidia")
+            nvidiaApiKeyField.text = normalized;
+        else if (targetId === "huggingface")
+            huggingFaceApiKeyField.text = normalized;
+        else if (targetId === "xai")
+            xaiApiKeyField.text = normalized;
+        else if (targetId === "litellm")
+            litellmApiKeyField.text = normalized;
+        else if (targetId === "qwen")
+            qwenApiKeyField.text = normalized;
+        else if (targetId === "moonshot")
+            moonshotApiKeyField.text = normalized;
+        else if (targetId === "mimo")
+            mimoApiKeyField.text = normalized;
+        else if (targetId === "maritaca")
+            maritacaApiKeyField.text = normalized;
         var after = apiKeyForTarget(targetId);
         if (before !== after && providerBox.currentValue === targetId)
             refreshCurrentProviderModels();
@@ -789,13 +985,65 @@ KCM.SimpleKCM {
     }
 
     function keyTargetIds() {
-        return _ensureRegistry().keyTargetIds;
+        return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "qwen", "moonshot", "mimo", "maritaca"];
     }
 
     function apiKeyForTarget(targetId) {
-        var reg = _ensureRegistry();
-        var field = reg.apiKeyFields[targetId];
-        return field ? field.text : "";
+        if (targetId === "openai")
+            return apiKeyField.text;
+
+        if (targetId === "anthropic")
+            return anthropicApiKeyField.text;
+
+        if (targetId === "groq")
+            return groqApiKeyField.text;
+
+        if (targetId === "deepseek")
+            return deepSeekApiKeyField.text;
+
+        if (targetId === "minimax")
+            return miniMaxApiKeyField.text;
+
+        if (targetId === "fireworks")
+            return fireworksApiKeyField.text;
+
+        if (targetId === "google")
+            return googleApiKeyField.text;
+
+        if (targetId === "openrouter")
+            return openRouterApiKeyField.text;
+
+        if (targetId === "mistral")
+            return mistralApiKeyField.text;
+
+        if (targetId === "cloudflare")
+            return cloudflareApiKeyField.text;
+
+        if (targetId === "nvidia")
+            return nvidiaApiKeyField.text;
+
+        if (targetId === "huggingface")
+            return huggingFaceApiKeyField.text;
+
+        if (targetId === "xai")
+            return xaiApiKeyField.text;
+
+        if (targetId === "litellm")
+            return litellmApiKeyField.text;
+
+        if (targetId === "qwen")
+            return qwenApiKeyField.text;
+
+        if (targetId === "moonshot")
+            return moonshotApiKeyField.text;
+
+        if (targetId === "mimo")
+            return mimoApiKeyField.text;
+
+        if (targetId === "maritaca")
+            return maritacaApiKeyField.text;
+
+        return "";
     }
 
     function kwalletLoadAll() {
@@ -824,99 +1072,178 @@ KCM.SimpleKCM {
     }
 
     function clearAllApiKeyFields() {
-        var reg = _ensureRegistry();
-        var ids = reg.keyTargetIds;
-        for (var i = 0; i < ids.length; i++) {
-            var field = reg.apiKeyFields[ids[i]];
-            if (field)
-                field.text = "";
-        }
+        apiKeyField.text = "";
+        anthropicApiKeyField.text = "";
+        groqApiKeyField.text = "";
+        deepSeekApiKeyField.text = "";
+        miniMaxApiKeyField.text = "";
+        fireworksApiKeyField.text = "";
+        googleApiKeyField.text = "";
+        openRouterApiKeyField.text = "";
+        mistralApiKeyField.text = "";
+        cloudflareApiKeyField.text = "";
+        nvidiaApiKeyField.text = "";
+        huggingFaceApiKeyField.text = "";
+        xaiApiKeyField.text = "";
+        litellmApiKeyField.text = "";
+        qwenApiKeyField.text = "";
+        moonshotApiKeyField.text = "";
+        mimoApiKeyField.text = "";
+        maritacaApiKeyField.text = "";
     }
 
     function loadKeysFromPlainConfig() {
-        utilityDs.connectSource("python3 -c \"import configparser, json, os; p = os.path.expanduser('~/.config/kdeaichatrc'); config = configparser.ConfigParser(); config.optionxform = str; config.read(p); print(json.dumps(dict(config['General']) if 'General' in config else {}))\" #plainconfig-load");
+        utilityDs.connectSource("python3 -c \"import configparser, json; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); print(json.dumps(dict(config['General']) if 'General' in config else {}))\" #plainconfig-load");
     }
 
     function applyPlainConfigKeys(keys) {
-        var reg = _ensureRegistry();
-        var ids = reg.keyTargetIds;
-        for (var i = 0; i < ids.length; i++) {
-            var field = reg.apiKeyFields[ids[i]];
-            if (field)
-                field.text = keys[ProviderData.configField(ids[i], "ApiKey")] || "";
-        }
-    }
-
-    function _buildKeyPayload() {
-        var reg = _ensureRegistry();
-        var payload = {};
-        var ids = reg.keyTargetIds;
-        for (var i = 0; i < ids.length; i++) {
-            var configName = ProviderData.configField(ids[i], "ApiKey");
-            var field = reg.apiKeyFields[ids[i]];
-            payload[configName] = field ? field.text : "";
-        }
-        return payload;
-    }
-
-    function _keysToB64Cmd(extraSuffix) {
-        var payload = _buildKeyPayload();
-        var b64Str = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import configparser, json, base64, os; p = os.path.expanduser('~/.config/kdeaichatrc'); data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read(p); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open(p, 'w'); config.write(f); f.close()\"" + (extraSuffix || "");
-        return cmd;
+        apiKeyField.text = keys["apiKey"] || "";
+        anthropicApiKeyField.text = keys["anthropicApiKey"] || "";
+        groqApiKeyField.text = keys["groqApiKey"] || "";
+        deepSeekApiKeyField.text = keys["deepSeekApiKey"] || "";
+        miniMaxApiKeyField.text = keys["miniMaxApiKey"] || "";
+        fireworksApiKeyField.text = keys["fireworksApiKey"] || "";
+        googleApiKeyField.text = keys["googleApiKey"] || "";
+        openRouterApiKeyField.text = keys["openRouterApiKey"] || "";
+        mistralApiKeyField.text = keys["mistralApiKey"] || "";
+        cloudflareApiKeyField.text = keys["cloudflareApiKey"] || "";
+        nvidiaApiKeyField.text = keys["nvidiaApiKey"] || "";
+        huggingFaceApiKeyField.text = keys["huggingFaceApiKey"] || "";
+        xaiApiKeyField.text = keys["xaiApiKey"] || "";
+        litellmApiKeyField.text = keys["litellmApiKey"] || "";
+        qwenApiKeyField.text = keys["qwenApiKey"] || "";
+        moonshotApiKeyField.text = keys["moonshotApiKey"] || "";
+        mimoApiKeyField.text = keys["mimoApiKey"] || "";
+        maritacaApiKeyField.text = keys["maritacaApiKey"] || "";
     }
 
     function writeKeysToDiskAndOpen() {
-        utilityDs.connectSource(_keysToB64Cmd(" && xdg-open ~/.config/kdeaichatrc") + " #open-config");
+        var payload = {
+            "apiKey": apiKeyField.text,
+            "anthropicApiKey": anthropicApiKeyField.text,
+            "groqApiKey": groqApiKeyField.text,
+            "deepSeekApiKey": deepSeekApiKeyField.text,
+            "miniMaxApiKey": miniMaxApiKeyField.text,
+            "fireworksApiKey": fireworksApiKeyField.text,
+            "googleApiKey": googleApiKeyField.text,
+            "openRouterApiKey": openRouterApiKeyField.text,
+            "mistralApiKey": mistralApiKeyField.text,
+            "cloudflareApiKey": cloudflareApiKeyField.text,
+            "nvidiaApiKey": nvidiaApiKeyField.text,
+            "huggingFaceApiKey": huggingFaceApiKeyField.text,
+            "xaiApiKey": xaiApiKeyField.text,
+            "litellmApiKey": litellmApiKeyField.text,
+            "qwenApiKey": qwenApiKeyField.text,
+            "moonshotApiKey": moonshotApiKeyField.text,
+            "mimoApiKey": mimoApiKeyField.text,
+            "maritacaApiKey": maritacaApiKeyField.text
+        };
+        var b64Str = Qt.btoa(JSON.stringify(payload));
+        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config";
+        utilityDs.connectSource(cmd);
     }
 
     function syncKeysToDisk() {
-        utilityDs.connectSource(_keysToB64Cmd("") + " #plainconfig-sync");
-    }
-
-    function _configNamesForPython() {
-        var reg = _ensureRegistry();
-        var names = [];
-        for (var i = 0; i < reg.keyTargetIds.length; i++)
-            names.push(ProviderData.configField(reg.keyTargetIds[i], "ApiKey"));
-        return names;
+        // Write current key fields to ~/.config/kdeaichatrc (plain-config extra copy).
+        // cfg_ aliases handle saving to the Plasma config automatically on OK/Apply.
+        var payload = {
+            "apiKey": apiKeyField.text,
+            "anthropicApiKey": anthropicApiKeyField.text,
+            "groqApiKey": groqApiKeyField.text,
+            "deepSeekApiKey": deepSeekApiKeyField.text,
+            "miniMaxApiKey": miniMaxApiKeyField.text,
+            "fireworksApiKey": fireworksApiKeyField.text,
+            "googleApiKey": googleApiKeyField.text,
+            "openRouterApiKey": openRouterApiKeyField.text,
+            "mistralApiKey": mistralApiKeyField.text,
+            "cloudflareApiKey": cloudflareApiKeyField.text,
+            "nvidiaApiKey": nvidiaApiKeyField.text,
+            "huggingFaceApiKey": huggingFaceApiKeyField.text,
+            "xaiApiKey": xaiApiKeyField.text,
+            "litellmApiKey": litellmApiKeyField.text,
+            "qwenApiKey": qwenApiKeyField.text,
+            "moonshotApiKey": moonshotApiKeyField.text,
+            "mimoApiKey": mimoApiKeyField.text,
+            "maritacaApiKey": maritacaApiKeyField.text
+        };
+        var b64Str = Qt.btoa(JSON.stringify(payload));
+        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
+        utilityDs.connectSource(cmd + " #plainconfig-sync");
     }
 
     function clearKeysFromDisk() {
-        var names = _configNamesForPython();
-        var listStr = "[" + names.map(function(n) { return "'" + n + "'"; }).join(",") + "]";
-        var cmd = "python3 -c \"import configparser, os; p = os.path.expanduser('~/.config/kdeaichatrc'); config = configparser.ConfigParser(); config.optionxform = str; config.read(p); if 'General' in config: [config['General'].pop(k, None) for k in " + listStr + "]; f=open(p, 'w'); config.write(f); f.close()\"";
+        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
         utilityDs.connectSource(cmd + " #plainconfig-clear");
-        var reg = _ensureRegistry();
-        for (var i = 0; i < reg.keyTargetIds.length; i++) {
-            var configName = ProviderData.configField(reg.keyTargetIds[i], "ApiKey");
-            plasmoid.configuration[configName] = "";
-        }
+        plasmoid.configuration.apiKey = "";
+        plasmoid.configuration.anthropicApiKey = "";
+        plasmoid.configuration.groqApiKey = "";
+        plasmoid.configuration.deepSeekApiKey = "";
+        plasmoid.configuration.miniMaxApiKey = "";
+        plasmoid.configuration.fireworksApiKey = "";
+        plasmoid.configuration.googleApiKey = "";
+        plasmoid.configuration.openRouterApiKey = "";
+        plasmoid.configuration.mistralApiKey = "";
+        plasmoid.configuration.cloudflareApiKey = "";
+        plasmoid.configuration.nvidiaApiKey = "";
+        plasmoid.configuration.huggingFaceApiKey = "";
+        plasmoid.configuration.xaiApiKey = "";
+        plasmoid.configuration.litellmApiKey = "";
+        plasmoid.configuration.qwenApiKey = "";
+        plasmoid.configuration.moonshotApiKey = "";
+        plasmoid.configuration.mimoApiKey = "";
+        plasmoid.configuration.maritacaApiKey = "";
     }
 
     function saveGeneralSettingsOnly() {
-        var reg = _ensureRegistry();
         plasmoid.configuration.appDisplayName = appDisplayNameField.text;
         plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex;
         plasmoid.configuration.keyStorageMode = cfg_keyStorageMode;
         plasmoid.configuration.provider = cfg_provider;
-        // Save all provider URL, API key, and model fields
-        var allIds = ProviderData.idList();
-        for (var pi = 0; pi < allIds.length; pi++) {
-            var id = allIds[pi];
-            var info = ProviderData.getProvider(id);
-            var urlField = reg.urlFields[id];
-            var keyField = reg.apiKeyFields[id];
-            var modelF = reg.modelFields[id];
-            if (urlField)
-                plasmoid.configuration[ProviderData.configField(id, "BaseUrl")] = urlField.text;
-            else
-                plasmoid.configuration[ProviderData.configField(id, "BaseUrl")] = plasmoid.configuration[ProviderData.configField(id, "BaseUrl")] || info.defaultUrl || "";
-            if (keyField)
-                plasmoid.configuration[ProviderData.configField(id, "ApiKey")] = keyField.text;
-            if (modelF)
-                plasmoid.configuration[ProviderData.configField(id, "Model")] = modelF.text;
-        }
+        plasmoid.configuration.baseUrl = baseUrlField.text;
+        plasmoid.configuration.model = modelField.text;
+        plasmoid.configuration.anthropicModel = anthropicModelField.text;
+        plasmoid.configuration.groqBaseUrl = groqBaseUrlField.text;
+        plasmoid.configuration.groqModel = groqModelField.text;
+        plasmoid.configuration.deepSeekBaseUrl = deepSeekBaseUrlField.text;
+        plasmoid.configuration.deepSeekModel = deepSeekModelField.text;
+        plasmoid.configuration.miniMaxBaseUrl = miniMaxBaseUrlField.text;
+        plasmoid.configuration.miniMaxModel = miniMaxModelField.text;
+        plasmoid.configuration.fireworksBaseUrl = fireworksBaseUrlField.text;
+        plasmoid.configuration.fireworksModel = fireworksModelField.text;
+        plasmoid.configuration.googleBaseUrl = googleBaseUrlField.text;
+        plasmoid.configuration.googleModel = googleModelField.text;
+        plasmoid.configuration.openRouterBaseUrl = openRouterBaseUrlField.text;
+        plasmoid.configuration.openRouterModel = openRouterModelField.text;
+        plasmoid.configuration.mistralBaseUrl = mistralBaseUrlField.text;
+        plasmoid.configuration.mistralModel = mistralModelField.text;
+        plasmoid.configuration.cloudflareBaseUrl = cloudflareBaseUrlField.text;
+        plasmoid.configuration.cloudflareModel = cloudflareModelField.text;
+        plasmoid.configuration.nvidiaBaseUrl = nvidiaBaseUrlField.text;
+        plasmoid.configuration.nvidiaModel = nvidiaModelField.text;
+        plasmoid.configuration.huggingFaceBaseUrl = huggingFaceBaseUrlField.text;
+        plasmoid.configuration.huggingFaceModel = huggingFaceModelField.text;
+        plasmoid.configuration.xaiBaseUrl = xaiBaseUrlField.text;
+        plasmoid.configuration.xaiModel = xaiModelField.text;
+        plasmoid.configuration.lmStudioBaseUrl = lmStudioBaseUrlField.text;
+        plasmoid.configuration.lmStudioModel = lmStudioModelField.text;
+        plasmoid.configuration.localBaseUrl = localBaseUrlField.text;
+        plasmoid.configuration.localModel = localModelField.text;
+        plasmoid.configuration.ollamaBaseUrl = ollamaBaseUrlField.text;
+        plasmoid.configuration.ollamaModel = ollamaModelField.text;
+        plasmoid.configuration.litellmBaseUrl = litellmBaseUrlField.text;
+        plasmoid.configuration.litellmModel = litellmModelField.text;
+        plasmoid.configuration.qwenBaseUrl = qwenBaseUrlField.text;
+        plasmoid.configuration.qwenApiKey = qwenApiKeyField.text;
+        plasmoid.configuration.qwenModel = qwenModelField.text;
+        plasmoid.configuration.moonshotBaseUrl = moonshotBaseUrlField.text;
+        plasmoid.configuration.moonshotApiKey = moonshotApiKeyField.text;
+        plasmoid.configuration.moonshotModel = moonshotModelField.text;
+        plasmoid.configuration.mimoBaseUrl = mimoBaseUrlField.text;
+        plasmoid.configuration.mimoApiKey = mimoApiKeyField.text;
+        plasmoid.configuration.mimoModel = mimoModelField.text;
+        plasmoid.configuration.maritacaBaseUrl = maritacaBaseUrlField.text;
+        plasmoid.configuration.maritacaApiKey = maritacaApiKeyField.text;
+        plasmoid.configuration.maritacaModel = maritacaModelField.text;
         plasmoid.configuration.language = cfg_language || "";
         plasmoid.configuration.showInteractiveGuides = showGuidesToggle.checked;
         plasmoid.configuration.autoStartOpenCodeServer = autoStartOpenCodeToggle.checked;
@@ -949,24 +1276,65 @@ KCM.SimpleKCM {
     function resetToDefaults() {
         appDisplayNameField.text = "KDE AI Chat";
         providerBox.currentIndex = 0;
-        // Reset all provider fields to their default values from ProviderData
-        var reg = _ensureRegistry();
-        var allIds = ProviderData.idList();
-        for (var pi = 0; pi < allIds.length; pi++) {
-            var id = allIds[pi];
-            var info = ProviderData.getProvider(id);
-            var urlField = reg.urlFields[id];
-            var keyField = reg.apiKeyFields[id];
-            var modelF = reg.modelFields[id];
-            if (urlField)
-                urlField.text = info ? info.defaultUrl : "";
-            else
-                plasmoid.configuration[ProviderData.configField(id, "BaseUrl")] = info ? info.defaultUrl : "";
-            if (keyField)
-                keyField.text = "";
-            if (modelF)
-                modelF.text = info ? info.defaultModel : "";
-        }
+        baseUrlField.text = "https://api.openai.com/v1";
+        apiKeyField.text = "";
+        modelField.text = "gpt-4o-mini";
+        anthropicApiKeyField.text = "";
+        anthropicModelField.text = "claude-3-5-sonnet-latest";
+        groqBaseUrlField.text = "https://api.groq.com/openai/v1";
+        groqApiKeyField.text = "";
+        groqModelField.text = "llama-3.3-70b-versatile";
+        deepSeekBaseUrlField.text = "https://api.deepseek.com";
+        deepSeekApiKeyField.text = "";
+        deepSeekModelField.text = "deepseek-v4-pro";
+        miniMaxBaseUrlField.text = "https://api.minimax.io/v1";
+        miniMaxApiKeyField.text = "";
+        miniMaxModelField.text = "MiniMax-M2.7";
+        fireworksBaseUrlField.text = "https://api.fireworks.ai/inference/v1";
+        fireworksApiKeyField.text = "";
+        fireworksModelField.text = "accounts/fireworks/models/llama-v3p3-70b-instruct";
+        googleBaseUrlField.text = "https://generativelanguage.googleapis.com/v1beta/openai/";
+        googleApiKeyField.text = "";
+        googleModelField.text = "gemini-3-flash-preview";
+        openRouterBaseUrlField.text = "https://openrouter.ai/api/v1";
+        openRouterApiKeyField.text = "";
+        openRouterModelField.text = "openai/gpt-4o-mini";
+        mistralBaseUrlField.text = "https://api.mistral.ai/v1";
+        mistralApiKeyField.text = "";
+        mistralModelField.text = "mistral-small-latest";
+        cloudflareBaseUrlField.text = "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1";
+        cloudflareApiKeyField.text = "";
+        cloudflareModelField.text = "@cf/meta/llama-3.1-8b-instruct";
+        nvidiaBaseUrlField.text = "https://integrate.api.nvidia.com/v1";
+        nvidiaApiKeyField.text = "";
+        nvidiaModelField.text = "meta/llama-3.1-70b-instruct";
+        huggingFaceBaseUrlField.text = "https://router.huggingface.co/v1";
+        huggingFaceApiKeyField.text = "";
+        huggingFaceModelField.text = "openai/gpt-oss-120b:groq";
+        xaiBaseUrlField.text = "https://api.x.ai/v1";
+        xaiApiKeyField.text = "";
+        xaiModelField.text = "grok-2-latest";
+        lmStudioBaseUrlField.text = "http://localhost:1234/v1";
+        lmStudioModelField.text = "";
+        localBaseUrlField.text = "http://localhost:11434/v1";
+        localModelField.text = "llama3.2";
+        ollamaBaseUrlField.text = "http://localhost:11434/v1";
+        ollamaModelField.text = "llama3.2";
+        litellmBaseUrlField.text = "http://localhost:4000/v1";
+        litellmApiKeyField.text = "";
+        litellmModelField.text = "";
+        qwenBaseUrlField.text = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+        qwenApiKeyField.text = "";
+        qwenModelField.text = "qwen-max";
+        moonshotBaseUrlField.text = "https://api.moonshot.ai/v1";
+        moonshotApiKeyField.text = "";
+        moonshotModelField.text = "moonshot-v1-8k";
+        mimoBaseUrlField.text = "https://api.xiaomimimo.com/v1";
+        mimoApiKeyField.text = "";
+        mimoModelField.text = "mimo-v2-pro";
+        maritacaBaseUrlField.text = "https://chat.maritaca.ai/api";
+        maritacaApiKeyField.text = "";
+        maritacaModelField.text = "sabia-4";
         languageCombo.currentIndex = 0;
         showGuidesToggle.checked = true;
         autoStartOpenCodeToggle.checked = false;
@@ -992,9 +1360,7 @@ KCM.SimpleKCM {
     // ── Scheduler helpers ──────────────────────────────────────────────────────
     function schedAutoSetup() {
         var srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
-        // Escape single quotes for Python single-quoted string literal
-        var pySrc = srcPath.replace(/'/g, "\\'");
-        var pyScript = "import os, shutil\n" + "src = '" + pySrc + "'\n" + "dest = os.path.expanduser('~/.local/share/kdeaichat/kde-ai-scheduler.py')\n" + "os.makedirs(os.path.dirname(dest), exist_ok=True)\n" + "os.makedirs(os.path.expanduser('~/.local/share/kdeaichat/results'), exist_ok=True)\n" + "if os.path.exists(src):\n" + "    shutil.copy2(src, dest)\n" + "    os.chmod(dest, 0o755)\n" + "sjson = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')\n" + "if not os.path.exists(sjson):\n" + "    with open(sjson, 'w') as f:\n" + "        f.write('{\"version\":1,\"schedules\":[]}')\n" + "    os.chmod(sjson, 0o600)\n" + "sdir = os.path.expanduser('~/.config/systemd/user')\n" + "os.makedirs(sdir, exist_ok=True)\n" + "sfile = sdir + '/kde-ai-scheduler.service'\n" + "content = '[Unit]\\nDescription=KDE AI Chat Scheduler Daemon\\nAfter=network-online.target\\nWants=network-online.target\\n\\n[Service]\\nType=simple\\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\\nRestart=on-failure\\nRestartSec=30\\nStandardOutput=journal\\nStandardError=journal\\nExecReload=/bin/kill -HUP $MAINPID\\nKillMode=process\\n\\n[Install]\\nWantedBy=default.target\\n'\n" + "with open(sfile, 'w') as f: f.write(content)\n" + "os.system('systemctl --user daemon-reload')\n" + "if os.system('systemctl --user is-enabled kde-ai-scheduler.service >/dev/null 2>&1') == 0:\n" + "    print('AUTO_ENABLED')\n" + "else:\n" + "    print('AUTO_DISABLED')\n";
+        var pyScript = "import os, shutil\n" + "src = '" + srcPath + "'\n" + "dest = os.path.expanduser('~/.local/share/kdeaichat/kde-ai-scheduler.py')\n" + "os.makedirs(os.path.dirname(dest), exist_ok=True)\n" + "os.makedirs(os.path.expanduser('~/.local/share/kdeaichat/results'), exist_ok=True)\n" + "if os.path.exists(src):\n" + "    shutil.copy2(src, dest)\n" + "    os.chmod(dest, 0o755)\n" + "sjson = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')\n" + "if not os.path.exists(sjson):\n" + "    with open(sjson, 'w') as f:\n" + "        f.write('{\"version\":1,\"schedules\":[]}')\n" + "    os.chmod(sjson, 0o600)\n" + "sdir = os.path.expanduser('~/.config/systemd/user')\n" + "os.makedirs(sdir, exist_ok=True)\n" + "sfile = sdir + '/kde-ai-scheduler.service'\n" + "content = '[Unit]\\nDescription=KDE AI Chat Scheduler Daemon\\nAfter=network-online.target\\nWants=network-online.target\\n\\n[Service]\\nType=simple\\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\\nRestart=on-failure\\nRestartSec=30\\nStandardOutput=journal\\nStandardError=journal\\nExecReload=/bin/kill -HUP $MAINPID\\nKillMode=process\\n\\n[Install]\\nWantedBy=default.target\\n'\n" + "with open(sfile, 'w') as f: f.write(content)\n" + "os.system('systemctl --user daemon-reload')\n" + "if os.system('systemctl --user is-enabled kde-ai-scheduler.service >/dev/null 2>&1') == 0:\n" + "    print('AUTO_ENABLED')\n" + "else:\n" + "    print('AUTO_DISABLED')\n";
         var b64 = Qt.btoa(pyScript);
         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64 + "').decode('utf-8'))\"";
         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-auto-setup");
@@ -1096,7 +1462,30 @@ KCM.SimpleKCM {
     }
 
     function schedDefaultBaseUrl(provider) {
-        return ProviderData.defaultUrl(provider) || "https://api.openai.com/v1";
+        var urls = {
+            "openai": "https://api.openai.com/v1",
+            "anthropic": "https://api.anthropic.com/v1",
+            "groq": "https://api.groq.com/openai/v1",
+            "google": "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "deepseek": "https://api.deepseek.com",
+            "mistral": "https://api.mistral.ai/v1",
+            "openrouter": "https://openrouter.ai/api/v1",
+            "xai": "https://api.x.ai/v1",
+            "nvidia": "https://integrate.api.nvidia.com/v1",
+            "fireworks": "https://api.fireworks.ai/inference/v1",
+            "minimax": "https://api.minimax.io/v1",
+            "cloudflare": "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
+            "huggingface": "https://router.huggingface.co/v1",
+            "ollama": "http://localhost:11434/v1",
+            "lmstudio": "http://localhost:1234/v1",
+            "local": "http://localhost:11434/v1",
+            "litellm": "http://localhost:4000/v1",
+            "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            "moonshot": "https://api.moonshot.ai/v1",
+            "mimo": "https://api.xiaomimimo.com/v1",
+            "maritaca": "https://chat.maritaca.ai/api"
+        };
+        return urls[provider] || "https://api.openai.com/v1";
     }
 
     function schedHumanCron(expr) {
@@ -1121,7 +1510,6 @@ KCM.SimpleKCM {
 
     horizontalScrollBarPolicy: configZoom > 1.01 ? QQC2.ScrollBar.AsNeeded : QQC2.ScrollBar.AlwaysOff
     Component.onCompleted: {
-        migrateConfig();
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0;
 
@@ -1197,7 +1585,6 @@ KCM.SimpleKCM {
     // ── Schedule Management Dialog (human-friendly) ────────────────────────────
     ScheduleDialog {
         id: scheduleDialog
-        rtlLayout: Translations.isRtlLanguage(cfg_language)
     }
 
     WheelHandler {
@@ -1227,28 +1614,35 @@ KCM.SimpleKCM {
                 disconnectSource(sourceName);
                 return ;
             }
-            var result = _jsonParseOrNull(stdout);
-            if (!result) {
-                disconnectSource(sourceName);
-                page.keyringStatus = "KWallet: unexpected output: " + stdout;
-                return ;
-            }
             if (op.mode === "load") {
-                if (result.status === "ok") {
-                    page.applyLoadedKey(op.target, result.value || "");
+                if (stdout.indexOf("__KAI_SECRET__:") === 0) {
+                    var loadedValue = stdout.slice("__KAI_SECRET__:".length);
+                    page.applyLoadedKey(op.target, loadedValue);
                     page.keyringStatus = op.bulk ? "Refreshing API keys from KWallet..." : ("Loaded key for " + op.target + " from KWallet.");
                 } else if (!op.bulk) {
-                    if (result.message === "no_entry")
+                    if (stdout === "__KAI_LOAD__:NO_WALLET")
+                        page.keyringStatus = "Configured wallet not found. Use Detect wallets or Create wallet.";
+                    else if (stdout === "__KAI_LOAD__:OPEN_FAILED")
+                        page.keyringStatus = "KWallet did not open the selected wallet.";
+                    else if (stdout === "__KAI_LOAD__:NO_FOLDER")
+                        page.keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet. Click Create wallet first.";
+                    else if (stdout === "__KAI_LOAD__:NO_ENTRY")
                         page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
+                    else if (stderr !== "")
+                        page.keyringStatus = "KWallet (" + op.target + "): " + stderr;
                     else
-                        page.keyringStatus = "KWallet (" + op.target + "): " + (result.message || stderr || "unknown error");
+                        page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
                 }
             } else {
                 if (!op.bulk) {
-                    if (result.status === "ok")
+                    if (stdout === "__KAI_STORE__:OPEN_FAILED")
+                        page.keyringStatus = "KWallet did not open the selected wallet.";
+                    else if (stdout.indexOf("__KAI_STORE__:") === 0)
                         page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
+                    else if (stderr !== "")
+                        page.keyringStatus = "KWallet error: " + stderr;
                     else
-                        page.keyringStatus = "KWallet error: " + (result.message || stderr || "unknown error");
+                        page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
                 }
             }
             disconnectSource(sourceName);
@@ -1264,69 +1658,76 @@ KCM.SimpleKCM {
             var out = (data["stdout"] || "").trim();
             var err = (data["stderr"] || "").trim();
             if (sourceName.indexOf("kwallet-wallet-list") >= 0) {
-                var walletsResult = _jsonParseOrNull(out);
-                if (!walletsResult || walletsResult.status !== "ok") {
+                if (out.indexOf("__NO_QDBUS__") >= 0) {
                     availableWalletNames = [];
-                    keyringStatus = (walletsResult && walletsResult.message === "qdbus6 not available")
-                        ? "qdbus6 / qdbus is missing! KWallet requires Qt DBus tools. Please install 'qt6-tools' (or 'qttools' depending on your Linux distribution) to enable secure KWallet credentials storage."
-                        : "KWallet detection failed: " + (walletsResult ? walletsResult.message : "unexpected output");
+                    keyringStatus = "qdbus6 / qdbus is missing! KWallet requires Qt DBus tools. Please install 'qt6-tools' (or 'qttools' depending on your Linux distribution) to enable secure KWallet credentials storage.";
                     disconnectSource(sourceName);
                     return ;
                 }
-                availableWalletNames = walletsResult.wallets || [];
+                availableWalletNames = out === "" ? [] : out.split(/\n+/).filter(function(name) {
+                    return name.trim() !== "";
+                });
                 maybeAdoptDetectedWalletName();
                 if (availableWalletNames.length === 0)
                     keyringStatus = "No wallets detected yet. Create one or open KWallet first.";
                 else
                     Qt.callLater(page.kwalletLoadAll);
             } else if (sourceName.indexOf("kwallet-refresh-all") >= 0) {
-                console.log("[KAI-DEBUG] kwallet-refresh-all JSON stdout:", out);
-                var bulkResult = _jsonParseOrNull(out);
-                if (!bulkResult) {
+                console.log("[KAI-DEBUG] kwallet-refresh-all stdout:", out);
+                console.log("[KAI-DEBUG] kwallet-refresh-all stderr:", err);
+                if (out.indexOf("__KAI_BULK__:") < 0) {
                     console.log("[KAI-DEBUG] kwallet-refresh-all not finished yet, waiting...");
                     return ;
                 }
-                if (bulkResult.status !== "ok") {
-                    keyringStatus = bulkResult.message === "no_folder" ? "Wallet opened, but KDE AI Chat storage is not initialized yet." : "KWallet: " + (bulkResult.message || "unknown error");
+                if (out === "__KAI_BULK__:NO_WALLET") {
+                    keyringStatus = "Configured wallet not found. Pick a detected wallet and retry.";
+                } else if (out === "__KAI_BULK__:OPEN_FAILED") {
+                    keyringStatus = "KWallet did not open the selected wallet.";
+                } else if (out === "__KAI_BULK__:NO_FOLDER") {
+                    keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet.";
                 } else {
-                    var secrets = bulkResult.secrets || {};
+                    var lines = out === "" ? [] : out.split(/\n+/);
                     var loaded = 0;
-                    for (var sid in secrets) {
-                        if (!secrets.hasOwnProperty(sid)) continue;
-                        applyLoadedKey(sid, secrets[sid]);
-                        if ((secrets[sid] || "").trim() !== "") loaded++;
+                    for (var i = 0; i < lines.length; i++) {
+                        if (lines[i].indexOf("__KAI_SECRET__:") !== 0)
+                            continue;
+
+                        var rest = lines[i].slice("__KAI_SECRET__:".length);
+                        var sep = rest.indexOf(":");
+                        if (sep <= 0)
+                            continue;
+
+                        var targetId = rest.slice(0, sep);
+                        var secretValue = rest.slice(sep + 1);
+                        applyLoadedKey(targetId, secretValue);
+                        if ((secretValue || "").trim() !== "")
+                            loaded++;
+
                     }
                     keyringStatus = "KWallet refresh finished. Loaded " + loaded + " key(s).";
                 }
             } else if (sourceName.indexOf("kwallet-create") >= 0) {
-                var initResult = _jsonParseOrNull(out);
-                if (!initResult)
-                    keyringStatus = "Wallet initialization: " + (out || err || "finished");
-                else if (initResult.status === "ok" && initResult.message === "ready")
+                if (out === "__KAI_INIT__:READY")
                     keyringStatus = "Wallet connection is ready for KDE AI Chat storage.";
-                else if (initResult.status === "ok" && initResult.message === "created")
+                else if (out === "__KAI_INIT__:CREATED")
                     keyringStatus = "KDE AI Chat storage folder was created in the wallet.";
-                else if (initResult.message === "open_failed")
+                else if (out === "__KAI_INIT__:OPEN_FAILED")
                     keyringStatus = "KWallet did not open the selected wallet. If the wallet does not exist, KDE should prompt to create it.";
                 else
-                    keyringStatus = initResult.message ? "KWallet: " + initResult.message : (err || "Wallet initialization finished.");
+                    keyringStatus = out !== "" ? out : (err !== "" ? err : "Wallet initialization finished.");
                 Qt.callLater(page.detectWallets);
             } else if (sourceName.indexOf("kwallet-status-check") >= 0) {
-                var statusResult = _jsonParseOrNull(out);
-                if (!statusResult)
-                    keyringStatus = "Wallet status: " + (out || err || "finished");
-                else if (statusResult.status === "ok" && statusResult.message === "no_wallet")
-                    keyringStatus = statusResult.available && statusResult.available.length > 0
-                        ? "Configured wallet not found. Available wallets: " + statusResult.available.join(", ")
-                        : "Configured wallet not found.";
-                else if (statusResult.message === "open_failed")
+                if (out.indexOf("__KAI_STATUS__:NO_WALLET:") === 0) {
+                    var walletList = out.slice("__KAI_STATUS__:NO_WALLET:".length).replace(/\n/g, ", ");
+                    keyringStatus = walletList !== "" ? ("Configured wallet not found. Available wallets: " + walletList) : "Configured wallet not found.";
+                } else if (out === "__KAI_STATUS__:OPEN_FAILED")
                     keyringStatus = "KWallet could not open the selected wallet.";
-                else if (statusResult.message === "no_folder")
+                else if (out === "__KAI_STATUS__:NO_FOLDER")
                     keyringStatus = "Wallet is open, but KDE AI Chat storage is not initialized yet. Click Create wallet.";
-                else if (statusResult.message === "ready")
+                else if (out === "__KAI_STATUS__:READY")
                     keyringStatus = "Wallet ready for KDE AI Chat.";
                 else
-                    keyringStatus = statusResult.message ? "KWallet: " + statusResult.message : (err || "Wallet check finished.");
+                    keyringStatus = out !== "" ? out : (err !== "" ? err : "Wallet check finished.");
             } else if (sourceName.indexOf("plainconfig-load") >= 0) {
                 try {
                     var keys = JSON.parse(out);
@@ -1418,9 +1819,48 @@ KCM.SimpleKCM {
                     return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Local Coding Server)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
 
                 var provider = providerBox.currentValue || "openai";
-                var text = ProviderData.guideText(provider);
-                if (text)
-                    return translate(text);
+                if (provider === "openai")
+                    return translate("<b>OpenAI Setup Guide:</b><br/>" + "1. Get your API key at <b>platform.openai.com → API Keys</b> (starts with <code>sk-</code>).<br/>" + "2. Paste it into the <b>OpenAI key</b> field below.<br/>" + "3. Choose a model from the <b>OpenAI model</b> dropdown or type one (e.g. <code>gpt-4o</code>, <code>gpt-4o-mini</code>).<br/>" + "4. (Optional) Override the base URL only if using a compatible proxy.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "anthropic")
+                    return translate("<b>Anthropic Setup Guide:</b><br/>" + "1. Get your API key at <b>console.anthropic.com → API Keys</b> (starts with <code>sk-ant-</code>).<br/>" + "2. Paste it into the <b>Anthropic key</b> field below.<br/>" + "3. Choose a model (e.g. <code>claude-opus-4-5</code>, <code>claude-3-5-sonnet-latest</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "groq")
+                    return translate("<b>Groq Setup Guide:</b><br/>" + "1. Get your free API key at <b>console.groq.com → API Keys</b>.<br/>" + "2. Paste it into the <b>Groq key</b> field below.<br/>" + "3. Choose a model (e.g. <code>llama-3.3-70b-versatile</code>, <code>gemma2-9b-it</code>) — Groq inference is extremely fast.<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "deepseek")
+                    return translate("<b>DeepSeek Setup Guide:</b><br/>" + "1. Get your API key at <b>platform.deepseek.com → API Keys</b>.<br/>" + "2. Paste it into the <b>DeepSeek key</b> field below.<br/>" + "3. Choose a model (e.g. <code>deepseek-chat</code> or <code>deepseek-reasoner</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "minimax")
+                    return translate("<b>MiniMax Setup Guide:</b><br/>" + "1. Get your API key at <b>www.minimaxi.com → API Key</b>.<br/>" + "2. Paste it into the <b>MiniMax key</b> field below.<br/>" + "3. Choose a model (e.g. <code>MiniMax-M2.7</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "fireworks")
+                    return translate("<b>Fireworks AI Setup Guide:</b><br/>" + "1. Get your API key at <b>fireworks.ai → Account → API Keys</b>.<br/>" + "2. Paste it into the <b>Fireworks key</b> field below.<br/>" + "3. Choose a model (e.g. <code>accounts/fireworks/models/llama-v3p3-70b-instruct</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "google")
+                    return translate("<b>Google Gemini Setup Guide:</b><br/>" + "1. Get your free API key at <b>aistudio.google.com → Get API Key</b>.<br/>" + "2. Paste it into the <b>Google key</b> field below.<br/>" + "3. Choose a model (e.g. <code>gemini-2.5-flash-preview-05-20</code>, <code>gemini-2.0-flash</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "openrouter")
+                    return translate("<b>OpenRouter Setup Guide:</b><br/>" + "1. Get your API key at <b>openrouter.ai → Keys</b>.<br/>" + "2. Paste it into the <b>OpenRouter key</b> field below.<br/>" + "3. Choose any model from 100+ providers (e.g. <code>openai/gpt-4o-mini</code>, <code>google/gemini-flash-1.5</code>, <code>openrouter/auto</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "mistral")
+                    return translate("<b>Mistral Setup Guide:</b><br/>" + "1. Get your API key at <b>console.mistral.ai → API Keys</b>.<br/>" + "2. Paste it into the <b>Mistral key</b> field below.<br/>" + "3. Choose a model (e.g. <code>mistral-small-latest</code>, <code>mistral-large-latest</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "cloudflare")
+                    return translate("<b>Cloudflare Workers AI Setup Guide:</b><br/>" + "1. Log in to <b>dash.cloudflare.com → AI → Workers AI</b>.<br/>" + "2. Copy your <b>Account ID</b> from the right sidebar and replace <code>YOUR_ACCOUNT_ID</code> in the <b>Cloudflare URL</b> field below.<br/>" + "3. Create an API Token (with Workers AI permission) at <b>dash.cloudflare.com → Profile → API Tokens</b> and paste it into the <b>Cloudflare key</b> field.<br/>" + "4. Choose a model (e.g. <code>@cf/meta/llama-3.1-8b-instruct</code>).<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "nvidia")
+                    return translate("<b>NVIDIA NIM Setup Guide:</b><br/>" + "1. Get your API key at <b>build.nvidia.com → Get API Key</b>.<br/>" + "2. Paste it into the <b>NVIDIA key</b> field below.<br/>" + "3. Choose a NIM model (e.g. <code>meta/llama-3.1-70b-instruct</code>, <code>nvidia/nemotron-4-340b-instruct</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "huggingface")
+                    return translate("<b>Hugging Face Router Setup Guide:</b><br/>" + "1. Get your access token at <b>huggingface.co → Settings → Access Tokens</b> (use a token with Inference permissions).<br/>" + "2. Paste it into the <b>Hugging Face key</b> field below.<br/>" + "3. Enter a supported inference model (e.g. <code>openai/gpt-oss-120b:groq</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "xai")
+                    return translate("<b>xAI (Grok) Setup Guide:</b><br/>" + "1. Get your API key at <b>console.x.ai → API Keys</b>.<br/>" + "2. Paste it into the <b>xAI key</b> field below.<br/>" + "3. Choose a model (e.g. <code>grok-3-mini</code>, <code>grok-2-latest</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "lmstudio")
+                    return translate("<b>LM Studio Setup Guide:</b><br/>" + "1. Download and open <b>LM Studio</b> (lmstudio.ai) — no API key needed.<br/>" + "2. In LM Studio, go to the <b>Local Server</b> tab and load a model.<br/>" + "3. Click <b>Start Server</b> in LM Studio (default URL: <code>http://localhost:1234/v1</code>).<br/>" + "4. Enter the loaded model name in the <b>LM Studio model</b> field below.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "local")
+                    return translate("<b>Local Server (OpenAI-compatible) Setup Guide:</b><br/>" + "1. Start your local server (e.g. <b>vLLM</b>, <b>llama.cpp</b>, <b>Jan</b>) — no API key needed.<br/>" + "2. Enter the server's base URL in the <b>Local URL</b> field below (e.g. <code>http://localhost:8000/v1</code>).<br/>" + "3. Enter the model identifier your server is serving in the <b>Local model</b> field.<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "ollama")
+                    return translate("<b>Ollama Setup Guide:</b><br/>" + "1. Install Ollama from <b>ollama.com</b> and run it — no API key needed.<br/>" + "2. Pull a model by running <code>ollama pull llama3.2</code> in a terminal.<br/>" + "3. Ollama starts automatically (default URL: <code>http://localhost:11434</code>).<br/>" + "4. Verify/update the <b>Ollama URL</b> field below and enter your model name (e.g. <code>llama3.2</code>).<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "litellm")
+                    return translate("<b>LiteLLM Proxy Setup Guide:</b><br/>" + "1. Install LiteLLM: <code>pip install litellm</code> — no API key needed for the proxy itself.<br/>" + "2. Start your proxy: <code>litellm --model ollama/llama3.2</code> (or your preferred model).<br/>" + "3. Enter the proxy URL in the <b>LiteLLM URL</b> field below (default: <code>http://localhost:4000</code>).<br/>" + "4. Enter the model identifier in the <b>LiteLLM model</b> field.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "qwen")
+                    return translate("<b>Qwen (Alibaba Cloud) Setup Guide:</b><br/>" + "1. Register at <b>dashscope.aliyuncs.com</b> and go to <b>API Keys</b>.<br/>" + "2. Paste your key into the <b>Qwen key</b> field below.<br/>" + "3. Choose a model (e.g. <code>qwen-max</code>, <code>qwen-plus</code>, <code>qwen-turbo</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "moonshot")
+                    return translate("<b>Moonshot AI (Kimi) Setup Guide:</b><br/>" + "1. Get your API key at <b>platform.moonshot.cn → API Keys</b>.<br/>" + "2. Paste it into the <b>Moonshot key</b> field below.<br/>" + "3. Choose a model (e.g. <code>moonshot-v1-8k</code>, <code>moonshot-v1-32k</code>, <code>moonshot-v1-128k</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "mimo")
+                    return translate("<b>MiMo (Xiaomi) Setup Guide:</b><br/>" + "1. Get access at <b>api.xiaomimimo.com</b> and copy your API key.<br/>" + "2. Paste it into the <b>MiMo key</b> field below.<br/>" + "3. Choose a model (e.g. <code>mimo-v2-pro</code>, <code>mimo-v2</code>).<br/>" + "4. Click <b>Apply</b>/<b>OK</b> to save.");
+                else if (provider === "maritaca")
+                    return translate("<b>Maritaca AI (Sabiá) Setup Guide:</b><br/>" + "1. Get your API key at <b>chat.maritaca.ai → Settings → API Keys</b>.<br/>" + "2. Paste it into the <b>Maritaca key</b> field below.<br/>" + "3. Choose a model (e.g. <code>sabia-4</code> — optimised for Portuguese).<br/>" + "4. The default URL <code>https://chat.maritaca.ai/api</code> is correct — do not change it.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
                 return translate("<b>Provider Setup Guide:</b> Select a provider from the <b>Default provider</b> dropdown above to see setup instructions.");
             }
             readonly property string apiGuideText: {
@@ -1783,7 +2223,70 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 textRole: "text"
                 valueRole: "value"
-                model: ProviderData.comboModel()
+                model: [{
+                    "value": "openai",
+                    "text": "OpenAI"
+                }, {
+                    "value": "anthropic",
+                    "text": "Anthropic"
+                }, {
+                    "value": "groq",
+                    "text": "Groq"
+                }, {
+                    "value": "deepseek",
+                    "text": "DeepSeek"
+                }, {
+                    "value": "minimax",
+                    "text": "MiniMax"
+                }, {
+                    "value": "fireworks",
+                    "text": "Fireworks"
+                }, {
+                    "value": "google",
+                    "text": "Google Gemini"
+                }, {
+                    "value": "openrouter",
+                    "text": "OpenRouter"
+                }, {
+                    "value": "mistral",
+                    "text": "Mistral"
+                }, {
+                    "value": "cloudflare",
+                    "text": "Cloudflare Workers AI"
+                }, {
+                    "value": "nvidia",
+                    "text": "NVIDIA NIM"
+                }, {
+                    "value": "huggingface",
+                    "text": "Hugging Face"
+                }, {
+                    "value": "xai",
+                    "text": "xAI Grok"
+                }, {
+                    "value": "lmstudio",
+                    "text": "LM Studio"
+                }, {
+                    "value": "local",
+                    "text": "Local / OpenAI-compatible"
+                }, {
+                    "value": "ollama",
+                    "text": "Ollama"
+                }, {
+                    "value": "litellm",
+                    "text": "LiteLLM"
+                }, {
+                    "value": "qwen",
+                    "text": "Alibaba Qwen"
+                }, {
+                    "value": "moonshot",
+                    "text": "Moonshot AI"
+                }, {
+                    "value": "mimo",
+                    "text": "Xiaomi MiMo"
+                }, {
+                    "value": "maritaca",
+                    "text": "Maritaca AI"
+                }]
                 currentIndex: {
                     for (var i = 0; i < model.length; i++) {
                         if (model[i].value === cfg_provider)
@@ -2089,17 +2592,37 @@ KCM.SimpleKCM {
                 id: baseUrlField
 
                 Kirigami.FormData.label: translate("OpenAI URL:")
-                validator: urlValidator
                 visible: page.providerEnabled("openai")
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "https://api.openai.com/v1"
             }
 
-            ApiKeyRow {
-                id: apiKeyField
-                providerId: "openai"
+            RowLayout {
+                Kirigami.FormData.label: translate("OpenAI key:")
+                visible: page.providerEnabled("openai")
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: apiKeyField
+
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: parent.width - apiKeyShowHide.implicitWidth - parent.spacing
+                    echoMode: apiKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("openai", text);
+                        page.refreshIfActiveProvider("openai");
+                    }
+                }
+
+                QQC2.Button {
+                    id: apiKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2124,10 +2647,30 @@ KCM.SimpleKCM {
                 onTextChanged: setActiveProviderModelValue(text)
             }
 
-            ApiKeyRow {
-                id: anthropicApiKeyField
-                providerId: "anthropic"
+            RowLayout {
+                Kirigami.FormData.label: translate("Anthropic key:")
+                visible: page.providerEnabled("anthropic")
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: anthropicApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: anthropicKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("anthropic", text);
+                        page.refreshIfActiveProvider("anthropic");
+                    }
+                }
+
+                QQC2.Button {
+                    id: anthropicKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2150,10 +2693,40 @@ KCM.SimpleKCM {
                 placeholderText: "claude-3-5-sonnet-latest"
             }
 
-            ApiKeyRow {
-                id: groqApiKeyField
-                providerId: "groq"
+            QQC2.TextField {
+                id: groqBaseUrlField
+
+                Kirigami.FormData.label: translate("Groq URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.groq.com/openai/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Groq key:")
+                visible: page.providerEnabled("groq")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: groqApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: groqKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("groq", text);
+                        page.refreshIfActiveProvider("groq");
+                    }
+                }
+
+                QQC2.Button {
+                    id: groqKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2176,10 +2749,40 @@ KCM.SimpleKCM {
                 placeholderText: "llama-3.3-70b-versatile"
             }
 
-            ApiKeyRow {
-                id: deepSeekApiKeyField
-                providerId: "deepseek"
+            QQC2.TextField {
+                id: deepSeekBaseUrlField
+
+                Kirigami.FormData.label: translate("DeepSeek URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.deepseek.com"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("DeepSeek key:")
+                visible: page.providerEnabled("deepseek")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: deepSeekApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: deepSeekKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("deepseek", text);
+                        page.refreshIfActiveProvider("deepseek");
+                    }
+                }
+
+                QQC2.Button {
+                    id: deepSeekKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2202,10 +2805,40 @@ KCM.SimpleKCM {
                 placeholderText: "deepseek-v4-pro"
             }
 
-            ApiKeyRow {
-                id: miniMaxApiKeyField
-                providerId: "minimax"
+            QQC2.TextField {
+                id: miniMaxBaseUrlField
+
+                Kirigami.FormData.label: translate("MiniMax URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.minimax.io/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("MiniMax key:")
+                visible: page.providerEnabled("minimax")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: miniMaxApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: miniMaxKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("minimax", text);
+                        page.refreshIfActiveProvider("minimax");
+                    }
+                }
+
+                QQC2.Button {
+                    id: miniMaxKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2228,10 +2861,40 @@ KCM.SimpleKCM {
                 placeholderText: "MiniMax-M2.7"
             }
 
-            ApiKeyRow {
-                id: fireworksApiKeyField
-                providerId: "fireworks"
+            QQC2.TextField {
+                id: fireworksBaseUrlField
+
+                Kirigami.FormData.label: translate("Fireworks URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.fireworks.ai/inference/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Fireworks key:")
+                visible: page.providerEnabled("fireworks")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: fireworksApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: fireworksKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("fireworks", text);
+                        page.refreshIfActiveProvider("fireworks");
+                    }
+                }
+
+                QQC2.Button {
+                    id: fireworksKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2254,10 +2917,40 @@ KCM.SimpleKCM {
                 placeholderText: "accounts/fireworks/models/llama-v3p3-70b-instruct"
             }
 
-            ApiKeyRow {
-                id: googleApiKeyField
-                providerId: "google"
+            QQC2.TextField {
+                id: googleBaseUrlField
+
+                Kirigami.FormData.label: translate("Google URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://generativelanguage.googleapis.com/v1beta/openai/"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Google key:")
+                visible: page.providerEnabled("google")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: googleApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: googleKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("google", text);
+                        page.refreshIfActiveProvider("google");
+                    }
+                }
+
+                QQC2.Button {
+                    id: googleKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2280,10 +2973,40 @@ KCM.SimpleKCM {
                 placeholderText: "gemini-3-flash-preview"
             }
 
-            ApiKeyRow {
-                id: openRouterApiKeyField
-                providerId: "openrouter"
+            QQC2.TextField {
+                id: openRouterBaseUrlField
+
+                Kirigami.FormData.label: translate("OpenRouter URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://openrouter.ai/api/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("OpenRouter key:")
+                visible: page.providerEnabled("openrouter")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: openRouterApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: openRouterKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("openrouter", text);
+                        page.refreshIfActiveProvider("openrouter");
+                    }
+                }
+
+                QQC2.Button {
+                    id: openRouterKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2306,10 +3029,40 @@ KCM.SimpleKCM {
                 placeholderText: "openai/gpt-4o-mini"
             }
 
-            ApiKeyRow {
-                id: mistralApiKeyField
-                providerId: "mistral"
+            QQC2.TextField {
+                id: mistralBaseUrlField
+
+                Kirigami.FormData.label: translate("Mistral URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.mistral.ai/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Mistral key:")
+                visible: page.providerEnabled("mistral")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: mistralApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: mistralKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("mistral", text);
+                        page.refreshIfActiveProvider("mistral");
+                    }
+                }
+
+                QQC2.Button {
+                    id: mistralKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2332,10 +3085,40 @@ KCM.SimpleKCM {
                 placeholderText: "mistral-small-latest"
             }
 
-            ApiKeyRow {
-                id: cloudflareApiKeyField
-                providerId: "cloudflare"
+            QQC2.TextField {
+                id: cloudflareBaseUrlField
+
+                Kirigami.FormData.label: translate("Cloudflare URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Cloudflare key:")
+                visible: page.providerEnabled("cloudflare")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: cloudflareApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: cloudflareKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("cloudflare", text);
+                        page.refreshIfActiveProvider("cloudflare");
+                    }
+                }
+
+                QQC2.Button {
+                    id: cloudflareKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2358,10 +3141,40 @@ KCM.SimpleKCM {
                 placeholderText: "@cf/meta/llama-3.1-8b-instruct"
             }
 
-            ApiKeyRow {
-                id: nvidiaApiKeyField
-                providerId: "nvidia"
+            QQC2.TextField {
+                id: nvidiaBaseUrlField
+
+                Kirigami.FormData.label: translate("NVIDIA NIM URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://integrate.api.nvidia.com/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("NVIDIA NIM key:")
+                visible: page.providerEnabled("nvidia")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: nvidiaApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: nvidiaKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("nvidia", text);
+                        page.refreshIfActiveProvider("nvidia");
+                    }
+                }
+
+                QQC2.Button {
+                    id: nvidiaKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2384,10 +3197,40 @@ KCM.SimpleKCM {
                 placeholderText: "meta/llama-3.1-70b-instruct"
             }
 
-            ApiKeyRow {
-                id: huggingFaceApiKeyField
-                providerId: "huggingface"
+            QQC2.TextField {
+                id: huggingFaceBaseUrlField
+
+                Kirigami.FormData.label: translate("HF URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://router.huggingface.co/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("HF token:")
+                visible: page.providerEnabled("huggingface")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: huggingFaceApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: huggingFaceKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("huggingface", text);
+                        page.refreshIfActiveProvider("huggingface");
+                    }
+                }
+
+                QQC2.Button {
+                    id: huggingFaceKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2410,10 +3253,40 @@ KCM.SimpleKCM {
                 placeholderText: "openai/gpt-oss-120b:groq"
             }
 
-            ApiKeyRow {
-                id: xaiApiKeyField
-                providerId: "xai"
+            QQC2.TextField {
+                id: xaiBaseUrlField
+
+                Kirigami.FormData.label: translate("xAI URL:")
+                visible: false
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.x.ai/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("xAI key:")
+                visible: page.providerEnabled("xai")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: xaiApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: xaiKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("xai", text);
+                        page.refreshIfActiveProvider("xai");
+                    }
+                }
+
+                QQC2.Button {
+                    id: xaiKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2506,10 +3379,30 @@ KCM.SimpleKCM {
                 placeholderText: "http://localhost:4000/v1"
             }
 
-            ApiKeyRow {
-                id: litellmApiKeyField
-                providerId: "litellm"
+            RowLayout {
+                Kirigami.FormData.label: translate("LiteLLM key:")
+                visible: page.providerEnabled("litellm")
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: litellmApiKeyField
+
+                    Layout.fillWidth: true
+                    echoMode: litellmKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("litellm", text);
+                        page.refreshIfActiveProvider("litellm");
+                    }
+                }
+
+                QQC2.Button {
+                    id: litellmKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2533,10 +3426,41 @@ KCM.SimpleKCM {
             }
 
             // ── Qwen (Alibaba Cloud) ──
-            ApiKeyRow {
-                id: qwenApiKeyField
-                providerId: "qwen"
+            QQC2.TextField {
+                id: qwenBaseUrlField
+
+                visible: false
+                Kirigami.FormData.label: translate("Qwen URL:")
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Qwen key:")
+                visible: page.providerEnabled("qwen")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: qwenApiKeyField
+
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: parent.width - qwenKeyShowHide.implicitWidth - parent.spacing
+                    echoMode: qwenKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("qwen", text);
+                        page.refreshIfActiveProvider("qwen");
+                    }
+                }
+
+                QQC2.Button {
+                    id: qwenKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2570,10 +3494,41 @@ KCM.SimpleKCM {
             }
 
             // ── Moonshot AI ──
-            ApiKeyRow {
-                id: moonshotApiKeyField
-                providerId: "moonshot"
+            QQC2.TextField {
+                id: moonshotBaseUrlField
+
+                visible: false
+                Kirigami.FormData.label: translate("Moonshot URL:")
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.moonshot.ai/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Moonshot key:")
+                visible: page.providerEnabled("moonshot")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: moonshotApiKeyField
+
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: parent.width - moonshotKeyShowHide.implicitWidth - parent.spacing
+                    echoMode: moonshotKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("moonshot", text);
+                        page.refreshIfActiveProvider("moonshot");
+                    }
+                }
+
+                QQC2.Button {
+                    id: moonshotKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2607,10 +3562,41 @@ KCM.SimpleKCM {
             }
 
             // ── Xiaomi MiMo ──
-            ApiKeyRow {
-                id: mimoApiKeyField
-                providerId: "mimo"
+            QQC2.TextField {
+                id: mimoBaseUrlField
+
+                visible: false
+                Kirigami.FormData.label: translate("MiMo URL:")
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.xiaomimimo.com/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("MiMo key:")
+                visible: page.providerEnabled("mimo")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: mimoApiKeyField
+
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: parent.width - mimoKeyShowHide.implicitWidth - parent.spacing
+                    echoMode: mimoKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("mimo", text);
+                        page.refreshIfActiveProvider("mimo");
+                    }
+                }
+
+                QQC2.Button {
+                    id: mimoKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2644,10 +3630,41 @@ KCM.SimpleKCM {
             }
 
             // ── Maritaca AI ──
-            ApiKeyRow {
-                id: maritacaApiKeyField
-                providerId: "maritaca"
+            QQC2.TextField {
+                id: maritacaBaseUrlField
+
+                visible: false
+                Kirigami.FormData.label: translate("Maritaca URL:")
+                Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://chat.maritaca.ai/api"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: translate("Maritaca key:")
+                visible: page.providerEnabled("maritaca")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: maritacaApiKeyField
+
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: parent.width - maritacaKeyShowHide.implicitWidth - parent.spacing
+                    echoMode: maritacaKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("maritaca", text);
+                        page.refreshIfActiveProvider("maritaca");
+                    }
+                }
+
+                QQC2.Button {
+                    id: maritacaKeyShowHide
+
+                    checkable: true
+                    text: checked ? translate("Hide") : translate("Show")
+                }
+
             }
 
             QQC2.Label {
@@ -2885,26 +3902,6 @@ KCM.SimpleKCM {
                     onClicked: writeKeysToDiskAndOpen()
                 }
 
-            }
-
-            QQC2.Label {
-                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 1
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("⚠️ WARNING: API keys are stored as plaintext in ~/.config/kdeaichatrc and may be world-readable. KWallet is recommended for shared machines.")
-                wrapMode: Text.Wrap
-                color: "#e74c3c"
-                opacity: 0.85
-            }
-
-            QQC2.Label {
-                visible: !openCodeToggle.checked && storageModeCombo.currentIndex === 0
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("⚠️ Keys are kept only for this session and will be lost when the plasmoid is unloaded. Save them to KWallet for persistence.")
-                wrapMode: Text.Wrap
-                color: "#e67e22"
-                opacity: 0.85
             }
 
             QQC2.Label {
