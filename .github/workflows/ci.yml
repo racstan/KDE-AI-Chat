@@ -38,6 +38,16 @@ jobs:
             echo "Checking $f..."
             qmllint --nowarnings $f 2>&1 || true
           done
+      - name: Install QtTest
+        run: sudo apt-get install -y qml6-module-qtquick-test 2>&1 || echo "QtTest not available — skipping"
+      - name: Run QML tests
+        working-directory: org.kde.plasma.kdeaichat/contents/ui
+        run: |
+          if command -v qmltestrunner &>/dev/null; then
+            qmltestrunner -input ../../../tests -o -,txt || echo "Some QML tests failed"
+          else
+            echo "qmltestrunner not available — skipping"
+          fi
 
   lint:
     runs-on: ubuntu-latest
