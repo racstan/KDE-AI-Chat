@@ -153,7 +153,7 @@ KCM.SimpleKCM {
     property var filteredProviderModels: []
     property var filteredOpenCodeModels: []
     // ── Lazy field registry to eliminate 21-arm if/else chains ──────────
-    var _fieldRegistry = null;
+    property var _fieldRegistry: null
     function _ensureRegistry() {
         if (_fieldRegistry)
             return _fieldRegistry;
