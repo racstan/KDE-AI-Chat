@@ -2322,28 +2322,7 @@ PlasmoidItem {
         return markdownRenderer.parseBlocks(markdown);
     }
 
-    // Convert markdown table to CSV string
-    function tableMarkdownToCsv(tableMarkdown) {
-        var rows = tableMarkdown.trim().split("\n");
-        var csvRows = [];
-        for (var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            // Skip separator rows (---|---)
-            if (/^[\s|:\-]+$/.test(row))
-                continue;
 
-            var cells = row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|");
-            var csvCells = cells.map(function(c) {
-                var v = c.trim();
-                if (v.indexOf(",") >= 0 || v.indexOf("\"") >= 0 || v.indexOf("\n") >= 0)
-                    v = "\"" + v.replace(/"/g, "\"\"") + "\"";
-
-                return v;
-            });
-            csvRows.push(csvCells.join(","));
-        }
-        return csvRows.join("\n");
-    }
 
     function buildMessageContent(text, attachments, apiType) {
         var docs = [];
