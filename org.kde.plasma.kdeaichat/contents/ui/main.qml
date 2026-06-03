@@ -248,10 +248,10 @@ PlasmoidItem {
         }
     }
 
-    function parseSessions() {
-        var raw = plasmoid.configuration.chatSessionsJson || "[]";
+    function parseSessions(customRaw) {
+        var raw = customRaw !== undefined ? customRaw : (plasmoid.configuration.chatSessionsJson || "[]");
         try {
-            var arr = JSON.parse(raw);
+            var arr = typeof raw === "string" ? JSON.parse(raw) : raw;
             if (Array.isArray(arr)) {
                 for (var i = 0; i < arr.length; i++) {
                     if (!arr[i].messages)
@@ -262,6 +262,9 @@ PlasmoidItem {
 
                     if (!arr[i].source)
                         arr[i].source = arr[i].openCodeSessionId ? "opencode" : "provider";
+
+                    if (arr[i].readCount === undefined)
+                        arr[i].readCount = arr[i].messages.length;
 
                     for (var j = 0; j < arr[i].messages.length; j++) {
                         if (!arr[i].messages[j].at)
@@ -280,6 +283,25 @@ PlasmoidItem {
             return [];
         } catch (e) {
             return [];
+        }
+    }
+
+    function checkAndMarkCurrentSessionAsRead() {
+        if (root.expanded && !root.historyOnlyMode && root.currentSessionId !== "") {
+            var idx = sessionIndexById(root.currentSessionId);
+            if (idx >= 0) {
+                var s = root.sessions[idx];
+                var currentMsgsCount = root.messages.length;
+                if (s.readCount !== currentMsgsCount) {
+                    var updated = root.sessions.slice();
+                    var item = Object.assign({}, updated[idx]);
+                    item.readCount = currentMsgsCount;
+                    item.messages = root.messages;
+                    updated[idx] = item;
+                    root.sessions = updated;
+                    persistSessions();
+                }
+            }
         }
     }
 
@@ -420,6 +442,7 @@ PlasmoidItem {
             "archived": false,
             "source": mode ? "opencode" : "provider",
             "openCodeSessionId": "",
+            "readCount": 0,
             "messages": []
         };
         root.sessions = [s].concat(root.sessions);
@@ -469,6 +492,11 @@ PlasmoidItem {
         }, updated[idx]);
         s.text = root.currentSessionTitle || "New Chat";
         s.messages = root.messages;
+        if (root.expanded && !root.historyOnlyMode) {
+            s.readCount = root.messages.length;
+        } else {
+            s.readCount = s.readCount !== undefined ? s.readCount : root.messages.length;
+        }
         if (touchUpdatedAt !== false)
             s.updatedAt = Date.now();
 
@@ -532,6 +560,7 @@ PlasmoidItem {
         root.editingSessionDraft = "";
         root.renamingCurrentChat = false;
         root.currentChatRenameDraft = "";
+        checkAndMarkCurrentSessionAsRead();
         persistSessions();
         scrollToBottom();
         root.focusInput();
@@ -3221,14 +3250,16 @@ PlasmoidItem {
 
     }
     onExpandedChanged: {
-        if (expanded)
+        if (expanded) {
             root.focusInput();
-
+            checkAndMarkCurrentSessionAsRead();
+        }
     }
     onHistoryOnlyModeChanged: {
-        if (!historyOnlyMode)
+        if (!historyOnlyMode) {
             root.focusInput();
-
+            checkAndMarkCurrentSessionAsRead();
+        }
     }
     Component.onCompleted: {
         root.openCodeMode = plasmoid.configuration.useOpenCode;
@@ -3255,11 +3286,12 @@ PlasmoidItem {
             var startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " + "echo SCHED_AUTOSTART_OK";
             schedulerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #sched-startup");
         }
+        checkAndMarkCurrentSessionAsRead();
     }
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom);
-
+        checkAndMarkCurrentSessionAsRead();
     }
 
     Connections {
@@ -3534,8 +3566,7 @@ PlasmoidItem {
                         var jsonStr = Qt.atob(stdout.trim());
                         var arr = JSON.parse(jsonStr);
                         if (Array.isArray(arr)) {
-                            root.sessions = arr;
-                            root.sessions = parseSessions();
+                            root.sessions = parseSessions(arr);
                             if (root.sessions.length === 0)
                                 createSession(true);
 
@@ -3551,6 +3582,7 @@ PlasmoidItem {
                                 root.openCodeMode = (root.sessions[idx].source === "opencode");
 
                             sortSessionsByUpdated();
+                            checkAndMarkCurrentSessionAsRead();
                             disconnectSource(sourceName);
                             return ;
                         }
@@ -3566,6 +3598,7 @@ PlasmoidItem {
                 } else {
                     loadSessions();
                 }
+                checkAndMarkCurrentSessionAsRead();
             } else if (sourceName.indexOf("#migrate-history") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
@@ -3575,8 +3608,7 @@ PlasmoidItem {
                             if (res.action === "load" && res.content) {
                                 var arrVal = JSON.parse(Qt.atob(res.content));
                                 if (Array.isArray(arrVal)) {
-                                    root.sessions = arrVal;
-                                    root.sessions = parseSessions();
+                                    root.sessions = parseSessions(arrVal);
                                     if (root.sessions.length === 0)
                                         createSession(true);
 
@@ -3589,6 +3621,7 @@ PlasmoidItem {
                                     if (root.sessions[idxVal])
                                         root.openCodeMode = (root.sessions[idxVal].source === "opencode");
                                     sortSessionsByUpdated();
+                                    checkAndMarkCurrentSessionAsRead();
                                     persistSessions();
                                 }
                             } else if (res.action === "write_current" || res.action === "copied") {
@@ -6117,8 +6150,11 @@ PlasmoidItem {
                                     Rectangle {
                                         id: countBadge
 
-                                        property int msgCount: (modelData.messages || []).length
-                                        visible: msgCount > 0
+                                        property int totalCount: (modelData.messages || []).length
+                                        property int readCount: modelData.readCount !== undefined ? modelData.readCount : totalCount
+                                        property int unreadCount: Math.max(0, totalCount - readCount)
+
+                                        visible: unreadCount > 0
                                         width: countBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 1.5
                                         height: countBadgeText.implicitHeight + Kirigami.Units.smallSpacing * 0.5
                                         radius: 10
@@ -6128,7 +6164,7 @@ PlasmoidItem {
                                             id: countBadgeText
 
                                             anchors.centerIn: parent
-                                            text: parent.msgCount > 10 ? "10+" : ("+" + parent.msgCount)
+                                            text: parent.unreadCount > 99 ? "99+" : parent.unreadCount
                                             font.bold: true
                                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.75
                                             color: Kirigami.Theme.highlightedTextColor
