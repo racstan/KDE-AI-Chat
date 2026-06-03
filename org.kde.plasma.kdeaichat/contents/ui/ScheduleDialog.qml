@@ -12,6 +12,8 @@ import org.kde.plasma.plasma5support as P5Support
         property var draft: ({
         })
         property string currentTab: "active"
+        property var localActiveList: []
+        property var localArchivedList: []
 
         function translate(text) {
             return page.translate(text);
@@ -169,12 +171,17 @@ import org.kde.plasma.plasma5support as P5Support
         modal: true
         width: Math.min(parent.width * 0.95, Kirigami.Units.gridUnit * 50)
         height: Math.min(parent.height * 0.92, Kirigami.Units.gridUnit * 46)
-        standardButtons: QQC2.Dialog.Close
+        standardButtons: QQC2.Dialog.NoButton
         onOpened: {
             schedLoadSchedules();
+            localActiveList = page.schedulerList.slice();
+            localArchivedList = page.schedulerArchivedList.slice();
             if (editingIndex !== -2 && editingIndex < 0) {
                 editingIndex = -1;
             }
+        }
+        onClosed: {
+            editingIndex = -1;
         }
 
         // ── List view ──────────────────────────────────────────────────────────
@@ -189,7 +196,7 @@ import org.kde.plasma.plasma5support as P5Support
                 spacing: Kirigami.Units.smallSpacing
                 
                 QQC2.Button {
-                    text: translate("Active") + " (" + page.schedulerList.length + ")"
+                    text: translate("Active") + " (" + scheduleDialog.localActiveList.length + ")"
                     icon.name: "appointment-new"
                     highlighted: scheduleDialog.currentTab === "active"
                     flat: scheduleDialog.currentTab !== "active"
@@ -198,7 +205,7 @@ import org.kde.plasma.plasma5support as P5Support
                 }
 
                 QQC2.Button {
-                    text: translate("Archived") + " (" + page.schedulerArchivedList.length + ")"
+                    text: translate("Archived") + " (" + scheduleDialog.localArchivedList.length + ")"
                     icon.name: "archive-insert"
                     highlighted: scheduleDialog.currentTab === "archived"
                     flat: scheduleDialog.currentTab !== "archived"
@@ -222,7 +229,7 @@ import org.kde.plasma.plasma5support as P5Support
                 visible: scheduleDialog.currentTab === "active"
 
                 QQC2.Label {
-                    text: page.schedulerList.length === 0 ? translate("No schedules configured yet") : (page.schedulerList.length === 1 ? translate("1 active schedule") : translate("%1 active schedules").arg(page.schedulerList.length))
+                    text: scheduleDialog.localActiveList.length === 0 ? translate("No schedules configured yet") : (scheduleDialog.localActiveList.length === 1 ? translate("1 active schedule") : translate("%1 active schedules").arg(scheduleDialog.localActiveList.length))
                     opacity: 0.7
                     Layout.fillWidth: true
                 }
@@ -267,7 +274,7 @@ import org.kde.plasma.plasma5support as P5Support
                 visible: scheduleDialog.currentTab === "archived"
 
                 QQC2.Label {
-                    text: page.schedulerArchivedList.length === 0 ? translate("No archived schedules") : (page.schedulerArchivedList.length === 1 ? translate("1 archived schedule") : translate("%1 archived schedules").arg(page.schedulerArchivedList.length))
+                    text: scheduleDialog.localArchivedList.length === 0 ? translate("No archived schedules") : (scheduleDialog.localArchivedList.length === 1 ? translate("1 archived schedule") : translate("%1 archived schedules").arg(scheduleDialog.localArchivedList.length))
                     opacity: 0.7
                     Layout.fillWidth: true
                 }
@@ -298,14 +305,14 @@ import org.kde.plasma.plasma5support as P5Support
             // ── Empty State Inline Messages ──
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
-                visible: scheduleDialog.currentTab === "active" && page.schedulerList.length === 0
+                visible: scheduleDialog.currentTab === "active" && scheduleDialog.localActiveList.length === 0
                 type: Kirigami.MessageType.Information
                 text: translate("No active schedules configured yet. Click <b>New Schedule</b> to create one, or type <b>/schedule</b> in any chat.")
             }
 
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
-                visible: scheduleDialog.currentTab === "archived" && page.schedulerArchivedList.length === 0
+                visible: scheduleDialog.currentTab === "archived" && scheduleDialog.localArchivedList.length === 0
                 type: Kirigami.MessageType.Information
                 text: translate("No archived schedules. You can archive active schedules to temporarily pause them without losing their settings.")
             }
@@ -318,18 +325,18 @@ import org.kde.plasma.plasma5support as P5Support
             }
 
             // ── Scrollable Lists Area ──
-            QQC2.ScrollView {
+            StackLayout {
+                id: listStack
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                clip: true
+                currentIndex: scheduleDialog.currentTab === "active" ? 0 : (scheduleDialog.currentTab === "archived" ? 1 : 2)
 
                 // ── 1. ACTIVE SCHEDULES LIST ──
                 ListView {
                     id: activeSchedListView
-                    visible: scheduleDialog.currentTab === "active"
-                    anchors.fill: parent
-                    model: page.schedulerList
+                    model: scheduleDialog.localActiveList
                     spacing: Kirigami.Units.smallSpacing
+                    clip: true
 
                     delegate: Rectangle {
                         width: activeSchedListView.width
@@ -350,12 +357,14 @@ import org.kde.plasma.plasma5support as P5Support
                             QQC2.Switch {
                                 checked: modelData.enabled
                                 onToggled: {
-                                    var copy = page.schedulerList.slice();
+                                    var copy = scheduleDialog.localActiveList.slice();
                                     var s = JSON.parse(JSON.stringify(copy[index]));
                                     s.enabled = checked;
+                                    if (checked) {
+                                        s.nextRunAt = "";
+                                    }
                                     copy[index] = s;
-                                    page.schedulerList = copy;
-                                    page.schedSaveSchedules(copy);
+                                    scheduleDialog.localActiveList = copy;
                                 }
                             }
 
@@ -429,16 +438,15 @@ import org.kde.plasma.plasma5support as P5Support
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.delay: 500
                                 onClicked: {
-                                    var copyActive = page.schedulerList.slice();
+                                    var copyActive = scheduleDialog.localActiveList.slice();
                                     var item = copyActive.splice(index, 1)[0];
                                     item.archived = true;
 
-                                    var copyArchived = page.schedulerArchivedList.slice();
+                                    var copyArchived = scheduleDialog.localArchivedList.slice();
                                     copyArchived.push(item);
 
-                                    page.schedulerList = copyActive;
-                                    page.schedulerArchivedList = copyArchived;
-                                    page.schedSaveAll();
+                                    scheduleDialog.localActiveList = copyActive;
+                                    scheduleDialog.localArchivedList = copyArchived;
                                 }
                             }
 
@@ -448,10 +456,9 @@ import org.kde.plasma.plasma5support as P5Support
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.delay: 500
                                 onClicked: {
-                                    var copy = page.schedulerList.slice();
+                                    var copy = scheduleDialog.localActiveList.slice();
                                     copy.splice(index, 1);
-                                    page.schedulerList = copy;
-                                    page.schedSaveSchedules(copy);
+                                    scheduleDialog.localActiveList = copy;
                                 }
                             }
                         }
@@ -461,10 +468,9 @@ import org.kde.plasma.plasma5support as P5Support
                 // ── 2. ARCHIVED SCHEDULES LIST ──
                 ListView {
                     id: archivedSchedListView
-                    visible: scheduleDialog.currentTab === "archived"
-                    anchors.fill: parent
-                    model: page.schedulerArchivedList
+                    model: scheduleDialog.localArchivedList
                     spacing: Kirigami.Units.smallSpacing
+                    clip: true
 
                     delegate: Rectangle {
                         width: archivedSchedListView.width
@@ -517,16 +523,16 @@ import org.kde.plasma.plasma5support as P5Support
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.delay: 500
                                 onClicked: {
-                                    var copyArchived = page.schedulerArchivedList.slice();
+                                    var copyArchived = scheduleDialog.localArchivedList.slice();
                                     var item = copyArchived.splice(index, 1)[0];
                                     item.archived = false;
+                                    item.nextRunAt = "";
 
-                                    var copyActive = page.schedulerList.slice();
+                                    var copyActive = scheduleDialog.localActiveList.slice();
                                     copyActive.push(item);
 
-                                    page.schedulerList = copyActive;
-                                    page.schedulerArchivedList = copyArchived;
-                                    page.schedSaveAll();
+                                    scheduleDialog.localActiveList = copyActive;
+                                    scheduleDialog.localArchivedList = copyArchived;
                                 }
                             }
 
@@ -536,10 +542,9 @@ import org.kde.plasma.plasma5support as P5Support
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.delay: 500
                                 onClicked: {
-                                    var copyArchived = page.schedulerArchivedList.slice();
+                                    var copyArchived = scheduleDialog.localArchivedList.slice();
                                     copyArchived.splice(index, 1);
-                                    page.schedulerArchivedList = copyArchived;
-                                    page.schedSaveAll();
+                                    scheduleDialog.localArchivedList = copyArchived;
                                 }
                             }
                         }
@@ -549,17 +554,16 @@ import org.kde.plasma.plasma5support as P5Support
                 // ── 3. RUN HISTORY LIST ──
                 ListView {
                     id: historySchedListView
-                    visible: scheduleDialog.currentTab === "history"
-                    anchors.fill: parent
                     model: page.schedulerHistory
                     spacing: Kirigami.Units.smallSpacing
+                    clip: true
 
                     delegate: Rectangle {
                         width: historySchedListView.width
                         height: 74
                         radius: 6
-                        color: modelData.status === "success" ? Qt.rgba(0.18, 0.8, 0.44, 0.05) : Qt.rgba(0.9, 0.22, 0.22, 0.05)
-                        border.color: modelData.status === "success" ? Qt.rgba(0.18, 0.8, 0.44, 0.15) : Qt.rgba(0.9, 0.22, 0.22, 0.15)
+                        color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.05) : Qt.rgba(0.9, 0.22, 0.22, 0.05)
+                        border.color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.15) : Qt.rgba(0.9, 0.22, 0.22, 0.15)
                         border.width: 1
 
                         RowLayout {
@@ -570,8 +574,8 @@ import org.kde.plasma.plasma5support as P5Support
                             }
 
                             Kirigami.Icon {
-                                source: modelData.status === "success" ? "dialog-ok" : "dialog-error"
-                                color: modelData.status === "success" ? "#2ecc71" : "#e74c3c"
+                                source: (modelData.status && modelData.status.indexOf("success") !== -1) ? "dialog-ok" : "dialog-error"
+                                color: (modelData.status && modelData.status.indexOf("success") !== -1) ? "#2ecc71" : "#e74c3c"
                                 Layout.preferredWidth: Kirigami.Units.gridUnit * 1.2
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 1.2
                             }
@@ -608,6 +612,40 @@ import org.kde.plasma.plasma5support as P5Support
                     }
                 }
 
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: Kirigami.Units.gridUnit
+                Layout.rightMargin: Kirigami.Units.gridUnit
+                Layout.bottomMargin: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.mediumSpacing
+
+                QQC2.Label {
+                    text: "ℹ️ " + translate("Configure schedules above. Click Save to apply changes, or Cancel to discard.")
+                    font.pixelSize: 11
+                    opacity: 0.65
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                }
+
+                QQC2.Button {
+                    text: translate("Cancel")
+                    onClicked: {
+                        scheduleDialog.close();
+                    }
+                }
+
+                QQC2.Button {
+                    text: translate("Save")
+                    highlighted: true
+                    onClicked: {
+                        page.schedulerList = scheduleDialog.localActiveList;
+                        page.schedulerArchivedList = scheduleDialog.localArchivedList;
+                        page.schedSaveAll();
+                        scheduleDialog.close();
+                    }
+                }
             }
 
         }
@@ -1270,14 +1308,14 @@ import org.kde.plasma.plasma5support as P5Support
                             d.humanReadable = scheduleDialog.humanText(d);
                             if (!d.name || d.name.trim() === "")
                                 d.name = d.humanReadable;
+                            d.nextRunAt = "";
 
-                            var copy = page.schedulerList.slice();
+                            var copy = scheduleDialog.localActiveList.slice();
                             if (scheduleDialog.editingIndex === -2)
                                 copy.push(d);
                             else
                                 copy[scheduleDialog.editingIndex] = d;
-                            page.schedulerList = copy;
-                            page.schedSaveSchedules(copy);
+                            scheduleDialog.localActiveList = copy;
                             scheduleDialog.editingIndex = -1;
                         }
                     }

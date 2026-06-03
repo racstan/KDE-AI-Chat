@@ -42,6 +42,7 @@ PlasmoidItem {
     property string currentChatRenameDraft: ""
     property bool openCodeMode: false
     property var schedulesList: []
+    property bool schedPolling: false
     property var plasmoidRef: plasmoid
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
@@ -145,14 +146,21 @@ PlasmoidItem {
     }
 
     function toggleScheduleEnabled(schedId, newEnabled) {
-        var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
-                 "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
-                 "if isinstance(data, list): data={'version':1,'schedules':data}; " +
-                 "for s in data.get('schedules', []): " +
-                 "    if s.get('id') == '" + schedId + "': s['enabled'] = " + (newEnabled ? "True" : "False") + "; " +
-                 "json.dump(data, open(p,'w'), indent=2)";
+        var py = [
+            "import json, os",
+            "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+            "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
+            "if isinstance(data, list):",
+            "    data = {'version': 1, 'schedules': data}",
+            "for s in data.get('schedules', []):",
+            "    if s.get('id') == '" + schedId + "':",
+            "        s['enabled'] = " + (newEnabled ? "True" : "False"),
+            "        if " + (newEnabled ? "True" : "False") + ":",
+            "            s['nextRunAt'] = ''",
+            "json.dump(data, open(p, 'w'), indent=2)"
+        ].join("\n");
         var b64Py = base64Encode(py);
-        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-toggle-" + Date.now());
         // Update local schedulesList immediately
         var copy = root.schedulesList.slice();
@@ -161,6 +169,9 @@ PlasmoidItem {
                 var s = Object.assign({
                 }, copy[i]);
                 s.enabled = newEnabled;
+                if (newEnabled) {
+                    s.nextRunAt = "";
+                }
                 copy[i] = s;
             }
         }
@@ -173,8 +184,14 @@ PlasmoidItem {
             return ;
 
         // Switch to the correct session
-        if (chatId !== root.currentSessionId)
+        var idx = sessionIndexById(chatId);
+        if (idx < 0) {
+            console.warn("injectScheduledMessage: Target session " + chatId + " not found, ignoring schedule execution.");
+            return ;
+        }
+        if (chatId !== root.currentSessionId) {
             switchSession(chatId);
+        }
 
         // Play the custom scheduled execution sound
         var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
@@ -196,25 +213,29 @@ PlasmoidItem {
 
             // Sync the detailed failure back to the scheduler's run history log
             if (schedId) {
-                var historyPy = "import json, os; " +
-                    "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
-                    "if os.path.exists(p): " +
-                    "  try: " +
-                    "    data = json.load(open(p)); " +
-                    "    history = data.setdefault('history', []); " +
-                    "    for entry in reversed(history): " +
-                    "      if entry.get('scheduleId') == '" + schedId + "': " +
-                    "        entry['status'] = '" + validationError.replace(/'/g, "\\'") + "'; " +
-                    "        break; " +
-                    "    json.dump(data, open(p, 'w'), indent=2); " +
-                    "  except Exception: pass";
-                soundDs.connectSource("python3 -c \"" + historyPy + "\" #sched-history-err");
+                var historyPy = [
+                    "import json, os",
+                    "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+                    "if os.path.exists(p):",
+                    "  try:",
+                    "    data = json.load(open(p))",
+                    "    history = data.setdefault('history', [])",
+                    "    for entry in reversed(history):",
+                    "      if entry.get('scheduleId') == '" + schedId + "':",
+                    "        entry['status'] = '" + validationError.replace(/'/g, "\\'") + "'",
+                    "        break",
+                    "    json.dump(data, open(p, 'w'), indent=2)",
+                    "  except Exception: pass"
+                ].join("\n");
+                var b64History = base64Encode(historyPy);
+                var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64History + "').decode('utf-8'))\"";
+                soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
             }
             return ;
         }
 
         // Append user message
-        appendUserMessage(messageText, "user", []);
+        appendUserMessage(messageText, "user", [], true);
         // Trigger LLM generation
         sendMessageByIndex(root.messages.length - 1);
         // Show a desktop notification
@@ -535,6 +556,29 @@ PlasmoidItem {
         }
         cancelSessionRename();
         persistSessions();
+
+        // Clean up schedules associated with this session
+        var py = [
+            "import json, os",
+            "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+            "if os.path.exists(p):",
+            "  try:",
+            "    data = json.load(open(p))",
+            "    if isinstance(data, dict):",
+            "      scheds = data.get('schedules', [])",
+            "      data['schedules'] = [s for s in scheds if s.get('chatId') != '" + sessionId + "']",
+            "      json.dump(data, open(p, 'w'), indent=2)",
+            "  except Exception: pass"
+        ].join("\n");
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-session-delete-" + Date.now());
+
+        // Also update root.schedulesList locally
+        var copy = root.schedulesList.filter(function(s) {
+            return s.chatId !== sessionId;
+        });
+        root.schedulesList = copy;
     }
 
     function deleteMessage(index) {
@@ -929,17 +973,21 @@ PlasmoidItem {
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 root.openCodeEventXhr = null;
                 if (root.openCodeMode)
-                    Qt.callLater(ensureOpenCodeEventStream);
+                    openCodeReconnectTimer.start();
 
             }
         };
         xhr.onerror = function() {
             root.openCodeEventXhr = null;
+            if (root.openCodeMode)
+                openCodeReconnectTimer.start();
         };
         try {
             xhr.send();
         } catch (streamError) {
             root.openCodeEventXhr = null;
+            if (root.openCodeMode)
+                openCodeReconnectTimer.start();
         }
     }
 
@@ -1220,9 +1268,20 @@ PlasmoidItem {
             successCallback(existing);
             return ;
         }
+        var fail = function(msg) {
+            if (typeof failureCallback === "function") {
+                failureCallback(msg);
+            } else {
+                pushErrorMessage(msg);
+            }
+        };
         var xhr = new XMLHttpRequest();
         xhr.open("POST", openCodeBaseUrl() + "/session", true);
         xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.timeout = 10000;
+        xhr.ontimeout = function() {
+            fail("OpenCode: session creation timed out. Check that the server is running at " + openCodeBaseUrl());
+        };
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return ;
@@ -1233,31 +1292,33 @@ PlasmoidItem {
                     var obj = JSON.parse(xhr.responseText);
                     var remoteId = obj.id || "";
                     if (remoteId === "") {
-                        failureCallback("OpenCode: server created a session without an id.");
+                        fail("OpenCode: server created a session without an id.");
                         return ;
                     }
                     setCurrentOpenCodeSessionId(remoteId);
                     successCallback(remoteId);
                 } catch (parseError) {
-                    failureCallback("OpenCode: could not parse session creation response.");
+                    fail("OpenCode: could not parse session creation response.");
                 }
             } else {
-                failureCallback("OpenCode: failed to create a server session (HTTP " + xhr.status + ").");
+                fail("OpenCode: failed to create a server session (HTTP " + xhr.status + ").");
             }
         };
         xhr.onerror = function() {
-            failureCallback("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
+            fail("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
         };
         try {
             xhr.send(JSON.stringify({
                 "title": root.currentSessionTitle || "KDE AI Chat"
             }));
         } catch (sendError) {
-            failureCallback("OpenCode: failed to create session: " + sendError);
+            fail("OpenCode: failed to create session: " + sendError);
         }
     }
 
     function doOpenCodeRequest() {
+        var requestFinalized = false;
+
         function failOpenCodeRequest(message) {
             if (requestFinalized)
                 return ;
@@ -1280,11 +1341,14 @@ PlasmoidItem {
             var xhr = new XMLHttpRequest();
             var modelId = (plasmoid.configuration.openCodeModel || "").trim();
             var providerId = (plasmoid.configuration.openCodeProvider || "").trim();
-            var requestFinalized = false;
             root.activeXhr = xhr;
             root.openCodeActiveSessionId = remoteSessionId;
             xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
             xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.timeout = 15000;
+            xhr.ontimeout = function() {
+                failOpenCodeRequest("OpenCode: message request timed out at " + openCodeBaseUrl());
+            };
             xhr.onreadystatechange = function() {
                 if (xhr.readyState !== XMLHttpRequest.DONE)
                     return ;
@@ -1293,6 +1357,9 @@ PlasmoidItem {
                     return ;
 
                 if (xhr.status < 200 || xhr.status >= 300) {
+                    if (xhr.status === 404) {
+                        setCurrentOpenCodeSessionId("");
+                    }
                     var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
                     failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
                     return ;
@@ -1564,6 +1631,23 @@ PlasmoidItem {
         }]);
         scrollToBottom();
         saveCurrentSessionState(true);
+
+        // If the last user message was a schedule, show a desktop notification of the execution failure!
+        var isSched = false;
+        for (var i = root.messages.length - 1; i >= 0; i--) {
+            if (root.messages[i].role === "user") {
+                if (root.messages[i].sc) {
+                    isSched = true;
+                }
+                break;
+            }
+        }
+        if (isSched) {
+            var escapedErr = text.replace(/'/g, "'\\''");
+            var errTitle = "Schedule Execution Failed";
+            var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-execution-notify-err");
+        }
     }
 
     function pushInfoMessage(text) {
@@ -1579,7 +1663,7 @@ PlasmoidItem {
         saveCurrentSessionState(true);
     }
 
-    function appendUserMessage(text, role, attachments) {
+    function appendUserMessage(text, role, attachments, isScheduled) {
         var ts = Date.now();
         root.messages = root.messages.concat([{
             "role": role || "user",
@@ -1588,7 +1672,8 @@ PlasmoidItem {
             "at": ts,
             "model": "",
             "queueId": role === "queued" ? (++root.queueCounter) : 0,
-            "attachments": attachments || []
+            "attachments": attachments || [],
+            "sc": !!isScheduled
         }]);
         saveCurrentSessionState(true);
     }
@@ -1789,17 +1874,30 @@ PlasmoidItem {
                 return ;
 
             // ── /schedule command ──────────────────────────────────────────
-            if (text.toLowerCase().startsWith("/schedule")) {
-                var schedText = text.slice("/schedule".length).trim();
+            var lowerText = text.toLowerCase().replace(/^\//, "").trim();
+            if (lowerText === "schedule" || lowerText === "schedules" || lowerText === "scheduler" || text.toLowerCase().startsWith("/schedule")) {
+                var schedText = "";
+                if (text.toLowerCase().startsWith("/schedule")) {
+                    schedText = text.slice("/schedule".length).trim();
+                } else if (text.toLowerCase().startsWith("schedule")) {
+                    schedText = text.slice("schedule".length).trim();
+                } else if (text.toLowerCase().startsWith("schedules")) {
+                    schedText = text.slice("schedules".length).trim();
+                } else if (text.toLowerCase().startsWith("scheduler")) {
+                    schedText = text.slice("scheduler".length).trim();
+                }
+                
                 root.attachedFiles = [];
                 root.chatInputText = "";
                 root.clearChatInput();
-                // 1. Append the user message "/schedule" or "/schedule <msg>"
+                // 1. Append the user message
                 appendUserMessage(text, "user", []);
                 if (schedText !== "") {
                     // Open dialog prefilled with message
                     root.handleScheduleCommand(schedText);
                 } else {
+                    // Trigger a poll now so that the list is fresh when the bubble is rendered!
+                    schedulerPollTimer.triggered();
                     // Append interactive list inline!
                     var ts = Date.now();
                     root.messages = root.messages.concat([{
@@ -1814,7 +1912,6 @@ PlasmoidItem {
                     saveCurrentSessionState(true);
                     if (!root.userScrolledUp)
                         Qt.callLater(scrollToBottom);
-
                 }
                 return ;
             }
@@ -2121,11 +2218,7 @@ PlasmoidItem {
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
             if (apiKey !== "") {
-                var safeKey = apiKey.substring(0, Math.min(8, apiKey.length)) + "... (" + apiKey.length + " chars)";
-                console.log("DEBUG: Sending request to " + url + " with auth key starting with: " + safeKey);
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
-            } else {
-                console.log("DEBUG: Sending request to " + url + " without Authorization header (empty key)");
             }
             if (extraHeaders) {
                 for (var headerName in extraHeaders) {
@@ -2134,6 +2227,17 @@ PlasmoidItem {
 
                 }
             }
+            xhr.timeout = 60000;
+            xhr.ontimeout = function() {
+                if (errorHandled)
+                    return ;
+
+                errorHandled = true;
+                root.loading = false;
+                root.activeXhr = null;
+                pushErrorMessage("Request timed out after 60 seconds.");
+                processNextQueuedMessage();
+            };
         } catch (setupError) {
             root.loading = false;
             root.activeXhr = null;
@@ -2256,6 +2360,17 @@ PlasmoidItem {
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.setRequestHeader("x-api-key", apiKey);
         xhr.setRequestHeader("anthropic-version", "2023-06-01");
+        xhr.timeout = 60000;
+        xhr.ontimeout = function() {
+            if (errorHandled)
+                return ;
+
+            errorHandled = true;
+            root.loading = false;
+            root.activeXhr = null;
+            pushErrorMessage("Request timed out after 60 seconds.");
+            processNextQueuedMessage();
+        };
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return ;
@@ -3139,6 +3254,12 @@ PlasmoidItem {
         onNewData: function(sourceName, data) {
             var stdout = (data["stdout"] || "").trim();
             disconnectSource(sourceName);
+            if (sourceName.indexOf("#sched-poll") >= 0) {
+                root.schedPolling = false;
+            }
+            if (sourceName.indexOf("#sched-delete") >= 0 || sourceName.indexOf("#sched-save") >= 0 || sourceName.indexOf("#sched-toggle") >= 0) {
+                schedulerPollTimer.triggered();
+            }
             if (stdout !== "") {
                 try {
                     var parsed = JSON.parse(stdout);
@@ -3170,15 +3291,51 @@ PlasmoidItem {
     }
 
     Timer {
+        id: openCodeReconnectTimer
+        interval: 5000
+        repeat: false
+        onTriggered: {
+            if (root.openCodeMode) {
+                ensureOpenCodeEventStream();
+            }
+        }
+    }
+
+    Timer {
         id: schedulerPollTimer
 
-        interval: 4000
+        interval: 15000
         repeat: true
         running: true
-        triggeredOnStart: false
+        triggeredOnStart: true
         onTriggered: {
-            var py = "import os, json; " + "d = os.path.expanduser('~/.local/share/kdeaichat/pending'); " + "res = []; " + "if os.path.exists(d): " + "  for f in os.listdir(d): " + "    if f.endswith('.json'): " + "      p = os.path.join(d, f); " + "      try: " + "        res.append(json.load(open(p))); " + "        os.remove(p); " + "      except Exception: pass; " + "ps = os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " + "scheds = []; " + "if os.path.exists(ps): " + "  try: " + "    s_data = json.load(open(ps)); " + "    scheds = s_data.get('schedules', []) if isinstance(s_data, dict) else s_data; " + "  except Exception: pass; " + "print(json.dumps({'pending': res, 'schedules': scheds}))";
-            schedulerDs.connectSource("python3 -c \"" + py + "\" #sched-poll-" + Date.now());
+            if (root.schedPolling)
+                return;
+            root.schedPolling = true;
+            var py = [
+                "import os, json",
+                "d = os.path.expanduser('~/.local/share/kdeaichat/pending')",
+                "res = []",
+                "if os.path.exists(d):",
+                "  for f in os.listdir(d):",
+                "    if f.endswith('.json'):",
+                "      p = os.path.join(d, f)",
+                "      try:",
+                "        res.append(json.load(open(p)))",
+                "        os.remove(p)",
+                "      except Exception: pass",
+                "ps = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+                "scheds = []",
+                "if os.path.exists(ps):",
+                "  try:",
+                "    s_data = json.load(open(ps))",
+                "    scheds = s_data.get('schedules', []) if isinstance(s_data, dict) else s_data",
+                "  except Exception: pass",
+                "print(json.dumps({'pending': res, 'schedules': scheds}))"
+            ].join("\n");
+            var b64Py = base64Encode(py);
+            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+            schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-poll-" + Date.now());
         }
     }
 
@@ -3911,14 +4068,18 @@ PlasmoidItem {
                             "createdAt": new Date().toISOString()
                         });
                         var b64Entry = base64Encode(jsonEntry);
-                        var py = "import json,os,base64; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
-                                 "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
-                                 "if isinstance(data, list): data={'version':1,'schedules':data}; " +
-                                 "entry=json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8')); " +
-                                 "data.setdefault('schedules', []).append(entry); " +
-                                 "json.dump(data,open(p,'w'),indent=2)";
+                        var py = [
+                            "import json,os,base64",
+                            "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+                            "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
+                            "if isinstance(data, list):",
+                            "    data = {'version': 1, 'schedules': data}",
+                            "entry = json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8'))",
+                            "data.setdefault('schedules', []).append(entry)",
+                            "json.dump(data, open(p, 'w'), indent=2)"
+                        ].join("\n");
                         var b64Py = base64Encode(py);
-                        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+                        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
                         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
@@ -3950,13 +4111,17 @@ PlasmoidItem {
         }
 
         function deleteSchedule(schedId) {
-            var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
-                     "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
-                     "if isinstance(data, list): data={'version':1,'schedules':data}; " +
-                     "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']; " +
-                     "json.dump(data, open(p,'w'), indent=2)";
+            var py = [
+                "import json, os",
+                "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+                "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
+                "if isinstance(data, list):",
+                "    data = {'version': 1, 'schedules': data}",
+                "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']",
+                "json.dump(data, open(p, 'w'), indent=2)"
+            ].join("\n");
             var b64Py = base64Encode(py);
-            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
             schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
             root.appendSystemMessage("🗑️ Schedule deleted successfully.");
         }
@@ -4562,6 +4727,25 @@ PlasmoidItem {
                                                             font.bold: true
                                                         }
 
+                                                        Rectangle {
+                                                            visible: !!modelData.sc
+                                                            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.15)
+                                                            border.color: Kirigami.Theme.highlightColor
+                                                            border.width: 1
+                                                            radius: 3
+                                                            width: scLabel.implicitWidth + 8
+                                                            height: scLabel.implicitHeight + 2
+
+                                                            PC3.Label {
+                                                                id: scLabel
+                                                                text: "sc"
+                                                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.75
+                                                                font.bold: true
+                                                                color: Kirigami.Theme.highlightColor
+                                                                anchors.centerIn: parent
+                                                            }
+                                                        }
+
                                                         PC3.Label {
                                                             text: root.formatMessageTime(modelData, index)
                                                             opacity: 0.7
@@ -5074,11 +5258,25 @@ PlasmoidItem {
                                                         width: parent.width
                                                         spacing: Kirigami.Units.largeSpacing
 
-                                                        PC3.Label {
-                                                            text: "📅 Active Schedules in this Chat"
-                                                            font.bold: true
-                                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize + 2
-                                                            color: Kirigami.Theme.highlightColor
+                                                        RowLayout {
+                                                            Layout.fillWidth: true
+
+                                                            PC3.Label {
+                                                                text: "📅 Active Schedules in this Chat"
+                                                                font.bold: true
+                                                                font.pointSize: Kirigami.Theme.defaultFont.pointSize + 2
+                                                                color: Kirigami.Theme.highlightColor
+                                                                Layout.fillWidth: true
+                                                            }
+
+                                                            PC3.ToolButton {
+                                                                icon.name: "view-refresh"
+                                                                QQC2.ToolTip.text: "Refresh Schedules"
+                                                                QQC2.ToolTip.visible: hovered
+                                                                onClicked: {
+                                                                    schedulerPollTimer.triggered();
+                                                                }
+                                                            }
                                                         }
 
                                                         Column {
@@ -5115,7 +5313,7 @@ PlasmoidItem {
                                                                             }
 
                                                                             PC3.Label {
-                                                                                text: (modelData.label ? modelData.label : "Untitled Schedule") + ((modelData.enabled !== false) ? "" : " (Paused)")
+                                                                                text: (modelData.name ? modelData.name : "Untitled Schedule") + ((modelData.enabled !== false) ? "" : " (Paused)")
                                                                                 font.bold: true
                                                                                 Layout.fillWidth: true
                                                                                 elide: Text.ElideRight
@@ -5138,13 +5336,17 @@ PlasmoidItem {
                                                                                 QQC2.ToolTip.visible: hovered
                                                                                 onClicked: {
                                                                                     var schedId = modelData.id;
-                                                                                    var py = "import json, os; p=os.path.expanduser('~/.local/share/kdeaichat/schedules.json'); " +
-                                                                                             "data=json.load(open(p)) if os.path.exists(p) else {'version':1,'schedules':[]}; " +
-                                                                                             "if isinstance(data, list): data={'version':1,'schedules':data}; " +
-                                                                                             "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']; " +
-                                                                                             "json.dump(data, open(p,'w'), indent=2)";
+                                                                                    var py = [
+                                                                                        "import json, os",
+                                                                                        "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+                                                                                        "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
+                                                                                        "if isinstance(data, list):",
+                                                                                        "    data = {'version': 1, 'schedules': data}",
+                                                                                        "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']",
+                                                                                        "json.dump(data, open(p, 'w'), indent=2)"
+                                                                                    ].join("\n");
                                                                                     var b64Py = base64Encode(py);
-                                                                                    var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && pkill -HUP -f kde-ai-scheduler.py";
+                                                                                    var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
                                                                                     schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
                                                                                     // Remove immediately from UI to be responsive!
                                                                                     var copy = root.schedulesList.slice();
@@ -5166,7 +5368,7 @@ PlasmoidItem {
                                                                         }
 
                                                                         PC3.Label {
-                                                                            text: "⏰ " + modelData.humanText
+                                                                            text: "⏰ " + (modelData.humanReadable ? modelData.humanReadable : "Scheduled task")
                                                                             color: Kirigami.Theme.highlightColor
                                                                             font.bold: true
                                                                         }
@@ -5188,7 +5390,7 @@ PlasmoidItem {
 
                                                         RowLayout {
                                                             Layout.fillWidth: true
-                                                            spacing: Kirigami.Units.largeSpacing
+                                                            spacing: Kirigami.Units.mediumSpacing
 
                                                             PC3.Button {
                                                                 text: "Create Schedule"
@@ -5199,6 +5401,14 @@ PlasmoidItem {
                                                                      plasmoid.configuration.preselectedChatName = root.currentSessionTitle || "Current Chat";
                                                                      root.triggerConfigure();
                                                                  }
+                                                            }
+
+                                                            PC3.Button {
+                                                                text: "Refresh"
+                                                                icon.name: "view-refresh"
+                                                                onClicked: {
+                                                                    schedulerPollTimer.triggered();
+                                                                }
                                                             }
 
                                                         }
@@ -5793,15 +6003,16 @@ PlasmoidItem {
 
                                     QQC2.TextField {
                                         visible: root.editingSessionId === modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
+                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
                                         text: root.editingSessionDraft
                                         onTextChanged: root.editingSessionDraft = text
                                         onAccepted: root.saveSessionRename(modelData.value)
                                     }
 
                                     PC3.Label {
+                                        id: sessionTitleLabel
                                         visible: root.editingSessionId !== modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
+                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
                                         text: root.translate(modelData.text || "New Chat")
                                         font.bold: modelData.value === root.currentSessionId
                                         color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
@@ -5816,7 +6027,27 @@ PlasmoidItem {
                                                 root.historyOnlyMode = false;
                                             }
                                         }
+                                    }
 
+                                    Rectangle {
+                                        id: countBadge
+
+                                        property int msgCount: (modelData.messages || []).length
+                                        visible: msgCount > 0
+                                        width: countBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 1.5
+                                        height: countBadgeText.implicitHeight + Kirigami.Units.smallSpacing * 0.5
+                                        radius: 10
+                                        color: Kirigami.Theme.highlightColor
+
+                                        PC3.Label {
+                                            id: countBadgeText
+
+                                            anchors.centerIn: parent
+                                            text: parent.msgCount > 10 ? "10+" : ("+" + parent.msgCount)
+                                            font.bold: true
+                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.75
+                                            color: Kirigami.Theme.highlightedTextColor
+                                        }
                                     }
 
                                     PC3.ToolButton {

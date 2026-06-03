@@ -44,12 +44,14 @@ LOCK_FILE = os.path.join(DATA_DIR, "scheduler.lock")
 LOCK_FD = None
 
 # Tick interval in seconds
-TICK_SECONDS = 5
+TICK_SECONDS = 15
 
 # ── Globals ────────────────────────────────────────────────────────────────────
 schedules = []
 history = []
+execute_missed_schedules = False
 reload_requested = False
+_schedules_mtime: float = 0.0
 
 
 # ── Signal handlers ────────────────────────────────────────────────────────────
@@ -103,10 +105,11 @@ def cleanup():
 
 # ── Schedules I/O ──────────────────────────────────────────────────────────────
 def load_schedules():
-    global history
+    global history, execute_missed_schedules
     if not os.path.exists(SCHEDULES_FILE):
         log.debug(f"Schedules file not found: {SCHEDULES_FILE}")
         history = []
+        execute_missed_schedules = False
         return []
     try:
         with open(SCHEDULES_FILE, "r", encoding="utf-8") as f:
@@ -114,17 +117,22 @@ def load_schedules():
         if isinstance(data, list):
             items = data
             history = []
+            execute_missed_schedules = False
         elif isinstance(data, dict):
             items = data.get("schedules", [])
             history = data.get("history", [])
+            settings = data.get("settings", {})
+            execute_missed_schedules = settings.get("executeMissedSchedules", False)
         else:
             items = []
             history = []
-        log.info(f"Loaded {len(items)} schedule(s) and {len(history)} history entry(s) from {SCHEDULES_FILE}")
+            execute_missed_schedules = False
+        log.info(f"Loaded {len(items)} schedule(s) (executeMissed={execute_missed_schedules}) and {len(history)} history entry(s) from {SCHEDULES_FILE}")
         return items
     except (json.JSONDecodeError, OSError) as e:
         log.error("Failed to load schedules: %s", e)
         history = []
+        execute_missed_schedules = False
         return []
 
 
@@ -307,45 +315,139 @@ def update_schedule_timestamps(items, sid, now_iso, status, next_iso):
 
 
 def next_run_iso(cron_expr):
-    now = datetime.now()
-    for _ in range(525600):
-        now = now.replace(second=0, microsecond=0)
-        mins = now.minute + 1
-        now = now.replace(minute=mins % 60)
-        if mins >= 60:
-            hrs = now.hour + 1
-            now = now.replace(hour=hrs % 24)
-            if hrs >= 24:
-                import datetime as dt_mod
-                now = (now + dt_mod.timedelta(days=1)).replace(hour=0, minute=0)
-        if cron_matches(cron_expr, now):
-            return now.isoformat(timespec="seconds")
+    """Compute next cron fire time. Pre-parses fields once to avoid per-iteration overhead."""
+    parts = cron_expr.strip().split()
+    if len(parts) != 5:
+        return ""
+    try:
+        minutes_set = set(parse_cron_field(parts[0], 0, 59))
+        hours_set   = set(parse_cron_field(parts[1], 0, 23))
+        mdays_set   = set(parse_cron_field(parts[2], 1, 31))
+        months_set  = set(parse_cron_field(parts[3], 1, 12))
+        wdays_set   = set(parse_cron_field(parts[4], 0, 6))
+    except (ValueError, IndexError):
+        return ""
+
+    dom_star = parts[2].strip() == "*"
+    dow_star = parts[4].strip() == "*"
+
+    # Start from next minute to avoid re-triggering this minute
+    candidate = datetime.now().replace(second=0, microsecond=0) + timedelta(minutes=1)
+
+    # Max search: 1 year of minutes
+    for _ in range(527040):
+        py_wd   = candidate.weekday()
+        cron_wd = (py_wd + 1) % 7
+
+        if dom_star and dow_star:
+            day_ok = True
+        elif dom_star:
+            day_ok = cron_wd in wdays_set
+        elif dow_star:
+            day_ok = candidate.day in mdays_set
+        else:
+            day_ok = (candidate.day in mdays_set) or (cron_wd in wdays_set)
+
+        if (candidate.minute in minutes_set
+                and candidate.hour in hours_set
+                and day_ok
+                and candidate.month in months_set):
+            return candidate.isoformat(timespec="seconds")
+
+        candidate += timedelta(minutes=1)
     return ""
 
 
+def refresh_next_runs(items):
+    global execute_missed_schedules
+    changed = False
+    now = datetime.now()
+    for s in items:
+        if s.get("enabled") and not s.get("archived", False):
+            cron = s.get("cron", "")
+            if cron:
+                next_run_str = s.get("nextRunAt", "")
+                should_recalc = False
+                should_trigger_missed = False
+                if not next_run_str:
+                    should_recalc = True
+                else:
+                    try:
+                        clean_next = next_run_str
+                        if clean_next.endswith("Z"):
+                            clean_next = clean_next[:-1]
+                        if "." in clean_next:
+                            clean_next = clean_next.split(".")[0]
+                        next_dt = datetime.fromisoformat(clean_next)
+                        if next_dt < now - timedelta(seconds=5):
+                            if execute_missed_schedules:
+                                should_trigger_missed = True
+                            else:
+                                should_recalc = True
+                    except Exception:
+                        should_recalc = True
+                
+                if should_trigger_missed:
+                    old_next = s.get("nextRunAt", "")
+                    s["triggerNow"] = True
+                    s["nextRunAt"] = next_run_iso(cron)
+                    log.info(f"[{s.get('name', 'Unnamed')}] Missed run detected! Executing missed schedule (old run: {old_next}, next scheduled: {s['nextRunAt']})")
+                    changed = True
+                elif should_recalc:
+                    old_next = s.get("nextRunAt", "")
+                    s["nextRunAt"] = next_run_iso(cron)
+                    log.info(f"[{s.get('name', 'Unnamed')}] Recalculated next run time from {old_next} to {s['nextRunAt']} (past run bypassed)")
+                    changed = True
+    return changed
+
+
+def _schedules_file_changed() -> bool:
+    """Return True if schedules.json has been modified since we last loaded it."""
+    global _schedules_mtime
+    try:
+        mtime = os.path.getmtime(SCHEDULES_FILE)
+        if mtime != _schedules_mtime:
+            _schedules_mtime = mtime
+            return True
+    except OSError:
+        pass
+    return False
+
+
 def main():
-    global schedules, reload_requested, history
+    global schedules, reload_requested, history, _schedules_mtime
 
     log.info("KDE AI Chat Scheduler daemon starting up")
     ensure_dirs()
     write_lock()
 
     schedules = load_schedules()
+    # Record mtime immediately after loading so we don't double-reload on startup
+    try:
+        _schedules_mtime = os.path.getmtime(SCHEDULES_FILE)
+    except OSError:
+        pass
 
-    # Pre-calculate nextRunAt for any schedule missing it
-    for s in schedules:
-        if s.get("enabled") and not s.get("nextRunAt"):
-            cron = s.get("cron", "")
-            if cron:
-                s["nextRunAt"] = next_run_iso(cron)
-    save_schedules(schedules)
+    if refresh_next_runs(schedules):
+        save_schedules(schedules)
+        try:
+            _schedules_mtime = os.path.getmtime(SCHEDULES_FILE)
+        except OSError:
+            pass
 
     log.info(f"Tick interval: {TICK_SECONDS}s — monitoring {len(schedules)} schedule(s)")
 
     while True:
-        if reload_requested:
+        # Reload when explicitly signalled (SIGHUP) OR when the file changed on disk
+        if reload_requested or _schedules_file_changed():
             reload_requested = False
             schedules = load_schedules()
+            if refresh_next_runs(schedules):
+                save_schedules(schedules)
+                try:
+                    _schedules_mtime = os.path.getmtime(SCHEDULES_FILE)
+                except OSError:
+                    pass
             log.info(f"Schedules reloaded — {len(schedules)} schedule(s) active")
 
         now = datetime.now()
@@ -364,25 +466,6 @@ def main():
             trigger_now = s.get("triggerNow", False)
             task_type = s.get("taskType", "repeat")
 
-            # Missed execution catch-up detection (backfill)
-            is_missed = False
-            next_run_str = s.get("nextRunAt", "")
-            if next_run_str and not trigger_now:
-                try:
-                    clean_next = next_run_str
-                    if clean_next.endswith("Z"):
-                        clean_next = clean_next[:-1]
-                    if "." in clean_next:
-                        clean_next = clean_next.split(".")[0]
-                    next_dt = datetime.fromisoformat(clean_next)
-                    
-                    # Trigger immediately if scheduled run is in the past by at least 1 minute
-                    if next_dt < now - timedelta(minutes=1):
-                        is_missed = True
-                        log.info(f"[{s.get('name', 'Unnamed')}] Missed execution detected (scheduled: {next_run_str}, now: {now_iso}). Catching up now!")
-                except Exception as ex:
-                    log.debug(f"Failed to parse nextRunAt '{next_run_str}': {ex}")
-
             # Start date filter
             start_passed = is_start_date_passed(s, now)
             if not start_passed and not trigger_now:
@@ -397,7 +480,7 @@ def main():
                     changed = True
                     continue
 
-            should_run = trigger_now or is_missed
+            should_run = trigger_now
             if not should_run:
                 if task_type == "single":
                     should_run = not s.get("lastRunAt")
@@ -411,7 +494,7 @@ def main():
 
             if should_run:
                 status = run_schedule(s)
-                
+
                 # Append to history
                 try:
                     entry = {
@@ -422,7 +505,7 @@ def main():
                         "chatName": s.get("chatName", "Chat"),
                         "message": s.get("message", ""),
                         "timestamp": now_iso,
-                        "status": "success (missed execution catch-up)" if (is_missed and (not status or status == "success")) else (status or "success")
+                        "status": status or "success"
                     }
                     history.append(entry)
                     if len(history) > 100:
@@ -444,9 +527,10 @@ def main():
                 if not disable_task and cron:
                     next_iso = next_run_iso(cron)
 
-                schedules = update_schedule_timestamps(schedules, sid, now_iso,
-                                                       status or "success", next_iso)
-                
+                schedules = update_schedule_timestamps(
+                    schedules, sid, now_iso, status or "success", next_iso
+                )
+
                 # Disable task in state list if done
                 if disable_task:
                     for item in schedules:
@@ -458,6 +542,11 @@ def main():
 
         if changed:
             save_schedules(schedules)
+            # Update mtime so we don't self-reload our own write
+            try:
+                _schedules_mtime = os.path.getmtime(SCHEDULES_FILE)
+            except OSError:
+                pass
 
         time.sleep(TICK_SECONDS)
 

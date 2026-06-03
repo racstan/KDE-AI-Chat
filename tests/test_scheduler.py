@@ -152,3 +152,46 @@ class TestIsStartDatePassed:
     def test_start_date_with_microseconds(self):
         s = {"startDate": "2026-01-01T00:00:00.123456"}
         assert is_start_date_passed(s, datetime(2026, 6, 2)) is True
+
+
+class TestRefreshNextRuns:
+    def test_refresh_missing_next_run(self):
+        s = [{"enabled": True, "cron": "0 9 * * *", "id": "1"}]
+        changed = sched.refresh_next_runs(s)
+        assert changed is True
+        assert s[0]["nextRunAt"] != ""
+
+    def test_refresh_past_next_run(self):
+        s = [{"enabled": True, "cron": "0 9 * * *", "id": "1", "nextRunAt": "2026-01-01T09:00:00"}]
+        changed = sched.refresh_next_runs(s)
+        assert changed is True
+        assert s[0]["nextRunAt"] != "2026-01-01T09:00:00"
+        assert s[0]["nextRunAt"] != ""
+
+    def test_refresh_future_next_run(self):
+        s = [{"enabled": True, "cron": "0 9 * * *", "id": "1", "nextRunAt": "2099-01-01T09:00:00"}]
+        changed = sched.refresh_next_runs(s)
+        assert changed is False
+        assert s[0]["nextRunAt"] == "2099-01-01T09:00:00"
+
+    def test_refresh_disabled_past_next_run(self):
+        s = [{"enabled": False, "cron": "0 9 * * *", "id": "1", "nextRunAt": "2026-01-01T09:00:00"}]
+        changed = sched.refresh_next_runs(s)
+        assert changed is False
+        assert s[0]["nextRunAt"] == "2026-01-01T09:00:00"
+
+    def test_refresh_past_next_run_execute_missed_false(self):
+        sched.execute_missed_schedules = False
+        s = [{"enabled": True, "cron": "0 9 * * *", "id": "1", "nextRunAt": "2026-01-01T09:00:00"}]
+        changed = sched.refresh_next_runs(s)
+        assert changed is True
+        assert s[0]["nextRunAt"] != "2026-01-01T09:00:00"
+        assert not s[0].get("triggerNow")
+
+    def test_refresh_past_next_run_execute_missed_true(self):
+        sched.execute_missed_schedules = True
+        s = [{"enabled": True, "cron": "0 9 * * *", "id": "1", "nextRunAt": "2026-01-01T09:00:00"}]
+        changed = sched.refresh_next_runs(s)
+        assert changed is True
+        assert s[0]["nextRunAt"] != "2026-01-01T09:00:00"
+        assert s[0].get("triggerNow") is True

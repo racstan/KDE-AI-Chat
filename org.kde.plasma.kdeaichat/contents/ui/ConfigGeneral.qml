@@ -102,6 +102,7 @@ KCM.SimpleKCM {
     property alias cfg_customHistoryPath: customHistoryPathField.text
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
+    property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
     property string keyringStatus: ""
@@ -113,6 +114,7 @@ KCM.SimpleKCM {
     property var schedulerArchivedList: []
     property var schedulerHistory: []
     property string schedulerStatus: ""
+    property bool schedSaving: false
     readonly property string schedulerDataPath: {
         var home = Qt.resolvedUrl("~").toString().replace("file://", "");
         if (home === "~")
@@ -836,11 +838,6 @@ KCM.SimpleKCM {
             openCodeProviderCandidates = ids;
             openCodeProviderModelMap = modelsByProvider;
             if (ids.length === 0) {
-                openCodeModelCandidates = [];
-                openCodeModelSearch = "";
-                updateFilteredOpenCodeModels("");
-                setOpenCodeProviderValue("");
-                setOpenCodeModelValue("");
                 discoveryStatus = "OpenCode server is reachable, but it returned no configured providers.";
                 return ;
             }
@@ -853,14 +850,6 @@ KCM.SimpleKCM {
             syncOpenCodeProviderSelection(selectedProvider, rememberedModel || fallbackModel);
             discoveryStatus = "OpenCode server reachable. Loaded " + ids.length + " providers from /config/providers.";
         }, function(err) {
-            openCodeProviderCandidates = [];
-            openCodeProviderModelMap = ({
-            });
-            openCodeModelCandidates = [];
-            openCodeModelSearch = "";
-            updateFilteredOpenCodeModels("");
-            setOpenCodeProviderValue("");
-            setOpenCodeModelValue("");
             discoveryStatus = "OpenCode server check failed: " + err;
         });
     }
@@ -1185,7 +1174,18 @@ KCM.SimpleKCM {
     }
 
     function clearKeysFromDisk() {
-        var py = "import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()";
+        var py = [
+            "import configparser",
+            "config = configparser.ConfigParser()",
+            "config.optionxform = str",
+            "config.read('/home/home/.config/kdeaichatrc')",
+            "if 'General' in config:",
+            "    for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']:",
+            "        config['General'].pop(k, None)",
+            "f = open('/home/home/.config/kdeaichatrc', 'w')",
+            "config.write(f)",
+            "f.close()"
+        ].join("\n");
         var b64Py = base64Encode(py);
         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
         utilityDs.connectSource(cmd + " #plainconfig-clear");
@@ -1396,6 +1396,7 @@ KCM.SimpleKCM {
     }
 
     function schedSaveAll() {
+        page.schedSaving = true;
         var all = [];
         // Add active
         for (var i = 0; i < page.schedulerList.length; i++) {
@@ -1412,7 +1413,10 @@ KCM.SimpleKCM {
         var payload = {
             "version": 1,
             "schedules": all,
-            "history": page.schedulerHistory
+            "history": page.schedulerHistory,
+            "settings": {
+                "executeMissedSchedules": !!executeMissedSchedulesToggle.checked
+            }
         };
         var b64 = base64Encode(JSON.stringify(payload));
         var py = "import base64,json,os; d=base64.b64decode('" + b64 + "'); " +
@@ -1540,6 +1544,17 @@ KCM.SimpleKCM {
         else if (plasmoid.configuration.keyStorageMode === 0)
             clearAllApiKeyFields();
         if (openCodeToggle.checked) {
+            var savedProvider = openCodeProviderValueField.text || "";
+            var savedModel = openCodeModelValueField.text || "";
+            if (savedProvider) {
+                openCodeProviderCandidates = [savedProvider];
+                if (savedModel) {
+                    var mmap = {};
+                    mmap[savedProvider] = [savedModel];
+                    openCodeProviderModelMap = mmap;
+                    openCodeModelCandidates = [savedModel];
+                }
+            }
             if (plasmoid.configuration.autoStartOpenCodeServer)
                 checkAndAutoStartOpenCodeServer();
             else
@@ -1801,9 +1816,8 @@ KCM.SimpleKCM {
                     }
                 }
             } else if (sourceName.indexOf("sched-save") >= 0) {
+                page.schedSaving = false;
                 page.schedulerStatus = "Schedules saved.";
-                // hot-reload daemon
-                utilityDs.connectSource("sh -lc 'pkill -HUP -f kde-ai-scheduler.py; echo ok' #sched-hup2");
             } else {
                 discoveryStatus = out !== "" ? out : (err !== "" ? err : "Command finished.");
             }
@@ -2473,13 +2487,7 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: translate("Check server")
-                    enabled: !openCodeBusy
-                    onClicked: probeOpenCodeProviders(openCodeUrlField.text)
-                }
-
-                QQC2.Button {
-                    text: translate("Refresh")
+                    text: translate("Check / Refresh")
                     enabled: !openCodeBusy
                     onClicked: refreshOpenCodeDiscovery()
                 }
@@ -4127,6 +4135,24 @@ KCM.SimpleKCM {
                 }
             }
 
+            QQC2.Switch {
+                id: executeMissedSchedulesToggle
+
+                Kirigami.FormData.label: translate("Missed schedules:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: translate("Execute missed schedules")
+                checked: false
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: translate("When the PC is turned off and then it restarts, if any schedule was missed in that period, should it execute one after another? (Highly not recommended)")
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
+            }
+
             // Master ON/OFF switch
             QQC2.Switch {
                 id: schedulerMasterSwitch
@@ -4298,11 +4324,12 @@ KCM.SimpleKCM {
             }
 
 
-            // Background poll timer
+            // Background poll timer — only checks daemon running status.
+            // Schedule list sync is handled by schedulerPollTimer in main.qml.
             Timer {
                 id: schedPollTimer
 
-                interval: 3000
+                interval: 30000
                 repeat: true
                 running: schedulerMasterSwitch.checked
                 onTriggered: {
