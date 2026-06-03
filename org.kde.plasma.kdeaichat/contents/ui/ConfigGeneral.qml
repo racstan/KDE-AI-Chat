@@ -1777,10 +1777,16 @@ KCM.SimpleKCM {
 
             } else if (sourceName.indexOf("sched-poll-") >= 0) {
                 page.schedulerDaemonRunning = (out === "SCHED_RUNNING");
+                if (!page.schedulerDaemonRunning && page.schedulerStatus === "Restarting…")
+                    page.schedulerStatus = "Stopped";
             } else if (sourceName.indexOf("sched-start") >= 0) {
                 page.schedulerStatus = ""; // badge shows state, no separate text needed
+                // Re-poll immediately to confirm daemon is up
+                Qt.callLater(pollSchedulerState);
             } else if (sourceName.indexOf("sched-stop") >= 0) {
-                page.schedulerStatus = "";
+                page.schedulerDaemonRunning = false;
+                page.schedulerStatus = "Stopped";
+                Qt.callLater(pollSchedulerState);
             } else if (sourceName.indexOf("sched-hup") >= 0) {
                 page.schedulerStatus = "Schedules reloaded (SIGHUP sent).";
             } else if (sourceName.indexOf("sched-enable") >= 0) {
@@ -4167,12 +4173,12 @@ KCM.SimpleKCM {
 
                     if (checked) {
                         page.schedulerStatus = "Starting…";
-                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start");
+                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " + "echo SCHED_START_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start-" + Date.now());
                     } else {
-                        page.schedulerStatus = "";
-                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null || " + "pkill -f kde-ai-scheduler.py; echo SCHED_STOP_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop");
+                        page.schedulerStatus = "Stopping…";
+                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop-" + Date.now());
                     }
                     schedPollTimer.restart();
                     // Immediately trigger a poll check to reflect the start/stop actions
@@ -4197,12 +4203,24 @@ KCM.SimpleKCM {
 
                 QQC2.Button {
                     text: page.schedulerDaemonRunning ? translate("Restart") : translate("Force Start")
-                    icon.name: "view-refresh"
+                    icon.name: page.schedulerDaemonRunning ? "view-refresh" : "media-playback-start"
                     onClicked: {
-                        page.schedulerStatus = "Restarting…";
+                        page.schedulerStatus = page.schedulerDaemonRunning ? "Restarting…" : "Starting…";
                         page.schedulerDaemonRunning = false;
                         var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-start");
+                        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-start-" + Date.now());
+                        schedPollTimer.restart();
+                    }
+                }
+
+                QQC2.Button {
+                    text: translate("Stop")
+                    icon.name: "media-playback-stop"
+                    visible: page.schedulerDaemonRunning || page.schedulerStatus !== ""
+                    onClicked: {
+                        page.schedulerStatus = "Stopping…";
+                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
+                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop-" + Date.now());
                         schedPollTimer.restart();
                     }
                 }

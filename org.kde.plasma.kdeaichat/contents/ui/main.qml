@@ -438,10 +438,10 @@ PlasmoidItem {
         if (customDir !== "") {
             var fullPath = getHistoryFilePath(customDir);
             var b64Str = base64Encode(jsonStr);
-            var py = "import base64, os; path=os.path.expanduser('" + fullPath.replace(/'/g, "\\'") + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()";
+            var py = "import base64, os; path=os.path.expanduser('" + fullPath.replace(/'/g, "\\'") + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close(); print('OK')";
             var b64Py = base64Encode(py);
             var writeCmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
-            customStorageDs.connectSource(writeCmd);
+            customStorageDs.connectSource(writeCmd + " #custom-history-write-" + Date.now());
         }
     }
 
@@ -3728,7 +3728,7 @@ PlasmoidItem {
             var fullPath = getHistoryFilePath(customDir);
             var escapedPath = fullPath.replace(/'/g, "'\\''");
             var readCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\"";
-            customStorageDs.connectSource(readCmd);
+            customStorageDs.connectSource(readCmd + " #custom-history-read-" + Date.now());
         } else {
             loadSessions();
         }
@@ -4016,7 +4016,7 @@ PlasmoidItem {
         onNewData: function(sourceName, data) {
             var exitCode = data["exit code"];
             var stdout = data["stdout"] || "";
-            if (sourceName.indexOf("open(path, 'rb').read()") !== -1) {
+            if (sourceName.indexOf("#custom-history-read-") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
                         var jsonStr = Qt.atob(stdout.trim());
