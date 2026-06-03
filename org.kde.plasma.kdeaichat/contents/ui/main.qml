@@ -176,6 +176,8 @@ PlasmoidItem {
             "archived": false,
             "source": originalSession.source || "provider",
             "openCodeSessionId": originalSession.openCodeSessionId || "",
+            "parentSessionId": originalSession.value,
+            "parentSessionTitle": originalSession.text || "Original Chat",
             "readCount": forkedMessages.length,
             "messages": forkedMessages
         };
@@ -4963,7 +4965,16 @@ PlasmoidItem {
                     spacing: 0
 
                     PC3.Label {
-                        text: root.historyOnlyMode ? ((plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History") : root.translate(root.currentSessionTitle || "New Chat")
+                        text: {
+                            if (root.historyOnlyMode) {
+                                return (plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History";
+                            }
+                            var t = root.translate(root.currentSessionTitle || "New Chat");
+                            if (t.indexOf("[FK] ") === 0) {
+                                t = t.substring(5);
+                            }
+                            return t;
+                        }
                         font.bold: true
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
@@ -5175,6 +5186,73 @@ PlasmoidItem {
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: Kirigami.Units.smallSpacing
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            visible: {
+                                var idx = sessionIndexById(root.currentSessionId);
+                                return idx >= 0 && root.sessions[idx].parentSessionId !== undefined && root.sessions[idx].parentSessionId !== "";
+                            }
+                            Layout.leftMargin: Kirigami.Units.smallSpacing
+                            Layout.rightMargin: Kirigami.Units.smallSpacing
+                            Layout.topMargin: Kirigami.Units.smallSpacing
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: Math.max(32, parentLinkText.implicitHeight + Kirigami.Units.smallSpacing * 3)
+                                color: Qt.rgba(0.48, 0.2, 0.92, 0.08)
+                                border.color: Qt.rgba(0.48, 0.2, 0.92, 0.25)
+                                border.width: 1
+                                radius: 6
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: Kirigami.Units.mediumSpacing
+                                    anchors.rightMargin: Kirigami.Units.mediumSpacing
+                                    spacing: Kirigami.Units.smallSpacing
+
+                                    Kirigami.Icon {
+                                        source: "fork"
+                                        implicitWidth: Kirigami.Units.iconSizes.small
+                                        implicitHeight: Kirigami.Units.iconSizes.small
+                                    }
+
+                                    PC3.Label {
+                                        id: parentLinkText
+                                        Layout.fillWidth: true
+                                        text: {
+                                            var idx = sessionIndexById(root.currentSessionId);
+                                            if (idx < 0) return "";
+                                            var parentTitle = root.sessions[idx].parentSessionTitle || "Original Chat";
+                                            if (parentTitle.indexOf("[FK] ") === 0) {
+                                                parentTitle = parentTitle.substring(5);
+                                            }
+                                            return "Forked from: <b>" + parentTitle + "</b>";
+                                        }
+                                        textFormat: Text.RichText
+                                        elide: Text.ElideRight
+                                    }
+
+                                    PC3.Button {
+                                        text: "Go to Original Chat"
+                                        icon.name: "go-jump"
+                                        onClicked: {
+                                            var idx = sessionIndexById(root.currentSessionId);
+                                            if (idx >= 0) {
+                                                var parentId = root.sessions[idx].parentSessionId;
+                                                if (sessionIndexById(parentId) >= 0) {
+                                                    root.switchSession(parentId);
+                                                    root.historyOnlyMode = false;
+                                                } else {
+                                                    root.appendSystemMessage("⚠️ The original chat no longer exists.");
+                                                  }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         Rectangle {
                             Layout.fillWidth: true
@@ -6614,7 +6692,13 @@ PlasmoidItem {
                                         id: sessionTitleLabel
                                         visible: root.editingSessionId !== modelData.value
                                         width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
-                                        text: root.translate(modelData.text || "New Chat")
+                                        text: {
+                                            var t = root.translate(modelData.text || "New Chat");
+                                            if (t.indexOf("[FK] ") === 0) {
+                                                t = t.substring(5);
+                                            }
+                                            return t;
+                                        }
                                         font.bold: modelData.value === root.currentSessionId
                                         color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
                                         elide: Text.ElideRight
