@@ -278,23 +278,17 @@ def is_start_date_passed(s, now):
     try:
         clean_str = start_date_str
         if clean_str.endswith("Z"):
-            clean_str = clean_str[:-1]
-        if "." in clean_str:
-            clean_str = clean_str.split(".")[0]
-        parts = clean_str.split("T")
-        if len(parts) != 2:
-            parts = clean_str.split(" ")
-        if len(parts) == 2:
-            dt_part = parts[0]
-            tm_part = parts[1]
-            dp = dt_part.split("-")
-            tp = tm_part.split(":")
-            year = int(dp[0])
-            month = int(dp[1])
-            day = int(dp[2])
-            hour = int(tp[0])
-            minute = int(tp[1])
-            start_dt = datetime(year, month, day, hour, minute)
+            clean_str = clean_str[:-1] + "+00:00"
+        
+        # Parse ISO format string with timezone offset (e.g. +00:00)
+        start_dt = datetime.fromisoformat(clean_str)
+        if start_dt.tzinfo is not None:
+            # Timezone-aware comparison
+            from datetime import timezone
+            now_utc = datetime.now(timezone.utc)
+            return now_utc >= start_dt
+        else:
+            # Naive comparison fallback
             return now >= start_dt
     except Exception as e:
         log.warning("Error parsing startDate '%s': %s", start_date_str, e)

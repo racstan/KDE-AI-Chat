@@ -816,10 +816,8 @@ import org.kde.plasma.plasma5support as P5Support
                                 Layout.fillWidth: true
                                 model: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(function(x) { return translate(x); })
                                 currentIndex: scheduleDialog.getStartMonth(scheduleDialog.draft.startDate)
-                                onCurrentIndexChanged: {
-                                    if (activeFocus)
-                                        scheduleDialog.setStartDateField("month", currentIndex);
-
+                                onActivated: {
+                                    scheduleDialog.setStartDateField("month", index);
                                 }
                             }
 
@@ -829,10 +827,8 @@ import org.kde.plasma.plasma5support as P5Support
                                 from: 1
                                 to: 31
                                 value: scheduleDialog.getStartDay(scheduleDialog.draft.startDate)
-                                onValueChanged: {
-                                    if (activeFocus)
-                                        scheduleDialog.setStartDateField("day", value);
-
+                                onValueModified: {
+                                    scheduleDialog.setStartDateField("day", value);
                                 }
                             }
 
@@ -842,10 +838,8 @@ import org.kde.plasma.plasma5support as P5Support
                                 from: 2026
                                 to: 2035
                                 value: scheduleDialog.getStartYear(scheduleDialog.draft.startDate)
-                                onValueChanged: {
-                                    if (activeFocus)
-                                        scheduleDialog.setStartDateField("year", value);
-
+                                onValueModified: {
+                                    scheduleDialog.setStartDateField("year", value);
                                 }
                             }
 
@@ -874,10 +868,8 @@ import org.kde.plasma.plasma5support as P5Support
                                 textFromValue: function(v) {
                                     return (v < 10 ? "0" : "") + v;
                                 }
-                                onValueChanged: {
-                                    if (activeFocus)
-                                        scheduleDialog.setStartDateField("hour", value);
-
+                                onValueModified: {
+                                    scheduleDialog.setStartDateField("hour", value);
                                 }
                             }
 
@@ -894,10 +886,8 @@ import org.kde.plasma.plasma5support as P5Support
                                 textFromValue: function(v) {
                                     return (v < 10 ? "0" : "") + v;
                                 }
-                                onValueChanged: {
-                                    if (activeFocus)
-                                        scheduleDialog.setStartDateField("minute", value);
-
+                                onValueModified: {
+                                    scheduleDialog.setStartDateField("minute", value);
                                 }
                             }
 
@@ -1027,10 +1017,9 @@ import org.kde.plasma.plasma5support as P5Support
                                 textFromValue: function(v) {
                                     return (v < 10 ? "0" : "") + v;
                                 }
-                                onValueChanged: {
+                                onValueModified: {
                                     var m = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0;
-                                    scheduleDialog.draft = Object.assign({
-                                    }, scheduleDialog.draft, {
+                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {
                                         "schedTime": (value < 10 ? "0" : "") + value + ":" + (m < 10 ? "0" : "") + m
                                     });
                                 }
@@ -1050,10 +1039,9 @@ import org.kde.plasma.plasma5support as P5Support
                                 textFromValue: function(v) {
                                     return (v < 10 ? "0" : "") + v;
                                 }
-                                onValueChanged: {
+                                onValueModified: {
                                     var h = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9;
-                                    scheduleDialog.draft = Object.assign({
-                                    }, scheduleDialog.draft, {
+                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {
                                         "schedTime": (h < 10 ? "0" : "") + h + ":" + (value < 10 ? "0" : "") + value
                                     });
                                 }

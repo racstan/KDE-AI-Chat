@@ -6,6 +6,68 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ---
 
+## 🚀 Cool & Important Features
+
+### 🔄 Multi-Provider Hub & Searchable Models
+*   **21 Providers Supported**: OpenAI, Anthropic (Claude), Groq, DeepSeek, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LiteLLM Proxy, Qwen, Moonshot, MiMo, Maritaca, MiniMax, Fireworks AI, LM Studio, Local (OpenAI-compatible), and Ollama.
+*   **Dynamic Model Discovery**: Auto-populates available models directly from each provider's API endpoint. Includes a real-time searchable combobox for instant model switching.
+
+### ⏰ Native AI Scheduler (systemd Daemon)
+*   **Cron-Scheduled Tasks**: A zero-dependency Python 3 daemon (`kde-ai-scheduler.py`) runs independently via a systemd user service. Supports standard 5-field cron expressions with step values (`*/5`), ranges, and named weekdays.
+*   **Start / Stop / Reload Lifecycle Controls**:
+    *   **Master ON/OFF Switch**: Starts (registers with systemd) and completely stops the daemon processes.
+    *   **Restart / Force Start Button**: If the daemon is active, acts as a quick restart trigger. If the daemon has crashed or was stopped externally, it forces the systemd daemon to bootstrap.
+*   **Full CRUD Manager**: Dedicated settings section with live daemon status (green/red pill), presets, and a robust CRUD dialog to configure custom prompts, providers, models, system overrides, and execution logs.
+*   **Notifications & Alerts**: Displays KDE system notifications and plays custom audio chimes upon task execution or critical diagnostic failures.
+*   **Slash Command Integration**: Type `/schedule` directly in any chat to view or manage active automated prompt schedules.
+
+### 🧠 Extremely Low Memory Footprint
+*   **Total RAM Usage: ~50-85 MB**:
+    *   **QML/Plasma Widget**: ~40-70 MB (depending on Plasma caching).
+    *   **Python Daemon**: ~10-15 MB.
+    *   This is a fraction of the weight of Electron-based apps or open browser tabs, making it ideal to keep pinned to your panel all day!
+
+### 🔑 3-Way API Key Storage
+*   **Session Only**: Stores keys strictly in-memory (discarded when the widget closes).
+*   **Plain Config**: Persists keys inside local configurations (`~/.config/kdeaichatrc`).
+*   **Secure KWallet (DBus Encrypted)**: Integrates natively with KDE Wallet (`qdbus6 org.kde.kwalletd6`) for fully encrypted, secure key storage. Includes inline buttons to open the config directory or launch KWallet Manager directly.
+
+### 🌐 Internationalization (i18n) & RTL Mirroring
+*   **10 Languages**: Full localization support for English, Arabic, Chinese, French, German, Hindi, Italian, Japanese, Portuguese, Russian, and Spanish.
+*   **Right-To-Left (RTL)**: Automatic layout mirroring and directional alignment for Arabic and other RTL language environments.
+
+### 📎 Drag-and-Drop File Attachments
+*   Drop or paste files (Images, PDFs, CSVs, Word documents, text) directly into the prompt bar. Uses system CLI helpers like `pdftotext` and `pandoc` to parse documents off-thread. Supports attachment-only prompts.
+
+---
+
+## ✨ New Features (v1.3.0)
+
+### 🌳 Conversation Forking
+*   **Branch Chats Instantly**: Split your active conversation into a new chat at any message with a single click.
+*   **FK Badge & git-branch Icon**: A `git-branch` button appears on every message bubble. Forked conversations are created with a custom `fork-XXXXXX` ID, automatically prefixed with `[FK]`, and marked with a distinct purple `FK` badge in the history pane.
+
+### 👁️ Unread Message Tracking (Background Execution)
+*   **Non-Interruptive Scheduled Executions**: Scheduled messages are now executed entirely in the background without stealing active chat window focus or disrupting your workflow.
+*   **Sidebar Counts**: Every chat session tracks read vs. total messages. Unread message counts are highlighted as badges in the sidebar (capped at `99+`), making it easy to identify threads with new responses. Reading/opening the chat immediately resets the count.
+
+### 🗄️ Custom Chat History Path & Migration
+*   **Flexible Storage**: Enter any custom absolute path in settings to store your conversation history (rather than the default Plasma desktop config).
+*   **Auto-Migration**: Changing the storage directory automatically migrates all existing history and sessions to the new location in the background without any data loss.
+
+---
+
+## 🧪 Beta & Experimental Features
+
+### 🔌 OpenCode Developer Bridge (Beta)
+*   **Interactive Workspace Link**: Toggle OpenCode bridge mode to establish a local connection with your OpenCode execution engine. Renders interactive choice buttons, inline terminal/code block previews, and compilation feedback directly in chat bubbles.
+*   **MCP Skills**: Execute agentic commands, web searches, and local shell actions natively driven by developer-focused models (e.g. `deepseek-coder`).
+
+### 🧠 User Memory Injection (Beta)
+*   **Persistent AI Memory**: Save key context, facts, or development preferences in the settings panel. The widget dynamically injects this user profile into the system prompt of every message across all sessions.
+
+---
+
 ### 📸 Showcase & Feature Walkthrough
 
 #### 🖼️ Screenshot Gallery & Walkthrough
@@ -30,58 +92,6 @@ See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential vid
 *   [Part 3: Document & File Attachments](https://github.com/user-attachments/assets/8b93e6da-b40b-46f9-88f8-18be440bb6af) - Demonstration of prompt-less and multi-format file attachment parsing with drag-and-drop.
 *   [Part 4: OpenCode Developer Bridge](https://github.com/user-attachments/assets/c9a62f2b-240d-40ea-b785-e118f43c9780) - Connecting the local OpenCode execution bridge to render structured choice buttons, code previews, and token usage diagnostics.
 *   [Part 5: Settings Customizations & Chat Export](https://github.com/user-attachments/assets/3c65c3e9-b96d-482c-a471-9c54c5abc9fb) - Tinkering with config canvas scaling, custom system prompts, audio chimes, and exporting threads to Markdown or text.
-
----
-
-## 🚀 Cool & Important Features
-
-### 🔄 Multi-Provider Hub & Searchable Models
-*   **21 Providers Supported**: OpenAI, Anthropic (Claude), Groq, DeepSeek, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LiteLLM Proxy, Qwen, Moonshot, MiMo, Maritaca, MiniMax, Fireworks AI, LM Studio, Local (OpenAI-compatible), and Ollama.
-*   **Dynamic Model Discovery**: Auto-populates available models directly from each provider's API endpoint. Includes a real-time searchable combobox for instant model switching.
-
-### ⏰ Native AI Scheduler (systemd Daemon)
-*   **Cron-Scheduled Tasks**: A zero-dependency Python 3 daemon (`kde-ai-scheduler.py`) runs independently via a systemd user service. Supports standard 5-field cron expressions with step values (`*/5`), ranges, and named weekdays.
-*   **Full CRUD Manager**: Dedicated settings section with live daemon status (green/red pill), Start/Stop/Reload controls, 6 presets, and a robust CRUD dialog to configure custom prompts, providers, models, system overrides, and execution logs.
-*   **Notifications & Alerts**: Displays KDE system notifications and plays custom audio chimes upon task execution or critical diagnostic failures.
-*   **Slash Command Integration**: Type `/schedule` directly in any chat to view or manage active automated prompt schedules.
-
-### 🔑 3-Way API Key Storage
-*   **Session Only**: Stores keys strictly in-memory (discarded when the widget closes).
-*   **Plain Config**: Persists keys inside local configurations (`~/.config/kdeaichatrc`).
-*   **Secure KWallet (DBus Encrypted)**: Integrates natively with KDE Wallet (`qdbus6 org.kde.kwalletd6`) for fully encrypted, secure key storage. Includes inline buttons to open the config directory or launch KWallet Manager directly.
-
-### 🌐 Internationalization (i18n) & RTL Mirroring
-*   **10 Languages**: Full localization support for English, Arabic, Chinese, French, German, Hindi, Italian, Japanese, Portuguese, Russian, and Spanish.
-*   **Right-To-Left (RTL)**: Automatic layout mirroring and directional alignment for Arabic and other RTL language environments.
-
-### 📎 Drag-and-Drop File Attachments
-*   Drop or paste files (Images, PDFs, CSVs, Word documents, text) directly into the prompt bar. Uses system CLI helpers like `pdftotext` and `pandoc` to parse documents off-thread. Supports attachment-only prompts.
-
----
-
-## ✨ New Features (v1.3.0)
-
-### 🌳 Conversation Forking
-*   **Branch Chats Instantly**: Split your active conversation into a new chat at any message with a single click.
-*   **FK Badge & git-branch Icon**: A `git-branch` button appears on every message bubble. Forked conversations are created with a custom `fork-XXXXXX` ID, automatically prefixed with `[FK]`, and marked with a distinct purple `FK` badge in the history pane.
-
-### 👁️ Unread Message Tracking
-*   **Sidebar Counts**: Every chat session tracks read vs. total messages. Unread message counts are highlighted as badges in the sidebar (capped at `99+`), making it easy to identify threads with new responses. Reading/opening the chat immediately resets the count.
-
-### 🗄️ Custom Chat History Path & Migration
-*   **Flexible Storage**: Enter any custom absolute path in settings to store your conversation history (rather than the default Plasma desktop config).
-*   **Auto-Migration**: Changing the storage directory automatically migrates all existing history and sessions to the new location in the background without any data loss.
-
----
-
-## 🧪 Beta & Experimental Features
-
-### 🔌 OpenCode Developer Bridge (Beta)
-*   **Interactive Workspace Link**: Toggle OpenCode bridge mode to establish a local connection with your OpenCode execution engine. Renders interactive choice buttons, inline terminal/code block previews, and compilation feedback directly in chat bubbles.
-*   **MCP Skills**: Execute agentic commands, web searches, and local shell actions natively driven by developer-focused models (e.g. `deepseek-coder`).
-
-### 🧠 User Memory Injection (Beta)
-*   **Persistent AI Memory**: Save key context, facts, or development preferences in the settings panel. The widget dynamically injects this user profile into the system prompt of every message across all sessions.
 
 ---
 

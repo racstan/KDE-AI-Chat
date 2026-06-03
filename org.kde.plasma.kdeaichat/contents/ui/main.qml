@@ -252,7 +252,8 @@ PlasmoidItem {
             return ;
         }
         if (chatId !== root.currentSessionId) {
-            switchSession(chatId);
+            executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
+            return ;
         }
 
         // Play the custom scheduled execution sound
@@ -2345,6 +2346,398 @@ PlasmoidItem {
             }
         }
         return arr;
+    }
+
+    function buildOpenAICompatPayloadForMessages(messagesList) {
+        var sys = buildEffectiveSystemPrompt();
+        var arr = [{
+            "role": "system",
+            "content": sys
+        }];
+        for (var i = 0; i < messagesList.length; i++) {
+            var m = messagesList[i];
+            if (m.role === "user" || m.role === "assistant") {
+                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
+                    var payloadContent = buildMessageContent(m.content, m.attachments, "openai");
+                    arr.push({
+                        "role": m.role,
+                        "content": payloadContent
+                    });
+                } else {
+                    arr.push({
+                        "role": m.role,
+                        "content": m.content
+                    });
+                }
+            }
+        }
+        return arr;
+    }
+
+    function buildAnthropicPayloadForMessages(messagesList) {
+        var arr = [];
+        for (var i = 0; i < messagesList.length; i++) {
+            var m = messagesList[i];
+            if (m.role === "user" || m.role === "assistant") {
+                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
+                    var payloadContent = buildMessageContent(m.content, m.attachments, "anthropic");
+                    arr.push({
+                        "role": m.role,
+                        "content": payloadContent
+                    });
+                } else {
+                    arr.push({
+                        "role": m.role,
+                        "content": m.content
+                    });
+                }
+            }
+        }
+        return arr;
+    }
+
+    function appendMessageToSession(chatId, msgObj) {
+        var idx = sessionIndexById(chatId);
+        if (idx < 0)
+            return ;
+
+        var updated = root.sessions.slice();
+        var s = Object.assign({}, updated[idx]);
+        
+        var msgs = (s.messages || []).slice();
+        msgs.push(msgObj);
+        s.messages = msgs;
+        s.updatedAt = Date.now();
+        
+        if (chatId === root.currentSessionId) {
+            root.messages = msgs;
+            if (root.expanded && !root.historyOnlyMode) {
+                s.readCount = msgs.length;
+            }
+        }
+        
+        updated[idx] = s;
+        root.sessions = updated;
+        
+        sortSessionsByUpdated();
+        persistSessions();
+    }
+
+    function handleBackgroundError(chatId, errorMsg, notify, schedId, schedName) {
+        var errTs = Date.now();
+        var errMsgObj = {
+            "role": "assistant",
+            "content": "⚠️ Schedule failed: " + errorMsg,
+            "time": nowTime(errTs),
+            "at": errTs,
+            "model": ""
+        };
+        appendMessageToSession(chatId, errMsgObj);
+        
+        if (notify) {
+            var escapedErr = errorMsg.replace(/'/g, "'\\''");
+            var errTitle = "Schedule Failed: " + (schedName || "Chat");
+            var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-notify-err");
+        }
+        
+        if (schedId) {
+            var historyPy = [
+                "import json, os",
+                "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
+                "if os.path.exists(p):",
+                "  try:",
+                "    data = json.load(open(p))",
+                "    history = data.setdefault('history', [])",
+                "    for entry in reversed(history):",
+                "      if entry.get('scheduleId') == '" + schedId + "':",
+                "        entry['status'] = '" + errorMsg.replace(/'/g, "\\'") + "'",
+                "        break",
+                "    json.dump(data, open(p, 'w'), indent=2)",
+                "  except Exception: pass"
+            ].join("\n");
+            var b64History = base64Encode(historyPy);
+            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64History + "').decode('utf-8'))\"";
+            soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
+        }
+    }
+
+    function doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
+        var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
+        var xhr = new XMLHttpRequest();
+        var errorHandled = false;
+        
+        var targetIdx = sessionIndexById(chatId);
+        if (targetIdx < 0) return;
+        
+        var targetSession = root.sessions[targetIdx];
+        var messagesList = targetSession.messages || [];
+
+        try {
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            if (apiKey !== "") {
+                xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+            }
+            if (extraHeaders) {
+                for (var headerName in extraHeaders) {
+                    if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
+                        xhr.setRequestHeader(headerName, extraHeaders[headerName]);
+                }
+            }
+            xhr.timeout = 60000;
+            xhr.ontimeout = function() {
+                if (errorHandled) return;
+                errorHandled = true;
+                handleBackgroundError(chatId, "Request timed out after 60 seconds.", notify, schedId, schedName);
+            };
+        } catch (setupError) {
+            handleBackgroundError(chatId, "Failed to start request: " + setupError, notify, schedId, schedName);
+            return;
+        }
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return;
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+                if (errorHandled) return;
+                errorHandled = true;
+                var err = "Request to " + url + " failed";
+                if (xhr.status) err += " (HTTP " + xhr.status + ")";
+                try {
+                    var eobj = JSON.parse(xhr.responseText);
+                    if (eobj.error) {
+                        if (typeof eobj.error === "string") {
+                            err += " | " + eobj.error;
+                        } else {
+                            if (eobj.error.message)
+                                err = "API Error (" + xhr.status + "): " + eobj.error.message;
+                        }
+                    } else if (eobj.detail) {
+                        err += " | " + eobj.detail;
+                    } else if (eobj.message) {
+                        err += " | " + eobj.message;
+                    }
+                } catch (e2) {}
+                handleBackgroundError(chatId, err, notify, schedId, schedName);
+                return;
+            }
+
+            try {
+                var parsed = JSON.parse(xhr.responseText);
+                var finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
+                if (finalText !== "") {
+                    var doneTs = Date.now();
+                    var msgObj = {
+                        "role": "assistant",
+                        "content": finalText,
+                        "time": nowTime(doneTs),
+                        "at": doneTs,
+                        "model": modelLabel || model || ""
+                    };
+                    if (parsed.usage) {
+                        msgObj.tokens = {
+                            "input": parsed.usage.prompt_tokens || 0,
+                            "output": parsed.usage.completion_tokens || 0
+                        };
+                    }
+                    
+                    appendMessageToSession(chatId, msgObj);
+                    
+                    if (chatId === root.currentSessionId) {
+                        if (!root.userScrolledUp)
+                            Qt.callLater(scrollToBottom);
+                    }
+                    
+                    triggerNotificationSound();
+                    
+                    if (notify) {
+                        var escapedText = finalText.substring(0, 150).replace(/'/g, "'\\''") + (finalText.length > 150 ? "…" : "");
+                        var title = (schedName || "Scheduled message response ready");
+                        var escapedTitle = title.replace(/'/g, "'\\''");
+                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify-resp");
+                    }
+                } else {
+                    handleBackgroundError(chatId, "The model returned an empty response.", notify, schedId, schedName);
+                }
+            } catch (parseError) {
+                handleBackgroundError(chatId, "Failed to parse response: " + parseError, notify, schedId, schedName);
+            }
+        };
+
+        xhr.onerror = function() {
+            if (errorHandled) return;
+            errorHandled = true;
+            handleBackgroundError(chatId, "Could not reach " + url + ". Check network connectivity.", notify, schedId, schedName);
+        };
+
+        try {
+            xhr.send(JSON.stringify({
+                "model": model,
+                "messages": buildOpenAICompatPayloadForMessages(messagesList),
+                "stream": false
+            }));
+        } catch (sendError) {
+            handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, schedId, schedName);
+        }
+    }
+
+    function doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName) {
+        var xhr = new XMLHttpRequest();
+        var errorHandled = false;
+        
+        var targetIdx = sessionIndexById(chatId);
+        if (targetIdx < 0) return;
+        
+        var targetSession = root.sessions[targetIdx];
+        var messagesList = targetSession.messages || [];
+
+        try {
+            xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.setRequestHeader("x-api-key", apiKey);
+            xhr.setRequestHeader("anthropic-version", "2023-06-01");
+            xhr.timeout = 60000;
+            xhr.ontimeout = function() {
+                if (errorHandled) return;
+                errorHandled = true;
+                handleBackgroundError(chatId, "Request timed out after 60 seconds.", notify, schedId, schedName);
+            };
+        } catch (setupError) {
+            handleBackgroundError(chatId, "Failed to start request: " + setupError, notify, schedId, schedName);
+            return;
+        }
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return;
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var obj = JSON.parse(xhr.responseText);
+                    var text = "";
+                    if (obj.content && obj.content.length) {
+                        for (var i = 0; i < obj.content.length; i++) {
+                            if (obj.content[i].type === "text")
+                                text += obj.content[i].text;
+                        }
+                    }
+                    var ts = Date.now();
+                    var msgObj = {
+                        "role": "assistant",
+                        "content": text || "(empty response)",
+                        "time": nowTime(ts),
+                        "at": ts,
+                        "model": model || ""
+                    };
+                    if (obj.usage) {
+                        msgObj.tokens = {
+                            "input": obj.usage.input_tokens || 0,
+                            "output": obj.usage.output_tokens || 0
+                        };
+                    }
+
+                    appendMessageToSession(chatId, msgObj);
+
+                    if (chatId === root.currentSessionId) {
+                        if (!root.userScrolledUp)
+                            Qt.callLater(scrollToBottom);
+                    }
+                    
+                    triggerNotificationSound();
+
+                    if (notify) {
+                        var escapedText = (text || "").substring(0, 150).replace(/'/g, "'\\''") + ((text || "").length > 150 ? "…" : "");
+                        var title = (schedName || "Scheduled message response ready");
+                        var escapedTitle = title.replace(/'/g, "'\\''");
+                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify-resp");
+                    }
+                } catch (e) {
+                    handleBackgroundError(chatId, "Failed to parse Anthropic response", notify, schedId, schedName);
+                }
+            } else {
+                if (errorHandled) return;
+                errorHandled = true;
+                var err = "Anthropic HTTP " + xhr.status;
+                try {
+                    var eobj = JSON.parse(xhr.responseText);
+                    if (eobj.error) {
+                        if (typeof eobj.error === "string") {
+                            err += " | " + eobj.error;
+                        } else {
+                            if (eobj.error.message)
+                                err = "Anthropic Error (" + xhr.status + "): " + eobj.error.message;
+                            if (eobj.error.type)
+                                err = "[" + eobj.error.type + "] " + err;
+                        }
+                    }
+                } catch (e2) {}
+                handleBackgroundError(chatId, err, notify, schedId, schedName);
+            }
+        };
+
+        xhr.onerror = function() {
+            if (errorHandled) return;
+            errorHandled = true;
+            handleBackgroundError(chatId, "Could not reach Anthropic API. Check network status.", notify, schedId, schedName);
+        };
+
+        try {
+            xhr.send(JSON.stringify({
+                "model": model,
+                "max_tokens": 1024,
+                "system": buildEffectiveSystemPrompt(),
+                "messages": buildAnthropicPayloadForMessages(messagesList)
+            }));
+        } catch (sendError) {
+            handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, schedId, schedName);
+        }
+    }
+
+    function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
+        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " +
+                       "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " +
+                       "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " +
+                       "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " +
+                       "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " +
+                       "canberra-gtk-play -i service-login";
+        soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
+
+        var validationError = validateCurrentSendTarget();
+        if (validationError !== "") {
+            handleBackgroundError(chatId, validationError, notify, schedId, schedName);
+            return;
+        }
+
+        var userTs = Date.now();
+        var userMsgObj = {
+            "role": "user",
+            "content": messageText,
+            "time": nowTime(userTs),
+            "at": userTs,
+            "model": "",
+            "attachments": [],
+            "sc": true
+        };
+        appendMessageToSession(chatId, userMsgObj);
+
+        if (notify) {
+            var escapedText = messageText.substring(0, 150).replace(/'/g, "'\\''") + (messageText.length > 150 ? "…" : "");
+            var sIdx = sessionIndexById(chatId);
+            var sTitle = (sIdx >= 0 && root.sessions[sIdx].title) ? root.sessions[sIdx].title : "Chat";
+            var title = "Scheduled: " + sTitle;
+            var escapedTitle = title.replace(/'/g, "'\\''");
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify");
+        }
+
+        var provider = plasmoid.configuration.provider || "openai";
+        var providerCfg = getProviderConfig(provider);
+        if (providerCfg.type === "anthropic") {
+            doBackgroundAnthropicRequest(chatId, providerCfg.apiKey, providerCfg.model, messageText, notify, schedId, schedName);
+        } else {
+            doBackgroundOpenAICompatRequest(chatId, providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model, providerCfg.headers, providerCfg.model, messageText, notify, schedId, schedName);
+        }
     }
 
     function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
