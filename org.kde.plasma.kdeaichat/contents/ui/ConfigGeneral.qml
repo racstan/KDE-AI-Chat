@@ -4147,7 +4147,8 @@ KCM.SimpleKCM {
             QQC2.Label {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("When the PC is turned off and then it restarts, if any schedule was missed in that period, should it execute one after another? (Highly not recommended)")
+                textFormat: Text.RichText
+                text: translate("When the PC is turned off and then it restarts, if any schedule was missed in that period, should it execute one after another? <font color=\"#ff4444\"><b>(Highly not recommended)</b></font>")
                 wrapMode: Text.Wrap
                 opacity: 0.7
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
@@ -4269,59 +4270,7 @@ KCM.SimpleKCM {
 
             }
 
-            // Quick preview of schedules (compact, clean)
-            Repeater {
-                model: page.schedulerList.slice(0, 4)
-
-                RowLayout {
-                    visible: schedulerMasterSwitch.checked
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: formLayout.fieldMaxWidth
-                    spacing: Kirigami.Units.smallSpacing
-
-                    Rectangle {
-                        width: 8
-                        height: 8
-                        radius: 4
-                        color: modelData.enabled ? "#22b14c" : "#888"
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-
-                        QQC2.Label {
-                            text: modelData.name || modelData.humanReadable || modelData.cron || translate("Unnamed")
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                            font.pixelSize: 12
-                            opacity: modelData.enabled ? 1 : 0.5
-                        }
-
-                        QQC2.Label {
-                            text: modelData.humanReadable || modelData.cron || ""
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                            font.pixelSize: 10
-                            opacity: 0.5
-                            visible: !!(modelData.humanReadable || modelData.cron)
-                        }
-
-                    }
-
-                }
-
-            }
-
-            QQC2.Label {
-                visible: schedulerMasterSwitch.checked && page.schedulerList.length > 4
-                text: translate("... and %1 more — open Manage Schedules to see all.").arg(page.schedulerList.length - 4)
-                font.pixelSize: 11
-                opacity: 0.55
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-            }
+            // Quick preview removed as per request - schedules are listed only in Manage Schedules dialog
 
 
             // Background poll timer — only checks daemon running status.
