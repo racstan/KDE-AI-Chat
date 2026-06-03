@@ -108,6 +108,11 @@ KCM.SimpleKCM {
     property string keyringStatus: ""
     property string discoveryStatus: ""
     property string storageExportStatus: ""
+    // ── Memory Usage ───────────────────────────────────────────────────────
+    property bool memRefreshing: false
+    property int memPlasma: 0
+    property int memScheduler: 0
+    property int memOpenCode: 0
     // ── Scheduler ──────────────────────────────────────────────────────────
     property bool schedulerDaemonRunning: false
     property string schedulerDataDir: ""
@@ -1793,6 +1798,16 @@ KCM.SimpleKCM {
             } else if (sourceName.indexOf("storage-export-") >= 0) {
                 page.storageExportStatus = (out.trim() === "OK" || err === "") ? "✓ Exported!" : "Export failed";
                 exportStatusTimer.restart();
+            } else if (sourceName.indexOf("mem-usage-") >= 0) {
+                page.memRefreshing = false;
+                try {
+                    var memData = JSON.parse(out.trim());
+                    page.memPlasma = memData.plasmashell || 0;
+                    page.memScheduler = memData.scheduler || 0;
+                    page.memOpenCode = memData.opencode || 0;
+                } catch(e) {
+                    console.warn("Failed to parse memory data:", e);
+                }
             } else if (sourceName.indexOf("sched-enable") >= 0) {
                 page.schedulerStatus = out.indexOf("SCHED_ENABLE_OK") >= 0 ? "Auto-start updated." : (err || out);
             } else if (sourceName.indexOf("sched-auto-setup") >= 0) {
@@ -4312,6 +4327,124 @@ KCM.SimpleKCM {
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: translate("Other settings")
+            }
+
+            // ── Memory Usage (Beta) ───────────────────────────────────────────────
+            RowLayout {
+                Kirigami.FormData.label: translate("Memory Usage (beta):")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.Button {
+                    id: memRefreshBtn
+                    text: page.memRefreshing ? "Refreshing…" : "Refresh"
+                    icon.name: "view-refresh"
+                    enabled: !page.memRefreshing
+                    onClicked: {
+                        page.memRefreshing = true;
+                        var py = [
+                            "import subprocess, json",
+                            "def mem_kb(pattern):",
+                            "    r = subprocess.run(['pgrep', '-f', pattern], capture_output=True, text=True)",
+                            "    pids = r.stdout.strip().split()",
+                            "    total = 0",
+                            "    for pid in pids:",
+                            "        try:",
+                            "            with open(f'/proc/{pid}/status') as f:",
+                            "                for line in f:",
+                            "                    if line.startswith('VmRSS:'):",
+                            "                        total += int(line.split()[1])",
+                            "        except: pass",
+                            "    return total",
+                            "d = {",
+                            "  'plasmashell': mem_kb('plasmashell'),",
+                            "  'scheduler': mem_kb('kde-ai-scheduler'),",
+                            "  'opencode': mem_kb('opencode')",
+                            "}",
+                            "print(json.dumps(d))"
+                        ].join("\n");
+                        var b64Py = Qt.btoa(py);
+                        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+                        utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
+                    }
+                }
+            }
+
+            // Memory breakdown grid
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                visible: page.memPlasma > 0 || page.memScheduler > 0 || page.memOpenCode > 0
+                implicitHeight: memGrid.implicitHeight + Kirigami.Units.gridUnit
+                radius: 6
+                color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+                border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+                border.width: 1
+
+                GridLayout {
+                    id: memGrid
+                    anchors { left: parent.left; right: parent.right; top: parent.top }
+                    anchors.margins: Kirigami.Units.gridUnit * 0.6
+                    columns: 2
+                    columnSpacing: Kirigami.Units.gridUnit
+                    rowSpacing: Kirigami.Units.smallSpacing
+
+                    // Plasmashell row
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon { source: "plasma"; implicitWidth: 16; implicitHeight: 16 }
+                        QQC2.Label { text: "Plasma Widget"; font.bold: true }
+                    }
+                    QQC2.Label {
+                        text: page.memPlasma > 0 ? (page.memPlasma / 1024).toFixed(1) + " MB" : "—"
+                        color: page.memPlasma > 200000 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.positiveTextColor
+                        font.bold: true
+                    }
+
+                    // Scheduler row
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon { source: "appointment-new"; implicitWidth: 16; implicitHeight: 16 }
+                        QQC2.Label { text: "Scheduler Daemon" }
+                    }
+                    QQC2.Label {
+                        text: page.memScheduler > 0 ? (page.memScheduler / 1024).toFixed(1) + " MB" : "Not running"
+                        color: page.memScheduler > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                        font.bold: page.memScheduler > 0
+                    }
+
+                    // OpenCode row
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon { source: "utilities-terminal"; implicitWidth: 16; implicitHeight: 16 }
+                        QQC2.Label { text: "OpenCode" }
+                    }
+                    QQC2.Label {
+                        text: page.memOpenCode > 0 ? (page.memOpenCode / 1024).toFixed(1) + " MB" : "Not running"
+                        color: page.memOpenCode > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                        font.bold: page.memOpenCode > 0
+                    }
+
+                    // Total row
+                    QQC2.Label { text: "Total"; font.bold: true }
+                    QQC2.Label {
+                        property int total: page.memPlasma + page.memScheduler + page.memOpenCode
+                        text: total > 0 ? (total / 1024).toFixed(1) + " MB" : "—"
+                        font.bold: true
+                        color: Kirigami.Theme.highlightColor
+                    }
+                }
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
+                text: "⚡ <b>Beta.</b> Shows live RAM (RSS) for each component. Plasmashell figure includes the entire shell process, not only this widget."
+                textFormat: Text.RichText
             }
 
             RowLayout {
