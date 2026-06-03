@@ -18,6 +18,7 @@ PlasmoidItem {
 
     property var sessions: []
     property string currentSessionId: ""
+    property string activeHistoryPath: ""
     property string currentSessionTitle: ""
     property var messages: []
     property var attachedFiles: []
@@ -291,19 +292,65 @@ PlasmoidItem {
         }
     }
 
+    function getHistoryFilePath(customDir) {
+        var dir = (customDir || "").trim();
+        if (dir === "")
+            return "";
+        var fullPath = dir;
+        if (!fullPath.endsWith(".json")) {
+            if (fullPath.endsWith("/"))
+                fullPath += "kdeaichat_history.json";
+            else
+                fullPath += "/kdeaichat_history.json";
+        }
+        return fullPath;
+    }
+
+    function migrateHistory(oldPath, newPath) {
+        var oldFullPath = getHistoryFilePath(oldPath);
+        var newFullPath = getHistoryFilePath(newPath);
+
+        var py = [
+            "import os, shutil, base64, json",
+            "old_p = os.path.expanduser('" + oldFullPath.replace(/'/g, "\\'") + "') if '" + oldFullPath + "' else ''",
+            "new_p = os.path.expanduser('" + newFullPath.replace(/'/g, "\\'") + "') if '" + newFullPath + "' else ''",
+            "res = {'status': 'ok', 'action': 'none'}",
+            "try:",
+            "  if not new_p:",
+            "    if old_p and os.path.exists(old_p):",
+            "      res['action'] = 'load'",
+            "      res['content'] = base64.b64encode(open(old_p, 'rb').read()).decode('utf-8')",
+            "  else:",
+            "    if os.path.exists(new_p):",
+            "      res['action'] = 'load'",
+            "      res['content'] = base64.b64encode(open(new_p, 'rb').read()).decode('utf-8')",
+            "    else:",
+            "      if old_p and os.path.exists(old_p):",
+            "        folder = os.path.dirname(new_p)",
+            "        if folder:",
+            "          os.makedirs(folder, exist_ok=True)",
+            "        shutil.copy2(old_p, new_p)",
+            "        res['action'] = 'copied'",
+            "      else:",
+            "        res['action'] = 'write_current'",
+            "except Exception as e:",
+            "  res['status'] = 'error'",
+            "  res['message'] = str(e)",
+            "print(base64.b64encode(json.dumps(res).encode('utf-8')).decode('utf-8'))"
+        ].join("\n");
+
+        var b64Py = base64Encode(py);
+        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+        customStorageDs.connectSource(cmd + " #migrate-history-" + Date.now());
+    }
+
     function persistSessions() {
         var jsonStr = JSON.stringify(root.sessions);
         plasmoid.configuration.chatSessionsJson = jsonStr;
         plasmoid.configuration.lastSessionId = root.currentSessionId;
         var customDir = (plasmoid.configuration.customHistoryPath || "").trim();
         if (customDir !== "") {
-            var fullPath = customDir;
-            if (!fullPath.endsWith(".json")) {
-                if (fullPath.endsWith("/"))
-                    fullPath += "kdeaichat_history.json";
-                else
-                    fullPath += "/kdeaichat_history.json";
-            }
+            var fullPath = getHistoryFilePath(customDir);
             var b64Str = base64Encode(jsonStr);
             var py = "import base64, os; path=os.path.expanduser('" + fullPath.replace(/'/g, "\\'") + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()";
             var b64Py = base64Encode(py);
@@ -3189,14 +3236,9 @@ PlasmoidItem {
             loadKWalletKeysIfNeeded();
 
         var customDir = (plasmoid.configuration.customHistoryPath || "").trim();
+        root.activeHistoryPath = customDir;
         if (customDir !== "") {
-            var fullPath = customDir;
-            if (!fullPath.endsWith(".json")) {
-                if (fullPath.endsWith("/"))
-                    fullPath += "kdeaichat_history.json";
-                else
-                    fullPath += "/kdeaichat_history.json";
-            }
+            var fullPath = getHistoryFilePath(customDir);
             var escapedPath = fullPath.replace(/'/g, "'\\''");
             var readCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\"";
             customStorageDs.connectSource(readCmd);
@@ -3233,6 +3275,14 @@ PlasmoidItem {
                 root.kwalletKeysLoaded = false;
                 root.kwalletOpenAttempts = 0;
                 loadKWalletKeysIfNeeded();
+            }
+        }
+
+        function onCustomHistoryPathChanged() {
+            var newPath = (plasmoid.configuration.customHistoryPath || "").trim();
+            if (newPath !== root.activeHistoryPath) {
+                migrateHistory(root.activeHistoryPath, newPath);
+                root.activeHistoryPath = newPath;
             }
         }
 
@@ -3515,6 +3565,41 @@ PlasmoidItem {
                     persistSessions();
                 } else {
                     loadSessions();
+                }
+            } else if (sourceName.indexOf("#migrate-history") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    try {
+                        var jsonRaw = Qt.atob(stdout.trim());
+                        var res = JSON.parse(jsonRaw);
+                        if (res.status === "ok") {
+                            if (res.action === "load" && res.content) {
+                                var arrVal = JSON.parse(Qt.atob(res.content));
+                                if (Array.isArray(arrVal)) {
+                                    root.sessions = arrVal;
+                                    root.sessions = parseSessions();
+                                    if (root.sessions.length === 0)
+                                        createSession(true);
+
+                                    var pref = plasmoid.configuration.lastSessionId || "";
+                                    var idxVal = sessionIndexById(pref);
+                                    if (idxVal < 0) idxVal = 0;
+                                    root.currentSessionId = root.sessions[idxVal].value;
+                                    root.currentSessionTitle = root.sessions[idxVal].text;
+                                    root.messages = root.sessions[idxVal].messages || [];
+                                    if (root.sessions[idxVal])
+                                        root.openCodeMode = (root.sessions[idxVal].source === "opencode");
+                                    sortSessionsByUpdated();
+                                    persistSessions();
+                                }
+                            } else if (res.action === "write_current" || res.action === "copied") {
+                                persistSessions();
+                            }
+                        } else {
+                            console.warn("Migration failed: " + res.message);
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse migration output: " + e);
+                    }
                 }
             }
             disconnectSource(sourceName);
