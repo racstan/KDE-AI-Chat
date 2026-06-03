@@ -45,6 +45,29 @@ PlasmoidItem {
     property var schedulesList: []
     property bool schedPolling: false
     property var plasmoidRef: plasmoid
+    property string configCustomHistoryPath: plasmoid.configuration.customHistoryPath || ""
+    property bool configUseOpenCode: !!plasmoid.configuration.useOpenCode
+    property int configKeyStorageMode: plasmoid.configuration.keyStorageMode || 0
+    onConfigCustomHistoryPathChanged: {
+        var newPath = configCustomHistoryPath.trim();
+        if (newPath !== root.activeHistoryPath) {
+            migrateHistory(root.activeHistoryPath, newPath);
+            root.activeHistoryPath = newPath;
+        }
+    }
+    onConfigUseOpenCodeChanged: {
+        if (root.messages.length === 0) {
+            root.openCodeMode = configUseOpenCode;
+            setCurrentSessionSource(root.openCodeMode ? "opencode" : "provider");
+        }
+    }
+    onConfigKeyStorageModeChanged: {
+        if (configKeyStorageMode === 2) {
+            root.kwalletKeysLoaded = false;
+            root.kwalletOpenAttempts = 0;
+            loadKWalletKeysIfNeeded();
+        }
+    }
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
@@ -378,10 +401,26 @@ PlasmoidItem {
         }
     }
 
+    function base64Decode(str) {
+        try {
+            return decodeURIComponent(escape(Qt.atob(str)));
+        } catch (e) {
+            console.log("base64Decode error:", e);
+            try {
+                return Qt.atob(str);
+            } catch (err) {
+                return "";
+            }
+        }
+    }
+
     function getHistoryFilePath(customDir) {
         var dir = (customDir || "").trim();
         if (dir === "")
             return "";
+        if (dir.indexOf("file://") === 0) {
+            dir = decodeURIComponent(dir.slice(7));
+        }
         var fullPath = dir;
         if (!fullPath.endsWith(".json")) {
             if (fullPath.endsWith("/"))
@@ -3604,39 +3643,35 @@ PlasmoidItem {
         var isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown");
         var content = "";
         var sessionTitle = root.currentSessionTitle || "Untitled Session";
-        var now = new Date();
-        var dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString();
         if (isMarkdown) {
-            content += "# 💬 KDE AI Chat: " + sessionTitle + "\n";
-            content += "*Exported on " + dateStr + "*\n\n";
+            content += "# KDE AI Chat: " + sessionTitle + "\n";
+            content += "*Exported on " + root.formatDateTime(Date.now()) + "*\n\n";
             content += "---\n\n";
             for (var i = 0; i < root.messages.length; i++) {
                 var m = root.messages[i];
+                var dateStrMsg = m.at ? root.formatDateTime(m.at) : (m.time || "");
                 if (m.role === "user") {
-                    content += "<div align=\"right\">\n\n";
-                    content += "### 👤 **User** (" + (m.time || "") + ")\n";
+                    content += "### **User**\n";
+                    content += "*Sent on: " + dateStrMsg + "*\n\n";
                     content += m.content + "\n\n";
-                    content += "</div>\n\n";
                     content += "---\n\n";
                 } else if (m.role === "assistant") {
                     var modelName = m.model || plasmoid.configuration.model || "Assistant";
-                    content += "<div align=\"left\">\n\n";
-                    content += "### 🤖 **" + modelName + "** (" + (m.time || "") + ")\n";
+                    content += "### **" + modelName + "**\n";
+                    content += "*Sent on: " + dateStrMsg + "*\n\n";
                     content += m.content + "\n\n";
-                    content += "</div>\n\n";
                     content += "---\n\n";
                 } else if (m.role === "error") {
-                    content += "<div align=\"left\">\n\n";
-                    content += "### ❌ **System Error** (" + (m.time || "") + ")\n";
+                    content += "### **System Error**\n";
+                    content += "*Occurred on: " + dateStrMsg + "*\n\n";
                     content += "> " + m.content + "\n\n";
-                    content += "</div>\n\n";
                     content += "---\n\n";
                 }
             }
         } else {
             content += "==================================================\n";
-            content += "💬 KDE AI Chat: " + sessionTitle + "\n";
-            content += "Exported on: " + dateStr + "\n";
+            content += "KDE AI Chat: " + sessionTitle + "\n";
+            content += "Exported on: " + root.formatDateTime(Date.now()) + "\n";
             content += "==================================================\n\n";
             var rightAlignTxt = function rightAlignTxt(text, width) {
                 if (!width)
@@ -3658,18 +3693,19 @@ PlasmoidItem {
             };
             for (var i = 0; i < root.messages.length; i++) {
                 var m = root.messages[i];
+                var dateStrMsg = m.at ? root.formatDateTime(m.at) : (m.time || "");
                 if (m.role === "user") {
-                    var userHeader = "👤 User (" + (m.time || "") + "):";
+                    var userHeader = "User (" + dateStrMsg + "):";
                     content += " ".repeat(Math.max(0, 80 - userHeader.length)) + userHeader + "\n";
                     content += rightAlignTxt(m.content, 80) + "\n\n";
                     content += "--------------------------------------------------\n\n";
                 } else if (m.role === "assistant") {
                     var modelName = m.model || plasmoid.configuration.model || "Assistant";
-                    content += "🤖 " + modelName + " (" + (m.time || "") + "):\n";
+                    content += modelName + " (" + dateStrMsg + "):\n";
                     content += m.content + "\n\n";
                     content += "--------------------------------------------------\n\n";
                 } else if (m.role === "error") {
-                    content += "❌ System Error (" + (m.time || "") + "):\n";
+                    content += "System Error (" + dateStrMsg + "):\n";
                     content += "ERROR: " + m.content + "\n\n";
                     content += "--------------------------------------------------\n\n";
                 }
@@ -3762,32 +3798,7 @@ PlasmoidItem {
         checkAndMarkCurrentSessionAsRead();
     }
 
-    Connections {
-        function onUseOpenCodeChanged() {
-            if (root.messages.length === 0) {
-                root.openCodeMode = plasmoid.configuration.useOpenCode;
-                setCurrentSessionSource(root.openCodeMode ? "opencode" : "provider");
-            }
-        }
 
-        function onKeyStorageModeChanged() {
-            if (plasmoid.configuration.keyStorageMode === 2) {
-                root.kwalletKeysLoaded = false;
-                root.kwalletOpenAttempts = 0;
-                loadKWalletKeysIfNeeded();
-            }
-        }
-
-        function onCustomHistoryPathChanged() {
-            var newPath = (plasmoid.configuration.customHistoryPath || "").trim();
-            if (newPath !== root.activeHistoryPath) {
-                migrateHistory(root.activeHistoryPath, newPath);
-                root.activeHistoryPath = newPath;
-            }
-        }
-
-        target: plasmoid.configuration
-    }
 
     P5Support.DataSource {
         id: soundDs
@@ -4031,7 +4042,7 @@ PlasmoidItem {
             if (sourceName.indexOf("#custom-history-read-") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
-                        var jsonStr = Qt.atob(stdout.trim());
+                        var jsonStr = base64Decode(stdout.trim());
                         var arr = JSON.parse(jsonStr);
                         if (Array.isArray(arr)) {
                             root.sessions = parseSessions(arr);
@@ -4070,11 +4081,11 @@ PlasmoidItem {
             } else if (sourceName.indexOf("#migrate-history") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
-                        var jsonRaw = Qt.atob(stdout.trim());
+                        var jsonRaw = base64Decode(stdout.trim());
                         var res = JSON.parse(jsonRaw);
                         if (res.status === "ok") {
                             if (res.action === "load" && res.content) {
-                                var arrVal = JSON.parse(Qt.atob(res.content));
+                                var arrVal = JSON.parse(base64Decode(res.content));
                                 if (Array.isArray(arrVal)) {
                                     root.sessions = parseSessions(arrVal);
                                     if (root.sessions.length === 0)
@@ -4981,11 +4992,11 @@ PlasmoidItem {
                             if (root.historyOnlyMode) {
                                 return (plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History";
                             }
-                            var t = root.translate(root.currentSessionTitle || "New Chat");
-                            if (t.indexOf("[FK] ") === 0) {
-                                t = t.substring(5);
+                            var rawText = root.currentSessionTitle || "New Chat";
+                            if (rawText.indexOf("[FK] ") === 0) {
+                                rawText = rawText.substring(5);
                             }
-                            return t;
+                            return root.translate(rawText);
                         }
                         font.bold: true
                         horizontalAlignment: Text.AlignHCenter
@@ -5240,7 +5251,13 @@ PlasmoidItem {
                                             if (parentTitle.indexOf("[FK] ") === 0) {
                                                 parentTitle = parentTitle.substring(5);
                                             }
-                                            return "Forked from: <b>" + parentTitle + "</b>";
+                                            var parentId = root.sessions[idx].parentSessionId;
+                                            var exists = parentId && sessionIndexById(parentId) >= 0;
+                                            if (exists) {
+                                                return root.translate("Forked from:") + " <b>" + root.translate(parentTitle) + "</b>";
+                                            } else {
+                                                return root.translate("Forked from:") + " <b>" + root.translate(parentTitle) + "</b> <font color='gray'>(" + root.translate("deleted") + ")</font>";
+                                            }
                                         }
                                         textFormat: Text.RichText
                                         elide: Text.ElideRight
@@ -6589,6 +6606,19 @@ PlasmoidItem {
                                 onClicked: root.stopStreaming()
                             }
 
+                            PC3.Label {
+                                text: {
+                                    var chars = root.chatInputText.length;
+                                    var tokens = Math.ceil(chars / 4);
+                                    return chars + " " + root.translate("characters") + " | ~" + tokens + " " + root.translate("tokens");
+                                }
+                                font.pointSize: 8
+                                opacity: 0.5
+                                visible: root.chatInputText.length > 0
+                                Layout.alignment: Qt.AlignRight
+                                Layout.rightMargin: Kirigami.Units.gridUnit
+                            }
+
                         }
 
                     }
@@ -6705,11 +6735,11 @@ PlasmoidItem {
                                         visible: root.editingSessionId !== modelData.value
                                         width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
                                         text: {
-                                            var t = root.translate(modelData.text || "New Chat");
-                                            if (t.indexOf("[FK] ") === 0) {
-                                                t = t.substring(5);
+                                            var rawText = modelData.text || "New Chat";
+                                            if (rawText.indexOf("[FK] ") === 0) {
+                                                rawText = rawText.substring(5);
                                             }
-                                            return t;
+                                            return root.translate(rawText);
                                         }
                                         font.bold: modelData.value === root.currentSessionId
                                         color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor

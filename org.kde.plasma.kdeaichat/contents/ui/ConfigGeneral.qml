@@ -1782,7 +1782,7 @@ KCM.SimpleKCM {
                     keyringStatus = "Error saving to config file: " + err;
 
             } else if (sourceName.indexOf("sched-poll-") >= 0) {
-                page.schedulerDaemonRunning = (out === "SCHED_RUNNING");
+                page.schedulerDaemonRunning = (out.trim() === "SCHED_RUNNING");
                 if (!page.schedulerDaemonRunning && page.schedulerStatus === "Restarting…")
                     page.schedulerStatus = "Stopped";
             } else if (sourceName.indexOf("sched-start") >= 0) {
@@ -1874,7 +1874,7 @@ KCM.SimpleKCM {
             }
             readonly property string providerGuideText: {
                 if (openCodeToggle.checked)
-                    return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Local Coding Server)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
+                    return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Uses Opencode)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
 
                 var provider = providerBox.currentValue || "openai";
                 if (provider === "openai")
@@ -2243,7 +2243,7 @@ KCM.SimpleKCM {
 
                 Kirigami.FormData.label: translate("")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("OpenCode Mode (Local Coding Server)")
+                text: translate("OpenCode Mode (Uses Opencode)")
                 onClicked: {
                     if (checked)
                         normalModeToggle.checked = false;
@@ -4213,10 +4213,10 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: translate("Status:")
                 spacing: Kirigami.Units.smallSpacing
 
-                QQC2.Label {
+                 QQC2.Label {
                     id: schedDotLabel
-                    text: page.schedulerDaemonRunning ? translate("Active") : (page.schedulerStatus !== "" ? translate(page.schedulerStatus) : translate("Starting…"))
-                    color: page.schedulerDaemonRunning ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
+                    text: page.schedulerDaemonRunning ? translate("Active") : (page.schedulerStatus !== "" ? translate(page.schedulerStatus) : translate("Stopped"))
+                    color: page.schedulerDaemonRunning ? Kirigami.Theme.positiveTextColor : (page.schedulerStatus === "Starting…" || page.schedulerStatus === "Restarting…" ? Kirigami.Theme.textColor : Kirigami.Theme.neutralTextColor)
                     font.bold: true
                 }
 
@@ -4235,12 +4235,9 @@ KCM.SimpleKCM {
                 QQC2.Button {
                     text: translate("Stop")
                     icon.name: "media-playback-stop"
-                    visible: page.schedulerDaemonRunning || page.schedulerStatus !== ""
+                    visible: true
                     onClicked: {
-                        page.schedulerStatus = "Stopping…";
-                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop-" + Date.now());
-                        schedPollTimer.restart();
+                        schedulerMasterSwitch.checked = false;
                     }
                 }
 
@@ -4358,7 +4355,6 @@ KCM.SimpleKCM {
                             "        except: pass",
                             "    return total",
                             "d = {",
-                            "  'plasmashell': mem_kb('plasmashell'),",
                             "  'scheduler': mem_kb('kde-ai-scheduler'),",
                             "  'opencode': mem_kb('opencode')",
                             "}",
@@ -4375,7 +4371,7 @@ KCM.SimpleKCM {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                visible: page.memPlasma > 0 || page.memScheduler > 0 || page.memOpenCode > 0
+                visible: page.memScheduler > 0 || page.memOpenCode > 0
                 implicitHeight: memGrid.implicitHeight + Kirigami.Units.gridUnit
                 radius: 6
                 color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
@@ -4389,18 +4385,6 @@ KCM.SimpleKCM {
                     columns: 2
                     columnSpacing: Kirigami.Units.gridUnit
                     rowSpacing: Kirigami.Units.smallSpacing
-
-                    // Plasmashell row
-                    RowLayout {
-                        spacing: Kirigami.Units.smallSpacing
-                        Kirigami.Icon { source: "plasma"; implicitWidth: 16; implicitHeight: 16 }
-                        QQC2.Label { text: "Plasma Widget"; font.bold: true }
-                    }
-                    QQC2.Label {
-                        text: page.memPlasma > 0 ? (page.memPlasma / 1024).toFixed(1) + " MB" : "—"
-                        color: page.memPlasma > 200000 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.positiveTextColor
-                        font.bold: true
-                    }
 
                     // Scheduler row
                     RowLayout {
@@ -4429,7 +4413,7 @@ KCM.SimpleKCM {
                     // Total row
                     QQC2.Label { text: "Total"; font.bold: true }
                     QQC2.Label {
-                        property int total: page.memPlasma + page.memScheduler + page.memOpenCode
+                        property int total: page.memScheduler + page.memOpenCode
                         text: total > 0 ? (total / 1024).toFixed(1) + " MB" : "—"
                         font.bold: true
                         color: Kirigami.Theme.highlightColor
@@ -4443,7 +4427,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.7
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
-                text: "⚡ <b>Beta.</b> Shows live RAM (RSS) for each component. Plasmashell figure includes the entire shell process, not only this widget."
+                text: "⚡ <b>Beta.</b> Shows live RAM (RSS) for each background component."
                 textFormat: Text.RichText
             }
 
@@ -4560,6 +4544,9 @@ KCM.SimpleKCM {
                         text: {
                             var p = customHistoryPathField.text.trim();
                             if (p === "") return "";
+                            if (p.indexOf("file://") === 0) {
+                                p = decodeURIComponent(p.slice(7));
+                            }
                             var file = p.endsWith("/") ? p + "kdeaichat_history.json" : p + "/kdeaichat_history.json";
                             return "Chats will be saved to: <b>" + file + "</b><br/>" +
                                    "Your existing chats are <b>automatically exported</b> when you press Apply / OK.";
@@ -4584,10 +4571,13 @@ KCM.SimpleKCM {
                     onClicked: {
                         page.storageExportStatus = "Exporting…";
                         var dir = customHistoryPathField.text.trim();
+                        if (dir.indexOf("file://") === 0) {
+                            dir = decodeURIComponent(dir.slice(7));
+                        }
                         var file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
                         var jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
-                        // Base64-encode to avoid shell quoting issues
-                        var b64 = Qt.btoa(jsonStr);
+                        // Base64-encode to avoid shell quoting issues (properly handle Unicode)
+                        var b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
                         var cmd = "python3 -c \"import base64, os; path=os.path.expanduser('" +
                             file.replace(/'/g, "\\'") + "'); os.makedirs(os.path.dirname(path), exist_ok=True); " +
                             "open(path, 'w', encoding='utf-8').write(base64.b64decode('" + b64 + "').decode('utf-8')); print('OK')\"";
@@ -4602,7 +4592,10 @@ KCM.SimpleKCM {
                     visible: customHistoryPathField.text.trim() !== ""
                     onClicked: {
                         var dir = customHistoryPathField.text.trim();
-                        utilityDs.connectSource("xdg-open " + dir + " #open-storage-dir");
+                        if (dir.indexOf("file://") === 0) {
+                            dir = decodeURIComponent(dir.slice(7));
+                        }
+                        utilityDs.connectSource("xdg-open '" + dir.replace(/'/g, "'\\''") + "' #open-storage-dir");
                     }
                 }
 
