@@ -396,29 +396,41 @@ PlasmoidItem {
         var oldFullPath = getHistoryFilePath(oldPath);
         var newFullPath = getHistoryFilePath(newPath);
 
+        // When switching TO a custom path, always export current in-memory sessions
+        // to the new location, then fall back to copying the old file if it exists.
+        var currentJson = JSON.stringify(root.sessions);
+        var b64Current = base64Encode(currentJson);
+
         var py = [
             "import os, shutil, base64, json",
             "old_p = os.path.expanduser('" + oldFullPath.replace(/'/g, "\\'") + "') if '" + oldFullPath + "' else ''",
             "new_p = os.path.expanduser('" + newFullPath.replace(/'/g, "\\'") + "') if '" + newFullPath + "' else ''",
+            "current_b64 = '" + b64Current + "'",
             "res = {'status': 'ok', 'action': 'none'}",
             "try:",
             "  if not new_p:",
+            "    # Switching back to default — load from old custom path if it exists",
             "    if old_p and os.path.exists(old_p):",
             "      res['action'] = 'load'",
             "      res['content'] = base64.b64encode(open(old_p, 'rb').read()).decode('utf-8')",
             "  else:",
+            "    folder = os.path.dirname(new_p)",
+            "    if folder:",
+            "      os.makedirs(folder, exist_ok=True)",
             "    if os.path.exists(new_p):",
+            "      # Destination already has a file — load it (don't overwrite)",
             "      res['action'] = 'load'",
             "      res['content'] = base64.b64encode(open(new_p, 'rb').read()).decode('utf-8')",
+            "    elif old_p and os.path.exists(old_p):",
+            "      # Copy old custom path file to new path",
+            "      shutil.copy2(old_p, new_p)",
+            "      res['action'] = 'copied'",
             "    else:",
-            "      if old_p and os.path.exists(old_p):",
-            "        folder = os.path.dirname(new_p)",
-            "        if folder:",
-            "          os.makedirs(folder, exist_ok=True)",
-            "        shutil.copy2(old_p, new_p)",
-            "        res['action'] = 'copied'",
-            "      else:",
-            "        res['action'] = 'write_current'",
+            "      # No existing file — export current in-memory sessions",
+            "      data = base64.b64decode(current_b64).decode('utf-8')",
+            "      with open(new_p, 'w', encoding='utf-8') as f:",
+            "        f.write(data)",
+            "      res['action'] = 'exported'",
             "except Exception as e:",
             "  res['status'] = 'error'",
             "  res['message'] = str(e)",
@@ -4080,7 +4092,7 @@ PlasmoidItem {
                                     checkAndMarkCurrentSessionAsRead();
                                     persistSessions();
                                 }
-                            } else if (res.action === "write_current" || res.action === "copied") {
+                            } else if (res.action === "write_current" || res.action === "copied" || res.action === "exported") {
                                 persistSessions();
                             }
                         } else {

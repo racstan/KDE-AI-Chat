@@ -107,6 +107,7 @@ KCM.SimpleKCM {
     property string cfg_preselectedChatName: ""
     property string keyringStatus: ""
     property string discoveryStatus: ""
+    property string storageExportStatus: ""
     // ── Scheduler ──────────────────────────────────────────────────────────
     property bool schedulerDaemonRunning: false
     property string schedulerDataDir: ""
@@ -1789,6 +1790,9 @@ KCM.SimpleKCM {
                 Qt.callLater(pollSchedulerState);
             } else if (sourceName.indexOf("sched-hup") >= 0) {
                 page.schedulerStatus = "Schedules reloaded (SIGHUP sent).";
+            } else if (sourceName.indexOf("storage-export-") >= 0) {
+                page.storageExportStatus = (out.trim() === "OK" || err === "") ? "✓ Exported!" : "Export failed";
+                exportStatusTimer.restart();
             } else if (sourceName.indexOf("sched-enable") >= 0) {
                 page.schedulerStatus = out.indexOf("SCHED_ENABLE_OK") >= 0 ? "Auto-start updated." : (err || out);
             } else if (sourceName.indexOf("sched-auto-setup") >= 0) {
@@ -4366,33 +4370,137 @@ KCM.SimpleKCM {
                 }
             }
 
+            // ── Chat Storage Path ─────────────────────────────────────────────────
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: translate("Chat Storage")
+            }
+
             RowLayout {
-                Kirigami.FormData.label: translate("Chat storage path (beta):")
+                Kirigami.FormData.label: translate("Save chats to:")
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.smallSpacing
 
                 QQC2.TextField {
                     id: customHistoryPathField
-
                     Layout.fillWidth: true
-                    placeholderText: "~/.config"
+                    placeholderText: "Default (~/.config)"
                 }
 
                 QQC2.Button {
-                    text: "Browse..."
+                    text: "Browse…"
                     icon.name: "folder-open"
                     onClicked: folderDialog.open()
                 }
 
             }
 
+            // Status / info bar
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                visible: customHistoryPathField.text.trim() !== ""
+                implicitHeight: storageInfoRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+                radius: 5
+                color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2)
+                border.width: 1
+
+                RowLayout {
+                    id: storageInfoRow
+                    anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
+                    anchors.margins: Kirigami.Units.smallSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Icon {
+                        source: "folder-sync"
+                        implicitWidth: Kirigami.Units.iconSizes.small
+                        implicitHeight: Kirigami.Units.iconSizes.small
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
+                        text: {
+                            var p = customHistoryPathField.text.trim();
+                            if (p === "") return "";
+                            var file = p.endsWith("/") ? p + "kdeaichat_history.json" : p + "/kdeaichat_history.json";
+                            return "Chats will be saved to: <b>" + file + "</b><br/>" +
+                                   "Your existing chats are <b>automatically exported</b> when you press Apply / OK.";
+                        }
+                        textFormat: Text.RichText
+                    }
+                }
+            }
+
+            // Buttons row: Export Now + Open folder
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                visible: customHistoryPathField.text.trim() !== ""
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.Button {
+                    id: exportNowBtn
+                    text: page.storageExportStatus !== "" ? page.storageExportStatus : "Export Now"
+                    icon.name: "document-export"
+                    enabled: customHistoryPathField.text.trim() !== "" && page.storageExportStatus === ""
+                    onClicked: {
+                        page.storageExportStatus = "Exporting…";
+                        var dir = customHistoryPathField.text.trim();
+                        var file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
+                        var jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
+                        // Base64-encode to avoid shell quoting issues
+                        var b64 = Qt.btoa(jsonStr);
+                        var cmd = "python3 -c \"import base64, os; path=os.path.expanduser('" +
+                            file.replace(/'/g, "\\'") + "'); os.makedirs(os.path.dirname(path), exist_ok=True); " +
+                            "open(path, 'w', encoding='utf-8').write(base64.b64decode('" + b64 + "').decode('utf-8')); print('OK')\"";
+                        utilityDs.connectSource(cmd + " #storage-export-" + Date.now());
+                        exportStatusTimer.restart();
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Open Folder"
+                    icon.name: "folder-open"
+                    visible: customHistoryPathField.text.trim() !== ""
+                    onClicked: {
+                        var dir = customHistoryPathField.text.trim();
+                        utilityDs.connectSource("xdg-open " + dir + " #open-storage-dir");
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Clear Path"
+                    icon.name: "edit-clear"
+                    visible: customHistoryPathField.text.trim() !== ""
+                    onClicked: {
+                        customHistoryPathField.text = "";
+                    }
+                }
+            }
+
             QQC2.Label {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 wrapMode: Text.Wrap
-                text: "Specify an absolute directory path or click <b>Browse...</b> to select a custom directory to save your chat logs. The system will automatically save them to a file named <b>kdeaichat_history.json</b> inside that directory. The recommended default is <b>~/.config</b>."
-                opacity: 0.75
-                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
+                opacity: 0.7
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
+                text: customHistoryPathField.text.trim() === ""
+                    ? "💾 Chats are saved in the default KDE config location. Select a folder above to store them elsewhere (e.g. a synced cloud drive)."
+                    : "⚠️ <b>Beta feature.</b> After changing this path, press <b>Apply</b> or <b>OK</b> — your chats will automatically be exported to the new location."
+                textFormat: Text.RichText
+            }
+
+            // Hidden export timer to reset button label
+            Timer {
+                id: exportStatusTimer
+                interval: 2500
+                repeat: false
+                onTriggered: page.storageExportStatus = ""
             }
 
             RowLayout {
