@@ -106,23 +106,28 @@ To add a new AI provider to the widget, follow these steps:
    - Add `<entry>` fields for `baseUrl`, `apiKey`, and `model` using the provider ID as prefix.
    - Provide sensible defaults.
 
-2. **Add config UI bindings** in `contents/ui/ConfigGeneral.qml`:
+2. **Register in `ProviderData.js`** in `contents/ui/`:
+   - Add an entry to the `providerData` array with the provider `id` and display `name`.
+   - This file is used by the KWallet helper to discover all provider IDs.
+
+3. **Add config UI bindings** in `contents/ui/ConfigGeneral.qml`:
    - Add `property alias cfg_<provider>BaseUrl`, `cfg_<provider>ApiKey`, `cfg_<provider>Model`.
    - Add the corresponding text fields in the provider settings section.
    - Add the provider to `providerNeedsApiKey()`, `providerEnabled()`, `currentProviderConfig()`, `apiKeyForTarget()`, `applyLoadedKey()`, `applyPlainConfigKeys()`, and `writeKeysToDiskAndOpen()`.
 
-3. **Add API call support** in `contents/ui/main.qml`:
+4. **Add API call support** in `contents/ui/main.qml`:
    - Add the provider to the provider switch in `sendMessageByIndex()` or the relevant dispatch function.
    - Handle any provider-specific authentication or headers.
+   - Add display name mapping in `providerDisplayName()`.
 
-4. **Add KWallet key target** in `ConfigGeneral.qml`:
+5. **Add KWallet key target** in `ConfigGeneral.qml`:
    - Add the provider ID to `keyTargetIds()`.
 
-5. **Update documentation**:
+6. **Update documentation**:
    - Add the provider to `SETUP.md` with API key acquisition instructions.
-   - Update the provider list in `README.md`.
+   - Update the provider count and list in `README.md`.
 
-6. **Add to model discovery** in `ConfigGeneral.qml`:
+7. **Add to model discovery** in `ConfigGeneral.qml`:
    - If the provider has OpenAI-compatible `/v1/models` endpoint, it works out of the box.
    - For Anthropic-style endpoints, add special handling in `refreshCurrentProviderModels()`.
 
@@ -132,17 +137,42 @@ See the [Translation Guide](docs/translation-guide.md) for detailed instructions
 
 ## Testing
 
-The project does not have an automated test suite. Manual testing involves:
+### Python Tests
 
-1. Installing the widget via `./install.sh`.
-2. Restarting Plasma shell.
-3. Verifying the widget loads and functions correctly.
-4. Running `qmllint` on all QML files to ensure zero warnings and errors.
+The project has an automated pytest test suite under `tests/` with 39 test cases:
+
+```bash
+# Install pytest if needed
+pip install pytest
+
+# Run all tests
+pytest tests/ -v
+
+# Run specific test files
+pytest tests/test_scheduler.py -v
+pytest tests/test_doc_extractor.py -v
+```
+
+The CI pipeline runs these automatically on every push/pull request. Python code is also linted with `ruff`:
+
+```bash
+pipx run ruff check --select=E9,F --output-format=github org.kde.plasma.kdeaichat/contents/scripts/ org.kde.plasma.kdeaichat/contents/ui/
+```
+
+### QML Linting
+
+Run `qmllint` on all QML files to ensure zero warnings and errors:
 
 ```bash
 qmllint org.kde.plasma.kdeaichat/contents/ui/*.qml
 qmllint org.kde.plasma.kdeaichat/contents/config/config.qml
 ```
+
+### Manual Testing
+
+1. Install the widget: `./install.sh`
+2. Restart Plasma shell: `systemctl --user restart plasma-plasmashell.service`
+3. Add the widget to your panel/desktop and verify it loads correctly
 
 ## Reporting Issues
 
@@ -153,3 +183,29 @@ Report bugs and feature requests on the [GitHub Issues](https://github.com/racst
 - Steps to reproduce
 - Expected vs actual behavior
 - Relevant error output from `journalctl --user -u plasma-plasmashell`
+
+## Supported Providers (21 total)
+
+| Provider ID | Display Name | API Required |
+|:--|:--|:--:|
+| `openai` | OpenAI | Yes |
+| `anthropic` | Anthropic (Claude) | Yes |
+| `groq` | Groq | Yes |
+| `deepseek` | DeepSeek | Yes |
+| `minimax` | MiniMax | Yes |
+| `fireworks` | Fireworks AI | Yes |
+| `google` | Google Gemini | Yes |
+| `openrouter` | OpenRouter | Yes |
+| `mistral` | Mistral | Yes |
+| `cloudflare` | Cloudflare Workers AI | Yes |
+| `nvidia` | NVIDIA NIM | Yes |
+| `huggingface` | Hugging Face | Yes |
+| `xai` | xAI (Grok) | Yes |
+| `litellm` | LiteLLM Proxy | Optional |
+| `qwen` | Qwen | Yes |
+| `moonshot` | Moonshot | Yes |
+| `mimo` | MiMo | Yes |
+| `maritaca` | Maritaca | Yes |
+| `lmstudio` | LM Studio | No (local) |
+| `local` | Local (OpenAI-compatible) | No (local) |
+| `ollama` | Ollama | No (local) |
