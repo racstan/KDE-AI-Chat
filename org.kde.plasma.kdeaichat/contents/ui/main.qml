@@ -138,6 +138,67 @@ PlasmoidItem {
         return "s-" + str;
     }
 
+    function makeForkSessionId() {
+        var chars = "0123456789";
+        var str = "";
+        for (var i = 0; i < 6; i++) {
+            str += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return "fork-" + str;
+    }
+
+    function forkSession(messageIndex) {
+        if (root.currentSessionId === "")
+            return;
+
+        var idx = sessionIndexById(root.currentSessionId);
+        if (idx < 0)
+            return;
+
+        var originalSession = root.sessions[idx];
+        var forkedMessages = [];
+        if (originalSession.messages && messageIndex >= 0 && messageIndex < originalSession.messages.length) {
+            for (var i = 0; i <= messageIndex; i++) {
+                forkedMessages.push(JSON.parse(JSON.stringify(originalSession.messages[i])));
+            }
+        }
+
+        var forkId = makeForkSessionId();
+        var originalTitle = originalSession.text || "New Chat";
+        var cleanTitle = originalTitle.indexOf("[FK] ") === 0 ? originalTitle.substring(5) : originalTitle;
+        var forkTitle = "[FK] " + cleanTitle;
+
+        var s = {
+            "value": forkId,
+            "text": forkTitle,
+            "createdAt": Date.now(),
+            "updatedAt": Date.now(),
+            "archived": false,
+            "source": originalSession.source || "provider",
+            "openCodeSessionId": originalSession.openCodeSessionId || "",
+            "readCount": forkedMessages.length,
+            "messages": forkedMessages
+        };
+
+        root.sessions = [s].concat(root.sessions);
+        root.openCodeMode = (s.source === "opencode");
+        root.currentSessionId = s.value;
+        root.currentSessionTitle = s.text;
+        root.messages = forkedMessages;
+        root.editingMessageIndex = -1;
+        root.editingDraft = "";
+        root.editingSessionId = "";
+        root.editingSessionDraft = "";
+        root.renamingCurrentChat = false;
+        root.currentChatRenameDraft = "";
+        root.historyOnlyMode = false;
+
+        persistSessions();
+        scrollToBottom();
+        root.focusInput();
+    }
+
+
     // ── /schedule command handler ──────────────────────────────────────────────
     function handleScheduleCommand(messageText) {
         scheduleCommandDialog.prefillMessage = messageText;
@@ -5682,6 +5743,15 @@ PlasmoidItem {
                                                         }
 
                                                         PC3.ToolButton {
+                                                            visible: !root.openCodeMode && modelData.role !== "error" && modelData.role !== "queued"
+                                                            icon.name: "git-branch"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Fork chat from this message"
+                                                            onClicked: root.forkSession(index)
+                                                        }
+
+                                                        PC3.ToolButton {
                                                             icon.name: "edit-delete"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
@@ -6119,9 +6189,29 @@ PlasmoidItem {
 
                                     }
 
+                                    Rectangle {
+                                        id: forkBadge
+
+                                        visible: modelData.value && modelData.value.indexOf("fork-") === 0
+                                        width: forkBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
+                                        height: forkBadgeText.implicitHeight + Kirigami.Units.smallSpacing
+                                        radius: 999
+                                        color: Qt.rgba(0.48, 0.2, 0.92, 0.18)
+
+                                        PC3.Label {
+                                            id: forkBadgeText
+
+                                            anchors.centerIn: parent
+                                            text: "FK"
+                                            font.bold: true
+                                            color: Qt.rgba(0.35, 0.12, 0.78, 1)
+                                        }
+
+                                    }
+
                                     QQC2.TextField {
                                         visible: root.editingSessionId === modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
+                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
                                         text: root.editingSessionDraft
                                         onTextChanged: root.editingSessionDraft = text
                                         onAccepted: root.saveSessionRename(modelData.value)
@@ -6130,7 +6220,7 @@ PlasmoidItem {
                                     PC3.Label {
                                         id: sessionTitleLabel
                                         visible: root.editingSessionId !== modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
+                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
                                         text: root.translate(modelData.text || "New Chat")
                                         font.bold: modelData.value === root.currentSessionId
                                         color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
