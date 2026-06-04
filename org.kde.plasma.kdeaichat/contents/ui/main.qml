@@ -1716,34 +1716,10 @@ PlasmoidItem {
     }
 
     function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
-        function handleNotRunning(err) {
-            if (plasmoid.configuration.autoStartOpenCodeServer) {
-                var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
-                opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
-                if (chatId)
-                    appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
-
-                openCodeStartPollTimer.successCb = function() {
-                    if (chatId)
-                        appendSystemMessageToSession(chatId, translate("Session restarted."));
-
-                    if (successCallback)
-                        successCallback();
-
-                };
-                openCodeStartPollTimer.failureCb = fail;
-                openCodeStartPollTimer.retriesLeft = 8;
-                openCodeStartPollTimer.start();
-            } else {
-                fail("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
-            }
-        }
-
-        var checkUrl = openCodeBaseUrl() + "/config/providers";
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", checkUrl, true);
-        xhr.timeout = 2000;
+        var completed = false;
         var fail = function fail(msg) {
+            if (completed) return;
+            completed = true;
             if (typeof failureCallback === "function") {
                 failureCallback(msg);
             } else {
@@ -1753,12 +1729,69 @@ PlasmoidItem {
                     pushErrorMessage(msg);
             }
         };
+
+        function handleSuccess() {
+            if (completed) return;
+            completed = true;
+            if (successCallback)
+                successCallback();
+        }
+
+        function handleNotRunning(err) {
+            if (completed) return;
+            completed = true;
+            if (plasmoid.configuration.autoStartOpenCodeServer) {
+                var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
+                opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
+                if (chatId)
+                    appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
+
+                var pollCompleted = false;
+                openCodeStartPollTimer.successCb = function() {
+                    if (pollCompleted) return;
+                    pollCompleted = true;
+                    if (chatId)
+                        appendSystemMessageToSession(chatId, translate("Session restarted."));
+
+                    if (successCallback)
+                        successCallback();
+                };
+                openCodeStartPollTimer.failureCb = function(msg) {
+                    if (pollCompleted) return;
+                    pollCompleted = true;
+                    if (typeof failureCallback === "function") {
+                        failureCallback(msg);
+                    } else {
+                        if (chatId)
+                            appendSystemMessageToSession(chatId, "⚠️ " + msg);
+                        else
+                            pushErrorMessage(msg);
+                    }
+                };
+                openCodeStartPollTimer.retriesLeft = 8;
+                openCodeStartPollTimer.start();
+            } else {
+                if (typeof failureCallback === "function") {
+                    failureCallback("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
+                } else {
+                    if (chatId)
+                        appendSystemMessageToSession(chatId, "⚠️ OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
+                    else
+                        pushErrorMessage("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
+                }
+            }
+        }
+
+        var checkUrl = openCodeBaseUrl() + "/config/providers";
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", checkUrl, true);
+        xhr.timeout = 2000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return ;
 
             if (xhr.status >= 200 && xhr.status < 300)
-                successCallback();
+                handleSuccess();
             else
                 handleNotRunning("HTTP " + xhr.status);
         };
