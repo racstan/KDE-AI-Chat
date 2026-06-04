@@ -56,9 +56,11 @@ class TestParseCronField:
         assert parse_cron_field("59", 0, 59) == [59]
 
     def test_invalid_raises(self):
-        import pytest
-        with pytest.raises(ValueError):
+        try:
             parse_cron_field("abc", 0, 59)
+            assert False, "Should raise ValueError"
+        except ValueError:
+            pass
 
 
 class TestCronMatches:

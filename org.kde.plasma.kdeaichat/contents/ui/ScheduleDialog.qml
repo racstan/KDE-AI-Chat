@@ -110,6 +110,8 @@ import org.kde.plasma.plasma5support as P5Support
 
         function setStartDateField(field, value) {
             var d = new Date(scheduleDialog.draft.startDate || new Date().toISOString());
+            d.setSeconds(0);
+            d.setMilliseconds(0);
             if (field === "year")
                 d.setFullYear(value);
             else if (field === "month")
@@ -120,8 +122,7 @@ import org.kde.plasma.plasma5support as P5Support
                 d.setHours(value);
             else if (field === "minute")
                 d.setMinutes(value);
-            scheduleDialog.draft = Object.assign({
-            }, scheduleDialog.draft, {
+            scheduleDialog.draft = Object.assign({}, scheduleDialog.draft, {
                 "startDate": d.toISOString()
             });
         }
@@ -241,6 +242,8 @@ import org.kde.plasma.plasma5support as P5Support
                     onClicked: {
                         var now = new Date();
                         now.setMinutes(now.getMinutes() + 5);
+                        now.setSeconds(0);
+                        now.setMilliseconds(0);
                         var chats = scheduleDialog.getChatsList();
                         var firstChatId = (chats.length > 0) ? chats[0].id : "";
                         var firstChatName = (chats.length > 0) ? chats[0].name : "";
@@ -410,6 +413,8 @@ import org.kde.plasma.plasma5support as P5Support
                                     if (!d.startDate) {
                                         var now = new Date();
                                         now.setMinutes(now.getMinutes() + 5);
+                                        now.setSeconds(0);
+                                        now.setMilliseconds(0);
                                         d.startDate = now.toISOString();
                                     }
                                     if (!d.schedType)

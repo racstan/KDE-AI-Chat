@@ -1507,6 +1507,48 @@ PlasmoidItem {
         }
     }
 
+    function ensureOpenCodeServerRunning(successCallback, failureCallback) {
+        var checkUrl = openCodeBaseUrl() + "/config/providers";
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", checkUrl, true);
+        xhr.timeout = 2000;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                successCallback();
+            } else {
+                handleNotRunning("HTTP " + xhr.status);
+            }
+        };
+        xhr.onerror = function() {
+            handleNotRunning("Transport error");
+        };
+        xhr.ontimeout = function() {
+            handleNotRunning("Timeout");
+        };
+
+        function handleNotRunning(err) {
+            if (plasmoid.configuration.autoStartOpenCodeServer) {
+                var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
+                opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
+
+                openCodeStartPollTimer.successCb = successCallback;
+                openCodeStartPollTimer.failureCb = failureCallback;
+                openCodeStartPollTimer.retriesLeft = 8;
+                openCodeStartPollTimer.start();
+            } else {
+                failureCallback("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
+            }
+        }
+
+        try {
+            xhr.send();
+        } catch (e) {
+            handleNotRunning(e.toString());
+        }
+    }
+
     function doOpenCodeRequest() {
         var requestFinalized = false;
 
@@ -1522,129 +1564,133 @@ PlasmoidItem {
             finishOpenCodeRequest();
         }
 
-        ensureOpenCodeEventStream();
-        root.loading = true;
-        root.streamingResponse = false;
-        root.openCodeAssistantMessageIndex = -1;
-        root.openCodeAssistantServerMessageId = "";
-        root.openCodeErrorShownForRequest = false;
-        ensureCurrentOpenCodeSession(function(remoteSessionId) {
-            var xhr = new XMLHttpRequest();
-            var modelId = (plasmoid.configuration.openCodeModel || "").trim();
-            var providerId = (plasmoid.configuration.openCodeProvider || "").trim();
-            root.activeXhr = xhr;
-            root.openCodeActiveSessionId = remoteSessionId;
-            xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.timeout = 15000;
-            xhr.ontimeout = function() {
-                failOpenCodeRequest("OpenCode: message request timed out at " + openCodeBaseUrl());
-            };
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE)
-                    return ;
+        ensureOpenCodeServerRunning(function() {
+            ensureOpenCodeEventStream();
+            root.loading = true;
+            root.streamingResponse = false;
+            root.openCodeAssistantMessageIndex = -1;
+            root.openCodeAssistantServerMessageId = "";
+            root.openCodeErrorShownForRequest = false;
+            ensureCurrentOpenCodeSession(function(remoteSessionId) {
+                var xhr = new XMLHttpRequest();
+                var modelId = (plasmoid.configuration.openCodeModel || "").trim();
+                var providerId = (plasmoid.configuration.openCodeProvider || "").trim();
+                root.activeXhr = xhr;
+                root.openCodeActiveSessionId = remoteSessionId;
+                xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.timeout = 15000;
+                xhr.ontimeout = function() {
+                    failOpenCodeRequest("OpenCode: message request timed out at " + openCodeBaseUrl());
+                };
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== XMLHttpRequest.DONE)
+                        return ;
 
-                if (requestFinalized)
-                    return ;
+                    if (requestFinalized)
+                        return ;
 
-                if (xhr.status < 200 || xhr.status >= 300) {
-                    if (xhr.status === 404) {
-                        setCurrentOpenCodeSessionId("");
-                    }
-                    var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
-                    failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
-                    return ;
-                }
-                try {
-                    var obj = JSON.parse(xhr.responseText);
-                    if (obj.info && obj.info.id)
-                        root.openCodeAssistantServerMessageId = obj.info.id;
-
-                    if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
-                        root.openCodeErrorShownForRequest = true;
-                        pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
-                    }
-                    if (obj.parts && obj.parts.length > 0) {
-                        var combined = "";
-                        for (var i = 0; i < obj.parts.length; i++) {
-                            if (obj.parts[i].type === "text")
-                                combined += obj.parts[i].text || obj.parts[i].content || "";
-
+                    if (xhr.status < 200 || xhr.status >= 300) {
+                        if (xhr.status === 404) {
+                            setCurrentOpenCodeSessionId("");
                         }
-                        if (combined !== "")
-                            updateAssistantStreamingContent(combined, providerId + "/" + modelId);
-                        else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
-                            updateAssistantStreamingContent("(empty response)", providerId + "/" + modelId);
+                        var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
+                        failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
+                        return ;
                     }
-                } catch (parseResponseError) {
-                }
-                requestFinalized = true;
-                finishOpenCodeRequest();
-            };
-            xhr.onerror = function() {
-                failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
-            };
-            try {
-                var lastMsg = null;
-                for (var mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
-                    if (root.messages[mIdx].role === "user") {
-                        lastMsg = root.messages[mIdx];
-                        break;
+                    try {
+                        var obj = JSON.parse(xhr.responseText);
+                        if (obj.info && obj.info.id)
+                            root.openCodeAssistantServerMessageId = obj.info.id;
+
+                        if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
+                            root.openCodeErrorShownForRequest = true;
+                            pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
+                        }
+                        if (obj.parts && obj.parts.length > 0) {
+                            var combined = "";
+                            for (var i = 0; i < obj.parts.length; i++) {
+                                if (obj.parts[i].type === "text")
+                                    combined += obj.parts[i].text || obj.parts[i].content || "";
+
+                            }
+                            if (combined !== "")
+                                updateAssistantStreamingContent(combined, providerId + "/" + modelId);
+                            else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
+                                updateAssistantStreamingContent("(empty response)", providerId + "/" + modelId);
+                        }
+                    } catch (parseResponseError) {
                     }
-                }
-                if (!lastMsg) {
-                    failOpenCodeRequest("No user message found to send.");
-                    return ;
-                }
-                var parts = [];
-                if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-                    var payload = buildMessageContent(lastMsg.content, lastMsg.attachments, "openai");
-                    if (typeof payload === "string") {
-                        parts.push({
-                            "type": "text",
-                            "text": payload
-                        });
-                    } else {
-                        for (var p = 0; p < payload.length; p++) {
-                            var item = payload[p];
-                            if (item.type === "text") {
-                                parts.push({
-                                    "type": "text",
-                                    "text": item.text
-                                });
-                            } else if (item.type === "image_url") {
-                                var mType = item.image_url.url.split(";")[0].split(":")[1];
-                                parts.push({
-                                    "type": "file",
-                                    "mime": mType,
-                                    "url": item.image_url.url
-                                });
+                    requestFinalized = true;
+                    finishOpenCodeRequest();
+                };
+                xhr.onerror = function() {
+                    failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
+                };
+                try {
+                    var lastMsg = null;
+                    for (var mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+                        if (root.messages[mIdx].role === "user") {
+                            lastMsg = root.messages[mIdx];
+                            break;
+                        }
+                    }
+                    if (!lastMsg) {
+                        failOpenCodeRequest("No user message found to send.");
+                        return ;
+                    }
+                    var parts = [];
+                    if (lastMsg.attachments && lastMsg.attachments.length > 0) {
+                        var payload = buildMessageContent(lastMsg.content, lastMsg.attachments, "openai");
+                        if (typeof payload === "string") {
+                            parts.push({
+                                "type": "text",
+                                "text": payload
+                            });
+                        } else {
+                            for (var p = 0; p < payload.length; p++) {
+                                var item = payload[p];
+                                if (item.type === "text") {
+                                    parts.push({
+                                        "type": "text",
+                                        "text": item.text
+                                    });
+                                } else if (item.type === "image_url") {
+                                    var mType = item.image_url.url.split(";")[0].split(":")[1];
+                                    parts.push({
+                                        "type": "file",
+                                        "mime": mType,
+                                        "url": item.image_url.url
+                                    });
+                                }
                             }
                         }
+                    } else {
+                        parts.push({
+                            "type": "text",
+                            "text": lastMsg.content || ""
+                        });
                     }
-                } else {
-                    parts.push({
-                        "type": "text",
-                        "text": lastMsg.content || ""
-                    });
+                    xhr.send(JSON.stringify({
+                        "model": {
+                            "providerID": providerId,
+                            "modelID": modelId
+                        },
+                        "system": buildEffectiveSystemPrompt(),
+                        "parts": parts
+                    }));
+                } catch (sendError) {
+                    failOpenCodeRequest("OpenCode: failed to send request: " + sendError);
                 }
-                xhr.send(JSON.stringify({
-                    "model": {
-                        "providerID": providerId,
-                        "modelID": modelId
-                    },
-                    "system": buildEffectiveSystemPrompt(),
-                    "parts": parts
-                }));
-            } catch (sendError) {
-                failOpenCodeRequest("OpenCode: failed to send request: " + sendError);
-            }
-        }, function(errorMessage) {
-            if (!root.openCodeErrorShownForRequest) {
-                root.openCodeErrorShownForRequest = true;
-                pushErrorMessage(errorMessage);
-            }
-            finishOpenCodeRequest();
+            }, function(errorMessage) {
+                if (!root.openCodeErrorShownForRequest) {
+                    root.openCodeErrorShownForRequest = true;
+                    pushErrorMessage(errorMessage);
+                }
+                finishOpenCodeRequest();
+            });
+        }, function(err) {
+            failOpenCodeRequest(err);
         });
     }
 
@@ -1890,9 +1936,21 @@ PlasmoidItem {
         var res = [];
         for (var i = 0; i < root.schedulesList.length; i++) {
             var s = root.schedulesList[i];
-            if (s && s.chatId === sessionId)
-                res.push(s);
-
+            if (s && s.chatId === sessionId) {
+                var isExecuted = false;
+                if (s.taskType === "single") {
+                    if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0)) {
+                        isExecuted = true;
+                    }
+                } else {
+                    if (s.limitEnabled && s.runCount >= s.limitCount) {
+                        isExecuted = true;
+                    }
+                }
+                if (!isExecuted) {
+                    res.push(s);
+                }
+            }
         }
         return res;
     }
@@ -3749,9 +3807,13 @@ PlasmoidItem {
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
     onOpenCodeModeChanged: {
-        if (!openCodeMode)
+        if (!openCodeMode) {
             loadKWalletKeysIfNeeded();
-
+        } else {
+            if (plasmoid.configuration.autoStartOpenCodeServer) {
+                autoStartOpenCodeTimer.start();
+            }
+        }
     }
     onExpandedChanged: {
         if (expanded) {
@@ -3863,9 +3925,58 @@ PlasmoidItem {
     }
 
     Timer {
+        id: openCodeStartPollTimer
+        interval: 1000
+        repeat: true
+        property var successCb
+        property var failureCb
+        property int retriesLeft: 0
+        onTriggered: {
+            retriesLeft--;
+            var checkUrl = openCodeBaseUrl() + "/config/providers";
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", checkUrl, true);
+            xhr.timeout = 1000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE)
+                    return;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    openCodeStartPollTimer.stop();
+                    if (successCb) successCb();
+                } else {
+                    if (retriesLeft <= 0) {
+                        openCodeStartPollTimer.stop();
+                        if (failureCb) failureCb("OpenCode server failed to start (HTTP " + xhr.status + ")");
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                if (retriesLeft <= 0) {
+                    openCodeStartPollTimer.stop();
+                    if (failureCb) failureCb("OpenCode server failed to start (Connection refused)");
+                }
+            };
+            xhr.ontimeout = function() {
+                if (retriesLeft <= 0) {
+                    openCodeStartPollTimer.stop();
+                    if (failureCb) failureCb("OpenCode server failed to start (Timeout)");
+                }
+            };
+            try {
+                xhr.send();
+            } catch (e) {
+                if (retriesLeft <= 0) {
+                    openCodeStartPollTimer.stop();
+                    if (failureCb) failureCb(e.toString());
+                }
+            }
+        }
+    }
+
+    Timer {
         id: schedulerPollTimer
 
-        interval: 15000
+        interval: 5000
         repeat: true
         running: true
         triggeredOnStart: true

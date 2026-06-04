@@ -44,7 +44,7 @@ LOCK_FILE = os.path.join(DATA_DIR, "scheduler.lock")
 LOCK_FD = None
 
 # Tick interval in seconds
-TICK_SECONDS = 15
+TICK_SECONDS = 5
 
 # ── Globals ────────────────────────────────────────────────────────────────────
 schedules = []
