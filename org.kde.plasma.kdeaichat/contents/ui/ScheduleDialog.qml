@@ -296,37 +296,6 @@ import org.kde.plasma.plasma5support as P5Support
                     elide: Text.ElideRight
                 }
 
-                RowLayout {
-                    spacing: Kirigami.Units.smallSpacing
-
-                    QQC2.Label {
-                        text: translate("Keep:")
-                        opacity: 0.8
-                    }
-
-                    QQC2.ComboBox {
-                        id: dialogHistoryLimitCombo
-                        implicitWidth: Kirigami.Units.gridUnit * 6
-                        model: ["10", "100", "1000"]
-                        currentIndex: {
-                            var val = page.getHistoryLimitValue ? page.getHistoryLimitValue() : 100;
-                            return val === 10 ? 0 : (val === 1000 ? 2 : 1);
-                        }
-                        onCurrentIndexChanged: {
-                            var limit = currentIndex === 0 ? 10 : (currentIndex === 2 ? 1000 : 100);
-                            plasmoid.configuration.schedulerHistoryLimit = currentIndex;
-                            if (page && page.schedulerHistory) {
-                                if (page.schedulerHistory.length > limit) {
-                                    page.schedulerHistory = page.schedulerHistory.slice(page.schedulerHistory.length - limit);
-                                }
-                                if (typeof page.schedSaveAll === "function") {
-                                    page.schedSaveAll();
-                                }
-                            }
-                        }
-                    }
-                }
-
                 QQC2.Button {
                     text: translate("Clear History")
                     icon.name: "edit-clear-all"

@@ -107,7 +107,6 @@ KCM.SimpleKCM {
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
     property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked
-    property alias cfg_schedulerHistoryLimit: schedulerHistoryLimitCombo.currentIndex
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
     property string keyringStatus: ""
@@ -1475,9 +1474,6 @@ KCM.SimpleKCM {
     }
 
     function getHistoryLimitValue() {
-        var idx = (schedulerHistoryLimitCombo ? schedulerHistoryLimitCombo.currentIndex : 1);
-        if (idx === 0) return 10;
-        if (idx === 2) return 1000;
         return 100;
     }
 
@@ -4658,28 +4654,6 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.7
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
-            }
-
-            QQC2.ComboBox {
-                id: schedulerHistoryLimitCombo
-
-                Kirigami.FormData.label: translate("History retention:")
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                model: [
-                    translate("Store last 10 entries"),
-                    translate("Store last 100 entries"),
-                    translate("Store last 1000 entries")
-                ]
-                onCurrentIndexChanged: {
-                    if (!page.pageReady)
-                        return;
-                    var limit = page.getHistoryLimitValue();
-                    if (page.schedulerHistory.length > limit) {
-                        page.schedulerHistory = page.schedulerHistory.slice(page.schedulerHistory.length - limit);
-                    }
-                    page.schedSaveAll();
-                }
             }
 
             // Master ON/OFF switch
