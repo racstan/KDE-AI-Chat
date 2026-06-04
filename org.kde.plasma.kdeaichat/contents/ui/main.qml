@@ -43,6 +43,9 @@ PlasmoidItem {
     property string currentChatRenameDraft: ""
     property bool openCodeMode: false
     property var schedulesList: []
+    property bool openCodeStarting: false
+    property var openCodeStartSuccessCallbacks: []
+    property var openCodeStartFailureCallbacks: []
     property bool schedPolling: false
     property var plasmoidRef: plasmoid
     property string configCustomHistoryPath: plasmoid.configuration.customHistoryPath || ""
@@ -1716,12 +1719,49 @@ PlasmoidItem {
     }
 
     function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
+        if (root.openCodeStarting) {
+            if (successCallback) {
+                var sCbs = root.openCodeStartSuccessCallbacks.slice();
+                sCbs.push(successCallback);
+                root.openCodeStartSuccessCallbacks = sCbs;
+            }
+            if (failureCallback) {
+                var fCbs = root.openCodeStartFailureCallbacks.slice();
+                fCbs.push(failureCallback);
+                root.openCodeStartFailureCallbacks = fCbs;
+            }
+            return;
+        }
+
+        root.openCodeStarting = true;
+        root.openCodeStartSuccessCallbacks = successCallback ? [successCallback] : [];
+        root.openCodeStartFailureCallbacks = failureCallback ? [failureCallback] : [];
+
         var completed = false;
-        var fail = function fail(msg) {
+        var resolveSuccess = function() {
             if (completed) return;
             completed = true;
-            if (typeof failureCallback === "function") {
-                failureCallback(msg);
+            root.openCodeStarting = false;
+            var successCbs = root.openCodeStartSuccessCallbacks;
+            root.openCodeStartSuccessCallbacks = [];
+            root.openCodeStartFailureCallbacks = [];
+            for (var i = 0; i < successCbs.length; i++) {
+                successCbs[i]();
+            }
+        };
+
+        var resolveFailure = function(msg) {
+            if (completed) return;
+            completed = true;
+            root.openCodeStarting = false;
+            var failureCbs = root.openCodeStartFailureCallbacks;
+            root.openCodeStartSuccessCallbacks = [];
+            root.openCodeStartFailureCallbacks = [];
+            
+            if (failureCbs.length > 0) {
+                for (var i = 0; i < failureCbs.length; i++) {
+                    failureCbs[i](msg);
+                }
             } else {
                 if (chatId)
                     appendSystemMessageToSession(chatId, "⚠️ " + msg);
@@ -1731,54 +1771,28 @@ PlasmoidItem {
         };
 
         function handleSuccess() {
-            if (completed) return;
-            completed = true;
-            if (successCallback)
-                successCallback();
+            resolveSuccess();
         }
 
         function handleNotRunning(err) {
-            if (completed) return;
-            completed = true;
             if (plasmoid.configuration.autoStartOpenCodeServer) {
                 var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
                 opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
                 if (chatId)
                     appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
 
-                var pollCompleted = false;
                 openCodeStartPollTimer.successCb = function() {
-                    if (pollCompleted) return;
-                    pollCompleted = true;
                     if (chatId)
                         appendSystemMessageToSession(chatId, translate("Session restarted."));
-
-                    if (successCallback)
-                        successCallback();
+                    resolveSuccess();
                 };
                 openCodeStartPollTimer.failureCb = function(msg) {
-                    if (pollCompleted) return;
-                    pollCompleted = true;
-                    if (typeof failureCallback === "function") {
-                        failureCallback(msg);
-                    } else {
-                        if (chatId)
-                            appendSystemMessageToSession(chatId, "⚠️ " + msg);
-                        else
-                            pushErrorMessage(msg);
-                    }
+                    resolveFailure(msg);
                 };
                 openCodeStartPollTimer.retriesLeft = 8;
                 openCodeStartPollTimer.start();
             } else {
-                if (typeof failureCallback === "function") {
-                    failureCallback("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
-                } else {
-                    if (chatId)
-                        appendSystemMessageToSession(chatId, "⚠️ OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
-                    else
-                        pushErrorMessage("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
-                }
+                resolveFailure("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
             }
         }
 
@@ -4365,7 +4379,7 @@ PlasmoidItem {
         property int retriesLeft: 0
 
         interval: 1000
-        repeat: true
+        repeat: false
         onTriggered: {
             retriesLeft--;
             var checkUrl = openCodeBaseUrl() + "/config/providers";
@@ -4377,43 +4391,41 @@ PlasmoidItem {
                     return ;
 
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    openCodeStartPollTimer.stop();
                     if (successCb)
                         successCb();
-
                 } else {
-                    if (retriesLeft <= 0) {
-                        openCodeStartPollTimer.stop();
+                    if (retriesLeft > 0) {
+                        openCodeStartPollTimer.start();
+                    } else {
                         if (failureCb)
                             failureCb("OpenCode server failed to start (HTTP " + xhr.status + ")");
-
                     }
                 }
             };
             xhr.onerror = function() {
-                if (retriesLeft <= 0) {
-                    openCodeStartPollTimer.stop();
+                if (retriesLeft > 0) {
+                    openCodeStartPollTimer.start();
+                } else {
                     if (failureCb)
                         failureCb("OpenCode server failed to start (Connection refused)");
-
                 }
             };
             xhr.ontimeout = function() {
-                if (retriesLeft <= 0) {
-                    openCodeStartPollTimer.stop();
+                if (retriesLeft > 0) {
+                    openCodeStartPollTimer.start();
+                } else {
                     if (failureCb)
                         failureCb("OpenCode server failed to start (Timeout)");
-
                 }
             };
             try {
                 xhr.send();
             } catch (e) {
-                if (retriesLeft <= 0) {
-                    openCodeStartPollTimer.stop();
+                if (retriesLeft > 0) {
+                    openCodeStartPollTimer.start();
+                } else {
                     if (failureCb)
                         failureCb(e.toString());
-
                 }
             }
         }
