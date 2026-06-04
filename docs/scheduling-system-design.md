@@ -1,7 +1,7 @@
 # KDE AI Chat — Scheduling System Design
 
 > Version: 1.0  
-> Status: Draft / Design Phase  
+> Status: Implemented  
 > Scope: Provider-agnostic, OpenCode-independent, KDE-native
 
 ---
@@ -73,11 +73,10 @@ org.kde.plasma.kdeaichat/
 │   ├── ui/
 │   │   ├── main.qml
 │   │   ├── ConfigGeneral.qml
-│   │   ├── ScheduleManager.qml      ← NEW: Schedule list & editor UI
-│   │   ├── ScheduleResultViewer.qml ← NEW: View last run output
+│   │   ├── ScheduleDialog.qml       ← Schedule CRUD UI (Active, Archived, History tabs)
 │   │   └── translations.js
 │   ├── scripts/
-│   │   └── kde-ai-scheduler.py      ← NEW: The daemon
+│   │   └── kde-ai-scheduler.py      ← The daemon
 │   └── config/
 │       └── main.xml
 ├── install.sh                        ← Updated: installs systemd service
@@ -88,11 +87,10 @@ org.kde.plasma.kdeaichat/
 **Runtime paths (XDG-compliant):**
 ```
 ~/.local/share/kdeaichat/
-├── schedules.json
-├── scheduler.lock
-└── results/
-    ├── {uuid}-2026-05-31T09-00-00.json
-    └── {uuid}-2026-05-30T09-00-00.json
+├── schedules.json          ← Schedule definitions + run history
+├── scheduler.lock          ← PID lock (daemon health check)
+└── pending/
+    └── {uuid}-{timestamp}.json  ← Trigger files (daemon → widget)
 
 ~/.config/systemd/user/
 └── kde-ai-scheduler.service          ← Installed by install.sh

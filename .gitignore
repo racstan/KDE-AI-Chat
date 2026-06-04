@@ -18,11 +18,9 @@ Thumbs.db
 # Local developer documents
 audit.md
 ailogo.webp
+docs/
 
 # Python cache
 __pycache__/
 *.pyc
-
-# Internal research scratch notes (design doc is tracked, raw research is not)
-docs/scheduling-system-research.md
 

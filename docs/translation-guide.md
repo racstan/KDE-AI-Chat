@@ -1,6 +1,6 @@
 # Translation Guide
 
-KDE AI Chat supports **10 languages** through a lightweight JavaScript-based translation system. This guide explains how to add a new language or update an existing translation.
+KDE AI Chat supports **11 languages** through a lightweight JavaScript-based translation system. This guide explains how to add a new language or update an existing translation.
 
 ## How It Works
 
