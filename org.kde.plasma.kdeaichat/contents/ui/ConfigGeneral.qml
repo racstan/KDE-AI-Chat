@@ -99,6 +99,10 @@ KCM.SimpleKCM {
     property alias cfg_systemPrompt: systemPromptArea.text
     property alias cfg_memoryEnabled: memoryEnabledToggle.checked
     property alias cfg_userMemory: userMemoryArea.text
+    property alias cfg_globalContextEnabled: globalContextEnabledToggle.checked
+    property alias cfg_globalContextLimit: globalContextLimitSpin.value
+    property alias cfg_globalContextAutoCompact: globalContextAutoCompactToggle.checked
+    property alias cfg_globalContextCompactThreshold: globalContextCompactThresholdSpin.value
     property alias cfg_customHistoryPath: customHistoryPathField.text
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
@@ -1277,6 +1281,10 @@ KCM.SimpleKCM {
         plasmoid.configuration.systemPrompt = systemPromptArea.text;
         plasmoid.configuration.memoryEnabled = memoryEnabledToggle.checked;
         plasmoid.configuration.userMemory = userMemoryArea.text;
+        plasmoid.configuration.globalContextEnabled = globalContextEnabledToggle.checked;
+        plasmoid.configuration.globalContextLimit = globalContextLimitSpin.value;
+        plasmoid.configuration.globalContextAutoCompact = globalContextAutoCompactToggle.checked;
+        plasmoid.configuration.globalContextCompactThreshold = globalContextCompactThresholdSpin.value;
     }
 
     function cancelKeyringOps() {
@@ -3986,6 +3994,95 @@ KCM.SimpleKCM {
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
                 text: "Memory is saved with your settings (Apply/OK). It persists across sessions and is prepended to the system prompt."
+            }
+
+            QQC2.CheckBox {
+                id: globalContextEnabledToggle
+
+                Kirigami.FormData.label: translate("Global Context:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: globalContextEnabledToggle.checked ? translate("Enabled — chat context will be sent to AI") : translate("Disabled — AI will only see the current prompt")
+            }
+
+            QQC2.Label {
+                visible: !globalContextEnabledToggle.checked
+                Kirigami.FormData.label: translate("")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: translate("When context is disabled globally, the AI only answers the immediate question without remembering previous messages.")
+            }
+
+            RowLayout {
+                id: globalContextLimitRow
+                visible: globalContextEnabledToggle.checked
+                spacing: Kirigami.Units.smallSpacing
+                Kirigami.FormData.label: translate("Context limit:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.SpinBox {
+                    id: globalContextLimitSpin
+                    from: 1
+                    to: 100
+                    value: 15
+                    editable: true
+                }
+                
+                QQC2.Label {
+                    text: translate("messages")
+                }
+            }
+
+            QQC2.Label {
+                visible: globalContextEnabledToggle.checked
+                Kirigami.FormData.label: translate("")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: translate("The maximum number of recent messages sent to the AI in each request to preserve token limit / memory.")
+            }
+
+            QQC2.CheckBox {
+                id: globalContextAutoCompactToggle
+                visible: globalContextEnabledToggle.checked
+                Kirigami.FormData.label: translate("Context compacting:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: globalContextAutoCompactToggle.checked ? translate("Auto-compact older messages") : translate("Do not auto-compact")
+            }
+
+            RowLayout {
+                id: globalContextCompactThresholdRow
+                visible: globalContextEnabledToggle.checked && globalContextAutoCompactToggle.checked
+                spacing: Kirigami.Units.smallSpacing
+                Kirigami.FormData.label: translate("Compacting threshold:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.SpinBox {
+                    id: globalContextCompactThresholdSpin
+                    from: 5
+                    to: 100
+                    value: 10
+                    editable: true
+                }
+                
+                QQC2.Label {
+                    text: translate("messages")
+                }
+            }
+
+            QQC2.Label {
+                visible: globalContextEnabledToggle.checked && globalContextAutoCompactToggle.checked
+                Kirigami.FormData.label: translate("")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: translate("When the number of uncompacted messages exceeds this threshold, the widget automatically summarizes them in the background and replaces them with a single summary message to save context tokens.")
             }
 
             Kirigami.Separator {

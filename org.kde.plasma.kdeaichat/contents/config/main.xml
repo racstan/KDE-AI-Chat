@@ -290,6 +290,18 @@
     <entry name="userMemory" type="String">
       <default></default>
     </entry>
+    <entry name="globalContextEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="globalContextLimit" type="Int">
+      <default>15</default>
+    </entry>
+    <entry name="globalContextAutoCompact" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="globalContextCompactThreshold" type="Int">
+      <default>10</default>
+    </entry>
     <entry name="schedulerEnabled" type="Bool">
       <default>false</default>
     </entry>

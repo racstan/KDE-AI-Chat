@@ -27,3 +27,8 @@ docs/plasma-widget-configuration.md
 __pycache__/
 *.pyc
 
+# Local scratch and temporary files
+scratch/
+newaudit.md
+
+

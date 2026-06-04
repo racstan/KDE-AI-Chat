@@ -48,29 +48,6 @@ PlasmoidItem {
     property string configCustomHistoryPath: plasmoid.configuration.customHistoryPath || ""
     property bool configUseOpenCode: !!plasmoid.configuration.useOpenCode
     property int configKeyStorageMode: plasmoid.configuration.keyStorageMode || 0
-    onConfigCustomHistoryPathChanged: {
-        var newPath = configCustomHistoryPath.trim();
-        if (newPath !== root.activeHistoryPath) {
-            migrateHistory(root.activeHistoryPath, newPath);
-            root.activeHistoryPath = newPath;
-        }
-    }
-    onConfigUseOpenCodeChanged: {
-        if (root.messages.length === 0) {
-            root.openCodeMode = configUseOpenCode;
-            setCurrentSessionSource(root.openCodeMode ? "opencode" : "provider");
-        }
-    }
-    onConfigKeyStorageModeChanged: {
-        if (configKeyStorageMode === 2) {
-            root.kwalletKeysLoaded = false;
-            root.kwalletOpenAttempts = 0;
-            loadKWalletKeysIfNeeded();
-        }
-    }
-    onCurrentSessionIdChanged: {
-        resetOpenCodeIdleKillTimer();
-    }
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
@@ -118,10 +95,12 @@ PlasmoidItem {
             var act = root.plasmoidRef.action("configure");
             if (act && typeof act.trigger === "function")
                 act.trigger();
+
         } else if (typeof plasmoid.action === "function") {
             var act2 = plasmoid.action("configure");
             if (act2 && typeof act2.trigger === "function")
                 act2.trigger();
+
         }
     }
 
@@ -175,11 +154,11 @@ PlasmoidItem {
 
     function forkSession(messageIndex) {
         if (root.currentSessionId === "")
-            return;
+            return ;
 
         var idx = sessionIndexById(root.currentSessionId);
         if (idx < 0)
-            return;
+            return ;
 
         var originalSession = root.sessions[idx];
         var forkedMessages = [];
@@ -188,12 +167,10 @@ PlasmoidItem {
                 forkedMessages.push(JSON.parse(JSON.stringify(originalSession.messages[i])));
             }
         }
-
         var forkId = makeForkSessionId();
         var originalTitle = originalSession.text || "New Chat";
         var cleanTitle = originalTitle.indexOf("[FK] ") === 0 ? originalTitle.substring(5) : originalTitle;
         var forkTitle = "[FK] " + cleanTitle;
-
         var s = {
             "value": forkId,
             "text": forkTitle,
@@ -207,7 +184,6 @@ PlasmoidItem {
             "readCount": forkedMessages.length,
             "messages": forkedMessages
         };
-
         root.sessions = [s].concat(root.sessions);
         root.openCodeMode = (s.source === "opencode");
         root.currentSessionId = s.value;
@@ -220,12 +196,10 @@ PlasmoidItem {
         root.renamingCurrentChat = false;
         root.currentChatRenameDraft = "";
         root.historyOnlyMode = false;
-
         persistSessions();
         scrollToBottom();
         root.focusInput();
     }
-
 
     // ── /schedule command handler ──────────────────────────────────────────────
     function handleScheduleCommand(messageText) {
@@ -236,19 +210,7 @@ PlasmoidItem {
     }
 
     function toggleScheduleEnabled(schedId, newEnabled) {
-        var py = [
-            "import json, os",
-            "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-            "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
-            "if isinstance(data, list):",
-            "    data = {'version': 1, 'schedules': data}",
-            "for s in data.get('schedules', []):",
-            "    if s.get('id') == '" + schedId + "':",
-            "        s['enabled'] = " + (newEnabled ? "True" : "False"),
-            "        if " + (newEnabled ? "True" : "False") + ":",
-            "            s['nextRunAt'] = ''",
-            "json.dump(data, open(p, 'w'), indent=2)"
-        ].join("\n");
+        var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "for s in data.get('schedules', []):", "    if s.get('id') == '" + schedId + "':", "        s['enabled'] = " + (newEnabled ? "True" : "False"), "        if " + (newEnabled ? "True" : "False") + ":", "            s['nextRunAt'] = ''", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
         var b64Py = base64Encode(py);
         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-toggle-" + Date.now());
@@ -259,9 +221,9 @@ PlasmoidItem {
                 var s = Object.assign({
                 }, copy[i]);
                 s.enabled = newEnabled;
-                if (newEnabled) {
+                if (newEnabled)
                     s.nextRunAt = "";
-                }
+
                 copy[i] = s;
             }
         }
@@ -283,17 +245,14 @@ PlasmoidItem {
             executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
             return ;
         }
-
         // Play the custom scheduled execution sound
         var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
-
         // Validate provider/model configuration before executing
         var validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             // Push validation error into chat window
             pushErrorMessage(validationError);
-
             // Display critical desktop notification popup of the configuration failure
             if (notify) {
                 var escapedErr = validationError.replace(/'/g, "'\\''");
@@ -301,30 +260,15 @@ PlasmoidItem {
                 var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
                 soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-notify-err");
             }
-
             // Sync the detailed failure back to the scheduler's run history log
             if (schedId) {
-                var historyPy = [
-                    "import json, os",
-                    "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-                    "if os.path.exists(p):",
-                    "  try:",
-                    "    data = json.load(open(p))",
-                    "    history = data.setdefault('history', [])",
-                    "    for entry in reversed(history):",
-                    "      if entry.get('scheduleId') == '" + schedId + "':",
-                    "        entry['status'] = '" + validationError.replace(/'/g, "\\'") + "'",
-                    "        break",
-                    "    json.dump(data, open(p, 'w'), indent=2)",
-                    "  except Exception: pass"
-                ].join("\n");
+                var historyPy = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "if os.path.exists(p):", "  try:", "    data = json.load(open(p))", "    history = data.setdefault('history', [])", "    for entry in reversed(history):", "      if entry.get('scheduleId') == '" + schedId + "':", "        entry['status'] = '" + validationError.replace(/'/g, "\\'") + "'", "        break", "    json.dump(data, open(p, 'w'), indent=2)", "  except Exception: pass"].join("\n");
                 var b64History = base64Encode(historyPy);
                 var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64History + "').decode('utf-8'))\"";
                 soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
             }
             return ;
         }
-
         // Append user message
         appendUserMessage(messageText, "user", [], true);
         // Trigger LLM generation
@@ -384,7 +328,8 @@ PlasmoidItem {
                 var currentMsgsCount = root.messages.length;
                 if (s.readCount !== currentMsgsCount) {
                     var updated = root.sessions.slice();
-                    var item = Object.assign({}, updated[idx]);
+                    var item = Object.assign({
+                    }, updated[idx]);
                     item.readCount = currentMsgsCount;
                     item.messages = root.messages;
                     updated[idx] = item;
@@ -421,9 +366,10 @@ PlasmoidItem {
         var dir = (customDir || "").trim();
         if (dir === "")
             return "";
-        if (dir.indexOf("file://") === 0) {
+
+        if (dir.indexOf("file://") === 0)
             dir = decodeURIComponent(dir.slice(7));
-        }
+
         var fullPath = dir;
         if (!fullPath.endsWith(".json")) {
             if (fullPath.endsWith("/"))
@@ -437,48 +383,11 @@ PlasmoidItem {
     function migrateHistory(oldPath, newPath) {
         var oldFullPath = getHistoryFilePath(oldPath);
         var newFullPath = getHistoryFilePath(newPath);
-
         // When switching TO a custom path, always export current in-memory sessions
         // to the new location, then fall back to copying the old file if it exists.
         var currentJson = JSON.stringify(root.sessions);
         var b64Current = base64Encode(currentJson);
-
-        var py = [
-            "import os, shutil, base64, json",
-            "old_p = os.path.expanduser('" + oldFullPath.replace(/'/g, "\\'") + "') if '" + oldFullPath + "' else ''",
-            "new_p = os.path.expanduser('" + newFullPath.replace(/'/g, "\\'") + "') if '" + newFullPath + "' else ''",
-            "current_b64 = '" + b64Current + "'",
-            "res = {'status': 'ok', 'action': 'none'}",
-            "try:",
-            "  if not new_p:",
-            "    # Switching back to default — load from old custom path if it exists",
-            "    if old_p and os.path.exists(old_p):",
-            "      res['action'] = 'load'",
-            "      res['content'] = base64.b64encode(open(old_p, 'rb').read()).decode('utf-8')",
-            "  else:",
-            "    folder = os.path.dirname(new_p)",
-            "    if folder:",
-            "      os.makedirs(folder, exist_ok=True)",
-            "    if os.path.exists(new_p):",
-            "      # Destination already has a file — load it (don't overwrite)",
-            "      res['action'] = 'load'",
-            "      res['content'] = base64.b64encode(open(new_p, 'rb').read()).decode('utf-8')",
-            "    elif old_p and os.path.exists(old_p):",
-            "      # Copy old custom path file to new path",
-            "      shutil.copy2(old_p, new_p)",
-            "      res['action'] = 'copied'",
-            "    else:",
-            "      # No existing file — export current in-memory sessions",
-            "      data = base64.b64decode(current_b64).decode('utf-8')",
-            "      with open(new_p, 'w', encoding='utf-8') as f:",
-            "        f.write(data)",
-            "      res['action'] = 'exported'",
-            "except Exception as e:",
-            "  res['status'] = 'error'",
-            "  res['message'] = str(e)",
-            "print(base64.b64encode(json.dumps(res).encode('utf-8')).decode('utf-8'))"
-        ].join("\n");
-
+        var py = ["import os, shutil, base64, json", "old_p = os.path.expanduser('" + oldFullPath.replace(/'/g, "\\'") + "') if '" + oldFullPath + "' else ''", "new_p = os.path.expanduser('" + newFullPath.replace(/'/g, "\\'") + "') if '" + newFullPath + "' else ''", "current_b64 = '" + b64Current + "'", "res = {'status': 'ok', 'action': 'none'}", "try:", "  if not new_p:", "    # Switching back to default — load from old custom path if it exists", "    if old_p and os.path.exists(old_p):", "      res['action'] = 'load'", "      res['content'] = base64.b64encode(open(old_p, 'rb').read()).decode('utf-8')", "  else:", "    folder = os.path.dirname(new_p)", "    if folder:", "      os.makedirs(folder, exist_ok=True)", "    if os.path.exists(new_p):", "      # Destination already has a file — load it (don't overwrite)", "      res['action'] = 'load'", "      res['content'] = base64.b64encode(open(new_p, 'rb').read()).decode('utf-8')", "    elif old_p and os.path.exists(old_p):", "      # Copy old custom path file to new path", "      shutil.copy2(old_p, new_p)", "      res['action'] = 'copied'", "    else:", "      # No existing file — export current in-memory sessions", "      data = base64.b64decode(current_b64).decode('utf-8')", "      with open(new_p, 'w', encoding='utf-8') as f:", "        f.write(data)", "      res['action'] = 'exported'", "except Exception as e:", "  res['status'] = 'error'", "  res['message'] = str(e)", "print(base64.b64encode(json.dumps(res).encode('utf-8')).decode('utf-8'))"].join("\n");
         var b64Py = base64Encode(py);
         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
         customStorageDs.connectSource(cmd + " #migrate-history-" + Date.now());
@@ -610,11 +519,10 @@ PlasmoidItem {
         }, updated[idx]);
         s.text = root.currentSessionTitle || "New Chat";
         s.messages = root.messages;
-        if (root.expanded && !root.historyOnlyMode) {
+        if (root.expanded && !root.historyOnlyMode)
             s.readCount = root.messages.length;
-        } else {
+        else
             s.readCount = s.readCount !== undefined ? s.readCount : root.messages.length;
-        }
         if (touchUpdatedAt !== false)
             s.updatedAt = Date.now();
 
@@ -750,24 +658,11 @@ PlasmoidItem {
         }
         cancelSessionRename();
         persistSessions();
-
         // Clean up schedules associated with this session
-        var py = [
-            "import json, os",
-            "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-            "if os.path.exists(p):",
-            "  try:",
-            "    data = json.load(open(p))",
-            "    if isinstance(data, dict):",
-            "      scheds = data.get('schedules', [])",
-            "      data['schedules'] = [s for s in scheds if s.get('chatId') != '" + sessionId + "']",
-            "      json.dump(data, open(p, 'w'), indent=2)",
-            "  except Exception: pass"
-        ].join("\n");
+        var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "if os.path.exists(p):", "  try:", "    data = json.load(open(p))", "    if isinstance(data, dict):", "      scheds = data.get('schedules', [])", "      data['schedules'] = [s for s in scheds if s.get('chatId') != '" + sessionId + "']", "      json.dump(data, open(p, 'w'), indent=2)", "  except Exception: pass"].join("\n");
         var b64Py = base64Encode(py);
         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-session-delete-" + Date.now());
-
         // Also update root.schedulesList locally
         var copy = root.schedulesList.filter(function(s) {
             return s.chatId !== sessionId;
@@ -827,7 +722,13 @@ PlasmoidItem {
     }
 
     function currentOpenCodeSessionId() {
-        var idx = sessionIndexById(root.currentSessionId);
+        var sId = root.currentSessionId;
+        var override = getSessionProperty(sId, "contextOverride", false);
+        var contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : plasmoid.configuration.globalContextEnabled;
+        if (!contextEnabled)
+            return "";
+
+        var idx = sessionIndexById(sId);
         if (idx < 0)
             return "";
 
@@ -853,6 +754,215 @@ PlasmoidItem {
             return ;
 
         setCurrentOpenCodeSessionId("");
+    }
+
+    function getSessionProperty(sessionId, key, defaultValue) {
+        var idx = sessionIndexById(sessionId);
+        if (idx < 0)
+            return defaultValue;
+
+        var val = root.sessions[idx][key];
+        return val !== undefined ? val : defaultValue;
+    }
+
+    function setSessionProperty(sessionId, key, value) {
+        var idx = sessionIndexById(sessionId);
+        if (idx < 0)
+            return ;
+
+        var updated = root.sessions.slice();
+        var item = Object.assign({
+        }, updated[idx]);
+        item[key] = value;
+        updated[idx] = item;
+        root.sessions = updated;
+        persistSessions();
+    }
+
+    function checkAndAutoCompact(sessionId) {
+        var sId = sessionId || root.currentSessionId;
+        var idx = sessionIndexById(sId);
+        if (idx < 0)
+            return ;
+
+        var override = getSessionProperty(sId, "contextOverride", false);
+        var autoCompact = override ? getSessionProperty(sId, "contextAutoCompact", false) : plasmoid.configuration.globalContextAutoCompact;
+        if (!autoCompact)
+            return ;
+
+        var threshold = override ? getSessionProperty(sId, "contextCompactThreshold", 10) : plasmoid.configuration.globalContextCompactThreshold;
+        var msgs = root.sessions[idx].messages || [];
+        var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
+        var uncompactedCleanCount = 0;
+        for (var i = compactedCount; i < msgs.length; i++) {
+            var role = msgs[i].role;
+            if ((role === "user" || role === "assistant") && !msgs[i].isSystem)
+                uncompactedCleanCount++;
+
+        }
+        if (uncompactedCleanCount > threshold)
+            compactSessionContext(sId);
+
+    }
+
+    function compactSessionContext(sessionId) {
+        var sId = sessionId || root.currentSessionId;
+        var idx = sessionIndexById(sId);
+        if (idx < 0)
+            return ;
+
+        var msgs = root.sessions[idx].messages || [];
+        var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
+        var cleanMsgs = [];
+        for (var i = compactedCount; i < msgs.length; i++) {
+            var role = msgs[i].role;
+            if ((role === "user" || role === "assistant") && !msgs[i].isSystem)
+                cleanMsgs.push({
+                    "index": i,
+                    "role": role,
+                    "content": msgs[i].content
+                });
+
+        }
+        if (cleanMsgs.length < 3) {
+            appendSystemMessageToSession(sId, "Not enough messages to compact yet (need at least 3).");
+            return ;
+        }
+        var limitCleanIndex = cleanMsgs.length - 2;
+        var limitRealIndex = cleanMsgs[limitCleanIndex].index;
+        var textToSummarize = "";
+        var oldSummary = getSessionProperty(sId, "compactedSummary", "");
+        if (oldSummary !== "")
+            textToSummarize += "[Previous Summary]:\n" + oldSummary + "\n\n";
+
+        for (var j = 0; j < limitCleanIndex; j++) {
+            var prefix = cleanMsgs[j].role === "user" ? "User: " : "AI: ";
+            textToSummarize += prefix + cleanMsgs[j].content + "\n\n";
+        }
+        appendSystemMessageToSession(sId, "Compacting context, please wait...");
+        var promptText = "Please write a highly concise summary (max 3-4 sentences) of the following conversation history. Keep it extremely brief and factual, focus on user preferences, details of what was discussed/resolved, and any state that needs to be preserved. This summary will be injected into the system prompt of the next turns to maintain context:\n\n" + textToSummarize;
+        sendBackgroundSummarizationRequest(sId, promptText, limitRealIndex + 1);
+    }
+
+    function sendBackgroundSummarizationRequest(sId, promptText, count) {
+        var provider = "";
+        var model = "";
+        var apiKey = "";
+        var url = "";
+        var headers = null;
+        var isAnthropic = false;
+        if (root.openCodeMode) {
+            url = openCodeBaseUrl() + "/v1/chat/completions";
+            model = (plasmoid.configuration.openCodeModel || "").trim();
+            provider = "opencode";
+        } else {
+            provider = plasmoid.configuration.provider || "openai";
+            var providerCfg = getProviderConfig(provider);
+            isAnthropic = (providerCfg.type === "anthropic");
+            if (isAnthropic) {
+                apiKey = providerCfg.apiKey;
+                model = providerCfg.model;
+            } else {
+                url = providerCfg.baseUrl;
+                apiKey = providerCfg.apiKey;
+                model = providerCfg.model;
+                headers = providerCfg.headers;
+            }
+        }
+        var xhr = new XMLHttpRequest();
+        if (isAnthropic) {
+            xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
+            xhr.setRequestHeader("x-api-key", apiKey);
+            xhr.setRequestHeader("anthropic-version", "2023-06-01");
+            xhr.setRequestHeader("content-type", "application/json");
+        } else {
+            var fullUrl = url;
+            if (!fullUrl.endsWith("/chat/completions") && !fullUrl.endsWith("/completions"))
+                fullUrl = fullUrl.replace(/\/+$/, "") + "/chat/completions";
+
+            xhr.open("POST", fullUrl, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            if (apiKey !== "")
+                xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+
+            if (headers) {
+                for (var key in headers) {
+                    xhr.setRequestHeader(key, headers[key]);
+                }
+            }
+        }
+        xhr.timeout = 30000;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var summaryText = "";
+                    var res = JSON.parse(xhr.responseText);
+                    if (isAnthropic) {
+                        if (res.content && res.content.length > 0)
+                            summaryText = res.content[0].text;
+
+                    } else {
+                        if (res.choices && res.choices.length > 0 && res.choices[0].message)
+                            summaryText = res.choices[0].message.content;
+
+                    }
+                    summaryText = (summaryText || "").trim();
+                    if (summaryText !== "") {
+                        setSessionProperty(sId, "compactedSummary", summaryText);
+                        setSessionProperty(sId, "compactedMessageCount", count);
+                        if (root.openCodeMode)
+                            setSessionProperty(sId, "openCodeSessionId", "");
+
+                        appendSystemMessageToSession(sId, "Context compacted successfully. Summary: " + summaryText);
+                    } else {
+                        appendSystemMessageToSession(sId, "⚠️ Context compaction returned an empty response.");
+                    }
+                } catch (e) {
+                    appendSystemMessageToSession(sId, "⚠️ Failed to parse compaction response: " + e.toString());
+                }
+            } else {
+                var errMsg = "HTTP " + xhr.status;
+                try {
+                    var errObj = JSON.parse(xhr.responseText);
+                    if (errObj.error && errObj.error.message)
+                        errMsg += ": " + errObj.error.message;
+
+                } catch (e) {
+                }
+                appendSystemMessageToSession(sId, "⚠️ Context compaction failed: " + errMsg);
+            }
+        };
+        xhr.onerror = function() {
+            appendSystemMessageToSession(sId, "⚠️ Network error while compacting context.");
+        };
+        var payload = {
+        };
+        if (isAnthropic)
+            payload = {
+                "model": model,
+                "max_tokens": 512,
+                "messages": [{
+                    "role": "user",
+                    "content": promptText
+                }]
+            };
+        else
+            payload = {
+                "model": model,
+                "max_tokens": 512,
+                "messages": [{
+                    "role": "user",
+                    "content": promptText
+                }]
+            };
+        try {
+            xhr.send(JSON.stringify(payload));
+        } catch (e) {
+            appendSystemMessageToSession(sId, "⚠️ Failed to send compaction request: " + e.toString());
+        }
     }
 
     function updateAutocomplete() {
@@ -1176,6 +1286,7 @@ PlasmoidItem {
             root.openCodeEventXhr = null;
             if (root.openCodeMode)
                 openCodeReconnectTimer.start();
+
         };
         try {
             xhr.send();
@@ -1183,6 +1294,7 @@ PlasmoidItem {
             root.openCodeEventXhr = null;
             if (root.openCodeMode)
                 openCodeReconnectTimer.start();
+
         }
     }
 
@@ -1466,12 +1578,14 @@ PlasmoidItem {
             "at": ts,
             "model": "",
             "queueId": 0,
-            "attachments": []
+            "attachments": [],
+            "isSystem": true
         };
         appendMessageToSession(chatId, msgObj);
         if (chatId === root.currentSessionId) {
             if (!root.userScrolledUp)
                 Qt.callLater(scrollToBottom);
+
         }
     }
 
@@ -1481,7 +1595,8 @@ PlasmoidItem {
             return ;
 
         var updated = root.sessions.slice();
-        var item = Object.assign({}, updated[idx]);
+        var item = Object.assign({
+        }, updated[idx]);
         item.openCodeSessionId = remoteSessionId || "";
         updated[idx] = item;
         root.sessions = updated;
@@ -1492,19 +1607,18 @@ PlasmoidItem {
         var targetIdx = sessionIndexById(chatId);
         if (targetIdx < 0) {
             failureCallback("Session not found");
-            return;
+            return ;
         }
         var existing = root.sessions[targetIdx].openCodeSessionId || "";
         if (existing !== "") {
             successCallback(existing);
             return ;
         }
-        var fail = function(msg) {
-            if (typeof failureCallback === "function") {
+        var fail = function fail(msg) {
+            if (typeof failureCallback === "function")
                 failureCallback(msg);
-            } else {
+            else
                 pushErrorMessage(msg);
-            }
         };
         var xhr = new XMLHttpRequest();
         xhr.open("POST", openCodeBaseUrl() + "/session", true);
@@ -1554,12 +1668,11 @@ PlasmoidItem {
             successCallback(existing);
             return ;
         }
-        var fail = function(msg) {
-            if (typeof failureCallback === "function") {
+        var fail = function fail(msg) {
+            if (typeof failureCallback === "function")
                 failureCallback(msg);
-            } else {
+            else
                 pushErrorMessage(msg);
-            }
         };
         var xhr = new XMLHttpRequest();
         xhr.open("POST", openCodeBaseUrl() + "/session", true);
@@ -1603,53 +1716,20 @@ PlasmoidItem {
     }
 
     function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
-        var checkUrl = openCodeBaseUrl() + "/config/providers";
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", checkUrl, true);
-        xhr.timeout = 2000;
-        
-        var fail = function(msg) {
-            if (typeof failureCallback === "function") {
-                failureCallback(msg);
-            } else {
-                if (chatId) {
-                    appendSystemMessageToSession(chatId, "⚠️ " + msg);
-                } else {
-                    pushErrorMessage(msg);
-                }
-            }
-        };
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE)
-                return;
-            if (xhr.status >= 200 && xhr.status < 300) {
-                successCallback();
-            } else {
-                handleNotRunning("HTTP " + xhr.status);
-            }
-        };
-        xhr.onerror = function() {
-            handleNotRunning("Transport error");
-        };
-        xhr.ontimeout = function() {
-            handleNotRunning("Timeout");
-        };
-
         function handleNotRunning(err) {
             if (plasmoid.configuration.autoStartOpenCodeServer) {
                 var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
                 opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
-
-                if (chatId) {
+                if (chatId)
                     appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
-                }
 
                 openCodeStartPollTimer.successCb = function() {
-                    if (chatId) {
+                    if (chatId)
                         appendSystemMessageToSession(chatId, translate("Session restarted."));
-                    }
-                    if (successCallback) successCallback();
+
+                    if (successCallback)
+                        successCallback();
+
                 };
                 openCodeStartPollTimer.failureCb = fail;
                 openCodeStartPollTimer.retriesLeft = 8;
@@ -1659,6 +1739,35 @@ PlasmoidItem {
             }
         }
 
+        var checkUrl = openCodeBaseUrl() + "/config/providers";
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", checkUrl, true);
+        xhr.timeout = 2000;
+        var fail = function fail(msg) {
+            if (typeof failureCallback === "function") {
+                failureCallback(msg);
+            } else {
+                if (chatId)
+                    appendSystemMessageToSession(chatId, "⚠️ " + msg);
+                else
+                    pushErrorMessage(msg);
+            }
+        };
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+
+            if (xhr.status >= 200 && xhr.status < 300)
+                successCallback();
+            else
+                handleNotRunning("HTTP " + xhr.status);
+        };
+        xhr.onerror = function() {
+            handleNotRunning("Transport error");
+        };
+        xhr.ontimeout = function() {
+            handleNotRunning("Timeout");
+        };
         try {
             xhr.send();
         } catch (e) {
@@ -1667,8 +1776,6 @@ PlasmoidItem {
     }
 
     function doOpenCodeRequest() {
-        var requestFinalized = false;
-
         function failOpenCodeRequest(message) {
             if (requestFinalized)
                 return ;
@@ -1681,6 +1788,7 @@ PlasmoidItem {
             finishOpenCodeRequest();
         }
 
+        var requestFinalized = false;
         ensureOpenCodeServerRunning(root.currentSessionId, function() {
             ensureOpenCodeEventStream();
             root.loading = true;
@@ -1708,9 +1816,9 @@ PlasmoidItem {
                         return ;
 
                     if (xhr.status < 200 || xhr.status >= 300) {
-                        if (xhr.status === 404) {
+                        if (xhr.status === 404)
                             setCurrentOpenCodeSessionId("");
-                        }
+
                         var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
                         failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
                         return ;
@@ -1985,14 +2093,13 @@ PlasmoidItem {
         }]);
         scrollToBottom();
         saveCurrentSessionState(true);
-
         // If the last user message was a schedule, show a desktop notification of the execution failure!
         var isSched = false;
         for (var i = root.messages.length - 1; i >= 0; i--) {
             if (root.messages[i].role === "user") {
-                if (root.messages[i].sc) {
+                if (root.messages[i].sc)
                     isSched = true;
-                }
+
                 break;
             }
         }
@@ -2011,7 +2118,8 @@ PlasmoidItem {
             "content": text,
             "time": nowTime(ts),
             "at": ts,
-            "model": "OpenCode"
+            "model": "OpenCode",
+            "isSystem": true
         }]);
         scrollToBottom();
         saveCurrentSessionState(true);
@@ -2041,7 +2149,8 @@ PlasmoidItem {
             "at": ts,
             "model": "",
             "queueId": 0,
-            "attachments": []
+            "attachments": [],
+            "isSystem": true
         }]);
         saveCurrentSessionState(true);
         if (!root.userScrolledUp)
@@ -2056,20 +2165,20 @@ PlasmoidItem {
             if (s && s.chatId === sessionId && !s.archived) {
                 var isExecuted = false;
                 if (s.taskType === "single") {
-                    if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0) || s.enabled === false) {
+                    if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0) || s.enabled === false)
                         isExecuted = true;
-                    }
+
                 } else {
-                    if (s.enabled === false) {
+                    if (s.enabled === false)
                         isExecuted = true;
-                    }
-                    if (s.limitEnabled && s.runCount >= s.limitCount) {
+
+                    if (s.limitEnabled && s.runCount >= s.limitCount)
                         isExecuted = true;
-                    }
+
                 }
-                if (!isExecuted) {
+                if (!isExecuted)
                     res.push(s);
-                }
+
             }
         }
         return res;
@@ -2235,9 +2344,9 @@ PlasmoidItem {
     }
 
     function sendMessage() {
-        try {
-            // ──────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────
 
+        try {
             var text = (root.chatInputText || "").trim();
             var attachments = root.attachedFiles || [];
             if (text === "" && attachments.length === 0)
@@ -2247,16 +2356,14 @@ PlasmoidItem {
             var lowerText = text.toLowerCase().replace(/^\//, "").trim();
             if (lowerText === "schedule" || lowerText === "schedules" || lowerText === "scheduler" || text.toLowerCase().startsWith("/schedule")) {
                 var schedText = "";
-                if (text.toLowerCase().startsWith("/schedule")) {
+                if (text.toLowerCase().startsWith("/schedule"))
                     schedText = text.slice("/schedule".length).trim();
-                } else if (text.toLowerCase().startsWith("schedule")) {
+                else if (text.toLowerCase().startsWith("schedule"))
                     schedText = text.slice("schedule".length).trim();
-                } else if (text.toLowerCase().startsWith("schedules")) {
+                else if (text.toLowerCase().startsWith("schedules"))
                     schedText = text.slice("schedules".length).trim();
-                } else if (text.toLowerCase().startsWith("scheduler")) {
+                else if (text.toLowerCase().startsWith("scheduler"))
                     schedText = text.slice("scheduler".length).trim();
-                }
-                
                 root.attachedFiles = [];
                 root.chatInputText = "";
                 root.clearChatInput();
@@ -2282,6 +2389,7 @@ PlasmoidItem {
                     saveCurrentSessionState(true);
                     if (!root.userScrolledUp)
                         Qt.callLater(scrollToBottom);
+
                 }
                 return ;
             }
@@ -2522,14 +2630,67 @@ PlasmoidItem {
         return Translations.translate(text, plasmoid.configuration.language);
     }
 
-    function buildEffectiveSystemPrompt() {
+    function buildEffectiveSystemPrompt(sessionId) {
+        var sId = sessionId || root.currentSessionId;
         var base = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
         var memoryOn = plasmoid.configuration.memoryEnabled || false;
         var memoryTxt = (plasmoid.configuration.userMemory || "").trim();
         if (memoryOn && memoryTxt !== "")
             base = base + "\n\n--- User Memory ---\n" + memoryTxt + "\n--- End of User Memory ---";
 
+        var summary = getSessionProperty(sId, "compactedSummary", "");
+        if (summary !== "")
+            base = base + "\n\n--- Summary of Previous Conversation ---\n" + summary + "\n--- End of Summary ---";
+
         return base;
+    }
+
+    // Returns a filtered, context-limited list of {role, content} pairs.
+    // System-status bubbles (error, schedules_list, info …) are excluded.
+    // Messages before the compacted boundary are excluded.
+    // Only the last N user/assistant messages are kept (N = per-session override OR global limit).
+    function buildContextWindow(messagesList, sessionId) {
+        var sId = sessionId || root.currentSessionId;
+        var override = getSessionProperty(sId, "contextOverride", false);
+        var contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : (plasmoid.configuration.globalContextEnabled !== false);
+        var limit = override ? getSessionProperty(sId, "contextLimit", 15) : (plasmoid.configuration.globalContextLimit || 15);
+        var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
+        var clean = [];
+        for (var i = 0; i < messagesList.length; i++) {
+            var m = messagesList[i];
+            // Skip messages before the compacted boundary
+            if (i < compactedCount)
+                continue;
+
+            // Only real conversation turns
+            if (m.role !== "user" && m.role !== "assistant")
+                continue;
+
+            // Exclude system-status assistant bubbles (info/error injected by the widget)
+            if (m.isSystem)
+                continue;
+
+            clean.push({
+                "idx": i,
+                "msg": m
+            });
+        }
+        if (!contextEnabled) {
+            // No context: only keep the very last user message
+            for (var k = clean.length - 1; k >= 0; k--) {
+                if (clean[k].msg.role === "user")
+                    return [clean[k].msg];
+
+            }
+            return [];
+        }
+        // Apply limit (take the last `limit` items)
+        if (clean.length > limit)
+            clean = clean.slice(clean.length - limit);
+
+        return clean.map(function(e) {
+            return e.msg;
+        });
     }
 
     function buildOpenAICompatPayload() {
@@ -2538,92 +2699,80 @@ PlasmoidItem {
             "role": "system",
             "content": sys
         }];
-        for (var i = 0; i < root.messages.length; i++) {
-            var m = root.messages[i];
-            if (m.role === "user" || m.role === "assistant") {
-                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
-                    var payloadContent = buildMessageContent(m.content, m.attachments, "openai");
-                    arr.push({
-                        "role": m.role,
-                        "content": payloadContent
-                    });
-                } else {
-                    arr.push({
-                        "role": m.role,
-                        "content": m.content
-                    });
-                }
-            }
+        var window = buildContextWindow(root.messages);
+        for (var i = 0; i < window.length; i++) {
+            var m = window[i];
+            if (m.role === "user" && m.attachments && m.attachments.length > 0)
+                arr.push({
+                    "role": m.role,
+                    "content": buildMessageContent(m.content, m.attachments, "openai")
+                });
+            else
+                arr.push({
+                    "role": m.role,
+                    "content": m.content
+                });
         }
         return arr;
     }
 
     function buildAnthropicPayload() {
         var arr = [];
-        for (var i = 0; i < root.messages.length; i++) {
-            var m = root.messages[i];
-            if (m.role === "user" || m.role === "assistant") {
-                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
-                    var payloadContent = buildMessageContent(m.content, m.attachments, "anthropic");
-                    arr.push({
-                        "role": m.role,
-                        "content": payloadContent
-                    });
-                } else {
-                    arr.push({
-                        "role": m.role,
-                        "content": m.content
-                    });
-                }
-            }
+        var window = buildContextWindow(root.messages);
+        for (var i = 0; i < window.length; i++) {
+            var m = window[i];
+            if (m.role === "user" && m.attachments && m.attachments.length > 0)
+                arr.push({
+                    "role": m.role,
+                    "content": buildMessageContent(m.content, m.attachments, "anthropic")
+                });
+            else
+                arr.push({
+                    "role": m.role,
+                    "content": m.content
+                });
         }
         return arr;
     }
 
-    function buildOpenAICompatPayloadForMessages(messagesList) {
-        var sys = buildEffectiveSystemPrompt();
+    function buildOpenAICompatPayloadForMessages(messagesList, chatId) {
+        var sys = buildEffectiveSystemPrompt(chatId);
         var arr = [{
             "role": "system",
             "content": sys
         }];
-        for (var i = 0; i < messagesList.length; i++) {
-            var m = messagesList[i];
-            if (m.role === "user" || m.role === "assistant") {
-                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
-                    var payloadContent = buildMessageContent(m.content, m.attachments, "openai");
-                    arr.push({
-                        "role": m.role,
-                        "content": payloadContent
-                    });
-                } else {
-                    arr.push({
-                        "role": m.role,
-                        "content": m.content
-                    });
-                }
-            }
+        var window = buildContextWindow(messagesList, chatId);
+        for (var i = 0; i < window.length; i++) {
+            var m = window[i];
+            if (m.role === "user" && m.attachments && m.attachments.length > 0)
+                arr.push({
+                    "role": m.role,
+                    "content": buildMessageContent(m.content, m.attachments, "openai")
+                });
+            else
+                arr.push({
+                    "role": m.role,
+                    "content": m.content
+                });
         }
         return arr;
     }
 
-    function buildAnthropicPayloadForMessages(messagesList) {
+    function buildAnthropicPayloadForMessages(messagesList, chatId) {
         var arr = [];
-        for (var i = 0; i < messagesList.length; i++) {
-            var m = messagesList[i];
-            if (m.role === "user" || m.role === "assistant") {
-                if (m.role === "user" && m.attachments && m.attachments.length > 0) {
-                    var payloadContent = buildMessageContent(m.content, m.attachments, "anthropic");
-                    arr.push({
-                        "role": m.role,
-                        "content": payloadContent
-                    });
-                } else {
-                    arr.push({
-                        "role": m.role,
-                        "content": m.content
-                    });
-                }
-            }
+        var window = buildContextWindow(messagesList, chatId);
+        for (var i = 0; i < window.length; i++) {
+            var m = window[i];
+            if (m.role === "user" && m.attachments && m.attachments.length > 0)
+                arr.push({
+                    "role": m.role,
+                    "content": buildMessageContent(m.content, m.attachments, "anthropic")
+                });
+            else
+                arr.push({
+                    "role": m.role,
+                    "content": m.content
+                });
         }
         return arr;
     }
@@ -2634,23 +2783,20 @@ PlasmoidItem {
             return ;
 
         var updated = root.sessions.slice();
-        var s = Object.assign({}, updated[idx]);
-        
+        var s = Object.assign({
+        }, updated[idx]);
         var msgs = (s.messages || []).slice();
         msgs.push(msgObj);
         s.messages = msgs;
         s.updatedAt = Date.now();
-        
         if (chatId === root.currentSessionId) {
             root.messages = msgs;
-            if (root.expanded && !root.historyOnlyMode) {
+            if (root.expanded && !root.historyOnlyMode)
                 s.readCount = msgs.length;
-            }
+
         }
-        
         updated[idx] = s;
         root.sessions = updated;
-        
         sortSessionsByUpdated();
         persistSessions();
     }
@@ -2665,29 +2811,14 @@ PlasmoidItem {
             "model": ""
         };
         appendMessageToSession(chatId, errMsgObj);
-        
         if (notify) {
             var escapedErr = errorMsg.replace(/'/g, "'\\''");
             var errTitle = "Schedule Failed: " + (schedName || "Chat");
             var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-notify-err");
         }
-        
         if (schedId) {
-            var historyPy = [
-                "import json, os",
-                "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-                "if os.path.exists(p):",
-                "  try:",
-                "    data = json.load(open(p))",
-                "    history = data.setdefault('history', [])",
-                "    for entry in reversed(history):",
-                "      if entry.get('scheduleId') == '" + schedId + "':",
-                "        entry['status'] = '" + errorMsg.replace(/'/g, "\\'") + "'",
-                "        break",
-                "    json.dump(data, open(p, 'w'), indent=2)",
-                "  except Exception: pass"
-            ].join("\n");
+            var historyPy = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "if os.path.exists(p):", "  try:", "    data = json.load(open(p))", "    history = data.setdefault('history', [])", "    for entry in reversed(history):", "      if entry.get('scheduleId') == '" + schedId + "':", "        entry['status'] = '" + errorMsg.replace(/'/g, "\\'") + "'", "        break", "    json.dump(data, open(p, 'w'), indent=2)", "  except Exception: pass"].join("\n");
             var b64History = base64Encode(historyPy);
             var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64History + "').decode('utf-8'))\"";
             soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
@@ -2695,8 +2826,6 @@ PlasmoidItem {
     }
 
     function doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName) {
-        var requestFinalized = false;
-
         function failBackgroundOpenCodeRequest(message) {
             if (requestFinalized)
                 return ;
@@ -2705,12 +2834,12 @@ PlasmoidItem {
             handleBackgroundError(chatId, message, notify, schedId, schedName);
         }
 
+        var requestFinalized = false;
         ensureOpenCodeServerRunning(chatId, function() {
             ensureOpenCodeSessionForChatId(chatId, function(remoteSessionId) {
                 var xhr = new XMLHttpRequest();
                 var modelId = (plasmoid.configuration.openCodeModel || "").trim();
                 var providerId = (plasmoid.configuration.openCodeProvider || "").trim();
-                
                 xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.timeout = 60000;
@@ -2725,9 +2854,9 @@ PlasmoidItem {
                         return ;
 
                     if (xhr.status < 200 || xhr.status >= 300) {
-                        if (xhr.status === 404) {
+                        if (xhr.status === 404)
                             setOpenCodeSessionIdForChatId(chatId, "");
-                        }
+
                         var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
                         failBackgroundOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
                         return ;
@@ -2739,14 +2868,13 @@ PlasmoidItem {
                             for (var i = 0; i < obj.parts.length; i++) {
                                 if (obj.parts[i].type === "text")
                                     combined += obj.parts[i].text || obj.parts[i].content || "";
+
                             }
                         }
-                        
                         if (obj.info && obj.info.error) {
                             failBackgroundOpenCodeRequest(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
-                            return;
+                            return ;
                         }
-
                         if (combined !== "") {
                             var doneTs = Date.now();
                             var msgObj = {
@@ -2758,10 +2886,8 @@ PlasmoidItem {
                                 "queueId": 0,
                                 "attachments": []
                             };
-                            
                             appendMessageToSession(chatId, msgObj);
                             triggerNotificationSound();
-                            
                             if (notify) {
                                 var escapedText = combined.substring(0, 150).replace(/'/g, "'\\''") + (combined.length > 150 ? "…" : "");
                                 var title = (schedName || "Scheduled message response ready");
@@ -2779,7 +2905,6 @@ PlasmoidItem {
                 xhr.onerror = function() {
                     failBackgroundOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
                 };
-                
                 try {
                     xhr.send(JSON.stringify({
                         "role": "user",
@@ -2801,45 +2926,50 @@ PlasmoidItem {
         var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
         var xhr = new XMLHttpRequest();
         var errorHandled = false;
-        
         var targetIdx = sessionIndexById(chatId);
-        if (targetIdx < 0) return;
-        
+        if (targetIdx < 0)
+            return ;
+
         var targetSession = root.sessions[targetIdx];
         var messagesList = targetSession.messages || [];
-
         try {
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
-            if (apiKey !== "") {
+            if (apiKey !== "")
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
-            }
+
             if (extraHeaders) {
                 for (var headerName in extraHeaders) {
                     if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
                         xhr.setRequestHeader(headerName, extraHeaders[headerName]);
+
                 }
             }
             xhr.timeout = 60000;
             xhr.ontimeout = function() {
-                if (errorHandled) return;
+                if (errorHandled)
+                    return ;
+
                 errorHandled = true;
                 handleBackgroundError(chatId, "Request timed out after 60 seconds.", notify, schedId, schedName);
             };
         } catch (setupError) {
             handleBackgroundError(chatId, "Failed to start request: " + setupError, notify, schedId, schedName);
-            return;
+            return ;
         }
-
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
-                return;
+                return ;
 
             if (xhr.status < 200 || xhr.status >= 300) {
-                if (errorHandled) return;
+                if (errorHandled)
+                    return ;
+
                 errorHandled = true;
                 var err = "Request to " + url + " failed";
-                if (xhr.status) err += " (HTTP " + xhr.status + ")";
+                if (xhr.status)
+                    err += " (HTTP " + xhr.status + ")";
+
                 try {
                     var eobj = JSON.parse(xhr.responseText);
                     if (eobj.error) {
@@ -2848,17 +2978,17 @@ PlasmoidItem {
                         } else {
                             if (eobj.error.message)
                                 err = "API Error (" + xhr.status + "): " + eobj.error.message;
-                        }
-                    } else if (eobj.detail) {
-                        err += " | " + eobj.detail;
-                    } else if (eobj.message) {
-                        err += " | " + eobj.message;
-                    }
-                } catch (e2) {}
-                handleBackgroundError(chatId, err, notify, schedId, schedName);
-                return;
-            }
 
+                        }
+                    } else if (eobj.detail)
+                        err += " | " + eobj.detail;
+                    else if (eobj.message)
+                        err += " | " + eobj.message;
+                } catch (e2) {
+                }
+                handleBackgroundError(chatId, err, notify, schedId, schedName);
+                return ;
+            }
             try {
                 var parsed = JSON.parse(xhr.responseText);
                 var finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
@@ -2871,22 +3001,19 @@ PlasmoidItem {
                         "at": doneTs,
                         "model": modelLabel || model || ""
                     };
-                    if (parsed.usage) {
+                    if (parsed.usage)
                         msgObj.tokens = {
                             "input": parsed.usage.prompt_tokens || 0,
                             "output": parsed.usage.completion_tokens || 0
                         };
-                    }
-                    
+
                     appendMessageToSession(chatId, msgObj);
-                    
                     if (chatId === root.currentSessionId) {
                         if (!root.userScrolledUp)
                             Qt.callLater(scrollToBottom);
+
                     }
-                    
                     triggerNotificationSound();
-                    
                     if (notify) {
                         var escapedText = finalText.substring(0, 150).replace(/'/g, "'\\''") + (finalText.length > 150 ? "…" : "");
                         var title = (schedName || "Scheduled message response ready");
@@ -2900,17 +3027,17 @@ PlasmoidItem {
                 handleBackgroundError(chatId, "Failed to parse response: " + parseError, notify, schedId, schedName);
             }
         };
-
         xhr.onerror = function() {
-            if (errorHandled) return;
+            if (errorHandled)
+                return ;
+
             errorHandled = true;
             handleBackgroundError(chatId, "Could not reach " + url + ". Check network connectivity.", notify, schedId, schedName);
         };
-
         try {
             xhr.send(JSON.stringify({
                 "model": model,
-                "messages": buildOpenAICompatPayloadForMessages(messagesList),
+                "messages": buildOpenAICompatPayloadForMessages(messagesList, chatId),
                 "stream": false
             }));
         } catch (sendError) {
@@ -2921,13 +3048,12 @@ PlasmoidItem {
     function doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName) {
         var xhr = new XMLHttpRequest();
         var errorHandled = false;
-        
         var targetIdx = sessionIndexById(chatId);
-        if (targetIdx < 0) return;
-        
+        if (targetIdx < 0)
+            return ;
+
         var targetSession = root.sessions[targetIdx];
         var messagesList = targetSession.messages || [];
-
         try {
             xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -2935,18 +3061,19 @@ PlasmoidItem {
             xhr.setRequestHeader("anthropic-version", "2023-06-01");
             xhr.timeout = 60000;
             xhr.ontimeout = function() {
-                if (errorHandled) return;
+                if (errorHandled)
+                    return ;
+
                 errorHandled = true;
                 handleBackgroundError(chatId, "Request timed out after 60 seconds.", notify, schedId, schedName);
             };
         } catch (setupError) {
             handleBackgroundError(chatId, "Failed to start request: " + setupError, notify, schedId, schedName);
-            return;
+            return ;
         }
-
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
-                return;
+                return ;
 
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
@@ -2956,6 +3083,7 @@ PlasmoidItem {
                         for (var i = 0; i < obj.content.length; i++) {
                             if (obj.content[i].type === "text")
                                 text += obj.content[i].text;
+
                         }
                     }
                     var ts = Date.now();
@@ -2966,22 +3094,19 @@ PlasmoidItem {
                         "at": ts,
                         "model": model || ""
                     };
-                    if (obj.usage) {
+                    if (obj.usage)
                         msgObj.tokens = {
                             "input": obj.usage.input_tokens || 0,
                             "output": obj.usage.output_tokens || 0
                         };
-                    }
 
                     appendMessageToSession(chatId, msgObj);
-
                     if (chatId === root.currentSessionId) {
                         if (!root.userScrolledUp)
                             Qt.callLater(scrollToBottom);
-                    }
-                    
-                    triggerNotificationSound();
 
+                    }
+                    triggerNotificationSound();
                     if (notify) {
                         var escapedText = (text || "").substring(0, 150).replace(/'/g, "'\\''") + ((text || "").length > 150 ? "…" : "");
                         var title = (schedName || "Scheduled message response ready");
@@ -2992,7 +3117,9 @@ PlasmoidItem {
                     handleBackgroundError(chatId, "Failed to parse Anthropic response", notify, schedId, schedName);
                 }
             } else {
-                if (errorHandled) return;
+                if (errorHandled)
+                    return ;
+
                 errorHandled = true;
                 var err = "Anthropic HTTP " + xhr.status;
                 try {
@@ -3003,27 +3130,30 @@ PlasmoidItem {
                         } else {
                             if (eobj.error.message)
                                 err = "Anthropic Error (" + xhr.status + "): " + eobj.error.message;
+
                             if (eobj.error.type)
                                 err = "[" + eobj.error.type + "] " + err;
+
                         }
                     }
-                } catch (e2) {}
+                } catch (e2) {
+                }
                 handleBackgroundError(chatId, err, notify, schedId, schedName);
             }
         };
-
         xhr.onerror = function() {
-            if (errorHandled) return;
+            if (errorHandled)
+                return ;
+
             errorHandled = true;
             handleBackgroundError(chatId, "Could not reach Anthropic API. Check network status.", notify, schedId, schedName);
         };
-
         try {
             xhr.send(JSON.stringify({
                 "model": model,
                 "max_tokens": 1024,
-                "system": buildEffectiveSystemPrompt(),
-                "messages": buildAnthropicPayloadForMessages(messagesList)
+                "system": buildEffectiveSystemPrompt(chatId),
+                "messages": buildAnthropicPayloadForMessages(messagesList, chatId)
             }));
         } catch (sendError) {
             handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, schedId, schedName);
@@ -3031,20 +3161,13 @@ PlasmoidItem {
     }
 
     function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
-        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " +
-                       "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " +
-                       "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " +
-                       "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " +
-                       "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " +
-                       "canberra-gtk-play -i service-login";
+        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
-
         var validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             handleBackgroundError(chatId, validationError, notify, schedId, schedName);
-            return;
+            return ;
         }
-
         var userTs = Date.now();
         var userMsgObj = {
             "role": "user",
@@ -3056,7 +3179,6 @@ PlasmoidItem {
             "sc": true
         };
         appendMessageToSession(chatId, userMsgObj);
-
         if (notify) {
             var escapedText = messageText.substring(0, 150).replace(/'/g, "'\\''") + (messageText.length > 150 ? "…" : "");
             var sIdx = sessionIndexById(chatId);
@@ -3065,19 +3187,16 @@ PlasmoidItem {
             var escapedTitle = title.replace(/'/g, "'\\''");
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify");
         }
-
         if (root.openCodeMode) {
             doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
-            return;
+            return ;
         }
-
         var provider = plasmoid.configuration.provider || "openai";
         var providerCfg = getProviderConfig(provider);
-        if (providerCfg.type === "anthropic") {
+        if (providerCfg.type === "anthropic")
             doBackgroundAnthropicRequest(chatId, providerCfg.apiKey, providerCfg.model, messageText, notify, schedId, schedName);
-        } else {
+        else
             doBackgroundOpenAICompatRequest(chatId, providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model, providerCfg.headers, providerCfg.model, messageText, notify, schedId, schedName);
-        }
     }
 
     function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
@@ -3087,9 +3206,9 @@ PlasmoidItem {
         try {
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
-            if (apiKey !== "") {
+            if (apiKey !== "")
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
-            }
+
             if (extraHeaders) {
                 for (var headerName in extraHeaders) {
                     if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
@@ -3191,6 +3310,9 @@ PlasmoidItem {
             }
             triggerNotificationSound();
             saveCurrentSessionState(true);
+            Qt.callLater(function() {
+                checkAndAutoCompact();
+            });
             processNextQueuedMessage();
         };
         xhr.onerror = function() {
@@ -3299,6 +3421,9 @@ PlasmoidItem {
             }
             scrollToBottom();
             saveCurrentSessionState(true);
+            Qt.callLater(function() {
+                checkAndAutoCompact();
+            });
             processNextQueuedMessage();
         };
         xhr.onerror = function() {
@@ -4033,6 +4158,36 @@ PlasmoidItem {
         }
     }
 
+    function resetOpenCodeIdleKillTimer() {
+        if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer)
+            openCodeIdleKillTimer.restart();
+        else
+            openCodeIdleKillTimer.stop();
+    }
+
+    onConfigCustomHistoryPathChanged: {
+        var newPath = configCustomHistoryPath.trim();
+        if (newPath !== root.activeHistoryPath) {
+            migrateHistory(root.activeHistoryPath, newPath);
+            root.activeHistoryPath = newPath;
+        }
+    }
+    onConfigUseOpenCodeChanged: {
+        if (root.messages.length === 0) {
+            root.openCodeMode = configUseOpenCode;
+            setCurrentSessionSource(root.openCodeMode ? "opencode" : "provider");
+        }
+    }
+    onConfigKeyStorageModeChanged: {
+        if (configKeyStorageMode === 2) {
+            root.kwalletKeysLoaded = false;
+            root.kwalletOpenAttempts = 0;
+            loadKWalletKeysIfNeeded();
+        }
+    }
+    onCurrentSessionIdChanged: {
+        resetOpenCodeIdleKillTimer();
+    }
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
     onOpenCodeModeChanged: {
@@ -4040,9 +4195,9 @@ PlasmoidItem {
         if (!openCodeMode) {
             loadKWalletKeysIfNeeded();
         } else {
-            if (plasmoid.configuration.autoStartOpenCodeServer) {
+            if (plasmoid.configuration.autoStartOpenCodeServer)
                 autoStartOpenCodeTimer.start();
-            }
+
         }
     }
     onExpandedChanged: {
@@ -4077,7 +4232,6 @@ PlasmoidItem {
             autoStartOpenCodeTimer.start();
             resetOpenCodeIdleKillTimer();
         }
-
         // Auto-start scheduler if the autoStart is enabled in settings
         if (plasmoid.configuration.schedulerAutoStart) {
             plasmoid.configuration.schedulerEnabled = true;
@@ -4089,10 +4243,9 @@ PlasmoidItem {
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom);
+
         checkAndMarkCurrentSessionAsRead();
     }
-
-
 
     P5Support.DataSource {
         id: soundDs
@@ -4109,12 +4262,12 @@ PlasmoidItem {
         onNewData: function(sourceName, data) {
             var stdout = (data["stdout"] || "").trim();
             disconnectSource(sourceName);
-            if (sourceName.indexOf("#sched-poll") >= 0) {
+            if (sourceName.indexOf("#sched-poll") >= 0)
                 root.schedPolling = false;
-            }
-            if (sourceName.indexOf("#sched-delete") >= 0 || sourceName.indexOf("#sched-save") >= 0 || sourceName.indexOf("#sched-toggle") >= 0) {
+
+            if (sourceName.indexOf("#sched-delete") >= 0 || sourceName.indexOf("#sched-save") >= 0 || sourceName.indexOf("#sched-toggle") >= 0)
                 schedulerPollTimer.triggered();
-            }
+
             if (stdout !== "") {
                 try {
                     var parsed = JSON.parse(stdout);
@@ -4147,25 +4300,19 @@ PlasmoidItem {
 
     Timer {
         id: openCodeReconnectTimer
+
         interval: 5000
         repeat: false
         onTriggered: {
-            if (root.openCodeMode) {
+            if (root.openCodeMode)
                 ensureOpenCodeEventStream();
-            }
-        }
-    }
 
-    function resetOpenCodeIdleKillTimer() {
-        if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer) {
-            openCodeIdleKillTimer.restart();
-        } else {
-            openCodeIdleKillTimer.stop();
         }
     }
 
     Timer {
         id: openCodeIdleKillTimer
+
         interval: 300000 // 5 minutes
         repeat: false
         onTriggered: {
@@ -4179,11 +4326,13 @@ PlasmoidItem {
 
     Timer {
         id: openCodeStartPollTimer
-        interval: 1000
-        repeat: true
+
         property var successCb
         property var failureCb
         property int retriesLeft: 0
+
+        interval: 1000
+        repeat: true
         onTriggered: {
             retriesLeft--;
             var checkUrl = openCodeBaseUrl() + "/config/providers";
@@ -4192,27 +4341,36 @@ PlasmoidItem {
             xhr.timeout = 1000;
             xhr.onreadystatechange = function() {
                 if (xhr.readyState !== XMLHttpRequest.DONE)
-                    return;
+                    return ;
+
                 if (xhr.status >= 200 && xhr.status < 300) {
                     openCodeStartPollTimer.stop();
-                    if (successCb) successCb();
+                    if (successCb)
+                        successCb();
+
                 } else {
                     if (retriesLeft <= 0) {
                         openCodeStartPollTimer.stop();
-                        if (failureCb) failureCb("OpenCode server failed to start (HTTP " + xhr.status + ")");
+                        if (failureCb)
+                            failureCb("OpenCode server failed to start (HTTP " + xhr.status + ")");
+
                     }
                 }
             };
             xhr.onerror = function() {
                 if (retriesLeft <= 0) {
                     openCodeStartPollTimer.stop();
-                    if (failureCb) failureCb("OpenCode server failed to start (Connection refused)");
+                    if (failureCb)
+                        failureCb("OpenCode server failed to start (Connection refused)");
+
                 }
             };
             xhr.ontimeout = function() {
                 if (retriesLeft <= 0) {
                     openCodeStartPollTimer.stop();
-                    if (failureCb) failureCb("OpenCode server failed to start (Timeout)");
+                    if (failureCb)
+                        failureCb("OpenCode server failed to start (Timeout)");
+
                 }
             };
             try {
@@ -4220,7 +4378,9 @@ PlasmoidItem {
             } catch (e) {
                 if (retriesLeft <= 0) {
                     openCodeStartPollTimer.stop();
-                    if (failureCb) failureCb(e.toString());
+                    if (failureCb)
+                        failureCb(e.toString());
+
                 }
             }
         }
@@ -4235,29 +4395,10 @@ PlasmoidItem {
         triggeredOnStart: true
         onTriggered: {
             if (root.schedPolling)
-                return;
+                return ;
+
             root.schedPolling = true;
-            var py = [
-                "import os, json",
-                "d = os.path.expanduser('~/.local/share/kdeaichat/pending')",
-                "res = []",
-                "if os.path.exists(d):",
-                "  for f in os.listdir(d):",
-                "    if f.endswith('.json'):",
-                "      p = os.path.join(d, f)",
-                "      try:",
-                "        res.append(json.load(open(p)))",
-                "        os.remove(p)",
-                "      except Exception: pass",
-                "ps = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-                "scheds = []",
-                "if os.path.exists(ps):",
-                "  try:",
-                "    s_data = json.load(open(ps))",
-                "    scheds = s_data.get('schedules', []) if isinstance(s_data, dict) else s_data",
-                "  except Exception: pass",
-                "print(json.dumps({'pending': res, 'schedules': scheds}))"
-            ].join("\n");
+            var py = ["import os, json", "d = os.path.expanduser('~/.local/share/kdeaichat/pending')", "res = []", "if os.path.exists(d):", "  for f in os.listdir(d):", "    if f.endswith('.json'):", "      p = os.path.join(d, f)", "      try:", "        res.append(json.load(open(p)))", "        os.remove(p)", "      except Exception: pass", "ps = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "scheds = []", "if os.path.exists(ps):", "  try:", "    s_data = json.load(open(ps))", "    scheds = s_data.get('schedules', []) if isinstance(s_data, dict) else s_data", "  except Exception: pass", "print(json.dumps({'pending': res, 'schedules': scheds}))"].join("\n");
             var b64Py = base64Encode(py);
             var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
             schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-poll-" + Date.now());
@@ -4457,12 +4598,15 @@ PlasmoidItem {
 
                                     var pref = plasmoid.configuration.lastSessionId || "";
                                     var idxVal = sessionIndexById(pref);
-                                    if (idxVal < 0) idxVal = 0;
+                                    if (idxVal < 0)
+                                        idxVal = 0;
+
                                     root.currentSessionId = root.sessions[idxVal].value;
                                     root.currentSessionTitle = root.sessions[idxVal].text;
                                     root.messages = root.sessions[idxVal].messages || [];
                                     if (root.sessions[idxVal])
                                         root.openCodeMode = (root.sessions[idxVal].source === "opencode");
+
                                     sortSessionsByUpdated();
                                     checkAndMarkCurrentSessionAsRead();
                                     persistSessions();
@@ -4630,6 +4774,165 @@ PlasmoidItem {
             }
             checkServerStatus();
         }
+    }
+
+    // ── Per-session Chat Settings dialog ──────────────────────────────────────
+    QQC2.Dialog {
+        id: chatSettingsDialog
+
+        // Local transient state – loaded when dialog opens
+        property bool localOverride: false
+        property bool localContextEnabled: true
+        property int localContextLimit: 15
+        property bool localAutoCompact: false
+        property int localCompactThreshold: 10
+
+        title: root.translate("Chat Settings")
+        modal: true
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Math.min(420, parent ? parent.width * 0.9 : 420)
+        standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
+        onAboutToShow: {
+            var sId = root.currentSessionId;
+            localOverride = getSessionProperty(sId, "contextOverride", false);
+            localContextEnabled = getSessionProperty(sId, "contextEnabled", true);
+            localContextLimit = getSessionProperty(sId, "contextLimit", plasmoid.configuration.globalContextLimit || 15);
+            localAutoCompact = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
+            localCompactThreshold = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
+        }
+        onAccepted: {
+            var sId = root.currentSessionId;
+            setSessionProperty(sId, "contextOverride", localOverride);
+            if (localOverride) {
+                setSessionProperty(sId, "contextEnabled", localContextEnabled);
+                setSessionProperty(sId, "contextLimit", localContextLimit);
+                setSessionProperty(sId, "contextAutoCompact", localAutoCompact);
+                setSessionProperty(sId, "contextCompactThreshold", localCompactThreshold);
+            }
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Kirigami.Units.smallSpacing
+
+            // ── Override toggle ─────────────────────────────────────────
+            QQC2.CheckBox {
+                id: overrideToggle
+
+                text: root.translate("Override global context settings for this chat")
+                checked: chatSettingsDialog.localOverride
+                onToggled: chatSettingsDialog.localOverride = checked
+                Layout.fillWidth: true
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+                visible: overrideToggle.checked
+            }
+
+            // ── Context enable/disable ──────────────────────────────────
+            QQC2.CheckBox {
+                id: contextEnabledToggle
+
+                visible: overrideToggle.checked
+                text: checked ? root.translate("Context enabled — previous messages are sent to AI") : root.translate("Context disabled — AI sees only the current prompt")
+                checked: chatSettingsDialog.localContextEnabled
+                onToggled: chatSettingsDialog.localContextEnabled = checked
+                Layout.fillWidth: true
+            }
+
+            // ── Context limit ───────────────────────────────────────────
+            RowLayout {
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                PC3.Label {
+                    text: root.translate("Context limit:")
+                }
+
+                QQC2.SpinBox {
+                    id: contextLimitSpin
+
+                    from: 1
+                    to: 200
+                    value: chatSettingsDialog.localContextLimit
+                    editable: true
+                    onValueModified: chatSettingsDialog.localContextLimit = value
+                }
+
+                PC3.Label {
+                    text: root.translate("messages")
+                }
+
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+            }
+
+            // ── Auto-compact ────────────────────────────────────────────
+            QQC2.CheckBox {
+                id: autoCompactToggle
+
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+                text: checked ? root.translate("Auto-compact older messages when limit is reached") : root.translate("Do not auto-compact")
+                checked: chatSettingsDialog.localAutoCompact
+                onToggled: chatSettingsDialog.localAutoCompact = checked
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                visible: overrideToggle.checked && contextEnabledToggle.checked && autoCompactToggle.checked
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                PC3.Label {
+                    text: root.translate("Compact threshold:")
+                }
+
+                QQC2.SpinBox {
+                    from: 5
+                    to: 200
+                    value: chatSettingsDialog.localCompactThreshold
+                    editable: true
+                    onValueModified: chatSettingsDialog.localCompactThreshold = value
+                }
+
+                PC3.Label {
+                    text: root.translate("messages")
+                }
+
+            }
+
+            // ── Info about inherited settings ───────────────────────────
+            PC3.Label {
+                visible: !overrideToggle.checked
+                text: root.translate("This chat uses the global defaults from Settings → General → Global Context.\n\nEnable the override above to customise context for this chat only.")
+                wrapMode: Text.Wrap
+                font: Kirigami.Theme.smallFont
+                opacity: 0.72
+                Layout.fillWidth: true
+            }
+
+            // ── Manual compact button ───────────────────────────────────
+            QQC2.Button {
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+                text: root.translate("Compact context now")
+                icon.name: "edit-clear-history"
+                Layout.fillWidth: true
+                onClicked: {
+                    chatSettingsDialog.accept();
+                    Qt.callLater(function() {
+                        compactSessionContext(root.currentSessionId);
+                    });
+                }
+            }
+
+        }
+
     }
 
     // ── Inline /schedule command dialog ───────────────────────────────────────
@@ -5029,16 +5332,7 @@ PlasmoidItem {
                             "createdAt": new Date().toISOString()
                         });
                         var b64Entry = base64Encode(jsonEntry);
-                        var py = [
-                            "import json,os,base64",
-                            "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-                            "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
-                            "if isinstance(data, list):",
-                            "    data = {'version': 1, 'schedules': data}",
-                            "entry = json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8'))",
-                            "data.setdefault('schedules', []).append(entry)",
-                            "json.dump(data, open(p, 'w'), indent=2)"
-                        ].join("\n");
+                        var py = ["import json,os,base64", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "entry = json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8'))", "data.setdefault('schedules', []).append(entry)", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
                         var b64Py = base64Encode(py);
                         var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
                         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save-" + Date.now());
@@ -5072,15 +5366,7 @@ PlasmoidItem {
         }
 
         function deleteSchedule(schedId) {
-            var py = [
-                "import json, os",
-                "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-                "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
-                "if isinstance(data, list):",
-                "    data = {'version': 1, 'schedules': data}",
-                "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']",
-                "json.dump(data, open(p, 'w'), indent=2)"
-            ].join("\n");
+            var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
             var b64Py = base64Encode(py);
             var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
             schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
@@ -5353,13 +5639,13 @@ PlasmoidItem {
 
                     PC3.Label {
                         text: {
-                            if (root.historyOnlyMode) {
+                            if (root.historyOnlyMode)
                                 return (plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History";
-                            }
+
                             var rawText = root.currentSessionTitle || "New Chat";
-                            if (rawText.indexOf("[FK] ") === 0) {
+                            if (rawText.indexOf("[FK] ") === 0)
                                 rawText = rawText.substring(5);
-                            }
+
                             return root.translate(rawText);
                         }
                         font.bold: true
@@ -5393,6 +5679,16 @@ PlasmoidItem {
                     onClicked: {
                         root.renamingCurrentChat = !root.renamingCurrentChat;
                         root.currentChatRenameDraft = root.currentSessionTitle || "";
+                    }
+                }
+
+                PC3.ToolButton {
+                    visible: !root.historyOnlyMode
+                    icon.name: "configure"
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: root.translate("Chat settings")
+                    onClicked: {
+                        chatSettingsDialog.open();
                     }
                 }
 
@@ -5607,21 +5903,23 @@ PlasmoidItem {
 
                                     PC3.Label {
                                         id: parentLinkText
+
                                         Layout.fillWidth: true
                                         text: {
                                             var idx = sessionIndexById(root.currentSessionId);
-                                            if (idx < 0) return "";
+                                            if (idx < 0)
+                                                return "";
+
                                             var parentTitle = root.sessions[idx].parentSessionTitle || "Original Chat";
-                                            if (parentTitle.indexOf("[FK] ") === 0) {
+                                            if (parentTitle.indexOf("[FK] ") === 0)
                                                 parentTitle = parentTitle.substring(5);
-                                            }
+
                                             var parentId = root.sessions[idx].parentSessionId;
                                             var exists = parentId && sessionIndexById(parentId) >= 0;
-                                            if (exists) {
+                                            if (exists)
                                                 return root.translate("Forked from:") + " <b>" + root.translate(parentTitle) + "</b>";
-                                            } else {
+                                            else
                                                 return root.translate("Forked from:") + " <b>" + root.translate(parentTitle) + "</b> <font color='gray'>(" + root.translate("deleted") + ")</font>";
-                                            }
                                         }
                                         textFormat: Text.RichText
                                         elide: Text.ElideRight
@@ -5639,12 +5937,15 @@ PlasmoidItem {
                                                     root.historyOnlyMode = false;
                                                 } else {
                                                     root.appendSystemMessage("⚠️ The original chat no longer exists.");
-                                                  }
+                                                }
                                             }
                                         }
                                     }
+
                                 }
+
                             }
+
                         }
 
                         Rectangle {
@@ -5781,12 +6082,14 @@ PlasmoidItem {
 
                                                             PC3.Label {
                                                                 id: scLabel
+
                                                                 text: "sc"
                                                                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.75
                                                                 font.bold: true
                                                                 color: Kirigami.Theme.highlightColor
                                                                 anchors.centerIn: parent
                                                             }
+
                                                         }
 
                                                         PC3.Label {
@@ -6032,8 +6335,8 @@ PlasmoidItem {
                                                             text: root.translate("Open Settings")
                                                             icon.name: "configure"
                                                             onClicked: {
-                                                                 root.triggerConfigure();
-                                                             }
+                                                                root.triggerConfigure();
+                                                            }
                                                         }
 
                                                     }
@@ -6320,6 +6623,7 @@ PlasmoidItem {
                                                                     schedulerPollTimer.triggered();
                                                                 }
                                                             }
+
                                                         }
 
                                                         Column {
@@ -6379,15 +6683,7 @@ PlasmoidItem {
                                                                                 QQC2.ToolTip.visible: hovered
                                                                                 onClicked: {
                                                                                     var schedId = modelData.id;
-                                                                                    var py = [
-                                                                                        "import json, os",
-                                                                                        "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')",
-                                                                                        "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}",
-                                                                                        "if isinstance(data, list):",
-                                                                                        "    data = {'version': 1, 'schedules': data}",
-                                                                                        "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']",
-                                                                                        "json.dump(data, open(p, 'w'), indent=2)"
-                                                                                    ].join("\n");
+                                                                                    var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
                                                                                     var b64Py = base64Encode(py);
                                                                                     var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
                                                                                     schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
@@ -6440,10 +6736,10 @@ PlasmoidItem {
                                                                 icon.name: "appointment-new"
                                                                 highlighted: true
                                                                 onClicked: {
-                                                                     plasmoid.configuration.preselectedChatId = root.currentSessionId;
-                                                                     plasmoid.configuration.preselectedChatName = root.currentSessionTitle || "Current Chat";
-                                                                     root.triggerConfigure();
-                                                                 }
+                                                                    plasmoid.configuration.preselectedChatId = root.currentSessionId;
+                                                                    plasmoid.configuration.preselectedChatName = root.currentSessionTitle || "Current Chat";
+                                                                    root.triggerConfigure();
+                                                                }
                                                             }
 
                                                             PC3.Button {
@@ -7096,13 +7392,14 @@ PlasmoidItem {
 
                                     PC3.Label {
                                         id: sessionTitleLabel
+
                                         visible: root.editingSessionId !== modelData.value
                                         width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
                                         text: {
                                             var rawText = modelData.text || "New Chat";
-                                            if (rawText.indexOf("[FK] ") === 0) {
+                                            if (rawText.indexOf("[FK] ") === 0)
                                                 rawText = rawText.substring(5);
-                                            }
+
                                             return root.translate(rawText);
                                         }
                                         font.bold: modelData.value === root.currentSessionId
@@ -7118,6 +7415,7 @@ PlasmoidItem {
                                                 root.historyOnlyMode = false;
                                             }
                                         }
+
                                     }
 
                                     Rectangle {
@@ -7142,6 +7440,7 @@ PlasmoidItem {
                                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.75
                                             color: Kirigami.Theme.highlightedTextColor
                                         }
+
                                     }
 
                                     PC3.ToolButton {

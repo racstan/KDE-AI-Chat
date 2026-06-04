@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2026-06-03
 
 ### Added
+- **🧠 Context Management System**: Added global and per-chat context controls (toggle context usage, message history limit defaults/overrides), automated background summarization (compaction of older turns once message count exceeds configured thresholds) with summary system-prompt injection, and system message filtering (excluding widget error/status bubbles from payload contexts to prevent duplication).
 - **🌳 Conversation Forking**: Added a fork feature that allows splitting a conversation into a new chat from any message. Forked chats display a custom purple `FK` badge in the history pane and have session IDs starting with `fork-` plus random numbers. A `git-branch` action button is available on every message in Normal Mode to trigger the fork.
 - **👁️ Unread Message Tracking**: Each chat session now tracks read messages vs. total messages. A badge displays the number of unread responses (capped at `99+`) in the history sidebar. Viewing the chat immediately clears the unread count.
 - **Dynamic Chat History Migration**: Added automatic history migration when changing the custom chat history storage path. Changing the path in the general configuration screen moves existing chat sessions to the new location.
 - **i18n / Localization Dictionary Fixes**: Added and corrected 28 missing keys across all 10 supported languages (Arabic, German, Spanish, French, Hindi, Italian, Japanese, Portuguese, Russian, Chinese) to ensure consistent user experience in all languages.
+
 
 ---
 
