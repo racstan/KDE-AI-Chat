@@ -18,7 +18,10 @@ Thumbs.db
 # Local developer documents
 audit.md
 ailogo.webp
-docs/
+# Generic developer documentation reference guides (not part of widget architecture/docs)
+docs/kirigami-formlayout-guide.md
+docs/qt-layout-attached-properties.md
+docs/plasma-widget-configuration.md
 
 # Python cache
 __pycache__/
