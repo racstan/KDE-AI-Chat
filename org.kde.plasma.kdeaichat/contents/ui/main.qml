@@ -36,6 +36,21 @@ PlasmoidItem {
     property string activeHistoryPath: ""
     property string currentSessionTitle: ""
     property var messages: []
+    property bool searchBarActive: false
+    property string searchQuery: ""
+    property int currentSearchMatchIndex: -1
+    property var searchMatches: {
+        if (!searchBarActive || searchQuery.trim() === "") return [];
+        var list = [];
+        var q = searchQuery.toLowerCase();
+        for (var i = 0; i < messages.length; i++) {
+            var content = messages[i].content || "";
+            if (content.toLowerCase().indexOf(q) >= 0) {
+                list.push(i);
+            }
+        }
+        return list;
+    }
     property var attachedFiles: []
     property bool historyOnlyMode: false
     property bool loading: false
@@ -89,6 +104,46 @@ PlasmoidItem {
         return Qt.styleHints.colorScheme === Qt.Dark;
     }
 
+    Shortcut {
+        sequence: "Ctrl+F"
+        context: Qt.WindowShortcut
+        onActivated: {
+            root.searchBarActive = !root.searchBarActive;
+            if (!root.searchBarActive) {
+                root.searchQuery = "";
+                root.focusInput();
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+N"
+        context: Qt.WindowShortcut
+        onActivated: root.createSession(true)
+    }
+    Shortcut {
+        sequence: "Ctrl+H"
+        context: Qt.WindowShortcut
+        onActivated: root.historyOnlyMode = !root.historyOnlyMode
+    }
+    Shortcut {
+        sequence: "Ctrl+,"
+        context: Qt.WindowShortcut
+        onActivated: root.triggerConfigure()
+    }
+    Shortcut {
+        sequence: "Escape"
+        context: Qt.WindowShortcut
+        onActivated: {
+            if (root.searchBarActive) {
+                root.searchBarActive = false;
+                root.searchQuery = "";
+                root.focusInput();
+            } else if (root.loading) {
+                root.stopStreaming();
+            }
+        }
+    }
+
     signal clearChatInput()
 
     function sessionHasSchedules(sessionId) {
@@ -133,6 +188,22 @@ PlasmoidItem {
 
             }
         });
+    }
+
+    function searchNext() {
+        if (root.searchMatches.length === 0) return;
+        root.currentSearchMatchIndex = (root.currentSearchMatchIndex + 1) % root.searchMatches.length;
+        if (root.msgListViewRef) {
+            root.msgListViewRef.positionViewAtIndex(root.searchMatches[root.currentSearchMatchIndex], ListView.Center);
+        }
+    }
+
+    function searchPrev() {
+        if (root.searchMatches.length === 0) return;
+        root.currentSearchMatchIndex = (root.currentSearchMatchIndex - 1 + root.searchMatches.length) % root.searchMatches.length;
+        if (root.msgListViewRef) {
+            root.msgListViewRef.positionViewAtIndex(root.searchMatches[root.currentSearchMatchIndex], ListView.Center);
+        }
     }
 
     function pad2(v) {
@@ -5525,6 +5596,91 @@ PlasmoidItem {
 
                         }
 
+                        RowLayout {
+                            id: searchBar
+                            Layout.fillWidth: true
+                            Layout.leftMargin: Kirigami.Units.smallSpacing
+                            Layout.rightMargin: Kirigami.Units.smallSpacing
+                            visible: root.searchBarActive
+                            spacing: Kirigami.Units.smallSpacing
+                            onVisibleChanged: {
+                                if (visible) {
+                                    Qt.callLater(function() {
+                                        searchInput.forceActiveFocus();
+                                    });
+                                }
+                            }
+
+                            QQC2.TextField {
+                                id: searchInput
+                                Layout.fillWidth: true
+                                placeholderText: root.translate("Search messages...")
+                                selectByMouse: true
+                                onTextChanged: {
+                                    root.searchQuery = text;
+                                    if (root.searchMatches.length > 0) {
+                                        root.currentSearchMatchIndex = 0;
+                                        msgList.positionViewAtIndex(root.searchMatches[0], ListView.Center);
+                                    } else {
+                                        root.currentSearchMatchIndex = -1;
+                                    }
+                                }
+                                Keys.onPressed: function(event) {
+                                    if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                                        event.accepted = true;
+                                        if (event.modifiers & Qt.ShiftModifier) {
+                                            root.searchPrev();
+                                        } else {
+                                            root.searchNext();
+                                        }
+                                    } else if (event.key === Qt.Key_Escape) {
+                                        event.accepted = true;
+                                        root.searchBarActive = false;
+                                        root.searchQuery = "";
+                                        root.focusInput();
+                                    }
+                                }
+                            }
+
+                            PC3.Label {
+                                text: {
+                                    if (root.searchQuery.trim() === "") return "";
+                                    var count = root.searchMatches.length;
+                                    if (count === 0) return root.translate("No matches");
+                                    return (root.currentSearchMatchIndex + 1) + " " + root.translate("of") + " " + count;
+                                }
+                                opacity: 0.7
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            PC3.ToolButton {
+                                icon.name: "go-up"
+                                enabled: root.searchMatches.length > 0
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.translate("Previous match (Shift+Enter)")
+                                onClicked: root.searchPrev()
+                            }
+
+                            PC3.ToolButton {
+                                icon.name: "go-down"
+                                enabled: root.searchMatches.length > 0
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.translate("Next match (Enter)")
+                                onClicked: root.searchNext()
+                            }
+
+                            PC3.ToolButton {
+                                icon.name: "window-close"
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.translate("Close search (Esc)")
+                                onClicked: {
+                                    root.searchBarActive = false;
+                                    root.searchQuery = "";
+                                    root.focusInput();
+                                }
+                            }
+                        }
+
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -5575,6 +5731,8 @@ PlasmoidItem {
 
                                 delegate: Item {
                                     property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
+                                    property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData.content && modelData.content.toLowerCase().indexOf(root.searchQuery.toLowerCase()) >= 0
+                                    property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === index
 
                                     width: msgList.width
                                     implicitHeight: delegateCol.implicitHeight
@@ -5623,9 +5781,25 @@ PlasmoidItem {
                                                 width: Math.min(msgList.width * 0.76, 560)
                                                 implicitHeight: bubbleCol.implicitHeight + Kirigami.Units.largeSpacing
                                                 radius: 10
-                                                color: modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor
-                                                border.width: modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request" ? 2 : 1
-                                                border.color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
+                                                color: {
+                                                    if (isCurrentSearchMatch) {
+                                                        return Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.25);
+                                                    }
+                                                    if (isSearchMatch) {
+                                                        return Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.15);
+                                                    }
+                                                    return modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor;
+                                                }
+                                                border.width: {
+                                                    if (isCurrentSearchMatch) return 3;
+                                                    if (isSearchMatch) return 2;
+                                                    return modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request" ? 2 : 1;
+                                                }
+                                                border.color: {
+                                                    if (isCurrentSearchMatch) return Kirigami.Theme.focusColor;
+                                                    if (isSearchMatch) return Kirigami.Theme.highlightColor;
+                                                    return modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16);
+                                                }
                                                 anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
                                                 anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request" ? parent.left : undefined
 
