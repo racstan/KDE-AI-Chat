@@ -174,7 +174,7 @@ Previously users could rapidly queue many messages without limits.
 
 System messages previously used emojis (`▶️`, `⏸️`, `⚠️`, `ℹ️`) which may not render on all systems.
 
-**Status:** Fixed. Replaced emojis in system notifications and warnings with text-based identifiers (e.g., `Warning:`).
+**Status:** Fixed. Replaced all emojis in chat notifications, warnings, and dialog instruction labels with text-based identifiers.
 
 ---
 
@@ -252,15 +252,13 @@ Ctrl+F style search for long conversations.
 3. Replace scheduler polling with inotify or DBus signals
 
 ### Phase 2 — Quality & Polish
-4. Fix temp file cleanup in doc_extractor.py
-5. Add input validation on API key fields and URLs
-6. Add keyboard shortcuts
-7. Add message search
+4. Add keyboard shortcuts
+5. Add message search
 
 ### Phase 3 — Future
-8. Add Python type hints and mypy to CI
-9. Implement request deduplication
-10. Consider Flatpak packaging
+7. Add Python type hints and mypy to CI
+8. Implement request deduplication
+9. Consider Flatpak packaging
 
 ---
 

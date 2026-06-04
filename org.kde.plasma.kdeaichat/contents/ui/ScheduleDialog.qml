@@ -663,7 +663,7 @@ import org.kde.plasma.plasma5support as P5Support
                 spacing: Kirigami.Units.mediumSpacing
 
                 QQC2.Label {
-                    text: "ℹ️ " + translate("Configure schedules above. Click Save to apply changes, or Cancel to discard.")
+                    text: "Note: " + translate("Configure schedules above. Click Save to apply changes, or Cancel to discard.")
                     font.pixelSize: 11
                     opacity: 0.65
                     wrapMode: Text.Wrap
