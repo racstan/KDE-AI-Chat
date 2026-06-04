@@ -5146,8 +5146,8 @@ KCM.SimpleKCM {
                 opacity: 0.7
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
                 text: customHistoryPathField.text.trim() === ""
-                    ? "💾 Chats are saved in the default KDE config location. Select a folder above to store them elsewhere (e.g. a synced cloud drive)."
-                    : "⚠️ <b>Beta feature.</b> After changing this path, press <b>Apply</b> or <b>OK</b> — your chats will automatically be exported to the new location."
+                    ? "Chats are saved in the default KDE config location. Select a folder above to store them elsewhere (e.g. a synced cloud drive)."
+                    : "<b>Warning: Beta feature.</b> After changing this path, press <b>Apply</b> or <b>OK</b> — your chats will automatically be exported to the new location."
                 textFormat: Text.RichText
             }
 

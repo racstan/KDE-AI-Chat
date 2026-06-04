@@ -155,21 +155,13 @@ PlasmoidItem {
     }
 
     function makeSessionId() {
-        var chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-        var str = "";
-        for (var i = 0; i < 6; i++) {
-            str += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return "s-" + str;
+        var uuid = Qt.createUuid().toString().replace(/[{}-]/g, "");
+        return "s-" + uuid.substring(0, 12);
     }
 
     function makeForkSessionId() {
-        var chars = "0123456789";
-        var str = "";
-        for (var i = 0; i < 6; i++) {
-            str += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return "fork-" + str;
+        var uuid = Qt.createUuid().toString().replace(/[{}-]/g, "");
+        return "fork-" + uuid.substring(0, 12);
     }
 
     function forkSession(messageIndex) {
@@ -251,7 +243,7 @@ PlasmoidItem {
             }
         }
         root.schedulesList = copy;
-        root.appendSystemMessage(newEnabled ? "▶️ Schedule resumed successfully." : "⏸️ Schedule paused successfully.");
+        root.appendSystemMessage(newEnabled ? "Schedule resumed successfully." : "Schedule paused successfully.");
     }
 
     function injectScheduledMessage(chatId, messageText, notify, schedId, schedName) {
@@ -1022,10 +1014,10 @@ PlasmoidItem {
 
                         appendSystemMessageToSession(sId, "Context compacted successfully. Summary: " + summaryText);
                     } else {
-                        appendSystemMessageToSession(sId, "⚠️ Context compaction returned an empty response.");
+                        appendSystemMessageToSession(sId, "Warning: Context compaction returned an empty response.");
                     }
                 } catch (e) {
-                    appendSystemMessageToSession(sId, "⚠️ Failed to parse compaction response: " + e.toString());
+                    appendSystemMessageToSession(sId, "Warning: Failed to parse compaction response: " + e.toString());
                 }
             } else {
                 var errMsg = "HTTP " + xhr.status;
@@ -1036,11 +1028,11 @@ PlasmoidItem {
 
                 } catch (e) {
                 }
-                appendSystemMessageToSession(sId, "⚠️ Context compaction failed: " + errMsg);
+                appendSystemMessageToSession(sId, "Warning: Context compaction failed: " + errMsg);
             }
         };
         xhr.onerror = function() {
-            appendSystemMessageToSession(sId, "⚠️ Network error while compacting context.");
+            appendSystemMessageToSession(sId, "Warning: Network error while compacting context.");
         };
         var payload = {
         };
@@ -1065,7 +1057,7 @@ PlasmoidItem {
         try {
             xhr.send(JSON.stringify(payload));
         } catch (e) {
-            appendSystemMessageToSession(sId, "⚠️ Failed to send compaction request: " + e.toString());
+            appendSystemMessageToSession(sId, "Warning: Failed to send compaction request: " + e.toString());
         }
     }
 
@@ -1901,7 +1893,7 @@ PlasmoidItem {
                 }
             } else {
                 if (chatId)
-                    appendSystemMessageToSession(chatId, "⚠️ " + msg);
+                    appendSystemMessageToSession(chatId, "Warning: " + msg);
                 else
                     pushErrorMessage(msg);
             }
@@ -2532,6 +2524,23 @@ PlasmoidItem {
         if (missing.length > 0)
             return "Cannot send with " + name + ". Missing: " + missing.join(", ") + ".";
 
+        if (cfg.baseUrl && cfg.type !== "anthropic") {
+            var urlTrimmed = cfg.baseUrl.trim();
+            if (!urlTrimmed.startsWith("http://") && !urlTrimmed.startsWith("https://")) {
+                return "Invalid URL in " + name + ": URL must start with http:// or https://";
+            }
+        }
+
+        if (cfg.apiKey) {
+            var trimmedKey = cfg.apiKey.trim();
+            if (providerId === "openai" && !trimmedKey.startsWith("sk-")) {
+                return "Invalid OpenAI API key format: keys should start with 'sk-'";
+            }
+            if (providerId === "anthropic" && !trimmedKey.startsWith("sk-ant-")) {
+                return "Invalid Anthropic API key format: keys should start with 'sk-ant-'";
+            }
+        }
+
         return "";
     }
 
@@ -2543,6 +2552,12 @@ PlasmoidItem {
             var attachments = root.attachedFiles || [];
             if (text === "" && attachments.length === 0)
                 return ;
+
+            var maxLen = 100000;
+            if (text.length > maxLen) {
+                pushErrorMessage("Message is too long (maximum " + maxLen + " characters).");
+                return ;
+            }
 
             // ── /schedule command ──────────────────────────────────────────
             var lowerText = text.toLowerCase().replace(/^\//, "").trim();
@@ -2590,6 +2605,16 @@ PlasmoidItem {
             root.clearChatInput();
             root.userScrolledUp = false;
             if (root.loading) {
+                var queueCount = 0;
+                for (var idx = 0; idx < root.messages.length; idx++) {
+                    if ((root.messages[idx].role || "") === "queued") {
+                        queueCount++;
+                    }
+                }
+                if (queueCount >= 5) {
+                    pushErrorMessage("Too many messages in queue (maximum 5). Please wait for the current request to finish.");
+                    return ;
+                }
                 appendUserMessage(text, "queued", attachments);
                 return ;
             }
@@ -3019,7 +3044,7 @@ PlasmoidItem {
         var errTs = Date.now();
         var errMsgObj = {
             "role": "assistant",
-            "content": "⚠️ Schedule failed: " + errorMsg,
+            "content": "Warning: Schedule failed: " + errorMsg,
             "time": nowTime(errTs),
             "at": errTs,
             "model": ""
@@ -5185,15 +5210,7 @@ PlasmoidItem {
                         clip: true
                     }
 
-                    PC3.Label {
-                        visible: !root.historyOnlyMode && root.currentSessionId !== ""
-                        text: "ID: " + root.currentSessionId
-                        font.pixelSize: 9
-                        opacity: 0.55
-                        horizontalAlignment: Text.AlignHCenter
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                    }
+
 
                 }
 
@@ -5496,7 +5513,7 @@ PlasmoidItem {
                                                     root.switchSession(parentId);
                                                     root.historyOnlyMode = false;
                                                 } else {
-                                                    root.appendSystemMessage("⚠️ The original chat no longer exists.");
+                                                    root.appendSystemMessage("The original chat no longer exists.");
                                                 }
                                             }
                                         }
