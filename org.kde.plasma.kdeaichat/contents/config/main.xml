@@ -265,7 +265,7 @@
 
     <!-- keyStorageMode: 0 = session only (forget on restart), 1 = plain config file, 2 = KWallet -->
     <entry name="keyStorageMode" type="Int">
-      <default>1</default>
+      <default>2</default>
     </entry>
 
     <entry name="systemPrompt" type="String">

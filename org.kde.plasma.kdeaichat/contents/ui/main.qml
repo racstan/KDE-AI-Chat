@@ -17,6 +17,14 @@ PlasmoidItem {
 
     id: root
 
+    property bool debugMode: false
+    function debugLog() {
+        if (debugMode) {
+            var args = Array.prototype.slice.call(arguments);
+            console.log.apply(console, args);
+        }
+    }
+
     property var sessions: []
     property string currentSessionId: ""
     property string activeHistoryPath: ""
@@ -356,7 +364,7 @@ PlasmoidItem {
         try {
             return Qt.btoa(unescape(encodeURIComponent(str)));
         } catch (e) {
-            console.log("base64Encode error:", e);
+            console.error("base64Encode error:", e);
             return "";
         }
     }
@@ -365,7 +373,7 @@ PlasmoidItem {
         try {
             return decodeURIComponent(escape(Qt.atob(str)));
         } catch (e) {
-            console.log("base64Decode error:", e);
+            console.error("base64Decode error:", e);
             try {
                 return Qt.atob(str);
             } catch (err) {
@@ -1321,7 +1329,7 @@ PlasmoidItem {
                         }
                     }
                 } catch (err) {
-                    console.log("Failed to parse synced messages: " + err);
+                    console.error("Failed to parse synced messages: " + err);
                 }
             } else {
                 pushErrorMessage("Sync failed: OpenCode returned HTTP " + xhr.status);
@@ -4263,7 +4271,7 @@ PlasmoidItem {
             return ;
 
         if (root.kwalletOpenAttempts >= 3) {
-            console.log("[KAI-DEBUG] loadKWalletKeysIfNeeded open attempts limit of 3 exceeded. Skipping KWallet load.");
+            debugLog("[KAI-DEBUG] loadKWalletKeysIfNeeded open attempts limit of 3 exceeded. Skipping KWallet load.");
             return ;
         }
         if (plasmoid.configuration.keyStorageMode === 2) {
@@ -4528,7 +4536,7 @@ PlasmoidItem {
                         }
                     }
                 } catch (e) {
-                    console.log("[KAI-DEBUG] Failed to parse poll data:", e);
+                    debugLog("[KAI-DEBUG] Failed to parse poll data:", e);
                 }
             }
         }
@@ -4555,7 +4563,7 @@ PlasmoidItem {
             if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
                 var stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
                 opencodeServerDs.connectSource("sh -lc '" + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
-                console.log("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
+                debugLog("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
             }
         }
     }
@@ -4723,7 +4731,7 @@ PlasmoidItem {
                             root.attachedFiles = currentFiles;
                         }
                     } catch (e) {
-                        console.log("Failed to parse clipboard data: " + e);
+                        console.error("Failed to parse clipboard data: " + e);
                     }
                 }
                 disconnectSource(sourceName);
@@ -4803,7 +4811,7 @@ PlasmoidItem {
                             return ;
                         }
                     } catch (e) {
-                        console.log("Failed to parse custom history: " + e);
+                        console.error("Failed to parse custom history: " + e);
                     }
                 }
                 // Fallback & Seamless Migration:
@@ -4920,7 +4928,7 @@ PlasmoidItem {
                 if (openFailed) {
                     root.kwalletKeysLoaded = false;
                     root.kwalletOpenAttempts++;
-                    console.log("[KAI-DEBUG] KWallet open failed on startup (attempt " + root.kwalletOpenAttempts + " of 3)");
+                    debugLog("[KAI-DEBUG] KWallet open failed on startup (attempt " + root.kwalletOpenAttempts + " of 3)");
                 } else {
                     root.kwalletOpenAttempts = 0;
                 }
@@ -5178,9 +5186,9 @@ PlasmoidItem {
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("Chat settings")
                     onClicked: {
-                        console.log("[KDE AIChat] Gear button clicked! Opening chatSettingsDialog...");
+                        debugLog("[KDE AIChat] Gear button clicked! Opening chatSettingsDialog...");
                         chatSettingsDialog.open();
-                        console.log("[KDE AIChat] chatSettingsDialog state: visible=" + chatSettingsDialog.visible + ", x=" + chatSettingsDialog.x + ", y=" + chatSettingsDialog.y + ", width=" + chatSettingsDialog.width + ", height=" + chatSettingsDialog.height + ", parent=" + chatSettingsDialog.parent);
+                        debugLog("[KDE AIChat] chatSettingsDialog state: visible=" + chatSettingsDialog.visible + ", x=" + chatSettingsDialog.x + ", y=" + chatSettingsDialog.y + ", width=" + chatSettingsDialog.width + ", height=" + chatSettingsDialog.height + ", parent=" + chatSettingsDialog.parent);
                     }
                 }
 
@@ -7096,14 +7104,14 @@ PlasmoidItem {
         standardButtons: QQC2.Dialog.NoButton
         onAboutToShow: {
             var sId = root.currentSessionId;
-            console.log("[KDE AIChat] chatSettingsDialog about to show for session ID: " + sId);
+            debugLog("[KDE AIChat] chatSettingsDialog about to show for session ID: " + sId);
             var overrideVal = getSessionProperty(sId, "contextOverride", false);
             var enabledVal = getSessionProperty(sId, "contextEnabled", true);
             var limitVal = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
             var autoCompactVal = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
             var compactThresholdVal = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
 
-            console.log("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
+            debugLog("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
 
             // Sync controls imperatively to avoid QML binding breakage
             overrideToggle.checked = overrideVal;
@@ -7120,8 +7128,8 @@ PlasmoidItem {
             var autoCompactVal = autoCompactToggle.checked;
             var compactThresholdVal = compactThresholdSpin.value;
 
-            console.log("[KDE AIChat] Saving settings for session ID: " + sId);
-            console.log("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
+            debugLog("[KDE AIChat] Saving settings for session ID: " + sId);
+            debugLog("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
 
             setSessionProperty(sId, "contextOverride", overrideVal);
             setSessionProperty(sId, "contextEnabled", enabledVal);

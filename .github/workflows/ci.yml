@@ -43,10 +43,12 @@ jobs:
       - name: Run QML tests
         working-directory: org.kde.plasma.kdeaichat/contents/ui
         run: |
-          if command -v qmltestrunner &>/dev/null; then
+          if command -v qmltestrunner6 &>/dev/null; then
+            qmltestrunner6 -input ../../../tests -o -,txt || echo "Some QML tests failed"
+          elif command -v qmltestrunner &>/dev/null; then
             qmltestrunner -input ../../../tests -o -,txt || echo "Some QML tests failed"
           else
-            echo "qmltestrunner not available — skipping"
+            echo "qmltestrunner/qmltestrunner6 not available — skipping"
           fi
 
   lint:

@@ -11,6 +11,14 @@ import "translations.js" as Translations
 KCM.SimpleKCM {
     id: page
 
+    property bool debugMode: false
+    function debugLog() {
+        if (debugMode) {
+            var args = Array.prototype.slice.call(arguments);
+            console.log.apply(console, args);
+        }
+    }
+
     //* Ctrl+scroll zoom for the settings form (0.75–1.5).
     property real configZoom: 1
     property alias cfg_appDisplayName: appDisplayNameField.text
@@ -1108,9 +1116,9 @@ KCM.SimpleKCM {
     function kwalletLoadAll() {
         cancelKeyringOps();
         var walletName = effectiveWalletName();
-        console.log("[KAI-DEBUG] kwalletLoadAll walletName:", walletName);
+        debugLog("[KAI-DEBUG] kwalletLoadAll walletName:", walletName);
         var cmd = walletBulkReadCommand(walletName) + " #kwallet-refresh-all";
-        console.log("[KAI-DEBUG] kwalletLoadAll command:", cmd);
+        debugLog("[KAI-DEBUG] kwalletLoadAll command:", cmd);
         keyringStatus = "Refreshing API keys from KWallet...";
         utilityDs.connectSource(cmd);
     }
@@ -1155,7 +1163,7 @@ KCM.SimpleKCM {
         try {
             return Qt.btoa(unescape(encodeURIComponent(str)));
         } catch (e) {
-            console.log("base64Encode error:", e);
+            console.error("base64Encode error:", e);
             return "";
         }
     }
@@ -1813,10 +1821,10 @@ KCM.SimpleKCM {
                 else
                     Qt.callLater(page.kwalletLoadAll);
             } else if (sourceName.indexOf("kwallet-refresh-all") >= 0) {
-                console.log("[KAI-DEBUG] kwallet-refresh-all stdout:", out);
-                console.log("[KAI-DEBUG] kwallet-refresh-all stderr:", err);
+                debugLog("[KAI-DEBUG] kwallet-refresh-all stdout length:", out.length);
+                debugLog("[KAI-DEBUG] kwallet-refresh-all stderr:", err);
                 if (out.indexOf("__KAI_BULK__:") < 0) {
-                    console.log("[KAI-DEBUG] kwallet-refresh-all not finished yet, waiting...");
+                    debugLog("[KAI-DEBUG] kwallet-refresh-all not finished yet, waiting...");
                     return ;
                 }
                 if (out === "__KAI_BULK__:NO_WALLET") {
@@ -1874,7 +1882,7 @@ KCM.SimpleKCM {
                     applyPlainConfigKeys(keys);
                     keyringStatus = "Keys successfully reloaded from the physical configuration file.";
                 } catch (e) {
-                    console.log("Error parsing plain config: " + e);
+                    console.error("Error parsing plain config: " + e);
                     keyringStatus = "Error parsing config file: " + e;
                 }
             } else if (sourceName.indexOf("plainconfig-sync") >= 0) {
