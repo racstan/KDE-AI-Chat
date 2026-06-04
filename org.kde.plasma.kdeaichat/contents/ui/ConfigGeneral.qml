@@ -2401,7 +2401,7 @@ KCM.SimpleKCM {
 
                 function syncText() {
                     var val = activeProviderModelValue();
-                    var idx = providerModelCandidates.indexOf(val);
+                    var idx = filteredProviderModels.indexOf(val);
                     if (idx >= 0) {
                         currentIndex = idx;
                     } else {
@@ -2415,7 +2415,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 editable: true
-                model: providerModelCandidates
+                model: filteredProviderModels
                 Component.onCompleted: {
                     syncText();
                 }
@@ -2423,13 +2423,20 @@ KCM.SimpleKCM {
                     syncText();
                 }
                 onEditTextChanged: {
-                    if (activeFocus)
-                        applyDetectedModelToActiveProvider(editText);
-
+                    if (activeFocus) {
+                        var savedText = editText;
+                        applyDetectedModelToActiveProvider(savedText);
+                        page.updateFilteredProviderModels(savedText);
+                        editText = savedText;
+                        if (!popup.visible && savedText.length > 0) {
+                            popup.open();
+                        }
+                    }
                 }
                 onActivated: {
                     applyDetectedModelToActiveProvider(currentText);
                     editText = currentText;
+                    page.updateFilteredProviderModels("");
                 }
             }
 
@@ -2561,7 +2568,7 @@ KCM.SimpleKCM {
 
                 function syncText() {
                     var val = openCodeModelValueField.text || "";
-                    var idx = openCodeModelCandidates.indexOf(val);
+                    var idx = filteredOpenCodeModels.indexOf(val);
                     if (idx >= 0) {
                         currentIndex = idx;
                     } else {
@@ -2575,7 +2582,7 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 editable: true
-                model: openCodeModelCandidates
+                model: filteredOpenCodeModels
                 Component.onCompleted: {
                     syncText();
                 }
@@ -2583,13 +2590,20 @@ KCM.SimpleKCM {
                     syncText();
                 }
                 onEditTextChanged: {
-                    if (activeFocus)
-                        setOpenCodeModelValue(editText);
-
+                    if (activeFocus) {
+                        var savedText = editText;
+                        setOpenCodeModelValue(savedText);
+                        page.updateFilteredOpenCodeModels(savedText);
+                        editText = savedText;
+                        if (!popup.visible && savedText.length > 0) {
+                            popup.open();
+                        }
+                    }
                 }
                 onActivated: {
                     setOpenCodeModelValue(currentText);
                     editText = currentText;
+                    page.updateFilteredOpenCodeModels("");
                 }
             }
 
