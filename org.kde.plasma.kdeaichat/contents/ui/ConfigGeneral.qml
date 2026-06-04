@@ -95,6 +95,8 @@ KCM.SimpleKCM {
     property alias cfg_openCodeProvider: openCodeProviderValueField.text
     property alias cfg_openCodeStartCommand: openCodeStartCommandField.text
     property alias cfg_openCodeStopCommand: openCodeStopCommandField.text
+    property alias cfg_openCodeAutoKill: openCodeAutoKillToggle.checked
+    property alias cfg_openCodeAutoKillMinutes: openCodeAutoKillMinutesSpin.value
     property alias cfg_kwalletName: walletNameField.text
     property alias cfg_systemPrompt: systemPromptArea.text
     property alias cfg_memoryEnabled: memoryEnabledToggle.checked
@@ -1339,6 +1341,8 @@ KCM.SimpleKCM {
         plasmoid.configuration.openCodeProvider = openCodeProviderValueField.text;
         plasmoid.configuration.openCodeStartCommand = openCodeStartCommandField.text;
         plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text;
+        plasmoid.configuration.openCodeAutoKill = openCodeAutoKillToggle.checked;
+        plasmoid.configuration.openCodeAutoKillMinutes = openCodeAutoKillMinutesSpin.value;
         plasmoid.configuration.kwalletName = walletNameField.text;
         plasmoid.configuration.systemPrompt = systemPromptArea.text;
         plasmoid.configuration.memoryEnabled = memoryEnabledToggle.checked;
@@ -1433,6 +1437,8 @@ KCM.SimpleKCM {
         openCodeModelValueField.text = "";
         openCodeStartCommandField.text = "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
+        openCodeAutoKillToggle.checked = true;
+        openCodeAutoKillMinutesSpin.value = 5;
         walletNameField.text = availableWalletNames.length > 0 ? availableWalletNames[0] : "kdewallet";
         systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
         memoryEnabledToggle.checked = false;
@@ -2637,6 +2643,56 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: translate("Auto-start server:")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: translate("Automatically start OpenCode when settings open")
+            }
+
+            QQC2.CheckBox {
+                id: openCodeAutoKillToggle
+
+                visible: openCodeToggle.checked
+                Kirigami.FormData.label: translate("Auto-kill session:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: translate("Automatically stop the OpenCode server to save memory")
+            }
+
+            QQC2.Label {
+                visible: openCodeToggle.checked && openCodeAutoKillToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: translate("Kills the OpenCode server process automatically after a period of inactivity to conserve system memory.")
+            }
+
+            RowLayout {
+                id: openCodeAutoKillMinutesRow
+                visible: openCodeToggle.checked && openCodeAutoKillToggle.checked
+                spacing: Kirigami.Units.smallSpacing
+                Kirigami.FormData.label: translate("Kill inactivity delay:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.SpinBox {
+                    id: openCodeAutoKillMinutesSpin
+                    from: 1
+                    to: 1440
+                    value: 5
+                    editable: true
+                }
+
+                QQC2.Label {
+                    text: translate("minutes")
+                }
+            }
+
+            QQC2.Label {
+                visible: openCodeToggle.checked
+                Kirigami.FormData.label: translate("")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: translate("Note: Auto-restart is enabled when you type a message in the chat.")
             }
 
             QQC2.Label {

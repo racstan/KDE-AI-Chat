@@ -51,6 +51,8 @@ PlasmoidItem {
     property string configCustomHistoryPath: plasmoid.configuration.customHistoryPath || ""
     property bool configUseOpenCode: !!plasmoid.configuration.useOpenCode
     property int configKeyStorageMode: plasmoid.configuration.keyStorageMode || 0
+    property bool configOpenCodeAutoKill: !!plasmoid.configuration.openCodeAutoKill
+    property int configOpenCodeAutoKillMinutes: plasmoid.configuration.openCodeAutoKillMinutes || 5
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
@@ -1658,8 +1660,43 @@ PlasmoidItem {
         if (chatId === root.currentSessionId) {
             if (!root.userScrolledUp)
                 Qt.callLater(scrollToBottom);
-
         }
+        return ts;
+    }
+
+    function removeMessageFromSessionByTimestamp(chatId, timestamp) {
+        var idx = sessionIndexById(chatId);
+        if (idx < 0)
+            return ;
+
+        var updated = root.sessions.slice();
+        var s = Object.assign({}, updated[idx]);
+        var msgs = (s.messages || []).slice();
+        var originalLength = msgs.length;
+        msgs = msgs.filter(function(m) {
+            return m.at !== timestamp;
+        });
+        if (msgs.length === originalLength)
+            return ;
+
+        s.messages = msgs;
+        s.updatedAt = Date.now();
+        if (chatId === root.currentSessionId) {
+            root.messages = msgs;
+            if (root.expanded && !root.historyOnlyMode)
+                s.readCount = msgs.length;
+        }
+        updated[idx] = s;
+        root.sessions = updated;
+        persistSessions();
+    }
+
+    function scheduleMessageRemoval(chatId, timestamp, delayMs) {
+        var timerObj = Qt.createQmlObject("import QtQuick; Timer { interval: " + delayMs + "; repeat: false; running: true; }", root, "dynamicRemoveTimer");
+        timerObj.triggered.connect(function() {
+            removeMessageFromSessionByTimestamp(chatId, timestamp);
+            timerObj.destroy();
+        });
     }
 
     function setOpenCodeSessionIdForChatId(chatId, remoteSessionId) {
@@ -1853,12 +1890,16 @@ PlasmoidItem {
             if (plasmoid.configuration.autoStartOpenCodeServer) {
                 var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
                 opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
-                if (chatId)
-                    appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
+                if (chatId) {
+                    var ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
+                    scheduleMessageRemoval(chatId, ts1, 60000);
+                }
 
                 openCodeStartPollTimer.successCb = function() {
-                    if (chatId)
-                        appendSystemMessageToSession(chatId, translate("Session restarted."));
+                    if (chatId) {
+                        var ts2 = appendSystemMessageToSession(chatId, translate("Session restarted."));
+                        scheduleMessageRemoval(chatId, ts2, 60000);
+                    }
                     resolveSuccess();
                 };
                 openCodeStartPollTimer.failureCb = function(msg) {
@@ -4303,10 +4344,20 @@ PlasmoidItem {
     }
 
     function resetOpenCodeIdleKillTimer() {
-        if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer)
+        if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
+            var mins = root.configOpenCodeAutoKillMinutes || 5;
+            openCodeIdleKillTimer.interval = mins * 60000;
             openCodeIdleKillTimer.restart();
-        else
+        } else {
             openCodeIdleKillTimer.stop();
+        }
+    }
+
+    onConfigOpenCodeAutoKillChanged: {
+        resetOpenCodeIdleKillTimer();
+    }
+    onConfigOpenCodeAutoKillMinutesChanged: {
+        resetOpenCodeIdleKillTimer();
     }
 
     onConfigCustomHistoryPathChanged: {
@@ -4460,10 +4511,10 @@ PlasmoidItem {
         interval: 300000 // 5 minutes
         repeat: false
         onTriggered: {
-            if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer) {
+            if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
                 var stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
                 opencodeServerDs.connectSource("sh -lc '" + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
-                console.log("[KAI-DEBUG] OpenCode server auto-killed due to 5 min idleness/chat switch.");
+                console.log("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
             }
         }
     }
