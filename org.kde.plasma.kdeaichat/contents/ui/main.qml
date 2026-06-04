@@ -68,9 +68,6 @@ PlasmoidItem {
             loadKWalletKeysIfNeeded();
         }
     }
-    onOpenCodeModeChanged: {
-        resetOpenCodeIdleKillTimer();
-    }
     onCurrentSessionIdChanged: {
         resetOpenCodeIdleKillTimer();
     }
@@ -4039,6 +4036,7 @@ PlasmoidItem {
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
     onOpenCodeModeChanged: {
+        resetOpenCodeIdleKillTimer();
         if (!openCodeMode) {
             loadKWalletKeysIfNeeded();
         } else {
