@@ -1,4 +1,5 @@
 import QtQuick
+import QtCore
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
@@ -215,9 +216,12 @@ PlasmoidItem {
     }
 
     function toggleScheduleEnabled(schedId, newEnabled) {
-        var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "for s in data.get('schedules', []):", "    if s.get('id') == '" + schedId + "':", "        s['enabled'] = " + (newEnabled ? "True" : "False"), "        if " + (newEnabled ? "True" : "False") + ":", "            s['nextRunAt'] = ''", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
-        var b64Py = base64Encode(py);
-        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+        var payload = {
+            "schedId": schedId,
+            "enabled": newEnabled
+        };
+        var b64Payload = base64Encode(JSON.stringify(payload));
+        var cmd = "python3 '" + getHelperPath() + "' toggle_schedule '" + b64Payload + "'";
         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-toggle-" + Date.now());
         // Update local schedulesList immediately
         var copy = root.schedulesList.slice();
@@ -267,9 +271,12 @@ PlasmoidItem {
             }
             // Sync the detailed failure back to the scheduler's run history log
             if (schedId) {
-                var historyPy = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "if os.path.exists(p):", "  try:", "    data = json.load(open(p))", "    history = data.setdefault('history', [])", "    for entry in reversed(history):", "      if entry.get('scheduleId') == '" + schedId + "':", "        entry['status'] = '" + validationError.replace(/'/g, "\\'") + "'", "        break", "    json.dump(data, open(p, 'w'), indent=2)", "  except Exception: pass"].join("\n");
-                var b64History = base64Encode(historyPy);
-                var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64History + "').decode('utf-8'))\"";
+                var historyPayload = {
+                    "schedId": schedId,
+                    "status": validationError
+                };
+                var b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
+                var cmd = "python3 '" + getHelperPath() + "' update_schedule_history_status '" + b64HistoryPayload + "'";
                 soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
             }
             return ;
@@ -392,9 +399,13 @@ PlasmoidItem {
         // to the new location, then fall back to copying the old file if it exists.
         var currentJson = JSON.stringify(root.sessions);
         var b64Current = base64Encode(currentJson);
-        var py = ["import os, shutil, base64, json", "old_p = os.path.expanduser('" + oldFullPath.replace(/'/g, "\\'") + "') if '" + oldFullPath + "' else ''", "new_p = os.path.expanduser('" + newFullPath.replace(/'/g, "\\'") + "') if '" + newFullPath + "' else ''", "current_b64 = '" + b64Current + "'", "res = {'status': 'ok', 'action': 'none'}", "try:", "  if not new_p:", "    # Switching back to default — load from old custom path if it exists", "    if old_p and os.path.exists(old_p):", "      res['action'] = 'load'", "      res['content'] = base64.b64encode(open(old_p, 'rb').read()).decode('utf-8')", "  else:", "    folder = os.path.dirname(new_p)", "    if folder:", "      os.makedirs(folder, exist_ok=True)", "    if os.path.exists(new_p):", "      # Destination already has a file — load it (don't overwrite)", "      res['action'] = 'load'", "      res['content'] = base64.b64encode(open(new_p, 'rb').read()).decode('utf-8')", "    elif old_p and os.path.exists(old_p):", "      # Copy old custom path file to new path", "      shutil.copy2(old_p, new_p)", "      res['action'] = 'copied'", "    else:", "      # No existing file — export current in-memory sessions", "      data = base64.b64decode(current_b64).decode('utf-8')", "      with open(new_p, 'w', encoding='utf-8') as f:", "        f.write(data)", "      res['action'] = 'exported'", "except Exception as e:", "  res['status'] = 'error'", "  res['message'] = str(e)", "print(base64.b64encode(json.dumps(res).encode('utf-8')).decode('utf-8'))"].join("\n");
-        var b64Py = base64Encode(py);
-        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+        var payload = {
+            "oldFullPath": oldFullPath,
+            "newFullPath": newFullPath,
+            "currentB64": b64Current
+        };
+        var b64Payload = base64Encode(JSON.stringify(payload));
+        var cmd = "python3 '" + getHelperPath() + "' migrate_history '" + b64Payload + "'";
         customStorageDs.connectSource(cmd + " #migrate-history-" + Date.now());
     }
 
@@ -406,9 +417,12 @@ PlasmoidItem {
         if (customDir !== "") {
             var fullPath = getHistoryFilePath(customDir);
             var b64Str = base64Encode(jsonStr);
-            var py = "import base64, os; path=os.path.expanduser('" + fullPath.replace(/'/g, "\\'") + "'); folder=os.path.dirname(path); os.makedirs(folder, exist_ok=True); f=open(path, 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close(); print('OK')";
-            var b64Py = base64Encode(py);
-            var writeCmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+            var payload = {
+                "fullPath": fullPath,
+                "b64Str": b64Str
+            };
+            var b64Payload = base64Encode(JSON.stringify(payload));
+            var writeCmd = "python3 '" + getHelperPath() + "' write_history '" + b64Payload + "'";
             customStorageDs.connectSource(writeCmd + " #custom-history-write-" + Date.now());
         }
     }
@@ -664,9 +678,11 @@ PlasmoidItem {
         cancelSessionRename();
         persistSessions();
         // Clean up schedules associated with this session
-        var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "if os.path.exists(p):", "  try:", "    data = json.load(open(p))", "    if isinstance(data, dict):", "      scheds = data.get('schedules', [])", "      data['schedules'] = [s for s in scheds if s.get('chatId') != '" + sessionId + "']", "      json.dump(data, open(p, 'w'), indent=2)", "  except Exception: pass"].join("\n");
-        var b64Py = base64Encode(py);
-        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+        var payload = {
+            "sessionId": sessionId
+        };
+        var b64Payload = base64Encode(JSON.stringify(payload));
+        var cmd = "python3 '" + getHelperPath() + "' delete_session_schedules '" + b64Payload + "'";
         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-session-delete-" + Date.now());
         // Also update root.schedulesList locally
         var copy = root.schedulesList.filter(function(s) {
@@ -3003,9 +3019,12 @@ PlasmoidItem {
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-notify-err");
         }
         if (schedId) {
-            var historyPy = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "if os.path.exists(p):", "  try:", "    data = json.load(open(p))", "    history = data.setdefault('history', [])", "    for entry in reversed(history):", "      if entry.get('scheduleId') == '" + schedId + "':", "        entry['status'] = '" + errorMsg.replace(/'/g, "\\'") + "'", "        break", "    json.dump(data, open(p, 'w'), indent=2)", "  except Exception: pass"].join("\n");
-            var b64History = base64Encode(historyPy);
-            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64History + "').decode('utf-8'))\"";
+            var payload = {
+                "schedId": schedId,
+                "status": errorMsg
+            };
+            var b64Payload = base64Encode(JSON.stringify(payload));
+            var cmd = "python3 '" + getHelperPath() + "' update_schedule_history_status '" + b64Payload + "'";
             soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
         }
     }
@@ -3989,6 +4008,24 @@ PlasmoidItem {
         return decodeURIComponent(urlStr);
     }
 
+    function getHelperPath() {
+        var urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
+        if (urlStr.indexOf("file://") === 0)
+            urlStr = urlStr.substring(7);
+
+        return decodeURIComponent(urlStr);
+    }
+
+    function getScriptsPath() {
+        var helper = getHelperPath();
+        var parts = helper.split("/");
+        if (parts.length >= 2) {
+            parts.splice(parts.length - 2, 2);
+            return parts.join("/") + "/scripts";
+        }
+        return "";
+    }
+
     function attachFile(fileUrl) {
         var localPath = String(fileUrl);
         if (localPath.indexOf("file://") === 0)
@@ -4309,9 +4346,12 @@ PlasmoidItem {
             }
         }
         var b64Str = base64Encode(content);
-        var py = "import base64; f = open('" + filePath.replace(/'/g, "\\'") + "', 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()";
-        var b64Py = base64Encode(py);
-        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\" && notify-send -i document-export 'KDE AI Chat' 'Chat session successfully exported to " + filePath.replace(/'/g, "'\\''") + "'";
+        var payload = {
+            "filePath": filePath,
+            "b64Content": b64Str
+        };
+        var b64Payload = base64Encode(JSON.stringify(payload));
+        var cmd = "python3 '" + getHelperPath() + "' export_chat '" + b64Payload + "' && notify-send -i document-export 'KDE AI Chat' 'Chat session successfully exported to " + filePath.replace(/'/g, "'\\''") + "'";
         fileReaderDs.connectSource(cmd + " #export-chat-save");
     }
 
@@ -4591,9 +4631,7 @@ PlasmoidItem {
                 return ;
 
             root.schedPolling = true;
-            var py = ["import os, json", "d = os.path.expanduser('~/.local/share/kdeaichat/pending')", "res = []", "if os.path.exists(d):", "  for f in os.listdir(d):", "    if f.endswith('.json'):", "      p = os.path.join(d, f)", "      try:", "        res.append(json.load(open(p)))", "        os.remove(p)", "      except Exception: pass", "ps = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "scheds = []", "if os.path.exists(ps):", "  try:", "    s_data = json.load(open(ps))", "    scheds = s_data.get('schedules', []) if isinstance(s_data, dict) else s_data", "  except Exception: pass", "print(json.dumps({'pending': res, 'schedules': scheds}))"].join("\n");
-            var b64Py = base64Encode(py);
-            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+            var cmd = "python3 '" + getHelperPath() + "' poll_pending_triggers";
             schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-poll-" + Date.now());
         }
     }
@@ -5216,7 +5254,7 @@ PlasmoidItem {
                         var min = String(now.getMinutes()).padStart(2, "0");
                         var sec = String(now.getSeconds()).padStart(2, "0");
                         var timestamp = year + "-" + month + "-" + day + "_" + hour + "-" + min + "-" + sec;
-                        exportFileDialog.currentFile = "file:///home/home/Documents/" + cleanTitle + "_" + timestamp + ".md";
+                        exportFileDialog.currentFile = "file://" + StandardPaths.writableLocation(StandardPaths.DocumentsLocation) + "/" + cleanTitle + "_" + timestamp + ".md";
                         exportFileDialog.open();
                     }
                 }
@@ -5258,14 +5296,14 @@ PlasmoidItem {
                             clipboardHelper.text = opencodeCmd;
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var termCmd = "echo -n '" + sid + "' > /home/home/Programming/rachitkdeaichat/.opencode-session && konsole --workdir /home/home/Programming/rachitkdeaichat -e bash ./opencode-terminal.sh";
+                            var termCmd = "echo -n '" + sid + "' > ~/.local/share/kdeaichat/.opencode-session && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         }, function(err) {
                             root.pushErrorMessage(err);
                             clipboardHelper.text = "opencode";
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var termCmd = "echo -n '' > /home/home/Programming/rachitkdeaichat/.opencode-session && konsole --workdir /home/home/Programming/rachitkdeaichat -e bash ./opencode-terminal.sh";
+                            var termCmd = "echo -n '' > ~/.local/share/kdeaichat/.opencode-session && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         });
                     }
@@ -6164,9 +6202,11 @@ PlasmoidItem {
                                                                                 QQC2.ToolTip.visible: hovered
                                                                                 onClicked: {
                                                                                     var schedId = modelData.id;
-                                                                                    var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
-                                                                                    var b64Py = base64Encode(py);
-                                                                                    var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+                                                                                    var payload = {
+                                                                                        "schedId": schedId
+                                                                                    };
+                                                                                    var b64Payload = base64Encode(JSON.stringify(payload));
+                                                                                    var cmd = "python3 '" + getHelperPath() + "' delete_schedule '" + b64Payload + "'";
                                                                                     schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
                                                                                     // Remove immediately from UI to be responsive!
                                                                                     var copy = root.schedulesList.slice();
@@ -7608,7 +7648,7 @@ PlasmoidItem {
                     onClicked: {
                         var hr2 = scheduleCommandDialog.humanText();
                         var msg = cmdMessage.text.trim();
-                        var jsonEntry = JSON.stringify({
+                        var entry = {
                             "id": "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000),
                             "name": hr2,
                             "enabled": true,
@@ -7624,11 +7664,12 @@ PlasmoidItem {
                             "humanReadable": hr2,
                             "notify": scheduleCommandDialog.schedNotify,
                             "createdAt": new Date().toISOString()
-                        });
-                        var b64Entry = base64Encode(jsonEntry);
-                        var py = ["import json,os,base64", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "entry = json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8'))", "data.setdefault('schedules', []).append(entry)", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
-                        var b64Py = base64Encode(py);
-                        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+                        };
+                        var payload = {
+                            "entry": entry
+                        };
+                        var b64Payload = base64Encode(JSON.stringify(payload));
+                        var cmd = "python3 '" + getHelperPath() + "' add_schedule '" + b64Payload + "'";
                         schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
@@ -7660,9 +7701,11 @@ PlasmoidItem {
         }
 
         function deleteSchedule(schedId) {
-            var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
-            var b64Py = base64Encode(py);
-            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+            var payload = {
+                "schedId": schedId
+            };
+            var b64Payload = base64Encode(JSON.stringify(payload));
+            var cmd = "python3 '" + getHelperPath() + "' delete_schedule '" + b64Payload + "'";
             schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
             root.appendSystemMessage("🗑️ Schedule deleted successfully.");
         }
