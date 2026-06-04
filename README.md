@@ -152,8 +152,7 @@ KDE-AI-Chat/
 │       │   ├── ScheduleDialog.qml # Schedule CRUD dialog
 │       │   ├── translations.js   # Translation engine (11 languages)
 │       │   ├── ProviderData.js   # Provider registry
-│       │   ├── doc_extractor.py  # File attachment extraction (PDF, DOCX, images)
-│       │   └── kde-ai-kwallet.py # KWallet Python helper
+│       │   └── doc_extractor.py  # File attachment extraction (PDF, DOCX, images)
 ├── tests/                        # Python test suite (39 test cases)
 ├── docs/                         # Developer & user documentation
 ├── install.sh                    # One-click developer clean-reinstall script

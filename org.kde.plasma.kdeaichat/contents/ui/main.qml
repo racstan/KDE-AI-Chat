@@ -1807,6 +1807,7 @@ PlasmoidItem {
         root.openCodeStartSuccessCallbacks = successCallback ? [successCallback] : [];
         root.openCodeStartFailureCallbacks = failureCallback ? [failureCallback] : [];
 
+        var checkFinished = false;
         var completed = false;
         var resolveSuccess = function() {
             if (completed) return;
@@ -1841,10 +1842,14 @@ PlasmoidItem {
         };
 
         function handleSuccess() {
+            if (checkFinished) return;
+            checkFinished = true;
             resolveSuccess();
         }
 
         function handleNotRunning(err) {
+            if (checkFinished) return;
+            checkFinished = true;
             if (plasmoid.configuration.autoStartOpenCodeServer) {
                 var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
                 opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
@@ -4913,749 +4918,7 @@ PlasmoidItem {
         }
     }
 
-    // ── Per-session Chat Settings dialog ──────────────────────────────────────
-    QQC2.Dialog {
-        id: chatSettingsDialog
-
-        // Local transient state – loaded when dialog opens
-        property bool localOverride: false
-        property bool localContextEnabled: true
-        property int localContextLimit: 1
-        property bool localAutoCompact: false
-        property int localCompactThreshold: 10
-
-        title: root.translate("Chat Settings")
-        modal: true
-        x: Math.round((parent.width - width) / 2)
-        y: Math.round((parent.height - height) / 2)
-        width: Math.min(420, parent ? parent.width * 0.9 : 420)
-        standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
-        onAboutToShow: {
-            var sId = root.currentSessionId;
-            localOverride = getSessionProperty(sId, "contextOverride", false);
-            localContextEnabled = getSessionProperty(sId, "contextEnabled", true);
-            localContextLimit = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
-            localAutoCompact = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
-            localCompactThreshold = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
-        }
-        onAccepted: {
-            var sId = root.currentSessionId;
-            setSessionProperty(sId, "contextOverride", localOverride);
-            if (localOverride) {
-                setSessionProperty(sId, "contextEnabled", localContextEnabled);
-                setSessionProperty(sId, "contextLimit", localContextLimit);
-                setSessionProperty(sId, "contextAutoCompact", localAutoCompact);
-                setSessionProperty(sId, "contextCompactThreshold", localCompactThreshold);
-            }
-        }
-
-        ColumnLayout {
-            width: parent.width
-            spacing: Kirigami.Units.smallSpacing
-
-            // ── Override toggle ─────────────────────────────────────────
-            QQC2.CheckBox {
-                id: overrideToggle
-
-                text: root.translate("Override global context settings for this chat")
-                checked: chatSettingsDialog.localOverride
-                onToggled: chatSettingsDialog.localOverride = checked
-                Layout.fillWidth: true
-            }
-
-            Kirigami.Separator {
-                Layout.fillWidth: true
-                visible: overrideToggle.checked
-            }
-
-            // ── Context enable/disable ──────────────────────────────────
-            QQC2.CheckBox {
-                id: contextEnabledToggle
-
-                visible: overrideToggle.checked
-                text: checked ? root.translate("Context enabled — previous messages are sent to AI") : root.translate("Context disabled — AI sees only the current prompt")
-                checked: chatSettingsDialog.localContextEnabled
-                onToggled: chatSettingsDialog.localContextEnabled = checked
-                Layout.fillWidth: true
-            }
-
-            // ── Context limit ───────────────────────────────────────────
-            RowLayout {
-                visible: overrideToggle.checked && contextEnabledToggle.checked
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-
-                PC3.Label {
-                    text: root.translate("Context limit:")
-                }
-
-                QQC2.SpinBox {
-                    id: contextLimitSpin
-
-                    from: 1
-                    to: 200
-                    value: chatSettingsDialog.localContextLimit
-                    editable: true
-                    onValueModified: chatSettingsDialog.localContextLimit = value
-                }
-
-                PC3.Label {
-                    text: root.translate("messages")
-                }
-
-            }
-
-            Kirigami.Separator {
-                Layout.fillWidth: true
-                visible: overrideToggle.checked && contextEnabledToggle.checked
-            }
-
-            // ── Auto-compact ────────────────────────────────────────────
-            QQC2.CheckBox {
-                id: autoCompactToggle
-
-                visible: overrideToggle.checked && contextEnabledToggle.checked
-                text: checked ? root.translate("Auto-compact older messages when limit is reached") : root.translate("Do not auto-compact")
-                checked: chatSettingsDialog.localAutoCompact
-                onToggled: chatSettingsDialog.localAutoCompact = checked
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                visible: overrideToggle.checked && contextEnabledToggle.checked && autoCompactToggle.checked
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-
-                PC3.Label {
-                    text: root.translate("Compact threshold:")
-                }
-
-                QQC2.SpinBox {
-                    from: 5
-                    to: 200
-                    value: chatSettingsDialog.localCompactThreshold
-                    editable: true
-                    onValueModified: chatSettingsDialog.localCompactThreshold = value
-                }
-
-                PC3.Label {
-                    text: root.translate("messages")
-                }
-
-            }
-
-            // ── Info about inherited settings ───────────────────────────
-            PC3.Label {
-                visible: !overrideToggle.checked
-                text: root.translate("This chat uses the global defaults from Settings → General → Global Context.\n\nEnable the override above to customise context for this chat only.")
-                wrapMode: Text.Wrap
-                font: Kirigami.Theme.smallFont
-                opacity: 0.72
-                Layout.fillWidth: true
-            }
-
-            // ── Manual compact button ───────────────────────────────────
-            QQC2.Button {
-                visible: overrideToggle.checked && contextEnabledToggle.checked
-                text: root.translate("Compact context now")
-                icon.name: "edit-clear-history"
-                Layout.fillWidth: true
-                onClicked: {
-                    chatSettingsDialog.accept();
-                    Qt.callLater(function() {
-                        compactSessionContext(root.currentSessionId);
-                    });
-                }
-            }
-
-        }
-
-    }
-
-    // ── Inline /schedule command dialog ───────────────────────────────────────
-    QQC2.Dialog {
-        id: scheduleCommandDialog
-
-        property string prefillMessage: ""
-        property string chatId: ""
-        property string chatName: ""
-        property string schedType: "days"
-        property int schedEvery: 1
-        property string schedTime: "09:00"
-        property var schedDays: [1]
-        property int schedDayOfMonth: 1
-        property bool schedNotify: true
-
-        function buildCron() {
-            var t = schedType, n = schedEvery;
-            var tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
-            if (t === "minutes")
-                return "*/" + n + " * * * *";
-
-            if (t === "hours")
-                return "0 */" + n + " * * *";
-
-            if (t === "days")
-                return (n === 1 ? mn + " " + hr + " * * *" : mn + " " + hr + " */" + n + " * *");
-
-            if (t === "weeks") {
-                var ds = schedDays.length > 0 ? schedDays.slice().sort().join(",") : "1";
-                return mn + " " + hr + " * * " + ds;
-            }
-            return (n === 1 ? mn + " " + hr + " " + schedDayOfMonth + " * *" : mn + " " + hr + " " + schedDayOfMonth + " */" + n + " *");
-        }
-
-        function humanText() {
-            var t = schedType, n = schedEvery;
-            var tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
-            var ap = hr >= 12 ? "PM" : "AM", h12 = hr % 12 || 12, ms = mn < 10 ? "0" + mn : "" + mn;
-            var ts = h12 + ":" + ms + " " + ap;
-            if (t === "minutes")
-                return "Every " + (n === 1 ? "minute" : n + " minutes");
-
-            if (t === "hours")
-                return "Every " + (n === 1 ? "hour" : n + " hours");
-
-            if (t === "days")
-                return "Every " + (n === 1 ? "day" : n + " days") + " at " + ts;
-
-            if (t === "weeks") {
-                var dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                return "Every " + (n === 1 ? "week" : n + " weeks") + " on " + schedDays.map(function(x) {
-                    return dn[x];
-                }).join(", ") + " at " + ts;
-            }
-            var sfx = schedDayOfMonth === 1 ? "st" : schedDayOfMonth === 2 ? "nd" : schedDayOfMonth === 3 ? "rd" : "th";
-            return "Every " + (n === 1 ? "month" : n + " months") + " on the " + schedDayOfMonth + sfx + " at " + ts;
-        }
-
-        title: translate("Create Schedule")
-        modal: true
-        x: Math.round((parent.width - width) / 2)
-        y: Math.round((parent.height - height) / 2)
-        width: Math.min(parent ? parent.width * 0.92 : 600, 540)
-        standardButtons: QQC2.Dialog.Close
-        onOpened: {
-            cmdMessage.text = scheduleCommandDialog.prefillMessage;
-        }
-
-        ColumnLayout {
-            width: parent.width
-            spacing: Kirigami.Units.largeSpacing
-
-            QQC2.Label {
-                visible: !!scheduleCommandDialog.chatName
-                text: "In chat: " + scheduleCommandDialog.chatName
-                font.italic: true
-                font.pixelSize: 11
-                opacity: 0.65
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 4
-
-                QQC2.Label {
-                    text: "Message to send:"
-                    font.bold: true
-                }
-
-                QQC2.TextArea {
-                    id: cmdMessage
-
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 68
-                    wrapMode: TextEdit.Wrap
-                    placeholderText: "e.g. What should I focus on today?"
-                }
-
-            }
-
-            Kirigami.Separator {
-                Layout.fillWidth: true
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 4
-
-                QQC2.Label {
-                    text: "When to send:"
-                    font.bold: true
-                }
-
-                Flow {
-                    Layout.fillWidth: true
-                    spacing: 4
-
-                    Repeater {
-                        model: [{
-                            "k": "minutes",
-                            "l": "Minutes"
-                        }, {
-                            "k": "hours",
-                            "l": "Hours"
-                        }, {
-                            "k": "days",
-                            "l": "Days"
-                        }, {
-                            "k": "weeks",
-                            "l": "Weeks"
-                        }, {
-                            "k": "months",
-                            "l": "Months"
-                        }]
-
-                        QQC2.Button {
-                            text: modelData.l
-                            font.pixelSize: 11
-                            highlighted: scheduleCommandDialog.schedType === modelData.k
-                            flat: scheduleCommandDialog.schedType !== modelData.k
-                            onClicked: scheduleCommandDialog.schedType = modelData.k
-                        }
-
-                    }
-
-                }
-
-                RowLayout {
-                    spacing: Kirigami.Units.smallSpacing
-
-                    QQC2.Label {
-                        text: "Every"
-                    }
-
-                    QQC2.SpinBox {
-                        from: 1
-                        to: 999
-                        value: scheduleCommandDialog.schedEvery
-                        onValueChanged: scheduleCommandDialog.schedEvery = value
-                    }
-
-                    QQC2.Label {
-                        text: {
-                            var t = scheduleCommandDialog.schedType, n = scheduleCommandDialog.schedEvery;
-                            var m = {
-                                "minutes": "minute",
-                                "hours": "hour",
-                                "days": "day",
-                                "weeks": "week",
-                                "months": "month"
-                            };
-                            return n === 1 ? (m[t] || t) : (m[t] || t) + "s";
-                        }
-                    }
-
-                }
-
-                RowLayout {
-                    visible: ["days", "weeks", "months"].indexOf(scheduleCommandDialog.schedType) >= 0
-                    spacing: Kirigami.Units.smallSpacing
-
-                    QQC2.Label {
-                        text: "At:"
-                    }
-
-                    QQC2.SpinBox {
-                        from: 1
-                        to: 12
-                        value: {
-                            var h2 = parseInt(scheduleCommandDialog.schedTime.split(":")[0]) || 9;
-                            return (h2 % 12) || 12;
-                        }
-                        textFromValue: function(v) {
-                            return (v < 10 ? "0" : "") + v;
-                        }
-                        onValueChanged: {
-                            var parts = scheduleCommandDialog.schedTime.split(":");
-                            var curH = parseInt(parts[0]) || 0;
-                            var m2 = parseInt(parts[1]) || 0;
-                            var isPm = curH >= 12;
-                            var targetH = value;
-                            if (isPm) {
-                                if (value < 12)
-                                    targetH = value + 12;
-
-                            } else {
-                                if (value === 12)
-                                    targetH = 0;
-
-                            }
-                            scheduleCommandDialog.schedTime = (targetH < 10 ? "0" : "") + targetH + ":" + (m2 < 10 ? "0" : "") + m2;
-                        }
-                    }
-
-                    QQC2.Label {
-                        text: ":"
-                    }
-
-                    QQC2.SpinBox {
-                        from: 0
-                        to: 59
-                        stepSize: 5
-                        value: parseInt(scheduleCommandDialog.schedTime.split(":")[1]) || 0
-                        textFromValue: function(v) {
-                            return (v < 10 ? "0" : "") + v;
-                        }
-                        onValueChanged: {
-                            var parts = scheduleCommandDialog.schedTime.split(":");
-                            var h2 = parseInt(parts[0]) || 9;
-                            scheduleCommandDialog.schedTime = (h2 < 10 ? "0" : "") + h2 + ":" + (value < 10 ? "0" : "") + value;
-                        }
-                    }
-
-                    QQC2.Button {
-                        text: (parseInt(scheduleCommandDialog.schedTime.split(":")[0]) >= 12 ? "PM" : "AM")
-                        font.bold: true
-                        onClicked: {
-                            var parts = scheduleCommandDialog.schedTime.split(":");
-                            var curH = parseInt(parts[0]) || 0;
-                            var m2 = parseInt(parts[1]) || 0;
-                            var targetH = curH;
-                            if (curH >= 12)
-                                targetH = curH - 12;
-                            else
-                                targetH = curH + 12;
-                            scheduleCommandDialog.schedTime = (targetH < 10 ? "0" : "") + targetH + ":" + (m2 < 10 ? "0" : "") + m2;
-                        }
-                    }
-
-                }
-
-                Flow {
-                    visible: scheduleCommandDialog.schedType === "weeks"
-                    Layout.fillWidth: true
-                    spacing: 4
-
-                    Repeater {
-                        model: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
-
-                        Rectangle {
-                            property bool sel: scheduleCommandDialog.schedDays.indexOf(index) >= 0
-
-                            width: 32
-                            height: 26
-                            radius: 4
-                            color: sel ? Kirigami.Theme.highlightColor : "transparent"
-                            border.color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
-                            border.width: 1
-
-                            QQC2.Label {
-                                anchors.centerIn: parent
-                                text: modelData
-                                font.pixelSize: 10
-                                font.bold: sel
-                                color: sel ? "white" : Kirigami.Theme.textColor
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    var ds2 = scheduleCommandDialog.schedDays.slice(), pos = ds2.indexOf(index);
-                                    if (pos >= 0) {
-                                        if (ds2.length > 1)
-                                            ds2.splice(pos, 1);
-
-                                    } else {
-                                        ds2.push(index);
-                                        ds2.sort();
-                                    }
-                                    scheduleCommandDialog.schedDays = ds2;
-                                }
-                            }
-
-                        }
-
-                    }
-
-                }
-
-                RowLayout {
-                    visible: scheduleCommandDialog.schedType === "months"
-
-                    QQC2.Label {
-                        text: "On day:"
-                    }
-
-                    QQC2.SpinBox {
-                        from: 1
-                        to: 28
-                        value: scheduleCommandDialog.schedDayOfMonth
-                        onValueChanged: scheduleCommandDialog.schedDayOfMonth = value
-                    }
-
-                    QQC2.Label {
-                        text: "of the month"
-                        opacity: 0.7
-                    }
-
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: cmdSummaryLbl.implicitHeight + Kirigami.Units.gridUnit
-                    radius: 5
-                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.1)
-                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.3)
-                    border.width: 1
-
-                    QQC2.Label {
-                        id: cmdSummaryLbl
-
-                        text: "📅 " + scheduleCommandDialog.humanText()
-                        font.bold: true
-                        wrapMode: Text.Wrap
-                        color: Kirigami.Theme.highlightColor
-
-                        anchors {
-                            fill: parent
-                            margins: Kirigami.Units.smallSpacing * 1.5
-                        }
-
-                    }
-
-                }
-
-            }
-
-            RowLayout {
-                QQC2.Switch {
-                    id: cmdNotify
-
-                    checked: true
-                    onCheckedChanged: scheduleCommandDialog.schedNotify = checked
-                }
-
-                QQC2.Label {
-                    text: cmdNotify.checked ? "Notify me when done" : "Silent"
-                }
-
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                Item {
-                    Layout.fillWidth: true
-                }
-
-                QQC2.Button {
-                    text: "Cancel"
-                    onClicked: scheduleCommandDialog.close()
-                }
-
-                QQC2.Button {
-                    text: "Schedule It"
-                    highlighted: true
-                    enabled: cmdMessage.text.trim() !== ""
-                    onClicked: {
-                        var hr2 = scheduleCommandDialog.humanText();
-                        var msg = cmdMessage.text.trim();
-                        var jsonEntry = JSON.stringify({
-                            "id": "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000),
-                            "name": hr2,
-                            "enabled": true,
-                            "chatId": scheduleCommandDialog.chatId,
-                            "chatName": scheduleCommandDialog.chatName,
-                            "message": msg,
-                            "schedType": scheduleCommandDialog.schedType,
-                            "schedEvery": scheduleCommandDialog.schedEvery,
-                            "schedTime": scheduleCommandDialog.schedTime,
-                            "schedDays": scheduleCommandDialog.schedDays,
-                            "schedDayOfMonth": scheduleCommandDialog.schedDayOfMonth,
-                            "cron": scheduleCommandDialog.buildCron(),
-                            "humanReadable": hr2,
-                            "notify": scheduleCommandDialog.schedNotify,
-                            "createdAt": new Date().toISOString()
-                        });
-                        var b64Entry = base64Encode(jsonEntry);
-                        var py = ["import json,os,base64", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "entry = json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8'))", "data.setdefault('schedules', []).append(entry)", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
-                        var b64Py = base64Encode(py);
-                        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
-                        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save-" + Date.now());
-                        scheduleCommandDialog.close();
-                        root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
-                    }
-                }
-
-            }
-
-        }
-
-    }
-
-    // ── Interactive Chat Schedule Manager Dialog ───────────────────────────
-    QQC2.Dialog {
-        id: chatScheduleManagerDialog
-
-        property string chatId: ""
-        property string chatName: ""
-        // Filter schedules belonging to this chat
-        property var activeSchedules: {
-            var res = [];
-            for (var i = 0; i < root.schedulesList.length; i++) {
-                var s = root.schedulesList[i];
-                if (s && s.chatId === chatScheduleManagerDialog.chatId)
-                    res.push(s);
-
-            }
-            return res;
-        }
-
-        function deleteSchedule(schedId) {
-            var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
-            var b64Py = base64Encode(py);
-            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
-            schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
-            root.appendSystemMessage("🗑️ Schedule deleted successfully.");
-        }
-
-        title: "Chat Schedule Manager"
-        modal: true
-        x: Math.round((parent.width - width) / 2)
-        y: Math.round((parent.height - height) / 2)
-        width: Math.min(parent ? parent.width * 0.92 : 600, 500)
-        standardButtons: QQC2.Dialog.Close
-
-        ColumnLayout {
-            width: parent.width
-            spacing: Kirigami.Units.largeSpacing
-
-            Kirigami.Heading {
-                level: 4
-                text: chatScheduleManagerDialog.chatName + (chatScheduleManagerDialog.chatId ? " (ID: " + chatScheduleManagerDialog.chatId + ")" : "")
-                elide: Text.ElideRight
-                Layout.fillWidth: true
-            }
-
-            QQC2.Label {
-                text: "Below are the active automated messages scheduled for this specific chat."
-                wrapMode: Text.Wrap
-                Layout.fillWidth: true
-                opacity: 0.7
-            }
-
-            Kirigami.Separator {
-                Layout.fillWidth: true
-            }
-
-            // List of schedules
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.mediumSpacing
-
-                // If no active schedules
-                QQC2.Label {
-                    visible: chatScheduleManagerDialog.activeSchedules.length === 0
-                    text: "No active schedules for this chat."
-                    font.italic: true
-                    opacity: 0.6
-                    horizontalAlignment: Text.AlignHCenter
-                    Layout.fillWidth: true
-                }
-
-                Repeater {
-                    model: chatScheduleManagerDialog.activeSchedules
-
-                    delegate: Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: col.implicitHeight + Kirigami.Units.mediumSpacing * 2
-                        radius: 6
-                        color: (modelData.enabled !== false) ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
-                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                        border.width: 1
-                        opacity: (modelData.enabled !== false) ? 1 : 0.6
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: Kirigami.Units.mediumSpacing
-                            spacing: Kirigami.Units.mediumSpacing
-
-                            ColumnLayout {
-                                id: col
-
-                                Layout.fillWidth: true
-                                spacing: 2
-
-                                QQC2.Label {
-                                    text: (modelData.name || translate("Unnamed Schedule")) + ((modelData.enabled !== false) ? "" : " (" + translate("Paused") + ")")
-                                    font.bold: true
-                                    wrapMode: Text.Wrap
-                                    Layout.fillWidth: true
-                                }
-
-                                QQC2.Label {
-                                    text: "💬 \"" + modelData.message + "\""
-                                    font.italic: true
-                                    font.pixelSize: 11
-                                    wrapMode: Text.Wrap
-                                    Layout.fillWidth: true
-                                    opacity: 0.8
-                                }
-
-                                QQC2.Label {
-                                    text: "⏰ " + (modelData.humanReadable || "Scheduled task")
-                                    font.pixelSize: 11
-                                    color: Kirigami.Theme.highlightColor
-                                    Layout.fillWidth: true
-                                }
-
-                            }
-
-                            QQC2.Button {
-                                icon.name: (modelData.enabled !== false) ? "media-playback-pause" : "media-playback-start"
-                                display: QQC2.AbstractButton.IconOnly
-                                Kirigami.Theme.colorSet: Kirigami.Theme.Button
-                                Kirigami.Theme.inherit: false
-                                onClicked: {
-                                    root.toggleScheduleEnabled(modelData.id, !(modelData.enabled !== false));
-                                }
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: (modelData.enabled !== false) ? "Pause Schedule" : "Resume Schedule"
-                            }
-
-                            QQC2.Button {
-                                icon.name: "edit-delete"
-                                display: QQC2.AbstractButton.IconOnly
-                                Kirigami.Theme.colorSet: Kirigami.Theme.Button
-                                Kirigami.Theme.inherit: false
-                                onClicked: {
-                                    chatScheduleManagerDialog.deleteSchedule(modelData.id);
-                                }
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: "Delete Schedule"
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-            Kirigami.Separator {
-                Layout.fillWidth: true
-            }
-
-            QQC2.Button {
-                text: "Create Schedule for this Chat"
-                icon.name: "list-add"
-                highlighted: true
-                Layout.fillWidth: true
-                onClicked: {
-                    chatScheduleManagerDialog.close();
-                    plasmoid.configuration.preselectedChatId = chatScheduleManagerDialog.chatId;
-                    plasmoid.configuration.preselectedChatName = chatScheduleManagerDialog.chatName || "Current Chat";
-                    root.triggerConfigure();
-                }
-            }
-
-        }
-
-    }
-
-    compactRepresentation: MouseArea {
+        compactRepresentation: MouseArea {
         onClicked: root.expanded = !root.expanded
 
         Kirigami.Icon {
@@ -5825,7 +5088,9 @@ PlasmoidItem {
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("Chat settings")
                     onClicked: {
+                        console.log("[KDE AIChat] Gear button clicked! Opening chatSettingsDialog...");
                         chatSettingsDialog.open();
+                        console.log("[KDE AIChat] chatSettingsDialog state: visible=" + chatSettingsDialog.visible + ", x=" + chatSettingsDialog.x + ", y=" + chatSettingsDialog.y + ", width=" + chatSettingsDialog.width + ", height=" + chatSettingsDialog.height + ", parent=" + chatSettingsDialog.parent);
                     }
                 }
 
@@ -7725,6 +6990,778 @@ PlasmoidItem {
 
         }
 
+    
+// ── Per-session Chat Settings dialog ──────────────────────────────────────
+    QQC2.Dialog {
+        id: chatSettingsDialog
+
+        title: root.translate("Chat Settings")
+        modal: true
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Math.min(420, parent.width * 0.9)
+        standardButtons: QQC2.Dialog.NoButton
+        onAboutToShow: {
+            var sId = root.currentSessionId;
+            console.log("[KDE AIChat] chatSettingsDialog about to show for session ID: " + sId);
+            var overrideVal = getSessionProperty(sId, "contextOverride", false);
+            var enabledVal = getSessionProperty(sId, "contextEnabled", true);
+            var limitVal = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
+            var autoCompactVal = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
+            var compactThresholdVal = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
+
+            console.log("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
+
+            // Sync controls imperatively to avoid QML binding breakage
+            overrideToggle.checked = overrideVal;
+            contextEnabledToggle.checked = enabledVal;
+            contextLimitSpin.value = limitVal;
+            autoCompactToggle.checked = autoCompactVal;
+            compactThresholdSpin.value = compactThresholdVal;
+        }
+        onAccepted: {
+            var sId = root.currentSessionId;
+            var overrideVal = overrideToggle.checked;
+            var enabledVal = contextEnabledToggle.checked;
+            var limitVal = contextLimitSpin.value;
+            var autoCompactVal = autoCompactToggle.checked;
+            var compactThresholdVal = compactThresholdSpin.value;
+
+            console.log("[KDE AIChat] Saving settings for session ID: " + sId);
+            console.log("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
+
+            setSessionProperty(sId, "contextOverride", overrideVal);
+            setSessionProperty(sId, "contextEnabled", enabledVal);
+            setSessionProperty(sId, "contextLimit", limitVal);
+            setSessionProperty(sId, "contextAutoCompact", autoCompactVal);
+            setSessionProperty(sId, "contextCompactThreshold", compactThresholdVal);
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Kirigami.Units.smallSpacing
+
+            // ── Override toggle ─────────────────────────────────────────
+            QQC2.CheckBox {
+                id: overrideToggle
+
+                text: root.translate("Override global context settings for this chat")
+                Layout.fillWidth: true
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+                visible: overrideToggle.checked
+            }
+
+            // ── Context enable/disable ──────────────────────────────────
+            QQC2.CheckBox {
+                id: contextEnabledToggle
+
+                visible: overrideToggle.checked
+                text: checked ? root.translate("Context enabled — previous messages are sent to AI") : root.translate("Context disabled — AI sees only the current prompt")
+                Layout.fillWidth: true
+            }
+
+            // ── Context limit ───────────────────────────────────────────
+            RowLayout {
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                PC3.Label {
+                    text: root.translate("Context limit:")
+                }
+
+                QQC2.SpinBox {
+                    id: contextLimitSpin
+
+                    from: 1
+                    to: 200
+                    editable: true
+                }
+
+                PC3.Label {
+                    text: root.translate("messages")
+                }
+
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+            }
+
+            // ── Auto-compact ────────────────────────────────────────────
+            QQC2.CheckBox {
+                id: autoCompactToggle
+
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+                text: checked ? root.translate("Auto-compact older messages when limit is reached") : root.translate("Do not auto-compact")
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                visible: overrideToggle.checked && contextEnabledToggle.checked && autoCompactToggle.checked
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                PC3.Label {
+                    text: root.translate("Compact threshold:")
+                }
+
+                QQC2.SpinBox {
+                    id: compactThresholdSpin
+                    from: 5
+                    to: 200
+                    editable: true
+                }
+
+                PC3.Label {
+                    text: root.translate("messages")
+                }
+
+            }
+
+            // ── Info about inherited settings ───────────────────────────
+            PC3.Label {
+                visible: !overrideToggle.checked
+                text: root.translate("This chat uses the global defaults from Settings → General → Global Context.\n\nEnable the override above to customise context for this chat only.")
+                wrapMode: Text.Wrap
+                font: Kirigami.Theme.smallFont
+                opacity: 0.72
+                Layout.fillWidth: true
+            }
+
+            // ── Manual compact button ───────────────────────────────────
+            QQC2.Button {
+                visible: overrideToggle.checked && contextEnabledToggle.checked
+                text: root.translate("Compact context now")
+                icon.name: "edit-clear-history"
+                Layout.fillWidth: true
+                onClicked: {
+                    chatSettingsDialog.accept();
+                    Qt.callLater(function() {
+                        compactSessionContext(root.currentSessionId);
+                    });
+                }
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            // ── Custom Actions (Save/Cancel) ────────────────────────────
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.mediumSpacing
+
+                QQC2.Button {
+                    text: root.translate("Cancel")
+                    Layout.fillWidth: true
+                    onClicked: {
+                        chatSettingsDialog.reject();
+                    }
+                }
+
+                QQC2.Button {
+                    text: root.translate("Save")
+                    highlighted: true
+                    Layout.fillWidth: true
+                    onClicked: {
+                        chatSettingsDialog.accept();
+                    }
+                }
+            }
+
+        }
+
     }
+
+    // ── Inline /schedule command dialog ───────────────────────────────────────
+    QQC2.Dialog {
+        id: scheduleCommandDialog
+
+        property string prefillMessage: ""
+        property string chatId: ""
+        property string chatName: ""
+        property string schedType: "days"
+        property int schedEvery: 1
+        property string schedTime: "09:00"
+        property var schedDays: [1]
+        property int schedDayOfMonth: 1
+        property bool schedNotify: true
+
+        function buildCron() {
+            var t = schedType, n = schedEvery;
+            var tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            if (t === "minutes")
+                return "*/" + n + " * * * *";
+
+            if (t === "hours")
+                return "0 */" + n + " * * *";
+
+            if (t === "days")
+                return (n === 1 ? mn + " " + hr + " * * *" : mn + " " + hr + " */" + n + " * *");
+
+            if (t === "weeks") {
+                var ds = schedDays.length > 0 ? schedDays.slice().sort().join(",") : "1";
+                return mn + " " + hr + " * * " + ds;
+            }
+            return (n === 1 ? mn + " " + hr + " " + schedDayOfMonth + " * *" : mn + " " + hr + " " + schedDayOfMonth + " */" + n + " *");
+        }
+
+        function humanText() {
+            var t = schedType, n = schedEvery;
+            var tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            var ap = hr >= 12 ? "PM" : "AM", h12 = hr % 12 || 12, ms = mn < 10 ? "0" + mn : "" + mn;
+            var ts = h12 + ":" + ms + " " + ap;
+            if (t === "minutes")
+                return "Every " + (n === 1 ? "minute" : n + " minutes");
+
+            if (t === "hours")
+                return "Every " + (n === 1 ? "hour" : n + " hours");
+
+            if (t === "days")
+                return "Every " + (n === 1 ? "day" : n + " days") + " at " + ts;
+
+            if (t === "weeks") {
+                var dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                return "Every " + (n === 1 ? "week" : n + " weeks") + " on " + schedDays.map(function(x) {
+                    return dn[x];
+                }).join(", ") + " at " + ts;
+            }
+            var sfx = schedDayOfMonth === 1 ? "st" : schedDayOfMonth === 2 ? "nd" : schedDayOfMonth === 3 ? "rd" : "th";
+            return "Every " + (n === 1 ? "month" : n + " months") + " on the " + schedDayOfMonth + sfx + " at " + ts;
+        }
+
+        title: translate("Create Schedule")
+        modal: true
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Math.min(parent.width * 0.92, 540)
+        standardButtons: QQC2.Dialog.Close
+        onOpened: {
+            cmdMessage.text = scheduleCommandDialog.prefillMessage;
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Kirigami.Units.largeSpacing
+
+            QQC2.Label {
+                visible: !!scheduleCommandDialog.chatName
+                text: "In chat: " + scheduleCommandDialog.chatName
+                font.italic: true
+                font.pixelSize: 11
+                opacity: 0.65
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                QQC2.Label {
+                    text: "Message to send:"
+                    font.bold: true
+                }
+
+                QQC2.TextArea {
+                    id: cmdMessage
+
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 68
+                    wrapMode: TextEdit.Wrap
+                    placeholderText: "e.g. What should I focus on today?"
+                }
+
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                QQC2.Label {
+                    text: "When to send:"
+                    font.bold: true
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Repeater {
+                        model: [{
+                            "k": "minutes",
+                            "l": "Minutes"
+                        }, {
+                            "k": "hours",
+                            "l": "Hours"
+                        }, {
+                            "k": "days",
+                            "l": "Days"
+                        }, {
+                            "k": "weeks",
+                            "l": "Weeks"
+                        }, {
+                            "k": "months",
+                            "l": "Months"
+                        }]
+
+                        QQC2.Button {
+                            text: modelData.l
+                            font.pixelSize: 11
+                            highlighted: scheduleCommandDialog.schedType === modelData.k
+                            flat: scheduleCommandDialog.schedType !== modelData.k
+                            onClicked: scheduleCommandDialog.schedType = modelData.k
+                        }
+
+                    }
+
+                }
+
+                RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: "Every"
+                    }
+
+                    QQC2.SpinBox {
+                        from: 1
+                        to: 999
+                        value: scheduleCommandDialog.schedEvery
+                        onValueChanged: scheduleCommandDialog.schedEvery = value
+                    }
+
+                    QQC2.Label {
+                        text: {
+                            var t = scheduleCommandDialog.schedType, n = scheduleCommandDialog.schedEvery;
+                            var m = {
+                                "minutes": "minute",
+                                "hours": "hour",
+                                "days": "day",
+                                "weeks": "week",
+                                "months": "month"
+                            };
+                            return n === 1 ? (m[t] || t) : (m[t] || t) + "s";
+                        }
+                    }
+
+                }
+
+                RowLayout {
+                    visible: ["days", "weeks", "months"].indexOf(scheduleCommandDialog.schedType) >= 0
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: "At:"
+                    }
+
+                    QQC2.SpinBox {
+                        from: 1
+                        to: 12
+                        value: {
+                            var h2 = parseInt(scheduleCommandDialog.schedTime.split(":")[0]) || 9;
+                            return (h2 % 12) || 12;
+                        }
+                        textFromValue: function(v) {
+                            return (v < 10 ? "0" : "") + v;
+                        }
+                        onValueChanged: {
+                            var parts = scheduleCommandDialog.schedTime.split(":");
+                            var curH = parseInt(parts[0]) || 0;
+                            var m2 = parseInt(parts[1]) || 0;
+                            var isPm = curH >= 12;
+                            var targetH = value;
+                            if (isPm) {
+                                if (value < 12)
+                                    targetH = value + 12;
+
+                            } else {
+                                if (value === 12)
+                                    targetH = 0;
+
+                            }
+                            scheduleCommandDialog.schedTime = (targetH < 10 ? "0" : "") + targetH + ":" + (m2 < 10 ? "0" : "") + m2;
+                        }
+                    }
+
+                    QQC2.Label {
+                        text: ":"
+                    }
+
+                    QQC2.SpinBox {
+                        from: 0
+                        to: 59
+                        stepSize: 5
+                        value: parseInt(scheduleCommandDialog.schedTime.split(":")[1]) || 0
+                        textFromValue: function(v) {
+                            return (v < 10 ? "0" : "") + v;
+                        }
+                        onValueChanged: {
+                            var parts = scheduleCommandDialog.schedTime.split(":");
+                            var h2 = parseInt(parts[0]) || 9;
+                            scheduleCommandDialog.schedTime = (h2 < 10 ? "0" : "") + h2 + ":" + (value < 10 ? "0" : "") + value;
+                        }
+                    }
+
+                    QQC2.Button {
+                        text: (parseInt(scheduleCommandDialog.schedTime.split(":")[0]) >= 12 ? "PM" : "AM")
+                        font.bold: true
+                        onClicked: {
+                            var parts = scheduleCommandDialog.schedTime.split(":");
+                            var curH = parseInt(parts[0]) || 0;
+                            var m2 = parseInt(parts[1]) || 0;
+                            var targetH = curH;
+                            if (curH >= 12)
+                                targetH = curH - 12;
+                            else
+                                targetH = curH + 12;
+                            scheduleCommandDialog.schedTime = (targetH < 10 ? "0" : "") + targetH + ":" + (m2 < 10 ? "0" : "") + m2;
+                        }
+                    }
+
+                }
+
+                Flow {
+                    visible: scheduleCommandDialog.schedType === "weeks"
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Repeater {
+                        model: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+
+                        Rectangle {
+                            property bool sel: scheduleCommandDialog.schedDays.indexOf(index) >= 0
+
+                            width: 32
+                            height: 26
+                            radius: 4
+                            color: sel ? Kirigami.Theme.highlightColor : "transparent"
+                            border.color: sel ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25)
+                            border.width: 1
+
+                            QQC2.Label {
+                                anchors.centerIn: parent
+                                text: modelData
+                                font.pixelSize: 10
+                                font.bold: sel
+                                color: sel ? "white" : Kirigami.Theme.textColor
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    var ds2 = scheduleCommandDialog.schedDays.slice(), pos = ds2.indexOf(index);
+                                    if (pos >= 0) {
+                                        if (ds2.length > 1)
+                                            ds2.splice(pos, 1);
+
+                                    } else {
+                                        ds2.push(index);
+                                        ds2.sort();
+                                    }
+                                    scheduleCommandDialog.schedDays = ds2;
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                RowLayout {
+                    visible: scheduleCommandDialog.schedType === "months"
+
+                    QQC2.Label {
+                        text: "On day:"
+                    }
+
+                    QQC2.SpinBox {
+                        from: 1
+                        to: 28
+                        value: scheduleCommandDialog.schedDayOfMonth
+                        onValueChanged: scheduleCommandDialog.schedDayOfMonth = value
+                    }
+
+                    QQC2.Label {
+                        text: "of the month"
+                        opacity: 0.7
+                    }
+
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: cmdSummaryLbl.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.1)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.3)
+                    border.width: 1
+
+                    QQC2.Label {
+                        id: cmdSummaryLbl
+
+                        text: "📅 " + scheduleCommandDialog.humanText()
+                        font.bold: true
+                        wrapMode: Text.Wrap
+                        color: Kirigami.Theme.highlightColor
+
+                        anchors {
+                            fill: parent
+                            margins: Kirigami.Units.smallSpacing * 1.5
+                        }
+
+                    }
+
+                }
+
+            }
+
+            RowLayout {
+                QQC2.Switch {
+                    id: cmdNotify
+
+                    checked: true
+                    onCheckedChanged: scheduleCommandDialog.schedNotify = checked
+                }
+
+                QQC2.Label {
+                    text: cmdNotify.checked ? "Notify me when done" : "Silent"
+                }
+
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                QQC2.Button {
+                    text: "Cancel"
+                    onClicked: scheduleCommandDialog.close()
+                }
+
+                QQC2.Button {
+                    text: "Schedule It"
+                    highlighted: true
+                    enabled: cmdMessage.text.trim() !== ""
+                    onClicked: {
+                        var hr2 = scheduleCommandDialog.humanText();
+                        var msg = cmdMessage.text.trim();
+                        var jsonEntry = JSON.stringify({
+                            "id": "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000),
+                            "name": hr2,
+                            "enabled": true,
+                            "chatId": scheduleCommandDialog.chatId,
+                            "chatName": scheduleCommandDialog.chatName,
+                            "message": msg,
+                            "schedType": scheduleCommandDialog.schedType,
+                            "schedEvery": scheduleCommandDialog.schedEvery,
+                            "schedTime": scheduleCommandDialog.schedTime,
+                            "schedDays": scheduleCommandDialog.schedDays,
+                            "schedDayOfMonth": scheduleCommandDialog.schedDayOfMonth,
+                            "cron": scheduleCommandDialog.buildCron(),
+                            "humanReadable": hr2,
+                            "notify": scheduleCommandDialog.schedNotify,
+                            "createdAt": new Date().toISOString()
+                        });
+                        var b64Entry = base64Encode(jsonEntry);
+                        var py = ["import json,os,base64", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "entry = json.loads(base64.b64decode('" + b64Entry + "').decode('utf-8'))", "data.setdefault('schedules', []).append(entry)", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
+                        var b64Py = base64Encode(py);
+                        var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+                        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save-" + Date.now());
+                        scheduleCommandDialog.close();
+                        root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
+                    }
+                }
+
+            }
+
+        }
+
+    }
+
+    // ── Interactive Chat Schedule Manager Dialog ───────────────────────────
+    QQC2.Dialog {
+        id: chatScheduleManagerDialog
+
+        property string chatId: ""
+        property string chatName: ""
+        // Filter schedules belonging to this chat
+        property var activeSchedules: {
+            var res = [];
+            for (var i = 0; i < root.schedulesList.length; i++) {
+                var s = root.schedulesList[i];
+                if (s && s.chatId === chatScheduleManagerDialog.chatId)
+                    res.push(s);
+
+            }
+            return res;
+        }
+
+        function deleteSchedule(schedId) {
+            var py = ["import json, os", "p = os.path.expanduser('~/.local/share/kdeaichat/schedules.json')", "data = json.load(open(p)) if os.path.exists(p) else {'version': 1, 'schedules': []}", "if isinstance(data, list):", "    data = {'version': 1, 'schedules': data}", "data['schedules'] = [s for s in data.get('schedules', []) if s.get('id') != '" + schedId + "']", "json.dump(data, open(p, 'w'), indent=2)"].join("\n");
+            var b64Py = base64Encode(py);
+            var cmd = "python3 -c \"import base64; exec(base64.b64decode('" + b64Py + "').decode('utf-8'))\"";
+            schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
+            root.appendSystemMessage("🗑️ Schedule deleted successfully.");
+        }
+
+        title: "Chat Schedule Manager"
+        modal: true
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Math.min(parent.width * 0.92, 500)
+        standardButtons: QQC2.Dialog.Close
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Kirigami.Units.largeSpacing
+
+            Kirigami.Heading {
+                level: 4
+                text: chatScheduleManagerDialog.chatName + (chatScheduleManagerDialog.chatId ? " (ID: " + chatScheduleManagerDialog.chatId + ")" : "")
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+
+            QQC2.Label {
+                text: "Below are the active automated messages scheduled for this specific chat."
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+                opacity: 0.7
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            // List of schedules
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.mediumSpacing
+
+                // If no active schedules
+                QQC2.Label {
+                    visible: chatScheduleManagerDialog.activeSchedules.length === 0
+                    text: "No active schedules for this chat."
+                    font.italic: true
+                    opacity: 0.6
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                }
+
+                Repeater {
+                    model: chatScheduleManagerDialog.activeSchedules
+
+                    delegate: Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: col.implicitHeight + Kirigami.Units.mediumSpacing * 2
+                        radius: 6
+                        color: (modelData.enabled !== false) ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
+                        border.width: 1
+                        opacity: (modelData.enabled !== false) ? 1 : 0.6
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: Kirigami.Units.mediumSpacing
+                            spacing: Kirigami.Units.mediumSpacing
+
+                            ColumnLayout {
+                                id: col
+
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                QQC2.Label {
+                                    text: (modelData.name || translate("Unnamed Schedule")) + ((modelData.enabled !== false) ? "" : " (" + translate("Paused") + ")")
+                                    font.bold: true
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    text: "💬 \"" + modelData.message + "\""
+                                    font.italic: true
+                                    font.pixelSize: 11
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                    opacity: 0.8
+                                }
+
+                                QQC2.Label {
+                                    text: "⏰ " + (modelData.humanReadable || "Scheduled task")
+                                    font.pixelSize: 11
+                                    color: Kirigami.Theme.highlightColor
+                                    Layout.fillWidth: true
+                                }
+
+                            }
+
+                            QQC2.Button {
+                                icon.name: (modelData.enabled !== false) ? "media-playback-pause" : "media-playback-start"
+                                display: QQC2.AbstractButton.IconOnly
+                                Kirigami.Theme.colorSet: Kirigami.Theme.Button
+                                Kirigami.Theme.inherit: false
+                                onClicked: {
+                                    root.toggleScheduleEnabled(modelData.id, !(modelData.enabled !== false));
+                                }
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: (modelData.enabled !== false) ? "Pause Schedule" : "Resume Schedule"
+                            }
+
+                            QQC2.Button {
+                                icon.name: "edit-delete"
+                                display: QQC2.AbstractButton.IconOnly
+                                Kirigami.Theme.colorSet: Kirigami.Theme.Button
+                                Kirigami.Theme.inherit: false
+                                onClicked: {
+                                    chatScheduleManagerDialog.deleteSchedule(modelData.id);
+                                }
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: "Delete Schedule"
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            QQC2.Button {
+                text: "Create Schedule for this Chat"
+                icon.name: "list-add"
+                highlighted: true
+                Layout.fillWidth: true
+                onClicked: {
+                    chatScheduleManagerDialog.close();
+                    plasmoid.configuration.preselectedChatId = chatScheduleManagerDialog.chatId;
+                    plasmoid.configuration.preselectedChatName = chatScheduleManagerDialog.chatName || "Current Chat";
+                    root.triggerConfigure();
+                }
+            }
+
+        }
+
+    }
+
+
+}
 
 }
