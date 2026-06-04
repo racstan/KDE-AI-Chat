@@ -68,6 +68,12 @@ PlasmoidItem {
             loadKWalletKeysIfNeeded();
         }
     }
+    onOpenCodeModeChanged: {
+        resetOpenCodeIdleKillTimer();
+    }
+    onCurrentSessionIdChanged: {
+        resetOpenCodeIdleKillTimer();
+    }
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
@@ -977,6 +983,7 @@ PlasmoidItem {
         root.streamingResponse = false;
         saveCurrentSessionState(true);
         triggerNotificationSound();
+        resetOpenCodeIdleKillTimer();
         processNextQueuedMessage();
     }
 
@@ -1453,6 +1460,97 @@ PlasmoidItem {
         }
     }
 
+    function appendSystemMessageToSession(chatId, text) {
+        var ts = Date.now();
+        var msgObj = {
+            "role": "assistant",
+            "content": text,
+            "time": nowTime(ts),
+            "at": ts,
+            "model": "",
+            "queueId": 0,
+            "attachments": []
+        };
+        appendMessageToSession(chatId, msgObj);
+        if (chatId === root.currentSessionId) {
+            if (!root.userScrolledUp)
+                Qt.callLater(scrollToBottom);
+        }
+    }
+
+    function setOpenCodeSessionIdForChatId(chatId, remoteSessionId) {
+        var idx = sessionIndexById(chatId);
+        if (idx < 0)
+            return ;
+
+        var updated = root.sessions.slice();
+        var item = Object.assign({}, updated[idx]);
+        item.openCodeSessionId = remoteSessionId || "";
+        updated[idx] = item;
+        root.sessions = updated;
+        persistSessions();
+    }
+
+    function ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback) {
+        var targetIdx = sessionIndexById(chatId);
+        if (targetIdx < 0) {
+            failureCallback("Session not found");
+            return;
+        }
+        var existing = root.sessions[targetIdx].openCodeSessionId || "";
+        if (existing !== "") {
+            successCallback(existing);
+            return ;
+        }
+        var fail = function(msg) {
+            if (typeof failureCallback === "function") {
+                failureCallback(msg);
+            } else {
+                pushErrorMessage(msg);
+            }
+        };
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", openCodeBaseUrl() + "/session", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.timeout = 10000;
+        xhr.ontimeout = function() {
+            fail("OpenCode: session creation timed out. Check that the server is running at " + openCodeBaseUrl());
+        };
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                triggerNotificationSound();
+                try {
+                    var obj = JSON.parse(xhr.responseText);
+                    var remoteId = obj.id || "";
+                    if (remoteId === "") {
+                        fail("OpenCode: server created a session without an id.");
+                        return ;
+                    }
+                    setOpenCodeSessionIdForChatId(chatId, remoteId);
+                    successCallback(remoteId);
+                } catch (parseError) {
+                    fail("OpenCode: could not parse session creation response.");
+                }
+            } else {
+                fail("OpenCode: failed to create a server session (HTTP " + xhr.status + ").");
+            }
+        };
+        xhr.onerror = function() {
+            fail("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
+        };
+        try {
+            var sTitle = root.sessions[targetIdx].title || "KDE AI Chat";
+            xhr.send(JSON.stringify({
+                "title": sTitle
+            }));
+        } catch (sendError) {
+            fail("OpenCode: failed to create session: " + sendError);
+        }
+    }
+
     function ensureCurrentOpenCodeSession(successCallback, failureCallback) {
         var existing = currentOpenCodeSessionId();
         if (existing !== "") {
@@ -1507,11 +1605,24 @@ PlasmoidItem {
         }
     }
 
-    function ensureOpenCodeServerRunning(successCallback, failureCallback) {
+    function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
         var checkUrl = openCodeBaseUrl() + "/config/providers";
         var xhr = new XMLHttpRequest();
         xhr.open("GET", checkUrl, true);
         xhr.timeout = 2000;
+        
+        var fail = function(msg) {
+            if (typeof failureCallback === "function") {
+                failureCallback(msg);
+            } else {
+                if (chatId) {
+                    appendSystemMessageToSession(chatId, "⚠️ " + msg);
+                } else {
+                    pushErrorMessage(msg);
+                }
+            }
+        };
+
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return;
@@ -1533,12 +1644,21 @@ PlasmoidItem {
                 var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
                 opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
 
-                openCodeStartPollTimer.successCb = successCallback;
-                openCodeStartPollTimer.failureCb = failureCallback;
+                if (chatId) {
+                    appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
+                }
+
+                openCodeStartPollTimer.successCb = function() {
+                    if (chatId) {
+                        appendSystemMessageToSession(chatId, translate("Session restarted."));
+                    }
+                    if (successCallback) successCallback();
+                };
+                openCodeStartPollTimer.failureCb = fail;
                 openCodeStartPollTimer.retriesLeft = 8;
                 openCodeStartPollTimer.start();
             } else {
-                failureCallback("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
+                fail("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
             }
         }
 
@@ -1564,7 +1684,7 @@ PlasmoidItem {
             finishOpenCodeRequest();
         }
 
-        ensureOpenCodeServerRunning(function() {
+        ensureOpenCodeServerRunning(root.currentSessionId, function() {
             ensureOpenCodeEventStream();
             root.loading = true;
             root.streamingResponse = false;
@@ -1968,6 +2088,7 @@ PlasmoidItem {
     }
 
     function sendMessageByIndex(index) {
+        resetOpenCodeIdleKillTimer();
         var source = root.messages[index] || {
         };
         var text = (source.content || "").trim();
@@ -2576,6 +2697,109 @@ PlasmoidItem {
         }
     }
 
+    function doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName) {
+        var requestFinalized = false;
+
+        function failBackgroundOpenCodeRequest(message) {
+            if (requestFinalized)
+                return ;
+
+            requestFinalized = true;
+            handleBackgroundError(chatId, message, notify, schedId, schedName);
+        }
+
+        ensureOpenCodeServerRunning(chatId, function() {
+            ensureOpenCodeSessionForChatId(chatId, function(remoteSessionId) {
+                var xhr = new XMLHttpRequest();
+                var modelId = (plasmoid.configuration.openCodeModel || "").trim();
+                var providerId = (plasmoid.configuration.openCodeProvider || "").trim();
+                
+                xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.timeout = 60000;
+                xhr.ontimeout = function() {
+                    failBackgroundOpenCodeRequest("OpenCode: message request timed out at " + openCodeBaseUrl());
+                };
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== XMLHttpRequest.DONE)
+                        return ;
+
+                    if (requestFinalized)
+                        return ;
+
+                    if (xhr.status < 200 || xhr.status >= 300) {
+                        if (xhr.status === 404) {
+                            setOpenCodeSessionIdForChatId(chatId, "");
+                        }
+                        var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
+                        failBackgroundOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
+                        return ;
+                    }
+                    try {
+                        var obj = JSON.parse(xhr.responseText);
+                        var combined = "";
+                        if (obj.parts && obj.parts.length > 0) {
+                            for (var i = 0; i < obj.parts.length; i++) {
+                                if (obj.parts[i].type === "text")
+                                    combined += obj.parts[i].text || obj.parts[i].content || "";
+                            }
+                        }
+                        
+                        if (obj.info && obj.info.error) {
+                            failBackgroundOpenCodeRequest(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
+                            return;
+                        }
+
+                        if (combined !== "") {
+                            var doneTs = Date.now();
+                            var msgObj = {
+                                "role": "assistant",
+                                "content": combined,
+                                "time": nowTime(doneTs),
+                                "at": doneTs,
+                                "model": providerId + "/" + modelId,
+                                "queueId": 0,
+                                "attachments": []
+                            };
+                            
+                            appendMessageToSession(chatId, msgObj);
+                            triggerNotificationSound();
+                            
+                            if (notify) {
+                                var escapedText = combined.substring(0, 150).replace(/'/g, "'\\''") + (combined.length > 150 ? "…" : "");
+                                var title = (schedName || "Scheduled message response ready");
+                                var escapedTitle = title.replace(/'/g, "'\\''");
+                                soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify-resp");
+                            }
+                        } else {
+                            failBackgroundOpenCodeRequest("The model returned an empty response.");
+                        }
+                    } catch (parseResponseError) {
+                        failBackgroundOpenCodeRequest("Failed to parse response: " + parseResponseError);
+                    }
+                    requestFinalized = true;
+                };
+                xhr.onerror = function() {
+                    failBackgroundOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
+                };
+                
+                try {
+                    xhr.send(JSON.stringify({
+                        "role": "user",
+                        "content": messageText,
+                        "stream": false
+                    }));
+                } catch (sendError) {
+                    failBackgroundOpenCodeRequest("Failed to send message: " + sendError);
+                }
+            }, function(sessionErr) {
+                failBackgroundOpenCodeRequest(sessionErr);
+            });
+        }, function(serverErr) {
+            failBackgroundOpenCodeRequest(serverErr);
+        });
+    }
+
     function doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
         var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
         var xhr = new XMLHttpRequest();
@@ -2843,6 +3067,11 @@ PlasmoidItem {
             var title = "Scheduled: " + sTitle;
             var escapedTitle = title.replace(/'/g, "'\\''");
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify");
+        }
+
+        if (root.openCodeMode) {
+            doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
+            return;
         }
 
         var provider = plasmoid.configuration.provider || "openai";
@@ -3846,8 +4075,10 @@ PlasmoidItem {
             loadSessions();
         }
         // Auto-start OpenCode server if the feature is enabled
-        if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer)
+        if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer) {
             autoStartOpenCodeTimer.start();
+            resetOpenCodeIdleKillTimer();
+        }
 
         // Auto-start scheduler if the autoStart is enabled in settings
         if (plasmoid.configuration.schedulerAutoStart) {
@@ -3923,6 +4154,27 @@ PlasmoidItem {
         onTriggered: {
             if (root.openCodeMode) {
                 ensureOpenCodeEventStream();
+            }
+        }
+    }
+
+    function resetOpenCodeIdleKillTimer() {
+        if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer) {
+            openCodeIdleKillTimer.restart();
+        } else {
+            openCodeIdleKillTimer.stop();
+        }
+    }
+
+    Timer {
+        id: openCodeIdleKillTimer
+        interval: 300000 // 5 minutes
+        repeat: false
+        onTriggered: {
+            if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer) {
+                var stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
+                opencodeServerDs.connectSource("sh -lc '" + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
+                console.log("[KAI-DEBUG] OpenCode server auto-killed due to 5 min idleness/chat switch.");
             }
         }
     }
