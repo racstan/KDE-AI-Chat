@@ -5169,11 +5169,14 @@ PlasmoidItem {
                     Layout.fillWidth: true
                 }
 
-                PC3.ToolButton {
+                 PC3.ToolButton {
                     visible: !root.historyOnlyMode
                     icon.name: "document-edit"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "Rename current chat"
+                    Accessible.name: root.translate("Rename current chat")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Toggle renaming of the current chat session")
                     onClicked: {
                         root.renamingCurrentChat = !root.renamingCurrentChat;
                         root.currentChatRenameDraft = root.currentSessionTitle || "";
@@ -5185,6 +5188,9 @@ PlasmoidItem {
                     icon.name: "configure"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("Chat settings")
+                    Accessible.name: root.translate("Chat settings")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Open settings dialog for the current chat session")
                     onClicked: {
                         debugLog("[KDE AIChat] Gear button clicked! Opening chatSettingsDialog...");
                         chatSettingsDialog.open();
@@ -5197,6 +5203,9 @@ PlasmoidItem {
                     icon.name: "go-top"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "Jump to first message"
+                    Accessible.name: root.translate("Jump to first message")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Scroll to the beginning of the conversation")
                     onClicked: {
                         if (root.msgListViewRef && root.msgListViewRef.count > 0) {
                             root.userScrolledUp = true;
@@ -5210,6 +5219,9 @@ PlasmoidItem {
                     icon.name: "go-up"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "Jump to one message above"
+                    Accessible.name: root.translate("Jump to one message above")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Scroll to the previous message")
                     onClicked: root.jumpOneMessageAbove()
                 }
 
@@ -5218,6 +5230,9 @@ PlasmoidItem {
                     icon.name: "go-down"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "Jump to one message below"
+                    Accessible.name: root.translate("Jump to one message below")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Scroll to the next message")
                     onClicked: root.jumpOneMessageBelow()
                 }
 
@@ -5226,6 +5241,9 @@ PlasmoidItem {
                     icon.name: "go-bottom"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "Jump to latest message"
+                    Accessible.name: root.translate("Jump to latest message")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Scroll to the end of the conversation")
                     onClicked: {
                         root.userScrolledUp = false;
                         root.scrollToBottom();
@@ -5237,6 +5255,9 @@ PlasmoidItem {
                     icon.name: "edit-clear-all"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("Clear current chat history")
+                    Accessible.name: root.translate("Clear current chat history")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Delete all messages in the current session")
                     enabled: !root.loading && root.messages.length > 0
                     onClicked: {
                         root.messages = [];
@@ -5252,6 +5273,9 @@ PlasmoidItem {
                     icon.name: "document-export"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("Export chat session")
+                    Accessible.name: root.translate("Export chat session")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Export the current conversation to a Markdown file")
                     enabled: !root.loading
                     onClicked: {
                         var cleanTitle = (root.currentSessionTitle || "New Chat").replace(/[\/\?<>\\:\*\|":\s]+/g, "_");
@@ -5272,6 +5296,9 @@ PlasmoidItem {
                     icon.name: "list-add"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("New chat")
+                    Accessible.name: root.translate("New chat")
+                    Accessible.role: Accessible.Button
+                    Accessible.description: root.translate("Create a new chat conversation")
                     enabled: !root.loading
                     onClicked: root.createSession(true)
                 }
@@ -6664,6 +6691,9 @@ PlasmoidItem {
                                 enabled: !root.loading
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.text: "Attach files (Images, PDF, CSV, Word documents)"
+                                Accessible.name: root.translate("Attach files")
+                                Accessible.role: Accessible.Button
+                                Accessible.description: root.translate("Attach images, PDFs, CSVs, or Word documents to the chat")
                                 onClicked: fileDialog.open()
                             }
 
@@ -6674,6 +6704,9 @@ PlasmoidItem {
                                 enabled: !root.loading
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.text: "Paste file or text from clipboard"
+                                Accessible.name: root.translate("Paste clipboard")
+                                Accessible.role: Accessible.Button
+                                Accessible.description: root.translate("Paste file or text from clipboard into chat")
                                 onClicked: {
                                     root.checkClipboardForAttachments();
                                     var txt = root.readClipboardText();
@@ -6707,6 +6740,9 @@ PlasmoidItem {
                                     enabled: !root.loading
                                     placeholderText: root.translate("Type message (Enter sends, Shift+Enter newline)")
                                     focus: true
+                                    Accessible.name: root.translate("Message input")
+                                    Accessible.role: Accessible.EditableText
+                                    Accessible.description: root.translate("Type your message to the AI here")
                                     onTextChanged: {
                                         root.chatInputText = text;
                                         root.updateAutocomplete();
@@ -6735,7 +6771,7 @@ PlasmoidItem {
                                                 }
                                                 root.autocompleteActive = false;
                                                 if (false) {
-                                                }
+                                                  }
                                                 return ;
                                             }
                                         }
@@ -6786,6 +6822,9 @@ PlasmoidItem {
                                 Layout.minimumWidth: Kirigami.Units.gridUnit * 5
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                                 enabled: root.chatInputText.trim() !== "" || root.attachedFiles.length > 0
+                                Accessible.name: root.translate(root.loading ? "Queue message" : "Send message")
+                                Accessible.role: Accessible.Button
+                                Accessible.description: root.translate("Send the current message to the AI")
                                 onClicked: root.sendMessage()
                             }
 
@@ -6794,6 +6833,9 @@ PlasmoidItem {
                                 icon.name: "process-stop"
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.text: "Stop current response"
+                                Accessible.name: root.translate("Stop response")
+                                Accessible.role: Accessible.Button
+                                Accessible.description: root.translate("Stop generating the response")
                                 onClicked: root.stopStreaming()
                             }
 
