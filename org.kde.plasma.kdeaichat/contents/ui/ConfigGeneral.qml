@@ -113,6 +113,8 @@ KCM.SimpleKCM {
     property string keyringStatus: ""
     property string discoveryStatus: ""
     property string storageExportStatus: ""
+    property string openCodeSessionsStatus: ""
+    property var runningOpenCodeSessions: []
     // ── Memory Usage ───────────────────────────────────────────────────────
     property bool memRefreshing: false
     property int memPlasma: 0
@@ -873,6 +875,48 @@ KCM.SimpleKCM {
         }
         syncOpenCodeProviderSelection(selectedProvider, openCodeModelValueField.text);
         discoveryStatus = openCodeModelCandidates.length > 0 ? ("Loaded " + openCodeModelCandidates.length + " models for OpenCode provider " + selectedProvider + ".") : ("OpenCode provider " + selectedProvider + " has no models listed by /config/providers.");
+    }
+
+    function refreshRunningOpenCodeSessions() {
+        var baseUrl = openCodeUrlField.text;
+        var url = openCodeServerRoot(baseUrl) + "/session";
+        openCodeSessionsStatus = translate("Loading active OpenCode sessions...");
+        requestJson(url, {}, function(sessionsArray) {
+            if (Array.isArray(sessionsArray)) {
+                runningOpenCodeSessions = sessionsArray;
+                openCodeSessionsStatus = translate("Found %1 active session(s).").arg(sessionsArray.length);
+            } else {
+                runningOpenCodeSessions = [];
+                openCodeSessionsStatus = translate("Invalid response format from OpenCode server.");
+            }
+        }, function(err) {
+            runningOpenCodeSessions = [];
+            openCodeSessionsStatus = translate("Failed to load sessions: %1").arg(err);
+        });
+    }
+
+    function killRunningOpenCodeSession(sessionId) {
+        var baseUrl = openCodeUrlField.text;
+        var url = openCodeServerRoot(baseUrl) + "/session/" + sessionId;
+        openCodeSessionsStatus = translate("Killing session %1...").arg(sessionId);
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open("DELETE", url, true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                openCodeSessionsStatus = translate("Session %1 successfully killed.").arg(sessionId);
+                refreshRunningOpenCodeSessions();
+            } else {
+                openCodeSessionsStatus = translate("Failed to kill session: HTTP %1").arg(xhr.status);
+            }
+        };
+        xhr.onerror = function() {
+            openCodeSessionsStatus = translate("Failed to kill session: Network error.");
+        };
+        xhr.send();
     }
 
     function kwalletStore(targetId, value, isBulk) {
@@ -2612,6 +2656,113 @@ KCM.SimpleKCM {
                     }
                 }
 
+            }
+
+            QQC2.Button {
+                visible: openCodeToggle.checked
+                Kirigami.FormData.label: translate("Active sessions:")
+                text: translate("Show running opencode sessions")
+                onClicked: refreshRunningOpenCodeSessions()
+            }
+
+            QQC2.Label {
+                visible: openCodeToggle.checked && openCodeSessionsStatus !== ""
+                text: openCodeSessionsStatus
+                font.italic: true
+                color: Kirigami.Theme.disabledTextColor
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+            }
+
+            ColumnLayout {
+                visible: openCodeToggle.checked && runningOpenCodeSessions.length > 0
+                spacing: Kirigami.Units.smallSpacing
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                Kirigami.FormData.label: ""
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.mediumSpacing
+
+                    QQC2.Label {
+                        text: translate("Session Title / ID")
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+                    QQC2.Label {
+                        text: translate("Chat ID")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+                    }
+                    QQC2.Label {
+                        text: translate("Action")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                    }
+                }
+
+                Rectangle {
+                    color: Kirigami.Theme.disabledTextColor
+                    height: 1
+                    Layout.fillWidth: true
+                    opacity: 0.3
+                }
+
+                Repeater {
+                    model: runningOpenCodeSessions
+                    delegate: RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.mediumSpacing
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            QQC2.Label {
+                                text: modelData.title || modelData.slug || translate("Unnamed Session")
+                                wrapMode: Text.Wrap
+                                font.bold: true
+                                Layout.fillWidth: true
+                            }
+                            QQC2.Label {
+                                text: modelData.id
+                                font.family: "monospace"
+                                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                opacity: 0.7
+                                textFormat: Text.PlainText
+                                wrapMode: Text.Wrap
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        QQC2.Label {
+                            text: {
+                                var sId = modelData.id;
+                                var localSessions = [];
+                                try {
+                                    localSessions = JSON.parse(plasmoid.configuration.chatSessionsJson || "[]");
+                                } catch(e) {}
+                                for (var i = 0; i < localSessions.length; i++) {
+                                    if (localSessions[i] && localSessions[i].openCodeSessionId === sId) {
+                                        return localSessions[i].name || localSessions[i].id || "Matched";
+                                    }
+                                }
+                                return translate("None/External");
+                            }
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+                            elide: Text.ElideRight
+                        }
+
+                        QQC2.Button {
+                            text: translate("Kill")
+                            icon.name: "edit-delete"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                            onClicked: {
+                                killRunningOpenCodeSession(modelData.id)
+                            }
+                        }
+                    }
+                }
             }
 
             QQC2.BusyIndicator {
