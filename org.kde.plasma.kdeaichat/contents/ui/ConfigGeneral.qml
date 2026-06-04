@@ -1977,7 +1977,7 @@ KCM.SimpleKCM {
             }
             readonly property string providerGuideText: {
                 if (openCodeToggle.checked)
-                    return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Uses Opencode)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
+                    return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Uses Opencode)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. (Optional) Enable <b>Auto-kill session</b> and set the inactivity delay to stop the OpenCode server to save memory when not in use. It will automatically restart when you type a message in the chat.<br/>" + "7. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
 
                 var provider = providerBox.currentValue || "openai";
                 if (provider === "openai")
@@ -2067,7 +2067,7 @@ KCM.SimpleKCM {
                     }
                 }
 
-                return translate("<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• You have <b>%1 schedule(s) configured</b> (%2 enabled).<br/>• The background service will run automatically. Click <b>Manage Schedules</b> to edit or delete any task.<br/>• <i>Pro-Tip:</i> You can also schedule prompts directly from the chat box by typing <code>/schedule</code>!").arg(count).arg(enabledCount);
+                return translate("<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• You have <b>%1 schedule(s) configured</b> (%2 enabled).<br/>• The background service will run automatically. Click <b>Manage Schedules</b> to edit or delete tasks, view executed run history logs, and customize history retention limits.<br/>• <i>Pro-Tip:</i> You can also schedule prompts directly from the chat box by typing <code>/schedule</code>!").arg(count).arg(enabledCount);
             }
 
 
