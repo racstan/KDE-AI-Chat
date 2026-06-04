@@ -2700,7 +2700,7 @@ PlasmoidItem {
         var sId = sessionId || root.currentSessionId;
         var override = getSessionProperty(sId, "contextOverride", false);
         var contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : (plasmoid.configuration.globalContextEnabled !== false);
-        var limit = override ? getSessionProperty(sId, "contextLimit", 15) : (plasmoid.configuration.globalContextLimit || 15);
+        var limit = override ? getSessionProperty(sId, "contextLimit", 1) : (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1);
         var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
         var clean = [];
         for (var i = 0; i < messagesList.length; i++) {
@@ -4828,7 +4828,7 @@ PlasmoidItem {
         // Local transient state – loaded when dialog opens
         property bool localOverride: false
         property bool localContextEnabled: true
-        property int localContextLimit: 15
+        property int localContextLimit: 1
         property bool localAutoCompact: false
         property int localCompactThreshold: 10
 
@@ -4842,7 +4842,7 @@ PlasmoidItem {
             var sId = root.currentSessionId;
             localOverride = getSessionProperty(sId, "contextOverride", false);
             localContextEnabled = getSessionProperty(sId, "contextEnabled", true);
-            localContextLimit = getSessionProperty(sId, "contextLimit", plasmoid.configuration.globalContextLimit || 15);
+            localContextLimit = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
             localAutoCompact = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
             localCompactThreshold = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
         }

@@ -115,6 +115,7 @@ KCM.SimpleKCM {
     property string storageExportStatus: ""
     property string openCodeSessionsStatus: ""
     property var runningOpenCodeSessions: []
+    property bool runningOpenCodeSessionsVisible: false
     // ── Memory Usage ───────────────────────────────────────────────────────
     property bool memRefreshing: false
     property int memPlasma: 0
@@ -1438,6 +1439,10 @@ KCM.SimpleKCM {
         memoryEnabledToggle.checked = false;
         userMemoryArea.text = "";
         customHistoryPathField.text = "~/.config";
+        globalContextEnabledToggle.checked = true;
+        globalContextLimitSpin.value = 1;
+        globalContextAutoCompactToggle.checked = false;
+        globalContextCompactThresholdSpin.value = 10;
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
         openCodeModelCandidates = [];
@@ -1959,7 +1964,14 @@ KCM.SimpleKCM {
             //* FormLayout treats preferredWidth 0 as "unset" and uses implicitWidth — cap fields to the form instead.
             readonly property real fieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, boundedWidth)
             readonly property string guideText: {
-                return translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>" + "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" + "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" + "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" + "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" + "• <b>User Memory:</b> In the <b>Behavior</b> section, enable <b>User Memory</b> and write facts (your name, preferences, context) the AI should always remember — injected into every prompt.<br/>" + "• <b>Schedules:</b> Use the <b>Schedules</b> tool to schedule automated questions. Type <code>/schedule</code> inside any chat to list or create automated prompts.");
+                return translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>" + "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" + "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" + "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" + "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" + "• <b>User Memory &amp; Global Context:</b> In the <b>Behavior</b> section, configure memory, set the context limit (default: 1), and enable auto-compacting.<br/>" + "• <b>Schedules:</b> Use the <b>Schedules</b> tool to schedule automated questions. Type <code>/schedule</code> inside any chat to list or create automated prompts.");
+            }
+            readonly property string behaviorGuideText: {
+                return translate("<b>Behavior &amp; Context Guide:</b><br/>" +
+                    "• <b>System prompt:</b> Set a default instruction template for the AI (e.g., <i>\"Be extremely concise\"</i>).<br/>" +
+                    "• <b>User Memory:</b> Write facts the AI should remember across all conversations.<br/>" +
+                    "• <b>Global Context:</b> Limit how many past messages the AI sees to control token usage (default limit is 1). Each chat has the ability to modify the context for that chat; if nothing is specified there, this global context config is used.<br/>" +
+                    "• <b>Context Compacting:</b> Automatically summarize older messages in the background to save context window tokens.");
             }
             readonly property string providerGuideText: {
                 if (openCodeToggle.checked)
@@ -2676,113 +2688,6 @@ KCM.SimpleKCM {
 
             }
 
-            QQC2.Button {
-                visible: openCodeToggle.checked
-                Kirigami.FormData.label: translate("Active sessions:")
-                text: translate("Show running opencode sessions")
-                onClicked: refreshRunningOpenCodeSessions()
-            }
-
-            QQC2.Label {
-                visible: openCodeToggle.checked && openCodeSessionsStatus !== ""
-                text: openCodeSessionsStatus
-                font.italic: true
-                color: Kirigami.Theme.disabledTextColor
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-            }
-
-            ColumnLayout {
-                visible: openCodeToggle.checked && runningOpenCodeSessions.length > 0
-                spacing: Kirigami.Units.smallSpacing
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                Kirigami.FormData.label: ""
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.mediumSpacing
-
-                    QQC2.Label {
-                        text: translate("Session Title / ID")
-                        font.bold: true
-                        Layout.fillWidth: true
-                    }
-                    QQC2.Label {
-                        text: translate("Chat ID")
-                        font.bold: true
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 6
-                    }
-                    QQC2.Label {
-                        text: translate("Action")
-                        font.bold: true
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 3
-                    }
-                }
-
-                Rectangle {
-                    color: Kirigami.Theme.disabledTextColor
-                    height: 1
-                    Layout.fillWidth: true
-                    opacity: 0.3
-                }
-
-                Repeater {
-                    model: runningOpenCodeSessions
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.mediumSpacing
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-                            QQC2.Label {
-                                text: modelData.title || modelData.slug || translate("Unnamed Session")
-                                wrapMode: Text.Wrap
-                                font.bold: true
-                                Layout.fillWidth: true
-                            }
-                            QQC2.Label {
-                                text: modelData.id
-                                font.family: "monospace"
-                                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                                opacity: 0.7
-                                textFormat: Text.PlainText
-                                wrapMode: Text.Wrap
-                                Layout.fillWidth: true
-                            }
-                        }
-
-                        QQC2.Label {
-                            text: {
-                                var sId = modelData.id;
-                                var localSessions = [];
-                                try {
-                                    localSessions = JSON.parse(plasmoid.configuration.chatSessionsJson || "[]");
-                                } catch(e) {}
-                                for (var i = 0; i < localSessions.length; i++) {
-                                    if (localSessions[i] && localSessions[i].openCodeSessionId === sId) {
-                                        return localSessions[i].name || localSessions[i].id || "Matched";
-                                    }
-                                }
-                                return translate("None/External");
-                            }
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 6
-                            elide: Text.ElideRight
-                        }
-
-                        QQC2.Button {
-                            text: translate("Kill")
-                            icon.name: "edit-delete"
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
-                            onClicked: {
-                                killRunningOpenCodeSession(modelData.id)
-                            }
-                        }
-                    }
-                }
-            }
-
             QQC2.BusyIndicator {
                 visible: openCodeToggle.checked && openCodeBusy
                 running: visible
@@ -2899,6 +2804,122 @@ KCM.SimpleKCM {
                                     page.updateFilteredOpenCodeModels("");
                                     openCodeModelPopup.close();
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            QQC2.Button {
+                visible: openCodeToggle.checked
+                Kirigami.FormData.label: translate("Active sessions:")
+                text: runningOpenCodeSessionsVisible ? translate("Hide running opencode sessions") : translate("Show running opencode sessions")
+                onClicked: {
+                    if (runningOpenCodeSessionsVisible) {
+                        runningOpenCodeSessionsVisible = false;
+                        runningOpenCodeSessions = [];
+                        openCodeSessionsStatus = "";
+                    } else {
+                        runningOpenCodeSessionsVisible = true;
+                        refreshRunningOpenCodeSessions();
+                    }
+                }
+            }
+
+            QQC2.Label {
+                visible: openCodeToggle.checked && runningOpenCodeSessionsVisible && openCodeSessionsStatus !== ""
+                text: openCodeSessionsStatus
+                font.italic: true
+                color: Kirigami.Theme.disabledTextColor
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+            }
+
+            ColumnLayout {
+                visible: openCodeToggle.checked && runningOpenCodeSessionsVisible && runningOpenCodeSessions.length > 0
+                spacing: Kirigami.Units.smallSpacing
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                Kirigami.FormData.label: ""
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.mediumSpacing
+
+                    QQC2.Label {
+                        text: translate("Session Title / ID")
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+                    QQC2.Label {
+                        text: translate("Chat ID")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+                    }
+                    QQC2.Label {
+                        text: translate("Action")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                    }
+                }
+
+                Rectangle {
+                    color: Kirigami.Theme.disabledTextColor
+                    height: 1
+                    Layout.fillWidth: true
+                    opacity: 0.3
+                }
+
+                Repeater {
+                    model: runningOpenCodeSessions
+                    delegate: RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.mediumSpacing
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            QQC2.Label {
+                                text: modelData.title || modelData.slug || translate("Unnamed Session")
+                                wrapMode: Text.Wrap
+                                font.bold: true
+                                Layout.fillWidth: true
+                            }
+                            QQC2.Label {
+                                text: modelData.id
+                                font.family: "monospace"
+                                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                opacity: 0.7
+                                textFormat: Text.PlainText
+                                wrapMode: Text.Wrap
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        QQC2.Label {
+                            text: {
+                                var sId = modelData.id;
+                                var localSessions = [];
+                                try {
+                                    localSessions = JSON.parse(plasmoid.configuration.chatSessionsJson || "[]");
+                                } catch(e) {}
+                                for (var i = 0; i < localSessions.length; i++) {
+                                    if (localSessions[i] && localSessions[i].openCodeSessionId === sId) {
+                                        return localSessions[i].name || localSessions[i].id || "Matched";
+                                    }
+                                }
+                                return translate("None/External");
+                            }
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+                            elide: Text.ElideRight
+                        }
+
+                        QQC2.Button {
+                            text: translate("Kill")
+                            icon.name: "edit-delete"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                            onClicked: {
+                                killRunningOpenCodeSession(modelData.id)
                             }
                         }
                     }
@@ -4066,6 +4087,50 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: translate("Behavior")
             }
 
+            RowLayout {
+                visible: showGuidesToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.gridUnit
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: translate("Behavior Guide")
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: behaviorGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+                    border.width: 1
+
+                    RowLayout {
+                        id: behaviorGuideLayout
+
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.gridUnit * 0.6
+                        spacing: Kirigami.Units.smallSpacing
+
+                        Kirigami.Icon {
+                            source: "help-hint"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                            Layout.alignment: Qt.AlignTop
+                        }
+
+                        QQC2.Label {
+                            id: behaviorGuideLabel
+
+                            Layout.fillWidth: true
+                            text: formLayout.behaviorGuideText
+                            wrapMode: Text.Wrap
+                            textFormat: Text.RichText
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                            color: Kirigami.Theme.textColor
+                        }
+                    }
+                }
+            }
+
             QQC2.ScrollView {
                 id: systemPromptScrollView
 
@@ -4174,14 +4239,13 @@ KCM.SimpleKCM {
             }
 
             QQC2.Label {
-                visible: !globalContextEnabledToggle.checked
                 Kirigami.FormData.label: translate("")
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 wrapMode: Text.Wrap
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
-                text: translate("When context is disabled globally, the AI only answers the immediate question without remembering previous messages.")
+                text: translate("Each chat has the ability to modify the context settings for that chat. If nothing is specified there, then this global context default is used. When disabled, the AI only answers the immediate question without remembering previous messages.")
             }
 
             RowLayout {
@@ -4195,7 +4259,7 @@ KCM.SimpleKCM {
                     id: globalContextLimitSpin
                     from: 1
                     to: 100
-                    value: 15
+                    value: 1
                     editable: true
                 }
                 
@@ -4220,7 +4284,18 @@ KCM.SimpleKCM {
                 visible: globalContextEnabledToggle.checked
                 Kirigami.FormData.label: translate("Context compacting:")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: globalContextAutoCompactToggle.checked ? translate("Auto-compact older messages") : translate("Do not auto-compact")
+                text: translate("Auto compact")
+            }
+
+            QQC2.Label {
+                visible: globalContextEnabledToggle.checked
+                Kirigami.FormData.label: translate("")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: translate("When enabled, older messages exceeding the threshold are automatically summarized in the background and replaced with a single summary message to preserve context window tokens.")
             }
 
             RowLayout {

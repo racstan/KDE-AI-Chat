@@ -294,7 +294,7 @@
       <default>true</default>
     </entry>
     <entry name="globalContextLimit" type="Int">
-      <default>15</default>
+      <default>1</default>
     </entry>
     <entry name="globalContextAutoCompact" type="Bool">
       <default>false</default>
