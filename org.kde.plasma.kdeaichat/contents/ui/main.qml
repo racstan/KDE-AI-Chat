@@ -26,6 +26,12 @@ PlasmoidItem {
     }
 
     property var sessions: []
+    property var _markdownCache: ({})
+    property var _blocksCache: ({})
+    readonly property string openCodeBaseUrlVal: {
+        var raw = (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1").trim();
+        return raw.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+    }
     property string currentSessionId: ""
     property string activeHistoryPath: ""
     property string currentSessionTitle: ""
@@ -746,8 +752,7 @@ PlasmoidItem {
     }
 
     function openCodeBaseUrl() {
-        var raw = (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1").trim();
-        return raw.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+        return root.openCodeBaseUrlVal;
     }
 
     function currentOpenCodeSessionId() {
@@ -3885,6 +3890,11 @@ PlasmoidItem {
         if (!markdown)
             return "";
 
+        var cacheKey = markdown + "_" + (root.popupIsDark ? "dark" : "light");
+        if (root._markdownCache[cacheKey] !== undefined) {
+            return root._markdownCache[cacheKey];
+        }
+
         try {
             var isDark = root.popupIsDark;
             var codeBg = isDark ? "#2d3139" : "#f0f2f5";
@@ -3981,6 +3991,7 @@ PlasmoidItem {
             for (var idx = 0; idx < codeBlocks.length; idx++) {
                 html = html.replace("%%CB" + idx + "%%", codeBlocks[idx]);
             }
+            root._markdownCache[cacheKey] = html;
             return html;
         } catch (e) {
             console.error("convertMarkdownToHtml failed: " + e);
@@ -4079,6 +4090,10 @@ PlasmoidItem {
             "lang": ""
         }];
 
+        if (root._blocksCache[markdown] !== undefined) {
+            return root._blocksCache[markdown];
+        }
+
         try {
             var blocks = [];
             var lines = markdown.split("\n");
@@ -4138,6 +4153,7 @@ PlasmoidItem {
                 "lang": ""
             });
     
+            root._blocksCache[markdown] = blocks;
             return blocks;
         } catch (e) {
             console.error("parseMessageBlocks failed: " + e);
@@ -4444,6 +4460,8 @@ PlasmoidItem {
     }
     onCurrentSessionIdChanged: {
         resetOpenCodeIdleKillTimer();
+        root._markdownCache = {};
+        root._blocksCache = {};
     }
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
