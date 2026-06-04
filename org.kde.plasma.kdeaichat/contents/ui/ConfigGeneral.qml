@@ -808,7 +808,7 @@ KCM.SimpleKCM {
 
     function startOpenCodeServerAutomatically() {
         discoveryStatus = "Starting OpenCode server automatically...";
-        var startCmd = openCodeStartCommandField.text || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 &";
+        var startCmd = openCodeStartCommandField.text || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 &";
         var cmd = "sh -lc '" + shellEscape(startCmd) + "'";
         utilityDs.connectSource(cmd + " #opencode-autostart");
         // After a short delay, attempt discovery again
@@ -1450,7 +1450,7 @@ KCM.SimpleKCM {
         openCodeUrlField.text = "http://127.0.0.1:4096/v1";
         openCodeProviderValueField.text = "";
         openCodeModelValueField.text = "";
-        openCodeStartCommandField.text = "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
+        openCodeStartCommandField.text = "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
         openCodeAutoKillToggle.checked = true;
         openCodeAutoKillMinutesSpin.value = 5;
@@ -2734,7 +2734,7 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode start command...";
-                        var cmd = "sh -lc '" + shellEscape(openCodeStartCommandField.text || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'";
+                        var cmd = "sh -lc '" + shellEscape(openCodeStartCommandField.text || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'";
                         utilityDs.connectSource(cmd + " #opencode-start");
                     }
                 }
@@ -2971,7 +2971,7 @@ KCM.SimpleKCM {
                                 var localSessions = [];
                                 try {
                                     localSessions = JSON.parse(plasmoid.configuration.chatSessionsJson || "[]");
-                                } catch(e) {}
+                                } catch(e) { console.error("Error parsing chatSessionsJson: " + e); }
                                 for (var i = 0; i < localSessions.length; i++) {
                                     if (localSessions[i] && localSessions[i].openCodeSessionId === sId) {
                                         return localSessions[i].name || localSessions[i].id || "Matched";

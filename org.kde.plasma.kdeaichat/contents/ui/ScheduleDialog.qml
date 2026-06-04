@@ -876,8 +876,8 @@ import org.kde.plasma.plasma5support as P5Support
                             QQC2.SpinBox {
                                 id: startYearSpin
 
-                                from: 2026
-                                to: 2035
+                                from: new Date().getFullYear()
+                                to: new Date().getFullYear() + 10
                                 value: scheduleDialog.getStartYear(scheduleDialog.draft.startDate)
                                 onValueModified: {
                                     scheduleDialog.setStartDateField("year", value);

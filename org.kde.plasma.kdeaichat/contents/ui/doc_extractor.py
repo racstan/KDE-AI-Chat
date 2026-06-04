@@ -233,25 +233,33 @@ def handle_clipboard():
         if img_bytes:
             import tempfile
             suffix = mimetypes.guess_extension(img_mime) or '.png'
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-                tmp_file.write(img_bytes)
-                temp_path = tmp_file.name
-            
-            base64_data = base64.b64encode(img_bytes).decode('utf-8')
-            filename = os.path.basename(temp_path)
-            
-            print(json.dumps({
-                "status": "success",
-                "mode": "image",
-                "file": {
-                    "type": "image",
-                    "name": filename,
-                    "path": temp_path,
-                    "size": len(img_bytes),
-                    "mimeType": img_mime,
-                    "content": base64_data
-                }
-            }))
+            temp_path = ""
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+                    tmp_file.write(img_bytes)
+                    temp_path = tmp_file.name
+                
+                base64_data = base64.b64encode(img_bytes).decode('utf-8')
+                filename = os.path.basename(temp_path)
+                
+                print(json.dumps({
+                    "status": "success",
+                    "mode": "image",
+                    "file": {
+                        "type": "image",
+                        "name": filename,
+                        "path": temp_path,
+                        "size": len(img_bytes),
+                        "mimeType": img_mime,
+                        "content": base64_data
+                    }
+                }))
+            finally:
+                if temp_path and os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except Exception:
+                        pass
             return
 
     print(json.dumps({

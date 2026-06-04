@@ -247,7 +247,7 @@
       <default></default>
     </entry>
     <entry name="openCodeStartCommand" type="String">
-      <default>nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2&gt;&amp;1 &amp; echo OpenCode start command launched.</default>
+      <default>nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2&gt;&amp;1 &amp; echo OpenCode start command launched.</default>
     </entry>
     <entry name="openCodeStopCommand" type="String">
       <default>pkill -f opencode &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo OpenCode stop command launched. || echo No OpenCode process matched.</default>
