@@ -782,11 +782,8 @@ KCM.SimpleKCM {
                 openCodeProvidersCombo.currentIndex = pidx;
 
         }
-        if (openCodeModelsCombo) {
-            var midx = candidateModels.indexOf(chosenModel);
-            if (midx >= 0)
-                openCodeModelsCombo.currentIndex = midx;
-
+        if (openCodeModelTextField) {
+            // No manual synchronization needed for openCodeModelTextField as it binds to openCodeModelValueField.text
         }
     }
 
@@ -2396,47 +2393,98 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: translate("Loading:")
             }
 
-            QQC2.ComboBox {
-                id: providerModelsCombo
-
-                function syncText() {
-                    var val = activeProviderModelValue();
-                    var idx = filteredProviderModels.indexOf(val);
-                    if (idx >= 0) {
-                        currentIndex = idx;
-                    } else {
-                        currentIndex = -1;
-                        editText = val;
-                    }
-                }
+            QQC2.TextField {
+                id: providerModelTextField
 
                 visible: !openCodeToggle.checked && providerModelVisible(providerBox.currentValue || "openai")
                 Kirigami.FormData.label: translate("Model:")
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                editable: true
-                model: filteredProviderModels
-                Component.onCompleted: {
-                    syncText();
+                placeholderText: translate("Enter or search model...")
+                rightPadding: dropdownButton.width + Kirigami.Units.smallSpacing
+
+                Binding {
+                    target: providerModelTextField
+                    property: "text"
+                    value: activeProviderModelValue()
+                    when: !providerModelTextField.activeFocus && !providerModelPopup.visible
                 }
-                onModelChanged: {
-                    syncText();
-                }
-                onEditTextChanged: {
+
+                onTextChanged: {
                     if (activeFocus) {
-                        var savedText = editText;
-                        applyDetectedModelToActiveProvider(savedText);
-                        page.updateFilteredProviderModels(savedText);
-                        editText = savedText;
-                        if (!popup.visible && savedText.length > 0) {
-                            popup.open();
+                        applyDetectedModelToActiveProvider(text);
+                        page.updateFilteredProviderModels(text);
+                        if (filteredProviderModels.length > 0) {
+                            if (!providerModelPopup.visible) {
+                                providerModelPopup.open();
+                            }
+                        } else {
+                            providerModelPopup.close();
                         }
                     }
                 }
-                onActivated: {
-                    applyDetectedModelToActiveProvider(currentText);
-                    editText = currentText;
-                    page.updateFilteredProviderModels("");
+
+                onActiveFocusChanged: {
+                    if (!activeFocus) {
+                        providerModelPopup.close();
+                    }
+                }
+
+                onAccepted: {
+                    providerModelPopup.close();
+                }
+
+                QQC2.ToolButton {
+                    id: dropdownButton
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    icon.name: "go-down"
+                    flat: true
+                    onClicked: {
+                        if (providerModelPopup.visible) {
+                            providerModelPopup.close();
+                        } else {
+                            page.updateFilteredProviderModels("");
+                            providerModelPopup.open();
+                        }
+                    }
+                }
+
+                QQC2.Popup {
+                    id: providerModelPopup
+                    x: 0
+                    y: parent.height + Kirigami.Units.smallSpacing / 2
+                    width: parent.width
+                    height: Math.min(250, providerModelListView.contentHeight + Kirigami.Units.smallSpacing * 2)
+                    padding: 0
+                    closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutside
+
+                    background: Rectangle {
+                        color: Kirigami.Theme.backgroundColor
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
+                        border.width: 1
+                        radius: 4
+                    }
+
+                    contentItem: QQC2.ScrollView {
+                        clip: true
+                        ListView {
+                            id: providerModelListView
+                            model: filteredProviderModels
+                            delegate: QQC2.ItemDelegate {
+                                width: providerModelListView.width
+                                text: modelData
+                                highlighted: ListView.isCurrentItem
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize
+                                onClicked: {
+                                    providerModelTextField.text = modelData;
+                                    applyDetectedModelToActiveProvider(modelData);
+                                    page.updateFilteredProviderModels("");
+                                    providerModelPopup.close();
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -2563,47 +2611,98 @@ KCM.SimpleKCM {
                 onClicked: probeOpenCodeModels(openCodeUrlField.text, activeOpenCodeProvider())
             }
 
-            QQC2.ComboBox {
-                id: openCodeModelsCombo
-
-                function syncText() {
-                    var val = openCodeModelValueField.text || "";
-                    var idx = filteredOpenCodeModels.indexOf(val);
-                    if (idx >= 0) {
-                        currentIndex = idx;
-                    } else {
-                        currentIndex = -1;
-                        editText = val;
-                    }
-                }
+            QQC2.TextField {
+                id: openCodeModelTextField
 
                 visible: openCodeToggle.checked
                 Kirigami.FormData.label: translate("Model:")
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                editable: true
-                model: filteredOpenCodeModels
-                Component.onCompleted: {
-                    syncText();
+                placeholderText: translate("Enter or search model...")
+                rightPadding: openCodeDropdownButton.width + Kirigami.Units.smallSpacing
+
+                Binding {
+                    target: openCodeModelTextField
+                    property: "text"
+                    value: openCodeModelValueField.text || ""
+                    when: !openCodeModelTextField.activeFocus && !openCodeModelPopup.visible
                 }
-                onModelChanged: {
-                    syncText();
-                }
-                onEditTextChanged: {
+
+                onTextChanged: {
                     if (activeFocus) {
-                        var savedText = editText;
-                        setOpenCodeModelValue(savedText);
-                        page.updateFilteredOpenCodeModels(savedText);
-                        editText = savedText;
-                        if (!popup.visible && savedText.length > 0) {
-                            popup.open();
+                        setOpenCodeModelValue(text);
+                        page.updateFilteredOpenCodeModels(text);
+                        if (filteredOpenCodeModels.length > 0) {
+                            if (!openCodeModelPopup.visible) {
+                                openCodeModelPopup.open();
+                            }
+                        } else {
+                            openCodeModelPopup.close();
                         }
                     }
                 }
-                onActivated: {
-                    setOpenCodeModelValue(currentText);
-                    editText = currentText;
-                    page.updateFilteredOpenCodeModels("");
+
+                onActiveFocusChanged: {
+                    if (!activeFocus) {
+                        openCodeModelPopup.close();
+                    }
+                }
+
+                onAccepted: {
+                    openCodeModelPopup.close();
+                }
+
+                QQC2.ToolButton {
+                    id: openCodeDropdownButton
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    icon.name: "go-down"
+                    flat: true
+                    onClicked: {
+                        if (openCodeModelPopup.visible) {
+                            openCodeModelPopup.close();
+                        } else {
+                            page.updateFilteredOpenCodeModels("");
+                            openCodeModelPopup.open();
+                        }
+                    }
+                }
+
+                QQC2.Popup {
+                    id: openCodeModelPopup
+                    x: 0
+                    y: parent.height + Kirigami.Units.smallSpacing / 2
+                    width: parent.width
+                    height: Math.min(250, openCodeModelListView.contentHeight + Kirigami.Units.smallSpacing * 2)
+                    padding: 0
+                    closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutside
+
+                    background: Rectangle {
+                        color: Kirigami.Theme.backgroundColor
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
+                        border.width: 1
+                        radius: 4
+                    }
+
+                    contentItem: QQC2.ScrollView {
+                        clip: true
+                        ListView {
+                            id: openCodeModelListView
+                            model: filteredOpenCodeModels
+                            delegate: QQC2.ItemDelegate {
+                                width: openCodeModelListView.width
+                                text: modelData
+                                highlighted: ListView.isCurrentItem
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize
+                                onClicked: {
+                                    openCodeModelTextField.text = modelData;
+                                    setOpenCodeModelValue(modelData);
+                                    page.updateFilteredOpenCodeModels("");
+                                    openCodeModelPopup.close();
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
