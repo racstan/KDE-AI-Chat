@@ -1,4 +1,5 @@
 import QtQuick
+import QtCore
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
@@ -130,13 +131,10 @@ KCM.SimpleKCM {
     property var schedulerHistory: []
     property string schedulerStatus: ""
     property bool schedSaving: false
-    readonly property string schedulerDataPath: {
-        var home = Qt.resolvedUrl("~").toString().replace("file://", "");
-        if (home === "~")
-            home = "";
-
-        return home;
-    }
+    readonly property string configFilePath: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/kdeaichatrc"
+    readonly property string dataDirPath: StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat"
+    readonly property string schedulesFilePath: dataDirPath + "/schedules.json"
+    readonly property string schedulerScriptPath: dataDirPath + "/kde-ai-scheduler.py"
     property var pendingOps: ({
     })
     property var availableWalletNames: []
@@ -1172,7 +1170,7 @@ KCM.SimpleKCM {
 
     function loadKeysFromPlainConfig() {
         var payload = {
-            "configPath": "~/.config/kdeaichatrc"
+            "configPath": configFilePath
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
         var cmd = "python3 '" + getHelperPath() + "' load_config_keys '" + b64Payload + "'";
@@ -1222,11 +1220,11 @@ KCM.SimpleKCM {
             "maritacaApiKey": maritacaApiKeyField.text
         };
         var payload = {
-            "configPath": "~/.config/kdeaichatrc",
+            "configPath": configFilePath,
             "keys": keysPayload
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' sync_config_keys '" + b64Payload + "' && xdg-open ~/.config/kdeaichatrc #open-config";
+        var cmd = "python3 '" + getHelperPath() + "' sync_config_keys '" + b64Payload + "' && xdg-open '" + configFilePath + "' #open-config";
         utilityDs.connectSource(cmd);
     }
 
@@ -1254,7 +1252,7 @@ KCM.SimpleKCM {
             "maritacaApiKey": maritacaApiKeyField.text
         };
         var payload = {
-            "configPath": "~/.config/kdeaichatrc",
+            "configPath": configFilePath,
             "keys": keysPayload
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
@@ -1264,7 +1262,7 @@ KCM.SimpleKCM {
 
     function clearKeysFromDisk() {
         var payload = {
-            "configPath": "~/.config/kdeaichatrc",
+            "configPath": configFilePath,
             "keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
@@ -1452,7 +1450,7 @@ KCM.SimpleKCM {
         systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
         memoryEnabledToggle.checked = false;
         userMemoryArea.text = "";
-        customHistoryPathField.text = "~/.config";
+        customHistoryPathField.text = StandardPaths.writableLocation(StandardPaths.ConfigLocation);
         globalContextEnabledToggle.checked = true;
         globalContextLimitSpin.value = 1;
         globalContextAutoCompactToggle.checked = false;
@@ -1471,7 +1469,7 @@ KCM.SimpleKCM {
         var serviceContent = "[Unit]\nDescription=KDE AI Chat Scheduler Daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\nRestart=on-failure\nRestartSec=30\nStandardOutput=journal\nStandardError=journal\nExecReload=/bin/kill -HUP $MAINPID\nKillMode=process\n\n[Install]\nWantedBy=default.target\n";
         var payload = {
             "srcPath": srcPath,
-            "destPath": "~/.local/share/kdeaichat/kde-ai-scheduler.py",
+            "destPath": schedulerScriptPath,
             "serviceContent": serviceContent
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
@@ -1484,7 +1482,8 @@ KCM.SimpleKCM {
     }
 
     function schedLoadSchedules() {
-        var cmd = "cat ~/.local/share/kdeaichat/schedules.json 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
+        var path = schedulesFilePath.replace(/'/g, "'\\''");
+        var cmd = "cat '" + path + "' 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-load");
     }
 
@@ -4735,7 +4734,7 @@ KCM.SimpleKCM {
 
                     if (checked) {
                         page.schedulerStatus = "Starting…";
-                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " + "echo SCHED_START_OK";
+                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 '" + schedulerScriptPath + "' &) ; " + "echo SCHED_START_OK";
                         utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start-" + Date.now());
                     } else {
                         page.schedulerStatus = "Stopping…";
@@ -4769,7 +4768,7 @@ KCM.SimpleKCM {
                     onClicked: {
                         page.schedulerStatus = page.schedulerDaemonRunning ? "Restarting…" : "Starting…";
                         page.schedulerDaemonRunning = false;
-                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
+                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 '" + schedulerScriptPath + "' >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
                         utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-start-" + Date.now());
                         schedPollTimer.restart();
                     }
@@ -4841,7 +4840,8 @@ KCM.SimpleKCM {
                     icon.name: "document-open"
                     Layout.fillWidth: true
                     onClicked: {
-                        utilityDs.connectSource("xdg-open ~/.local/share/kdeaichat/schedules.json || kde-open ~/.local/share/kdeaichat/schedules.json || kwrite ~/.local/share/kdeaichat/schedules.json || kate ~/.local/share/kdeaichat/schedules.json || nano ~/.local/share/kdeaichat/schedules.json #open-sched-file");
+                        var path = schedulesFilePath.replace(/'/g, "'\\''");
+                        utilityDs.connectSource("xdg-open '" + path + "' || kde-open '" + path + "' || kwrite '" + path + "' || kate '" + path + "' || nano '" + path + "' #open-sched-file");
                     }
                 }
 

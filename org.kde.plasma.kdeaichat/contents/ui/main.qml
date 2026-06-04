@@ -3709,7 +3709,7 @@ PlasmoidItem {
 
         var sessionId = root.openCodeActiveSessionId;
         if (!sessionId) {
-            var idx = findSessionIndex(root.currentSessionId);
+            var idx = sessionIndexById(root.currentSessionId);
             if (idx >= 0)
                 sessionId = root.sessions[idx].openCodeSessionId || "";
 
@@ -3837,7 +3837,7 @@ PlasmoidItem {
 
         var sessionId = root.openCodeActiveSessionId;
         if (!sessionId) {
-            var idx = findSessionIndex(root.currentSessionId);
+            var idx = sessionIndexById(root.currentSessionId);
             if (idx >= 0)
                 sessionId = root.sessions[idx].openCodeSessionId || "";
 
@@ -4470,7 +4470,8 @@ PlasmoidItem {
         // Auto-start scheduler if the autoStart is enabled in settings
         if (plasmoid.configuration.schedulerAutoStart) {
             plasmoid.configuration.schedulerEnabled = true;
-            var startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 ~/.local/share/kdeaichat/kde-ai-scheduler.py &) ; " + "echo SCHED_AUTOSTART_OK";
+            var schedulerScriptPath = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/kde-ai-scheduler.py";
+            var startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 '" + schedulerScriptPath + "' &) ; " + "echo SCHED_AUTOSTART_OK";
             schedulerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #sched-startup");
         }
         checkAndMarkCurrentSessionAsRead();
@@ -5291,19 +5292,20 @@ PlasmoidItem {
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("Open OpenCode TUI in a terminal window")
                     onClicked: {
+                        var opencodeSessionFile = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/.opencode-session";
                         root.ensureCurrentOpenCodeSession(function(sid) {
                             var opencodeCmd = "opencode" + (sid !== "" ? " --session " + sid : "");
                             clipboardHelper.text = opencodeCmd;
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var termCmd = "echo -n '" + sid + "' > ~/.local/share/kdeaichat/.opencode-session && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
+                            var termCmd = "echo -n '" + sid + "' > '" + opencodeSessionFile + "' && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         }, function(err) {
                             root.pushErrorMessage(err);
                             clipboardHelper.text = "opencode";
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var termCmd = "echo -n '' > ~/.local/share/kdeaichat/.opencode-session && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
+                            var termCmd = "echo -n '' > '" + opencodeSessionFile + "' && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         });
                     }
