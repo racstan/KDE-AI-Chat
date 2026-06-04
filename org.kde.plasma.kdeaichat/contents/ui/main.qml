@@ -1936,13 +1936,16 @@ PlasmoidItem {
         var res = [];
         for (var i = 0; i < root.schedulesList.length; i++) {
             var s = root.schedulesList[i];
-            if (s && s.chatId === sessionId) {
+            if (s && s.chatId === sessionId && !s.archived) {
                 var isExecuted = false;
                 if (s.taskType === "single") {
-                    if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0)) {
+                    if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0) || s.enabled === false) {
                         isExecuted = true;
                     }
                 } else {
+                    if (s.enabled === false) {
+                        isExecuted = true;
+                    }
                     if (s.limitEnabled && s.runCount >= s.limitCount) {
                         isExecuted = true;
                     }

@@ -287,11 +287,44 @@ import org.kde.plasma.plasma5support as P5Support
             RowLayout {
                 Layout.fillWidth: true
                 visible: scheduleDialog.currentTab === "history"
+                spacing: Kirigami.Units.mediumSpacing
 
                 QQC2.Label {
                     text: page.schedulerHistory.length === 0 ? translate("No executed runs history") : (page.schedulerHistory.length === 1 ? translate("1 executed run logged") : translate("%1 executed runs logged").arg(page.schedulerHistory.length))
                     opacity: 0.7
                     Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
+
+                RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: translate("Keep:")
+                        opacity: 0.8
+                    }
+
+                    QQC2.ComboBox {
+                        id: dialogHistoryLimitCombo
+                        implicitWidth: Kirigami.Units.gridUnit * 6
+                        model: ["10", "100", "1000"]
+                        currentIndex: {
+                            var val = page.getHistoryLimitValue ? page.getHistoryLimitValue() : 100;
+                            return val === 10 ? 0 : (val === 1000 ? 2 : 1);
+                        }
+                        onCurrentIndexChanged: {
+                            var limit = currentIndex === 0 ? 10 : (currentIndex === 2 ? 1000 : 100);
+                            plasmoid.configuration.schedulerHistoryLimit = currentIndex;
+                            if (page && page.schedulerHistory) {
+                                if (page.schedulerHistory.length > limit) {
+                                    page.schedulerHistory = page.schedulerHistory.slice(page.schedulerHistory.length - limit);
+                                }
+                                if (typeof page.schedSaveAll === "function") {
+                                    page.schedSaveAll();
+                                }
+                            }
+                        }
+                    }
                 }
 
                 QQC2.Button {
@@ -341,8 +374,12 @@ import org.kde.plasma.plasma5support as P5Support
                     spacing: Kirigami.Units.smallSpacing
                     clip: true
 
+                    QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+                        policy: QQC2.ScrollBar.AsNeeded
+                    }
+
                     delegate: Rectangle {
-                        width: activeSchedListView.width
+                        width: activeSchedListView.width - 16
                         height: 74
                         radius: 6
                         color: modelData.enabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.07) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
@@ -477,8 +514,12 @@ import org.kde.plasma.plasma5support as P5Support
                     spacing: Kirigami.Units.smallSpacing
                     clip: true
 
+                    QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+                        policy: QQC2.ScrollBar.AsNeeded
+                    }
+
                     delegate: Rectangle {
-                        width: archivedSchedListView.width
+                        width: archivedSchedListView.width - 16
                         height: 74
                         radius: 6
                         color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
@@ -575,23 +616,24 @@ import org.kde.plasma.plasma5support as P5Support
                         clip: true
 
                         QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                            active: true
+                            policy: QQC2.ScrollBar.AsNeeded
                         }
 
                         delegate: Rectangle {
                             width: historySchedListView.width - 16
-                            height: 74
+                            implicitHeight: historyRowLayout.implicitHeight + Kirigami.Units.smallSpacing * 3
                             radius: 6
                             color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.05) : Qt.rgba(0.9, 0.22, 0.22, 0.05)
                             border.color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.15) : Qt.rgba(0.9, 0.22, 0.22, 0.15)
                             border.width: 1
 
                             RowLayout {
+                                id: historyRowLayout
                                 spacing: Kirigami.Units.smallSpacing
-                                anchors {
-                                    fill: parent
-                                    margins: Kirigami.Units.smallSpacing * 1.5
-                                }
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Kirigami.Units.smallSpacing * 1.5
 
                                 Kirigami.Icon {
                                     source: (modelData.status && modelData.status.indexOf("success") !== -1) ? "dialog-ok" : "dialog-error"
@@ -620,12 +662,21 @@ import org.kde.plasma.plasma5support as P5Support
                                     }
 
                                     QQC2.Label {
-                                        text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
+                                        text: "\"" + (modelData.message || "") + "\""
                                         font.pixelSize: 10
-                                        opacity: 0.5
-                                        elide: Text.ElideRight
+                                        opacity: 0.6
+                                        wrapMode: Text.Wrap
                                         font.italic: true
                                         Layout.fillWidth: true
+                                    }
+
+                                    QQC2.Label {
+                                        text: translate("Status: ") + (modelData.status === "success" ? translate("Success") : (modelData.status === "error" ? translate("Failed") : modelData.status))
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        color: (modelData.status && modelData.status.indexOf("success") !== -1) ? "#27ae60" : "#c0392b"
+                                        Layout.fillWidth: true
+                                        wrapMode: Text.Wrap
                                     }
                                 }
                             }
