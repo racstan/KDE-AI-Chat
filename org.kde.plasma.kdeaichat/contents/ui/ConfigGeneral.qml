@@ -103,6 +103,7 @@ KCM.SimpleKCM {
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
     property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked
+    property alias cfg_schedulerHistoryLimit: schedulerHistoryLimitCombo.currentIndex
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
     property string keyringStatus: ""
@@ -1398,6 +1399,13 @@ KCM.SimpleKCM {
         page.schedSaveAll();
     }
 
+    function getHistoryLimitValue() {
+        var idx = (schedulerHistoryLimitCombo ? schedulerHistoryLimitCombo.currentIndex : 1);
+        if (idx === 0) return 10;
+        if (idx === 2) return 1000;
+        return 100;
+    }
+
     function schedSaveAll() {
         page.schedSaving = true;
         var all = [];
@@ -1413,12 +1421,21 @@ KCM.SimpleKCM {
             sa.archived = true;
             all.push(sa);
         }
+
+        var limit = page.getHistoryLimitValue();
+        var hist = page.schedulerHistory || [];
+        if (hist.length > limit) {
+            hist = hist.slice(hist.length - limit);
+            page.schedulerHistory = hist;
+        }
+
         var payload = {
             "version": 1,
             "schedules": all,
-            "history": page.schedulerHistory,
+            "history": hist,
             "settings": {
-                "executeMissedSchedules": !!executeMissedSchedulesToggle.checked
+                "executeMissedSchedules": !!executeMissedSchedulesToggle.checked,
+                "historyLimit": limit
             }
         };
         var b64 = base64Encode(JSON.stringify(payload));
@@ -1830,7 +1847,12 @@ KCM.SimpleKCM {
                         }
                         page.schedulerList = active;
                         page.schedulerArchivedList = archived;
-                        page.schedulerHistory = parsed.history || [];
+                        var hist = parsed.history || [];
+                        var limit = page.getHistoryLimitValue();
+                        if (hist.length > limit) {
+                            hist = hist.slice(hist.length - limit);
+                        }
+                        page.schedulerHistory = hist;
                     } catch (e) {
                         page.schedulerList = [];
                         page.schedulerArchivedList = [];
@@ -4280,6 +4302,11 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: translate("Execute missed schedules")
                 checked: false
+                onCheckedChanged: {
+                    if (!page.pageReady)
+                        return;
+                    page.schedSaveAll();
+                }
             }
 
             QQC2.Label {
@@ -4290,6 +4317,28 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 opacity: 0.7
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
+            }
+
+            QQC2.ComboBox {
+                id: schedulerHistoryLimitCombo
+
+                Kirigami.FormData.label: translate("History retention:")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                model: [
+                    translate("Store last 10 entries"),
+                    translate("Store last 100 entries"),
+                    translate("Store last 1000 entries")
+                ]
+                onCurrentIndexChanged: {
+                    if (!page.pageReady)
+                        return;
+                    var limit = page.getHistoryLimitValue();
+                    if (page.schedulerHistory.length > limit) {
+                        page.schedulerHistory = page.schedulerHistory.slice(page.schedulerHistory.length - limit);
+                    }
+                    page.schedSaveAll();
+                }
             }
 
             // Master ON/OFF switch

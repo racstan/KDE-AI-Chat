@@ -50,6 +50,8 @@ TICK_SECONDS = 5
 schedules = []
 history = []
 execute_missed_schedules = False
+history_limit = 100
+settings_dict = {}
 reload_requested = False
 _schedules_mtime: float = 0.0
 
@@ -105,11 +107,13 @@ def cleanup():
 
 # ── Schedules I/O ──────────────────────────────────────────────────────────────
 def load_schedules():
-    global history, execute_missed_schedules
+    global history, execute_missed_schedules, history_limit, settings_dict
     if not os.path.exists(SCHEDULES_FILE):
         log.debug(f"Schedules file not found: {SCHEDULES_FILE}")
         history = []
         execute_missed_schedules = False
+        history_limit = 100
+        settings_dict = {}
         return []
     try:
         with open(SCHEDULES_FILE, "r", encoding="utf-8") as f:
@@ -118,31 +122,42 @@ def load_schedules():
             items = data
             history = []
             execute_missed_schedules = False
+            history_limit = 100
+            settings_dict = {}
         elif isinstance(data, dict):
             items = data.get("schedules", [])
             history = data.get("history", [])
-            settings = data.get("settings", {})
-            execute_missed_schedules = settings.get("executeMissedSchedules", False)
+            settings_dict = data.get("settings", {})
+            execute_missed_schedules = settings_dict.get("executeMissedSchedules", False)
+            try:
+                history_limit = int(settings_dict.get("historyLimit", 100))
+            except Exception:
+                history_limit = 100
         else:
             items = []
             history = []
             execute_missed_schedules = False
-        log.info(f"Loaded {len(items)} schedule(s) (executeMissed={execute_missed_schedules}) and {len(history)} history entry(s) from {SCHEDULES_FILE}")
+            history_limit = 100
+            settings_dict = {}
+        log.info(f"Loaded {len(items)} schedule(s) (executeMissed={execute_missed_schedules}, historyLimit={history_limit}) and {len(history)} history entry(s) from {SCHEDULES_FILE}")
         return items
     except (json.JSONDecodeError, OSError) as e:
         log.error("Failed to load schedules: %s", e)
         history = []
         execute_missed_schedules = False
+        history_limit = 100
+        settings_dict = {}
         return []
 
 
 def save_schedules(items):
-    global history
+    global history, settings_dict
     try:
         payload = {
             "version": 1,
             "schedules": items,
-            "history": history
+            "history": history,
+            "settings": settings_dict
         }
         tmp = SCHEDULES_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
@@ -502,8 +517,8 @@ def main():
                         "status": status or "success"
                     }
                     history.append(entry)
-                    if len(history) > 100:
-                        history = history[-100:]
+                    if len(history) > history_limit:
+                        history = history[-history_limit:]
                 except Exception as ex:
                     log.error("Failed to append to history: %s", ex)
 

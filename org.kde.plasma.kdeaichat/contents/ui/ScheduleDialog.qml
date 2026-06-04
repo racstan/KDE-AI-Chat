@@ -557,60 +557,76 @@ import org.kde.plasma.plasma5support as P5Support
                 }
 
                 // ── 3. RUN HISTORY LIST ──
-                ListView {
-                    id: historySchedListView
-                    model: page.schedulerHistory
-                    spacing: Kirigami.Units.smallSpacing
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 4
+                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
+                    border.width: 1
                     clip: true
 
-                    delegate: Rectangle {
-                        width: historySchedListView.width
-                        height: 74
-                        radius: 6
-                        color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.05) : Qt.rgba(0.9, 0.22, 0.22, 0.05)
-                        border.color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.15) : Qt.rgba(0.9, 0.22, 0.22, 0.15)
-                        border.width: 1
+                    ListView {
+                        id: historySchedListView
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        model: page.schedulerHistory
+                        spacing: Kirigami.Units.smallSpacing
+                        clip: true
 
-                        RowLayout {
-                            spacing: Kirigami.Units.smallSpacing
-                            anchors {
-                                fill: parent
-                                margins: Kirigami.Units.smallSpacing * 1.5
-                            }
+                        QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+                            active: true
+                        }
 
-                            Kirigami.Icon {
-                                source: (modelData.status && modelData.status.indexOf("success") !== -1) ? "dialog-ok" : "dialog-error"
-                                color: (modelData.status && modelData.status.indexOf("success") !== -1) ? "#2ecc71" : "#e74c3c"
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.2
-                                Layout.preferredHeight: Kirigami.Units.gridUnit * 1.2
-                            }
+                        delegate: Rectangle {
+                            width: historySchedListView.width - 16
+                            height: 74
+                            radius: 6
+                            color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.05) : Qt.rgba(0.9, 0.22, 0.22, 0.05)
+                            border.color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.15) : Qt.rgba(0.9, 0.22, 0.22, 0.15)
+                            border.width: 1
 
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
-
-                                QQC2.Label {
-                                    text: modelData.scheduleName || translate("Unnamed Run")
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
+                            RowLayout {
+                                spacing: Kirigami.Units.smallSpacing
+                                anchors {
+                                    fill: parent
+                                    margins: Kirigami.Units.smallSpacing * 1.5
                                 }
 
-                                QQC2.Label {
-                                    text: "💬 " + (modelData.chatName || "Chat") + " · ⏱ " + modelData.timestamp
-                                    font.pixelSize: 11
-                                    opacity: 0.7
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
+                                Kirigami.Icon {
+                                    source: (modelData.status && modelData.status.indexOf("success") !== -1) ? "dialog-ok" : "dialog-error"
+                                    color: (modelData.status && modelData.status.indexOf("success") !== -1) ? "#2ecc71" : "#e74c3c"
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.2
+                                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.2
                                 }
 
-                                QQC2.Label {
-                                    text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
-                                    font.pixelSize: 10
-                                    opacity: 0.5
-                                    elide: Text.ElideRight
-                                    font.italic: true
+                                ColumnLayout {
                                     Layout.fillWidth: true
+                                    spacing: 2
+
+                                    QQC2.Label {
+                                        text: modelData.scheduleName || translate("Unnamed Run")
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+
+                                    QQC2.Label {
+                                        text: "💬 " + (modelData.chatName || "Chat") + " · ⏱ " + modelData.timestamp
+                                        font.pixelSize: 11
+                                        opacity: 0.7
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+
+                                    QQC2.Label {
+                                        text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
+                                        font.pixelSize: 10
+                                        opacity: 0.5
+                                        elide: Text.ElideRight
+                                        font.italic: true
+                                        Layout.fillWidth: true
+                                    }
                                 }
                             }
                         }
