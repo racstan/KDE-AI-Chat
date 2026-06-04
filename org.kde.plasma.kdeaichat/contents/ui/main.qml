@@ -782,10 +782,75 @@ PlasmoidItem {
         persistSessions();
     }
 
+    function appendCompactPromptMessage(chatId) {
+        var ts = Date.now();
+        var msgObj = {
+            "role": "compact_request",
+            "status": "pending",
+            "content": "The conversation history has exceeded the configured threshold. Would you like to compact the older history into a concise summary to stay within context limit?",
+            "time": nowTime(ts),
+            "at": ts,
+            "model": "",
+            "queueId": 0,
+            "attachments": [],
+            "isSystem": true
+        };
+        appendMessageToSession(chatId, msgObj);
+        if (chatId === root.currentSessionId) {
+            if (!root.userScrolledUp)
+                Qt.callLater(scrollToBottom);
+        }
+    }
+
+    function respondToCompactRequest(msgIndex, approved) {
+        var copy = root.messages.slice();
+        if (msgIndex < 0 || msgIndex >= copy.length)
+            return;
+
+        var msgObj = Object.assign({}, copy[msgIndex]);
+        if (msgObj.role !== "compact_request")
+            return;
+
+        if (approved) {
+            msgObj.status = "compacted";
+            copy[msgIndex] = msgObj;
+            root.messages = copy;
+            saveCurrentSessionState(touchSessionsList(root.currentSessionId));
+            compactSessionContext(root.currentSessionId);
+        } else {
+            msgObj.status = "cancelled";
+            copy[msgIndex] = msgObj;
+            root.messages = copy;
+            saveCurrentSessionState(touchSessionsList(root.currentSessionId));
+        }
+    }
+
+    function touchSessionsList(chatId) {
+        // Helper to force-notify sessions update on QML side
+        var idx = sessionIndexById(chatId);
+        if (idx >= 0) {
+            var updated = root.sessions.slice();
+            updated[idx].updatedAt = Date.now();
+            root.sessions = updated;
+        }
+        return true;
+    }
+
     function checkAndAutoCompact(sessionId) {
         var sId = sessionId || root.currentSessionId;
         var idx = sessionIndexById(sId);
         if (idx < 0)
+            return ;
+
+        var msgs = root.sessions[idx].messages || [];
+        var lastUserMsg = null;
+        for (var j = msgs.length - 1; j >= 0; j--) {
+            if (msgs[j].role === "user" && !msgs[j].isSystem) {
+                lastUserMsg = msgs[j];
+                break;
+            }
+        }
+        if (lastUserMsg && lastUserMsg.sc)
             return ;
 
         var override = getSessionProperty(sId, "contextOverride", false);
@@ -794,8 +859,13 @@ PlasmoidItem {
             return ;
 
         var threshold = override ? getSessionProperty(sId, "contextCompactThreshold", 10) : plasmoid.configuration.globalContextCompactThreshold;
-        var msgs = root.sessions[idx].messages || [];
         var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
+
+        for (var k = compactedCount; k < msgs.length; k++) {
+            if (msgs[k].role === "compact_request")
+                return ;
+        }
+
         var uncompactedCleanCount = 0;
         for (var i = compactedCount; i < msgs.length; i++) {
             var role = msgs[i].role;
@@ -803,9 +873,9 @@ PlasmoidItem {
                 uncompactedCleanCount++;
 
         }
-        if (uncompactedCleanCount > threshold)
-            compactSessionContext(sId);
-
+        if (uncompactedCleanCount > threshold) {
+            appendCompactPromptMessage(sId);
+        }
     }
 
     function compactSessionContext(sessionId) {
@@ -2677,6 +2747,25 @@ PlasmoidItem {
         return Translations.translate(text, plasmoid.configuration.language);
     }
 
+    function isSessionScheduled(sessionId, messagesList) {
+        var msgs = messagesList;
+        if (!msgs) {
+            var idx = sessionIndexById(sessionId || root.currentSessionId);
+            if (idx >= 0)
+                msgs = root.sessions[idx].messages || [];
+        }
+        if (!msgs || msgs.length === 0)
+            return false;
+        // Search from the end for the last user message
+        for (var i = msgs.length - 1; i >= 0; i--) {
+            var m = msgs[i];
+            if (m.role === "user" && !m.isSystem) {
+                return !!m.sc;
+            }
+        }
+        return false;
+    }
+
     function buildEffectiveSystemPrompt(sessionId) {
         var sId = sessionId || root.currentSessionId;
         var base = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
@@ -2685,9 +2774,11 @@ PlasmoidItem {
         if (memoryOn && memoryTxt !== "")
             base = base + "\n\n--- User Memory ---\n" + memoryTxt + "\n--- End of User Memory ---";
 
-        var summary = getSessionProperty(sId, "compactedSummary", "");
-        if (summary !== "")
-            base = base + "\n\n--- Summary of Previous Conversation ---\n" + summary + "\n--- End of Summary ---";
+        if (!isSessionScheduled(sId)) {
+            var summary = getSessionProperty(sId, "compactedSummary", "");
+            if (summary !== "")
+                base = base + "\n\n--- Summary of Previous Conversation ---\n" + summary + "\n--- End of Summary ---";
+        }
 
         return base;
     }
@@ -2701,7 +2792,8 @@ PlasmoidItem {
         var override = getSessionProperty(sId, "contextOverride", false);
         var contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : (plasmoid.configuration.globalContextEnabled !== false);
         var limit = override ? getSessionProperty(sId, "contextLimit", 1) : (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1);
-        var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
+        var isSched = isSessionScheduled(sId, messagesList);
+        var compactedCount = isSched ? 0 : getSessionProperty(sId, "compactedMessageCount", 0);
         var clean = [];
         for (var i = 0; i < messagesList.length; i++) {
             var m = messagesList[i];
@@ -6091,11 +6183,11 @@ PlasmoidItem {
                                                 width: Math.min(msgList.width * 0.76, 560)
                                                 implicitHeight: bubbleCol.implicitHeight + Kirigami.Units.largeSpacing
                                                 radius: 10
-                                                color: modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor
-                                                border.width: modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" ? 2 : 1
-                                                border.color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
+                                                color: modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor
+                                                border.width: modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request" ? 2 : 1
+                                                border.color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
                                                 anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
-                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" ? parent.left : undefined
+                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request" ? parent.left : undefined
 
                                                 Column {
                                                     // ── end message body ───────────────────────────────────────
@@ -6112,7 +6204,7 @@ PlasmoidItem {
                                                         spacing: Kirigami.Units.smallSpacing
 
                                                         PC3.Label {
-                                                            text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? "OpenCode Interactive Question" : modelData.role === "permission_request" ? "OpenCode Security Request" : modelData.role === "schedules_list" ? "Schedules Manager" : "AI"
+                                                            text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? "OpenCode Interactive Question" : modelData.role === "permission_request" ? "OpenCode Security Request" : modelData.role === "schedules_list" ? "Schedules Manager" : modelData.role === "compact_request" ? "Context Compaction Request" : "AI"
                                                             font.bold: true
                                                         }
 
@@ -6480,6 +6572,34 @@ PlasmoidItem {
                                                             color: modelData.status === "allowed" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                                                         }
 
+                                                    }
+
+                                                    Row {
+                                                        visible: modelData.role === "compact_request"
+                                                        width: parent.width
+                                                        spacing: Kirigami.Units.largeSpacing
+                                                        Layout.topMargin: Kirigami.Units.smallSpacing
+
+                                                        PC3.Button {
+                                                            visible: modelData.status === "pending"
+                                                            text: "Compact"
+                                                            icon.name: "run-build"
+                                                            onClicked: root.respondToCompactRequest(index, true)
+                                                        }
+
+                                                        PC3.Button {
+                                                            visible: modelData.status === "pending"
+                                                            text: "Cancel"
+                                                            icon.name: "dialog-cancel"
+                                                            onClicked: root.respondToCompactRequest(index, false)
+                                                        }
+
+                                                        PC3.Label {
+                                                            visible: modelData.status !== "pending"
+                                                            text: modelData.status === "compacted" ? "Compacted ✅" : "Cancelled ❌"
+                                                            font.bold: true
+                                                            color: modelData.status === "compacted" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                                                        }
                                                     }
 
                                                     Column {
