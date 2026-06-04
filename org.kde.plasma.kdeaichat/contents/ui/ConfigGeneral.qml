@@ -879,19 +879,37 @@ KCM.SimpleKCM {
 
     function refreshRunningOpenCodeSessions() {
         var baseUrl = openCodeUrlField.text;
-        var url = openCodeServerRoot(baseUrl) + "/session";
+        var rootUrl = openCodeServerRoot(baseUrl);
+        var urlSessions = rootUrl + "/session";
+        var urlStatus = rootUrl + "/session/status";
+        
         openCodeSessionsStatus = translate("Loading active OpenCode sessions...");
-        requestJson(url, {}, function(sessionsArray) {
-            if (Array.isArray(sessionsArray)) {
-                runningOpenCodeSessions = sessionsArray;
-                openCodeSessionsStatus = translate("Found %1 active session(s).").arg(sessionsArray.length);
-            } else {
+        requestJson(urlStatus, {}, function(statusMap) {
+            requestJson(urlSessions, {}, function(sessionsArray) {
+                if (Array.isArray(sessionsArray)) {
+                    var filtered = [];
+                    for (var i = 0; i < sessionsArray.length; i++) {
+                        var s = sessionsArray[i];
+                        if (s && s.id && statusMap && statusMap[s.id]) {
+                            var statusObj = statusMap[s.id];
+                            if (statusObj && statusObj.type !== "idle") {
+                                filtered.push(s);
+                            }
+                        }
+                    }
+                    runningOpenCodeSessions = filtered;
+                    openCodeSessionsStatus = translate("Found %1 active session(s).").arg(filtered.length);
+                } else {
+                    runningOpenCodeSessions = [];
+                    openCodeSessionsStatus = translate("Invalid response format from OpenCode server.");
+                }
+            }, function(err) {
                 runningOpenCodeSessions = [];
-                openCodeSessionsStatus = translate("Invalid response format from OpenCode server.");
-            }
+                openCodeSessionsStatus = translate("Failed to load sessions: %1").arg(err);
+            });
         }, function(err) {
             runningOpenCodeSessions = [];
-            openCodeSessionsStatus = translate("Failed to load sessions: %1").arg(err);
+            openCodeSessionsStatus = translate("Failed to load session statuses: %1").arg(err);
         });
     }
 
