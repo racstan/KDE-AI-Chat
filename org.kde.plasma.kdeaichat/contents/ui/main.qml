@@ -1356,7 +1356,14 @@ PlasmoidItem {
         if (modelLabel)
             root.openCodeAssistantModelLabel = modelLabel;
 
+        // Audit 5.1: buffer streaming chunks and flush at ~30 Hz
+        // instead of rebuilding the `messages` array on every token.
+        // This is the dominant cost during streaming — each rebuild
+        // was triggering a full ListView model reset, destroying and
+        // recreating all delegates.
         if (root.openCodeAssistantMessageIndex < 0) {
+            // First chunk for this stream — flush immediately so the
+            // bubble appears without waiting for the batch window.
             var ts = Date.now();
             root.messages = root.messages.concat([{
                 "role": "assistant",
@@ -1369,29 +1376,21 @@ PlasmoidItem {
             root.streamingResponse = true;
             if (!root.userScrolledUp)
                 Qt.callLater(scrollToBottom);
-
-            return ;
+            return;
         }
-        var copy = root.messages.slice();
-        var item = Object.assign({
-        }, copy[root.openCodeAssistantMessageIndex]);
-        var existing = item.content || "";
+        // Subsequent chunks — buffer and restart the batch timer.
+        var existing = root._pendingStreamingText;
         // OpenCode streams can be cumulative or token-delta; handle both.
         if (incoming.indexOf(existing) === 0)
-            item.content = incoming;
+            root._pendingStreamingText = incoming;
         else if (existing.indexOf(incoming) === 0)
-            item.content = existing;
+            {} // already have it
         else
-            item.content = existing + incoming;
-        item.at = Date.now();
-        item.time = nowTime(item.at);
-        item.model = root.openCodeAssistantModelLabel || item.model || "OpenCode";
-        root.streamingResponse = (item.content || "") !== "";
-        copy[root.openCodeAssistantMessageIndex] = item;
-        root.messages = copy;
-        if (!root.userScrolledUp)
-            Qt.callLater(scrollToBottom);
-
+            root._pendingStreamingText = existing + incoming;
+        if (modelLabel)
+            root._pendingStreamingModelLabel = modelLabel;
+        root._streamingDirty = true;
+        streamingBatchTimer.restart();
     }
 
     function finishOpenCodeRequest() {
@@ -1402,6 +1401,7 @@ PlasmoidItem {
         root.openCodeAssistantServerMessageId = "";
         root.openCodeErrorShownForRequest = false;
         root.streamingResponse = false;
+        flushStreamingBuffer();
         saveCurrentSessionState(true);
         triggerNotificationSound();
         resetOpenCodeIdleKillTimer();
@@ -3879,6 +3879,7 @@ PlasmoidItem {
             root.activeXhr = null;
         }
         root.loading = false;
+        flushStreamingBuffer();
         saveCurrentSessionState(true);
         processNextQueuedMessage();
     }
@@ -4456,6 +4457,63 @@ PlasmoidItem {
         interval: 1000
         repeat: false
         onTriggered: root.flushPersistSessions()
+    }
+
+    // Audit 5.1: batch streaming token updates to avoid full model
+    // resets on every chunk. Tokens are buffered in `_pendingStreamingText`
+    // and flushed at ~30 Hz instead of per-token. `flushStreamingBuffer()`
+    // forces an immediate flush (used on stream end, cancel, and
+    // session switch).
+    property string _pendingStreamingText: ""
+    property string _pendingStreamingModelLabel: ""
+    property bool _streamingDirty: false
+    Timer {
+        id: streamingBatchTimer
+        interval: 33
+        repeat: false
+        onTriggered: root.flushStreamingBuffer()
+    }
+    function flushStreamingBuffer() {
+        if (!_streamingDirty)
+            return;
+        _streamingDirty = false;
+        var text = _pendingStreamingText;
+        var label = _pendingStreamingModelLabel;
+        _pendingStreamingText = "";
+        _pendingStreamingModelLabel = "";
+        // Apply the coalesced update directly (bypasses re-buffering).
+        if (root.openCodeAssistantMessageIndex < 0) {
+            var ts = Date.now();
+            root.messages = root.messages.concat([{
+                "role": "assistant",
+                "content": text,
+                "time": nowTime(ts),
+                "at": ts,
+                "model": label || "OpenCode"
+            }]);
+            root.openCodeAssistantMessageIndex = root.messages.length - 1;
+            root.streamingResponse = true;
+            if (!root.userScrolledUp)
+                Qt.callLater(scrollToBottom);
+            return;
+        }
+        var copy = root.messages.slice();
+        var item = Object.assign({}, copy[root.openCodeAssistantMessageIndex]);
+        var existing = item.content || "";
+        if (text.indexOf(existing) === 0)
+            item.content = text;
+        else if (existing.indexOf(text) === 0)
+            item.content = existing;
+        else
+            item.content = existing + text;
+        item.at = Date.now();
+        item.time = nowTime(item.at);
+        item.model = label || item.model || "OpenCode";
+        root.streamingResponse = (item.content || "") !== "";
+        copy[root.openCodeAssistantMessageIndex] = item;
+        root.messages = copy;
+        if (!root.userScrolledUp)
+            Qt.callLater(scrollToBottom);
     }
 
     Timer {

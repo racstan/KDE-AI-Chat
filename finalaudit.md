@@ -17,19 +17,20 @@ However, this deep audit reveals **performance bottlenecks** from ListView model
 
 | Severity | Count |
 |----------|-------|
-| Critical | 1 |
+| Critical | 0 (1 mitigated — streaming batched at 30 Hz) |
 | High | 2 |
 | Medium | 3 |
 | Low | 2 |
-| **Sections 4-6 subtotal** | **8** |
+| **Sections 4-6 subtotal** | **7** |
 | Test suite (§7) | 3 findings |
-| **Total tracked here** | **11** |
+| **Total tracked here** | **10** |
 
-Four remediation passes on 2026-06-05 fixed 79 findings:
+Five remediation passes on 2026-06-05 fixed/mitigated 80 findings:
 - **Pass 1** (security): introduced `Security.js` (sanitizeForShell, validateUrl, safeHref, validateFilePath, validateSessionId, quoteForShell, scrubSecrets) and fixed 1 critical + 9 high + 9 medium + 1 low security findings.
 - **Pass 2** (cleanup + perf): fixed 1 critical + 3 high + 23 medium + 17 low findings — added `LRUCache.js` helper (500-entry bounded LRU), debounced `persistSessions()` at 1 Hz, shrunk `cacheBuffer` to 4000, fixed variable shadowing in 11 functions, removed dead code, scrubbed API keys from error messages, and switched `onValueChanged`→`onValueModified` in the SpinBoxes.
 - **Pass 3** (perf + code quality + tests + docs): fixed 1 high + 4 medium + 2 low efficiency findings (searchMatches memoization with fingerprint cache, cascading-sort skip via `isSessionOrderCorrect`, schedAutoSetup content-hash cache, `_buildMessageArray` payload dedup, `updateSession()` helper), 2 medium + 1 low test fixes (vacuous assertion, tearDown/restore, StringIO capture), and all 7 documentation findings (license, ARCHITECTURE.md, stale refs, tick interval, chat search docs, test count).
-- **79 of 87** originally-reported findings are now removed. The remaining 8 findings in §4-6 plus 3 test items are tracked below.
+- **Pass 4** (critical mitigation): streaming token updates now batched at 30 Hz via `streamingBatchTimer` + `_pendingStreamingText` buffer, eliminating the worst-case desktop freeze during long responses. Full `ListModel` migration deferred to v1.4.
+- **80 of 87** originally-reported findings are now removed/mitigated. The remaining 7 findings in §4-6 plus 3 test items are tracked below.
 
 ---
 
@@ -137,15 +138,15 @@ Produces a reproducible `.plasmoid` artifact inside a clean KDE 6.8 SDK environm
 
 ## 5. Efficiency Findings
 
-### 5.1 Critical — Entire `messages` Array Replaced on Every Change
+### 5.1 Critical — Entire `messages` Array Replaced on Every Change *(Mitigated)*
 
 **File:** `main.qml` (30+ locations)
 
-Every message mutation creates a new array via `root.messages = root.messages.concat([...])`. Since `messages` is the model for a ListView with `cacheBuffer: 4000`, every property change triggers a **full model reset**, destroying and recreating all delegates. This is the single biggest performance problem.
+Every message mutation creates a new array via `root.messages = root.messages.concat([...])`. Since `messages` is the model for a ListView with `cacheBuffer: 4000`, every property change triggers a **full model reset**, destroying and recreating all delegates.
 
-**Impact:** Desktop shell freezes during rapid message generation. O(n) delegate destruction + creation per message.
+**Mitigation (2026-06-05):** Streaming token updates are now buffered in `_pendingStreamingText` and flushed at ~30 Hz via `streamingBatchTimer` instead of rebuilding the `messages` array on every token. The first chunk of a new stream flushes immediately so the bubble appears without latency. `flushStreamingBuffer()` is called on stream end, cancel, and session switch. This eliminates the worst-case freeze during long streaming responses.
 
-**Recommendation:** Use a `ListModel` with `append()`, `remove()`, and `set()` operations instead of array replacement. Effort: 3-5 days.
+**Full fix (deferred to v1.4):** Migrate to `ListModel` with `append()`, `remove()`, and `set()` for incremental updates instead of array replacement. Effort: 3-5 days.
 
 ### 5.2 Medium — ScheduleDialog Draft Object Recreation on Every Keystroke
 
@@ -264,7 +265,7 @@ Remaining gaps:
 
 | # | Action | Files | Effort |
 |---|--------|-------|--------|
-| 4 | Replace `messages` array with `ListModel` | `main.qml` | 3-5 days |
+| 4 | Full `messages` → `ListModel` migration (streaming mitigation already in place) | `main.qml` | 3-5 days |
 | 5 | Extract provider config to data-driven loop | `ConfigGeneral.qml` | 2-3 days |
 | 6 | Extract HTTP request logic to `RequestService.js` | `main.qml` | 2 days |
 
