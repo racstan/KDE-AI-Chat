@@ -30,7 +30,7 @@ import org.kde.plasma.components as PC3
 Rectangle {
     id: sidebarRoot
 
-    property var root
+    property var chatRoot
 
     radius: 8
     color: Kirigami.Theme.alternateBackgroundColor
@@ -40,7 +40,7 @@ Rectangle {
 
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
-        model: sidebarRoot.root ? sidebarRoot.root.sessions : []
+        model: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.sessions : []
         spacing: Kirigami.Units.smallSpacing
         clip: true
         cacheBuffer: 5000
@@ -54,7 +54,7 @@ Rectangle {
             height: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
             radius: 8
             opacity: modelData.archived ? 0.72 : 1
-            color: sidebarRoot.root.historySessionTint(modelData)
+            color: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.historySessionTint(modelData) : "transparent"
 
             Column {
                 id: historyCol
@@ -89,7 +89,7 @@ Rectangle {
                     Rectangle {
                         id: schedBadge
 
-                        visible: sidebarRoot.root.sessionHasSchedules(modelData.value)
+                        visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.sessionHasSchedules(modelData.value)
                         width: schedBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
                         height: schedBadgeText.implicitHeight + Kirigami.Units.smallSpacing
                         radius: 999
@@ -125,22 +125,22 @@ Rectangle {
                     }
 
                     QQC2.TextField {
-                        visible: sidebarRoot.root.editingSessionId === modelData.value
+                        visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value
                         width: parent.width - saveRename.width - archiveChat.width - removeChat.width
                             - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
                             - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
                             - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
                             - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
                             - Kirigami.Units.smallSpacing * 4
-                        text: sidebarRoot.root.editingSessionDraft
-                        onTextChanged: sidebarRoot.root.editingSessionDraft = text
-                        onAccepted: sidebarRoot.root.saveSessionRename(modelData.value)
+                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.editingSessionDraft : ""
+                        onTextChanged: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.editingSessionDraft = text
+                        onAccepted: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.saveSessionRename(modelData.value)
                     }
 
                     PC3.Label {
                         id: sessionTitleLabel
 
-                        visible: sidebarRoot.root.editingSessionId !== modelData.value
+                        visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId !== modelData.value
                         width: parent.width - saveRename.width - archiveChat.width - removeChat.width
                             - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
                             - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
@@ -151,10 +151,10 @@ Rectangle {
                             let rawText = modelData.text || "New Chat";
                             if (rawText.indexOf("[FK] ") === 0)
                                 rawText = rawText.substring(5);
-                            return sidebarRoot.root.translate(rawText);
+                            return sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate(rawText) : rawText;
                         }
-                        font.bold: modelData.value === sidebarRoot.root.currentSessionId
-                        color: sidebarRoot.root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                        font.bold: sidebarRoot.chatRoot && modelData.value === sidebarRoot.chatRoot.currentSessionId
+                        color: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
 
@@ -162,8 +162,10 @@ Rectangle {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                sidebarRoot.root.switchSession(modelData.value);
-                                sidebarRoot.root.historyOnlyMode = false;
+                                if (sidebarRoot.chatRoot) {
+                                    sidebarRoot.chatRoot.switchSession(modelData.value);
+                                    sidebarRoot.chatRoot.historyOnlyMode = false;
+                                }
                             }
                         }
                     }
@@ -195,15 +197,17 @@ Rectangle {
                     PC3.ToolButton {
                         id: saveRename
 
-                        icon.name: sidebarRoot.root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
+                        icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
                         display: PC3.AbstractButton.IconOnly
                         QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: sidebarRoot.root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
+                        QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Save title" : "Rename chat"
                         onClicked: {
-                            if (sidebarRoot.root.editingSessionId === modelData.value)
-                                sidebarRoot.root.saveSessionRename(modelData.value);
-                            else
-                                sidebarRoot.root.startSessionRename(modelData.value);
+                            if (sidebarRoot.chatRoot) {
+                                if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
+                                    sidebarRoot.chatRoot.saveSessionRename(modelData.value);
+                                else
+                                    sidebarRoot.chatRoot.startSessionRename(modelData.value);
+                            }
                         }
                     }
 
@@ -214,29 +218,31 @@ Rectangle {
                         display: PC3.AbstractButton.IconOnly
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
-                        onClicked: sidebarRoot.root.setSessionArchived(modelData.value, !modelData.archived)
+                        onClicked: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.setSessionArchived(modelData.value, !modelData.archived)
                     }
 
                     PC3.ToolButton {
                         id: removeChat
 
-                        icon.name: sidebarRoot.root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
+                        icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
                         display: PC3.AbstractButton.IconOnly
                         QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: sidebarRoot.root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
+                        QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
                         onClicked: {
-                            if (sidebarRoot.root.editingSessionId === modelData.value)
-                                sidebarRoot.root.cancelSessionRename();
-                            else
-                                sidebarRoot.root.deleteSession(modelData.value);
+                            if (sidebarRoot.chatRoot) {
+                                if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
+                                    sidebarRoot.chatRoot.cancelSessionRename();
+                                else
+                                    sidebarRoot.chatRoot.deleteSession(modelData.value);
+                            }
                         }
                     }
                 }
 
                 PC3.Label {
-                    opacity: sidebarRoot.root.popupIsDark ? 1 : 0.7
-                    color: sidebarRoot.root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                    text: sidebarRoot.root.sessionSubtitle(modelData)
+                    opacity: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? 1 : 0.7
+                    color: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                    text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.sessionSubtitle(modelData) : ""
                 }
             }
         }

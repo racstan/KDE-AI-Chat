@@ -25,10 +25,10 @@ Column {
     id: contentRoot
 
     property var messageData
-    property var root
+    property var chatRoot
     property int messageIndex: -1
 
-    visible: messageData && (root.editingMessageIndex !== messageIndex || messageData.role === "error")
+    visible: messageData && (chatRoot && chatRoot.editingMessageIndex !== messageIndex || messageData.role === "error")
     width: parent ? parent.width : 0
     spacing: 4
 
@@ -51,7 +51,7 @@ Column {
         visible: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
         width: parent.width
         model: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
-            ? contentRoot.root.parseMessageBlocks(contentRoot.messageData.content || "")
+            ? (contentRoot.chatRoot ? contentRoot.chatRoot.parseMessageBlocks(contentRoot.messageData.content || "") : [])
             : []
 
         delegate: Item {
@@ -69,7 +69,7 @@ Column {
                 width: parent.width
                 wrapMode: Text.Wrap
                 textFormat: Text.RichText
-                text: contentRoot.root.convertMarkdownToHtml(modelData.content || "")
+                text: contentRoot.chatRoot ? contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "") : ""
                 color: Kirigami.Theme.textColor
                 readOnly: true
                 selectByMouse: true
@@ -100,9 +100,9 @@ Column {
                     width: parent.width
                     implicitHeight: codeLangRow.implicitHeight + codeBody.implicitHeight + Kirigami.Units.smallSpacing * 3
                     radius: 6
-                    color: contentRoot.root.popupIsDark ? "#2d3139" : "#f0f2f5"
+                    color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#2d3139" : "#f0f2f5"
                     border.width: 1
-                    border.color: contentRoot.root.popupIsDark ? "#3e4452" : "#d0d4dc"
+                    border.color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
                     clip: true
 
                     Row {
@@ -120,7 +120,7 @@ Column {
                             text: modelData.lang || "code"
                             font.pointSize: 8
                             font.bold: true
-                            color: contentRoot.root.popupIsDark ? "#5c6370" : "#a0a1a7"
+                            color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#5c6370" : "#a0a1a7"
                             width: parent.width - copyCodeBtn.width - Kirigami.Units.smallSpacing
                         }
 
@@ -134,10 +134,10 @@ Column {
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: "Copy code"
                             onClicked: {
-                                if (contentRoot.root.clipboardHelper) {
-                                    contentRoot.root.clipboardHelper.text = modelData.content;
-                                    contentRoot.root.clipboardHelper.selectAll();
-                                    contentRoot.root.clipboardHelper.copy();
+                                if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
+                                    contentRoot.chatRoot.clipboardHelper.text = modelData.content;
+                                    contentRoot.chatRoot.clipboardHelper.selectAll();
+                                    contentRoot.chatRoot.clipboardHelper.copy();
                                 }
                             }
                         }
@@ -147,7 +147,7 @@ Column {
                         y: codeLangRow.height
                         width: parent.width
                         height: 1
-                        color: contentRoot.root.popupIsDark ? "#3e4452" : "#d0d4dc"
+                        color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
                     }
 
                     TextEdit {
@@ -162,7 +162,7 @@ Column {
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
                         text: modelData.content
-                        color: contentRoot.root.popupIsDark ? "#abb2bf" : "#383a42"
+                        color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#abb2bf" : "#383a42"
                         font.family: "monospace"
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
                         readOnly: true
@@ -198,13 +198,13 @@ Column {
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: "Export table as CSV"
                             onClicked: {
-                                let csv = contentRoot.root.tableMarkdownToCsv(modelData.content || "");
-                                if (contentRoot.root.clipboardHelper) {
-                                    contentRoot.root.clipboardHelper.text = csv;
-                                    contentRoot.root.clipboardHelper.selectAll();
-                                    contentRoot.root.clipboardHelper.copy();
+                                let csv = contentRoot.chatRoot ? contentRoot.chatRoot.tableMarkdownToCsv(modelData.content || "") : "";
+                                if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
+                                    contentRoot.chatRoot.clipboardHelper.text = csv;
+                                    contentRoot.chatRoot.clipboardHelper.selectAll();
+                                    contentRoot.chatRoot.clipboardHelper.copy();
                                 }
-                                if (contentRoot.root.customStorageDs) {
+                                if (contentRoot.chatRoot && contentRoot.chatRoot.customStorageDs) {
                                     let ts = new Date().getTime();
                                     // Use a sanitized timestamp inside a
                                     // hard-coded prefix; the path is then
@@ -215,7 +215,7 @@ Column {
                                     if (safePath === "")
                                         return;
                                     let safeCsv = Sec.sanitizeForShell(csv);
-                                    contentRoot.root.customStorageDs.connectSource("bash -c " + Sec.quoteForShell("printf '%s' " + safeCsv + " > " + safePath + " && xdg-open " + safePath) + " #csv-export-" + ts);
+                                    contentRoot.chatRoot.customStorageDs.connectSource("bash -c " + Sec.quoteForShell("printf '%s' " + safeCsv + " > " + safePath + " && xdg-open " + safePath) + " #csv-export-" + ts);
                                 }
                             }
                         }
@@ -225,7 +225,7 @@ Column {
                         width: parent.width
                         wrapMode: Text.Wrap
                         textFormat: Text.RichText
-                        text: contentRoot.root.convertMarkdownToHtml(modelData.content || "")
+                        text: contentRoot.chatRoot ? contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "") : ""
                         color: Kirigami.Theme.textColor
                         readOnly: true
                         selectByMouse: true

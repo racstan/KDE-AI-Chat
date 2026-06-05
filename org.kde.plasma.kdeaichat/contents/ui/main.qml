@@ -5714,7 +5714,7 @@ PlasmoidItem {
                                                     MessageContent {
                                                         messageData: modelData
                                                         messageIndex: index
-                                                        root: root
+                                                        chatRoot: root
                                                     }
 
                                                     Row {
@@ -6729,7 +6729,7 @@ PlasmoidItem {
                     SessionSidebar {
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.smallSpacing
-                        root: root
+                        chatRoot: root
                     }
 
                 }
