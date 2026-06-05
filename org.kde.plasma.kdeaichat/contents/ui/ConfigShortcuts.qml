@@ -37,7 +37,7 @@ KCM.SimpleKCM {
             wrapMode: Text.Wrap
             opacity: 0.7
             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
-            text: page.translate("These shortcuts are active only when the chat popup has focus. Enter standard Qt key sequences (e.g. <code>Ctrl+F</code>, <code>Ctrl+Shift+N</code>, or <code>F1</code>). Leave blank to disable a shortcut.")
+            text: page.translate("These are keyboard shortcuts which will work when the widget is active/being used (has focus). Enter standard Qt key sequences (e.g. <code>Ctrl+F</code>, <code>Ctrl+Shift+N</code>, or <code>F1</code>). Leave blank to disable a shortcut.")
             textFormat: Text.RichText
         }
 

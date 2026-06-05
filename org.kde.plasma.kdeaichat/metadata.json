@@ -18,6 +18,5 @@
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0",
-    "X-Plasma-ConfigurationUI": "ui/ConfigGeneral.qml",
     "Version": "1.3.0"
 }
