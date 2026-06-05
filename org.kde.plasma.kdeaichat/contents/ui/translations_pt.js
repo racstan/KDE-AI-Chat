@@ -1,4 +1,4 @@
-let pt_dictionary = {
+var pt_dictionary = {
         " more — open Manage Schedules to see all.": " mais — abra Gerenciar agendamentos para ver todos.",
         "%1 active schedules": "%1 agendamentos ativos",
         "%1 archived schedules": "%1 agendamentos arquivados",

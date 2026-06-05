@@ -1,4 +1,4 @@
-let es_dictionary = {
+var es_dictionary = {
         " more — open Manage Schedules to see all.": " más — abra Gestionar programaciones para ver todo.",
         "%1 active schedules": "%1 tareas programadas activas",
         "%1 archived schedules": "%1 tareas programadas archivadas",
