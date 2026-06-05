@@ -188,6 +188,22 @@ function quoteForShell(s) {
 }
 
 /**
+ * Escape single quotes only, wrapping the string in outer single quotes.
+ * This is intended ONLY for shell snippets (like custom start/stop/status
+ * commands) that legitimately require shell metacharacters ($ ; & | < >).
+ *
+ * @param {string} s  Raw shell snippet.
+ * @returns {string}  Single-quoted string with internal single quotes escaped.
+ */
+function rawShellSnippetQuote(s) {
+    if (s === null || s === undefined)
+        return "''";
+    let out = String(s);
+    return "'" + out.replace(/'/g, "'\\''") + "'";
+}
+
+
+/**
  * Redact common secret-bearer patterns from a string before it is shown
  * to the user or written to a log.
  *

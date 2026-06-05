@@ -2164,13 +2164,13 @@ PlasmoidItem {
                 opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
                 if (chatId) {
                     let ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
-                    scheduleMessageRemoval(chatId, ts1, 60000);
+                    scheduleMessageRemoval(chatId, ts1, 3000);
                 }
 
                 openCodeStartPollTimer.successCb = function() {
                     if (chatId) {
                         let ts2 = appendSystemMessageToSession(chatId, translate("Session restarted."));
-                        scheduleMessageRemoval(chatId, ts2, 60000);
+                        scheduleMessageRemoval(chatId, ts2, 3000);
                     }
                     resolveSuccess();
                 };

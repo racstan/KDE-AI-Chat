@@ -772,7 +772,7 @@ KCM.SimpleKCM {
     function startOpenCodeServerAutomatically() {
         discoveryStatus = "Starting OpenCode server automatically...";
         let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
-        let cmd = "sh -lc '" + shellEscape(startCmd) + "'";
+        let cmd = "sh -lc " + Sec.rawShellSnippetQuote(startCmd);
         utilityDs.connectSource(cmd + " #opencode-autostart");
         // After a short delay, attempt discovery again
         openCodeAutoStartTimer.restart();
@@ -1477,7 +1477,7 @@ KCM.SimpleKCM {
         if (safePath === "")
             return;
         let cmd = "cat " + Sec.quoteForShell(safePath) + " 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
-        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-load");
+        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-load");
     }
 
     function schedSaveSchedules(items) {
@@ -2724,7 +2724,7 @@ KCM.SimpleKCM {
                         // etc.), so we do *not* strip shell metacharacters.
                         // We only escape single quotes for the outer
                         // `sh -lc '…'` wrapper.
-                        let cmd = "sh -lc " + Sec.quoteForShell(openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.");
+                        let cmd = "sh -lc " + Sec.rawShellSnippetQuote(openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.");
                         utilityDs.connectSource(cmd + " #opencode-start");
                     }
                 }
@@ -2741,7 +2741,7 @@ KCM.SimpleKCM {
                     onClicked: {
                         discoveryStatus = "Running OpenCode stop command...";
                         // User-editable stop command — see note above.
-                        let cmd = "sh -lc " + Sec.quoteForShell(openCodeStopCommandField.text || "pkill -f opencode");
+                        let cmd = "sh -lc " + Sec.rawShellSnippetQuote(openCodeStopCommandField.text || "pkill -f opencode");
                         utilityDs.connectSource(cmd + " #opencode-stop");
                     }
                 }
@@ -4735,11 +4735,11 @@ KCM.SimpleKCM {
                         page.schedulerStatus = "Starting…";
                         let safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
                         let cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-start-" + Date.now());
+                        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-start-" + Date.now());
                     } else {
                         page.schedulerStatus = "Stopping…";
                         let cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
-                        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-stop-" + Date.now());
+                        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-stop-" + Date.now());
                     }
                     schedPollTimer.restart();
                     // Immediately trigger a poll check to reflect the start/stop actions
@@ -4770,7 +4770,7 @@ KCM.SimpleKCM {
                         page.schedulerDaemonRunning = false;
                         let safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
                         let cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-start-" + Date.now());
+                        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-start-" + Date.now());
                         schedPollTimer.restart();
                     }
                 }
