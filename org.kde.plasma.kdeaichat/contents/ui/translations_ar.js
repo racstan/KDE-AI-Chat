@@ -1,4 +1,4 @@
-var ar_dictionary = {
+let ar_dictionary = {
         " more — open Manage Schedules to see all.": " إضافية — افتح إدارة الجداول لرؤيتها جميعًا.",
         "\"?": "\"؟",
         "%1 active schedules": "%1 جداول زمنية نشطة",

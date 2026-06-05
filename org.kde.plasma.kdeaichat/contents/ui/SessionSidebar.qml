@@ -148,7 +148,7 @@ Rectangle {
                             - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
                             - Kirigami.Units.smallSpacing * 4
                         text: {
-                            var rawText = modelData.text || "New Chat";
+                            let rawText = modelData.text || "New Chat";
                             if (rawText.indexOf("[FK] ") === 0)
                                 rawText = rawText.substring(5);
                             return sidebarRoot.root.translate(rawText);

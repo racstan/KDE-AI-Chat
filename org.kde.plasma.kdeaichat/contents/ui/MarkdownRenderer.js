@@ -10,7 +10,7 @@
  * @module MarkdownRenderer
  */
 
-var _ALLOWED_URL_SCHEMES = ["http:", "https:", "mailto:"];
+let _ALLOWED_URL_SCHEMES = ["http:", "https:", "mailto:"];
 
 /**
  * Sanitize a URL before inlining it into an HTML `href` attribute.
@@ -26,18 +26,18 @@ var _ALLOWED_URL_SCHEMES = ["http:", "https:", "mailto:"];
 function sanitizeHref(url) {
     if (url === null || url === undefined)
         return "";
-    var s = String(url).trim();
+    let s = String(url).trim();
     if (s === "")
         return "";
-    var lower = s.toLowerCase();
-    for (var i = 0; i < _ALLOWED_URL_SCHEMES.length; i++) {
-        var scheme = _ALLOWED_URL_SCHEMES[i];
+    let lower = s.toLowerCase();
+    for (let i = 0; i < _ALLOWED_URL_SCHEMES.length; i++) {
+        let scheme = _ALLOWED_URL_SCHEMES[i];
         if (lower.indexOf(scheme) === 0) {
-            var after = s.substring(scheme.length);
+            let after = s.substring(scheme.length);
             if (after.length === 0)
                 continue;
-            var first = after.charAt(0);
-            var ok = false;
+            let first = after.charAt(0);
+            let ok = false;
             if (scheme === "mailto:") {
                 if (first !== " " && first !== "\t" && first !== "\n" && first !== "\r")
                     ok = true;
@@ -80,50 +80,50 @@ function convertMarkdownToHtml(markdown, isDark) {
         return "";
 
     try {
-        var codeBg = isDark ? "#2d3139" : "#f0f2f5";
-        var codeColor = isDark ? "#abb2bf" : "#383a42";
-        var inlineBg = isDark ? "#3e4452" : "#e5e5e5";
-        var inlineColor = isDark ? "#e06c75" : "#a626a4";
-        var linkColor = isDark ? "#61afef" : "#4078f2";
-        var borderColor = isDark ? "#3e4452" : "#d0d4dc";
-        var tableBorderColor = isDark ? "#4a5165" : "#c8cdd8";
-        var tableHeadBg = isDark ? "#363b48" : "#e8eaf0";
-        var tableRowAltBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)";
-        var html = markdown;
+        let codeBg = isDark ? "#2d3139" : "#f0f2f5";
+        let codeColor = isDark ? "#abb2bf" : "#383a42";
+        let inlineBg = isDark ? "#3e4452" : "#e5e5e5";
+        let inlineColor = isDark ? "#e06c75" : "#a626a4";
+        let linkColor = isDark ? "#61afef" : "#4078f2";
+        let borderColor = isDark ? "#3e4452" : "#d0d4dc";
+        let tableBorderColor = isDark ? "#4a5165" : "#c8cdd8";
+        let tableHeadBg = isDark ? "#363b48" : "#e8eaf0";
+        let tableRowAltBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)";
+        let html = markdown;
 
         // 1. Escape HTML
         html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         // 2. Extract fenced code blocks
-        var codeBlocks = [];
+        let codeBlocks = [];
         html = html.replace(/```([a-zA-Z0-9+#\-_]*)\n([\s\S]*?)```/g, function(match, lang, code) {
-            var blockIdx = codeBlocks.length;
-            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<div style="font-size: 0.8em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">' + (lang ? lang : 'code') + '</div>' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
+            let blockIdx = codeBlocks.length;
+            let rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<div style="font-size: 0.8em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">' + (lang ? lang : 'code') + '</div>' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
             codeBlocks.push(rendered);
             return "%%CB" + blockIdx + "%%";
         });
         html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
-            var blockIdx = codeBlocks.length;
-            var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
+            let blockIdx = codeBlocks.length;
+            let rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
             codeBlocks.push(rendered);
             return "%%CB" + blockIdx + "%%";
         });
 
         // 3. Markdown tables
         html = html.replace(/((?:[ \t]*\|.+\|[ \t]*\n)+)/g, function(block) {
-            var rows = block.trim().split("\n");
+            let rows = block.trim().split("\n");
             if (rows.length < 2)
                 return block;
 
-            var isSep = /^[\s|:\-]+$/.test(rows[1]);
-            var headerRow = rows[0];
-            var bodyRows = isSep ? rows.slice(2) : rows.slice(1);
-            var parseCells = function(row) {
+            let isSep = /^[\s|:\-]+$/.test(rows[1]);
+            let headerRow = rows[0];
+            let bodyRows = isSep ? rows.slice(2) : rows.slice(1);
+            let parseCells = function(row) {
                 return row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split("|").map(function(c) {
                     return c.trim();
                 });
             };
-            var t = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em;">';
+            let t = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em;">';
             t += '<thead><tr>';
             parseCells(headerRow).forEach(function(cell) {
                 t += '<th style="border: 1px solid ' + tableBorderColor + '; padding: 6px 10px; background: ' + tableHeadBg + '; text-align: left; font-weight: bold;">' + cell + '</th>';
@@ -133,7 +133,7 @@ function convertMarkdownToHtml(markdown, isDark) {
                 if (row.trim() === '' || /^[\s|:\-]+$/.test(row))
                     return;
 
-                var bg = (ri % 2 === 1) ? ' background: ' + tableRowAltBg + ';' : '';
+                let bg = (ri % 2 === 1) ? ' background: ' + tableRowAltBg + ';' : '';
                 t += '<tr>';
                 parseCells(row).forEach(function(cell) {
                     t += '<td style="border: 1px solid ' + tableBorderColor + '; padding: 5px 10px;' + bg + '">' + cell + '</td>';
@@ -166,7 +166,7 @@ function convertMarkdownToHtml(markdown, isDark) {
         // rendered as plain text. This blocks XSS via crafted markdown
         // links.
         html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, function(match, label, rawUrl) {
-            var safeUrl = sanitizeHref(rawUrl);
+            let safeUrl = sanitizeHref(rawUrl);
             if (safeUrl === "") {
                 return label;
             }
@@ -192,7 +192,7 @@ function convertMarkdownToHtml(markdown, isDark) {
         html = html.replace(/\n/g, '<br/>');
 
         // 13. Restore code blocks
-        for (var idx = 0; idx < codeBlocks.length; idx++) {
+        for (let idx = 0; idx < codeBlocks.length; idx++) {
             html = html.replace("%%CB" + idx + "%%", codeBlocks[idx]);
         }
 
@@ -227,15 +227,15 @@ function parseMessageBlocks(markdown) {
         return [{"type": "text", "content": "", "lang": ""}];
 
     try {
-        var blocks = [];
-        var lines = markdown.split("\n");
-        var i = 0;
+        let blocks = [];
+        let lines = markdown.split("\n");
+        let i = 0;
         while (i < lines.length) {
             // Detect fenced code block
-            var fenceMatch = lines[i].match(/^```([a-zA-Z0-9+#\-_]*)\s*$/);
+            let fenceMatch = lines[i].match(/^```([a-zA-Z0-9+#\-_]*)\s*$/);
             if (fenceMatch) {
-                var lang = fenceMatch[1] || "";
-                var codeLines = [];
+                let lang = fenceMatch[1] || "";
+                let codeLines = [];
                 i++;
                 while (i < lines.length && !lines[i].match(/^```\s*$/)) {
                     codeLines.push(lines[i]);
@@ -248,7 +248,7 @@ function parseMessageBlocks(markdown) {
 
             // Detect markdown table block
             if (/^\s*\|/.test(lines[i])) {
-                var tableLines = [];
+                let tableLines = [];
                 while (i < lines.length && /^\s*\|/.test(lines[i])) {
                     tableLines.push(lines[i]);
                     i++;
@@ -258,12 +258,12 @@ function parseMessageBlocks(markdown) {
             }
 
             // Regular text
-            var textLines = [];
+            let textLines = [];
             while (i < lines.length && !lines[i].match(/^```/) && !/^\s*\|/.test(lines[i])) {
                 textLines.push(lines[i]);
                 i++;
             }
-            var textContent = textLines.join("\n").replace(/^\n+/, "").replace(/\n+$/, "");
+            let textContent = textLines.join("\n").replace(/^\n+/, "").replace(/\n+$/, "");
             if (textContent !== "")
                 blocks.push({"type": "text", "content": textContent, "lang": ""});
 
@@ -288,16 +288,16 @@ function parseMessageBlocks(markdown) {
  * @returns {string} CSV text with rows separated by `\n`.
  */
 function tableMarkdownToCsv(tableMarkdown) {
-    var rows = tableMarkdown.trim().split("\n");
-    var csvRows = [];
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
+    let rows = tableMarkdown.trim().split("\n");
+    let csvRows = [];
+    for (let i = 0; i < rows.length; i++) {
+        let row = rows[i];
         if (/^[\s|:\-]+$/.test(row))
             continue;
 
-        var cells = row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|");
-        var csvCells = cells.map(function(c) {
-            var v = c.trim();
+        let cells = row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|");
+        let csvCells = cells.map(function(c) {
+            let v = c.trim();
             if (v.indexOf(",") >= 0 || v.indexOf("\"") >= 0 || v.indexOf("\n") >= 0)
                 v = "\"" + v.replace(/"/g, "\"\"") + "\"";
 

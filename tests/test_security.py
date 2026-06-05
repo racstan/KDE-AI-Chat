@@ -100,7 +100,7 @@ class TestSecurityFile(unittest.TestCase):
             console.log(JSON.stringify(sanitizeForShell(undefined)));
         """)
         self.assertEqual(rc, 0, msg=err)
-        lines = [l for l in out.strip().splitlines() if l]
+        lines = [line for line in out.strip().splitlines() if line]
         self.assertEqual(lines, ['""', '""'])
 
     def test_sanitize_clamps_to_max_length(self):
@@ -570,6 +570,172 @@ class TestLRUCacheFile(unittest.TestCase):
         self.assertEqual(rc, 0, msg=err)
         # Should fall back to default 500
         self.assertIn("500", out)
+
+
+@unittest.skipUnless(RUNNER, "No JavaScript runtime available")
+class TestValidateFilePath(unittest.TestCase):
+    """Path traversal protection in Security.validateFilePath."""
+
+    def _run(self, driver: str):
+        with open(JS_PATH) as f:
+            src = _strip_qml_directives(f.read())
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
+            f.write(src)
+            f.write("\n")
+            f.write(driver)
+            tmp = f.name
+        try:
+            r = subprocess.run([RUNNER, tmp], capture_output=True, text=True, timeout=10)
+            return r.stdout, r.stderr, r.returncode
+        finally:
+            os.unlink(tmp)
+
+    def test_rejects_dotdot(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("../../etc/passwd") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_dotdot_in_middle(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("/home/user/../secret") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_null_bytes(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("file" + String.fromCharCode(0) + ".txt") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_shell_metachars(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("file;rm.txt") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_pipe(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("file|cat.txt") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_backtick(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("file`whoami`.txt") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_accepts_safe_absolute(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("/home/user/file.txt") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[/home/user/file.txt]", out)
+
+    def test_accepts_safe_relative(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("docs/readme.md") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[docs/readme.md]", out)
+
+    def test_rejects_empty(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_null(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath(null) + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_undefined(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath(undefined) + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_tilde_expansion(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("~/secret") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+
+@unittest.skipUnless(RUNNER, "No JavaScript runtime available")
+class TestValidateSessionId(unittest.TestCase):
+    """Session ID validation for OpenCode remote sessions."""
+
+    def _run(self, driver: str):
+        with open(JS_PATH) as f:
+            src = _strip_qml_directives(f.read())
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
+            f.write(src)
+            f.write("\n")
+            f.write(driver)
+            tmp = f.name
+        try:
+            r = subprocess.run([RUNNER, tmp], capture_output=True, text=True, timeout=10)
+            return r.stdout, r.stderr, r.returncode
+        finally:
+            os.unlink(tmp)
+
+    def test_accepts_alphanumeric(self):
+        out, err, rc = self._run('console.log("[" + validateSessionId("abc123") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[abc123]", out)
+
+    def test_accepts_with_dash(self):
+        out, err, rc = self._run('console.log("[" + validateSessionId("ses-abc-123") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[ses-abc-123]", out)
+
+    def test_rejects_slash(self):
+        out, err, rc = self._run('console.log("[" + validateSessionId("../etc") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_special_chars(self):
+        out, err, rc = self._run('console.log("[" + validateSessionId("abc<script>") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_empty(self):
+        out, err, rc = self._run('console.log("[" + validateSessionId("") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_rejects_too_long(self):
+        long_id = "a" * 300
+        out, err, rc = self._run(f'console.log("[" + validateSessionId("{long_id}") + "]");')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+
+@unittest.skipUnless(RUNNER, "No JavaScript runtime available")
+class TestScrubSecrets(unittest.TestCase):
+    """scrubSecrets should remove Bearer tokens and sk-* API keys from log strings."""
+
+    def _run(self, driver: str):
+        with open(JS_PATH) as f:
+            src = _strip_qml_directives(f.read())
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
+            f.write(src)
+            f.write("\n")
+            f.write(driver)
+            tmp = f.name
+        try:
+            r = subprocess.run([RUNNER, tmp], capture_output=True, text=True, timeout=10)
+            return r.stdout, r.stderr, r.returncode
+        finally:
+            os.unlink(tmp)
+
+    def test_scrubs_bearer_token(self):
+        out, err, rc = self._run('console.log(scrubSecrets("Authorization: Bearer abc123def456ghi789"));')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertNotIn("abc123def456ghi789", out)
+        self.assertIn("***", out)
+
+    def test_scrubs_sk_key(self):
+        out, err, rc = self._run('console.log(scrubSecrets("using key sk-proj-abcdefghijklmnopqrstuvwxyz"));')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertNotIn("abcdefghijklmnopqrstuvwxyz", out)
+        self.assertIn("sk-***", out)
+
+    def test_preserves_non_secret(self):
+        out, err, rc = self._run('console.log(scrubSecrets("hello world"));')
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("hello world", out)
+        self.assertNotIn("***", out)
 
 
 if __name__ == "__main__":

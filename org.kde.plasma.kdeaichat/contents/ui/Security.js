@@ -17,10 +17,10 @@
  * @module Security
  */
 
-var _ALLOWED_URL_SCHEMES = ["http:", "https:", "mailto:"];
-var _SAFE_PATH_CHARS = /^[A-Za-z0-9._\/+@:=\-]+$/;
-var _SAFE_SESSION_ID = /^[A-Za-z0-9\-]{1,128}$/;
-var _MAX_SHELL_ARG_LEN = 4096;
+let _ALLOWED_URL_SCHEMES = ["http:", "https:", "mailto:"];
+let _SAFE_PATH_CHARS = /^[A-Za-z0-9._\/+@:=\-]+$/;
+let _SAFE_SESSION_ID = /^[A-Za-z0-9\-]{1,128}$/;
+let _MAX_SHELL_ARG_LEN = 4096;
 
 /**
  * Build a string that is safe to embed inside a single-quoted shell
@@ -40,7 +40,7 @@ var _MAX_SHELL_ARG_LEN = 4096;
 function sanitizeForShell(s) {
     if (s === null || s === undefined)
         return "";
-    var out = String(s);
+    let out = String(s);
     // Drop the characters that, even after single-quote escaping, can
     // trigger command substitution, backgrounding, or pipeline chaining
     // when the surrounding wrapper re-evaluates the resulting string.
@@ -69,26 +69,26 @@ function sanitizeForShell(s) {
 function validateUrl(url) {
     if (url === null || url === undefined)
         return "";
-    var s = String(url).trim();
+    let s = String(url).trim();
     if (s === "")
         return "";
     // Cheap pre-screen — anything that looks like `scheme:` must match
     // the allowlist exactly. Lowercase comparison is safe because URL
     // schemes are case-insensitive.
-    var lower = s.toLowerCase();
-    var ok = false;
-    for (var i = 0; i < _ALLOWED_URL_SCHEMES.length; i++) {
-        var scheme = _ALLOWED_URL_SCHEMES[i];
+    let lower = s.toLowerCase();
+    let ok = false;
+    for (let i = 0; i < _ALLOWED_URL_SCHEMES.length; i++) {
+        let scheme = _ALLOWED_URL_SCHEMES[i];
         if (lower.indexOf(scheme) === 0) {
             // Make sure the scheme is the *prefix* of a real authority,
             // not a substring (e.g. `xhttps:` must not match `https:`).
             // For http(s):// and mailto:, the next char must be `/` for
             // web URLs, and any non-control character for mailto
             // (e.g. `mailto:user@example.com`).
-            var after = s.substring(scheme.length);
+            let after = s.substring(scheme.length);
             if (after.length === 0)
                 continue;
-            var first = after.charAt(0);
+            let first = after.charAt(0);
             if (scheme === "mailto:") {
                 // mailto takes an email address, no path delimiter required
                 if (first !== " " && first !== "\t" && first !== "\n" && first !== "\r")
@@ -116,7 +116,7 @@ function validateUrl(url) {
  * @returns {string}    Sanitized URL safe for `href="…"`, or `""`.
  */
 function safeHref(url) {
-    var validated = validateUrl(url);
+    let validated = validateUrl(url);
     if (validated === "")
         return "";
     // Defense in depth: drop any double-quote, backtick, or angle
@@ -140,7 +140,7 @@ function safeHref(url) {
 function validateFilePath(p) {
     if (p === null || p === undefined)
         return "";
-    var s = String(p);
+    let s = String(p);
     if (s === "")
         return "";
     // Reject path traversal outright — `..` segments are never needed
@@ -166,7 +166,7 @@ function validateFilePath(p) {
 function validateSessionId(id) {
     if (id === null || id === undefined)
         return "";
-    var s = String(id);
+    let s = String(id);
     if (!_SAFE_SESSION_ID.test(s))
         return "";
     return s;
@@ -208,7 +208,7 @@ function quoteForShell(s) {
 function scrubSecrets(s) {
     if (s === null || s === undefined)
         return "";
-    var out = String(s);
+    let out = String(s);
     if (out.length > 8192)
         out = out.substring(0, 8192);
     // Authorization: Bearer xxx / Basic xxx (header form, possibly multi-line)

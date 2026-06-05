@@ -1,4 +1,4 @@
-var ru_dictionary = {
+let ru_dictionary = {
         " more — open Manage Schedules to see all.": " еще — откройте Управление расписаниями, чтобы просмотреть все.",
         "%1 active schedules": "%1 активных расписаний",
         "%1 archived schedules": "%1 архивированных расписаний",

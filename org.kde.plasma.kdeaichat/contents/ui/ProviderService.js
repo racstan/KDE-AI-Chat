@@ -22,7 +22,7 @@
  * @property {boolean} allowEmptyKey  Whether the provider tolerates empty key.
  */
 
-var PROVIDER_CONFIGS = {
+let PROVIDER_CONFIGS = {
     "anthropic": {
         type: "anthropic",
         configKey: "anthropicApiKey",
@@ -211,7 +211,7 @@ var PROVIDER_CONFIGS = {
     }
 };
 
-var DISPLAY_NAMES = {
+let DISPLAY_NAMES = {
     "openai": "OpenAI",
     "anthropic": "Anthropic",
     "groq": "Groq",
@@ -235,7 +235,7 @@ var DISPLAY_NAMES = {
     "maritaca": "Maritaca"
 };
 
-var API_KEY_CONFIG_MAP = {
+let API_KEY_CONFIG_MAP = {
     "openai": "apiKey",
     "anthropic": "anthropicApiKey",
     "groq": "groqApiKey",
@@ -301,7 +301,7 @@ function getProviderDisplayName(providerId) {
  *   Runtime provider config.
  */
 function getProviderConfig(providerId, configuration) {
-    var entry = PROVIDER_CONFIGS[providerId];
+    let entry = PROVIDER_CONFIGS[providerId];
     if (!entry) {
         return {
             "type": "openai-compat",
@@ -313,23 +313,23 @@ function getProviderConfig(providerId, configuration) {
         };
     }
 
-    var apiKey = "";
+    let apiKey = "";
     if (entry.configKey) {
         apiKey = (configuration[entry.configKey] || "").trim();
     }
 
-    var model = configuration[entry.modelKey] || entry.defaultModel || "";
-    var baseUrl = "";
+    let model = configuration[entry.modelKey] || entry.defaultModel || "";
+    let baseUrl = "";
     if (entry.type !== "anthropic") {
-        var baseUrlKey = entry.baseUrlKey || (providerId === "openai" ? "baseUrl" : null);
+        let baseUrlKey = entry.baseUrlKey || (providerId === "openai" ? "baseUrl" : null);
         baseUrl = (baseUrlKey ? configuration[baseUrlKey] : "") || entry.defaultBaseUrl || "";
     }
 
-    var headers = null;
+    let headers = null;
     if (entry.hasHeaders && providerId === "openrouter") {
         headers = {};
-        var referer = configuration.openRouterReferer || "https://github.com/racstan/KDE-AI-Chat";
-        var title = configuration.openRouterTitle || "KDE AI Chat";
+        let referer = configuration.openRouterReferer || "https://github.com/racstan/KDE-AI-Chat";
+        let title = configuration.openRouterTitle || "KDE AI Chat";
         headers["HTTP-Referer"] = referer;
         headers["X-Title"] = title;
     }

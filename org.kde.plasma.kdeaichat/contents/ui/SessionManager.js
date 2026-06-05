@@ -20,7 +20,7 @@
  * @returns {string} A new session id, e.g. `"s-3f2a9b1e7c4d"`.
  */
 function makeSessionId() {
-    var uuid = createUuid();
+    let uuid = createUuid();
     return "s-" + uuid.substring(0, 12);
 }
 
@@ -33,7 +33,7 @@ function makeSessionId() {
  * @returns {string} A new fork session id.
  */
 function makeForkSessionId() {
-    var uuid = createUuid();
+    let uuid = createUuid();
     return "fork-" + uuid.substring(0, 12);
 }
 
@@ -47,7 +47,7 @@ function makeForkSessionId() {
  * @returns {string} A new scheduler entry id.
  */
 function makeScheduleEntryId() {
-    var uuid = createUuid();
+    let uuid = createUuid();
     return "sched-" + uuid.substring(0, 12);
 }
 
@@ -67,10 +67,10 @@ function makeScheduleEntryId() {
  * @returns {string} A new UUIDv4 string.
  */
 function createUuid() {
-    var chars = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
-    var result = "";
-    for (var i = 0; i < chars.length; i++) {
-        var c = chars[i];
+    let chars = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+    let result = "";
+    for (let i = 0; i < chars.length; i++) {
+        let c = chars[i];
         if (c === "x") {
             result += Math.floor(Math.random() * 16).toString(16);
         } else if (c === "y") {
@@ -106,9 +106,9 @@ function createUuid() {
  */
 function parseSessions(raw, nowTimeFn) {
     try {
-        var arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+        let arr = typeof raw === "string" ? JSON.parse(raw) : raw;
         if (Array.isArray(arr)) {
-            for (var i = 0; i < arr.length; i++) {
+            for (let i = 0; i < arr.length; i++) {
                 if (!arr[i].messages)
                     arr[i].messages = [];
 
@@ -121,7 +121,7 @@ function parseSessions(raw, nowTimeFn) {
                 if (arr[i].readCount === undefined)
                     arr[i].readCount = arr[i].messages.length;
 
-                for (var j = 0; j < arr[i].messages.length; j++) {
+                for (let j = 0; j < arr[i].messages.length; j++) {
                     if (!arr[i].messages[j].at)
                         arr[i].messages[j].at = arr[i].updatedAt || arr[i].createdAt || Date.now();
 
@@ -149,7 +149,7 @@ function parseSessions(raw, nowTimeFn) {
  * @returns {number} Index into the array, or -1 if not found.
  */
 function sessionIndexById(sessions, sessionId) {
-    for (var i = 0; i < sessions.length; i++) {
+    for (let i = 0; i < sessions.length; i++) {
         if (sessions[i].value === sessionId)
             return i;
 
@@ -171,7 +171,7 @@ function sessionIndexById(sessions, sessionId) {
  * @returns {Array} New sorted array.
  */
 function sortSessionsByUpdated(sessions) {
-    var copy = sessions.slice();
+    let copy = sessions.slice();
     copy.sort(function(a, b) {
         if (!!a.archived !== !!b.archived)
             return a.archived ? 1 : -1;
@@ -198,15 +198,15 @@ function isSessionOrderCorrect(sessions) {
     if (!sessions || sessions.length < 2)
         return true;
 
-    for (var i = 1; i < sessions.length; i++) {
-        var prev = sessions[i - 1];
-        var cur = sessions[i];
+    for (let i = 1; i < sessions.length; i++) {
+        let prev = sessions[i - 1];
+        let cur = sessions[i];
         if (!!prev.archived !== !!cur.archived) {
             if (!!prev.archived)
                 return false;
         } else {
-            var prevTs = prev.updatedAt || prev.createdAt || 0;
-            var curTs = cur.updatedAt || cur.createdAt || 0;
+            let prevTs = prev.updatedAt || prev.createdAt || 0;
+            let curTs = cur.updatedAt || cur.createdAt || 0;
             if (prevTs < curTs)
                 return false;
         }
@@ -276,14 +276,14 @@ function forkSessionObj(originalSession, forkId, forkTitle, forkedMessages) {
  */
 function base64Encode(str) {
     try {
-        var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-        var result = "";
-        var i = 0;
+        let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        let result = "";
+        let i = 0;
         while (i < str.length) {
-            var a = str.charCodeAt(i++);
-            var b = i < str.length ? str.charCodeAt(i++) : 0;
-            var c = i < str.length ? str.charCodeAt(i++) : 0;
-            var bitmap = (a << 16) | (b << 8) | c;
+            let a = str.charCodeAt(i++);
+            let b = i < str.length ? str.charCodeAt(i++) : 0;
+            let c = i < str.length ? str.charCodeAt(i++) : 0;
+            let bitmap = (a << 16) | (b << 8) | c;
             result += chars.charAt((bitmap >> 18) & 63);
             result += chars.charAt((bitmap >> 12) & 63);
             result += i - 2 < str.length ? chars.charAt((bitmap >> 6) & 63) : "=";
@@ -307,16 +307,16 @@ function base64Encode(str) {
  */
 function base64Decode(str) {
     try {
-        var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-        var result = "";
-        var i = 0;
+        let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        let result = "";
+        let i = 0;
         str = str.replace(/[^A-Za-z0-9+/=]/g, "");
         while (i < str.length) {
-            var enc1 = chars.indexOf(str.charAt(i++));
-            var enc2 = chars.indexOf(str.charAt(i++));
-            var enc3 = chars.indexOf(str.charAt(i++));
-            var enc4 = chars.indexOf(str.charAt(i++));
-            var bitmap = (enc1 << 18) | (enc2 << 12) | (enc3 << 6) | enc4;
+            let enc1 = chars.indexOf(str.charAt(i++));
+            let enc2 = chars.indexOf(str.charAt(i++));
+            let enc3 = chars.indexOf(str.charAt(i++));
+            let enc4 = chars.indexOf(str.charAt(i++));
+            let bitmap = (enc1 << 18) | (enc2 << 12) | (enc3 << 6) | enc4;
             result += String.fromCharCode((bitmap >> 16) & 255);
             if (enc3 !== 64) result += String.fromCharCode((bitmap >> 8) & 255);
             if (enc4 !== 64) result += String.fromCharCode(bitmap & 255);
@@ -331,8 +331,8 @@ function base64Decode(str) {
  * Immutably update a single session inside a sessions array.
  *
  * Replaces the repeated pattern:
- *   var updated = sessions.slice();
- *   var item = Object.assign({}, updated[idx]);
+ *   let updated = sessions.slice();
+ *   let item = Object.assign({}, updated[idx]);
  *   item.X = Y;
  *   updated[idx] = item;
  *   sessions = updated;
@@ -351,12 +351,12 @@ function base64Decode(str) {
  * @returns {Array} New sessions array with the updated session.
  */
 function updateSession(sessions, sessionId, mutator) {
-    for (var i = 0; i < sessions.length; i++) {
+    for (let i = 0; i < sessions.length; i++) {
         if (sessions[i].value === sessionId) {
-            var updated = sessions.slice();
-            var clone = {};
-            var src = updated[i];
-            for (var k in src) {
+            let updated = sessions.slice();
+            let clone = {};
+            let src = updated[i];
+            for (let k in src) {
                 if (src.hasOwnProperty(k))
                     clone[k] = src[k];
             }

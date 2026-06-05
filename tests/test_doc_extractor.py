@@ -79,3 +79,55 @@ class TestExtractSingleFile:
             assert result["mimeType"].startswith("text/")
         finally:
             os.unlink(tmpname)
+
+
+class TestExtractEdgeCases:
+    def test_unicode_content(self):
+        with tempfile.NamedTemporaryFile(suffix=".txt", mode="w", delete=False, encoding="utf-8") as f:
+            f.write("Hello \u4e16\u754c! \U0001f44b")
+            tmpname = f.name
+        try:
+            result = extract_single_file(tmpname)
+            assert result["status"] == "success"
+            assert "\u4e16\u754c" in result["content"]
+        finally:
+            os.unlink(tmpname)
+
+    def test_non_ascii_filename(self):
+        with tempfile.NamedTemporaryFile(suffix=".txt", mode="w", delete=False, encoding="utf-8") as f:
+            f.write("content")
+            tmpname = f.name
+        newname = tmpname.rsplit("/", 1)[0] + "/t\u00e9st.txt"
+        os.rename(tmpname, newname)
+        try:
+            result = extract_single_file(newname)
+            assert result["status"] == "success"
+        finally:
+            if os.path.exists(newname):
+                os.unlink(newname)
+
+    def test_binary_file_garbage(self):
+        with tempfile.NamedTemporaryFile(suffix=".txt", mode="wb", delete=False) as f:
+            f.write(b"\x80\x81\x82\x83 not valid utf-8")
+            tmpname = f.name
+        try:
+            result = extract_single_file(tmpname)
+            assert result["status"] in ("success", "error")
+        finally:
+            os.unlink(tmpname)
+
+    def test_directory_not_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = extract_single_file(tmpdir)
+            assert result["status"] == "error"
+
+    def test_long_path(self):
+        with tempfile.NamedTemporaryFile(suffix=".txt", mode="w", delete=False) as f:
+            f.write("x" * 100000)
+            tmpname = f.name
+        try:
+            result = extract_single_file(tmpname)
+            assert result["status"] == "success"
+            assert len(result["content"]) == 100000
+        finally:
+            os.unlink(tmpname)

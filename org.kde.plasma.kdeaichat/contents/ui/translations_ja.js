@@ -1,4 +1,4 @@
-var ja_dictionary = {
+let ja_dictionary = {
         " more — open Manage Schedules to see all.": " 個 — すべて表示するにはスケジュール管理を開いてください。",
         "%1 active schedules": "%1 個のアクティブなスケジュール",
         "%1 archived schedules": "%1 個のアーカイブされたスケジュール",

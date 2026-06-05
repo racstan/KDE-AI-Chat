@@ -1,4 +1,4 @@
-var zh_dictionary = {
+let zh_dictionary = {
         " more — open Manage Schedules to see all.": " 个计划 — 打开管理计划查看全部。",
         "%1 active schedules": "%1 个活动计划",
         "%1 archived schedules": "%1 个已归档计划",

@@ -12,7 +12,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 
 HELPER_PATH = os.path.join(
     os.path.dirname(__file__),

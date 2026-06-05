@@ -63,7 +63,6 @@ class TestPdfExtraction(_PdfTestCase):
         objects = []
         objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
         pages_kids = []
-        offsets = [0]  # placeholder for object 0 (we'll fix later)
         # Object 2: Pages
         # We'll fill kids later. Reserve it.
         for i, page_text in enumerate(text_pages):

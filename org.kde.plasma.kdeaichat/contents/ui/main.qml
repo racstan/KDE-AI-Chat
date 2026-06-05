@@ -27,7 +27,7 @@ PlasmoidItem {
     property bool debugMode: false
     function debugLog() {
         if (debugMode) {
-            var args = Array.prototype.slice.call(arguments);
+            let args = Array.prototype.slice.call(arguments);
             console.log.apply(console, args);
         }
     }
@@ -40,7 +40,7 @@ PlasmoidItem {
     property var _markdownCache: LRUCache.create(500)
     property var _blocksCache: LRUCache.create(500)
     readonly property string openCodeBaseUrlVal: {
-        var raw = (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1").trim();
+        let raw = (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1").trim();
         return raw.replace(/\/v1\/?$/, "").replace(/\/$/, "");
     }
     property string currentSessionId: ""
@@ -60,14 +60,14 @@ PlasmoidItem {
     // hash), and streaming tokens (last-message length).
     property string _searchFingerprint: {
         if (!searchBarActive || searchQuery.trim() === "") return "";
-        var parts = [searchQuery, "|" + messages.length];
-        var step = Math.max(1, Math.floor(messages.length / 16));
-        for (var i = 0; i < messages.length; i += step) {
-            var c = messages[i].content || "";
+        let parts = [searchQuery, "|" + messages.length];
+        let step = Math.max(1, Math.floor(messages.length / 16));
+        for (let i = 0; i < messages.length; i += step) {
+            let c = messages[i].content || "";
             parts.push("|" + c.length);
         }
         if (messages.length > 0) {
-            var last = messages[messages.length - 1].content || "";
+            let last = messages[messages.length - 1].content || "";
             parts.push("!L=" + last.length + ":" + last.slice(-32));
         }
         return parts.join("");
@@ -76,12 +76,12 @@ PlasmoidItem {
     property var _searchMatchesCached: []
     property var searchMatches: {
         if (!searchBarActive || searchQuery.trim() === "") return [];
-        var fp = root._searchFingerprint;
+        let fp = root._searchFingerprint;
         if (fp === root._searchFingerprintCached) return root._searchMatchesCached;
-        var q = searchQuery.toLowerCase();
-        var list = [];
-        for (var j = 0; j < messages.length; j++) {
-            var content = messages[j].content || "";
+        let q = searchQuery.toLowerCase();
+        let list = [];
+        for (let j = 0; j < messages.length; j++) {
+            let content = messages[j].content || "";
             if (content.toLowerCase().indexOf(q) >= 0) {
                 list.push(j);
             }
@@ -133,7 +133,7 @@ PlasmoidItem {
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
     readonly property bool popupIsDark: {
-        var mode = plasmoid.configuration.appearanceMode || 0;
+        let mode = plasmoid.configuration.appearanceMode || 0;
         if (mode === 1)
             return false;
 
@@ -218,10 +218,10 @@ PlasmoidItem {
         sequence: "Ctrl+Shift+."
         context: Qt.WindowShortcut
         onActivated: {
-            var idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
+            let idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
             if (idx < 0)
                 return ;
-            for (var i = idx + 1; i < root.sessions.length; i++) {
+            for (let i = idx + 1; i < root.sessions.length; i++) {
                 if (!(root.sessions[i].archived || false)) {
                     root.switchSession(root.sessions[i].value);
                     return ;
@@ -233,8 +233,8 @@ PlasmoidItem {
         sequence: "Ctrl+Shift+,"
         context: Qt.WindowShortcut
         onActivated: {
-            var idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
-            for (var i = (idx < 0 ? root.sessions.length - 1 : idx - 1); i >= 0; i--) {
+            let idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
+            for (let i = (idx < 0 ? root.sessions.length - 1 : idx - 1); i >= 0; i--) {
                 if (!(root.sessions[i].archived || false)) {
                     root.switchSession(root.sessions[i].value);
                     return ;
@@ -256,7 +256,7 @@ PlasmoidItem {
         sequence: "Ctrl+Shift+C"
         context: Qt.WindowShortcut
         onActivated: {
-            for (var i = root.messages.length - 1; i >= 0; i--) {
+            for (let i = root.messages.length - 1; i >= 0; i--) {
                 if (root.messages[i].role === "assistant" && !(root.messages[i].isSystem || false)) {
                     root.copyToClipboard(root.messages[i].content || "");
                     return ;
@@ -283,8 +283,8 @@ PlasmoidItem {
         if (!sessionId)
             return false;
 
-        for (var i = 0; i < root.schedulesList.length; i++) {
-            var s = root.schedulesList[i];
+        for (let i = 0; i < root.schedulesList.length; i++) {
+            let s = root.schedulesList[i];
             if (s && s.enabled && s.chatId === sessionId)
                 return true;
 
@@ -300,12 +300,12 @@ PlasmoidItem {
         } else if (typeof plasmoid.configureRequested === "function") {
             plasmoid.configureRequested();
         } else if (typeof root.plasmoidRef !== "undefined" && typeof root.plasmoidRef.action === "function") {
-            var act = root.plasmoidRef.action("configure");
+            let act = root.plasmoidRef.action("configure");
             if (act && typeof act.trigger === "function")
                 act.trigger();
 
         } else if (typeof plasmoid.action === "function") {
-            var act2 = plasmoid.action("configure");
+            let act2 = plasmoid.action("configure");
             if (act2 && typeof act2.trigger === "function")
                 act2.trigger();
 
@@ -344,7 +344,7 @@ PlasmoidItem {
     }
 
     function nowTime(ts) {
-        var d = ts ? new Date(ts) : new Date();
+        let d = ts ? new Date(ts) : new Date();
         return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
     }
 
@@ -367,7 +367,7 @@ PlasmoidItem {
     // Always logs to console for diagnostics and surfaces a non-blocking
     // notification to the user, so the failure is never silently dropped.
     function reportParseFailure(context, error) {
-        var msg = (context || "Parse failure") + ": " + (error && error.toString ? error.toString() : String(error || ""));
+        let msg = (context || "Parse failure") + ": " + (error && error.toString ? error.toString() : String(error || ""));
         console.warn(msg);
         pushErrorMessage(msg);
     }
@@ -380,22 +380,22 @@ PlasmoidItem {
         if (root.currentSessionId === "")
             return ;
 
-        var idx = sessionIndexById(root.currentSessionId);
+        let idx = sessionIndexById(root.currentSessionId);
         if (idx < 0)
             return ;
 
-        var originalSession = root.sessions[idx];
-        var forkedMessages = [];
+        let originalSession = root.sessions[idx];
+        let forkedMessages = [];
         if (originalSession.messages && messageIndex >= 0 && messageIndex < originalSession.messages.length) {
-            for (var i = 0; i <= messageIndex; i++) {
+            for (let i = 0; i <= messageIndex; i++) {
                 forkedMessages.push(JSON.parse(JSON.stringify(originalSession.messages[i])));
             }
         }
-        var forkId = makeForkSessionId();
-        var originalTitle = originalSession.text || "New Chat";
-        var cleanTitle = originalTitle.indexOf("[FK] ") === 0 ? originalTitle.substring(5) : originalTitle;
-        var forkTitle = "[FK] " + cleanTitle;
-        var s = {
+        let forkId = makeForkSessionId();
+        let originalTitle = originalSession.text || "New Chat";
+        let cleanTitle = originalTitle.indexOf("[FK] ") === 0 ? originalTitle.substring(5) : originalTitle;
+        let forkTitle = "[FK] " + cleanTitle;
+        let s = {
             "value": forkId,
             "text": forkTitle,
             "createdAt": Date.now(),
@@ -434,18 +434,18 @@ PlasmoidItem {
     }
 
     function toggleScheduleEnabled(schedId, newEnabled) {
-        var payload = {
+        let payload = {
             "schedId": schedId,
             "enabled": newEnabled
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " toggle_schedule " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " toggle_schedule " + Sec.quoteForShell(b64Payload);
         schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-toggle-" + Date.now());
         // Update local schedulesList immediately
-        var copy = root.schedulesList.slice();
-        for (var i = 0; i < copy.length; i++) {
+        let copy = root.schedulesList.slice();
+        for (let i = 0; i < copy.length; i++) {
             if (copy[i].id === schedId) {
-                var s = Object.assign({
+                let s = Object.assign({
                 }, copy[i]);
                 s.enabled = newEnabled;
                 if (newEnabled)
@@ -463,7 +463,7 @@ PlasmoidItem {
             return ;
 
         // Switch to the correct session
-        var idx = sessionIndexById(chatId);
+        let idx = sessionIndexById(chatId);
         if (idx < 0) {
             console.warn("injectScheduledMessage: Target session " + chatId + " not found, ignoring schedule execution.");
             return ;
@@ -473,28 +473,28 @@ PlasmoidItem {
             return ;
         }
         // Play the custom scheduled execution sound
-        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
+        let soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
         // Validate provider/model configuration before executing
-        var validationError = validateCurrentSendTarget();
+        let validationError = validateCurrentSendTarget();
             if (validationError !== "") {
                 // Push validation error into chat window
                 pushErrorMessage(validationError);
                 // Display critical desktop notification popup of the configuration failure
                 if (notify) {
-                    var safeErr = Sec.sanitizeForShell(validationError);
-                    var errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
-                    var safeErrTitle = Sec.sanitizeForShell(errTitle);
+                    let safeErr = Sec.sanitizeForShell(validationError);
+                    let errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
+                    let safeErrTitle = Sec.sanitizeForShell(errTitle);
                     soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
                 }
             // Sync the detailed failure back to the scheduler's run history log
             if (schedId) {
-                var historyPayload = {
+                let historyPayload = {
                     "schedId": schedId,
                     "status": validationError
                 };
-                var b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
-                var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64HistoryPayload);
+                let b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
+                let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64HistoryPayload);
                 soundDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-history-err");
             }
             return ;
@@ -505,19 +505,19 @@ PlasmoidItem {
         sendMessageByIndex(root.messages.length - 1);
         // Show a desktop notification
         if (notify) {
-            var safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
-            var title = "Scheduled: " + (root.currentSessionTitle || "Chat");
-            var safeTitle = Sec.sanitizeForShell(title);
+            let safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
+            let title = "Scheduled: " + (root.currentSessionTitle || "Chat");
+            let safeTitle = Sec.sanitizeForShell(title);
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify");
         }
     }
 
     function parseSessions(customRaw) {
-        var raw = customRaw !== undefined ? customRaw : (plasmoid.configuration.chatSessionsJson || "[]");
+        let raw = customRaw !== undefined ? customRaw : (plasmoid.configuration.chatSessionsJson || "[]");
         try {
-            var arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+            let arr = typeof raw === "string" ? JSON.parse(raw) : raw;
             if (Array.isArray(arr)) {
-                for (var i = 0; i < arr.length; i++) {
+                for (let i = 0; i < arr.length; i++) {
                     if (!arr[i].messages)
                         arr[i].messages = [];
 
@@ -530,7 +530,7 @@ PlasmoidItem {
                     if (arr[i].readCount === undefined)
                         arr[i].readCount = arr[i].messages.length;
 
-                    for (var j = 0; j < arr[i].messages.length; j++) {
+                    for (let j = 0; j < arr[i].messages.length; j++) {
                         if (!arr[i].messages[j].at)
                             arr[i].messages[j].at = arr[i].updatedAt || arr[i].createdAt || Date.now();
 
@@ -552,13 +552,13 @@ PlasmoidItem {
 
     function checkAndMarkCurrentSessionAsRead() {
         if (root.expanded && !root.historyOnlyMode && root.currentSessionId !== "") {
-            var idx = sessionIndexById(root.currentSessionId);
+            let idx = sessionIndexById(root.currentSessionId);
             if (idx >= 0) {
-                var s = root.sessions[idx];
-                var currentMsgsCount = root.messages.length;
+                let s = root.sessions[idx];
+                let currentMsgsCount = root.messages.length;
                 if (s.readCount !== currentMsgsCount) {
-                    var updated = root.sessions.slice();
-                    var item = Object.assign({
+                    let updated = root.sessions.slice();
+                    let item = Object.assign({
                     }, updated[idx]);
                     item.readCount = currentMsgsCount;
                     item.messages = root.messages;
@@ -593,14 +593,14 @@ PlasmoidItem {
     }
 
     function getHistoryFilePath(customDir) {
-        var dir = (customDir || "").trim();
+        let dir = (customDir || "").trim();
         if (dir === "")
             return "";
 
         if (dir.indexOf("file://") === 0)
             dir = decodeURIComponent(dir.slice(7));
 
-        var fullPath = dir;
+        let fullPath = dir;
         if (!fullPath.endsWith(".json")) {
             if (fullPath.endsWith("/"))
                 fullPath += "kdeaichat_history.json";
@@ -611,19 +611,19 @@ PlasmoidItem {
     }
 
     function migrateHistory(oldPath, newPath) {
-        var oldFullPath = getHistoryFilePath(oldPath);
-        var newFullPath = getHistoryFilePath(newPath);
+        let oldFullPath = getHistoryFilePath(oldPath);
+        let newFullPath = getHistoryFilePath(newPath);
         // When switching TO a custom path, always export current in-memory sessions
         // to the new location, then fall back to copying the old file if it exists.
-        var currentJson = JSON.stringify(root.sessions);
-        var b64Current = base64Encode(currentJson);
-        var payload = {
+        let currentJson = JSON.stringify(root.sessions);
+        let b64Current = base64Encode(currentJson);
+        let payload = {
             "oldFullPath": oldFullPath,
             "newFullPath": newFullPath,
             "currentB64": b64Current
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " migrate_history " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " migrate_history " + Sec.quoteForShell(b64Payload);
         customStorageDs.connectSource(cmd + " #migrate-history-" + Date.now());
     }
 
@@ -635,19 +635,19 @@ PlasmoidItem {
     }
 
     function flushPersistSessions() {
-        var jsonStr = JSON.stringify(root.sessions);
+        let jsonStr = JSON.stringify(root.sessions);
         plasmoid.configuration.chatSessionsJson = jsonStr;
         plasmoid.configuration.lastSessionId = root.currentSessionId;
-        var customDir = (plasmoid.configuration.customHistoryPath || "").trim();
+        let customDir = (plasmoid.configuration.customHistoryPath || "").trim();
         if (customDir !== "") {
-            var fullPath = getHistoryFilePath(customDir);
-            var b64Str = base64Encode(jsonStr);
-            var payload = {
+            let fullPath = getHistoryFilePath(customDir);
+            let b64Str = base64Encode(jsonStr);
+            let payload = {
                 "fullPath": fullPath,
                 "b64Str": b64Str
             };
-            var b64Payload = base64Encode(JSON.stringify(payload));
-            var writeCmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " write_history " + Sec.quoteForShell(b64Payload);
+            let b64Payload = base64Encode(JSON.stringify(payload));
+            let writeCmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " write_history " + Sec.quoteForShell(b64Payload);
             customStorageDs.connectSource(writeCmd + " #custom-history-write-" + Date.now());
         }
     }
@@ -660,7 +660,7 @@ PlasmoidItem {
         if (SessionManager.isSessionOrderCorrect(root.sessions))
             return ;
 
-        var copy = SessionManager.sortSessionsByUpdated(root.sessions);
+        let copy = SessionManager.sortSessionsByUpdated(root.sessions);
         root.sessions = copy;
     }
 
@@ -681,7 +681,7 @@ PlasmoidItem {
     }
 
     function sessionSubtitle(sessionData) {
-        var parts = [];
+        let parts = [];
 
         if (sessionData.source === "opencode")
             parts.push("OpenCode");
@@ -694,7 +694,7 @@ PlasmoidItem {
     }
 
     function sessionIndexById(sessionId) {
-        for (var i = 0; i < root.sessions.length; i++) {
+        for (let i = 0; i < root.sessions.length; i++) {
             if (root.sessions[i].value === sessionId)
                 return i;
 
@@ -703,8 +703,8 @@ PlasmoidItem {
     }
 
     function createSession(switchToNew) {
-        var mode = plasmoid.configuration.useOpenCode;
-        var s = {
+        let mode = plasmoid.configuration.useOpenCode;
+        let s = {
             "value": makeSessionId(),
             "text": "New Chat",
             "createdAt": Date.now(),
@@ -738,8 +738,8 @@ PlasmoidItem {
         if (root.sessions.length === 0)
             createSession(true);
 
-        var preferred = plasmoid.configuration.lastSessionId || "";
-        var idx = sessionIndexById(preferred);
+        let preferred = plasmoid.configuration.lastSessionId || "";
+        let idx = sessionIndexById(preferred);
         if (idx < 0)
             idx = 0;
 
@@ -753,12 +753,12 @@ PlasmoidItem {
     }
 
     function saveCurrentSessionState(touchUpdatedAt) {
-        var idx = sessionIndexById(root.currentSessionId);
+        let idx = sessionIndexById(root.currentSessionId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var s = Object.assign({
+        let updated = root.sessions.slice();
+        let s = Object.assign({
         }, updated[idx]);
         s.text = root.currentSessionTitle || "New Chat";
         s.messages = root.messages;
@@ -778,12 +778,12 @@ PlasmoidItem {
     }
 
     function setCurrentSessionSource(source) {
-        var idx = sessionIndexById(root.currentSessionId);
+        let idx = sessionIndexById(root.currentSessionId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var item = Object.assign({
+        let updated = root.sessions.slice();
+        let item = Object.assign({
         }, updated[idx]);
         item.source = source || "provider";
         item.archived = false;
@@ -793,12 +793,12 @@ PlasmoidItem {
     }
 
     function setSessionArchived(sessionId, archived) {
-        var idx = sessionIndexById(sessionId);
+        let idx = sessionIndexById(sessionId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var item = Object.assign({
+        let updated = root.sessions.slice();
+        let item = Object.assign({
         }, updated[idx]);
         item.archived = !!archived;
         item.updatedAt = Date.now();
@@ -813,7 +813,7 @@ PlasmoidItem {
             return ;
 
         saveCurrentSessionState(false);
-        var idx = sessionIndexById(sessionId);
+        let idx = sessionIndexById(sessionId);
         if (idx < 0)
             return ;
 
@@ -836,7 +836,7 @@ PlasmoidItem {
     }
 
     function renameCurrentSession(newTitle) {
-        var title = (newTitle || "").trim();
+        let title = (newTitle || "").trim();
         if (title === "")
             title = "New Chat";
 
@@ -845,7 +845,7 @@ PlasmoidItem {
     }
 
     function startSessionRename(sessionId) {
-        var idx = sessionIndexById(sessionId);
+        let idx = sessionIndexById(sessionId);
         if (idx < 0)
             return ;
 
@@ -859,16 +859,16 @@ PlasmoidItem {
     }
 
     function saveSessionRename(sessionId) {
-        var idx = sessionIndexById(sessionId);
+        let idx = sessionIndexById(sessionId);
         if (idx < 0)
             return ;
 
-        var title = (root.editingSessionDraft || "").trim();
+        let title = (root.editingSessionDraft || "").trim();
         if (title === "")
             title = "New Chat";
 
-        var updated = root.sessions.slice();
-        var s = Object.assign({
+        let updated = root.sessions.slice();
+        let s = Object.assign({
         }, updated[idx]);
         s.text = title;
         s.updatedAt = Date.now();
@@ -886,15 +886,15 @@ PlasmoidItem {
         if (root.sessions.length <= 1)
             return ;
 
-        var idx = sessionIndexById(sessionId);
+        let idx = sessionIndexById(sessionId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
+        let updated = root.sessions.slice();
         updated.splice(idx, 1);
         root.sessions = updated;
         if (root.currentSessionId === sessionId) {
-            var next = root.sessions[0];
+            let next = root.sessions[0];
             root.currentSessionId = next.value;
             root.currentSessionTitle = next.text;
             root.messages = next.messages || [];
@@ -902,21 +902,21 @@ PlasmoidItem {
         cancelSessionRename();
         persistSessions();
         // Clean up schedules associated with this session
-        var payload = {
+        let payload = {
             "sessionId": sessionId
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_session_schedules " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_session_schedules " + Sec.quoteForShell(b64Payload);
         schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-session-delete-" + Date.now());
         // Also update root.schedulesList locally
-        var copy = root.schedulesList.filter(function(s) {
+        let copy = root.schedulesList.filter(function(s) {
             return s.chatId !== sessionId;
         });
         root.schedulesList = copy;
     }
 
     function deleteMessage(index) {
-        var copy = root.messages.slice();
+        let copy = root.messages.slice();
         if (index < 0 || index >= copy.length)
             return ;
 
@@ -929,7 +929,7 @@ PlasmoidItem {
     }
 
     function saveEditedMessage() {
-        var i = root.editingMessageIndex;
+        let i = root.editingMessageIndex;
         if (i < 0 || i >= root.messages.length)
             return ;
 
@@ -940,10 +940,10 @@ PlasmoidItem {
         }
         // Cancel any active streaming/loading requests first
         stopStreaming();
-        var role = root.messages[i].role || "";
-        var isQueued = role === "queued";
-        var copy = isQueued ? root.messages.slice() : root.messages.slice(0, i + 1);
-        var item = Object.assign({
+        let role = root.messages[i].role || "";
+        let isQueued = role === "queued";
+        let copy = isQueued ? root.messages.slice() : root.messages.slice(0, i + 1);
+        let item = Object.assign({
         }, copy[i]);
         item.content = root.editingDraft;
         item.at = Date.now();
@@ -966,13 +966,13 @@ PlasmoidItem {
     }
 
     function currentOpenCodeSessionId() {
-        var sId = root.currentSessionId;
-        var override = getSessionProperty(sId, "contextOverride", false);
-        var contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : plasmoid.configuration.globalContextEnabled;
+        let sId = root.currentSessionId;
+        let override = getSessionProperty(sId, "contextOverride", false);
+        let contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : plasmoid.configuration.globalContextEnabled;
         if (!contextEnabled)
             return "";
 
-        var idx = sessionIndexById(sId);
+        let idx = sessionIndexById(sId);
         if (idx < 0)
             return "";
 
@@ -980,12 +980,12 @@ PlasmoidItem {
     }
 
     function setCurrentOpenCodeSessionId(remoteSessionId) {
-        var idx = sessionIndexById(root.currentSessionId);
+        let idx = sessionIndexById(root.currentSessionId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var item = Object.assign({
+        let updated = root.sessions.slice();
+        let item = Object.assign({
         }, updated[idx]);
         item.openCodeSessionId = remoteSessionId || "";
         updated[idx] = item;
@@ -1001,21 +1001,21 @@ PlasmoidItem {
     }
 
     function getSessionProperty(sessionId, key, defaultValue) {
-        var idx = sessionIndexById(sessionId);
+        let idx = sessionIndexById(sessionId);
         if (idx < 0)
             return defaultValue;
 
-        var val = root.sessions[idx][key];
+        let val = root.sessions[idx][key];
         return val !== undefined ? val : defaultValue;
     }
 
     function setSessionProperty(sessionId, key, value) {
-        var idx = sessionIndexById(sessionId);
+        let idx = sessionIndexById(sessionId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var item = Object.assign({
+        let updated = root.sessions.slice();
+        let item = Object.assign({
         }, updated[idx]);
         item[key] = value;
         updated[idx] = item;
@@ -1024,8 +1024,8 @@ PlasmoidItem {
     }
 
     function appendCompactPromptMessage(chatId) {
-        var ts = Date.now();
-        var msgObj = {
+        let ts = Date.now();
+        let msgObj = {
             "role": "compact_request",
             "status": "pending",
             "content": "The conversation history has exceeded the configured threshold. Would you like to compact the older history into a concise summary to stay within context limit?",
@@ -1044,11 +1044,11 @@ PlasmoidItem {
     }
 
     function respondToCompactRequest(msgIndex, approved) {
-        var copy = root.messages.slice();
+        let copy = root.messages.slice();
         if (msgIndex < 0 || msgIndex >= copy.length)
             return;
 
-        var msgObj = Object.assign({}, copy[msgIndex]);
+        let msgObj = Object.assign({}, copy[msgIndex]);
         if (msgObj.role !== "compact_request")
             return;
 
@@ -1068,9 +1068,9 @@ PlasmoidItem {
 
     function touchSessionsList(chatId) {
         // Helper to force-notify sessions update on QML side
-        var idx = sessionIndexById(chatId);
+        let idx = sessionIndexById(chatId);
         if (idx >= 0) {
-            var updated = root.sessions.slice();
+            let updated = root.sessions.slice();
             updated[idx].updatedAt = Date.now();
             root.sessions = updated;
         }
@@ -1078,14 +1078,14 @@ PlasmoidItem {
     }
 
     function checkAndAutoCompact(sessionId) {
-        var sId = sessionId || root.currentSessionId;
-        var idx = sessionIndexById(sId);
+        let sId = sessionId || root.currentSessionId;
+        let idx = sessionIndexById(sId);
         if (idx < 0)
             return ;
 
-        var msgs = root.sessions[idx].messages || [];
-        var lastUserMsg = null;
-        for (var j = msgs.length - 1; j >= 0; j--) {
+        let msgs = root.sessions[idx].messages || [];
+        let lastUserMsg = null;
+        for (let j = msgs.length - 1; j >= 0; j--) {
             if (msgs[j].role === "user" && !msgs[j].isSystem) {
                 lastUserMsg = msgs[j];
                 break;
@@ -1094,22 +1094,22 @@ PlasmoidItem {
         if (lastUserMsg && lastUserMsg.sc)
             return ;
 
-        var override = getSessionProperty(sId, "contextOverride", false);
-        var autoCompact = override ? getSessionProperty(sId, "contextAutoCompact", false) : plasmoid.configuration.globalContextAutoCompact;
+        let override = getSessionProperty(sId, "contextOverride", false);
+        let autoCompact = override ? getSessionProperty(sId, "contextAutoCompact", false) : plasmoid.configuration.globalContextAutoCompact;
         if (!autoCompact)
             return ;
 
-        var threshold = override ? getSessionProperty(sId, "contextCompactThreshold", 10) : plasmoid.configuration.globalContextCompactThreshold;
-        var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
+        let threshold = override ? getSessionProperty(sId, "contextCompactThreshold", 10) : plasmoid.configuration.globalContextCompactThreshold;
+        let compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
 
-        for (var k = compactedCount; k < msgs.length; k++) {
+        for (let k = compactedCount; k < msgs.length; k++) {
             if (msgs[k].role === "compact_request")
                 return ;
         }
 
-        var uncompactedCleanCount = 0;
-        for (var i = compactedCount; i < msgs.length; i++) {
-            var role = msgs[i].role;
+        let uncompactedCleanCount = 0;
+        for (let i = compactedCount; i < msgs.length; i++) {
+            let role = msgs[i].role;
             if ((role === "user" || role === "assistant") && !msgs[i].isSystem)
                 uncompactedCleanCount++;
 
@@ -1120,16 +1120,16 @@ PlasmoidItem {
     }
 
     function compactSessionContext(sessionId) {
-        var sId = sessionId || root.currentSessionId;
-        var idx = sessionIndexById(sId);
+        let sId = sessionId || root.currentSessionId;
+        let idx = sessionIndexById(sId);
         if (idx < 0)
             return ;
 
-        var msgs = root.sessions[idx].messages || [];
-        var compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
-        var cleanMsgs = [];
-        for (var i = compactedCount; i < msgs.length; i++) {
-            var role = msgs[i].role;
+        let msgs = root.sessions[idx].messages || [];
+        let compactedCount = getSessionProperty(sId, "compactedMessageCount", 0);
+        let cleanMsgs = [];
+        for (let i = compactedCount; i < msgs.length; i++) {
+            let role = msgs[i].role;
             if ((role === "user" || role === "assistant") && !msgs[i].isSystem)
                 cleanMsgs.push({
                     "index": i,
@@ -1142,36 +1142,36 @@ PlasmoidItem {
             appendSystemMessageToSession(sId, "Not enough messages to compact yet (need at least 3).");
             return ;
         }
-        var limitCleanIndex = cleanMsgs.length - 2;
-        var limitRealIndex = cleanMsgs[limitCleanIndex].index;
-        var textToSummarize = "";
-        var oldSummary = getSessionProperty(sId, "compactedSummary", "");
+        let limitCleanIndex = cleanMsgs.length - 2;
+        let limitRealIndex = cleanMsgs[limitCleanIndex].index;
+        let textToSummarize = "";
+        let oldSummary = getSessionProperty(sId, "compactedSummary", "");
         if (oldSummary !== "")
             textToSummarize += "[Previous Summary]:\n" + oldSummary + "\n\n";
 
-        for (var j = 0; j < limitCleanIndex; j++) {
-            var prefix = cleanMsgs[j].role === "user" ? "User: " : "AI: ";
+        for (let j = 0; j < limitCleanIndex; j++) {
+            let prefix = cleanMsgs[j].role === "user" ? "User: " : "AI: ";
             textToSummarize += prefix + cleanMsgs[j].content + "\n\n";
         }
         appendSystemMessageToSession(sId, "Compacting context, please wait...");
-        var promptText = "Please write a highly concise summary (max 3-4 sentences) of the following conversation history. Keep it extremely brief and factual, focus on user preferences, details of what was discussed/resolved, and any state that needs to be preserved. This summary will be injected into the system prompt of the next turns to maintain context:\n\n" + textToSummarize;
+        let promptText = "Please write a highly concise summary (max 3-4 sentences) of the following conversation history. Keep it extremely brief and factual, focus on user preferences, details of what was discussed/resolved, and any state that needs to be preserved. This summary will be injected into the system prompt of the next turns to maintain context:\n\n" + textToSummarize;
         sendBackgroundSummarizationRequest(sId, promptText, limitRealIndex + 1);
     }
 
     function sendBackgroundSummarizationRequest(sId, promptText, count) {
-        var provider = "";
-        var model = "";
-        var apiKey = "";
-        var url = "";
-        var headers = null;
-        var isAnthropic = false;
+        let provider = "";
+        let model = "";
+        let apiKey = "";
+        let url = "";
+        let headers = null;
+        let isAnthropic = false;
         if (root.openCodeMode) {
             url = openCodeBaseUrl() + "/v1/chat/completions";
             model = (plasmoid.configuration.openCodeModel || "").trim();
             provider = "opencode";
         } else {
             provider = plasmoid.configuration.provider || "openai";
-            var providerCfg = getProviderConfig(provider);
+            let providerCfg = getProviderConfig(provider);
             isAnthropic = (providerCfg.type === "anthropic");
             if (isAnthropic) {
                 apiKey = providerCfg.apiKey;
@@ -1183,14 +1183,14 @@ PlasmoidItem {
                 headers = providerCfg.headers;
             }
         }
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         if (isAnthropic) {
             xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
             xhr.setRequestHeader("x-api-key", apiKey);
             xhr.setRequestHeader("anthropic-version", "2023-06-01");
             xhr.setRequestHeader("content-type", "application/json");
         } else {
-            var fullUrl = url;
+            let fullUrl = url;
             if (!fullUrl.endsWith("/chat/completions") && !fullUrl.endsWith("/completions"))
                 fullUrl = fullUrl.replace(/\/+$/, "") + "/chat/completions";
 
@@ -1200,7 +1200,7 @@ PlasmoidItem {
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
 
             if (headers) {
-                for (var key in headers) {
+                for (let key in headers) {
                     xhr.setRequestHeader(key, headers[key]);
                 }
             }
@@ -1212,8 +1212,8 @@ PlasmoidItem {
 
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
-                    var summaryText = "";
-                    var res = JSON.parse(xhr.responseText);
+                    let summaryText = "";
+                    let res = JSON.parse(xhr.responseText);
                     if (isAnthropic) {
                         if (res.content && res.content.length > 0)
                             summaryText = res.content[0].text;
@@ -1238,9 +1238,9 @@ PlasmoidItem {
                     appendSystemMessageToSession(sId, "Warning: Failed to parse compaction response: " + e.toString());
                 }
             } else {
-                var errMsg = "HTTP " + xhr.status;
+                let errMsg = "HTTP " + xhr.status;
                 try {
-                    var errObj = JSON.parse(xhr.responseText);
+                    let errObj = JSON.parse(xhr.responseText);
                     if (errObj.error && errObj.error.message)
                         errMsg += ": " + errObj.error.message;
 
@@ -1252,7 +1252,7 @@ PlasmoidItem {
         xhr.onerror = function() {
             appendSystemMessageToSession(sId, "Warning: Network error while compacting context.");
         };
-        var payload = {
+        let payload = {
         };
         if (isAnthropic)
             payload = {
@@ -1280,11 +1280,11 @@ PlasmoidItem {
     }
 
     function updateAutocomplete() {
-        var txt = (root.msgInputRef ? root.msgInputRef.text : "") || "";
+        let txt = (root.msgInputRef ? root.msgInputRef.text : "") || "";
         if (txt.startsWith("/")) {
-            var search = txt.substring(1).toLowerCase();
-            var filtered = [];
-            var all = [];
+            let search = txt.substring(1).toLowerCase();
+            let filtered = [];
+            let all = [];
             if (root.openCodeMode) {
                 all.push({
                     "name": "/help",
@@ -1308,7 +1308,7 @@ PlasmoidItem {
                     "desc": "Create/manage schedules"
                 });
             }
-            for (var i = 0; i < all.length; i++) {
+            for (let i = 0; i < all.length; i++) {
                 if (all[i].name.toLowerCase().indexOf("/" + search) === 0 || all[i].name.toLowerCase().substring(1).indexOf(search) >= 0)
                     filtered.push(all[i]);
 
@@ -1349,7 +1349,7 @@ PlasmoidItem {
     }
 
     function updateAssistantStreamingContent(text, modelLabel) {
-        var incoming = text || "";
+        let incoming = text || "";
         if (incoming === "")
             return ;
 
@@ -1364,7 +1364,7 @@ PlasmoidItem {
         if (root.openCodeAssistantMessageIndex < 0) {
             // First chunk for this stream — flush immediately so the
             // bubble appears without waiting for the batch window.
-            var ts = Date.now();
+            let ts = Date.now();
             root.messages = root.messages.concat([{
                 "role": "assistant",
                 "content": incoming,
@@ -1379,7 +1379,7 @@ PlasmoidItem {
             return;
         }
         // Subsequent chunks — buffer and restart the batch timer.
-        var existing = root._pendingStreamingText;
+        let existing = root._pendingStreamingText;
         // OpenCode streams can be cumulative or token-delta; handle both.
         if (incoming.indexOf(existing) === 0)
             root._pendingStreamingText = incoming;
@@ -1416,11 +1416,11 @@ PlasmoidItem {
     //  - /export                 → syncOpenCodeSessionHistory() (REST API)
     //  - TUI-only commands       → friendly explanation shown inline
     function runLocalOpenCodeCommand(cmdText) {
-        var cmd = cmdText.trim().toLowerCase();
+        let cmd = cmdText.trim().toLowerCase();
         // Strip leading slash or "opencode " prefix
-        var bare = cmd.startsWith("/") ? cmd.substring(1) : cmd;
+        let bare = cmd.startsWith("/") ? cmd.substring(1) : cmd;
         // Normalise e.g. "/models extra" → bare = "models"
-        var verb = bare.split(" ")[0];
+        let verb = bare.split(" ")[0];
         root.autocompleteActive = false;
         // ── /help ─────────────────────────────────────────────────────────
         if (verb === "help") {
@@ -1435,21 +1435,21 @@ PlasmoidItem {
             root.openCodeErrorShownForRequest = false;
             beginAssistantStreaming("OpenCode");
             updateAssistantStreamingContent("Checking OpenCode version...\n", "OpenCode");
-            var token = "opencode-cli-" + Date.now();
+            let token = "opencode-cli-" + Date.now();
             opencodeTerminalDs.connectSource("opencode --version #" + token);
             return ;
         }
         // ── /session ──────────────────────────────────────────────────────
         if (verb === "session") {
-            var sid = currentOpenCodeSessionId();
+            let sid = currentOpenCodeSessionId();
             // Session objects are keyed by `value`, not `id` — see
             // SessionManager.createSessionObj. The previous code looked
             // for `s.id` and always returned -1, which made the
             // session-name lookup fall through to "(unnamed)".
-            var idx = root.sessions.findIndex ? root.sessions.findIndex(function(s) {
+            let idx = root.sessions.findIndex ? root.sessions.findIndex(function(s) {
                 return s.value === root.currentSessionId;
             }) : -1;
-            var sessionName = (idx >= 0 && root.sessions[idx]) ? (root.sessions[idx].text || root.sessions[idx].title || "(unnamed)") : "(unnamed)";
+            let sessionName = (idx >= 0 && root.sessions[idx]) ? (root.sessions[idx].text || root.sessions[idx].title || "(unnamed)") : "(unnamed)";
             if (sid)
                 pushInfoMessage("**Current OpenCode Session**\n" + "- **Local session:** " + sessionName + "\n" + "- **Remote session ID:** `" + sid + "`\n" + "- **Server:** " + openCodeBaseUrl() + "\n" + "- **Messages in view:** " + root.messages.length);
             else
@@ -1461,12 +1461,12 @@ PlasmoidItem {
     }
 
     function syncOpenCodeSessionHistory() {
-        var remoteSessionId = currentOpenCodeSessionId();
+        let remoteSessionId = currentOpenCodeSessionId();
         if (!remoteSessionId)
             return ;
 
         root.loading = true;
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         xhr.open("GET", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function() {
@@ -1476,30 +1476,30 @@ PlasmoidItem {
             root.loading = false;
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
-                    var arr = JSON.parse(xhr.responseText);
+                    let arr = JSON.parse(xhr.responseText);
                     if (Array.isArray(arr)) {
-                        var newMsgs = [];
-                        for (var i = 0; i < arr.length; i++) {
-                            var item = arr[i] || {
+                        let newMsgs = [];
+                        for (let i = 0; i < arr.length; i++) {
+                            let item = arr[i] || {
                             };
-                            var info = item.info || {
+                            let info = item.info || {
                             };
-                            var parts = item.parts || [];
-                            var role = info.role || "user";
-                            var modelLabel = (info.providerID && info.modelID) ? (info.providerID + "/" + info.modelID) : (info.modelID || "OpenCode");
-                            var combinedText = "";
-                            var ctx = [];
-                            for (var p = 0; p < parts.length; p++) {
-                                var part = parts[p] || {
+                            let parts = item.parts || [];
+                            let role = info.role || "user";
+                            let modelLabel = (info.providerID && info.modelID) ? (info.providerID + "/" + info.modelID) : (info.modelID || "OpenCode");
+                            let combinedText = "";
+                            let ctx = [];
+                            for (let p = 0; p < parts.length; p++) {
+                                let part = parts[p] || {
                                 };
                                 if (part.type === "text") {
                                     combinedText += part.text || part.content || "";
                                 } else if (part.type === "tool-invocation") {
-                                    var toolName = part.toolName || part.tool || "";
-                                    var toolArgs = part.args || part.input || {
+                                    let toolName = part.toolName || part.tool || "";
+                                    let toolArgs = part.args || part.input || {
                                     };
                                     if (toolName !== "") {
-                                        var desc = toolName;
+                                        let desc = toolName;
                                         if (toolArgs.filePath || toolArgs.path || toolArgs.file)
                                             desc += ": " + (toolArgs.filePath || toolArgs.path || toolArgs.file);
                                         else if (toolArgs.command)
@@ -1509,10 +1509,10 @@ PlasmoidItem {
                                 }
                             }
                             // Normalize tokens
-                            var normalizedTokens = {
+                            let normalizedTokens = {
                             };
                             if (item.tokens) {
-                                var rawTokens = item.tokens || {
+                                let rawTokens = item.tokens || {
                                 };
                                 normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
                                 normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
@@ -1523,7 +1523,7 @@ PlasmoidItem {
                                     normalizedTokens.cache = rawTokens.cache;
 
                             }
-                            var ts = info.createdAt ? new Date(info.createdAt).getTime() : Date.now();
+                            let ts = info.createdAt ? new Date(info.createdAt).getTime() : Date.now();
                             newMsgs.push({
                                 "role": role,
                                 "content": combinedText || "(empty)",
@@ -1542,7 +1542,7 @@ PlasmoidItem {
                             // `currentSessionIndex` does not exist on
                             // `root` and would throw a TypeError at
                             // runtime.
-                            var idx = sessionIndexById(root.currentSessionId);
+                            let idx = sessionIndexById(root.currentSessionId);
                             if (idx >= 0) {
                                 root.messages = newMsgs;
                                 root.sessions[idx].messages = newMsgs;
@@ -1565,33 +1565,33 @@ PlasmoidItem {
         if (root.openCodeEventXhr)
             return ;
 
-        var xhr = new XMLHttpRequest();
-        var buffer = "";
-        var offset = 0;
-        var url = openCodeBaseUrl() + "/event";
+        let xhr = new XMLHttpRequest();
+        let buffer = "";
+        let offset = 0;
+        let url = openCodeBaseUrl() + "/event";
         root.openCodeEventXhr = xhr;
         xhr.open("GET", url, true);
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
                 return ;
 
-            var delta = xhr.responseText.slice(offset);
+            let delta = xhr.responseText.slice(offset);
             offset = xhr.responseText.length;
             buffer += delta;
             while (true) {
-                var split = buffer.indexOf("\n\n");
+                let split = buffer.indexOf("\n\n");
                 if (split < 0)
                     break;
 
-                var block = buffer.slice(0, split);
+                let block = buffer.slice(0, split);
                 buffer = buffer.slice(split + 2);
-                var lines = block.split("\n");
-                for (var i = 0; i < lines.length; i++) {
+                let lines = block.split("\n");
+                for (let i = 0; i < lines.length; i++) {
                     if (lines[i].indexOf("data:") !== 0)
                         continue;
 
                     try {
-                        var eventObj = JSON.parse(lines[i].slice(5).trim());
+                        let eventObj = JSON.parse(lines[i].slice(5).trim());
                         handleOpenCodeEvent(eventObj);
                     } catch (eventError) {
                     }
@@ -1621,14 +1621,14 @@ PlasmoidItem {
     }
 
     function handleOpenCodeEvent(eventObj) {
-        var props = eventObj && eventObj.properties ? eventObj.properties : {
+        let props = eventObj && eventObj.properties ? eventObj.properties : {
         };
-        var sessionId = props.sessionID || "";
+        let sessionId = props.sessionID || "";
         if (!sessionId || sessionId !== root.openCodeActiveSessionId)
             return ;
 
         if (eventObj.type === "message.updated") {
-            var info = props.info || {
+            let info = props.info || {
             };
             if (info.role === "assistant") {
                 root.openCodeAssistantServerMessageId = info.id || root.openCodeAssistantServerMessageId;
@@ -1639,24 +1639,24 @@ PlasmoidItem {
                 }
             }
         } else if (eventObj.type === "message.part.updated") {
-            var part = props.part || {
+            let part = props.part || {
             };
             if (part.type === "text" && root.openCodeAssistantServerMessageId !== "" && part.messageID === root.openCodeAssistantServerMessageId)
                 updateAssistantStreamingContent(part.text || "", "OpenCode");
 
             // Track tool invocations as context items on the assistant message
             if (part.type === "tool-invocation" && root.openCodeAssistantMessageIndex >= 0) {
-                var toolName = part.toolName || part.tool || "";
-                var toolArgs = part.args || part.input || {
+                let toolName = part.toolName || part.tool || "";
+                let toolArgs = part.args || part.input || {
                 };
-                var toolState = part.state || "";
+                let toolState = part.state || "";
                 if (toolName !== "") {
-                    var toolMsgs = root.messages.slice();
-                    var item = Object.assign({
+                    let toolMsgs = root.messages.slice();
+                    let item = Object.assign({
                     }, toolMsgs[root.openCodeAssistantMessageIndex]);
-                    var ctx = item.contextItems || [];
+                    let ctx = item.contextItems || [];
                     // Build a concise description of the tool call
-                    var desc = toolName;
+                    let desc = toolName;
                     if (toolArgs.filePath || toolArgs.path || toolArgs.file)
                         desc += ": " + (toolArgs.filePath || toolArgs.path || toolArgs.file);
                     else if (toolArgs.command)
@@ -1664,8 +1664,8 @@ PlasmoidItem {
                     else if (toolArgs.query || toolArgs.pattern)
                         desc += ": " + (toolArgs.query || toolArgs.pattern);
                     // Avoid duplicates
-                    var exists = false;
-                    for (var ci = 0; ci < ctx.length; ci++) {
+                    let exists = false;
+                    for (let ci = 0; ci < ctx.length; ci++) {
                         if (ctx[ci] === desc) {
                             exists = true;
                             break;
@@ -1685,7 +1685,7 @@ PlasmoidItem {
                 pushErrorMessage(extractReadableError("OpenCode: ", props.error, "Session error."));
             }
         } else if (eventObj.type === "session.status") {
-            var status = props.status || {
+            let status = props.status || {
             };
             if (status.type === "idle")
                 finishOpenCodeRequest();
@@ -1693,20 +1693,20 @@ PlasmoidItem {
         } else if (eventObj.type === "session.idle") {
             finishOpenCodeRequest();
         } else if (eventObj.type === "permission.asked") {
-            var p = props.permission || {
+            let p = props.permission || {
             };
-            var permId = p.id || "";
+            let permId = p.id || "";
             if (permId !== "") {
-                var tool = p.tool || "";
-                var args = p.arguments || {
+                let tool = p.tool || "";
+                let args = p.arguments || {
                 };
-                var argStr = "";
+                let argStr = "";
                 try {
                     argStr = typeof args === "string" ? args : JSON.stringify(args, null, 2);
                 } catch (e) {
                     argStr = String(args);
                 }
-                var msg = {
+                let msg = {
                     "role": "permission_request",
                     "content": "OpenCode is asking for permission to run **" + tool + "**:\n\n```json\n" + argStr + "\n```",
                     "model": "OpenCode Security",
@@ -1724,12 +1724,12 @@ PlasmoidItem {
 
             }
         } else if (eventObj.type === "permission.replied") {
-            var pr = props.permission || {
+            let pr = props.permission || {
             };
-            var pId = pr.id || "";
-            var response = pr.response || "";
-            var permissionMsgs = root.messages.slice();
-            var updated = false;
+            let pId = pr.id || "";
+            let response = pr.response || "";
+            let permissionMsgs = root.messages.slice();
+            let updated = false;
             for (let i = permissionMsgs.length - 1; i >= 0; i--) {
                 if (permissionMsgs[i].role === "permission_request" && permissionMsgs[i].permissionId === pId) {
                     permissionMsgs[i].status = (response === "allow" ? "allowed" : "denied");
@@ -1742,15 +1742,15 @@ PlasmoidItem {
                 saveCurrentSessionState(true);
             }
         } else if (eventObj.type === "session.next.step.ended") {
-            var tokensMsgs = root.messages.slice();
-            var updated = false;
+            let tokensMsgs = root.messages.slice();
+            let updated = false;
             for (let idx = tokensMsgs.length - 1; idx >= 0; idx--) {
                 if (tokensMsgs[idx].role === "assistant") {
-                    var item = Object.assign({
+                    let item = Object.assign({
                     }, tokensMsgs[idx]);
-                    var normalizedTokens = {
+                    let normalizedTokens = {
                     };
-                    var rawTokens = props.tokens || {
+                    let rawTokens = props.tokens || {
                     };
                     normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
                     normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
@@ -1772,34 +1772,34 @@ PlasmoidItem {
                 saveCurrentSessionState(true);
             }
         } else if (eventObj.type === "question.asked") {
-            var requestID = props.requestID || props.id || eventObj.id || "";
+            let requestID = props.requestID || props.id || eventObj.id || "";
             if (requestID !== "") {
                 // Parse full structured questions array from OpenCode
-                var questions = props.questions || [];
-                var qText = "";
-                var parsedQuestions = [];
-                var allowCustom = true;
+                let questions = props.questions || [];
+                let qText = "";
+                let parsedQuestions = [];
+                let allowCustom = true;
                 if (questions.length > 0) {
                     // Structured question(s) with options
-                    var parts = [];
-                    for (var qi = 0; qi < questions.length; qi++) {
-                        var qItem = questions[qi];
-                        var header = qItem.header || "";
-                        var questionText = qItem.question || "";
-                        var opts = qItem.options || [];
-                        var multiple = qItem.multiple || false;
-                        var custom = qItem.custom !== undefined ? qItem.custom : true;
+                    let parts = [];
+                    for (let qi = 0; qi < questions.length; qi++) {
+                        let qItem = questions[qi];
+                        let header = qItem.header || "";
+                        let questionText = qItem.question || "";
+                        let opts = qItem.options || [];
+                        let multiple = qItem.multiple || false;
+                        let custom = qItem.custom !== undefined ? qItem.custom : true;
                         if (!custom)
                             allowCustom = false;
 
-                        var partText = "";
+                        let partText = "";
                         if (header)
                             partText += "**" + header + "**: ";
 
                         partText += questionText;
                         if (opts.length > 0) {
-                            var optLabels = [];
-                            for (var oi = 0; oi < opts.length; oi++) optLabels.push(opts[oi].label || "")
+                            let optLabels = [];
+                            for (let oi = 0; oi < opts.length; oi++) optLabels.push(opts[oi].label || "")
                             partText += "\n\nOptions: " + optLabels.join(", ");
                         }
                         if (multiple)
@@ -1817,7 +1817,7 @@ PlasmoidItem {
                     qText = parts.join("\n\n---\n\n");
                 } else {
                     // Fallback: legacy format
-                    var q = props.question || {
+                    let q = props.question || {
                     };
                     if (typeof props.question === "string")
                         qText = props.question;
@@ -1828,15 +1828,15 @@ PlasmoidItem {
                     else
                         qText = props.text || props.content || "OpenCode requires clarification.";
                 }
-                var alreadyExists = false;
-                for (var i = 0; i < root.messages.length; i++) {
+                let alreadyExists = false;
+                for (let i = 0; i < root.messages.length; i++) {
                     if (root.messages[i].role === "question_request" && root.messages[i].questionId === requestID) {
                         alreadyExists = true;
                         break;
                     }
                 }
                 if (!alreadyExists) {
-                    var msg = {
+                    let msg = {
                         "role": "question_request",
                         "content": "OpenCode is asking a question:\n\n**" + qText + "**",
                         "model": "OpenCode Question",
@@ -1855,9 +1855,9 @@ PlasmoidItem {
                 }
             }
         } else if (eventObj.type === "question.replied") {
-            var qId = props.requestID || props.id || eventObj.id || "";
-            var repliedMsgs = root.messages.slice();
-            var updated = false;
+            let qId = props.requestID || props.id || eventObj.id || "";
+            let repliedMsgs = root.messages.slice();
+            let updated = false;
             for (let i = repliedMsgs.length - 1; i >= 0; i--) {
                 if (repliedMsgs[i].role === "question_request" && repliedMsgs[i].questionId === qId) {
                     if (repliedMsgs[i].status === "pending" || repliedMsgs[i].status === "answering...") {
@@ -1872,9 +1872,9 @@ PlasmoidItem {
                 saveCurrentSessionState(true);
             }
         } else if (eventObj.type === "question.rejected" || eventObj.type === "question.cancelled") {
-            var qId2 = props.requestID || props.id || eventObj.id || "";
-            var dismissedMsgs = root.messages.slice();
-            var updated = false;
+            let qId2 = props.requestID || props.id || eventObj.id || "";
+            let dismissedMsgs = root.messages.slice();
+            let updated = false;
             for (let i = dismissedMsgs.length - 1; i >= 0; i--) {
                 if (dismissedMsgs[i].role === "question_request" && dismissedMsgs[i].questionId === qId2) {
                     if (dismissedMsgs[i].status === "pending" || dismissedMsgs[i].status === "dismissing...") {
@@ -1892,8 +1892,8 @@ PlasmoidItem {
     }
 
     function appendSystemMessageToSession(chatId, text) {
-        var ts = Date.now();
-        var msgObj = {
+        let ts = Date.now();
+        let msgObj = {
             "role": "assistant",
             "content": text,
             "time": nowTime(ts),
@@ -1912,14 +1912,14 @@ PlasmoidItem {
     }
 
     function removeMessageFromSessionByTimestamp(chatId, timestamp) {
-        var idx = sessionIndexById(chatId);
+        let idx = sessionIndexById(chatId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var s = Object.assign({}, updated[idx]);
-        var msgs = (s.messages || []).slice();
-        var originalLength = msgs.length;
+        let updated = root.sessions.slice();
+        let s = Object.assign({}, updated[idx]);
+        let msgs = (s.messages || []).slice();
+        let originalLength = msgs.length;
         msgs = msgs.filter(function(m) {
             return m.at !== timestamp;
         });
@@ -1943,12 +1943,12 @@ PlasmoidItem {
         // the numeric form into the QML source. Reject NaN, negative
         // values, and values larger than one hour to avoid QML-injection
         // via the interpolated string and to keep the timer bounded.
-        var interval = Number(delayMs);
+        let interval = Number(delayMs);
         if (!isFinite(interval) || interval < 0)
             interval = 0;
         if (interval > 3600000)
             interval = 3600000;
-        var timerObj = Qt.createQmlObject("import QtQuick; Timer { interval: " + interval + "; repeat: false; running: true; }", root, "dynamicRemoveTimer");
+        let timerObj = Qt.createQmlObject("import QtQuick; Timer { interval: " + interval + "; repeat: false; running: true; }", root, "dynamicRemoveTimer");
         timerObj.triggered.connect(function() {
             removeMessageFromSessionByTimestamp(chatId, timestamp);
             timerObj.destroy();
@@ -1956,12 +1956,12 @@ PlasmoidItem {
     }
 
     function setOpenCodeSessionIdForChatId(chatId, remoteSessionId) {
-        var idx = sessionIndexById(chatId);
+        let idx = sessionIndexById(chatId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var item = Object.assign({
+        let updated = root.sessions.slice();
+        let item = Object.assign({
         }, updated[idx]);
         item.openCodeSessionId = remoteSessionId || "";
         updated[idx] = item;
@@ -1970,23 +1970,23 @@ PlasmoidItem {
     }
 
     function ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback) {
-        var targetIdx = sessionIndexById(chatId);
+        let targetIdx = sessionIndexById(chatId);
         if (targetIdx < 0) {
             failureCallback("Session not found");
             return ;
         }
-        var existing = root.sessions[targetIdx].openCodeSessionId || "";
+        let existing = root.sessions[targetIdx].openCodeSessionId || "";
         if (existing !== "") {
             successCallback(existing);
             return ;
         }
-        var fail = function fail(msg) {
+        let fail = function fail(msg) {
             if (typeof failureCallback === "function")
                 failureCallback(msg);
             else
                 pushErrorMessage(msg);
         };
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         xhr.open("POST", openCodeBaseUrl() + "/session", true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.timeout = 10000;
@@ -2000,8 +2000,8 @@ PlasmoidItem {
             if (xhr.status >= 200 && xhr.status < 300) {
                 triggerNotificationSound();
                 try {
-                    var obj = JSON.parse(xhr.responseText);
-                    var remoteId = obj.id || "";
+                    let obj = JSON.parse(xhr.responseText);
+                    let remoteId = obj.id || "";
                     if (remoteId === "") {
                         fail("OpenCode: server created a session without an id.");
                         return ;
@@ -2019,7 +2019,7 @@ PlasmoidItem {
             fail("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
         };
         try {
-            var sTitle = root.sessions[targetIdx].title || "KDE AI Chat";
+            let sTitle = root.sessions[targetIdx].title || "KDE AI Chat";
             xhr.send(JSON.stringify({
                 "title": sTitle
             }));
@@ -2029,18 +2029,18 @@ PlasmoidItem {
     }
 
     function ensureCurrentOpenCodeSession(successCallback, failureCallback) {
-        var existing = currentOpenCodeSessionId();
+        let existing = currentOpenCodeSessionId();
         if (existing !== "") {
             successCallback(existing);
             return ;
         }
-        var fail = function fail(msg) {
+        let fail = function fail(msg) {
             if (typeof failureCallback === "function")
                 failureCallback(msg);
             else
                 pushErrorMessage(msg);
         };
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         xhr.open("POST", openCodeBaseUrl() + "/session", true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.timeout = 10000;
@@ -2054,8 +2054,8 @@ PlasmoidItem {
             if (xhr.status >= 200 && xhr.status < 300) {
                 triggerNotificationSound();
                 try {
-                    var obj = JSON.parse(xhr.responseText);
-                    var remoteId = obj.id || "";
+                    let obj = JSON.parse(xhr.responseText);
+                    let remoteId = obj.id || "";
                     if (remoteId === "") {
                         fail("OpenCode: server created a session without an id.");
                         return ;
@@ -2084,12 +2084,12 @@ PlasmoidItem {
     function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
         if (root.openCodeStarting) {
             if (successCallback) {
-                var sCbs = root.openCodeStartSuccessCallbacks.slice();
+                let sCbs = root.openCodeStartSuccessCallbacks.slice();
                 sCbs.push(successCallback);
                 root.openCodeStartSuccessCallbacks = sCbs;
             }
             if (failureCallback) {
-                var fCbs = root.openCodeStartFailureCallbacks.slice();
+                let fCbs = root.openCodeStartFailureCallbacks.slice();
                 fCbs.push(failureCallback);
                 root.openCodeStartFailureCallbacks = fCbs;
             }
@@ -2100,30 +2100,30 @@ PlasmoidItem {
         root.openCodeStartSuccessCallbacks = successCallback ? [successCallback] : [];
         root.openCodeStartFailureCallbacks = failureCallback ? [failureCallback] : [];
 
-        var checkFinished = false;
-        var completed = false;
-        var resolveSuccess = function() {
+        let checkFinished = false;
+        let completed = false;
+        let resolveSuccess = function() {
             if (completed) return;
             completed = true;
             root.openCodeStarting = false;
-            var successCbs = root.openCodeStartSuccessCallbacks;
+            let successCbs = root.openCodeStartSuccessCallbacks;
             root.openCodeStartSuccessCallbacks = [];
             root.openCodeStartFailureCallbacks = [];
-            for (var i = 0; i < successCbs.length; i++) {
+            for (let i = 0; i < successCbs.length; i++) {
                 successCbs[i]();
             }
         };
 
-        var resolveFailure = function(msg) {
+        let resolveFailure = function(msg) {
             if (completed) return;
             completed = true;
             root.openCodeStarting = false;
-            var failureCbs = root.openCodeStartFailureCallbacks;
+            let failureCbs = root.openCodeStartFailureCallbacks;
             root.openCodeStartSuccessCallbacks = [];
             root.openCodeStartFailureCallbacks = [];
             
             if (failureCbs.length > 0) {
-                for (var i = 0; i < failureCbs.length; i++) {
+                for (let i = 0; i < failureCbs.length; i++) {
                     failureCbs[i](msg);
                 }
             } else {
@@ -2144,20 +2144,20 @@ PlasmoidItem {
             if (checkFinished) return;
             checkFinished = true;
             if (plasmoid.configuration.autoStartOpenCodeServer) {
-                var startCmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
+                let startCmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
                 // The user-editable start command is intentionally a shell
                 // snippet (it can include `>`, `&`, `pkill`, etc.), so we
                 // do *not* strip shell metacharacters. We only escape
                 // single quotes for the outer `sh -lc '…'` wrapper.
                 opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(startCmd) + " #ensure-opencode-startup-" + Date.now());
                 if (chatId) {
-                    var ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
+                    let ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
                     scheduleMessageRemoval(chatId, ts1, 60000);
                 }
 
                 openCodeStartPollTimer.successCb = function() {
                     if (chatId) {
-                        var ts2 = appendSystemMessageToSession(chatId, translate("Session restarted."));
+                        let ts2 = appendSystemMessageToSession(chatId, translate("Session restarted."));
                         scheduleMessageRemoval(chatId, ts2, 60000);
                     }
                     resolveSuccess();
@@ -2172,8 +2172,8 @@ PlasmoidItem {
             }
         }
 
-        var checkUrl = openCodeBaseUrl() + "/config/providers";
-        var xhr = new XMLHttpRequest();
+        let checkUrl = openCodeBaseUrl() + "/config/providers";
+        let xhr = new XMLHttpRequest();
         xhr.open("GET", checkUrl, true);
         xhr.timeout = 2000;
         xhr.onreadystatechange = function() {
@@ -2211,7 +2211,7 @@ PlasmoidItem {
             finishOpenCodeRequest();
         }
 
-        var requestFinalized = false;
+        let requestFinalized = false;
         ensureOpenCodeServerRunning(root.currentSessionId, function() {
             ensureOpenCodeEventStream();
             root.loading = true;
@@ -2220,9 +2220,9 @@ PlasmoidItem {
             root.openCodeAssistantServerMessageId = "";
             root.openCodeErrorShownForRequest = false;
             ensureCurrentOpenCodeSession(function(remoteSessionId) {
-                var xhr = new XMLHttpRequest();
-                var modelId = (plasmoid.configuration.openCodeModel || "").trim();
-                var providerId = (plasmoid.configuration.openCodeProvider || "").trim();
+                let xhr = new XMLHttpRequest();
+                let modelId = (plasmoid.configuration.openCodeModel || "").trim();
+                let providerId = (plasmoid.configuration.openCodeProvider || "").trim();
                 root.activeXhr = xhr;
                 root.openCodeActiveSessionId = remoteSessionId;
                 xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
@@ -2242,12 +2242,12 @@ PlasmoidItem {
                         if (xhr.status === 404)
                             setCurrentOpenCodeSessionId("");
 
-                        var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
+                        let suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
                         failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
                         return ;
                     }
                     try {
-                        var obj = JSON.parse(xhr.responseText);
+                        let obj = JSON.parse(xhr.responseText);
                         if (obj.info && obj.info.id)
                             root.openCodeAssistantServerMessageId = obj.info.id;
 
@@ -2256,8 +2256,8 @@ PlasmoidItem {
                             pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
                         }
                         if (obj.parts && obj.parts.length > 0) {
-                            var combined = "";
-                            for (var i = 0; i < obj.parts.length; i++) {
+                            let combined = "";
+                            for (let i = 0; i < obj.parts.length; i++) {
                                 if (obj.parts[i].type === "text")
                                     combined += obj.parts[i].text || obj.parts[i].content || "";
 
@@ -2276,8 +2276,8 @@ PlasmoidItem {
                     failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
                 };
                 try {
-                    var lastMsg = null;
-                    for (var mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+                    let lastMsg = null;
+                    for (let mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
                         if (root.messages[mIdx].role === "user") {
                             lastMsg = root.messages[mIdx];
                             break;
@@ -2287,24 +2287,24 @@ PlasmoidItem {
                         failOpenCodeRequest("No user message found to send.");
                         return ;
                     }
-                    var parts = [];
+                    let parts = [];
                     if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-                        var payload = buildMessageContent(lastMsg.content, lastMsg.attachments, "openai");
+                        let payload = buildMessageContent(lastMsg.content, lastMsg.attachments, "openai");
                         if (typeof payload === "string") {
                             parts.push({
                                 "type": "text",
                                 "text": payload
                             });
                         } else {
-                            for (var p = 0; p < payload.length; p++) {
-                                var item = payload[p];
+                            for (let p = 0; p < payload.length; p++) {
+                                let item = payload[p];
                                 if (item.type === "text") {
                                     parts.push({
                                         "type": "text",
                                         "text": item.text
                                     });
                                 } else if (item.type === "image_url") {
-                                    var mType = item.image_url.url.split(";")[0].split(":")[1];
+                                    let mType = item.image_url.url.split(";")[0].split(":")[1];
                                     parts.push({
                                         "type": "file",
                                         "mime": mType,
@@ -2352,22 +2352,22 @@ PlasmoidItem {
         if (index < 0 || index >= root.messages.length)
             return Date.now();
 
-        var m = root.messages[index] || {
+        let m = root.messages[index] || {
         };
         return m.at || Date.now();
     }
 
     function messageDayKeyAt(index) {
-        var d = new Date(messageTimestampAt(index));
+        let d = new Date(messageTimestampAt(index));
         return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
     }
 
     function dayBucketLabel(ts) {
-        var target = new Date(ts);
-        var now = new Date();
-        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        var targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-        var daysDiff = Math.floor((today.getTime() - targetDay.getTime()) / 8.64e+07);
+        let target = new Date(ts);
+        let now = new Date();
+        let today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        let targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+        let daysDiff = Math.floor((today.getTime() - targetDay.getTime()) / 8.64e+07);
         if (daysDiff === 0)
             return "Today";
 
@@ -2377,13 +2377,13 @@ PlasmoidItem {
         if (daysDiff === 2)
             return "Day before yesterday";
 
-        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         return months[target.getMonth()] + " " + pad2(target.getDate()) + ", " + target.getFullYear();
     }
 
     function countMessagesForDayKey(dayKey) {
-        var count = 0;
-        for (var i = 0; i < root.messages.length; i++) {
+        let count = 0;
+        for (let i = 0; i < root.messages.length; i++) {
             if (messageDayKeyAt(i) === dayKey)
                 count++;
 
@@ -2392,7 +2392,7 @@ PlasmoidItem {
     }
 
     function dayDividerLabelForIndex(index) {
-        var key = messageDayKeyAt(index);
+        let key = messageDayKeyAt(index);
         return dayBucketLabel(messageTimestampAt(index)) + " (" + countMessagesForDayKey(key) + ")";
     }
 
@@ -2407,8 +2407,8 @@ PlasmoidItem {
         if (!root.msgListViewRef || root.messages.length === 0)
             return ;
 
-        var currentTop = -1;
-        for (var offset = 15; offset <= 100; offset += 20) {
+        let currentTop = -1;
+        for (let offset = 15; offset <= 100; offset += 20) {
             currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset);
             if (currentTop >= 0)
                 break;
@@ -2417,9 +2417,9 @@ PlasmoidItem {
         if (currentTop < 0)
             currentTop = root.messages.length;
 
-        var target = -1;
-        for (var i = currentTop - 1; i >= 0; i--) {
-            var msg = root.messages[i];
+        let target = -1;
+        for (let i = currentTop - 1; i >= 0; i--) {
+            let msg = root.messages[i];
             if (msg && msg.role === "user") {
                 target = i;
                 break;
@@ -2438,8 +2438,8 @@ PlasmoidItem {
         if (!root.msgListViewRef || root.messages.length === 0)
             return ;
 
-        var currentTop = -1;
-        for (var offset = 15; offset <= 100; offset += 20) {
+        let currentTop = -1;
+        for (let offset = 15; offset <= 100; offset += 20) {
             currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset);
             if (currentTop >= 0)
                 break;
@@ -2448,17 +2448,17 @@ PlasmoidItem {
         if (currentTop < 0)
             currentTop = -1;
 
-        var target = -1;
-        for (var i = currentTop + 1; i < root.messages.length; i++) {
-            var msg = root.messages[i];
+        let target = -1;
+        for (let i = currentTop + 1; i < root.messages.length; i++) {
+            let msg = root.messages[i];
             if (msg && msg.role === "user") {
                 target = i;
                 break;
             }
         }
         if (target >= 0) {
-            var isLastUser = true;
-            for (var j = target + 1; j < root.messages.length; j++) {
+            let isLastUser = true;
+            for (let j = target + 1; j < root.messages.length; j++) {
                 if (root.messages[j] && root.messages[j].role === "user") {
                     isLastUser = false;
                     break;
@@ -2485,7 +2485,7 @@ PlasmoidItem {
         if (!tokens)
             return "";
 
-        var parts = [];
+        let parts = [];
         if (tokens.input !== undefined)
             parts.push("Input: " + tokens.input);
 
@@ -2498,7 +2498,7 @@ PlasmoidItem {
         if (tokens.cache && (tokens.cache.read > 0 || tokens.cache.write > 0))
             parts.push("Cache R/W: " + tokens.cache.read + "/" + tokens.cache.write);
 
-        var res = parts.join(" | ");
+        let res = parts.join(" | ");
         if (cost !== undefined && cost > 0)
             res += " | Cost: $" + cost.toFixed(5);
 
@@ -2506,7 +2506,7 @@ PlasmoidItem {
     }
 
     function pushErrorMessage(text) {
-        var ts = Date.now();
+        let ts = Date.now();
         root.messages = root.messages.concat([{
             "role": "error",
             "content": text,
@@ -2517,8 +2517,8 @@ PlasmoidItem {
         scrollToBottom();
         saveCurrentSessionState(true);
         // If the last user message was a schedule, show a desktop notification of the execution failure!
-        var isSched = false;
-        for (var i = root.messages.length - 1; i >= 0; i--) {
+        let isSched = false;
+        for (let i = root.messages.length - 1; i >= 0; i--) {
             if (root.messages[i].role === "user") {
                 if (root.messages[i].sc)
                     isSched = true;
@@ -2527,15 +2527,15 @@ PlasmoidItem {
             }
         }
         if (isSched) {
-            var safeErr = Sec.sanitizeForShell(text);
-            var errTitle = "Schedule Execution Failed";
-            var safeErrTitle = Sec.sanitizeForShell(errTitle);
+            let safeErr = Sec.sanitizeForShell(text);
+            let errTitle = "Schedule Execution Failed";
+            let safeErrTitle = Sec.sanitizeForShell(errTitle);
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-execution-notify-err");
         }
     }
 
     function pushInfoMessage(text) {
-        var ts = Date.now();
+        let ts = Date.now();
         root.messages = root.messages.concat([{
             "role": "assistant",
             "content": text,
@@ -2549,7 +2549,7 @@ PlasmoidItem {
     }
 
     function appendUserMessage(text, role, attachments, isScheduled) {
-        var ts = Date.now();
+        let ts = Date.now();
         root.messages = root.messages.concat([{
             "role": role || "user",
             "content": text,
@@ -2564,7 +2564,7 @@ PlasmoidItem {
     }
 
     function appendSystemMessage(text) {
-        var ts = Date.now();
+        let ts = Date.now();
         root.messages = root.messages.concat([{
             "role": "assistant",
             "content": text,
@@ -2582,11 +2582,11 @@ PlasmoidItem {
     }
 
     function getSchedulesForSession(sessionId) {
-        var res = [];
-        for (var i = 0; i < root.schedulesList.length; i++) {
-            var s = root.schedulesList[i];
+        let res = [];
+        for (let i = 0; i < root.schedulesList.length; i++) {
+            let s = root.schedulesList[i];
             if (s && s.chatId === sessionId && !s.archived) {
-                var isExecuted = false;
+                let isExecuted = false;
                 if (s.taskType === "single") {
                     if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0) || s.enabled === false)
                         isExecuted = true;
@@ -2611,28 +2611,28 @@ PlasmoidItem {
         if (root.openCodeMode)
             return validateOpenCodeConfig();
 
-        var provider = plasmoid.configuration.provider || "openai";
-        var providerCfg = getProviderConfig(provider);
+        let provider = plasmoid.configuration.provider || "openai";
+        let providerCfg = getProviderConfig(provider);
         return validateProviderConfig(provider, providerCfg);
     }
 
     function sendMessageByIndex(index) {
         resetOpenCodeIdleKillTimer();
-        var source = root.messages[index] || {
+        let source = root.messages[index] || {
         };
-        var text = (source.content || "").trim();
-        var hasAttachments = source.attachments && source.attachments.length > 0;
+        let text = (source.content || "").trim();
+        let hasAttachments = source.attachments && source.attachments.length > 0;
         if (!text && !hasAttachments)
             return ;
 
-        var validationError = validateCurrentSendTarget();
+        let validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             pushErrorMessage(validationError);
             return ;
         }
         if ((source.role || "") === "queued") {
-            var copy = root.messages.slice();
-            var queued = Object.assign({
+            let copy = root.messages.slice();
+            let queued = Object.assign({
             }, copy[index]);
             queued.role = "user";
             queued.at = Date.now();
@@ -2650,8 +2650,8 @@ PlasmoidItem {
             doOpenCodeRequest();
             return ;
         }
-        var provider = plasmoid.configuration.provider || "openai";
-        var providerCfg = getProviderConfig(provider);
+        let provider = plasmoid.configuration.provider || "openai";
+        let providerCfg = getProviderConfig(provider);
         if (providerCfg.type === "anthropic")
             doAnthropicRequest(providerCfg.apiKey, providerCfg.model);
         else
@@ -2662,7 +2662,7 @@ PlasmoidItem {
         if (root.loading)
             return ;
 
-        for (var i = 0; i < root.messages.length; i++) {
+        for (let i = 0; i < root.messages.length; i++) {
             if ((root.messages[i].role || "") === "queued") {
                 sendMessageByIndex(i);
                 return ;
@@ -2675,7 +2675,7 @@ PlasmoidItem {
     }
 
     function validateOpenCodeConfig() {
-        var missing = [];
+        let missing = [];
         if (!(plasmoid.configuration.openCodeUrl || "").trim())
             missing.push("OpenCode URL");
 
@@ -2695,8 +2695,8 @@ PlasmoidItem {
         if (!cfg)
             return "Provider configuration missing.";
 
-        var missing = [];
-        var name = providerDisplayName(providerId);
+        let missing = [];
+        let name = providerDisplayName(providerId);
         if (!providerId)
             missing.push("provider");
 
@@ -2716,14 +2716,14 @@ PlasmoidItem {
             return "Cannot send with " + name + ". Missing: " + missing.join(", ") + ".";
 
         if (cfg.baseUrl && cfg.type !== "anthropic") {
-            var urlTrimmed = cfg.baseUrl.trim();
+            let urlTrimmed = cfg.baseUrl.trim();
             if (!urlTrimmed.startsWith("http://") && !urlTrimmed.startsWith("https://")) {
                 return "Invalid URL in " + name + ": URL must start with http:// or https://";
             }
         }
 
         if (cfg.apiKey) {
-            var trimmedKey = cfg.apiKey.trim();
+            let trimmedKey = cfg.apiKey.trim();
             if (providerId === "openai" && !trimmedKey.startsWith("sk-")) {
                 return "Invalid OpenAI API key format: keys should start with 'sk-'";
             }
@@ -2739,21 +2739,21 @@ PlasmoidItem {
         // ──────────────────────────────────────────────────────────────
 
         try {
-            var text = (root.chatInputText || "").trim();
-            var attachments = root.attachedFiles || [];
+            let text = (root.chatInputText || "").trim();
+            let attachments = root.attachedFiles || [];
             if (text === "" && attachments.length === 0)
                 return ;
 
-            var maxLen = 100000;
+            let maxLen = 100000;
             if (text.length > maxLen) {
                 pushErrorMessage("Message is too long (maximum " + maxLen + " characters).");
                 return ;
             }
 
             // ── /schedule command ──────────────────────────────────────────
-            var lowerText = text.toLowerCase().replace(/^\//, "").trim();
+            let lowerText = text.toLowerCase().replace(/^\//, "").trim();
             if (lowerText === "schedule" || lowerText === "schedules" || lowerText === "scheduler" || text.toLowerCase().startsWith("/schedule")) {
-                var schedText = "";
+                let schedText = "";
                 if (text.toLowerCase().startsWith("/schedule"))
                     schedText = text.slice("/schedule".length).trim();
                 else if (text.toLowerCase().startsWith("schedule"))
@@ -2774,7 +2774,7 @@ PlasmoidItem {
                     // Trigger a poll now so that the list is fresh when the bubble is rendered!
                     schedulerPollTimer.triggered();
                     // Append interactive list inline!
-                    var ts = Date.now();
+                    let ts = Date.now();
                     root.messages = root.messages.concat([{
                         "role": "schedules_list",
                         "content": "Interactive Schedules Manager",
@@ -2796,8 +2796,8 @@ PlasmoidItem {
             root.clearChatInput();
             root.userScrolledUp = false;
             if (root.loading) {
-                var queueCount = 0;
-                for (var idx = 0; idx < root.messages.length; idx++) {
+                let queueCount = 0;
+                for (let idx = 0; idx < root.messages.length; idx++) {
                     if ((root.messages[idx].role || "") === "queued") {
                         queueCount++;
                     }
@@ -2828,17 +2828,17 @@ PlasmoidItem {
     }
 
     function isSessionScheduled(sessionId, messagesList) {
-        var msgs = messagesList;
+        let msgs = messagesList;
         if (!msgs) {
-            var idx = sessionIndexById(sessionId || root.currentSessionId);
+            let idx = sessionIndexById(sessionId || root.currentSessionId);
             if (idx >= 0)
                 msgs = root.sessions[idx].messages || [];
         }
         if (!msgs || msgs.length === 0)
             return false;
         // Search from the end for the last user message
-        for (var i = msgs.length - 1; i >= 0; i--) {
-            var m = msgs[i];
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            let m = msgs[i];
             if (m.role === "user" && !m.isSystem) {
                 return !!m.sc;
             }
@@ -2847,15 +2847,15 @@ PlasmoidItem {
     }
 
     function buildEffectiveSystemPrompt(sessionId) {
-        var sId = sessionId || root.currentSessionId;
-        var base = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
-        var memoryOn = plasmoid.configuration.memoryEnabled || false;
-        var memoryTxt = (plasmoid.configuration.userMemory || "").trim();
+        let sId = sessionId || root.currentSessionId;
+        let base = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
+        let memoryOn = plasmoid.configuration.memoryEnabled || false;
+        let memoryTxt = (plasmoid.configuration.userMemory || "").trim();
         if (memoryOn && memoryTxt !== "")
             base = base + "\n\n--- User Memory ---\n" + memoryTxt + "\n--- End of User Memory ---";
 
         if (!isSessionScheduled(sId)) {
-            var summary = getSessionProperty(sId, "compactedSummary", "");
+            let summary = getSessionProperty(sId, "compactedSummary", "");
             if (summary !== "")
                 base = base + "\n\n--- Summary of Previous Conversation ---\n" + summary + "\n--- End of Summary ---";
         }
@@ -2868,15 +2868,15 @@ PlasmoidItem {
     // Messages before the compacted boundary are excluded.
     // Only the last N user/assistant messages are kept (N = per-session override OR global limit).
     function buildContextWindow(messagesList, sessionId) {
-        var sId = sessionId || root.currentSessionId;
-        var override = getSessionProperty(sId, "contextOverride", false);
-        var contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : (plasmoid.configuration.globalContextEnabled !== false);
-        var limit = override ? getSessionProperty(sId, "contextLimit", 1) : (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1);
-        var isSched = isSessionScheduled(sId, messagesList);
-        var compactedCount = isSched ? 0 : getSessionProperty(sId, "compactedMessageCount", 0);
-        var clean = [];
-        for (var i = 0; i < messagesList.length; i++) {
-            var m = messagesList[i];
+        let sId = sessionId || root.currentSessionId;
+        let override = getSessionProperty(sId, "contextOverride", false);
+        let contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : (plasmoid.configuration.globalContextEnabled !== false);
+        let limit = override ? getSessionProperty(sId, "contextLimit", 1) : (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1);
+        let isSched = isSessionScheduled(sId, messagesList);
+        let compactedCount = isSched ? 0 : getSessionProperty(sId, "compactedMessageCount", 0);
+        let clean = [];
+        for (let i = 0; i < messagesList.length; i++) {
+            let m = messagesList[i];
             // Skip messages before the compacted boundary
             if (i < compactedCount)
                 continue;
@@ -2896,7 +2896,7 @@ PlasmoidItem {
         }
         if (!contextEnabled) {
             // No context: only keep the very last user message
-            for (var k = clean.length - 1; k >= 0; k--) {
+            for (let k = clean.length - 1; k >= 0; k--) {
                 if (clean[k].msg.role === "user")
                     return [clean[k].msg];
 
@@ -2913,8 +2913,8 @@ PlasmoidItem {
     }
 
     function buildOpenAICompatPayload() {
-        var sys = buildEffectiveSystemPrompt();
-        var arr = [{
+        let sys = buildEffectiveSystemPrompt();
+        let arr = [{
             "role": "system",
             "content": sys
         }];
@@ -2926,8 +2926,8 @@ PlasmoidItem {
     }
 
     function buildOpenAICompatPayloadForMessages(messagesList, chatId) {
-        var sys = buildEffectiveSystemPrompt(chatId);
-        var arr = [{
+        let sys = buildEffectiveSystemPrompt(chatId);
+        let arr = [{
             "role": "system",
             "content": sys
         }];
@@ -2939,10 +2939,10 @@ PlasmoidItem {
     }
 
     function _buildMessageArray(messagesList, chatId, format) {
-        var arr = [];
-        var window = buildContextWindow(messagesList, chatId);
-        for (var i = 0; i < window.length; i++) {
-            var m = window[i];
+        let arr = [];
+        let window = buildContextWindow(messagesList, chatId);
+        for (let i = 0; i < window.length; i++) {
+            let m = window[i];
             if (m.role === "user" && m.attachments && m.attachments.length > 0)
                 arr.push({
                     "role": m.role,
@@ -2958,14 +2958,14 @@ PlasmoidItem {
     }
 
     function appendMessageToSession(chatId, msgObj) {
-        var idx = sessionIndexById(chatId);
+        let idx = sessionIndexById(chatId);
         if (idx < 0)
             return ;
 
-        var updated = root.sessions.slice();
-        var s = Object.assign({
+        let updated = root.sessions.slice();
+        let s = Object.assign({
         }, updated[idx]);
-        var msgs = (s.messages || []).slice();
+        let msgs = (s.messages || []).slice();
         msgs.push(msgObj);
         s.messages = msgs;
         s.updatedAt = Date.now();
@@ -2982,8 +2982,8 @@ PlasmoidItem {
     }
 
     function handleBackgroundError(chatId, errorMsg, notify, schedId, schedName) {
-        var errTs = Date.now();
-        var errMsgObj = {
+        let errTs = Date.now();
+        let errMsgObj = {
             "role": "assistant",
             "content": "Warning: Schedule failed: " + errorMsg,
             "time": nowTime(errTs),
@@ -2992,18 +2992,18 @@ PlasmoidItem {
         };
         appendMessageToSession(chatId, errMsgObj);
         if (notify) {
-            var safeErr = Sec.sanitizeForShell(errorMsg);
-            var errTitle = "Schedule Failed: " + (schedName || "Chat");
-            var safeErrTitle = Sec.sanitizeForShell(errTitle);
+            let safeErr = Sec.sanitizeForShell(errorMsg);
+            let errTitle = "Schedule Failed: " + (schedName || "Chat");
+            let safeErrTitle = Sec.sanitizeForShell(errTitle);
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
         }
         if (schedId) {
-            var payload = {
+            let payload = {
                 "schedId": schedId,
                 "status": errorMsg
             };
-            var b64Payload = base64Encode(JSON.stringify(payload));
-            var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64Payload);
+            let b64Payload = base64Encode(JSON.stringify(payload));
+            let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64Payload);
             soundDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-history-err");
         }
     }
@@ -3017,12 +3017,12 @@ PlasmoidItem {
             handleBackgroundError(chatId, message, notify, schedId, schedName);
         }
 
-        var requestFinalized = false;
+        let requestFinalized = false;
         ensureOpenCodeServerRunning(chatId, function() {
             ensureOpenCodeSessionForChatId(chatId, function(remoteSessionId) {
-                var xhr = new XMLHttpRequest();
-                var modelId = (plasmoid.configuration.openCodeModel || "").trim();
-                var providerId = (plasmoid.configuration.openCodeProvider || "").trim();
+                let xhr = new XMLHttpRequest();
+                let modelId = (plasmoid.configuration.openCodeModel || "").trim();
+                let providerId = (plasmoid.configuration.openCodeProvider || "").trim();
                 xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.timeout = 60000;
@@ -3040,15 +3040,15 @@ PlasmoidItem {
                         if (xhr.status === 404)
                             setOpenCodeSessionIdForChatId(chatId, "");
 
-                        var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
+                        let suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
                         failBackgroundOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
                         return ;
                     }
                     try {
-                        var obj = JSON.parse(xhr.responseText);
-                        var combined = "";
+                        let obj = JSON.parse(xhr.responseText);
+                        let combined = "";
                         if (obj.parts && obj.parts.length > 0) {
-                            for (var i = 0; i < obj.parts.length; i++) {
+                            for (let i = 0; i < obj.parts.length; i++) {
                                 if (obj.parts[i].type === "text")
                                     combined += obj.parts[i].text || obj.parts[i].content || "";
 
@@ -3059,8 +3059,8 @@ PlasmoidItem {
                             return ;
                         }
                         if (combined !== "") {
-                            var doneTs = Date.now();
-                            var msgObj = {
+                            let doneTs = Date.now();
+                            let msgObj = {
                                 "role": "assistant",
                                 "content": combined,
                                 "time": nowTime(doneTs),
@@ -3072,9 +3072,9 @@ PlasmoidItem {
                             appendMessageToSession(chatId, msgObj);
                             triggerNotificationSound();
                             if (notify) {
-                                var safeText = Sec.sanitizeForShell(combined.substring(0, 150)) + (combined.length > 150 ? "…" : "");
-                                var title = (schedName || "Scheduled message response ready");
-                                var safeTitle = Sec.sanitizeForShell(title);
+                                let safeText = Sec.sanitizeForShell(combined.substring(0, 150)) + (combined.length > 150 ? "…" : "");
+                                let title = (schedName || "Scheduled message response ready");
+                                let safeTitle = Sec.sanitizeForShell(title);
                                 soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
                             }
                         } else {
@@ -3106,15 +3106,15 @@ PlasmoidItem {
     }
 
     function doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
-        var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
-        var xhr = new XMLHttpRequest();
-        var errorHandled = false;
-        var targetIdx = sessionIndexById(chatId);
+        let url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
+        let xhr = new XMLHttpRequest();
+        let errorHandled = false;
+        let targetIdx = sessionIndexById(chatId);
         if (targetIdx < 0)
             return ;
 
-        var targetSession = root.sessions[targetIdx];
-        var messagesList = targetSession.messages || [];
+        let targetSession = root.sessions[targetIdx];
+        let messagesList = targetSession.messages || [];
         try {
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -3122,7 +3122,7 @@ PlasmoidItem {
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
 
             if (extraHeaders) {
-                for (var headerName in extraHeaders) {
+                for (let headerName in extraHeaders) {
                     if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
                         xhr.setRequestHeader(headerName, extraHeaders[headerName]);
 
@@ -3149,12 +3149,12 @@ PlasmoidItem {
                     return ;
 
                 errorHandled = true;
-                var err = "Request to " + url + " failed";
+                let err = "Request to " + url + " failed";
                 if (xhr.status)
                     err += " (HTTP " + xhr.status + ")";
 
                 try {
-                    var eobj = JSON.parse(xhr.responseText);
+                    let eobj = JSON.parse(xhr.responseText);
                     if (eobj.error) {
                         if (typeof eobj.error === "string") {
                             err += " | " + eobj.error;
@@ -3173,11 +3173,11 @@ PlasmoidItem {
                 return ;
             }
             try {
-                var parsed = JSON.parse(xhr.responseText);
-                var finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
+                let parsed = JSON.parse(xhr.responseText);
+                let finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
                 if (finalText !== "") {
-                    var doneTs = Date.now();
-                    var msgObj = {
+                    let doneTs = Date.now();
+                    let msgObj = {
                         "role": "assistant",
                         "content": finalText,
                         "time": nowTime(doneTs),
@@ -3198,9 +3198,9 @@ PlasmoidItem {
                     }
                     triggerNotificationSound();
                     if (notify) {
-                        var safeText = Sec.sanitizeForShell(finalText.substring(0, 150)) + (finalText.length > 150 ? "…" : "");
-                        var title = (schedName || "Scheduled message response ready");
-                        var safeTitle = Sec.sanitizeForShell(title);
+                        let safeText = Sec.sanitizeForShell(finalText.substring(0, 150)) + (finalText.length > 150 ? "…" : "");
+                        let title = (schedName || "Scheduled message response ready");
+                        let safeTitle = Sec.sanitizeForShell(title);
                         soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
                     }
                 } else {
@@ -3229,14 +3229,14 @@ PlasmoidItem {
     }
 
     function doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName) {
-        var xhr = new XMLHttpRequest();
-        var errorHandled = false;
-        var targetIdx = sessionIndexById(chatId);
+        let xhr = new XMLHttpRequest();
+        let errorHandled = false;
+        let targetIdx = sessionIndexById(chatId);
         if (targetIdx < 0)
             return ;
 
-        var targetSession = root.sessions[targetIdx];
-        var messagesList = targetSession.messages || [];
+        let targetSession = root.sessions[targetIdx];
+        let messagesList = targetSession.messages || [];
         try {
             xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -3260,17 +3260,17 @@ PlasmoidItem {
 
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
-                    var obj = JSON.parse(xhr.responseText);
-                    var text = "";
+                    let obj = JSON.parse(xhr.responseText);
+                    let text = "";
                     if (obj.content && obj.content.length) {
-                        for (var i = 0; i < obj.content.length; i++) {
+                        for (let i = 0; i < obj.content.length; i++) {
                             if (obj.content[i].type === "text")
                                 text += obj.content[i].text;
 
                         }
                     }
-                    var ts = Date.now();
-                    var msgObj = {
+                    let ts = Date.now();
+                    let msgObj = {
                         "role": "assistant",
                         "content": text || "(empty response)",
                         "time": nowTime(ts),
@@ -3291,9 +3291,9 @@ PlasmoidItem {
                     }
                     triggerNotificationSound();
                     if (notify) {
-                        var safeText = Sec.sanitizeForShell((text || "").substring(0, 150)) + ((text || "").length > 150 ? "…" : "");
-                        var title = (schedName || "Scheduled message response ready");
-                        var safeTitle = Sec.sanitizeForShell(title);
+                        let safeText = Sec.sanitizeForShell((text || "").substring(0, 150)) + ((text || "").length > 150 ? "…" : "");
+                        let title = (schedName || "Scheduled message response ready");
+                        let safeTitle = Sec.sanitizeForShell(title);
                         soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
                     }
                 } catch (e) {
@@ -3304,9 +3304,9 @@ PlasmoidItem {
                     return ;
 
                 errorHandled = true;
-                var err = "Anthropic HTTP " + xhr.status;
+                let err = "Anthropic HTTP " + xhr.status;
                 try {
-                    var eobj = JSON.parse(xhr.responseText);
+                    let eobj = JSON.parse(xhr.responseText);
                     if (eobj.error) {
                         if (typeof eobj.error === "string") {
                             err += " | " + eobj.error;
@@ -3344,15 +3344,15 @@ PlasmoidItem {
     }
 
     function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
-        var soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
+        let soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
-        var validationError = validateCurrentSendTarget();
+        let validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             handleBackgroundError(chatId, validationError, notify, schedId, schedName);
             return ;
         }
-        var userTs = Date.now();
-        var userMsgObj = {
+        let userTs = Date.now();
+        let userMsgObj = {
             "role": "user",
             "content": messageText,
             "time": nowTime(userTs),
@@ -3363,19 +3363,19 @@ PlasmoidItem {
         };
         appendMessageToSession(chatId, userMsgObj);
         if (notify) {
-            var safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
-            var sIdx = sessionIndexById(chatId);
-            var sTitle = (sIdx >= 0 && root.sessions[sIdx].title) ? root.sessions[sIdx].title : "Chat";
-            var title = "Scheduled: " + sTitle;
-            var safeTitle = Sec.sanitizeForShell(title);
+            let safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
+            let sIdx = sessionIndexById(chatId);
+            let sTitle = (sIdx >= 0 && root.sessions[sIdx].title) ? root.sessions[sIdx].title : "Chat";
+            let title = "Scheduled: " + sTitle;
+            let safeTitle = Sec.sanitizeForShell(title);
             soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify");
         }
         if (root.openCodeMode) {
             doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
             return ;
         }
-        var provider = plasmoid.configuration.provider || "openai";
-        var providerCfg = getProviderConfig(provider);
+        let provider = plasmoid.configuration.provider || "openai";
+        let providerCfg = getProviderConfig(provider);
         if (providerCfg.type === "anthropic")
             doBackgroundAnthropicRequest(chatId, providerCfg.apiKey, providerCfg.model, messageText, notify, schedId, schedName);
         else
@@ -3383,17 +3383,17 @@ PlasmoidItem {
     }
 
     function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
-        var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
-        var xhr = new XMLHttpRequest();
-        var errorHandled = false;
-        var lastUserText = "";
-        for (var mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+        let url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
+        let xhr = new XMLHttpRequest();
+        let errorHandled = false;
+        let lastUserText = "";
+        for (let mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
             if ((root.messages[mIdx].role || "") === "user") {
                 lastUserText = root.messages[mIdx].content || "";
                 break;
             }
         }
-        var dedupKey = RequestDeduplicator.key(plasmoid.configuration.provider || "openai", model, lastUserText, root.currentSessionId);
+        let dedupKey = RequestDeduplicator.key(plasmoid.configuration.provider || "openai", model, lastUserText, root.currentSessionId);
         if (!RequestDeduplicator.tryClaim(dedupKey)) {
             pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
             return ;
@@ -3405,7 +3405,7 @@ PlasmoidItem {
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
 
             if (extraHeaders) {
-                for (var headerName in extraHeaders) {
+                for (let headerName in extraHeaders) {
                     if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
                         xhr.setRequestHeader(headerName, extraHeaders[headerName]);
 
@@ -3446,12 +3446,12 @@ PlasmoidItem {
                     return ;
 
                 errorHandled = true;
-                var err = "Request to " + Sec.scrubSecrets(url) + " failed";
+                let err = "Request to " + Sec.scrubSecrets(url) + " failed";
                 if (xhr.status)
                     err += " (HTTP " + xhr.status + ")";
 
                 try {
-                    var eobj = JSON.parse(xhr.responseText);
+                    let eobj = JSON.parse(xhr.responseText);
                     if (eobj.error) {
                         if (typeof eobj.error === "string") {
                             err += " | " + Sec.scrubSecrets(eobj.error);
@@ -3478,11 +3478,11 @@ PlasmoidItem {
                 return ;
             }
             try {
-                var parsed = JSON.parse(xhr.responseText);
-                var finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
+                let parsed = JSON.parse(xhr.responseText);
+                let finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
                 if (finalText !== "") {
-                    var doneTs = Date.now();
-                    var msgObj = {
+                    let doneTs = Date.now();
+                    let msgObj = {
                         "role": "assistant",
                         "content": finalText,
                         "time": nowTime(doneTs),
@@ -3543,16 +3543,16 @@ PlasmoidItem {
             processNextQueuedMessage();
             return ;
         }
-        var xhr = new XMLHttpRequest();
-        var errorHandled = false;
-        var lastUserText = "";
-        for (var mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+        let xhr = new XMLHttpRequest();
+        let errorHandled = false;
+        let lastUserText = "";
+        for (let mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
             if ((root.messages[mIdx].role || "") === "user") {
                 lastUserText = root.messages[mIdx].content || "";
                 break;
             }
         }
-        var dedupKey = RequestDeduplicator.key("anthropic", model, lastUserText, root.currentSessionId);
+        let dedupKey = RequestDeduplicator.key("anthropic", model, lastUserText, root.currentSessionId);
         if (!RequestDeduplicator.tryClaim(dedupKey)) {
             pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
             return ;
@@ -3585,17 +3585,17 @@ PlasmoidItem {
             if (xhr.status >= 200 && xhr.status < 300) {
                 triggerNotificationSound();
                 try {
-                    var obj = JSON.parse(xhr.responseText);
-                    var text = "";
+                    let obj = JSON.parse(xhr.responseText);
+                    let text = "";
                     if (obj.content && obj.content.length) {
-                        for (var i = 0; i < obj.content.length; i++) {
+                        for (let i = 0; i < obj.content.length; i++) {
                             if (obj.content[i].type === "text")
                                 text += obj.content[i].text;
 
                         }
                     }
-                    var ts = Date.now();
-                    var msgObj = {
+                    let ts = Date.now();
+                    let msgObj = {
                         "role": "assistant",
                         "content": text || "(empty response)",
                         "time": nowTime(ts),
@@ -3613,9 +3613,9 @@ PlasmoidItem {
                     pushErrorMessage("Failed to parse Anthropic response");
                 }
             } else {
-                var err = "Anthropic HTTP " + xhr.status;
+                let err = "Anthropic HTTP " + xhr.status;
                 try {
-                    var eobj = JSON.parse(xhr.responseText);
+                    let eobj = JSON.parse(xhr.responseText);
                     if (eobj.error) {
                         if (typeof eobj.error === "string") {
                             err += " | " + Sec.scrubSecrets(eobj.error);
@@ -3674,7 +3674,7 @@ PlasmoidItem {
                     return ;
 
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    var updatedMsgs = root.messages.slice();
+                    let updatedMsgs = root.messages.slice();
                     for (let i = 0; i < updatedMsgs.length; i++) {
                         if (updatedMsgs[i].role === "permission_request" && updatedMsgs[i].permissionId === permissionId) {
                             updatedMsgs[i].status = approved ? "allowed" : "denied";
@@ -3686,7 +3686,7 @@ PlasmoidItem {
                 } else if (xhr.status === 404 && !isRetry) {
                     sendToUrl(fallbackUrl, true);
                 } else {
-                    var errorMsgs = root.messages.slice();
+                    let errorMsgs = root.messages.slice();
                     for (let i = 0; i < errorMsgs.length; i++) {
                         if (errorMsgs[i].role === "permission_request" && errorMsgs[i].permissionId === permissionId) {
                             errorMsgs[i].status = "pending";
@@ -3701,7 +3701,7 @@ PlasmoidItem {
                 if (!isRetry) {
                     sendToUrl(fallbackUrl, true);
                 } else {
-                    var networkMsgs = root.messages.slice();
+                    let networkMsgs = root.messages.slice();
                     for (let i = 0; i < networkMsgs.length; i++) {
                         if (networkMsgs[i].role === "permission_request" && networkMsgs[i].permissionId === permissionId) {
                             networkMsgs[i].status = "pending";
@@ -3717,9 +3717,9 @@ PlasmoidItem {
             }));
         }
 
-        var sessionId = root.openCodeActiveSessionId;
+        let sessionId = root.openCodeActiveSessionId;
         if (!sessionId) {
-            var idx = sessionIndexById(root.currentSessionId);
+            let idx = sessionIndexById(root.currentSessionId);
             if (idx >= 0)
                 sessionId = root.sessions[idx].openCodeSessionId || "";
 
@@ -3727,26 +3727,26 @@ PlasmoidItem {
         if (!sessionId || !permissionId)
             return ;
 
-        var copy = root.messages.slice();
-        for (var i = 0; i < copy.length; i++) {
+        let copy = root.messages.slice();
+        for (let i = 0; i < copy.length; i++) {
             if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
                 copy[i].status = approved ? "allowing..." : "denying...";
                 break;
             }
         }
         root.messages = copy;
-        var xhr = new XMLHttpRequest();
-        var primaryUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permission/" + permissionId;
-        var fallbackUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permissions/" + permissionId;
-        var responseValue = approved ? "allow" : "deny";
+        let xhr = new XMLHttpRequest();
+        let primaryUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permission/" + permissionId;
+        let fallbackUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permissions/" + permissionId;
+        let responseValue = approved ? "allow" : "deny";
         sendToUrl(primaryUrl, false);
     }
 
     // Collect selected options from the question UI and submit the answer
     function submitQuestionAnswer(questionId, questions, customField) {
         // Find the question_request message to access its question data
-        var msgIdx = -1;
-        for (var i = 0; i < root.messages.length; i++) {
+        let msgIdx = -1;
+        for (let i = 0; i < root.messages.length; i++) {
             if (root.messages[i].role === "question_request" && root.messages[i].questionId === questionId) {
                 msgIdx = i;
                 break;
@@ -3755,7 +3755,7 @@ PlasmoidItem {
         if (msgIdx < 0)
             return ;
 
-        var customText = customField ? (customField.text || "").trim() : "";
+        let customText = customField ? (customField.text || "").trim() : "";
         // If no structured questions, fallback to custom text only
         if (!questions || questions.length === 0) {
             if (customText !== "")
@@ -3778,7 +3778,7 @@ PlasmoidItem {
     function respondToQuestion(questionId, answerValue, isReject) {
         function tryNextUrl() {
             if (currentUrlIdx >= urls.length) {
-                var exhaustedMsgs = root.messages.slice();
+                let exhaustedMsgs = root.messages.slice();
                 for (let i = 0; i < exhaustedMsgs.length; i++) {
                     if (exhaustedMsgs[i].role === "question_request" && exhaustedMsgs[i].questionId === questionId) {
                         exhaustedMsgs[i].status = "pending";
@@ -3789,7 +3789,7 @@ PlasmoidItem {
                 pushErrorMessage("OpenCode: failed to reply to question endpoint.");
                 return ;
             }
-            var url = urls[currentUrlIdx];
+            let url = urls[currentUrlIdx];
             currentUrlIdx++;
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -3798,7 +3798,7 @@ PlasmoidItem {
                     return ;
 
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    var updatedMsgs = root.messages.slice();
+                    let updatedMsgs = root.messages.slice();
                     for (let i = 0; i < updatedMsgs.length; i++) {
                         if (updatedMsgs[i].role === "question_request" && updatedMsgs[i].questionId === questionId) {
                             updatedMsgs[i].status = isReject ? "dismissed" : "answered";
@@ -3811,7 +3811,7 @@ PlasmoidItem {
                 } else if (xhr.status === 404) {
                     tryNextUrl();
                 } else {
-                    var errorMsgs = root.messages.slice();
+                    let errorMsgs = root.messages.slice();
                     for (let i = 0; i < errorMsgs.length; i++) {
                         if (errorMsgs[i].role === "question_request" && errorMsgs[i].questionId === questionId) {
                             errorMsgs[i].status = "pending";
@@ -3831,7 +3831,7 @@ PlasmoidItem {
                     }));
                 } else {
                     // Send in OpenCode's expected format: { answers: [["label"]] }
-                    var answers = [];
+                    let answers = [];
                     if (typeof answerValue === "object" && Array.isArray(answerValue))
                         answers = answerValue;
                     else
@@ -3845,9 +3845,9 @@ PlasmoidItem {
             }
         }
 
-        var sessionId = root.openCodeActiveSessionId;
+        let sessionId = root.openCodeActiveSessionId;
         if (!sessionId) {
-            var idx = sessionIndexById(root.currentSessionId);
+            let idx = sessionIndexById(root.currentSessionId);
             if (idx >= 0)
                 sessionId = root.sessions[idx].openCodeSessionId || "";
 
@@ -3855,18 +3855,18 @@ PlasmoidItem {
         if (!questionId)
             return ;
 
-        var copy = root.messages.slice();
-        for (var i = 0; i < copy.length; i++) {
+        let copy = root.messages.slice();
+        for (let i = 0; i < copy.length; i++) {
             if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
                 copy[i].status = isReject ? "dismissing..." : "answering...";
                 break;
             }
         }
         root.messages = copy;
-        var xhr = new XMLHttpRequest();
-        var action = isReject ? "reject" : "reply";
-        var urls = [openCodeBaseUrl() + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/questions/" + questionId + "/" + action];
-        var currentUrlIdx = 0;
+        let xhr = new XMLHttpRequest();
+        let action = isReject ? "reject" : "reply";
+        let urls = [openCodeBaseUrl() + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/questions/" + questionId + "/" + action];
+        let currentUrlIdx = 0;
         tryNextUrl();
     }
 
@@ -3888,14 +3888,14 @@ PlasmoidItem {
         if (!markdown)
             return "";
 
-        var cacheKey = markdown + "_" + (root.popupIsDark ? "dark" : "light");
-        var cached = root._markdownCache.get(cacheKey);
+        let cacheKey = markdown + "_" + (root.popupIsDark ? "dark" : "light");
+        let cached = root._markdownCache.get(cacheKey);
         if (cached !== undefined) {
             return cached;
         }
 
         try {
-            var html = MarkdownRenderer.convertMarkdownToHtml(markdown, root.popupIsDark);
+            let html = MarkdownRenderer.convertMarkdownToHtml(markdown, root.popupIsDark);
             root._markdownCache.put(cacheKey, html);
             return html;
         } catch (e) {
@@ -3905,7 +3905,7 @@ PlasmoidItem {
     }
 
     function fileIconName(filename) {
-        var ext = filename.split('.').pop().toLowerCase();
+        let ext = filename.split('.').pop().toLowerCase();
         if (ext === 'pdf')
             return 'document-pdf';
 
@@ -3922,7 +3922,7 @@ PlasmoidItem {
     }
 
     function removeAttachedFile(index) {
-        var files = root.attachedFiles.slice();
+        let files = root.attachedFiles.slice();
         if (index >= 0 && index < files.length) {
             files.splice(index, 1);
             root.attachedFiles = files;
@@ -3933,11 +3933,11 @@ PlasmoidItem {
         // Resolve the doc-extractor path and refuse anything outside the
         // package's `contents/ui/` directory. See `getHelperPath()` for
         // the rationale.
-        var urlStr = String(Qt.resolvedUrl("doc_extractor.py"));
+        let urlStr = String(Qt.resolvedUrl("doc_extractor.py"));
         if (urlStr.indexOf("file://") === 0)
             urlStr = urlStr.substring(7);
 
-        var path = decodeURIComponent(urlStr);
+        let path = decodeURIComponent(urlStr);
         if (path.indexOf("/contents/ui/") === -1)
             return "";
         return path;
@@ -3950,11 +3950,11 @@ PlasmoidItem {
         // Qt.resolvedUrl override (e.g. via a symlinked install or
         // custom `KDEDIRS` path) from steering the widget at an
         // attacker-controlled script.
-        var urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
+        let urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
         if (urlStr.indexOf("file://") === 0)
             urlStr = urlStr.substring(7);
 
-        var path = decodeURIComponent(urlStr);
+        let path = decodeURIComponent(urlStr);
         // The helper must live inside the package's `contents/ui`
         // directory. Anything outside (e.g. /tmp, $HOME) is rejected
         // and the caller falls back to an empty string so the IPC
@@ -3966,8 +3966,8 @@ PlasmoidItem {
     }
 
     function getScriptsPath() {
-        var helper = getHelperPath();
-        var parts = helper.split("/");
+        let helper = getHelperPath();
+        let parts = helper.split("/");
         if (parts.length >= 2) {
             parts.splice(parts.length - 2, 2);
             return parts.join("/") + "/scripts";
@@ -3976,19 +3976,19 @@ PlasmoidItem {
     }
 
     function attachFile(fileUrl) {
-        var localPath = String(fileUrl);
+        let localPath = String(fileUrl);
         if (localPath.indexOf("file://") === 0)
             localPath = localPath.substring(7);
 
         localPath = decodeURIComponent(localPath);
-        var files = root.attachedFiles.slice();
-        for (var i = 0; i < files.length; i++) {
+        let files = root.attachedFiles.slice();
+        for (let i = 0; i < files.length; i++) {
             if (files[i].path === localPath)
                 return ;
 
         }
-        var filename = localPath.substring(localPath.lastIndexOf("/") + 1);
-        var newFile = {
+        let filename = localPath.substring(localPath.lastIndexOf("/") + 1);
+        let newFile = {
             "path": localPath,
             "name": filename,
             "loading": true,
@@ -4000,14 +4000,14 @@ PlasmoidItem {
         };
         files.push(newFile);
         root.attachedFiles = files;
-        var docExtractorPath = getDocExtractorPath();
-        var safePath = Sec.validateFilePath(localPath);
+        let docExtractorPath = getDocExtractorPath();
+        let safePath = Sec.validateFilePath(localPath);
         if (safePath === "") {
             // Refuse to call the helper with an unsafe or non-existent path
             console.warn("attachFile: rejected unsafe path");
             return;
         }
-        var cmd = "python3 " + Sec.quoteForShell(docExtractorPath) + " " + Sec.quoteForShell(safePath);
+        let cmd = "python3 " + Sec.quoteForShell(docExtractorPath) + " " + Sec.quoteForShell(safePath);
         fileReaderDs.connectSource(cmd);
     }
 
@@ -4020,13 +4020,13 @@ PlasmoidItem {
             "lang": ""
         }];
 
-        var cachedBlocks = root._blocksCache.get(markdown);
+        let cachedBlocks = root._blocksCache.get(markdown);
         if (cachedBlocks !== undefined) {
             return cachedBlocks;
         }
 
         try {
-            var blocks = MarkdownRenderer.parseMessageBlocks(markdown);
+            let blocks = MarkdownRenderer.parseMessageBlocks(markdown);
             root._blocksCache.put(markdown, blocks);
             return blocks;
         } catch (e) {
@@ -4045,17 +4045,17 @@ PlasmoidItem {
     }
 
     function buildMessageContent(text, attachments, apiType) {
-        var docs = [];
-        var imgs = [];
-        for (var i = 0; i < attachments.length; i++) {
-            var att = attachments[i];
+        let docs = [];
+        let imgs = [];
+        for (let i = 0; i < attachments.length; i++) {
+            let att = attachments[i];
             if (att.type === "image")
                 imgs.push(att);
             else if (att.type === "text")
                 docs.push(att);
         }
-        var compiledPrompt = "";
-        for (var d = 0; d < docs.length; d++) {
+        let compiledPrompt = "";
+        for (let d = 0; d < docs.length; d++) {
             compiledPrompt += "[Attached File: " + docs[d].name + " (" + Math.round((docs[d].size || 0) / 1024) + " KB)]\n";
             compiledPrompt += "--- START OF FILE CONTENT ---\n";
             compiledPrompt += (docs[d].content || "") + "\n";
@@ -4065,15 +4065,15 @@ PlasmoidItem {
         if (imgs.length === 0)
             return compiledPrompt;
 
-        var contentList = [];
+        let contentList = [];
         if (compiledPrompt.trim() !== "")
             contentList.push({
             "type": "text",
             "text": compiledPrompt
         });
 
-        for (var imgIdx = 0; imgIdx < imgs.length; imgIdx++) {
-            var image = imgs[imgIdx];
+        for (let imgIdx = 0; imgIdx < imgs.length; imgIdx++) {
+            let image = imgs[imgIdx];
             if (apiType === "anthropic")
                 contentList.push({
                 "type": "image",
@@ -4095,8 +4095,8 @@ PlasmoidItem {
     }
 
     function checkClipboardForAttachments() {
-        var docExtractorPath = getDocExtractorPath();
-        var cmd = "python3 '" + docExtractorPath + "' --clipboard";
+        let docExtractorPath = getDocExtractorPath();
+        let cmd = "python3 '" + docExtractorPath + "' --clipboard";
         fileReaderDs.connectSource(cmd);
     }
 
@@ -4107,7 +4107,7 @@ PlasmoidItem {
     }
 
     function applyKWalletKeyToMemory(targetId, secretValue) {
-        var configKey = ProviderService.getApiKeyConfigKey(targetId);
+        let configKey = ProviderService.getApiKeyConfigKey(targetId);
         if (configKey) {
             plasmoid.configuration[configKey] = secretValue;
         }
@@ -4127,29 +4127,29 @@ PlasmoidItem {
         }
         if (plasmoid.configuration.keyStorageMode === 2) {
             root.kwalletKeysLoaded = true;
-            var walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
+            let walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
             kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load");
         }
     }
 
     function performExportChat(filePath) {
-        var isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown");
-        var content = "";
-        var sessionTitle = root.currentSessionTitle || "Untitled Session";
+        let isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown");
+        let content = "";
+        let sessionTitle = root.currentSessionTitle || "Untitled Session";
         if (isMarkdown) {
             content += "# KDE AI Chat: " + sessionTitle + "\n";
             content += "*Exported on " + root.formatDateTime(Date.now()) + "*\n\n";
             content += "---\n\n";
-            for (var i = 0; i < root.messages.length; i++) {
-                var m = root.messages[i];
-                var dateStrMsg = m.at ? root.formatDateTime(m.at) : (m.time || "");
+            for (let i = 0; i < root.messages.length; i++) {
+                let m = root.messages[i];
+                let dateStrMsg = m.at ? root.formatDateTime(m.at) : (m.time || "");
                 if (m.role === "user") {
                     content += "### **User**\n";
                     content += "*Sent on: " + dateStrMsg + "*\n\n";
                     content += m.content + "\n\n";
                     content += "---\n\n";
                 } else if (m.role === "assistant") {
-                    var modelName = m.model || plasmoid.configuration.model || "Assistant";
+                    let modelName = m.model || plasmoid.configuration.model || "Assistant";
                     content += "### **" + modelName + "**\n";
                     content += "*Sent on: " + dateStrMsg + "*\n\n";
                     content += m.content + "\n\n";
@@ -4166,13 +4166,13 @@ PlasmoidItem {
             content += "KDE AI Chat: " + sessionTitle + "\n";
             content += "Exported on: " + root.formatDateTime(Date.now()) + "\n";
             content += "==================================================\n\n";
-            var rightAlignTxt = function rightAlignTxt(text, width) {
+            let rightAlignTxt = function rightAlignTxt(text, width) {
                 if (!width)
                     width = 80;
 
-                var lines = text.split("\n");
-                for (var j = 0; j < lines.length; j++) {
-                    var trimmed = lines[j].trim();
+                let lines = text.split("\n");
+                for (let j = 0; j < lines.length; j++) {
+                    let trimmed = lines[j].trim();
                     if (trimmed.length === 0) {
                         lines[j] = "";
                         continue;
@@ -4184,16 +4184,16 @@ PlasmoidItem {
                 }
                 return lines.join("\n");
             };
-            for (var i = 0; i < root.messages.length; i++) {
-                var m = root.messages[i];
-                var dateStrMsg = m.at ? root.formatDateTime(m.at) : (m.time || "");
+            for (let i = 0; i < root.messages.length; i++) {
+                let m = root.messages[i];
+                let dateStrMsg = m.at ? root.formatDateTime(m.at) : (m.time || "");
                 if (m.role === "user") {
-                    var userHeader = "User (" + dateStrMsg + "):";
+                    let userHeader = "User (" + dateStrMsg + "):";
                     content += " ".repeat(Math.max(0, 80 - userHeader.length)) + userHeader + "\n";
                     content += rightAlignTxt(m.content, 80) + "\n\n";
                     content += "--------------------------------------------------\n\n";
                 } else if (m.role === "assistant") {
-                    var modelName = m.model || plasmoid.configuration.model || "Assistant";
+                    let modelName = m.model || plasmoid.configuration.model || "Assistant";
                     content += modelName + " (" + dateStrMsg + "):\n";
                     content += m.content + "\n\n";
                     content += "--------------------------------------------------\n\n";
@@ -4204,22 +4204,22 @@ PlasmoidItem {
                 }
             }
         }
-        var b64Str = base64Encode(content);
-        var payload = {
+        let b64Str = base64Encode(content);
+        let payload = {
             "filePath": filePath,
             "b64Content": b64Str
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var safeFilePath = Sec.sanitizeForShell(filePath);
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " export_chat " + Sec.quoteForShell(b64Payload) + " && notify-send -i document-export " + Sec.quoteForShell("KDE AI Chat") + " " + Sec.quoteForShell("Chat session successfully exported to " + safeFilePath);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let safeFilePath = Sec.sanitizeForShell(filePath);
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " export_chat " + Sec.quoteForShell(b64Payload) + " && notify-send -i document-export " + Sec.quoteForShell("KDE AI Chat") + " " + Sec.quoteForShell("Chat session successfully exported to " + safeFilePath);
         fileReaderDs.connectSource(cmd + " #export-chat-save");
     }
 
     function removeLastErrorMessages() {
-        var copy = root.messages.slice();
+        let copy = root.messages.slice();
         while (copy.length > 0) {
-            var lastRole = copy[copy.length - 1].role;
-            var lastContent = copy[copy.length - 1].content || "";
+            let lastRole = copy[copy.length - 1].role;
+            let lastContent = copy[copy.length - 1].content || "";
             if (lastRole === "error" || (lastRole === "assistant" && lastContent.indexOf("Attempting to start") !== -1))
                 copy.pop();
             else
@@ -4230,8 +4230,8 @@ PlasmoidItem {
     }
 
     function retryLastFailedMessage() {
-        var lastUserIdx = -1;
-        for (var i = root.messages.length - 1; i >= 0; i--) {
+        let lastUserIdx = -1;
+        for (let i = root.messages.length - 1; i >= 0; i--) {
             if (root.messages[i].role === "user" || root.messages[i].role === "queued") {
                 lastUserIdx = i;
                 break;
@@ -4245,7 +4245,7 @@ PlasmoidItem {
 
     function resetOpenCodeIdleKillTimer() {
         if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
-            var mins = root.configOpenCodeAutoKillMinutes || 5;
+            let mins = root.configOpenCodeAutoKillMinutes || 5;
             openCodeIdleKillTimer.interval = mins * 60000;
             openCodeIdleKillTimer.restart();
         } else {
@@ -4261,7 +4261,7 @@ PlasmoidItem {
     }
 
     onConfigCustomHistoryPathChanged: {
-        var newPath = configCustomHistoryPath.trim();
+        let newPath = configCustomHistoryPath.trim();
         if (newPath !== root.activeHistoryPath) {
             migrateHistory(root.activeHistoryPath, newPath);
             root.activeHistoryPath = newPath;
@@ -4320,13 +4320,13 @@ PlasmoidItem {
         if (!root.openCodeMode)
             loadKWalletKeysIfNeeded();
 
-        var customDir = (plasmoid.configuration.customHistoryPath || "").trim();
+        let customDir = (plasmoid.configuration.customHistoryPath || "").trim();
         root.activeHistoryPath = customDir;
         if (customDir !== "") {
-            var fullPath = getHistoryFilePath(customDir);
-            var safePath = Sec.validateFilePath(fullPath);
+            let fullPath = getHistoryFilePath(customDir);
+            let safePath = Sec.validateFilePath(fullPath);
             if (safePath !== "") {
-                var readCmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(safePath) + "); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\"";
+                let readCmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(safePath) + "); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\"";
                 customStorageDs.connectSource(readCmd + " #custom-history-read-" + Date.now());
             } else {
                 loadSessions();
@@ -4342,12 +4342,12 @@ PlasmoidItem {
         // Auto-start scheduler if the autoStart is enabled in settings
         if (plasmoid.configuration.schedulerAutoStart) {
             plasmoid.configuration.schedulerEnabled = true;
-            var schedulerScriptPath = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/kde-ai-scheduler.py";
+            let schedulerScriptPath = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/kde-ai-scheduler.py";
             // The auto-start snippet is built from a hard-coded template;
             // only the writable XDG path is interpolated, so we route it
             // through the file-path validator and the shell-quote helper.
-            var safeSchedulerPath = Sec.validateFilePath(schedulerScriptPath);
-            var startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerPath) + " &) ; " + "echo SCHED_AUTOSTART_OK";
+            let safeSchedulerPath = Sec.validateFilePath(schedulerScriptPath);
+            let startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerPath) + " &) ; " + "echo SCHED_AUTOSTART_OK";
             schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(startCmd) + " #sched-startup");
         }
         checkAndMarkCurrentSessionAsRead();
@@ -4377,14 +4377,14 @@ PlasmoidItem {
     }
 
     function copyToClipboard(textValue) {
-        var text = textValue || "";
+        let text = textValue || "";
         // Sanitize first so the entire single-quote payload is harmless
         // even if the surrounding wrapper is re-evaluated. The wrapper
         // now uses a single-quoted string around the inner command so
         // the outer `sh -lc` cannot perform command substitution on
         // the value.
-        var safe = Sec.sanitizeForShell(text);
-        var cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
+        let safe = Sec.sanitizeForShell(text);
+        let cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
         clipboardDs.connectSource(cmd + " #clipboard-copy");
     }
 
@@ -4394,7 +4394,7 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var stdout = (data["stdout"] || "").trim();
+            let stdout = (data["stdout"] || "").trim();
             disconnectSource(sourceName);
             if (sourceName.indexOf("#sched-poll") >= 0)
                 root.schedPolling = false;
@@ -4404,18 +4404,18 @@ PlasmoidItem {
 
             if (stdout !== "") {
                 try {
-                    var parsed = JSON.parse(stdout);
+                    let parsed = JSON.parse(stdout);
                     // 1. Sync schedulesList
                     if (parsed && Array.isArray(parsed.schedules))
                         root.schedulesList = parsed.schedules;
 
                     // 2. Handle pending triggers
-                    var triggers = (parsed && parsed.pending) || [];
+                    let triggers = (parsed && parsed.pending) || [];
                     if (Array.isArray(triggers) && triggers.length > 0) {
-                        for (var i = 0; i < triggers.length; i++) {
-                            var t = triggers[i];
+                        for (let i = 0; i < triggers.length; i++) {
+                            let t = triggers[i];
                             if (t && t.message) {
-                                var cid = t.chatId || "";
+                                let cid = t.chatId || "";
                                 if (cid === "" || cid === "new") {
                                     // Create a new session first
                                     root.createSession(true);
@@ -4477,13 +4477,13 @@ PlasmoidItem {
         if (!_streamingDirty)
             return;
         _streamingDirty = false;
-        var text = _pendingStreamingText;
-        var label = _pendingStreamingModelLabel;
+        let text = _pendingStreamingText;
+        let label = _pendingStreamingModelLabel;
         _pendingStreamingText = "";
         _pendingStreamingModelLabel = "";
         // Apply the coalesced update directly (bypasses re-buffering).
         if (root.openCodeAssistantMessageIndex < 0) {
-            var ts = Date.now();
+            let ts = Date.now();
             root.messages = root.messages.concat([{
                 "role": "assistant",
                 "content": text,
@@ -4497,9 +4497,9 @@ PlasmoidItem {
                 Qt.callLater(scrollToBottom);
             return;
         }
-        var copy = root.messages.slice();
-        var item = Object.assign({}, copy[root.openCodeAssistantMessageIndex]);
-        var existing = item.content || "";
+        let copy = root.messages.slice();
+        let item = Object.assign({}, copy[root.openCodeAssistantMessageIndex]);
+        let existing = item.content || "";
         if (text.indexOf(existing) === 0)
             item.content = text;
         else if (existing.indexOf(text) === 0)
@@ -4523,7 +4523,7 @@ PlasmoidItem {
         repeat: false
         onTriggered: {
             if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
-                var stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
+                let stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
                 // User-editable stop command — see note above.
                 opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(stopCmd) + " #autokill-opencode");
                 debugLog("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
@@ -4542,8 +4542,8 @@ PlasmoidItem {
         repeat: false
         onTriggered: {
             retriesLeft--;
-            var checkUrl = openCodeBaseUrl() + "/config/providers";
-            var xhr = new XMLHttpRequest();
+            let checkUrl = openCodeBaseUrl() + "/config/providers";
+            let xhr = new XMLHttpRequest();
             xhr.open("GET", checkUrl, true);
             xhr.timeout = 1000;
             xhr.onreadystatechange = function() {
@@ -4603,7 +4603,7 @@ PlasmoidItem {
                 return ;
 
             root.schedPolling = true;
-            var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " poll_pending_triggers";
+            let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " poll_pending_triggers";
             schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-poll-" + Date.now());
         }
     }
@@ -4616,7 +4616,7 @@ PlasmoidItem {
         interval: 1500
         repeat: false
         onTriggered: {
-            var cmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
+            let cmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
             // User-editable start command — see note above.
             opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #autostart-opencode");
         }
@@ -4638,20 +4638,20 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var exitCode = data["exit code"];
-            var stdout = data["stdout"] || "";
-            var stderr = data["stderr"] || "";
+            let exitCode = data["exit code"];
+            let stdout = data["stdout"] || "";
+            let stderr = data["stderr"] || "";
             if (sourceName.indexOf("--clipboard") !== -1) {
                 if (exitCode === 0 && stderr.trim() === "") {
                     try {
-                        var res = JSON.parse(stdout);
+                        let res = JSON.parse(stdout);
                         if (res.status === "success") {
-                            var currentFiles = root.attachedFiles.slice();
+                            let currentFiles = root.attachedFiles.slice();
                             if (res.mode === "files" && res.files) {
-                                for (var f = 0; f < res.files.length; f++) {
-                                    var fInfo = res.files[f];
-                                    var exists = false;
-                                    for (var idx = 0; idx < currentFiles.length; idx++) {
+                                for (let f = 0; f < res.files.length; f++) {
+                                    let fInfo = res.files[f];
+                                    let exists = false;
+                                    for (let idx = 0; idx < currentFiles.length; idx++) {
                                         if (currentFiles[idx].path === fInfo.path) {
                                             exists = true;
                                             break;
@@ -4671,9 +4671,9 @@ PlasmoidItem {
 
                                 }
                             } else if (res.mode === "image" && res.file) {
-                                var fInfo = res.file;
-                                var exists = false;
-                                for (var idx = 0; idx < currentFiles.length; idx++) {
+                                let fInfo = res.file;
+                                let exists = false;
+                                for (let idx = 0; idx < currentFiles.length; idx++) {
                                     if (currentFiles[idx].path === fInfo.path) {
                                         exists = true;
                                         break;
@@ -4701,10 +4701,10 @@ PlasmoidItem {
                 disconnectSource(sourceName);
                 return ;
             }
-            var matchedIndex = -1;
-            var files = root.attachedFiles.slice();
-            for (var i = 0; i < files.length; i++) {
-                var filePath = files[i].path;
+            let matchedIndex = -1;
+            let files = root.attachedFiles.slice();
+            for (let i = 0; i < files.length; i++) {
+                let filePath = files[i].path;
                 if (sourceName.indexOf(filePath) !== -1) {
                     matchedIndex = i;
                     break;
@@ -4714,14 +4714,14 @@ PlasmoidItem {
                 disconnectSource(sourceName);
                 return ;
             }
-            var fileObj = Object.assign({
+            let fileObj = Object.assign({
             }, files[matchedIndex]);
             fileObj.loading = false;
             if (exitCode !== 0 || stderr.trim() !== "") {
                 fileObj.error = stderr.trim() || ("Command exited with code " + exitCode);
             } else {
                 try {
-                    var res = JSON.parse(stdout);
+                    let res = JSON.parse(stdout);
                     if (res.status === "success") {
                         fileObj.type = res.type;
                         fileObj.content = res.content;
@@ -4746,20 +4746,20 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var exitCode = data["exit code"];
-            var stdout = data["stdout"] || "";
+            let exitCode = data["exit code"];
+            let stdout = data["stdout"] || "";
             if (sourceName.indexOf("#custom-history-read-") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
-                        var jsonStr = base64Decode(stdout.trim());
-                        var arr = JSON.parse(jsonStr);
+                        let jsonStr = base64Decode(stdout.trim());
+                        let arr = JSON.parse(jsonStr);
                         if (Array.isArray(arr)) {
                             root.sessions = parseSessions(arr);
                             if (root.sessions.length === 0)
                                 createSession(true);
 
-                            var preferred = plasmoid.configuration.lastSessionId || "";
-                            var idx = sessionIndexById(preferred);
+                            let preferred = plasmoid.configuration.lastSessionId || "";
+                            let idx = sessionIndexById(preferred);
                             if (idx < 0)
                                 idx = 0;
 
@@ -4779,7 +4779,7 @@ PlasmoidItem {
                     }
                 }
                 // Fallback & Seamless Migration:
-                var oldJson = plasmoid.configuration.chatSessionsJson || "";
+                let oldJson = plasmoid.configuration.chatSessionsJson || "";
                 if (oldJson !== "" && oldJson !== "[]") {
                     loadSessions();
                     persistSessions();
@@ -4790,18 +4790,18 @@ PlasmoidItem {
             } else if (sourceName.indexOf("#migrate-history") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
-                        var jsonRaw = base64Decode(stdout.trim());
-                        var res = JSON.parse(jsonRaw);
+                        let jsonRaw = base64Decode(stdout.trim());
+                        let res = JSON.parse(jsonRaw);
                         if (res.status === "ok") {
                             if (res.action === "load" && res.content) {
-                                var arrVal = JSON.parse(base64Decode(res.content));
+                                let arrVal = JSON.parse(base64Decode(res.content));
                                 if (Array.isArray(arrVal)) {
                                     root.sessions = parseSessions(arrVal);
                                     if (root.sessions.length === 0)
                                         createSession(true);
 
-                                    var pref = plasmoid.configuration.lastSessionId || "";
-                                    var idxVal = sessionIndexById(pref);
+                                    let pref = plasmoid.configuration.lastSessionId || "";
+                                    let idxVal = sessionIndexById(pref);
                                     if (idxVal < 0)
                                         idxVal = 0;
 
@@ -4837,7 +4837,7 @@ PlasmoidItem {
         fileMode: FileDialog.OpenFiles
         nameFilters: ["All supported files (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", "Documents (*.pdf *.docx *.csv *.txt *.md *.json)", "All files (*)"]
         onAccepted: {
-            for (var i = 0; i < selectedFiles.length; i++) {
+            for (let i = 0; i < selectedFiles.length; i++) {
                 root.attachFile(selectedFiles[i]);
             }
         }
@@ -4850,7 +4850,7 @@ PlasmoidItem {
         fileMode: FileDialog.SaveFile
         nameFilters: ["Markdown files (*.md)", "Plain text files (*.txt)"]
         onAccepted: {
-            var path = selectedFile.toString();
+            let path = selectedFile.toString();
             if (path.indexOf("file://") === 0)
                 path = decodeURIComponent(path.slice(7));
 
@@ -4871,20 +4871,20 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var stdout = data["stdout"] || "";
+            let stdout = data["stdout"] || "";
             if (sourceName.indexOf("kwallet-startup-load") >= 0) {
-                var lines = stdout.split(/?\n/);
-                var openFailed = false;
-                for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i].trim();
+                let lines = stdout.split(/?\n/);
+                let openFailed = false;
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
                     if (line.indexOf("__KAI_BULK__:OPEN_FAILED") === 0) {
                         openFailed = true;
                     } else if (line.indexOf("__KAI_SECRET__:") === 0) {
-                        var rest = line.slice("__KAI_SECRET__:".length);
-                        var sep = rest.indexOf(":");
+                        let rest = line.slice("__KAI_SECRET__:".length);
+                        let sep = rest.indexOf(":");
                         if (sep > 0) {
-                            var targetId = rest.slice(0, sep);
-                            var secretValue = rest.slice(sep + 1);
+                            let targetId = rest.slice(0, sep);
+                            let secretValue = rest.slice(sep + 1);
                             applyKWalletKeyToMemory(targetId, secretValue);
                         }
                     }
@@ -4907,11 +4907,11 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var stdout = data["stdout"] || "";
-            var stderr = data["stderr"] || "";
-            var exitCode = data["exit code"];
+            let stdout = data["stdout"] || "";
+            let stderr = data["stderr"] || "";
+            let exitCode = data["exit code"];
             if (sourceName.indexOf("opencode-cli-") >= 0) {
-                var output = stdout || stderr;
+                let output = stdout || stderr;
                 // Detect opencode not installed
                 if (exitCode !== undefined && (output.indexOf("not found") >= 0 || output.indexOf("No such file") >= 0 || output === "")) {
                     root.loading = false;
@@ -4945,7 +4945,7 @@ PlasmoidItem {
         }
 
         function checkServerStatus() {
-            var xhr = new XMLHttpRequest();
+            let xhr = new XMLHttpRequest();
             xhr.open("GET", openCodeBaseUrl() + "/", true);
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.onreadystatechange = function() {
@@ -5034,7 +5034,7 @@ PlasmoidItem {
             }
             onDropped: function(drop) {
                 if (drop.hasUrls) {
-                    for (var i = 0; i < drop.urls.length; i++) {
+                    for (let i = 0; i < drop.urls.length; i++) {
                         root.attachFile(drop.urls[i]);
                     }
                 }
@@ -5104,7 +5104,7 @@ PlasmoidItem {
                             if (root.historyOnlyMode)
                                 return (plasmoid.configuration.appDisplayName || "KDE AI Chat") + " History";
 
-                            var rawText = root.currentSessionTitle || "New Chat";
+                            let rawText = root.currentSessionTitle || "New Chat";
                             if (rawText.indexOf("[FK] ") === 0)
                                 rawText = rawText.substring(5);
 
@@ -5234,15 +5234,15 @@ PlasmoidItem {
                     Accessible.description: root.translate("Export the current conversation to a Markdown file")
                     enabled: !root.loading
                     onClicked: {
-                        var cleanTitle = (root.currentSessionTitle || "New Chat").replace(/[\/\?<>\\:\*\|":\s]+/g, "_");
-                        var now = new Date();
-                        var year = now.getFullYear();
-                        var month = String(now.getMonth() + 1).padStart(2, "0");
-                        var day = String(now.getDate()).padStart(2, "0");
-                        var hour = String(now.getHours()).padStart(2, "0");
-                        var min = String(now.getMinutes()).padStart(2, "0");
-                        var sec = String(now.getSeconds()).padStart(2, "0");
-                        var timestamp = year + "-" + month + "-" + day + "_" + hour + "-" + min + "-" + sec;
+                        let cleanTitle = (root.currentSessionTitle || "New Chat").replace(/[\/\?<>\\:\*\|":\s]+/g, "_");
+                        let now = new Date();
+                        let year = now.getFullYear();
+                        let month = String(now.getMonth() + 1).padStart(2, "0");
+                        let day = String(now.getDate()).padStart(2, "0");
+                        let hour = String(now.getHours()).padStart(2, "0");
+                        let min = String(now.getMinutes()).padStart(2, "0");
+                        let sec = String(now.getSeconds()).padStart(2, "0");
+                        let timestamp = year + "-" + month + "-" + day + "_" + hour + "-" + min + "-" + sec;
                         exportFileDialog.currentFile = "file://" + StandardPaths.writableLocation(StandardPaths.DocumentsLocation) + "/" + cleanTitle + "_" + timestamp + ".md";
                         exportFileDialog.open();
                     }
@@ -5283,24 +5283,24 @@ PlasmoidItem {
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.translate("Open OpenCode TUI in a terminal window")
                     onClicked: {
-                        var opencodeSessionFile = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/.opencode-session";
-                        var safeSessionFile = Sec.validateFilePath(opencodeSessionFile);
+                        let opencodeSessionFile = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/.opencode-session";
+                        let safeSessionFile = Sec.validateFilePath(opencodeSessionFile);
                         root.ensureCurrentOpenCodeSession(function(sid) {
-                            var opencodeCmd = "opencode" + (sid !== "" ? " --session " + sid : "");
+                            let opencodeCmd = "opencode" + (sid !== "" ? " --session " + sid : "");
                             clipboardHelper.text = opencodeCmd;
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var safeSid = Sec.validateSessionId(sid);
-                            var safeScriptsPath = Sec.validateFilePath(getScriptsPath());
-                            var termCmd = "echo -n " + Sec.quoteForShell(safeSid) + " > " + Sec.quoteForShell(safeSessionFile) + " && konsole --workdir " + Sec.quoteForShell(safeScriptsPath) + " -e bash ./opencode-terminal.sh";
+                            let safeSid = Sec.validateSessionId(sid);
+                            let safeScriptsPath = Sec.validateFilePath(getScriptsPath());
+                            let termCmd = "echo -n " + Sec.quoteForShell(safeSid) + " > " + Sec.quoteForShell(safeSessionFile) + " && konsole --workdir " + Sec.quoteForShell(safeScriptsPath) + " -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         }, function(err) {
                             root.pushErrorMessage(err);
                             clipboardHelper.text = "opencode";
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var safeScriptsPath = Sec.validateFilePath(getScriptsPath());
-                            var termCmd = "echo -n " + Sec.quoteForShell("") + " > " + Sec.quoteForShell(safeSessionFile) + " && konsole --workdir " + Sec.quoteForShell(safeScriptsPath) + " -e bash ./opencode-terminal.sh";
+                            let safeScriptsPath = Sec.validateFilePath(getScriptsPath());
+                            let termCmd = "echo -n " + Sec.quoteForShell("") + " > " + Sec.quoteForShell(safeSessionFile) + " && konsole --workdir " + Sec.quoteForShell(safeScriptsPath) + " -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         });
                     }
@@ -5361,7 +5361,7 @@ PlasmoidItem {
                         RowLayout {
                             Layout.fillWidth: true
                             visible: {
-                                var idx = sessionIndexById(root.currentSessionId);
+                                let idx = sessionIndexById(root.currentSessionId);
                                 return idx >= 0 && root.sessions[idx].parentSessionId !== undefined && root.sessions[idx].parentSessionId !== "";
                             }
                             Layout.leftMargin: Kirigami.Units.smallSpacing
@@ -5394,16 +5394,16 @@ PlasmoidItem {
 
                                         Layout.fillWidth: true
                                         text: {
-                                            var idx = sessionIndexById(root.currentSessionId);
+                                            let idx = sessionIndexById(root.currentSessionId);
                                             if (idx < 0)
                                                 return "";
 
-                                            var parentTitle = root.sessions[idx].parentSessionTitle || "Original Chat";
+                                            let parentTitle = root.sessions[idx].parentSessionTitle || "Original Chat";
                                             if (parentTitle.indexOf("[FK] ") === 0)
                                                 parentTitle = parentTitle.substring(5);
 
-                                            var parentId = root.sessions[idx].parentSessionId;
-                                            var exists = parentId && sessionIndexById(parentId) >= 0;
+                                            let parentId = root.sessions[idx].parentSessionId;
+                                            let exists = parentId && sessionIndexById(parentId) >= 0;
                                             if (exists)
                                                 return root.translate("Forked from:") + " <b>" + root.translate(parentTitle) + "</b>";
                                             else
@@ -5417,9 +5417,9 @@ PlasmoidItem {
                                         text: "Go to Original Chat"
                                         icon.name: "go-jump"
                                         onClicked: {
-                                            var idx = sessionIndexById(root.currentSessionId);
+                                            let idx = sessionIndexById(root.currentSessionId);
                                             if (idx >= 0) {
-                                                var parentId = root.sessions[idx].parentSessionId;
+                                                let parentId = root.sessions[idx].parentSessionId;
                                                 if (sessionIndexById(parentId) >= 0) {
                                                     root.switchSession(parentId);
                                                     root.historyOnlyMode = false;
@@ -5485,7 +5485,7 @@ PlasmoidItem {
                             PC3.Label {
                                 text: {
                                     if (root.searchQuery.trim() === "") return "";
-                                    var count = root.searchMatches.length;
+                                    let count = root.searchMatches.length;
                                     if (count === 0) return root.translate("No matches");
                                     return (root.currentSearchMatchIndex + 1) + " " + root.translate("of") + " " + count;
                                 }
@@ -5790,7 +5790,7 @@ PlasmoidItem {
                                                                     QQC2.ToolTip.visible: hovered
                                                                     QQC2.ToolTip.text: "Open: " + modelData.path
                                                                     onClicked: {
-                                                                        var safePath = Sec.validateFilePath(modelData.path);
+                                                                        let safePath = Sec.validateFilePath(modelData.path);
                                                                         if (safePath !== "")
                                                                             Qt.openUrlExternally("file://" + safePath);
                                                                     }
@@ -6104,15 +6104,15 @@ PlasmoidItem {
                                                                                 QQC2.ToolTip.text: "Delete this schedule"
                                                                                 QQC2.ToolTip.visible: hovered
                                                                                 onClicked: {
-                                                                                    var schedId = modelData.id;
-                                                                                    var payload = {
+                                                                                    let schedId = modelData.id;
+                                                                                    let payload = {
                                                                                         "schedId": schedId
                                                                                     };
-                                                                                     var b64Payload = base64Encode(JSON.stringify(payload));
-                                                                                     var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
+                                                                                     let b64Payload = base64Encode(JSON.stringify(payload));
+                                                                                     let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
                                                                                      schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
                                                                                     // Remove immediately from UI to be responsive!
-                                                                                    var copy = root.schedulesList.slice();
+                                                                                    let copy = root.schedulesList.slice();
                                                                                     root.schedulesList = copy.filter(function(s) {
                                                                                         return s.id !== schedId;
                                                                                     });
@@ -6575,9 +6575,9 @@ PlasmoidItem {
                                 Accessible.description: root.translate("Paste file or text from clipboard into chat")
                                 onClicked: {
                                     root.checkClipboardForAttachments();
-                                    var txt = root.readClipboardText();
+                                    let txt = root.readClipboardText();
                                     if (txt && txt.trim() !== "") {
-                                        var curPos = msgInput.cursorPosition;
+                                        let curPos = msgInput.cursorPosition;
                                         msgInput.insert(curPos, txt);
                                     }
                                 }
@@ -6629,7 +6629,7 @@ PlasmoidItem {
                                                 return ;
                                             } else if (event.key === Qt.Key_Tab || event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
                                                 event.accepted = true;
-                                                var selected = root.filteredCommands[root.autocompleteSelectedIndex];
+                                                let selected = root.filteredCommands[root.autocompleteSelectedIndex];
                                                 if (selected) {
                                                     msgInput.text = selected.name;
                                                     root.chatInputText = selected.name;
@@ -6705,8 +6705,8 @@ PlasmoidItem {
 
                             PC3.Label {
                                 text: {
-                                    var chars = root.chatInputText.length;
-                                    var tokens = Math.ceil(chars / 4);
+                                    let chars = root.chatInputText.length;
+                                    let tokens = Math.ceil(chars / 4);
                                     return chars + " " + root.translate("characters") + " | ~" + tokens + " " + root.translate("tokens");
                                 }
                                 font.pointSize: 8
@@ -6757,10 +6757,10 @@ PlasmoidItem {
             }
             onPositionChanged: function(mouse) {
                 if (pressed) {
-                    var dx = mouse.x - startX;
-                    var dy = mouse.y - startY;
-                    var newW = Math.max(500, startW + dx);
-                    var newH = Math.max(620, startH + dy);
+                    let dx = mouse.x - startX;
+                    let dy = mouse.y - startY;
+                    let newW = Math.max(500, startW + dx);
+                    let newH = Math.max(620, startH + dy);
                     parent.implicitWidth = newW;
                     parent.implicitHeight = newH;
                     plasmoid.configuration.customPopupWidth = newW;
@@ -6776,7 +6776,7 @@ PlasmoidItem {
                     anchors.fill: parent
                     anchors.margins: 4
                     onPaint: {
-                        var ctx = getContext("2d");
+                        let ctx = getContext("2d");
                         ctx.strokeStyle = Kirigami.Theme.textColor;
                         ctx.lineWidth = 1;
                         ctx.globalAlpha = 0.5;
@@ -6807,13 +6807,13 @@ PlasmoidItem {
         width: Math.min(420, parent.width * 0.9)
         standardButtons: QQC2.Dialog.NoButton
         onAboutToShow: {
-            var sId = root.currentSessionId;
+            let sId = root.currentSessionId;
             debugLog("[KDE AIChat] chatSettingsDialog about to show for session ID: " + sId);
-            var overrideVal = getSessionProperty(sId, "contextOverride", false);
-            var enabledVal = getSessionProperty(sId, "contextEnabled", true);
-            var limitVal = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
-            var autoCompactVal = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
-            var compactThresholdVal = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
+            let overrideVal = getSessionProperty(sId, "contextOverride", false);
+            let enabledVal = getSessionProperty(sId, "contextEnabled", true);
+            let limitVal = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
+            let autoCompactVal = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
+            let compactThresholdVal = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
 
             debugLog("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
 
@@ -6825,12 +6825,12 @@ PlasmoidItem {
             compactThresholdSpin.value = compactThresholdVal;
         }
         onAccepted: {
-            var sId = root.currentSessionId;
-            var overrideVal = overrideToggle.checked;
-            var enabledVal = contextEnabledToggle.checked;
-            var limitVal = contextLimitSpin.value;
-            var autoCompactVal = autoCompactToggle.checked;
-            var compactThresholdVal = compactThresholdSpin.value;
+            let sId = root.currentSessionId;
+            let overrideVal = overrideToggle.checked;
+            let enabledVal = contextEnabledToggle.checked;
+            let limitVal = contextLimitSpin.value;
+            let autoCompactVal = autoCompactToggle.checked;
+            let compactThresholdVal = compactThresholdSpin.value;
 
             debugLog("[KDE AIChat] Saving settings for session ID: " + sId);
             debugLog("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
@@ -6998,8 +6998,8 @@ PlasmoidItem {
         property bool schedNotify: true
 
         function buildCron() {
-            var t = schedType, n = schedEvery;
-            var tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            let t = schedType, n = schedEvery;
+            let tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
             if (t === "minutes")
                 return "*/" + n + " * * * *";
 
@@ -7010,17 +7010,17 @@ PlasmoidItem {
                 return (n === 1 ? mn + " " + hr + " * * *" : mn + " " + hr + " */" + n + " * *");
 
             if (t === "weeks") {
-                var ds = schedDays.length > 0 ? schedDays.slice().sort().join(",") : "1";
+                let ds = schedDays.length > 0 ? schedDays.slice().sort().join(",") : "1";
                 return mn + " " + hr + " * * " + ds;
             }
             return (n === 1 ? mn + " " + hr + " " + schedDayOfMonth + " * *" : mn + " " + hr + " " + schedDayOfMonth + " */" + n + " *");
         }
 
         function humanText() {
-            var t = schedType, n = schedEvery;
-            var tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
-            var ap = hr >= 12 ? "PM" : "AM", h12 = hr % 12 || 12, ms = mn < 10 ? "0" + mn : "" + mn;
-            var ts = h12 + ":" + ms + " " + ap;
+            let t = schedType, n = schedEvery;
+            let tp = schedTime.split(":"), hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            let ap = hr >= 12 ? "PM" : "AM", h12 = hr % 12 || 12, ms = mn < 10 ? "0" + mn : "" + mn;
+            let ts = h12 + ":" + ms + " " + ap;
             if (t === "minutes")
                 return "Every " + (n === 1 ? "minute" : n + " minutes");
 
@@ -7031,12 +7031,12 @@ PlasmoidItem {
                 return "Every " + (n === 1 ? "day" : n + " days") + " at " + ts;
 
             if (t === "weeks") {
-                var dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                let dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
                 return "Every " + (n === 1 ? "week" : n + " weeks") + " on " + schedDays.map(function(x) {
                     return dn[x];
                 }).join(", ") + " at " + ts;
             }
-            var sfx = schedDayOfMonth === 1 ? "st" : schedDayOfMonth === 2 ? "nd" : schedDayOfMonth === 3 ? "rd" : "th";
+            let sfx = schedDayOfMonth === 1 ? "st" : schedDayOfMonth === 2 ? "nd" : schedDayOfMonth === 3 ? "rd" : "th";
             return "Every " + (n === 1 ? "month" : n + " months") + " on the " + schedDayOfMonth + sfx + " at " + ts;
         }
 
@@ -7145,8 +7145,8 @@ PlasmoidItem {
 
                     QQC2.Label {
                         text: {
-                            var t = scheduleCommandDialog.schedType, n = scheduleCommandDialog.schedEvery;
-                            var m = {
+                            let t = scheduleCommandDialog.schedType, n = scheduleCommandDialog.schedEvery;
+                            let m = {
                                 "minutes": "minute",
                                 "hours": "hour",
                                 "days": "day",
@@ -7171,18 +7171,18 @@ PlasmoidItem {
                         from: 1
                         to: 12
                         value: {
-                            var h2 = parseInt(scheduleCommandDialog.schedTime.split(":")[0]) || 9;
+                            let h2 = parseInt(scheduleCommandDialog.schedTime.split(":")[0]) || 9;
                             return (h2 % 12) || 12;
                         }
                         textFromValue: function(v) {
                             return (v < 10 ? "0" : "") + v;
                         }
                         onValueChanged: {
-                            var parts = scheduleCommandDialog.schedTime.split(":");
-                            var curH = parseInt(parts[0]) || 0;
-                            var m2 = parseInt(parts[1]) || 0;
-                            var isPm = curH >= 12;
-                            var targetH = value;
+                            let parts = scheduleCommandDialog.schedTime.split(":");
+                            let curH = parseInt(parts[0]) || 0;
+                            let m2 = parseInt(parts[1]) || 0;
+                            let isPm = curH >= 12;
+                            let targetH = value;
                             if (isPm) {
                                 if (value < 12)
                                     targetH = value + 12;
@@ -7209,8 +7209,8 @@ PlasmoidItem {
                             return (v < 10 ? "0" : "") + v;
                         }
                         onValueChanged: {
-                            var parts = scheduleCommandDialog.schedTime.split(":");
-                            var h2 = parseInt(parts[0]) || 9;
+                            let parts = scheduleCommandDialog.schedTime.split(":");
+                            let h2 = parseInt(parts[0]) || 9;
                             scheduleCommandDialog.schedTime = (h2 < 10 ? "0" : "") + h2 + ":" + (value < 10 ? "0" : "") + value;
                         }
                     }
@@ -7219,10 +7219,10 @@ PlasmoidItem {
                         text: (parseInt(scheduleCommandDialog.schedTime.split(":")[0]) >= 12 ? "PM" : "AM")
                         font.bold: true
                         onClicked: {
-                            var parts = scheduleCommandDialog.schedTime.split(":");
-                            var curH = parseInt(parts[0]) || 0;
-                            var m2 = parseInt(parts[1]) || 0;
-                            var targetH = curH;
+                            let parts = scheduleCommandDialog.schedTime.split(":");
+                            let curH = parseInt(parts[0]) || 0;
+                            let m2 = parseInt(parts[1]) || 0;
+                            let targetH = curH;
                             if (curH >= 12)
                                 targetH = curH - 12;
                             else
@@ -7262,7 +7262,7 @@ PlasmoidItem {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-                                    var ds2 = scheduleCommandDialog.schedDays.slice(), pos = ds2.indexOf(index);
+                                    let ds2 = scheduleCommandDialog.schedDays.slice(), pos = ds2.indexOf(index);
                                     if (pos >= 0) {
                                         if (ds2.length > 1)
                                             ds2.splice(pos, 1);
@@ -7360,9 +7360,9 @@ PlasmoidItem {
                     highlighted: true
                     enabled: cmdMessage.text.trim() !== ""
                     onClicked: {
-                        var hr2 = scheduleCommandDialog.humanText();
-                        var msg = cmdMessage.text.trim();
-                        var entry = {
+                        let hr2 = scheduleCommandDialog.humanText();
+                        let msg = cmdMessage.text.trim();
+                        let entry = {
                             "id": SessionManager.makeScheduleEntryId(),
                             "name": hr2,
                             "enabled": true,
@@ -7379,11 +7379,11 @@ PlasmoidItem {
                             "notify": scheduleCommandDialog.schedNotify,
                             "createdAt": new Date().toISOString()
                         };
-                        var payload = {
+                        let payload = {
                             "entry": entry
                         };
-                        var b64Payload = base64Encode(JSON.stringify(payload));
-                        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " add_schedule " + Sec.quoteForShell(b64Payload);
+                        let b64Payload = base64Encode(JSON.stringify(payload));
+                        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " add_schedule " + Sec.quoteForShell(b64Payload);
                         schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
@@ -7404,9 +7404,9 @@ PlasmoidItem {
         property string chatName: ""
         // Filter schedules belonging to this chat
         property var activeSchedules: {
-            var res = [];
-            for (var i = 0; i < root.schedulesList.length; i++) {
-                var s = root.schedulesList[i];
+            let res = [];
+            for (let i = 0; i < root.schedulesList.length; i++) {
+                let s = root.schedulesList[i];
                 if (s && s.chatId === chatScheduleManagerDialog.chatId)
                     res.push(s);
 
@@ -7415,11 +7415,11 @@ PlasmoidItem {
         }
 
         function deleteSchedule(schedId) {
-            var payload = {
+            let payload = {
                 "schedId": schedId
             };
-            var b64Payload = base64Encode(JSON.stringify(payload));
-            var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
+            let b64Payload = base64Encode(JSON.stringify(payload));
+            let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
             schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
             root.appendSystemMessage("🗑️ Schedule deleted successfully.");
         }

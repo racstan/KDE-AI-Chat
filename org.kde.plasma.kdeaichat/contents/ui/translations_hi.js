@@ -1,4 +1,4 @@
-var hi_dictionary = {
+let hi_dictionary = {
         " more — open Manage Schedules to see all.": " अधिक — सभी देखने के लिए कार्यक्रम प्रबंधित करें खोलें।",
         "%1 active schedules": "%1 सक्रिय शेड्यूल",
         "%1 archived schedules": "%1 संग्रहीत शेड्यूल",

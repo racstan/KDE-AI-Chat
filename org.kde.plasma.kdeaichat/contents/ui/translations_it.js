@@ -1,4 +1,4 @@
-var it_dictionary = {
+let it_dictionary = {
         " more — open Manage Schedules to see all.": " altri — apri Gestisci pianificazioni per vedere tutti.",
         "%1 active schedules": "%1 pianificazioni attive",
         "%1 archived schedules": "%1 pianificazioni archiviate",

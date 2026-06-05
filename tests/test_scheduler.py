@@ -226,7 +226,6 @@ class TestHistoryAndSettings:
         assert sched.history[-1] == entry
 
     def test_save_and_load_settings(self):
-        import json
         import tempfile
         try:
             with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
@@ -254,3 +253,105 @@ class TestHistoryAndSettings:
         finally:
             if os.path.exists(sched.SCHEDULES_FILE):
                 os.remove(sched.SCHEDULES_FILE)
+
+
+class TestEnsureDirs:
+    def test_creates_data_dir(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(sched, "DATA_DIR", str(tmp_path / "kdeaichat"))
+        sched.ensure_dirs()
+        assert os.path.isdir(str(tmp_path / "kdeaichat"))
+        assert os.path.isdir(str(tmp_path / "kdeaichat" / "pending"))
+        mode = os.stat(str(tmp_path / "kdeaichat")).st_mode & 0o777
+        assert mode == 0o700
+
+    def test_idempotent(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(sched, "DATA_DIR", str(tmp_path / "kdeaichat"))
+        sched.ensure_dirs()
+        sched.ensure_dirs()
+        assert os.path.isdir(str(tmp_path / "kdeaichat" / "pending"))
+
+
+class TestNextRunIso:
+    def test_valid_cron(self):
+        result = sched.next_run_iso("* * * * *")
+        assert result != ""
+        from datetime import datetime
+        dt = datetime.fromisoformat(result)
+        assert dt > datetime.now()
+
+    def test_invalid_cron_too_few_fields(self):
+        assert sched.next_run_iso("* * * *") == ""
+
+    def test_invalid_cron_bad_chars(self):
+        assert sched.next_run_iso("not a cron") == ""
+
+    def test_specific_time(self):
+        from datetime import datetime
+        now = datetime.now()
+        next_hour = (now.hour + 1) % 24
+        result = sched.next_run_iso(f"0 {next_hour} * * *")
+        assert result != ""
+        dt = datetime.fromisoformat(result)
+        assert dt.hour == next_hour
+        assert dt.minute == 0
+
+
+class TestUpdateScheduleTimestamps:
+    def test_updates_matching_schedule(self):
+        items = [
+            {"id": "s1", "enabled": True, "lastRunAt": "", "nextRunAt": ""},
+            {"id": "s2", "enabled": True, "lastRunAt": "", "nextRunAt": ""},
+        ]
+        result = sched.update_schedule_timestamps(items, "s1", "2026-01-01T00:00:00", "ok", "2026-01-02T00:00:00")
+        assert result[0]["lastRunAt"] == "2026-01-01T00:00:00"
+        assert result[0]["lastRunStatus"] == "ok"
+        assert result[0]["nextRunAt"] == "2026-01-02T00:00:00"
+        assert result[1]["lastRunAt"] == ""
+
+    def test_removes_trigger_now(self):
+        items = [{"id": "s1", "triggerNow": True}]
+        result = sched.update_schedule_timestamps(items, "s1", "2026-01-01T00:00:00", "ok", "")
+        assert "triggerNow" not in result[0]
+
+    def test_does_not_mutate_input(self):
+        items = [{"id": "s1", "lastRunAt": "old"}]
+        sched.update_schedule_timestamps(items, "s1", "new", "ok", "")
+        assert items[0]["lastRunAt"] == "old"
+
+    def test_no_match_returns_unchanged(self):
+        items = [{"id": "s1", "lastRunAt": "old"}]
+        result = sched.update_schedule_timestamps(items, "s2", "new", "ok", "")
+        assert result[0]["lastRunAt"] == "old"
+
+
+class TestSchedulesFileChanged:
+    def test_detects_change(self, tmp_path, monkeypatch):
+        f = tmp_path / "schedules.json"
+        f.write_text("[]")
+        monkeypatch.setattr(sched, "SCHEDULES_FILE", str(f))
+        sched._schedules_mtime = 0
+        assert sched._schedules_file_changed() is True
+        assert sched._schedules_file_changed() is False
+        import time
+        time.sleep(0.05)
+        f.write_text("[{}]")
+        assert sched._schedules_file_changed() is True
+
+    def test_missing_file_returns_false(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(sched, "SCHEDULES_FILE", str(tmp_path / "nonexistent.json"))
+        assert sched._schedules_file_changed() is False
+
+
+class TestHandleSignals:
+    def test_handle_sighup_sets_reload_flag(self):
+        sched.reload_requested = False
+        sched.handle_sighup(1, None)
+        assert sched.reload_requested is True
+
+    def test_cleanup_removes_lock(self, tmp_path, monkeypatch):
+        lock = tmp_path / "scheduler.lock"
+        lock.write_text("1234")
+        monkeypatch.setattr(sched, "LOCK_FILE", str(lock))
+        sched.LOCK_FD = None
+        sched.cleanup()
+        assert not lock.exists()

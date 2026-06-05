@@ -17,7 +17,7 @@ KCM.SimpleKCM {
     property bool debugMode: false
     function debugLog() {
         if (debugMode) {
-            var args = Array.prototype.slice.call(arguments);
+            let args = Array.prototype.slice.call(arguments);
             console.log.apply(console, args);
         }
     }
@@ -91,9 +91,9 @@ KCM.SimpleKCM {
     property alias cfg_maritacaModel: maritacaModelField.text
     property string cfg_language: ""
     readonly property bool isLanguageEnglish: {
-        var lang = cfg_language;
+        let lang = cfg_language;
         if (lang === "") {
-            var localeName = Qt.locale().name || "en";
+            let localeName = Qt.locale().name || "en";
             lang = localeName.split("_")[0];
         }
         return lang === "en";
@@ -175,12 +175,12 @@ KCM.SimpleKCM {
     }
 
     function updateFilteredProviderModels(searchText) {
-        var search = (searchText || "").toLowerCase();
+        let search = (searchText || "").toLowerCase();
         if (search === "") {
             filteredProviderModels = providerModelCandidates;
         } else {
-            var filtered = [];
-            for (var i = 0; i < providerModelCandidates.length; i++) {
+            let filtered = [];
+            for (let i = 0; i < providerModelCandidates.length; i++) {
                 if (providerModelCandidates[i].toLowerCase().indexOf(search) >= 0)
                     filtered.push(providerModelCandidates[i]);
 
@@ -190,12 +190,12 @@ KCM.SimpleKCM {
     }
 
     function updateFilteredOpenCodeModels(searchText) {
-        var search = (searchText || "").toLowerCase();
+        let search = (searchText || "").toLowerCase();
         if (search === "") {
             filteredOpenCodeModels = openCodeModelCandidates;
         } else {
-            var filtered = [];
-            for (var i = 0; i < openCodeModelCandidates.length; i++) {
+            let filtered = [];
+            for (let i = 0; i < openCodeModelCandidates.length; i++) {
                 if (openCodeModelCandidates[i].toLowerCase().indexOf(search) >= 0)
                     filtered.push(openCodeModelCandidates[i]);
 
@@ -205,7 +205,7 @@ KCM.SimpleKCM {
     }
 
     function effectiveWalletName() {
-        var configuredName = (walletNameField.text || "").trim();
+        let configuredName = (walletNameField.text || "").trim();
         if (configuredName !== "")
             return configuredName;
 
@@ -219,12 +219,12 @@ KCM.SimpleKCM {
         if (availableWalletNames.length === 0)
             return ;
 
-        var configured = (walletNameField.text || "").trim();
+        let configured = (walletNameField.text || "").trim();
         if (configured === "") {
             walletNameField.text = availableWalletNames[0];
             return ;
         }
-        for (var i = 0; i < availableWalletNames.length; i++) {
+        for (let i = 0; i < availableWalletNames.length; i++) {
             if (availableWalletNames[i].toLowerCase() === configured.toLowerCase()) {
                 walletNameField.text = availableWalletNames[i];
                 return ;
@@ -245,33 +245,33 @@ KCM.SimpleKCM {
     }
 
     function walletReadCommand(walletName, keyName) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedKey = shellEscape(keyName);
-        var escapedAppId = shellEscape(walletAppId);
+        let escapedWallet = shellEscape(walletName);
+        let escapedFolder = shellEscape(walletFolderName);
+        let escapedKey = shellEscape(keyName);
+        let escapedAppId = shellEscape(walletAppId);
         return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_LOAD__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_LOAD__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_FOLDER\"; exit 0; fi; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_ENTRY\"; exit 0; fi; " + "secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_SECRET__:%s\" \"$secret\"'";
     }
 
     function walletWriteCommand(walletName, keyName, value) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedKey = shellEscape(keyName);
-        var escapedValue = shellEscape(value);
-        var escapedAppId = shellEscape(walletAppId);
+        let escapedWallet = shellEscape(walletName);
+        let escapedFolder = shellEscape(walletFolderName);
+        let escapedKey = shellEscape(keyName);
+        let escapedValue = shellEscape(value);
+        let escapedAppId = shellEscape(walletAppId);
         return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "value='\''" + escapedValue + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STORE__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " + "result=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_STORE__:%s\" \"$result\"'";
     }
 
     function walletInitCommand(walletName) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedAppId = shellEscape(walletAppId);
+        let escapedWallet = shellEscape(walletName);
+        let escapedFolder = shellEscape(walletFolderName);
+        let escapedAppId = shellEscape(walletAppId);
         return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_INIT__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_INIT__:READY\"; else created=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); if [ \"$created\" = true ]; then printf \"__KAI_INIT__:CREATED\"; else printf \"__KAI_INIT__:CREATE_FAILED\"; fi; fi; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1'";
     }
 
     function walletStatusCommand(walletName) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedAppId = shellEscape(walletAppId);
+        let escapedWallet = shellEscape(walletName);
+        let escapedFolder = shellEscape(walletFolderName);
+        let escapedAppId = shellEscape(walletAppId);
         return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_STATUS__:NO_WALLET:%s\" \"$wallets\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STATUS__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_STATUS__:READY\"; else printf \"__KAI_STATUS__:NO_FOLDER\"; fi'";
     }
 
@@ -284,12 +284,12 @@ KCM.SimpleKCM {
     }
 
     function copyToClipboard(textValue) {
-        var text = textValue || "";
+        let text = textValue || "";
         // Sanitize first so the value cannot be re-evaluated as shell
         // grammar by the outer `sh -lc` wrapper. See the same function
         // in main.qml for the rationale.
-        var safe = Sec.sanitizeForShell(text);
-        var cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
+        let safe = Sec.sanitizeForShell(text);
+        let cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
         utilityDs.connectSource(cmd + " #clipboard-copy");
     }
 
@@ -378,7 +378,7 @@ KCM.SimpleKCM {
     }
 
     function currentProviderConfig() {
-        var p = providerBox.currentValue || "openai";
+        let p = providerBox.currentValue || "openai";
         if (p === "anthropic")
             return {
             "id": p,
@@ -582,9 +582,9 @@ KCM.SimpleKCM {
 
         }
 
-        var ids = [];
+        let ids = [];
         if (Array.isArray(responseObj)) {
-            for (var i = 0; i < responseObj.length; i++) {
+            for (let i = 0; i < responseObj.length; i++) {
                 if (typeof responseObj[i] === "string")
                     pushId(responseObj[i]);
                 else if (responseObj[i] && responseObj[i].id)
@@ -593,14 +593,14 @@ KCM.SimpleKCM {
                     pushId(responseObj[i].name);
             }
         } else if (responseObj && Array.isArray(responseObj.data)) {
-            for (var j = 0; j < responseObj.data.length; j++) {
+            for (let j = 0; j < responseObj.data.length; j++) {
                 if (responseObj.data[j] && responseObj.data[j].id)
                     pushId(responseObj.data[j].id);
                 else if (responseObj.data[j] && responseObj.data[j].name)
                     pushId(responseObj.data[j].name);
             }
         } else if (responseObj && Array.isArray(responseObj.models)) {
-            for (var k = 0; k < responseObj.models.length; k++) {
+            for (let k = 0; k < responseObj.models.length; k++) {
                 if (typeof responseObj.models[k] === "string")
                     pushId(responseObj.models[k]);
                 else if (responseObj.models[k] && responseObj.models[k].id)
@@ -613,9 +613,9 @@ KCM.SimpleKCM {
     }
 
     function requestJson(url, headers, onSuccess, onError) {
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
-        for (var h in headers) {
+        for (let h in headers) {
             if (Object.prototype.hasOwnProperty.call(headers, h) && headers[h])
                 xhr.setRequestHeader(h, headers[h]);
 
@@ -641,8 +641,8 @@ KCM.SimpleKCM {
     }
 
     function refreshCurrentProviderModels() {
-        var cfg = currentProviderConfig();
-        var headers = {
+        let cfg = currentProviderConfig();
+        let headers = {
         };
         if (providerNeedsApiKey(cfg.id) && (!cfg.apiKey || cfg.apiKey.trim() === "")) {
             providerModelCandidates = [];
@@ -658,7 +658,7 @@ KCM.SimpleKCM {
             headers["x-api-key"] = cfg.apiKey;
             headers["anthropic-version"] = "2023-06-01";
             requestJson("https://api.anthropic.com/v1/models", headers, function(obj) {
-                var ids = parseModelIds(obj);
+                let ids = parseModelIds(obj);
                 providerModelCandidates = ids;
                 providerModelSearch = "";
                 updateFilteredProviderModels("");
@@ -672,7 +672,7 @@ KCM.SimpleKCM {
             return ;
         }
         requestJson(makeOpenAiModelsUrl(cfg.baseUrl), headers, function(obj) {
-            var ids = parseModelIds(obj);
+            let ids = parseModelIds(obj);
             providerModelCandidates = ids;
             providerModelSearch = "";
             updateFilteredProviderModels("");
@@ -686,7 +686,7 @@ KCM.SimpleKCM {
     }
 
     function applyDetectedModelToActiveProvider(modelId) {
-        var cfg = currentProviderConfig();
+        let cfg = currentProviderConfig();
         cfg.modelField.text = modelId || "";
     }
 
@@ -703,7 +703,7 @@ KCM.SimpleKCM {
     }
 
     function openCodeServerRoot(baseUrl) {
-        var value = (baseUrl || "").replace(/\/$/, "");
+        let value = (baseUrl || "").replace(/\/$/, "");
         if (value.slice(-3) === "/v1")
             return value.slice(0, -3);
 
@@ -720,12 +720,12 @@ KCM.SimpleKCM {
 
         }
 
-        var ids = [];
+        let ids = [];
         if (!providerObj || !providerObj.models)
             return ids;
 
         if (Array.isArray(providerObj.models)) {
-            for (var i = 0; i < providerObj.models.length; i++) {
+            for (let i = 0; i < providerObj.models.length; i++) {
                 if (typeof providerObj.models[i] === "string")
                     pushId(providerObj.models[i]);
                 else if (providerObj.models[i] && providerObj.models[i].id)
@@ -733,7 +733,7 @@ KCM.SimpleKCM {
             }
             return ids;
         }
-        for (var modelId in providerObj.models) {
+        for (let modelId in providerObj.models) {
             if (!Object.prototype.hasOwnProperty.call(providerObj.models, modelId))
                 continue;
 
@@ -743,9 +743,9 @@ KCM.SimpleKCM {
     }
 
     function syncOpenCodeProviderSelection(providerId, preferredModel) {
-        var selectedProvider = providerId || "";
-        var candidateModels = openCodeProviderModelMap[selectedProvider] || [];
-        var chosenModel = preferredModel || openCodeModelValueField.text || "";
+        let selectedProvider = providerId || "";
+        let candidateModels = openCodeProviderModelMap[selectedProvider] || [];
+        let chosenModel = preferredModel || openCodeModelValueField.text || "";
         if (candidateModels.indexOf(chosenModel) < 0)
             chosenModel = candidateModels.length > 0 ? candidateModels[0] : "";
 
@@ -755,7 +755,7 @@ KCM.SimpleKCM {
         updateFilteredOpenCodeModels("");
         setOpenCodeModelValue(chosenModel);
         if (openCodeProvidersCombo) {
-            var pidx = openCodeProviderCandidates.indexOf(selectedProvider);
+            let pidx = openCodeProviderCandidates.indexOf(selectedProvider);
             if (pidx >= 0)
                 openCodeProvidersCombo.currentIndex = pidx;
 
@@ -771,15 +771,15 @@ KCM.SimpleKCM {
 
     function startOpenCodeServerAutomatically() {
         discoveryStatus = "Starting OpenCode server automatically...";
-        var startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
-        var cmd = "sh -lc '" + shellEscape(startCmd) + "'";
+        let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
+        let cmd = "sh -lc '" + shellEscape(startCmd) + "'";
         utilityDs.connectSource(cmd + " #opencode-autostart");
         // After a short delay, attempt discovery again
         openCodeAutoStartTimer.restart();
     }
 
     function checkAndAutoStartOpenCodeServer() {
-        var url = openCodeServerRoot(openCodeUrlField.text) + "/config/providers";
+        let url = openCodeServerRoot(openCodeUrlField.text) + "/config/providers";
         discoveryStatus = "Checking OpenCode server...";
         requestJson(url, {
         }, function(obj) {
@@ -795,19 +795,19 @@ KCM.SimpleKCM {
     }
 
     function probeOpenCodeProviders(baseUrl) {
-        var url = openCodeServerRoot(baseUrl) + "/config/providers";
+        let url = openCodeServerRoot(baseUrl) + "/config/providers";
         discoveryStatus = "Checking OpenCode server...";
         requestJson(url, {
         }, function(obj) {
-            var providers = (obj && obj.providers) || [];
-            var ids = [];
-            var defaults = (obj && obj.default) || {
+            let providers = (obj && obj.providers) || [];
+            let ids = [];
+            let defaults = (obj && obj.default) || {
             };
-            var modelsByProvider = {
+            let modelsByProvider = {
             };
-            for (var i = 0; i < providers.length; i++) {
-                var provider = providers[i];
-                var providerId = provider && provider.id ? provider.id : (provider && provider.name ? provider.name : "");
+            for (let i = 0; i < providers.length; i++) {
+                let provider = providers[i];
+                let providerId = provider && provider.id ? provider.id : (provider && provider.name ? provider.name : "");
                 if (!providerId)
                     continue;
 
@@ -822,12 +822,12 @@ KCM.SimpleKCM {
                 discoveryStatus = "OpenCode server is reachable, but it returned no configured providers.";
                 return ;
             }
-            var selectedProvider = activeOpenCodeProvider();
+            let selectedProvider = activeOpenCodeProvider();
             if (ids.indexOf(selectedProvider) < 0)
                 selectedProvider = ids[0];
 
-            var rememberedModel = openCodeModelValueField.text || "";
-            var fallbackModel = defaults[selectedProvider] || "";
+            let rememberedModel = openCodeModelValueField.text || "";
+            let fallbackModel = defaults[selectedProvider] || "";
             syncOpenCodeProviderSelection(selectedProvider, rememberedModel || fallbackModel);
             discoveryStatus = "OpenCode server reachable. Loaded " + ids.length + " providers from /config/providers.";
         }, function(err) {
@@ -836,7 +836,7 @@ KCM.SimpleKCM {
     }
 
     function probeOpenCodeModels(baseUrl, providerId) {
-        var selectedProvider = providerId || activeOpenCodeProvider();
+        let selectedProvider = providerId || activeOpenCodeProvider();
         if (!selectedProvider) {
             openCodeModelCandidates = [];
             openCodeModelSearch = "";
@@ -849,20 +849,20 @@ KCM.SimpleKCM {
     }
 
     function refreshRunningOpenCodeSessions() {
-        var baseUrl = openCodeUrlField.text;
-        var rootUrl = openCodeServerRoot(baseUrl);
-        var urlSessions = rootUrl + "/session";
-        var urlStatus = rootUrl + "/session/status";
+        let baseUrl = openCodeUrlField.text;
+        let rootUrl = openCodeServerRoot(baseUrl);
+        let urlSessions = rootUrl + "/session";
+        let urlStatus = rootUrl + "/session/status";
         
         openCodeSessionsStatus = translate("Loading active OpenCode sessions...");
         requestJson(urlStatus, {}, function(statusMap) {
             requestJson(urlSessions, {}, function(sessionsArray) {
                 if (Array.isArray(sessionsArray)) {
-                    var filtered = [];
-                    for (var i = 0; i < sessionsArray.length; i++) {
-                        var s = sessionsArray[i];
+                    let filtered = [];
+                    for (let i = 0; i < sessionsArray.length; i++) {
+                        let s = sessionsArray[i];
                         if (s && s.id && statusMap && statusMap[s.id]) {
-                            var statusObj = statusMap[s.id];
+                            let statusObj = statusMap[s.id];
                             if (statusObj && statusObj.type !== "idle") {
                                 filtered.push(s);
                             }
@@ -885,19 +885,19 @@ KCM.SimpleKCM {
     }
 
     function killRunningOpenCodeSession(sessionId) {
-        var baseUrl = openCodeUrlField.text;
+        let baseUrl = openCodeUrlField.text;
         // Refuse any session id that does not match the expected
         // character set. This blocks path traversal (`../`) and query
         // string injection (`?evil=…`).
-        var safeSessionId = Sec.validateSessionId(sessionId);
+        let safeSessionId = Sec.validateSessionId(sessionId);
         if (safeSessionId === "") {
             openCodeSessionsStatus = translate("Refusing to delete session: invalid id.");
             return;
         }
-        var url = openCodeServerRoot(baseUrl) + "/session/" + safeSessionId;
+        let url = openCodeServerRoot(baseUrl) + "/session/" + safeSessionId;
         openCodeSessionsStatus = translate("Killing session %1...").arg(safeSessionId);
 
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         xhr.open("DELETE", url, true);
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
@@ -923,10 +923,10 @@ KCM.SimpleKCM {
         if (!isBulk)
             cancelKeyringOps();
 
-        var walletName = effectiveWalletName();
-        var keyName = "kai-chat-" + targetId + "-api-key";
-        var cmd = walletWriteCommand(walletName, keyName, value);
-        var ops = page.pendingOps;
+        let walletName = effectiveWalletName();
+        let keyName = "kai-chat-" + targetId + "-api-key";
+        let cmd = walletWriteCommand(walletName, keyName, value);
+        let ops = page.pendingOps;
         ops[cmd] = {
             "mode": "store",
             "target": targetId,
@@ -937,7 +937,7 @@ KCM.SimpleKCM {
     }
 
     function saveKey(targetId, value) {
-        var val = (value || "").trim();
+        let val = (value || "").trim();
         if (cfg_keyStorageMode === 1)
             syncKeysToDisk();
         else if (cfg_keyStorageMode === 2)
@@ -948,10 +948,10 @@ KCM.SimpleKCM {
         if (!isBulk)
             cancelKeyringOps();
 
-        var walletName = effectiveWalletName();
-        var keyName = "kai-chat-" + targetId + "-api-key";
-        var cmd = walletReadCommand(walletName, keyName);
-        var ops = page.pendingOps;
+        let walletName = effectiveWalletName();
+        let keyName = "kai-chat-" + targetId + "-api-key";
+        let cmd = walletReadCommand(walletName, keyName);
+        let ops = page.pendingOps;
         ops[cmd] = {
             "mode": "load",
             "target": targetId,
@@ -962,7 +962,7 @@ KCM.SimpleKCM {
     }
 
     function applyLoadedKey(targetId, secretValue) {
-        var normalized = (secretValue || "").trim();
+        let normalized = (secretValue || "").trim();
         if (normalized === "")
             return ;
 
@@ -973,7 +973,7 @@ KCM.SimpleKCM {
         if (/^__KAI_(?:LOAD|INIT|STATUS|BULK)__:/.test(normalized))
             return ;
 
-        var before = apiKeyForTarget(targetId);
+        let before = apiKeyForTarget(targetId);
         if (targetId === "openai")
             apiKeyField.text = normalized;
         else if (targetId === "anthropic")
@@ -1010,7 +1010,7 @@ KCM.SimpleKCM {
             mimoApiKeyField.text = normalized;
         else if (targetId === "maritaca")
             maritacaApiKeyField.text = normalized;
-        var after = apiKeyForTarget(targetId);
+        let after = apiKeyForTarget(targetId);
         if (before !== after && providerBox.currentValue === targetId)
             refreshCurrentProviderModels();
 
@@ -1080,9 +1080,9 @@ KCM.SimpleKCM {
 
     function kwalletLoadAll() {
         cancelKeyringOps();
-        var walletName = effectiveWalletName();
+        let walletName = effectiveWalletName();
         debugLog("[KAI-DEBUG] kwalletLoadAll walletName:", walletName);
-        var cmd = walletBulkReadCommand(walletName) + " #kwallet-refresh-all";
+        let cmd = walletBulkReadCommand(walletName) + " #kwallet-refresh-all";
         // Scrub the full pipeline (which includes the wallet/folder/appid
         // single-quote variables) before logging, so debug-mode output
         // does not contain the live wallet identifier.
@@ -1093,10 +1093,10 @@ KCM.SimpleKCM {
 
     function kwalletStoreAll() {
         cancelKeyringOps();
-        var ids = keyTargetIds();
-        var count = 0;
-        for (var i = 0; i < ids.length; i++) {
-            var value = (apiKeyForTarget(ids[i]) || "").trim();
+        let ids = keyTargetIds();
+        let count = 0;
+        for (let i = 0; i < ids.length; i++) {
+            let value = (apiKeyForTarget(ids[i]) || "").trim();
             if (value === "")
                 continue;
 
@@ -1140,22 +1140,22 @@ KCM.SimpleKCM {
         // Resolve the helper path and refuse anything outside the
         // package's `contents/ui/` directory. See the same function in
         // main.qml for the rationale.
-        var urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
+        let urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
         if (urlStr.indexOf("file://") === 0)
             urlStr = urlStr.substring(7);
 
-        var path = decodeURIComponent(urlStr);
+        let path = decodeURIComponent(urlStr);
         if (path.indexOf("/contents/ui/") === -1)
             return "";
         return path;
     }
 
     function loadKeysFromPlainConfig() {
-        var payload = {
+        let payload = {
             "configPath": configFilePath
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " load_config_keys " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " load_config_keys " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource(cmd + " #plainconfig-load");
     }
 
@@ -1181,7 +1181,7 @@ KCM.SimpleKCM {
     }
 
     function writeKeysToDiskAndOpen() {
-        var keysPayload = {
+        let keysPayload = {
             "apiKey": apiKeyField.text,
             "anthropicApiKey": anthropicApiKeyField.text,
             "groqApiKey": groqApiKeyField.text,
@@ -1201,13 +1201,13 @@ KCM.SimpleKCM {
             "mimoApiKey": mimoApiKeyField.text,
             "maritacaApiKey": maritacaApiKeyField.text
         };
-        var payload = {
+        let payload = {
             "configPath": configFilePath,
             "keys": keysPayload
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var safeConfigPath = Sec.validateFilePath(configFilePath);
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let safeConfigPath = Sec.validateFilePath(configFilePath);
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
         if (safeConfigPath !== "")
             cmd += " && xdg-open " + Sec.quoteForShell(safeConfigPath);
         utilityDs.connectSource(cmd + " #open-config");
@@ -1216,7 +1216,7 @@ KCM.SimpleKCM {
     function syncKeysToDisk() {
         // Write current key fields to ~/.config/kdeaichatrc (plain-config extra copy).
         // cfg_ aliases handle saving to the Plasma config automatically on OK/Apply.
-        var keysPayload = {
+        let keysPayload = {
             "apiKey": apiKeyField.text,
             "anthropicApiKey": anthropicApiKeyField.text,
             "groqApiKey": groqApiKeyField.text,
@@ -1236,22 +1236,22 @@ KCM.SimpleKCM {
             "mimoApiKey": mimoApiKeyField.text,
             "maritacaApiKey": maritacaApiKeyField.text
         };
-        var payload = {
+        let payload = {
             "configPath": configFilePath,
             "keys": keysPayload
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource(cmd + " #plainconfig-sync");
     }
 
     function clearKeysFromDisk() {
-        var payload = {
+        let payload = {
             "configPath": configFilePath,
             "keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " clear_config_keys " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " clear_config_keys " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource(cmd + " #plainconfig-clear");
         plasmoid.configuration.apiKey = "";
         plasmoid.configuration.anthropicApiKey = "";
@@ -1346,10 +1346,10 @@ KCM.SimpleKCM {
     }
 
     function cancelKeyringOps() {
-        var running = keyringDs.connectedSources;
-        for (var i = 0; i < running.length; i++) keyringDs.disconnectSource(running[i])
-        var utilityRunning = utilityDs.connectedSources;
-        for (var j = 0; j < utilityRunning.length; j++) {
+        let running = keyringDs.connectedSources;
+        for (let i = 0; i < running.length; i++) keyringDs.disconnectSource(running[i])
+        let utilityRunning = utilityDs.connectedSources;
+        for (let j = 0; j < utilityRunning.length; j++) {
             if (utilityRunning[j].indexOf("#kwallet-") >= 0)
                 utilityDs.disconnectSource(utilityRunning[j]);
 
@@ -1451,20 +1451,20 @@ KCM.SimpleKCM {
     // ── Scheduler helpers ──────────────────────────────────────────────────────
     property string _lastSchedSetupPayload: ""
     function schedAutoSetup() {
-        var srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
-        var serviceContent = "[Unit]\nDescription=KDE AI Chat Scheduler Daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\nRestart=on-failure\nRestartSec=30\nStandardOutput=journal\nStandardError=journal\nExecReload=/bin/kill -HUP $MAINPID\nKillMode=process\n\n[Install]\nWantedBy=default.target\n";
-        var payload = {
+        let srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
+        let serviceContent = "[Unit]\nDescription=KDE AI Chat Scheduler Daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\nRestart=on-failure\nRestartSec=30\nStandardOutput=journal\nStandardError=journal\nExecReload=/bin/kill -HUP $MAINPID\nKillMode=process\n\n[Install]\nWantedBy=default.target\n";
+        let payload = {
             "srcPath": srcPath,
             "destPath": schedulerScriptPath,
             "serviceContent": serviceContent
         };
-        var payloadStr = JSON.stringify(payload);
+        let payloadStr = JSON.stringify(payload);
         // Audit 5.6: skip I/O when content is unchanged since last run.
         if (payloadStr === page._lastSchedSetupPayload)
             return;
         page._lastSchedSetupPayload = payloadStr;
-        var b64Payload = base64Encode(payloadStr);
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(payloadStr);
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
     }
 
@@ -1473,10 +1473,10 @@ KCM.SimpleKCM {
     }
 
     function schedLoadSchedules() {
-        var safePath = Sec.validateFilePath(schedulesFilePath);
+        let safePath = Sec.validateFilePath(schedulesFilePath);
         if (safePath === "")
             return;
-        var cmd = "cat " + Sec.quoteForShell(safePath) + " 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
+        let cmd = "cat " + Sec.quoteForShell(safePath) + " 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
         utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-load");
     }
 
@@ -1491,28 +1491,28 @@ KCM.SimpleKCM {
 
     function schedSaveAll() {
         page.schedSaving = true;
-        var all = [];
+        let all = [];
         // Add active
-        for (var i = 0; i < page.schedulerList.length; i++) {
-            var s = Object.assign({}, page.schedulerList[i]);
+        for (let i = 0; i < page.schedulerList.length; i++) {
+            let s = Object.assign({}, page.schedulerList[i]);
             s.archived = false;
             all.push(s);
         }
         // Add archived
-        for (var j = 0; j < page.schedulerArchivedList.length; j++) {
-            var sa = Object.assign({}, page.schedulerArchivedList[j]);
+        for (let j = 0; j < page.schedulerArchivedList.length; j++) {
+            let sa = Object.assign({}, page.schedulerArchivedList[j]);
             sa.archived = true;
             all.push(sa);
         }
 
-        var limit = page.getHistoryLimitValue();
-        var hist = page.schedulerHistory || [];
+        let limit = page.getHistoryLimitValue();
+        let hist = page.schedulerHistory || [];
         if (hist.length > limit) {
             hist = hist.slice(hist.length - limit);
             page.schedulerHistory = hist;
         }
 
-        var payload = {
+        let payload = {
             "version": 1,
             "schedules": all,
             "history": hist,
@@ -1521,17 +1521,17 @@ KCM.SimpleKCM {
                 "historyLimit": limit
             }
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.quoteForShell(b64Payload);
+        let b64Payload = base64Encode(JSON.stringify(payload));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-save");
     }
 
     function schedTriggerNow(index) {
-        var copy = page.schedulerList.slice();
+        let copy = page.schedulerList.slice();
         if (index < 0 || index >= copy.length)
             return ;
 
-        var s = JSON.parse(JSON.stringify(copy[index]));
+        let s = JSON.parse(JSON.stringify(copy[index]));
         s.triggerNow = true;
         copy[index] = s;
         page.schedulerList = copy;
@@ -1540,7 +1540,7 @@ KCM.SimpleKCM {
 
     function schedMakeUuid() {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0;
+            let r = Math.random() * 16 | 0;
             return (c === "x" ? r : (r & 3 | 8)).toString(16);
         });
     }
@@ -1548,7 +1548,7 @@ KCM.SimpleKCM {
     function openPrefilledScheduleDialog(pId, pName) {
         if (!pId || pId === "")
             return;
-        var now = new Date();
+        let now = new Date();
         now.setMinutes(now.getMinutes() + 5);
         scheduleDialog.draft = {
             "id": page.schedMakeUuid(),
@@ -1584,7 +1584,7 @@ KCM.SimpleKCM {
     }
 
     function schedDefaultBaseUrl(provider) {
-        var urls = {
+        let urls = {
             "openai": "https://api.openai.com/v1",
             "anthropic": "https://api.anthropic.com/v1",
             "groq": "https://api.groq.com/openai/v1",
@@ -1614,14 +1614,14 @@ KCM.SimpleKCM {
         if (!expr)
             return "No schedule";
 
-        var parts = expr.trim().split(/\s+/);
+        let parts = expr.trim().split(/\s+/);
         if (parts.length !== 5)
             return expr;
 
-        var min = parts[0], hr = parts[1], dom = parts[2], mon = parts[3], dow = parts[4];
+        let min = parts[0], hr = parts[1], dom = parts[2], mon = parts[3], dow = parts[4];
         if (min === "0" && hr !== "*" && dom === "*" && mon === "*") {
-            var h = parseInt(hr), ampm = h >= 12 ? "PM" : "AM", h12 = h % 12 || 12;
-            var dayStr = dow === "*" ? "every day" : dow === "1-5" ? "weekdays" : dow === "6,0" || dow === "0,6" ? "weekends" : "on selected days";
+            let h = parseInt(hr), ampm = h >= 12 ? "PM" : "AM", h12 = h % 12 || 12;
+            let dayStr = dow === "*" ? "every day" : dow === "1-5" ? "weekdays" : dow === "6,0" || dow === "0,6" ? "weekends" : "on selected days";
             return "Daily at " + h12 + ":00 " + ampm + " " + dayStr;
         }
         if (hr.startsWith && hr.startsWith("*/"))
@@ -1643,12 +1643,12 @@ KCM.SimpleKCM {
         else if (plasmoid.configuration.keyStorageMode === 0)
             clearAllApiKeyFields();
         if (openCodeToggle.checked) {
-            var savedProvider = openCodeProviderValueField.text || "";
-            var savedModel = openCodeModelValueField.text || "";
+            let savedProvider = openCodeProviderValueField.text || "";
+            let savedModel = openCodeModelValueField.text || "";
             if (savedProvider) {
                 openCodeProviderCandidates = [savedProvider];
                 if (savedModel) {
-                    var mmap = {};
+                    let mmap = {};
                     mmap[savedProvider] = [savedModel];
                     openCodeProviderModelMap = mmap;
                     openCodeModelCandidates = [savedModel];
@@ -1670,8 +1670,8 @@ KCM.SimpleKCM {
         // Poll immediately so the status badge updates instantly
         pollSchedulerState();
         // If opened from chat via "Create Schedule", immediately open the scheduling dialog prefilled
-        var pId = "";
-        var pName = "Chat";
+        let pId = "";
+        let pName = "Chat";
         if (typeof page.cfg_preselectedChatId !== "undefined" && page.cfg_preselectedChatId !== "") {
             pId = page.cfg_preselectedChatId;
             pName = page.cfg_preselectedChatName || "Chat";
@@ -1687,9 +1687,9 @@ KCM.SimpleKCM {
     Connections {
         target: plasmoid.configuration
         function onPreselectedChatIdChanged() {
-            var pId = plasmoid.configuration.preselectedChatId;
+            let pId = plasmoid.configuration.preselectedChatId;
             if (pId && pId !== "") {
-                var pName = plasmoid.configuration.preselectedChatName || "Chat";
+                let pName = plasmoid.configuration.preselectedChatName || "Chat";
                 openPrefilledScheduleDialog(pId, pName);
             }
         }
@@ -1723,7 +1723,7 @@ KCM.SimpleKCM {
     WheelHandler {
         acceptedModifiers: Qt.ControlModifier
         onWheel: function(event) {
-            var step = event.angleDelta.y / 800;
+            let step = event.angleDelta.y / 800;
             page.configZoom = Math.max(0.75, Math.min(1.5, page.configZoom + step));
             event.accepted = true;
         }
@@ -1735,11 +1735,11 @@ KCM.SimpleKCM {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var stdout = (data["stdout"] || "").trim();
-            var stderr = (data["stderr"] || "").trim();
-            var op = page.pendingOps[sourceName];
+            let stdout = (data["stdout"] || "").trim();
+            let stderr = (data["stderr"] || "").trim();
+            let op = page.pendingOps[sourceName];
             if (op) {
-                var copy = page.pendingOps;
+                let copy = page.pendingOps;
                 delete copy[sourceName];
                 page.pendingOps = copy;
             }
@@ -1749,7 +1749,7 @@ KCM.SimpleKCM {
             }
             if (op.mode === "load") {
                 if (stdout.indexOf("__KAI_SECRET__:") === 0) {
-                    var loadedValue = stdout.slice("__KAI_SECRET__:".length);
+                    let loadedValue = stdout.slice("__KAI_SECRET__:".length);
                     page.applyLoadedKey(op.target, loadedValue);
                     page.keyringStatus = op.bulk ? "Refreshing API keys from KWallet..." : ("Loaded key for " + op.target + " from KWallet.");
                 } else if (!op.bulk) {
@@ -1788,8 +1788,8 @@ KCM.SimpleKCM {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var out = (data["stdout"] || "").trim();
-            var err = (data["stderr"] || "").trim();
+            let out = (data["stdout"] || "").trim();
+            let err = (data["stderr"] || "").trim();
             if (sourceName.indexOf("kwallet-wallet-list") >= 0) {
                 if (out.indexOf("__NO_QDBUS__") >= 0) {
                     availableWalletNames = [];
@@ -1819,19 +1819,19 @@ KCM.SimpleKCM {
                 } else if (out === "__KAI_BULK__:NO_FOLDER") {
                     keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet.";
                 } else {
-                    var lines = out === "" ? [] : out.split(/\n+/);
-                    var loaded = 0;
-                    for (var i = 0; i < lines.length; i++) {
+                    let lines = out === "" ? [] : out.split(/\n+/);
+                    let loaded = 0;
+                    for (let i = 0; i < lines.length; i++) {
                         if (lines[i].indexOf("__KAI_SECRET__:") !== 0)
                             continue;
 
-                        var rest = lines[i].slice("__KAI_SECRET__:".length);
-                        var sep = rest.indexOf(":");
+                        let rest = lines[i].slice("__KAI_SECRET__:".length);
+                        let sep = rest.indexOf(":");
                         if (sep <= 0)
                             continue;
 
-                        var targetId = rest.slice(0, sep);
-                        var secretValue = rest.slice(sep + 1);
+                        let targetId = rest.slice(0, sep);
+                        let secretValue = rest.slice(sep + 1);
                         applyLoadedKey(targetId, secretValue);
                         if ((secretValue || "").trim() !== "")
                             loaded++;
@@ -1851,7 +1851,7 @@ KCM.SimpleKCM {
                 Qt.callLater(page.detectWallets);
             } else if (sourceName.indexOf("kwallet-status-check") >= 0) {
                 if (out.indexOf("__KAI_STATUS__:NO_WALLET:") === 0) {
-                    var walletList = out.slice("__KAI_STATUS__:NO_WALLET:".length).replace(/\n/g, ", ");
+                    let walletList = out.slice("__KAI_STATUS__:NO_WALLET:".length).replace(/\n/g, ", ");
                     keyringStatus = walletList !== "" ? ("Configured wallet not found. Available wallets: " + walletList) : "Configured wallet not found.";
                 } else if (out === "__KAI_STATUS__:OPEN_FAILED")
                     keyringStatus = "KWallet could not open the selected wallet.";
@@ -1863,7 +1863,7 @@ KCM.SimpleKCM {
                     keyringStatus = out !== "" ? out : (err !== "" ? err : "Wallet check finished.");
             } else if (sourceName.indexOf("plainconfig-load") >= 0) {
                 try {
-                    var keys = JSON.parse(out);
+                    let keys = JSON.parse(out);
                     applyPlainConfigKeys(keys);
                     keyringStatus = "Keys successfully reloaded from the physical configuration file.";
                 } catch (e) {
@@ -1894,7 +1894,7 @@ KCM.SimpleKCM {
             } else if (sourceName.indexOf("mem-usage-") >= 0) {
                 page.memRefreshing = false;
                 try {
-                    var memData = JSON.parse(out.trim());
+                    let memData = JSON.parse(out.trim());
                     page.memPlasma = memData.plasmashell || 0;
                     page.memScheduler = memData.scheduler || 0;
                     page.memOpenCode = memData.opencode || 0;
@@ -1911,11 +1911,11 @@ KCM.SimpleKCM {
             } else if (sourceName.indexOf("sched-load") >= 0) {
                 if (out !== "") {
                     try {
-                        var parsed = JSON.parse(out);
-                        var allSchedules = parsed.schedules || [];
-                        var active = [];
-                        var archived = [];
-                        for (var i = 0; i < allSchedules.length; i++) {
+                        let parsed = JSON.parse(out);
+                        let allSchedules = parsed.schedules || [];
+                        let active = [];
+                        let archived = [];
+                        for (let i = 0; i < allSchedules.length; i++) {
                             if (allSchedules[i]) {
                                 if (allSchedules[i].archived) {
                                     archived.push(allSchedules[i]);
@@ -1926,8 +1926,8 @@ KCM.SimpleKCM {
                         }
                         page.schedulerList = active;
                         page.schedulerArchivedList = archived;
-                        var hist = parsed.history || [];
-                        var limit = page.getHistoryLimitValue();
+                        let hist = parsed.history || [];
+                        let limit = page.getHistoryLimitValue();
                         if (hist.length > limit) {
                             hist = hist.slice(hist.length - limit);
                         }
@@ -1959,7 +1959,7 @@ KCM.SimpleKCM {
             id: formLayout
 
             readonly property real boundedWidth: {
-                var hostW = zoomHost.width;
+                let hostW = zoomHost.width;
                 if (hostW <= 0)
                     return Kirigami.Units.gridUnit * 28;
 
@@ -1981,7 +1981,7 @@ KCM.SimpleKCM {
                 if (openCodeToggle.checked)
                     return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Uses Opencode)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. (Optional) Enable <b>Auto-kill session</b> and set the inactivity delay to stop the OpenCode server to save memory when not in use. It will automatically restart when you type a message in the chat.<br/>" + "7. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
 
-                var provider = providerBox.currentValue || "openai";
+                let provider = providerBox.currentValue || "openai";
                 if (provider === "openai")
                     return translate("<b>OpenAI Setup Guide:</b><br/>" + "1. Get your API key at <b>platform.openai.com → API Keys</b> (starts with <code>sk-</code>).<br/>" + "2. Paste it into the <b>OpenAI key</b> field below.<br/>" + "3. Choose a model from the <b>OpenAI model</b> dropdown or type one (e.g. <code>gpt-4o</code>, <code>gpt-4o-mini</code>).<br/>" + "4. (Optional) Override the base URL only if using a compatible proxy.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
                 else if (provider === "anthropic")
@@ -2027,7 +2027,7 @@ KCM.SimpleKCM {
                 return translate("<b>Provider Setup Guide:</b> Select a provider from the <b>Default provider</b> dropdown above to see setup instructions.");
             }
             readonly property string apiGuideText: {
-                var storageIdx = storageModeCombo.currentIndex;
+                let storageIdx = storageModeCombo.currentIndex;
                 if (storageIdx === 0)
                     return translate("<b>API Key Storage Guide:</b><br/>" + "• Current mode: <b>🔒 Session-only memory</b>.<br/>" + "• Enter your API keys in the provider fields below. No extra steps needed — keys are held in memory only.<br/>" + "• Keys are wiped completely when the widget closes. You must re-enter them every session.");
                 else if (storageIdx === 1)
@@ -2054,7 +2054,7 @@ KCM.SimpleKCM {
                         "• (Optional) Make sure to toggle <b>Auto-start at login</b> to <b>ON</b> if you want automated schedules to trigger even when you don't open settings.");
                 }
 
-                var count = page.schedulerList.length;
+                let count = page.schedulerList.length;
                 if (count === 0) {
                     return translate("<b>Schedules Guide:</b><br/>" +
                         "• <b>Status: Active &amp; running!</b><br/>" +
@@ -2062,8 +2062,8 @@ KCM.SimpleKCM {
                         "• <b>Action:</b> Click <b>Create Schedule</b> below to set up your first automated daily or one-time prompt!");
                 }
 
-                var enabledCount = 0;
-                for (var i = 0; i < count; i++) {
+                let enabledCount = 0;
+                for (let i = 0; i < count; i++) {
                     if (page.schedulerList[i] && page.schedulerList[i].enabled) {
                         enabledCount++;
                     }
@@ -2202,7 +2202,7 @@ KCM.SimpleKCM {
                         "text": "Spanish (Español)"
                     }]
                     currentIndex: {
-                        for (var i = 0; i < model.length; i++) {
+                        for (let i = 0; i < model.length; i++) {
                             if (model[i].value === cfg_language)
                                 return i;
 
@@ -2451,7 +2451,7 @@ KCM.SimpleKCM {
                     "text": "Maritaca AI"
                 }]
                 currentIndex: {
-                    for (var i = 0; i < model.length; i++) {
+                    for (let i = 0; i < model.length; i++) {
                         if (model[i].value === cfg_provider)
                             return i;
 
@@ -2724,7 +2724,7 @@ KCM.SimpleKCM {
                         // etc.), so we do *not* strip shell metacharacters.
                         // We only escape single quotes for the outer
                         // `sh -lc '…'` wrapper.
-                        var cmd = "sh -lc " + Sec.quoteForShell(openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.");
+                        let cmd = "sh -lc " + Sec.quoteForShell(openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.");
                         utilityDs.connectSource(cmd + " #opencode-start");
                     }
                 }
@@ -2741,7 +2741,7 @@ KCM.SimpleKCM {
                     onClicked: {
                         discoveryStatus = "Running OpenCode stop command...";
                         // User-editable stop command — see note above.
-                        var cmd = "sh -lc " + Sec.quoteForShell(openCodeStopCommandField.text || "pkill -f opencode");
+                        let cmd = "sh -lc " + Sec.quoteForShell(openCodeStopCommandField.text || "pkill -f opencode");
                         utilityDs.connectSource(cmd + " #opencode-stop");
                     }
                 }
@@ -2958,12 +2958,12 @@ KCM.SimpleKCM {
 
                         QQC2.Label {
                             text: {
-                                var sId = modelData.id;
-                                var localSessions = [];
+                                let sId = modelData.id;
+                                let localSessions = [];
                                 try {
                                     localSessions = JSON.parse(plasmoid.configuration.chatSessionsJson || "[]");
                                 } catch(e) { console.error("Error parsing chatSessionsJson: " + e); }
-                                for (var i = 0; i < localSessions.length; i++) {
+                                for (let i = 0; i < localSessions.length; i++) {
                                     if (localSessions[i] && localSessions[i].openCodeSessionId === sId) {
                                         return localSessions[i].name || localSessions[i].id || "Matched";
                                     }
@@ -2987,7 +2987,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.TextField {
-                visible: openCodeToggle.checked && (false)
+                visible: false
                 Kirigami.FormData.label: filteredOpenCodeModels.length > 0 ? "Custom model:" : "OpenCode model (optional):"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -3084,7 +3084,7 @@ KCM.SimpleKCM {
                 id: modelField
 
                 Kirigami.FormData.label: translate("OpenAI model:")
-                visible: page.providerModelVisible("openai") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "gpt-4o-mini"
@@ -3132,7 +3132,7 @@ KCM.SimpleKCM {
                 id: anthropicModelField
 
                 Kirigami.FormData.label: translate("Anthropic model:")
-                visible: page.providerModelVisible("anthropic") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "claude-3-5-sonnet-latest"
@@ -3188,7 +3188,7 @@ KCM.SimpleKCM {
                 id: groqModelField
 
                 Kirigami.FormData.label: translate("Groq model:")
-                visible: page.providerModelVisible("groq") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "llama-3.3-70b-versatile"
@@ -3244,7 +3244,7 @@ KCM.SimpleKCM {
                 id: deepSeekModelField
 
                 Kirigami.FormData.label: translate("DeepSeek model:")
-                visible: page.providerModelVisible("deepseek") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "deepseek-v4-pro"
@@ -3300,7 +3300,7 @@ KCM.SimpleKCM {
                 id: miniMaxModelField
 
                 Kirigami.FormData.label: translate("MiniMax model:")
-                visible: page.providerModelVisible("minimax") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "MiniMax-M2.7"
@@ -3356,7 +3356,7 @@ KCM.SimpleKCM {
                 id: fireworksModelField
 
                 Kirigami.FormData.label: translate("Fireworks model:")
-                visible: page.providerModelVisible("fireworks") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "accounts/fireworks/models/llama-v3p3-70b-instruct"
@@ -3412,7 +3412,7 @@ KCM.SimpleKCM {
                 id: googleModelField
 
                 Kirigami.FormData.label: translate("Google model:")
-                visible: page.providerModelVisible("google") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "gemini-3-flash-preview"
@@ -3468,7 +3468,7 @@ KCM.SimpleKCM {
                 id: openRouterModelField
 
                 Kirigami.FormData.label: translate("OpenRouter model:")
-                visible: page.providerModelVisible("openrouter") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "openai/gpt-4o-mini"
@@ -3524,7 +3524,7 @@ KCM.SimpleKCM {
                 id: mistralModelField
 
                 Kirigami.FormData.label: translate("Mistral model:")
-                visible: page.providerModelVisible("mistral") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "mistral-small-latest"
@@ -3580,7 +3580,7 @@ KCM.SimpleKCM {
                 id: cloudflareModelField
 
                 Kirigami.FormData.label: translate("Cloudflare model:")
-                visible: page.providerModelVisible("cloudflare") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "@cf/meta/llama-3.1-8b-instruct"
@@ -3636,7 +3636,7 @@ KCM.SimpleKCM {
                 id: nvidiaModelField
 
                 Kirigami.FormData.label: translate("NVIDIA NIM model:")
-                visible: page.providerModelVisible("nvidia") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "meta/llama-3.1-70b-instruct"
@@ -3692,7 +3692,7 @@ KCM.SimpleKCM {
                 id: huggingFaceModelField
 
                 Kirigami.FormData.label: translate("HF model:")
-                visible: page.providerModelVisible("huggingface") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "openai/gpt-oss-120b:groq"
@@ -3748,7 +3748,7 @@ KCM.SimpleKCM {
                 id: xaiModelField
 
                 Kirigami.FormData.label: translate("xAI model:")
-                visible: page.providerModelVisible("xai") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "grok-2-latest"
@@ -3768,7 +3768,7 @@ KCM.SimpleKCM {
                 id: lmStudioModelField
 
                 Kirigami.FormData.label: translate("LM Studio model:")
-                visible: page.providerModelVisible("lmstudio") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "Load a model in LM Studio, then refresh models"
@@ -3788,7 +3788,7 @@ KCM.SimpleKCM {
                 id: localModelField
 
                 Kirigami.FormData.label: translate("Local model:")
-                visible: page.providerModelVisible("local") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "llama3.2"
@@ -3808,7 +3808,7 @@ KCM.SimpleKCM {
                 id: ollamaModelField
 
                 Kirigami.FormData.label: translate("Ollama model:")
-                visible: page.providerModelVisible("ollama") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "llama3.2"
@@ -3864,7 +3864,7 @@ KCM.SimpleKCM {
                 id: litellmModelField
 
                 Kirigami.FormData.label: translate("LiteLLM model:")
-                visible: page.providerModelVisible("litellm") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "gpt-4o-mini"
@@ -3932,7 +3932,7 @@ KCM.SimpleKCM {
                 id: qwenModelField
 
                 Kirigami.FormData.label: translate("Qwen model:")
-                visible: page.providerModelVisible("qwen") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "qwen-max"
@@ -4000,7 +4000,7 @@ KCM.SimpleKCM {
                 id: moonshotModelField
 
                 Kirigami.FormData.label: translate("Moonshot model:")
-                visible: page.providerModelVisible("moonshot") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "moonshot-v1-8k"
@@ -4068,7 +4068,7 @@ KCM.SimpleKCM {
                 id: mimoModelField
 
                 Kirigami.FormData.label: translate("MiMo model:")
-                visible: page.providerModelVisible("mimo") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "mimo-v2-pro"
@@ -4136,7 +4136,7 @@ KCM.SimpleKCM {
                 id: maritacaModelField
 
                 Kirigami.FormData.label: translate("Maritaca model:")
-                visible: page.providerModelVisible("maritaca") && (false)
+                visible: false
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 placeholderText: "sabia-4"
@@ -4567,7 +4567,7 @@ KCM.SimpleKCM {
                     enabled: !keyringBusy
                     onClicked: {
                         cancelKeyringOps();
-                        var walletName = effectiveWalletName();
+                        let walletName = effectiveWalletName();
                         keyringStatus = "Requesting wallet creation/open: " + walletName + "...";
                         utilityDs.connectSource(walletInitCommand(walletName) + " #kwallet-create");
                     }
@@ -4691,7 +4691,7 @@ KCM.SimpleKCM {
                     if (!page.pageReady)
                         return ;
 
-                    var verb = checked ? "enable" : "disable";
+                    let verb = checked ? "enable" : "disable";
                     utilityDs.connectSource("sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable");
                 }
             }
@@ -4733,12 +4733,12 @@ KCM.SimpleKCM {
 
                     if (checked) {
                         page.schedulerStatus = "Starting…";
-                        var safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
-                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " &) ; " + "echo SCHED_START_OK";
+                        let safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
+                        let cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " &) ; " + "echo SCHED_START_OK";
                         utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-start-" + Date.now());
                     } else {
                         page.schedulerStatus = "Stopping…";
-                        var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
+                        let cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
                         utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-stop-" + Date.now());
                     }
                     schedPollTimer.restart();
@@ -4768,8 +4768,8 @@ KCM.SimpleKCM {
                     onClicked: {
                         page.schedulerStatus = page.schedulerDaemonRunning ? "Restarting…" : "Starting…";
                         page.schedulerDaemonRunning = false;
-                        var safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
-                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
+                        let safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
+                        let cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
                         utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-start-" + Date.now());
                         schedPollTimer.restart();
                     }
@@ -4800,7 +4800,7 @@ KCM.SimpleKCM {
                     highlighted: true
                     Layout.fillWidth: true
                     onClicked: {
-                        var now = new Date();
+                        let now = new Date();
                         now.setMinutes(now.getMinutes() + 5);
                         scheduleDialog.draft = {
                             "id": page.schedMakeUuid(),
@@ -4841,7 +4841,7 @@ KCM.SimpleKCM {
                     icon.name: "document-open"
                     Layout.fillWidth: true
                     onClicked: {
-                        var safeSchedPath = Sec.validateFilePath(schedulesFilePath);
+                        let safeSchedPath = Sec.validateFilePath(schedulesFilePath);
                         if (safeSchedPath === "")
                             return;
                         utilityDs.connectSource("xdg-open " + Sec.quoteForShell(safeSchedPath) + " || kde-open " + Sec.quoteForShell(safeSchedPath) + " || kwrite " + Sec.quoteForShell(safeSchedPath) + " || kate " + Sec.quoteForShell(safeSchedPath) + " || nano " + Sec.quoteForShell(safeSchedPath) + " #open-sched-file");
@@ -4886,7 +4886,7 @@ KCM.SimpleKCM {
                     enabled: !page.memRefreshing
                     onClicked: {
                         page.memRefreshing = true;
-                        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " get_memory_usage";
+                        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " get_memory_usage";
                         utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
                     }
                 }
@@ -5067,12 +5067,12 @@ KCM.SimpleKCM {
                         wrapMode: Text.Wrap
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
                         text: {
-                            var p = customHistoryPathField.text.trim();
+                            let p = customHistoryPathField.text.trim();
                             if (p === "") return "";
                             if (p.indexOf("file://") === 0) {
                                 p = decodeURIComponent(p.slice(7));
                             }
-                            var file = p.endsWith("/") ? p + "kdeaichat_history.json" : p + "/kdeaichat_history.json";
+                            let file = p.endsWith("/") ? p + "kdeaichat_history.json" : p + "/kdeaichat_history.json";
                             return "Chats will be saved to: <b>" + file + "</b><br/>" +
                                    "Your existing chats are <b>automatically exported</b> when you press Apply / OK.";
                         }
@@ -5095,24 +5095,24 @@ KCM.SimpleKCM {
                     enabled: customHistoryPathField.text.trim() !== "" && page.storageExportStatus === ""
                     onClicked: {
                         page.storageExportStatus = "Exporting…";
-                        var dir = customHistoryPathField.text.trim();
+                        let dir = customHistoryPathField.text.trim();
                         if (dir.indexOf("file://") === 0) {
                             dir = decodeURIComponent(dir.slice(7));
                         }
-                        var file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
+                        let file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
                         // Validate the path before embedding it in any
                         // shell command. A user-supplied custom history
                         // path must not be allowed to break out of the
                         // single-quoted Python string.
-                        var safeFile = Sec.validateFilePath(file);
+                        let safeFile = Sec.validateFilePath(file);
                         if (safeFile === "") {
                             page.storageExportStatus = "Refusing to write to unsafe path.";
                             return;
                         }
-                        var jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
+                        let jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
                         // Base64-encode to avoid shell quoting issues (properly handle Unicode)
-                        var b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
-                        var cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(safeFile) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " +
+                        let b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
+                        let cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(safeFile) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " +
                             "open(path, 'w', encoding='utf-8').write(base64.b64decode(" + Sec.quoteForShell(b64) + ").decode('utf-8')); print('OK')\"";
                         utilityDs.connectSource(cmd + " #storage-export-" + Date.now());
                         exportStatusTimer.restart();
@@ -5124,11 +5124,11 @@ KCM.SimpleKCM {
                     icon.name: "folder-open"
                     visible: customHistoryPathField.text.trim() !== ""
                     onClicked: {
-                        var dir = customHistoryPathField.text.trim();
+                        let dir = customHistoryPathField.text.trim();
                         if (dir.indexOf("file://") === 0) {
                             dir = decodeURIComponent(dir.slice(7));
                         }
-                        var safeDir = Sec.validateFilePath(dir);
+                        let safeDir = Sec.validateFilePath(dir);
                         if (safeDir === "")
                             return;
                         utilityDs.connectSource("xdg-open " + Sec.quoteForShell(safeDir) + " #open-storage-dir");
@@ -5211,7 +5211,7 @@ KCM.SimpleKCM {
 
         title: "Select Chat History Directory"
         onAccepted: {
-            var path = selectedFolder.toString();
+            let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0)
                 path = decodeURIComponent(path.slice(7));
 

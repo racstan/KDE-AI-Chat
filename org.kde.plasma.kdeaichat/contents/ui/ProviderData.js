@@ -1,4 +1,4 @@
-var providerData = [
+let providerData = [
     { id: "openai", name: "OpenAI" },
     { id: "anthropic", name: "Anthropic" },
     { id: "groq", name: "Groq" },

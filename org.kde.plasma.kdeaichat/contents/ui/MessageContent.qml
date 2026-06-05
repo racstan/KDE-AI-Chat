@@ -81,7 +81,7 @@ Column {
                     // Only open URLs with a safe scheme. Anything else
                     // (javascript:, data:, file:, custom schemes) is
                     // dropped here as well as in the markdown renderer.
-                    var safe = Sec.validateUrl(link);
+                    let safe = Sec.validateUrl(link);
                     if (safe !== "")
                         Qt.openUrlExternally(safe);
                 }
@@ -198,23 +198,23 @@ Column {
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: "Export table as CSV"
                             onClicked: {
-                                var csv = contentRoot.root.tableMarkdownToCsv(modelData.content || "");
+                                let csv = contentRoot.root.tableMarkdownToCsv(modelData.content || "");
                                 if (contentRoot.root.clipboardHelper) {
                                     contentRoot.root.clipboardHelper.text = csv;
                                     contentRoot.root.clipboardHelper.selectAll();
                                     contentRoot.root.clipboardHelper.copy();
                                 }
                                 if (contentRoot.root.customStorageDs) {
-                                    var ts = new Date().getTime();
+                                    let ts = new Date().getTime();
                                     // Use a sanitized timestamp inside a
                                     // hard-coded prefix; the path is then
                                     // routed through validateFilePath to
                                     // reject any unexpected characters.
-                                    var path = "/tmp/kdeaichat-table-" + ts + ".csv";
-                                    var safePath = Sec.validateFilePath(path);
+                                    let path = "/tmp/kdeaichat-table-" + ts + ".csv";
+                                    let safePath = Sec.validateFilePath(path);
                                     if (safePath === "")
                                         return;
-                                    var safeCsv = Sec.sanitizeForShell(csv);
+                                    let safeCsv = Sec.sanitizeForShell(csv);
                                     contentRoot.root.customStorageDs.connectSource("bash -c " + Sec.quoteForShell("printf '%s' " + safeCsv + " > " + safePath + " && xdg-open " + safePath) + " #csv-export-" + ts);
                                 }
                             }
@@ -233,7 +233,7 @@ Column {
                         selectedTextColor: Kirigami.Theme.highlightedTextColor
                         selectionColor: Kirigami.Theme.highlightColor
                         onLinkActivated: function(link) {
-                            var safe = Sec.validateUrl(link);
+                            let safe = Sec.validateUrl(link);
                             if (safe !== "")
                                 Qt.openUrlExternally(safe);
                         }

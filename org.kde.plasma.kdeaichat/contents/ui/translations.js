@@ -9,7 +9,7 @@ Qt.include("translations_ru.js");
 Qt.include("translations_es.js");
 Qt.include("translations_hi.js");
 
-var dictionary = {
+let dictionary = {
     "ar": ar_dictionary,
     "zh": zh_dictionary,
     "fr": fr_dictionary,
@@ -23,12 +23,12 @@ var dictionary = {
 };
 
 function getSystemLanguage() {
-    var localeName = Qt.locale().name || "en";
+    let localeName = Qt.locale().name || "en";
     return localeName.split("_")[0];
 }
 
 function translate(text, configLanguage) {
-    var lang = configLanguage || "system";
+    let lang = configLanguage || "system";
     if (lang === "system" || lang === "") {
         lang = getSystemLanguage();
     }
@@ -38,7 +38,7 @@ function translate(text, configLanguage) {
     if (!dictionary[lang]) {
         return text;
     }
-    var val = dictionary[lang][text];
+    let val = dictionary[lang][text];
     if (val !== undefined) {
         return val;
     }
@@ -55,10 +55,10 @@ function translate(text, configLanguage) {
             return "نموذج " + text.slice(0, -7) + ":";
         }
         if (text.indexOf("Enter the ") === 0 && text.indexOf(", then refresh models") > 0) {
-            var part = text.substring(10);
-            var endIdx = part.indexOf(" first");
+            let part = text.substring(10);
+            let endIdx = part.indexOf(" first");
             if (endIdx > 0) {
-                var providerPart = part.substring(0, endIdx);
+                let providerPart = part.substring(0, endIdx);
                 return "أدخل " + providerPart + " أولاً، ثم قم بتنشيط الموديلات أو كتابة اسم الموديل.";
             }
         }

@@ -11,11 +11,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "org
 
 from kde_ai_helper import (
     cmd_toggle_schedule,
-    cmd_update_schedule_history_status,
     cmd_delete_schedule,
     cmd_add_schedule,
-    cmd_save_all_schedules,
-    cmd_poll_pending_triggers,
     cmd_sync_config_keys,
     cmd_clear_config_keys,
     cmd_load_config_keys,

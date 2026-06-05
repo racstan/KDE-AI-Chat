@@ -23,7 +23,7 @@
  * @module RequestDeduplicator
  */
 
-var _inFlight = {};
+let _inFlight = {};
 
 /**
  * Build a deduplication key for an outgoing chat request.

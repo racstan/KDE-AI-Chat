@@ -9,8 +9,8 @@
  * from both QML and other `.pragma library` modules.
  *
  * Usage:
- *   var cache = LRUCache.create(500);
- *   var html = cache.get(key);
+ *   let cache = LRUCache.create(500);
+ *   let html = cache.get(key);
  *   if (html === undefined) {
  *       html = renderExpensive(input);
  *       cache.put(key, html);
@@ -31,10 +31,10 @@
  * @returns {object}
  */
 function create(capacity) {
-    var cap = Math.max(1, Math.floor(capacity || 500));
-    var map = ({} );
-    var order = [];
-    var self = {
+    let cap = Math.max(1, Math.floor(capacity || 500));
+    let map = ({} );
+    let order = [];
+    let self = {
         "capacity": cap,
         "size": 0,
         /**
@@ -45,7 +45,7 @@ function create(capacity) {
             if (!Object.prototype.hasOwnProperty.call(map, key))
                 return undefined;
             // Touch: move to the back of the order list
-            var idx = order.indexOf(key);
+            let idx = order.indexOf(key);
             if (idx !== -1) {
                 order.splice(idx, 1);
                 order.push(key);
@@ -59,7 +59,7 @@ function create(capacity) {
         "put": function(key, value) {
             if (Object.prototype.hasOwnProperty.call(map, key)) {
                 map[key] = value;
-                var idx = order.indexOf(key);
+                let idx = order.indexOf(key);
                 if (idx !== -1) {
                     order.splice(idx, 1);
                     order.push(key);
@@ -69,7 +69,7 @@ function create(capacity) {
             map[key] = value;
             order.push(key);
             if (order.length > cap) {
-                var oldest = order.shift();
+                let oldest = order.shift();
                 delete map[oldest];
             }
             self.size = order.length;
