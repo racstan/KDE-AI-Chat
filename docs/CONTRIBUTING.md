@@ -143,7 +143,7 @@ See the [Translation Guide](translation-guide.md) for detailed instructions on a
 
 ### Python Tests
 
-The project has an automated pytest test suite under `tests/` with test cases covering the scheduler and doc extractor:
+The project has an automated pytest test suite under `tests/` with test cases covering the scheduler, doc extractor, security helpers, and more:
 
 ```bash
 # Install pytest if needed
@@ -155,6 +155,8 @@ pytest tests/ -v
 # Run specific test files
 pytest tests/test_scheduler.py -v
 pytest tests/test_doc_extractor.py -v
+pytest tests/test_security.py -v
+pytest tests/test_session_manager.py -v
 ```
 
 The CI pipeline runs these automatically on every push/pull request. Python code is also linted with `ruff`:

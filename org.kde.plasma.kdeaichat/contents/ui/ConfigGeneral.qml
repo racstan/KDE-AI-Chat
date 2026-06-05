@@ -1449,6 +1449,7 @@ KCM.SimpleKCM {
     }
 
     // ── Scheduler helpers ──────────────────────────────────────────────────────
+    property string _lastSchedSetupPayload: ""
     function schedAutoSetup() {
         var srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
         var serviceContent = "[Unit]\nDescription=KDE AI Chat Scheduler Daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\nRestart=on-failure\nRestartSec=30\nStandardOutput=journal\nStandardError=journal\nExecReload=/bin/kill -HUP $MAINPID\nKillMode=process\n\n[Install]\nWantedBy=default.target\n";
@@ -1457,7 +1458,12 @@ KCM.SimpleKCM {
             "destPath": schedulerScriptPath,
             "serviceContent": serviceContent
         };
-        var b64Payload = base64Encode(JSON.stringify(payload));
+        var payloadStr = JSON.stringify(payload);
+        // Audit 5.6: skip I/O when content is unchanged since last run.
+        if (payloadStr === page._lastSchedSetupPayload)
+            return;
+        page._lastSchedSetupPayload = payloadStr;
+        var b64Payload = base64Encode(payloadStr);
         var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
     }

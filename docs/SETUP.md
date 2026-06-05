@@ -587,4 +587,4 @@ qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
 
 ## License
 
-KDE AI Chat is licensed under the MIT License. See `LICENSE` file for details.
+KDE AI Chat is licensed under GPL-2.0+. See `metadata.json` for details.

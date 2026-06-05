@@ -225,7 +225,27 @@ Conversation threads are tracked in the persistent session panel.
 
 ---
 
-## 8. Chat Export
+## 8. Chat Search
+
+Search across the active conversation to find specific messages.
+
+### How to Search
+1. Press **Ctrl+F** (or click the search icon in the toolbar) to open the search bar.
+2. Type your query — matches are highlighted in the chat as you type.
+3. Use **Enter** / **Shift+Enter** (or the up/down arrow buttons) to jump between matches.
+4. Press **Escape** or click the close button to dismiss the search bar.
+
+### Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+F` | Toggle search bar |
+| `Enter` | Next match |
+| `Shift+Enter` | Previous match |
+| `Escape` | Close search / stop streaming |
+
+---
+
+## 9. Chat Export
 
 Export any conversation to a file directly from the chat toolbar.
 
@@ -242,7 +262,7 @@ Export any conversation to a file directly from the chat toolbar.
 
 ---
 
-## 9. File Attachments
+## 10. File Attachments
 
 ### Supported Formats
 - **PDF** — requires `pdftotext` (poppler-utils)
@@ -260,7 +280,7 @@ Export any conversation to a file directly from the chat toolbar.
 
 ---
 
-## 10. Frequently Asked Questions (FAQ)
+## 11. Frequently Asked Questions (FAQ)
 
 ### Q: Why does the widget say "Thinking" and hang on OpenCode queries?
 **A**: This is usually caused by the local OpenCode server dropping connection mid-stream. Verify that the server is active by navigating to the OpenCode settings tab and clicking **Restart Server**. You can also check the server log: `cat "${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"`.

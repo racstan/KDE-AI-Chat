@@ -182,6 +182,39 @@ function sortSessionsByUpdated(sessions) {
 }
 
 /**
+ * Check whether a session list is already in the canonical sort order
+ * produced by `sortSessionsByUpdated`.
+ *
+ * This lets call sites skip the O(n log n) sort + array reassignment
+ * cascade when nothing has changed that could affect the order — most
+ * commonly after a no-op `saveCurrentSessionState()` call. Returned
+ * true means the array can be passed through unchanged.
+ *
+ * @param {Array} sessions  Session list to test.
+ * @returns {boolean} True if the list is already sorted by the same
+ *                    comparator as `sortSessionsByUpdated`.
+ */
+function isSessionOrderCorrect(sessions) {
+    if (!sessions || sessions.length < 2)
+        return true;
+
+    for (var i = 1; i < sessions.length; i++) {
+        var prev = sessions[i - 1];
+        var cur = sessions[i];
+        if (!!prev.archived !== !!cur.archived) {
+            if (!!prev.archived)
+                return false;
+        } else {
+            var prevTs = prev.updatedAt || prev.createdAt || 0;
+            var curTs = cur.updatedAt || cur.createdAt || 0;
+            if (prevTs < curTs)
+                return false;
+        }
+    }
+    return true;
+}
+
+/**
  * Build a fresh session object.
  *
  * @param {string} sessionId  Id to assign (`value` field).
@@ -292,4 +325,45 @@ function base64Decode(str) {
     } catch (e) {
         return "";
     }
+}
+
+/**
+ * Immutably update a single session inside a sessions array.
+ *
+ * Replaces the repeated pattern:
+ *   var updated = sessions.slice();
+ *   var item = Object.assign({}, updated[idx]);
+ *   item.X = Y;
+ *   updated[idx] = item;
+ *   sessions = updated;
+ *
+ * with a single call:
+ *   sessions = updateSession(sessions, sessionId, function(s) { s.X = Y; });
+ *
+ * The original array is not mutated. A shallow copy is returned with the
+ * target session replaced by the mutator's output. If no session matches
+ * `sessionId`, the original array is returned unchanged.
+ *
+ * @param {Array} sessions   Current session list.
+ * @param {string} sessionId The session id (`value` field) to update.
+ * @param {Function} mutator Called with a shallow clone of the matching
+ *                           session. May mutate its argument freely.
+ * @returns {Array} New sessions array with the updated session.
+ */
+function updateSession(sessions, sessionId, mutator) {
+    for (var i = 0; i < sessions.length; i++) {
+        if (sessions[i].value === sessionId) {
+            var updated = sessions.slice();
+            var clone = {};
+            var src = updated[i];
+            for (var k in src) {
+                if (src.hasOwnProperty(k))
+                    clone[k] = src[k];
+            }
+            mutator(clone);
+            updated[i] = clone;
+            return updated;
+        }
+    }
+    return sessions;
 }

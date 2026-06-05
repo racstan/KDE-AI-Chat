@@ -6,7 +6,7 @@ KDE AI Chat includes a scheduling system that allows you to automate AI prompts 
 
 The scheduling system consists of:
 
-- **Scheduler Daemon** (`kde-ai-scheduler.py`): A Python script that runs as a systemd user service, checks cron expressions every 15 seconds, and triggers scheduled messages.
+- **Scheduler Daemon** (`kde-ai-scheduler.py`): A Python script that runs as a systemd user service, checks cron expressions every 5 seconds, and triggers scheduled messages.
 - **Schedule Dialog** (`ScheduleDialog.qml`): The UI for creating, editing, and managing schedules within the widget.
 - **File-based IPC**: The daemon writes trigger files to `~/.local/share/kdeaichat/pending/` which the widget picks up.
 

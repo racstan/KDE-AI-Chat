@@ -43,9 +43,19 @@ org.kde.plasma.kdeaichat/           # KDE KPackage root
     │   ├── main.qml                # Core chat widget
     │   ├── ConfigGeneral.qml       # Settings panel
     │   ├── ScheduleDialog.qml      # Schedule editor
+    │   ├── MessageContent.qml      # Chat message rendering component
+    │   ├── SessionSidebar.qml      # Session list sidebar component
+    │   ├── Security.js             # Central shell/URL/path validation
+    │   ├── LRUCache.js             # Bounded LRU cache for markdown/blocks
+    │   ├── ProviderService.js      # Provider config map + JSDoc
+    │   ├── SessionManager.js       # Session CRUD + JSDoc
+    │   ├── MarkdownRenderer.js     # Markdown→HTML renderer
+    │   ├── WalletService.js        # KWallet shell-script builder
+    │   ├── RequestDeduplicator.js  # In-flight request tracker
     │   ├── translations.js         # Translation engine
-    │   ├── translations_*.js       # 11 language dictionaries
-    │   └── doc_extractor.py        # File attachment extraction
+    │   ├── translations_*.js       # 10 language dictionaries
+    │   ├── doc_extractor.py        # File attachment extraction
+    │   └── kde_ai_helper.py        # Python IPC helper module
     └── scripts/
         └── kde-ai-scheduler.py     # Scheduling daemon
 ```
@@ -91,7 +101,7 @@ A full CRUD UI for managing scheduled AI prompts:
 
 ### 4. `translations.js` — Translation Engine
 
-Loads 11 language dictionaries and provides the `translate()` function. Features:
+Loads 10 language dictionaries and provides the `translate()` function. Features:
 
 - Dynamic pattern matching for provider-specific fields (key, URL, model labels).
 - Falls back to English when a translation key is missing.
@@ -113,7 +123,7 @@ A Python 3 systemd user service that:
 
 - Reads `~/.local/share/kdeaichat/schedules.json` for schedule definitions.
 - Parses cron expressions (5-field standard format).
-- Runs every 15 seconds (tick interval) checking for due schedules.
+- Runs every 5 seconds (tick interval) checking for due schedules.
 - Writes pending trigger JSON files to `~/.local/share/kdeaichat/pending/`.
 - Supports single-run and recurring tasks with execution limits.
 - Maintains a run history (up to 100 entries) inside `schedules.json`.
@@ -171,7 +181,7 @@ SSE events via /v1/event → handleOpenCodeEvent()
 ### Schedule Trigger Flow
 
 ```
-kde-ai-scheduler.py (tick every 15s)
+kde-ai-scheduler.py (tick every 5s)
        │
        ▼
 Cron match? → Write pending/*.json

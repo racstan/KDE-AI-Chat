@@ -153,7 +153,7 @@ KDE-AI-Chat/
 │       │   ├── translations.js   # Translation engine (11 languages)
 │       │   ├── ProviderData.js   # Provider registry
 │       │   └── doc_extractor.py  # File attachment extraction (PDF, DOCX, images)
-├── tests/                        # Python test suite (39 test cases)
+├── tests/                        # Python test suite (129 test cases)
 ├── docs/                         # Developer & user documentation
 ├── install.sh                    # One-click developer clean-reinstall script
 ├── SETUP.md                      # End-user credentials & provider setup guide
@@ -167,7 +167,7 @@ KDE-AI-Chat/
 
 ## Contributing
 
-Refer to [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, testing workflows (including running the 39 python tests and QML linting), and style rules.
+Refer to [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, testing workflows (including running the 129 python tests and QML linting), and style rules.
 
 ### Planned Roadmap
 1. **Chat Search**: Full-text search across all conversations and sessions.

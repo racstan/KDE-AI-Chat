@@ -1,8 +1,10 @@
 import os
+import io
 import json
 import base64
 import tempfile
 import unittest
+import contextlib
 from unittest.mock import patch
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "org.kde.plasma.kdeaichat", "contents", "ui"))
@@ -90,21 +92,29 @@ class TestKdeAiHelper(unittest.TestCase):
             "configPath": self.config_rc_path,
             "keys": keys
         })
-        
-        # Load keys
-        with patch('sys.stdout') as mock_stdout:
+
+        # Load keys — capture stdout via StringIO instead of fragile mock
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
             cmd_load_config_keys({"configPath": self.config_rc_path})
-            mock_stdout.write.assert_any_call('{"apiKey": "test-key-123", "anthropicApiKey": "anthropic-456"}')
+        output = buf.getvalue().strip()
+        loaded = json.loads(output)
+        assert loaded["apiKey"] == "test-key-123"
+        assert loaded["anthropicApiKey"] == "anthropic-456"
 
         # Clear keys
         cmd_clear_config_keys({
             "configPath": self.config_rc_path,
             "keys": ["apiKey"]
         })
-        
-        with patch('sys.stdout') as mock_stdout:
+
+        buf2 = io.StringIO()
+        with contextlib.redirect_stdout(buf2):
             cmd_load_config_keys({"configPath": self.config_rc_path})
-            mock_stdout.write.assert_any_call('{"anthropicApiKey": "anthropic-456"}')
+        output2 = buf2.getvalue().strip()
+        loaded2 = json.loads(output2)
+        assert loaded2.get("anthropicApiKey") == "anthropic-456"
+        assert "apiKey" not in loaded2
 
     def test_export_chat(self):
         dest_path = os.path.join(self.temp_dir.name, 'exported_chat.md')

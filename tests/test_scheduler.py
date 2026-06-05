@@ -200,6 +200,20 @@ class TestRefreshNextRuns:
 
 
 class TestHistoryAndSettings:
+    def setup_method(self):
+        self._orig_history = list(sched.history)
+        self._orig_limit = sched.history_limit
+        self._orig_missed = sched.execute_missed_schedules
+        self._orig_settings = dict(sched.settings_dict)
+        self._orig_file = sched.SCHEDULES_FILE
+
+    def teardown_method(self):
+        sched.history = self._orig_history
+        sched.history_limit = self._orig_limit
+        sched.execute_missed_schedules = self._orig_missed
+        sched.settings_dict = self._orig_settings
+        sched.SCHEDULES_FILE = self._orig_file
+
     def test_history_limit_truncation(self):
         sched.history = [{"id": f"h-{i}"} for i in range(150)]
         sched.history_limit = 100
@@ -214,23 +228,22 @@ class TestHistoryAndSettings:
     def test_save_and_load_settings(self):
         import json
         import tempfile
-        orig_file = sched.SCHEDULES_FILE
         try:
             with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
                 sched.SCHEDULES_FILE = tmp.name
-                
+
             sched.settings_dict = {"executeMissedSchedules": True, "historyLimit": 10}
             sched.history = [{"id": "h1"}, {"id": "h2"}]
             items = [{"id": "s1", "enabled": True}]
-            
+
             sched.save_schedules(items)
-            
+
             # Reset globals
             sched.history = []
             sched.settings_dict = {}
             sched.execute_missed_schedules = False
             sched.history_limit = 100
-            
+
             loaded_items = sched.load_schedules()
             assert len(loaded_items) == 1
             assert loaded_items[0]["id"] == "s1"
@@ -241,4 +254,3 @@ class TestHistoryAndSettings:
         finally:
             if os.path.exists(sched.SCHEDULES_FILE):
                 os.remove(sched.SCHEDULES_FILE)
-            sched.SCHEDULES_FILE = orig_file

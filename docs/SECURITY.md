@@ -95,6 +95,16 @@ The widget relies on these external tools for specific features:
 | `wl-paste` / `xclip` | Clipboard access | Low — desktop environment utilities |
 | `notify-send` (libnotify) | Desktop notifications | Low — standard Linux desktop tool |
 
+## TLS Certificate Validation
+
+All HTTP requests to AI providers use `XMLHttpRequest`, which relies on the **system trust store** for TLS certificate validation. The following properties apply:
+
+- **No certificate pinning**: The widget does not pin certificates for any provider. Connections to endpoints with self-signed or misconfigured certificates will fail at the system level.
+- **System trust store**: Validated against the same CA bundle as other Qt/KDE applications. Users on corporate or academic networks with custom CA certificates should install them system-wide.
+- **No per-provider override**: There is no UI to accept specific certificates or bypass validation for individual providers.
+
+**Recommendation**: On networks requiring custom CA certificates, install them at the system level (e.g., `/usr/local/share/ca-certificates/` on Debian/Ubuntu) and run `update-ca-certificates`. API keys sent in `Authorization` headers are protected by TLS in transit; the risk is limited to network-level MITM on untrusted networks.
+
 ## Scheduler Daemon Security
 
 The scheduler daemon (`kde-ai-scheduler.py`) runs as a **systemd user service**:

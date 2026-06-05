@@ -50,8 +50,10 @@ class TestExtractSingleFile:
             tmpname = f.name
         try:
             result = extract_single_file(tmpname)
-            # .xyz falls through to text fallback, so tries UTF-8 read
-            assert result["status"] in ("success", "error")
+            # .xyz falls through to text fallback, so tries UTF-8 read.
+            # The file contains valid UTF-8, so it should succeed.
+            assert result["status"] == "success"
+            assert result["content"] == "test"
         finally:
             os.unlink(tmpname)
 

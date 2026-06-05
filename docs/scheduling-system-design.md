@@ -185,7 +185,7 @@ Load schedules.json
     ↓
 Calculate next run time for each enabled schedule
     ↓
-Main loop (sleep 30s between ticks):
+Main loop (sleep 5s between ticks):
     For each schedule:
         if now >= nextRunAt:
             → call AI API (urllib, no deps)

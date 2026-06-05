@@ -50,16 +50,44 @@ PlasmoidItem {
     property bool searchBarActive: false
     property string searchQuery: ""
     property int currentSearchMatchIndex: -1
+    // Memoization for `searchMatches` (audit 5.2).
+    // The original binding re-ran on every `messages` array replacement
+    // (which happens per streaming token) and re-scanned every message
+    // with `toLowerCase()` + `indexOf()`. The binding is still recomputed
+    // on every relevant change, but the work is skipped when a cheap
+    // fingerprint of (query, length, sampled content) is unchanged.
+    // Catches: appended messages (length), edited middle messages (sampled
+    // hash), and streaming tokens (last-message length).
+    property string _searchFingerprint: {
+        if (!searchBarActive || searchQuery.trim() === "") return "";
+        var parts = [searchQuery, "|" + messages.length];
+        var step = Math.max(1, Math.floor(messages.length / 16));
+        for (var i = 0; i < messages.length; i += step) {
+            var c = messages[i].content || "";
+            parts.push("|" + c.length);
+        }
+        if (messages.length > 0) {
+            var last = messages[messages.length - 1].content || "";
+            parts.push("!L=" + last.length + ":" + last.slice(-32));
+        }
+        return parts.join("");
+    }
+    property string _searchFingerprintCached: ""
+    property var _searchMatchesCached: []
     property var searchMatches: {
         if (!searchBarActive || searchQuery.trim() === "") return [];
-        var list = [];
+        var fp = root._searchFingerprint;
+        if (fp === root._searchFingerprintCached) return root._searchMatchesCached;
         var q = searchQuery.toLowerCase();
-        for (var i = 0; i < messages.length; i++) {
-            var content = messages[i].content || "";
+        var list = [];
+        for (var j = 0; j < messages.length; j++) {
+            var content = messages[j].content || "";
             if (content.toLowerCase().indexOf(q) >= 0) {
-                list.push(i);
+                list.push(j);
             }
         }
+        root._searchFingerprintCached = fp;
+        root._searchMatchesCached = list;
         return list;
     }
     property var attachedFiles: []
@@ -625,13 +653,14 @@ PlasmoidItem {
     }
 
     function sortSessionsByUpdated() {
-        var copy = root.sessions.slice();
-        copy.sort(function(a, b) {
-            if (!!a.archived !== !!b.archived)
-                return a.archived ? 1 : -1;
+        // Audit 5.3: skip the O(n log n) sort + array reassignment cascade
+        // when the list is already in canonical order. The reassignment
+        // was the dominant cost during streaming because it invalidated
+        // all sidebar binding caches on every save.
+        if (SessionManager.isSessionOrderCorrect(root.sessions))
+            return ;
 
-            return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
-        });
+        var copy = SessionManager.sortSessionsByUpdated(root.sessions);
         root.sessions = copy;
     }
 
@@ -2889,40 +2918,11 @@ PlasmoidItem {
             "role": "system",
             "content": sys
         }];
-        var window = buildContextWindow(root.messages);
-        for (var i = 0; i < window.length; i++) {
-            var m = window[i];
-            if (m.role === "user" && m.attachments && m.attachments.length > 0)
-                arr.push({
-                    "role": m.role,
-                    "content": buildMessageContent(m.content, m.attachments, "openai")
-                });
-            else
-                arr.push({
-                    "role": m.role,
-                    "content": m.content
-                });
-        }
-        return arr;
+        return arr.concat(_buildMessageArray(root.messages, "", "openai"));
     }
 
     function buildAnthropicPayload() {
-        var arr = [];
-        var window = buildContextWindow(root.messages);
-        for (var i = 0; i < window.length; i++) {
-            var m = window[i];
-            if (m.role === "user" && m.attachments && m.attachments.length > 0)
-                arr.push({
-                    "role": m.role,
-                    "content": buildMessageContent(m.content, m.attachments, "anthropic")
-                });
-            else
-                arr.push({
-                    "role": m.role,
-                    "content": m.content
-                });
-        }
-        return arr;
+        return _buildMessageArray(root.messages, "", "anthropic");
     }
 
     function buildOpenAICompatPayloadForMessages(messagesList, chatId) {
@@ -2931,24 +2931,14 @@ PlasmoidItem {
             "role": "system",
             "content": sys
         }];
-        var window = buildContextWindow(messagesList, chatId);
-        for (var i = 0; i < window.length; i++) {
-            var m = window[i];
-            if (m.role === "user" && m.attachments && m.attachments.length > 0)
-                arr.push({
-                    "role": m.role,
-                    "content": buildMessageContent(m.content, m.attachments, "openai")
-                });
-            else
-                arr.push({
-                    "role": m.role,
-                    "content": m.content
-                });
-        }
-        return arr;
+        return arr.concat(_buildMessageArray(messagesList, chatId, "openai"));
     }
 
     function buildAnthropicPayloadForMessages(messagesList, chatId) {
+        return _buildMessageArray(messagesList, chatId, "anthropic");
+    }
+
+    function _buildMessageArray(messagesList, chatId, format) {
         var arr = [];
         var window = buildContextWindow(messagesList, chatId);
         for (var i = 0; i < window.length; i++) {
@@ -2956,7 +2946,7 @@ PlasmoidItem {
             if (m.role === "user" && m.attachments && m.attachments.length > 0)
                 arr.push({
                     "role": m.role,
-                    "content": buildMessageContent(m.content, m.attachments, "anthropic")
+                    "content": buildMessageContent(m.content, m.attachments, format)
                 });
             else
                 arr.push({
