@@ -592,8 +592,16 @@ import org.kde.plasma.plasma5support as P5Support
                             width: historySchedListView.width - 16
                             implicitHeight: historyRowLayout.implicitHeight + Kirigami.Units.smallSpacing * 3
                             radius: 6
-                            color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.05) : Qt.rgba(0.9, 0.22, 0.22, 0.05)
-                            border.color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Qt.rgba(0.18, 0.8, 0.44, 0.15) : Qt.rgba(0.9, 0.22, 0.22, 0.15)
+                            color: {
+                                var isSuccess = modelData.status && modelData.status.indexOf("success") !== -1;
+                                var base = isSuccess ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                                return Qt.rgba(base.r, base.g, base.b, 0.05);
+                            }
+                            border.color: {
+                                var isSuccess = modelData.status && modelData.status.indexOf("success") !== -1;
+                                var base = isSuccess ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                                return Qt.rgba(base.r, base.g, base.b, 0.15);
+                            }
                             border.width: 1
 
                             RowLayout {
@@ -1011,7 +1019,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 from: 1
                                 to: 999
                                 value: scheduleDialog.draft.schedEvery || 1
-                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                onValueModified: scheduleDialog.draft = Object.assign({
                                 }, scheduleDialog.draft, {
                                     "schedEvery": value
                                 })
@@ -1175,7 +1183,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 from: 1
                                 to: 28
                                 value: scheduleDialog.draft.schedDayOfMonth || 1
-                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                onValueModified: scheduleDialog.draft = Object.assign({
                                 }, scheduleDialog.draft, {
                                     "schedDayOfMonth": value
                                 })
@@ -1220,7 +1228,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 from: 1
                                 to: 9999
                                 value: scheduleDialog.draft.limitCount || 5
-                                onValueChanged: scheduleDialog.draft = Object.assign({
+                                onValueModified: scheduleDialog.draft = Object.assign({
                                 }, scheduleDialog.draft, {
                                     "limitCount": value
                                 })

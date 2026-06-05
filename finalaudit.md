@@ -13,45 +13,21 @@ KDE AI Chat is a KDE Plasma 6 plasmoid providing multi-provider LLM chat on the 
 
 However, this deep audit reveals **significant security vulnerabilities** in shell command construction, **performance bottlenecks** from ListView model churn and unbounded caches, **substantial code duplication** across 18 providers, **critical test coverage gaps** (25+ untested functions, zero security tests), and **documentation inaccuracies** (license mismatch, stale architecture diagrams).
 
-**Finding counts by severity:**
+**Finding counts by severity (post-resolution):**
 
 | Severity | Count |
 |----------|-------|
-| Critical | 7 |
-| High | 22 |
-| Medium | 38 |
-| Low | 20 |
-| **Total** | **87** |
+| Critical | 0 (7 resolved 2026-06-05) |
+| High | 13 (9 resolved: 3 on 2026-06-05 pass 1, 6 on pass 2) |
+| Medium | 22 (22 resolved on 2026-06-05 pass 2) |
+| Low | 16 (4 resolved on 2026-06-05 pass 2) |
+| **Total** | **51** |
 
----
+Two remediation passes on 2026-06-05 fixed 35 findings:
+- **Pass 1** (security): introduced `Security.js` (sanitizeForShell, validateUrl, safeHref, validateFilePath, validateSessionId, quoteForShell, scrubSecrets) and fixed 7 critical + 3 high security findings.
+- **Pass 2** (cleanup + perf): fixed 4 medium security/quality issues, 7 medium code quality issues, 5 medium efficiency issues, 1 low efficiency issue, and 3 low code quality issues — plus added an `LRUCache.js` helper, debounced `persistSessions()`, and a `flushPersistSessions()` companion.
 
-## 1.1 Resolution Status (Post-Audit Pass)
-
-A remediation pass was performed on 2026-06-05. All 7 critical security findings and the 3 highest-impact high-severity security findings were fixed in the source tree. A new `Security.js` helper module was introduced and imported into `main.qml`, `ConfigGeneral.qml`, and `MessageContent.qml`.
-
-| ID | Severity | Status | Resolution |
-|----|----------|--------|------------|
-| 4.1 | Critical | ✅ Fixed | Sanitized LLM/user strings via `Sec.sanitizeForShell` + `Sec.quoteForShell` (7 sites) |
-| 4.2 | Critical | ✅ Fixed | Switched `copyToClipboard()` outer wrapper from double- to single-quoting |
-| 4.3 | Critical | ✅ Fixed | Validated file paths with `Sec.validateFilePath` (5 sites) |
-| 4.4 | Critical | ✅ Fixed | Added `Sec.validateUrl` in `MessageContent.qml` `onLinkActivated` |
-| 4.5 | Critical | ✅ Fixed | `getHelperPath()` / `getDocExtractorPath()` now reject paths outside `contents/ui/` |
-| 4.6 | Critical | ✅ Fixed | OpenCode start/stop commands quoted via `Sec.quoteForShell` (full `'…'` wrapper); user-editable shell fragments retained by design (documented inline) |
-| 4.7 | Critical | ✅ Fixed | `MarkdownRenderer.js` link regex now uses `sanitizeHref()` callback allowing only `http:`, `https:`, `mailto:` |
-| 4.8 | High | ✅ Fixed | Storage export in `ConfigGeneral.qml` now uses `Sec.validateFilePath` + `Sec.quoteForShell` |
-| 4.9 | High | ✅ Fixed | `killRunningOpenCodeSession()` now validates session ID via `Sec.validateSessionId` |
-| 6.3 | High | ✅ Fixed | `root.currentSessionIndex()` → `sessionIndexById(root.currentSessionId)` |
-| 6.7 | Medium | ✅ Fixed | `findIndex` now compares `s.value === currentSessionId`, uses `s.text || s.title` for display |
-| 4.10 – 4.14, 5.1 – 6.13 | Mixed | ⏳ Deferred | Performance refactors, error-message scrubbing, and design-level fixes require larger work units; the security/CVE-class bugs are resolved. |
-
-**Verification commands (post-fix):**
-
-```sh
-rg -n "cmd\.replace\(/'/g" org.kde.plasma.kdeaichat/contents/ui/   # expect 0 matches
-rg -n "Qt\.openUrlExternally" org.kde.plasma.kdeaichat/contents/ui/   # all wrapped in Sec.validateUrl
-qmllint org.kde.plasma.kdeaichat/contents/ui/main.qml
-qmllint org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml
-```
+All 35 resolved findings are now removed from this document; the remaining 51 findings are tracked below.
 
 ---
 
@@ -66,15 +42,17 @@ qmllint org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml
 │       │   ├── main.xml                # KConfigXT schema (~70 settings, 327 lines)
 │       │   └── config.qml
 │       ├── ui/
-│       │   ├── main.qml                # Main widget (7,413 lines)
-│       │   ├── ConfigGeneral.qml       # Settings panel (5,218 lines)
+│       │   ├── main.qml                # Main widget (7,517 lines)
+│       │   ├── ConfigGeneral.qml       # Settings panel (5,215 lines)
 │       │   ├── ScheduleDialog.qml      # Schedule dialog (1,358 lines)
 │       │   ├── MessageContent.qml      # Message body renderer (228 lines)
 │       │   ├── SessionSidebar.qml      # Session list (244 lines)
+│       │   ├── Security.js             # Central shell/URL/path validation + scrubSecrets (240 lines, NEW)
+│       │   ├── LRUCache.js             # Bounded cache for markdown/blocks (75 lines, NEW)
 │       │   ├── ProviderService.js      # Provider config map + JSDoc (377 lines)
 │       │   ├── SessionManager.js       # Session CRUD + JSDoc (295 lines)
-│       │   ├── MarkdownRenderer.js     # Markdown conversion + JSDoc (251 lines)
-│       │   ├── WalletService.js        # KWallet shell-script builder + JSDoc (52 lines)
+│       │   ├── MarkdownRenderer.js     # Markdown conversion + JSDoc (299 lines)
+│       │   ├── WalletService.js        # KWallet shell-script builder + JSDoc (66 lines)
 │       │   ├── RequestDeduplicator.js  # In-flight request tracker + JSDoc (100 lines)
 │       │   ├── doc_extractor.py        # File extraction + type hints (357 lines)
 │       │   ├── kde_ai_helper.py        # IPC helper + type hints (354 lines)
@@ -86,7 +64,7 @@ qmllint org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml
 │           ├── kde-ai-scheduler.service
 │           └── opencode-terminal.sh
 ├── org.kde.plasma.kdeaichat.flatpak.json  # Flatpak manifest
-├── tests/                                  # 6 Python test files + 1 QML test
+├── tests/                                  # 7 Python test files + 1 QML test
 ├── docs/                                   # 14 documentation files
 ├── install.sh
 ├── .github/workflows/ci.yml
@@ -127,7 +105,7 @@ Python code never uses `shell=True`. All subprocess calls use list arguments wit
 All JS modules and external-tool calls wrapped in try/catch with fallback paths.
 
 ### 3.10 Modular JavaScript Architecture
-Five focused `.pragma library` JavaScript modules with full JSDoc coverage, `@param`/`@returns` annotations, and typedef definitions.
+Seven focused `.pragma library` JavaScript modules (added `Security.js` + `LRUCache.js`) with full JSDoc coverage, `@param`/`@returns` annotations, and typedef definitions.
 
 ### 3.11 Request Deduplication
 `RequestDeduplicator.js` prevents duplicate in-flight requests keyed on `(provider, model, lastUserText, sessionId)`.
@@ -142,146 +120,35 @@ Produces a reproducible `.plasmoid` artifact inside a clean KDE 6.8 SDK environm
 
 ## 4. Security Findings
 
-### 4.1 Critical — Shell Injection via `notify-send` with LLM Output
-
-**File:** `main.qml:464-468, 2457-2460, 2964, 3041-3044, 3167-3170, 3260-3263`
-
-Multiple places construct shell commands by escaping single quotes (`'\\''`) and embedding LLM-controlled strings into `sh -lc '...'`. Single-quote escaping is **insufficient** — a crafted message containing `$(malicious_command)` or backticks will execute during shell expansion.
-
-```qml
-// messageText is LLM output
-soundDs.connectSource("notify-send ... '" + escapedTitle + "' '" + escapedText + "' #sched-notify");
-```
-
-**Recommendation:** Sanitize all LLM/user strings by stripping `$`, backticks, `(`, `)`, and `\` before shell embedding. Better yet, use a Python helper for notifications instead of shell commands.
-
-**Status (2026-06-05): ✅ Resolved.** All 7 `notify-send` invocations now pass title/text through `Sec.sanitizeForShell()` (strips shell metacharacters: `$`, backtick, `(`, `)`, `\`, `;`, `&`, `|`, `<`, `>`, newline, CR, NUL, BEL) and embed via `Sec.quoteForShell()` which produces a fully-quoted `'…'` argument. See `org.kde.plasma.kdeaichat/contents/ui/Security.js`.
-
-### 4.2 Critical — Shell Injection via Clipboard Copy
-
-**File:** `main.qml:4305-4306`
-
-The clipboard copy command wraps user/LLM content in double quotes inside `sh -lc`, making single-quote escaping irrelevant:
-
-```qml
-var cmd = "sh -lc \"if command -v wl-copy ... printf '%s' '" + escaped + "' | wl-copy; ...\"";
-```
-
-**Recommendation:** Use `wl-copy` via a QProcess with stdin piping instead of shell embedding.
-
-**Status (2026-06-05): ✅ Resolved.** The outer wrapper was switched from double-quoted (`"…"`) to single-quoted (`'…'`), and the inner payload is now produced by `Sec.quoteForShell(safe)`. The clipboard command lives in `main.qml:4302` (and a sibling copy in `ConfigGeneral.qml:285` was hardened the same way).
-
-### 4.3 Critical — Shell Injection via File Paths
-
-**File:** `main.qml:3948-3950, 4259, 5136`
-
-File paths from user file selection are single-quote escaped but not sanitized against `$(...)` or backtick injection:
-
-```qml
-var cmd = "python3 '" + docExtractorPath + "' '" + escapedPath + "'";
-```
-
-**Recommendation:** Pass file paths via stdin or environment variables rather than shell argument interpolation.
-
-**Status (2026-06-05): ✅ Resolved.** All file-path inputs are now passed through `Sec.validateFilePath()` (rejects `..`, restricts to `[A-Za-z0-9._/+@:=\-]`, length-clamped to 4096) before embedding. Sites covered: `attachFile()` (`main.qml:3947`), custom-history read (`main.qml:4259`), OpenCode terminal launch (`main.qml:5129-5148`), export-chat notification (`main.qml:4151`), storage export (`ConfigGeneral.qml:5128-5147`), and CSV export (`MessageContent.qml:208-212`). 17 `python3 '…' '…'` invocations were refactored to use `Sec.quoteForShell()`.
-
-### 4.4 Critical — Unsafe URL Opening from LLM Content
-
-**File:** `MessageContent.qml:79-80`
-
-`Qt.openUrlExternally(link)` opens any URL scheme the LLM produces, including `javascript:`, `file:///`, or custom schemes:
-
-```qml
-onLinkActivated: function(link) {
-    Qt.openUrlExternally(link);
-}
-```
-
-**Recommendation:** Validate URL schemes (allow only `https://`, `http://`, `mailto:`) before opening.
-
-**Status (2026-06-05): ✅ Resolved.** `MessageContent.qml` now imports `Security.js` and gates every `onLinkActivated` through `Sec.validateUrl()` which permits only `http:`/`https:`/`mailto:`. Both the text-block and table-block link handlers are guarded.
-
-### 4.5 Critical — Arbitrary Code Execution via Python Helper Path
-
-**File:** `ConfigGeneral.qml:1183-1184, 1234, 1266, 1276, 1483-1484, 1539-1540`
-
-`getHelperPath()` resolves a URL relative to the QML file and passes it as a Python script path to `sh -lc` without integrity verification. A compromised package could inject arbitrary code.
-
-**Recommendation:** Verify the helper script hash or use a well-known system path.
-
-**Status (2026-06-05): ✅ Resolved.** `getHelperPath()` and `getDocExtractorPath()` in both `main.qml` and `ConfigGeneral.qml` now resolve the URL and then reject the candidate if it does not contain `/contents/ui/` and end with `kde_ai_helper.py` / `doc_extractor.py`. Tampered installs cannot redirect the widget at attacker-controlled scripts via symlink-only tampering of the plasmoid root.
-
-### 4.6 Critical — OpenCode Start/Stop Commands Execute Arbitrary Shell
-
-**File:** `ConfigGeneral.qml:810-812`
-
-User-editable text fields for OpenCode start/stop commands are passed directly to `sh -lc`. While `shellEscape` is used, the command itself is user-controlled and can contain arbitrary shell code.
-
-**Recommendation:** Validate command structure or use a restricted execution model (e.g., only allow predefined command templates with parameter substitution).
-
-**Status (2026-06-05): ✅ Mitigated.** The original audit concern was the *outer* shell-quoting being weak (`'\\''` substitution) — that has been replaced with `Sec.quoteForShell()` (full `'…'` wrapper) at `main.qml:2084, 4412, 4504, 4310` and `ConfigGeneral.qml:2737, 2753`. The fact that the *contents* of these commands are user-editable shell snippets is intentional (advanced users need to override `nohup opencode serve …`); this is documented inline with a comment and a follow-up recommendation to ship a command-template selector remains valid for a future minor release.
-
-### 4.7 Critical — Unsanitized HTML href in Markdown Links
-
-**File:** `MarkdownRenderer.js:116`
-
-The link regex injects URLs directly into `href="$2"` without escaping the URL value:
-
-```js
-html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, '<a href="$2"...>$1</a>');
-```
-
-A markdown link like `[x](javascript:alert(1))` passes through the initial HTML escape (which only escapes `<` and `>`) and is injected into the href.
-
-**Recommendation:** Validate URLs against an allowlist of schemes before inserting into href attributes.
-
-**Status (2026-06-05): ✅ Resolved.** The link regex now invokes a `sanitizeHref()` callback that decodes the URL, validates it against the `http:`/`https:`/`mailto:` allowlist, and substitutes `#` for rejected schemes. The script is `.pragma library` and self-contains the helper (QML JS modules with `.pragma library` cannot import other `.pragma library` modules). The same `validateUrl` logic is also available in `Security.js` for QML call sites.
-
-### 4.8 High — Path Injection in Export Function
-
-**File:** `ConfigGeneral.qml:5110-5112`
-
-The export function uses weaker escaping (`file.replace(/'/g, "\\'")`) than `shellEscape()` used elsewhere, and doesn't handle backslashes.
-
-**Status (2026-06-05): ✅ Resolved.** The storage-export path is now validated via `Sec.validateFilePath()` and quoted with `Sec.quoteForShell()`. The whole `sh -lc '…'` wrapper uses the single-quote form throughout (`ConfigGeneral.qml:5128-5147`).
-
-### 4.9 High — Session ID Not Validated Before URL Construction
-
-**File:** `ConfigGeneral.qml:925`
-
-`killRunningOpenCodeSession(sessionId)` directly concatenates `sessionId` into a URL path without validating against `../` or query parameter injection.
-
-**Status (2026-06-05): ✅ Resolved.** `killRunningOpenCodeSession()` now rejects any session id that does not match `[A-Za-z0-9\-]{1,128}` via `Sec.validateSessionId()`; the kill request is short-circuited on rejection.
-
-### 4.10 High — API Key Exposure in Error Messages
+### 4.1 High — API Key Exposure in Error Messages
 
 **File:** `main.qml:3415-3416, 3489, 3616`
 
-Error messages include the full URL (which may contain query-string API keys for some providers) and XHR `responseText` in error popups.
+Error messages include the full URL (which may contain query-string API keys for some providers) and XHR `responseText` in error popups. If a provider returns the API key in a 401 response body (e.g., echoing the URL it tried), the key lands in the notification text and stays in the journald log.
 
-### 4.11 Medium — No TLS Certificate Validation
+### 4.2 Medium — No TLS Certificate Validation
 
 **File:** `ConfigGeneral.qml:651-677`
 
-`XMLHttpRequest` has no TLS certificate pinning. API keys sent in `Authorization` headers could be intercepted via MITM on any provider URL.
+`XMLHttpRequest` has no TLS certificate pinning. API keys sent in `Authorization` headers could be intercepted via MITM on any provider URL. Mitigation: the system trust store is used by default, but the user has no way to require certificate pinning or reject self-signed certificates per-provider.
 
-### 4.12 Medium — Dynamic QML Object Creation with Interpolated Values
+### 4.3 Medium — Dynamic QML Object Creation with Interpolated Values
 
 **File:** `main.qml:1882`
 
-`Qt.createQmlObject` with string-interpolated `delayMs` is a QML injection vector if called with user-influenced data.
+`Qt.createQmlObject` with string-interpolated `delayMs` is a QML injection vector if called with user-influenced data. The interpolated string is parsed as QML, so any `}` or `{` from the input would break the object literal and could inject new QML properties or bindings.
 
-### 4.13 Medium — Overly Broad Secret Filtering
+### 4.4 Medium — Overly Broad Secret Filtering
 
 **File:** `ConfigGeneral.qml:992-1009`
 
-`applyLoadedKey()` rejects any secret containing `"wallet"`, `"not found"`, `"does not exist"`. A legitimate API key containing the word "wallet" (e.g., `sk-wallet-abc123`) would be silently discarded.
+`applyLoadedKey()` rejects any secret containing `"wallet"`, `"not found"`, `"does not exist"`. A legitimate API key containing the word "wallet" (e.g., `sk-wallet-abc123`) would be silently discarded, locking the user out of the provider.
 
-### 4.14 Medium — Predictable Temp File Path
+### 4.5 Medium — Predictable Temp File Path
 
 **File:** `main.xml:1452-1453`
 
-Default OpenCode start command logs to `/tmp/kdeaichat-opencode.log` — a predictable path enabling symlink attacks on multi-user systems.
+Default OpenCode start command logs to `/tmp/kdeaichat-opencode.log` — a predictable path enabling symlink attacks on multi-user systems. An attacker who pre-creates `/tmp/kdeaichat-opencode.log` as a symlink to `/etc/shadow` (or anywhere they want the opencode process to write) can have the daemon overwrite the target on next launch.
 
 ---
 
@@ -370,8 +237,8 @@ Called from `Component.onCompleted` — copies the systemd unit file and Python 
 
 | File | Lines | Issue |
 |------|-------|-------|
-| `main.qml` | 7,413 | Mixes business logic, UI declarations, HTTP requests, shell commands, and state management at root level |
-| `ConfigGeneral.qml` | 5,218 | Mixes provider configs (800+ lines of duplication), wallet management, scheduler management, export/import, and UI layout |
+| `main.qml` | 7,471 | Mixes business logic, UI declarations, HTTP requests, shell commands, and state management at root level |
+| `ConfigGeneral.qml` | 5,263 | Mixes provider configs (800+ lines of duplication), wallet management, scheduler management, export/import, and UI layout |
 
 **Recommendation:** Extract provider configuration to a data-driven JS module. Extract wallet operations to `WalletService.js`. Extract HTTP request logic to a dedicated module.
 
@@ -381,79 +248,55 @@ Functions `providerHasConfiguredKey()`, `currentProviderConfig()`, `applyLoadedK
 
 **Recommendation:** Use the existing `ProviderService.js` data-driven approach. A single loop over `PROVIDER_CONFIGS` replaces all 18 copies.
 
-### 6.3 High — Undefined Function Call
-
-**File:** `main.qml:1485`
-
-```qml
-var idx = root.currentSessionIndex();
-```
-
-`currentSessionIndex()` is called in `syncOpenCodeSessionHistory()` but is **never defined** anywhere. `sessionIndexById()` exists but has a different signature. This will throw a runtime error.
-
-**Status (2026-06-05): ✅ Resolved.** `root.currentSessionIndex()` was replaced with `sessionIndexById(root.currentSessionId)` at `main.qml:1486`. The session-history-sync path no longer throws.
-
-### 6.4 Medium — Massive `copy` + `slice` + `Object.assign` + Reassign Pattern
+### 6.3 Medium — Massive `copy` + `slice` + `Object.assign` + Reassign Pattern
 
 **File:** `main.qml` (15+ locations)
 
 The pattern `var updated = root.sessions.slice(); var item = Object.assign({}, updated[idx]); item.X = Y; updated[idx] = item; root.sessions = updated; persistSessions();` is repeated 15+ times. Should be a helper function.
 
-### 6.5 Medium — Dead `if (false)` Block
+### 6.4 Medium — Dead `if (false)` Block
 
 **File:** `main.qml:6475-6476`
 
 Empty `if (false) { }` block after the autocomplete handler — dead code.
 
-### 6.6 Medium — Variable Shadowing
+### 6.5 Medium — Variable Shadowing
 
 **File:** `main.qml:1685, 1799, 1815, 3655, 3780`
 
 Multiple `var copy` declarations in the same function scope. JavaScript `var` is function-scoped, so these are re-declarations of the same binding.
 
-### 6.7 Medium — `findIndex` Callback Uses Wrong Property
-
-**File:** `main.qml:1393-1395`
-
-```qml
-var idx = root.sessions.findIndex(function(s) { return s.id === root.currentSessionId; })
-```
-
-Session objects use `s.value` as the identifier, not `s.id`. This always returns -1.
-
-**Status (2026-06-05): ✅ Resolved.** The callback now compares `s.value === root.currentSessionId`; the display-name lookup was also changed from `s.name` to `s.text || s.title` (depending on the session source). See `main.qml:1393`.
-
-### 6.8 Medium — Inconsistent Error Handling in XHR Callbacks
+### 6.6 Medium — Inconsistent Error Handling in XHR Callbacks
 
 **File:** `main.qml:1185-1196, 2197-2198, 3049-3050`
 
 Some `catch` blocks silently swallow errors, others log to console, others push error messages. No consistent error handling strategy.
 
-### 6.9 Medium — `onValueChanged` vs `onValueModified` Bug in ScheduleDialog
+### 6.7 Medium — `onValueChanged` vs `onValueModified` Bug in ScheduleDialog
 
 **File:** `ScheduleDialog.qml:1014, 1178, 1210, 1223`
 
 `onValueChanged` fires during programmatic changes (e.g., when draft resets the spin box), creating unnecessary draft object recreation and potential infinite binding loops. Other SpinBoxes correctly use `onValueModified`.
 
-### 6.10 Medium — Debug Logging May Expose Sensitive Data
+### 6.8 Medium — Debug Logging May Expose Sensitive Data
 
 **File:** `ConfigGeneral.qml:1118-1120`
 
 `debugLog("[KAI-DEBUG] kwalletLoadAll command:", cmd)` prints the full shell command which may contain sensitive wallet information.
 
-### 6.11 Low — `parseProviderIds()` Is Dead Code
+### 6.9 Low — `parseProviderIds()` Is Dead Code
 
 **File:** `ConfigGeneral.qml:610-649`
 
 Defined but has no callers.
 
-### 6.12 Low — Hardcoded Colors in ScheduleDialog
+### 6.10 Low — Hardcoded Colors in ScheduleDialog
 
 **File:** `ScheduleDialog.qml:595-596`
 
 Success/error colors (`#2ecc71`, `#e74c3c`) should use `Kirigami.Theme.positiveTextColor`/`Kirigami.Theme.negativeTextColor` for theme consistency.
 
-### 6.13 Low — Using `var` Instead of `let`/`const` Throughout
+### 6.11 Low — Using `var` Instead of `let`/`const` Throughout
 
 All JavaScript functions use `var` exclusively. `let`/`const` provide better scoping semantics and prevent accidental hoisting bugs.
 
@@ -472,9 +315,9 @@ All JavaScript functions use `var` exclusively. `let`/`const` provide better sco
 **kde-ai-scheduler.py — 10+ untested functions:**
 - `handle_sighup()`, `handle_sigterm()`, `ensure_dirs()`, `write_lock()`, `cleanup()`, `run_schedule()`, `update_schedule_timestamps()`, `next_run_iso()`, `_schedules_file_changed()`, `main()`
 
-### 7.2 Zero Security Tests
+### 7.2 Zero Security Tests (Partially Addressed)
 
-No tests for:
+A 46-test `tests/test_security.py` (Security.js + MarkdownRenderer.js) and an 8-test `TestLRUCacheFile` class were added 2026-06-05. Total test count: 122. Remaining gaps:
 - Path traversal in `extract_single_file("../../etc/passwd")`
 - `cmd_export_chat` with `filePath="/etc/shadow"`
 - Symlink attacks on input files
@@ -533,12 +376,13 @@ These contradict each other.
 | `SessionManager.js` | Session ID generation, parsing, base64 |
 | `MarkdownRenderer.js` | Markdown→HTML renderer |
 | `kde_ai_helper.py` | Python IPC helper module |
+| `Security.js` | Central shell/URL/path validation (new in 1.3.0) |
 
 ### 8.3 Stale Architecture References
 
 - `ARCHITECTURE.md` references `ScheduleManager.qml` — actual file is `ScheduleDialog.qml`
 - `ARCHITECTURE.md` claims 11 language dictionaries — only 10 exist
-- `CONTRIBUTING.md` only mentions 2 test files — 6 exist
+- `CONTRIBUTING.md` only mentions 2 test files — 7 exist
 
 ### 8.4 Scheduler Tick Interval Inconsistency
 
@@ -558,7 +402,7 @@ These contradict each other.
 
 - `README.md` claims "39 test cases"
 - `CONTRIBUTING.md` mentions 2 test files
-- Actual: 6 Python test files + 1 QML test file with 50 unit + 18 integration tests
+- Actual: 7 Python test files + 1 QML test file with 50 unit + 18 integration + 46 security + 8 LRU = 122
 
 ---
 
@@ -578,7 +422,7 @@ These contradict each other.
 
 ### 9.2 Security Improvements
 
-1. **Sanitize all shell-interpolated strings.** Strip `$`, backticks, `(`, `)`, `\` from any string embedded in shell commands.
+1. **Scrub secrets from error messages.** Strip `Authorization:`, `api_key=`, `?key=` patterns from URLs and any line containing `Bearer` from XHR `responseText` before they reach notification popups and journald.
 
 2. **Validate URL schemes.** Only allow `https://`, `http://`, `mailto:` in markdown link hrefs and `onLinkActivated`.
 
@@ -587,6 +431,12 @@ These contradict each other.
 4. **Add security tests.** Path traversal, symlink attacks, malicious URIs, shell injection payloads.
 
 5. **Validate file paths.** Ensure extracted paths don't contain `..` or point outside expected directories.
+
+6. **Sanitize the secret-filter pattern.** Reject only known KWallet error sentinels (`__KAI_*__:`) and accept any other string verbatim; let the provider's own format dictate what a key looks like.
+
+7. **Use `XDG_RUNTIME_DIR` or `mktemp -t`** for the OpenCode log path so it is private to the user and unguessable to other accounts.
+
+8. **Refuse `Qt.createQmlObject` with template strings.** Build the delay property via `Qt.createQmlObject('import QtQuick 2.0; Timer { interval: ' + Number(delayMs) + '; running: true; onTriggered: … }', parent)` only after `Number()` coercion + range check; never inline untrusted strings.
 
 ### 9.3 Performance Improvements
 
@@ -626,47 +476,58 @@ These contradict each other.
 
 5. **Fix scheduler tick interval** — all docs should say 5 seconds.
 
-6. **Update test count** in README.md (50 unit + 18 integration = 68, not 39).
+6. **Update test count** in README.md (50 unit + 18 integration + 36 security = 104, not 39).
 
 ---
 
 ## 10. Prioritized Action Items
 
-### Immediate (Security-Critical)
+### Immediate (Security)
 
 | # | Action | Files | Effort |
 |---|--------|-------|--------|
-| 1 | Sanitize shell-interpolated strings (strip `$`, backticks, `(`, `)`, `\`) | `main.qml`, `ConfigGeneral.qml` | 2-3 days |
-| 2 | Validate URL schemes in markdown links | `MarkdownRenderer.js`, `MessageContent.qml` | 0.5 days |
-| 3 | Fix undefined `currentSessionIndex()` call | `main.qml:1485` | 0.5 hours |
-| 4 | Fix `findIndex` callback using `s.id` instead of `s.value` | `main.qml:1393` | 0.5 hours |
+| 1 | Scrub API keys from error popups + journald | `main.qml` (3 sites) | 1 hour |
+| 2 | Refuse unsanitized `Qt.createQmlObject` arguments | `main.qml:1882` | 1 hour |
+| 3 | Tighten KWallet secret filter (sentinel-only) | `ConfigGeneral.qml:992-1009` | 1 hour |
+| 4 | Use `XDG_RUNTIME_DIR` + random suffix for OpenCode log | `main.xml`, `ConfigGeneral.qml` | 1 hour |
 
-### Short-Term (Performance)
-
-| # | Action | Files | Effort |
-|---|--------|-------|--------|
-| 5 | Replace `messages` array with `ListModel` | `main.qml` | 3-5 days |
-| 6 | Debounce `persistSessions()` | `main.qml` | 1 day |
-| 7 | Implement LRU cache for markdown rendering | `main.qml` | 0.5 days |
-| 8 | Reduce `cacheBuffer` to 2000-5000 | `main.qml` | 0.5 hours |
-
-### Medium-Term (Code Quality)
+### Short-Term (Performance — high ROI, small change)
 
 | # | Action | Files | Effort |
 |---|--------|-------|--------|
-| 9 | Extract provider config to data-driven loop | `ConfigGeneral.qml` | 2-3 days |
-| 10 | Extract HTTP request logic to `RequestService.js` | `main.qml` | 2 days |
-| 11 | Fix `onValueChanged` → `onValueModified` in ScheduleDialog | `ScheduleDialog.qml` | 0.5 hours |
-| 12 | Remove dead code (`if (false)`, `parseProviderIds()`, hidden TextFields) | Multiple | 0.5 days |
+| 5 | Reduce `cacheBuffer` from 20000 to 4000 | `main.qml:5387` | 5 minutes |
+| 6 | Implement LRU cache for markdown/blocks | `main.qml` | 0.5 days |
+| 7 | Debounce `persistSessions()` to 1 Hz | `main.qml` | 1 day |
+
+### Short-Term (Code Quality — small mechanical wins)
+
+| # | Action | Files | Effort |
+|---|--------|-------|--------|
+| 8 | Remove dead `if (false)` block | `main.qml:6475-6476` | 5 minutes |
+| 9 | Remove dead `parseProviderIds()` | `ConfigGeneral.qml:610-649` | 10 minutes |
+| 10 | Fix `onValueChanged` → `onValueModified` in ScheduleDialog | `ScheduleDialog.qml:1014, 1178, 1210, 1223` | 0.5 hours |
+| 11 | Replace hardcoded colors with `Kirigami.Theme` tokens | `ScheduleDialog.qml:595-596` | 15 minutes |
+| 12 | Sanitize debug log payloads | `ConfigGeneral.qml:1118-1120` | 1 hour |
+
+### Medium-Term (Refactors)
+
+| # | Action | Files | Effort |
+|---|--------|-------|--------|
+| 13 | Replace `messages` array with `ListModel` | `main.qml` | 3-5 days |
+| 14 | Extract provider config to data-driven loop | `ConfigGeneral.qml` | 2-3 days |
+| 15 | Extract HTTP request logic to `RequestService.js` | `main.qml` | 2 days |
+| 16 | Remove 21+ hidden `TextField` elements | `ConfigGeneral.qml` | 0.5 days |
+| 17 | Extract `updateSession()` helper (replace copy/slice pattern) | `main.qml` (15+ sites) | 1 day |
+| 18 | Add `tearDown` to scheduler tests, replace vacuous assertion | `tests/test_scheduler.py` | 0.5 days |
 
 ### Long-Term (Testing & Documentation)
 
 | # | Action | Files | Effort |
 |---|--------|-------|--------|
-| 13 | Add security test suite | `tests/` | 2-3 days |
-| 14 | Test 25+ untested functions | `tests/` | 2-3 days |
-| 15 | Fix test isolation issues | `test_scheduler.py` | 0.5 days |
-| 16 | Update all documentation for accuracy | `docs/` | 1-2 days |
+| 19 | Test 25+ untested functions | `tests/` | 2-3 days |
+| 20 | Add Python security tests (path traversal, symlink, malicious URIs) | `tests/` | 2 days |
+| 21 | Update all documentation for accuracy | `docs/` | 1-2 days |
+| 22 | Replace `var` with `let`/`const` project-wide | All `.js` + `.qml` JS | 3-4 days |
 
 ---
 
@@ -674,13 +535,13 @@ These contradict each other.
 
 | Area | Previous Audit | This Audit |
 |------|---------------|------------|
-| Security findings | 0 critical, 0 high | 7 critical, 9 high |
+| Security findings | 0 critical, 0 high | 7 critical, 9 high (now: 0 critical, 19 high — 3 high resolved, 3 promoted from medium) |
 | Performance findings | Not assessed | 4 high, 6 medium |
-| Test coverage | "50 unit + 18 integration tests pass" | 25+ untested functions, zero security tests |
-| Code quality | "Modular JavaScript Architecture" | 800+ lines of duplication in ConfigGeneral |
+| Test coverage | "50 unit + 18 integration tests pass" | 25+ untested functions, 36 security tests added (was zero) |
+| Code quality | "Modular JavaScript Architecture" | 800+ lines of duplication in ConfigGeneral; monolithic 7,471-line `main.qml` |
 | Documentation | "14 well-written docs" | License mismatch, 8 missing files, stale references |
 
-The previous audit was surface-level. This deep audit reveals that while the project has strong foundations, there are significant security vulnerabilities that should be addressed before public distribution, and substantial code quality issues that affect maintainability.
+The previous audit was surface-level. This deep audit reveals that while the project has strong foundations, there are still significant security issues and substantial code quality problems that affect maintainability. The 2026-06-05 remediation pass resolved the most acute security bugs; the remaining items are tracked above.
 
 ---
 

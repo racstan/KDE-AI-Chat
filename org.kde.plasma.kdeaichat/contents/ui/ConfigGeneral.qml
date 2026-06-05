@@ -612,47 +612,6 @@ KCM.SimpleKCM {
         return ids;
     }
 
-    function parseProviderIds(responseObj) {
-        function pushId(v) {
-            if (!v)
-                return ;
-
-            if (ids.indexOf(v) < 0)
-                ids.push(v);
-
-        }
-
-        var ids = [];
-        if (Array.isArray(responseObj)) {
-            for (var i = 0; i < responseObj.length; i++) {
-                if (typeof responseObj[i] === "string")
-                    pushId(responseObj[i]);
-                else if (responseObj[i] && responseObj[i].id)
-                    pushId(responseObj[i].id);
-                else if (responseObj[i] && responseObj[i].name)
-                    pushId(responseObj[i].name);
-                else if (responseObj[i] && responseObj[i].provider)
-                    pushId(responseObj[i].provider);
-            }
-        } else if (responseObj && Array.isArray(responseObj.providers)) {
-            for (var j = 0; j < responseObj.providers.length; j++) {
-                if (typeof responseObj.providers[j] === "string")
-                    pushId(responseObj.providers[j]);
-                else if (responseObj.providers[j] && responseObj.providers[j].id)
-                    pushId(responseObj.providers[j].id);
-                else if (responseObj.providers[j] && responseObj.providers[j].name)
-                    pushId(responseObj.providers[j].name);
-            }
-        } else if (responseObj && Array.isArray(responseObj.data)) {
-            for (var k = 0; k < responseObj.data.length; k++) {
-                if (responseObj.data[k] && responseObj.data[k].provider)
-                    pushId(responseObj.data[k].provider);
-
-            }
-        }
-        return ids;
-    }
-
     function requestJson(url, headers, onSuccess, onError) {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
@@ -812,7 +771,7 @@ KCM.SimpleKCM {
 
     function startOpenCodeServerAutomatically() {
         discoveryStatus = "Starting OpenCode server automatically...";
-        var startCmd = openCodeStartCommandField.text || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 &";
+        var startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
         var cmd = "sh -lc '" + shellEscape(startCmd) + "'";
         utilityDs.connectSource(cmd + " #opencode-autostart");
         // After a short delay, attempt discovery again
@@ -1004,20 +963,14 @@ KCM.SimpleKCM {
 
     function applyLoadedKey(targetId, secretValue) {
         var normalized = (secretValue || "").trim();
-        var lower = normalized.toLowerCase();
-        if (normalized === "" || normalized.indexOf("__KAI_") === 0)
+        if (normalized === "")
             return ;
 
-        if (lower.indexOf("not found") >= 0)
-            return ;
-
-        if (lower.indexOf("does not exist") >= 0)
-            return ;
-
-        if (lower.indexOf("could not open") >= 0)
-            return ;
-
-        if (lower.indexOf("wallet") >= 0)
+        // Reject only the structured KWallet error sentinels emitted by
+        // the shell helper. Do NOT reject arbitrary text containing the
+        // word "wallet" — legitimate API keys (e.g. `sk-wallet-abc123`)
+        // would otherwise be silently discarded.
+        if (/^__KAI_(?:LOAD|INIT|STATUS|BULK)__:/.test(normalized))
             return ;
 
         var before = apiKeyForTarget(targetId);
@@ -1130,7 +1083,10 @@ KCM.SimpleKCM {
         var walletName = effectiveWalletName();
         debugLog("[KAI-DEBUG] kwalletLoadAll walletName:", walletName);
         var cmd = walletBulkReadCommand(walletName) + " #kwallet-refresh-all";
-        debugLog("[KAI-DEBUG] kwalletLoadAll command:", cmd);
+        // Scrub the full pipeline (which includes the wallet/folder/appid
+        // single-quote variables) before logging, so debug-mode output
+        // does not contain the live wallet identifier.
+        debugLog("[KAI-DEBUG] kwalletLoadAll command:", Sec.scrubSecrets(cmd));
         keyringStatus = "Refreshing API keys from KWallet...";
         utilityDs.connectSource(cmd);
     }
@@ -1471,7 +1427,7 @@ KCM.SimpleKCM {
         openCodeUrlField.text = "http://127.0.0.1:4096/v1";
         openCodeProviderValueField.text = "";
         openCodeModelValueField.text = "";
-        openCodeStartCommandField.text = "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
+        openCodeStartCommandField.text = "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.";
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
         openCodeAutoKillToggle.checked = true;
         openCodeAutoKillMinutesSpin.value = 5;
@@ -2762,7 +2718,7 @@ KCM.SimpleKCM {
                         // etc.), so we do *not* strip shell metacharacters.
                         // We only escape single quotes for the outer
                         // `sh -lc '…'` wrapper.
-                        var cmd = "sh -lc " + Sec.quoteForShell(openCodeStartCommandField.text || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.");
+                        var cmd = "sh -lc " + Sec.quoteForShell(openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.");
                         utilityDs.connectSource(cmd + " #opencode-start");
                     }
                 }

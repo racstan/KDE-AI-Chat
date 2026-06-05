@@ -13,6 +13,7 @@ import "SessionManager.js" as SessionManager
 import "MarkdownRenderer.js" as MarkdownRenderer
 import "WalletService.js" as WalletService
 import "RequestDeduplicator.js" as RequestDeduplicator
+import "LRUCache.js" as LRUCache
 import "Security.js" as Sec
 
 PlasmoidItem {
@@ -32,8 +33,12 @@ PlasmoidItem {
     }
 
     property var sessions: []
-    property var _markdownCache: ({})
-    property var _blocksCache: ({})
+    // Bounded LRU caches for markdown/HTML conversion and block parsing.
+    // Replaces the previous unbounded `({})` maps that grew with every
+    // streaming token. 500 entries is enough to cover the visible
+    // message history plus a few pages of scrollback.
+    property var _markdownCache: LRUCache.create(500)
+    property var _blocksCache: LRUCache.create(500)
     readonly property string openCodeBaseUrlVal: {
         var raw = (plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1").trim();
         return raw.replace(/\/v1\/?$/, "").replace(/\/$/, "");
@@ -329,6 +334,16 @@ PlasmoidItem {
         return SessionManager.makeSessionId();
     }
 
+    // Centralized helper for reporting a benign parse failure (e.g. an
+    // OpenCode / clipboard / custom-history reply we could not decode).
+    // Always logs to console for diagnostics and surfaces a non-blocking
+    // notification to the user, so the failure is never silently dropped.
+    function reportParseFailure(context, error) {
+        var msg = (context || "Parse failure") + ": " + (error && error.toString ? error.toString() : String(error || ""));
+        console.warn(msg);
+        pushErrorMessage(msg);
+    }
+
     function makeForkSessionId() {
         return SessionManager.makeForkSessionId();
     }
@@ -585,6 +600,13 @@ PlasmoidItem {
     }
 
     function persistSessions() {
+        // Debounce: schedule a flush within the next 1 second. Bursts
+        // of state changes (streaming tokens, typing, label edits) all
+        // collapse into a single write instead of one per call.
+        persistSessionsDebounce.restart();
+    }
+
+    function flushPersistSessions() {
         var jsonStr = JSON.stringify(root.sessions);
         plasmoid.configuration.chatSessionsJson = jsonStr;
         plasmoid.configuration.lastSessionId = root.currentSessionId;
@@ -1501,7 +1523,7 @@ PlasmoidItem {
                         }
                     }
                 } catch (err) {
-                    console.error("Failed to parse synced messages: " + err);
+                    reportParseFailure("Failed to parse synced messages", err);
                 }
             } else {
                 pushErrorMessage("Sync failed: OpenCode returned HTTP " + xhr.status);
@@ -1600,9 +1622,9 @@ PlasmoidItem {
                 };
                 var toolState = part.state || "";
                 if (toolName !== "") {
-                    var copy = root.messages.slice();
+                    var toolMsgs = root.messages.slice();
                     var item = Object.assign({
-                    }, copy[root.openCodeAssistantMessageIndex]);
+                    }, toolMsgs[root.openCodeAssistantMessageIndex]);
                     var ctx = item.contextItems || [];
                     // Build a concise description of the tool call
                     var desc = toolName;
@@ -1623,8 +1645,8 @@ PlasmoidItem {
                     if (!exists) {
                         ctx = ctx.concat([desc]);
                         item.contextItems = ctx;
-                        copy[root.openCodeAssistantMessageIndex] = item;
-                        root.messages = copy;
+                        toolMsgs[root.openCodeAssistantMessageIndex] = item;
+                        root.messages = toolMsgs;
                     }
                 }
             }
@@ -1677,26 +1699,26 @@ PlasmoidItem {
             };
             var pId = pr.id || "";
             var response = pr.response || "";
-            var copy = root.messages.slice();
+            var permissionMsgs = root.messages.slice();
             var updated = false;
-            for (var i = copy.length - 1; i >= 0; i--) {
-                if (copy[i].role === "permission_request" && copy[i].permissionId === pId) {
-                    copy[i].status = (response === "allow" ? "allowed" : "denied");
+            for (let i = permissionMsgs.length - 1; i >= 0; i--) {
+                if (permissionMsgs[i].role === "permission_request" && permissionMsgs[i].permissionId === pId) {
+                    permissionMsgs[i].status = (response === "allow" ? "allowed" : "denied");
                     updated = true;
                     break;
                 }
             }
             if (updated) {
-                root.messages = copy;
+                root.messages = permissionMsgs;
                 saveCurrentSessionState(true);
             }
         } else if (eventObj.type === "session.next.step.ended") {
-            var copy = root.messages.slice();
+            var tokensMsgs = root.messages.slice();
             var updated = false;
-            for (var idx = copy.length - 1; idx >= 0; idx--) {
-                if (copy[idx].role === "assistant") {
+            for (let idx = tokensMsgs.length - 1; idx >= 0; idx--) {
+                if (tokensMsgs[idx].role === "assistant") {
                     var item = Object.assign({
-                    }, copy[idx]);
+                    }, tokensMsgs[idx]);
                     var normalizedTokens = {
                     };
                     var rawTokens = props.tokens || {
@@ -1711,13 +1733,13 @@ PlasmoidItem {
 
                     item.tokens = normalizedTokens;
                     item.cost = props.cost;
-                    copy[idx] = item;
+                    tokensMsgs[idx] = item;
                     updated = true;
                     break;
                 }
             }
             if (updated) {
-                root.messages = copy;
+                root.messages = tokensMsgs;
                 saveCurrentSessionState(true);
             }
         } else if (eventObj.type === "question.asked") {
@@ -1805,36 +1827,36 @@ PlasmoidItem {
             }
         } else if (eventObj.type === "question.replied") {
             var qId = props.requestID || props.id || eventObj.id || "";
-            var copy = root.messages.slice();
+            var repliedMsgs = root.messages.slice();
             var updated = false;
-            for (var i = copy.length - 1; i >= 0; i--) {
-                if (copy[i].role === "question_request" && copy[i].questionId === qId) {
-                    if (copy[i].status === "pending" || copy[i].status === "answering...") {
-                        copy[i].status = "answered";
+            for (let i = repliedMsgs.length - 1; i >= 0; i--) {
+                if (repliedMsgs[i].role === "question_request" && repliedMsgs[i].questionId === qId) {
+                    if (repliedMsgs[i].status === "pending" || repliedMsgs[i].status === "answering...") {
+                        repliedMsgs[i].status = "answered";
                         updated = true;
                     }
                     break;
                 }
             }
             if (updated) {
-                root.messages = copy;
+                root.messages = repliedMsgs;
                 saveCurrentSessionState(true);
             }
         } else if (eventObj.type === "question.rejected" || eventObj.type === "question.cancelled") {
-            var qId = props.requestID || props.id || eventObj.id || "";
-            var copy = root.messages.slice();
+            var qId2 = props.requestID || props.id || eventObj.id || "";
+            var dismissedMsgs = root.messages.slice();
             var updated = false;
-            for (var i = copy.length - 1; i >= 0; i--) {
-                if (copy[i].role === "question_request" && copy[i].questionId === qId) {
-                    if (copy[i].status === "pending" || copy[i].status === "dismissing...") {
-                        copy[i].status = "dismissed";
+            for (let i = dismissedMsgs.length - 1; i >= 0; i--) {
+                if (dismissedMsgs[i].role === "question_request" && dismissedMsgs[i].questionId === qId2) {
+                    if (dismissedMsgs[i].status === "pending" || dismissedMsgs[i].status === "dismissing...") {
+                        dismissedMsgs[i].status = "dismissed";
                         updated = true;
                     }
                     break;
                 }
             }
             if (updated) {
-                root.messages = copy;
+                root.messages = dismissedMsgs;
                 saveCurrentSessionState(true);
             }
         }
@@ -1888,7 +1910,16 @@ PlasmoidItem {
     }
 
     function scheduleMessageRemoval(chatId, timestamp, delayMs) {
-        var timerObj = Qt.createQmlObject("import QtQuick; Timer { interval: " + delayMs + "; repeat: false; running: true; }", root, "dynamicRemoveTimer");
+        // Coerce delayMs to a number, clamp to a sane range, then inject
+        // the numeric form into the QML source. Reject NaN, negative
+        // values, and values larger than one hour to avoid QML-injection
+        // via the interpolated string and to keep the timer bounded.
+        var interval = Number(delayMs);
+        if (!isFinite(interval) || interval < 0)
+            interval = 0;
+        if (interval > 3600000)
+            interval = 3600000;
+        var timerObj = Qt.createQmlObject("import QtQuick; Timer { interval: " + interval + "; repeat: false; running: true; }", root, "dynamicRemoveTimer");
         timerObj.triggered.connect(function() {
             removeMessageFromSessionByTimestamp(chatId, timestamp);
             timerObj.destroy();
@@ -2084,7 +2115,7 @@ PlasmoidItem {
             if (checkFinished) return;
             checkFinished = true;
             if (plasmoid.configuration.autoStartOpenCodeServer) {
-                var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
+                var startCmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
                 // The user-editable start command is intentionally a shell
                 // snippet (it can include `>`, `&`, `pkill`, etc.), so we
                 // do *not* strip shell metacharacters. We only escape
@@ -3425,7 +3456,7 @@ PlasmoidItem {
                     return ;
 
                 errorHandled = true;
-                var err = "Request to " + url + " failed";
+                var err = "Request to " + Sec.scrubSecrets(url) + " failed";
                 if (xhr.status)
                     err += " (HTTP " + xhr.status + ")";
 
@@ -3433,23 +3464,23 @@ PlasmoidItem {
                     var eobj = JSON.parse(xhr.responseText);
                     if (eobj.error) {
                         if (typeof eobj.error === "string") {
-                            err += " | " + eobj.error;
+                            err += " | " + Sec.scrubSecrets(eobj.error);
                         } else {
                             if (eobj.error.message)
-                                err = "API Error (" + xhr.status + "): " + eobj.error.message;
+                                err = "API Error (" + xhr.status + "): " + Sec.scrubSecrets(eobj.error.message);
 
                             if (eobj.error.metadata) {
                                 try {
-                                    err += " | " + JSON.stringify(eobj.error.metadata);
+                                    err += " | " + Sec.scrubSecrets(JSON.stringify(eobj.error.metadata));
                                 } catch (ex) {
-                                    err += " | " + eobj.error.metadata;
+                                    err += " | " + Sec.scrubSecrets(String(eobj.error.metadata));
                                 }
                             }
                         }
                     } else if (eobj.detail)
-                        err += " | " + eobj.detail;
+                        err += " | " + Sec.scrubSecrets(eobj.detail);
                     else if (eobj.message)
-                        err += " | " + eobj.message;
+                        err += " | " + Sec.scrubSecrets(eobj.message);
                 } catch (e2) {
                 }
                 pushErrorMessage(err);
@@ -3499,7 +3530,7 @@ PlasmoidItem {
             root.loading = false;
             root.activeXhr = null;
             RequestDeduplicator.release(dedupKey);
-            pushErrorMessage("Could not reach " + url + ". Check the server URL and whether that endpoint accepts API requests.");
+            pushErrorMessage("Could not reach " + Sec.scrubSecrets(url) + ". Check the server URL and whether that endpoint accepts API requests.");
             processNextQueuedMessage();
         };
         try {
@@ -3597,10 +3628,10 @@ PlasmoidItem {
                     var eobj = JSON.parse(xhr.responseText);
                     if (eobj.error) {
                         if (typeof eobj.error === "string") {
-                            err += " | " + eobj.error;
+                            err += " | " + Sec.scrubSecrets(eobj.error);
                         } else {
                             if (eobj.error.message)
-                                err = "Anthropic Error (" + xhr.status + "): " + eobj.error.message;
+                                err = "Anthropic Error (" + xhr.status + "): " + Sec.scrubSecrets(eobj.error.message);
 
                             if (eobj.error.type)
                                 err = "[" + eobj.error.type + "] " + err;
@@ -3653,26 +3684,26 @@ PlasmoidItem {
                     return ;
 
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                            copy[i].status = approved ? "allowed" : "denied";
+                    var updatedMsgs = root.messages.slice();
+                    for (let i = 0; i < updatedMsgs.length; i++) {
+                        if (updatedMsgs[i].role === "permission_request" && updatedMsgs[i].permissionId === permissionId) {
+                            updatedMsgs[i].status = approved ? "allowed" : "denied";
                             break;
                         }
                     }
-                    root.messages = copy;
+                    root.messages = updatedMsgs;
                     saveCurrentSessionState(true);
                 } else if (xhr.status === 404 && !isRetry) {
                     sendToUrl(fallbackUrl, true);
                 } else {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                            copy[i].status = "pending";
+                    var errorMsgs = root.messages.slice();
+                    for (let i = 0; i < errorMsgs.length; i++) {
+                        if (errorMsgs[i].role === "permission_request" && errorMsgs[i].permissionId === permissionId) {
+                            errorMsgs[i].status = "pending";
                             break;
                         }
                     }
-                    root.messages = copy;
+                    root.messages = errorMsgs;
                     pushErrorMessage("OpenCode: failed to reply to permission (HTTP " + xhr.status + ").");
                 }
             };
@@ -3680,14 +3711,14 @@ PlasmoidItem {
                 if (!isRetry) {
                     sendToUrl(fallbackUrl, true);
                 } else {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                            copy[i].status = "pending";
+                    var networkMsgs = root.messages.slice();
+                    for (let i = 0; i < networkMsgs.length; i++) {
+                        if (networkMsgs[i].role === "permission_request" && networkMsgs[i].permissionId === permissionId) {
+                            networkMsgs[i].status = "pending";
                             break;
                         }
                     }
-                    root.messages = copy;
+                    root.messages = networkMsgs;
                     pushErrorMessage("OpenCode: could not reach permission reply server endpoint.");
                 }
             };
@@ -3757,14 +3788,14 @@ PlasmoidItem {
     function respondToQuestion(questionId, answerValue, isReject) {
         function tryNextUrl() {
             if (currentUrlIdx >= urls.length) {
-                var copy = root.messages.slice();
-                for (var i = 0; i < copy.length; i++) {
-                    if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-                        copy[i].status = "pending";
+                var exhaustedMsgs = root.messages.slice();
+                for (let i = 0; i < exhaustedMsgs.length; i++) {
+                    if (exhaustedMsgs[i].role === "question_request" && exhaustedMsgs[i].questionId === questionId) {
+                        exhaustedMsgs[i].status = "pending";
                         break;
                     }
                 }
-                root.messages = copy;
+                root.messages = exhaustedMsgs;
                 pushErrorMessage("OpenCode: failed to reply to question endpoint.");
                 return ;
             }
@@ -3777,27 +3808,27 @@ PlasmoidItem {
                     return ;
 
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-                            copy[i].status = isReject ? "dismissed" : "answered";
-                            copy[i].submittedAnswer = answerValue;
+                    var updatedMsgs = root.messages.slice();
+                    for (let i = 0; i < updatedMsgs.length; i++) {
+                        if (updatedMsgs[i].role === "question_request" && updatedMsgs[i].questionId === questionId) {
+                            updatedMsgs[i].status = isReject ? "dismissed" : "answered";
+                            updatedMsgs[i].submittedAnswer = answerValue;
                             break;
                         }
                     }
-                    root.messages = copy;
+                    root.messages = updatedMsgs;
                     saveCurrentSessionState(true);
                 } else if (xhr.status === 404) {
                     tryNextUrl();
                 } else {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-                            copy[i].status = "pending";
+                    var errorMsgs = root.messages.slice();
+                    for (let i = 0; i < errorMsgs.length; i++) {
+                        if (errorMsgs[i].role === "question_request" && errorMsgs[i].questionId === questionId) {
+                            errorMsgs[i].status = "pending";
                             break;
                         }
                     }
-                    root.messages = copy;
+                    root.messages = errorMsgs;
                     pushErrorMessage("OpenCode: failed to reply to question (HTTP " + xhr.status + ").");
                 }
             };
@@ -3867,13 +3898,14 @@ PlasmoidItem {
             return "";
 
         var cacheKey = markdown + "_" + (root.popupIsDark ? "dark" : "light");
-        if (root._markdownCache[cacheKey] !== undefined) {
-            return root._markdownCache[cacheKey];
+        var cached = root._markdownCache.get(cacheKey);
+        if (cached !== undefined) {
+            return cached;
         }
 
         try {
             var html = MarkdownRenderer.convertMarkdownToHtml(markdown, root.popupIsDark);
-            root._markdownCache[cacheKey] = html;
+            root._markdownCache.put(cacheKey, html);
             return html;
         } catch (e) {
             console.error("convertMarkdownToHtml failed: " + e);
@@ -3997,13 +4029,14 @@ PlasmoidItem {
             "lang": ""
         }];
 
-        if (root._blocksCache[markdown] !== undefined) {
-            return root._blocksCache[markdown];
+        var cachedBlocks = root._blocksCache.get(markdown);
+        if (cachedBlocks !== undefined) {
+            return cachedBlocks;
         }
 
         try {
             var blocks = MarkdownRenderer.parseMessageBlocks(markdown);
-            root._blocksCache[markdown] = blocks;
+            root._blocksCache.put(markdown, blocks);
             return blocks;
         } catch (e) {
             console.error("parseMessageBlocks failed: " + e);
@@ -4257,9 +4290,15 @@ PlasmoidItem {
         }
     }
     onCurrentSessionIdChanged: {
+        // Switches are rare; flush any pending debounced write so the
+        // next session starts from a fully persisted baseline.
+        if (persistSessionsDebounce.running) {
+            persistSessionsDebounce.stop();
+            root.flushPersistSessions();
+        }
         resetOpenCodeIdleKillTimer();
-        root._markdownCache = {};
-        root._blocksCache = {};
+        root._markdownCache.clear();
+        root._blocksCache.clear();
     }
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
@@ -4414,6 +4453,21 @@ PlasmoidItem {
         }
     }
 
+    // Debounce timer for `persistSessions()`. Every state mutation
+    // (message add, edit, archive, label change) calls
+    // `persistSessions()`, which used to run the full JSON.stringify
+    // + config write + Python helper pipeline on every keystroke.
+    // The wrapper now schedules a single 1-Hz flush per burst of
+    // changes. `flushPersistSessions()` forces an immediate flush
+    // for code paths that need synchronous persistence (close,
+    // settings save, manual refresh).
+    Timer {
+        id: persistSessionsDebounce
+        interval: 1000
+        repeat: false
+        onTriggered: root.flushPersistSessions()
+    }
+
     Timer {
         id: openCodeIdleKillTimer
 
@@ -4514,7 +4568,7 @@ PlasmoidItem {
         interval: 1500
         repeat: false
         onTriggered: {
-            var cmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
+            var cmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
             // User-editable start command — see note above.
             opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #autostart-opencode");
         }
@@ -4593,7 +4647,7 @@ PlasmoidItem {
                             root.attachedFiles = currentFiles;
                         }
                     } catch (e) {
-                        console.error("Failed to parse clipboard data: " + e);
+                        reportParseFailure("Failed to parse clipboard data", e);
                     }
                 }
                 disconnectSource(sourceName);
@@ -4673,7 +4727,7 @@ PlasmoidItem {
                             return ;
                         }
                     } catch (e) {
-                        console.error("Failed to parse custom history: " + e);
+                        reportParseFailure("Failed to parse custom history", e);
                     }
                 }
                 // Fallback & Seamless Migration:
@@ -4871,7 +4925,7 @@ PlasmoidItem {
             retriesLeft--;
             if (retriesLeft <= 0) {
                 stop();
-                pushErrorMessage("OpenCode server failed to start in time. Check logs in /tmp/kdeaichat-opencode.log");
+                pushErrorMessage("OpenCode server failed to start in time. Check logs in ${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log");
                 return ;
             }
             checkServerStatus();
@@ -5442,7 +5496,7 @@ PlasmoidItem {
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 20000
+                                cacheBuffer: 4000
                                 Component.onCompleted: root.msgListViewRef = msgList
                                 // Track whether user manually scrolled away from bottom
                                 onMovementStarted: {
@@ -6534,8 +6588,6 @@ PlasmoidItem {
                                                     root.sendMessage();
                                                 }
                                                 root.autocompleteActive = false;
-                                                if (false) {
-                                                  }
                                                 return ;
                                             }
                                         }

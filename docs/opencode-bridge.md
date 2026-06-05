@@ -52,7 +52,8 @@ Or configure KDE AI Chat to auto-start the server (see Settings below).
 Enable **Auto-start OpenCode server** in settings to have the widget launch OpenCode automatically when needed. The default start command is:
 
 ```bash
-nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 &
+logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"
+nohup opencode serve --port 4096 >"$logf" 2>&1 &
 ```
 
 You can customize the start and stop commands in the settings panel.
@@ -130,7 +131,7 @@ If the widget shows "OpenCode server check failed":
 1. Verify OpenCode is installed: `opencode --version`
 2. Start the server manually: `opencode serve --port 4096`
 3. Check the server URL in settings (default: `http://127.0.0.1:4096/v1`)
-4. Check the server log if auto-start is enabled: `cat /tmp/kdeaichat-opencode.log`
+4. Check the server log if auto-start is enabled: `cat "${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"`
 
 ### No Providers Discovered
 

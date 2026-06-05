@@ -263,7 +263,7 @@ Export any conversation to a file directly from the chat toolbar.
 ## 10. Frequently Asked Questions (FAQ)
 
 ### Q: Why does the widget say "Thinking" and hang on OpenCode queries?
-**A**: This is usually caused by the local OpenCode server dropping connection mid-stream. Verify that the server is active by navigating to the OpenCode settings tab and clicking **Restart Server**. You can also check the server log: `cat /tmp/kdeaichat-opencode.log`.
+**A**: This is usually caused by the local OpenCode server dropping connection mid-stream. Verify that the server is active by navigating to the OpenCode settings tab and clicking **Restart Server**. You can also check the server log: `cat "${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"`.
 
 ### Q: I set a theme and it didn't change anything. What should I do?
 **A**: Ensure that your Plasma global desktop theme doesn't enforce strict application style sheets that override widget layouts. Go to Settings and change the **Theme Mode** dropdown from "Follow System" to "Strict Dark" or "Strict Light".

@@ -282,6 +282,91 @@ class TestSecurityFile(unittest.TestCase):
         # The metacharacters are stripped, then the result is single-quoted
         self.assertIn("'abc'", out)
 
+    # ---------- scrubSecrets ----------
+
+    def test_scrub_authorization_bearer_header(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets("Authorization: Bearer sk-abc1234567890defghij"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("Authorization: Bearer ***", out)
+        self.assertNotIn("sk-abc1234567890defghij", out)
+
+    def test_scrub_authorization_basic_header(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets("authorization: basic dXNlcjpwYXNz"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("***", out)
+        self.assertNotIn("dXNlcjpwYXNz", out)
+
+    def test_scrub_query_param_api_key(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets("GET /v1/chat?api_key=sk-secret123&model=gpt-4"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("api_key=***", out)
+        self.assertIn("model=gpt-4", out)
+        self.assertNotIn("sk-secret123", out)
+
+    def test_scrub_query_param_token(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets("?token=ghp_abcd1234&keep=this"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("token=***", out)
+        self.assertIn("keep=this", out)
+        self.assertNotIn("ghp_abcd1234", out)
+
+    def test_scrub_json_api_key_value(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets('{"api_key": "sk-abc1234567890def", "model": "gpt-4"}'));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn('"api_key": "***"', out)
+        self.assertIn('"model": "gpt-4"', out)
+        self.assertNotIn("sk-abc1234567890def", out)
+
+    def test_scrub_json_camelCase_apiKey(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets('{"apiKey":"ghp_secretvalue123456"}'));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn('"apiKey":"***"', out)
+        self.assertNotIn("ghp_secretvalue123456", out)
+
+    def test_scrub_openai_sk_key(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets("Look at sk-proj-abc1234567890defghij for context"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("sk-***", out)
+        self.assertNotIn("sk-proj-abc1234567890defghij", out)
+
+    def test_scrub_does_not_redact_unrelated_text(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets("model gpt-4 is great, token rate is high"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        # No query-string key=value form, no Bearer/Basic header — keep as-is
+        self.assertNotIn("***", out)
+        self.assertIn("model gpt-4 is great", out)
+
+    def test_scrub_handles_null(self):
+        out, err, rc = self._run_script("""
+            console.log("[" + scrubSecrets(null) + "]");
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("[]", out)
+
+    def test_scrub_multiple_secrets(self):
+        out, err, rc = self._run_script("""
+            console.log(scrubSecrets("Authorization: Bearer xyz1234567890 and api_key=foo1234567890"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertNotIn("xyz1234567890", out)
+        self.assertNotIn("foo1234567890", out)
+
 
 @unittest.skipUnless(RUNNER, "No JavaScript runtime (node, qjs6, or qjs) available")
 class TestMarkdownRendererFile(unittest.TestCase):
@@ -361,6 +446,130 @@ class TestMarkdownRendererFile(unittest.TestCase):
         self.assertNotIn('href="javascript:', out)
         # The label should still appear but without a working href
         self.assertIn("Click", out)
+
+
+@unittest.skipUnless(RUNNER, "No JavaScript runtime (node, qjs6, or qjs) available")
+class TestLRUCacheFile(unittest.TestCase):
+    """Test the LRUCache.js module."""
+
+    LRU_PATH = os.path.join(
+        os.path.dirname(__file__),
+        "..", "org.kde.plasma.kdeaichat", "contents", "ui",
+        "LRUCache.js",
+    )
+
+    def _run_script(self, driver: str):
+        with open(self.LRU_PATH) as f:
+            src = _strip_qml_directives(f.read())
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
+            f.write(src)
+            f.write("\n")
+            f.write(driver)
+            tmp = f.name
+        try:
+            r = subprocess.run([RUNNER, tmp], capture_output=True, text=True, timeout=10)
+            return r.stdout, r.stderr, r.returncode
+        finally:
+            os.unlink(tmp)
+
+    def test_create_default_capacity(self):
+        out, err, rc = self._run_script("""
+            var c = create();
+            console.log(c.capacity);
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("500", out)
+
+    def test_create_custom_capacity(self):
+        out, err, rc = self._run_script("""
+            var c = create(10);
+            console.log(c.capacity);
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("10", out)
+
+    def test_put_and_get(self):
+        out, err, rc = self._run_script("""
+            var c = create(3);
+            c.put("a", 1);
+            c.put("b", 2);
+            console.log(c.get("a"));
+            console.log(c.get("b"));
+            console.log(c.get("c"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("1", out)
+        self.assertIn("2", out)
+        self.assertIn("undefined", out)
+
+    def test_eviction_when_full(self):
+        out, err, rc = self._run_script("""
+            var c = create(2);
+            c.put("a", 1);
+            c.put("b", 2);
+            c.put("c", 3);
+            console.log("a=" + c.get("a"));
+            console.log("b=" + c.get("b"));
+            console.log("c=" + c.get("c"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        # `a` should have been evicted (oldest)
+        self.assertIn("a=undefined", out)
+        self.assertIn("b=2", out)
+        self.assertIn("c=3", out)
+
+    def test_touch_on_get(self):
+        out, err, rc = self._run_script("""
+            var c = create(2);
+            c.put("a", 1);
+            c.put("b", 2);
+            // Touch `a` so it becomes the most-recently-used
+            c.get("a");
+            c.put("c", 3);
+            // `b` should now be the oldest and get evicted
+            console.log("a=" + c.get("a"));
+            console.log("b=" + c.get("b"));
+            console.log("c=" + c.get("c"));
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("a=1", out)
+        self.assertIn("b=undefined", out)
+        self.assertIn("c=3", out)
+
+    def test_update_existing_key(self):
+        out, err, rc = self._run_script("""
+            var c = create(3);
+            c.put("a", 1);
+            c.put("a", 99);
+            console.log(c.get("a"));
+            console.log("size=" + c.size);
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("99", out)
+        # Size should not grow on update
+        self.assertIn("size=1", out)
+
+    def test_clear(self):
+        out, err, rc = self._run_script("""
+            var c = create(3);
+            c.put("a", 1);
+            c.put("b", 2);
+            c.clear();
+            console.log("a=" + c.get("a"));
+            console.log("size=" + c.size);
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        self.assertIn("a=undefined", out)
+        self.assertIn("size=0", out)
+
+    def test_zero_capacity_falls_back_to_default(self):
+        out, err, rc = self._run_script("""
+            var c = create(0);
+            console.log(c.capacity);
+        """)
+        self.assertEqual(rc, 0, msg=err)
+        # Should fall back to default 500
+        self.assertIn("500", out)
 
 
 if __name__ == "__main__":
