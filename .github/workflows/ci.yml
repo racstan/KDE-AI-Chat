@@ -18,8 +18,13 @@ jobs:
         run: |
           python3 -m py_compile org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py
           python3 -m py_compile org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
+          python3 -m py_compile org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py
       - name: Lint
-        run: pipx run ruff check --select=E9,F --output-format=github org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py
+        run: pipx run ruff check --select=E9,F --output-format=github org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py
+      - name: Type check
+        run: |
+          pipx install mypy
+          mypy org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py
       - name: Run unit tests
         run: |
           pip install pytest

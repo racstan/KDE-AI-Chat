@@ -1,3 +1,23 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+
+[tool.mypy]
+python_version = "3.10"
+files = [
+    "org.kde.plasma.kdeaichat/contents/ui/doc_extractor.py",
+    "org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py",
+    "org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py",
+    "tests",
+]
+check_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = false

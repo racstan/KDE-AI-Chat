@@ -1,5 +1,33 @@
 .pragma library
 
+/**
+ * MarkdownRenderer — markdown → HTML and structural-block parsing.
+ *
+ * Pure helpers used by main.qml to render chat messages and tables.
+ * Theme-aware (`isDark` parameter) and tolerant of malformed input
+ * (falls back to escaped plaintext on error).
+ *
+ * @module MarkdownRenderer
+ */
+
+/**
+ * Convert a markdown string to an inline-styled HTML string suitable
+ * for QML `Text` / `TextEdit` `textFormat: Text.RichText`.
+ *
+ * Supported syntax: fenced code blocks (with optional language label),
+ * GFM tables, inline code, ATX headers (`#`–`####`), bold/italic
+ * (`**`/`__`/`*`/`_`), `[text](url)` links, `---` horizontal rules,
+ * `>` blockquotes, and bullet/numbered lists. Paragraph breaks are
+ * rendered as `<br/><br/>`. Code blocks are extracted first and
+ * restored last so that other passes do not mangle them.
+ *
+ * Theme parameters (`isDark`) toggle palette colors for code blocks,
+ * tables, links, and rules.
+ *
+ * @param {string} markdown  Raw markdown text. Empty string returns "".
+ * @param {boolean} [isDark]  When true, use the dark-theme palette.
+ * @returns {string} HTML string. On error, a plaintext-escaped fallback.
+ */
 function convertMarkdownToHtml(markdown, isDark) {
     if (!markdown)
         return "";
@@ -116,6 +144,26 @@ function convertMarkdownToHtml(markdown, isDark) {
     }
 }
 
+/**
+ * Split a markdown message into structural blocks for selective UI
+ * rendering (code blocks, tables, and text segments).
+ *
+ * Each block is an object of shape:
+ *   - `{ type: "text",  content: string, lang: "" }`
+ *   - `{ type: "code",  content: string, lang: string }`
+ *   - `{ type: "table", content: string, lang: "" }`
+ *
+ * Fenced code blocks are detected by lines matching `^```lang$` and
+ * terminated by `^```$`. Tables are detected by leading `|` on
+ * consecutive lines. Everything else becomes a `text` block (with
+ * leading/trailing blank lines trimmed).
+ *
+ * @param {string} markdown  Raw markdown text.
+ * @returns {Array<{type: string, content: string, lang: string}>}
+ *   Ordered list of blocks. Empty input yields a single empty text
+ *   block. On error, returns a single text block containing the raw
+ *   input.
+ */
 function parseMessageBlocks(markdown) {
     if (!markdown)
         return [{"type": "text", "content": "", "lang": ""}];
@@ -171,6 +219,16 @@ function parseMessageBlocks(markdown) {
     }
 }
 
+/**
+ * Convert a markdown table to CSV (RFC 4180).
+ *
+ * Cells containing commas, double-quotes, or newlines are wrapped in
+ * double quotes with internal double quotes doubled. The markdown
+ * separator row (e.g. `|---|---|`) is skipped.
+ *
+ * @param {string} tableMarkdown  Raw markdown table source.
+ * @returns {string} CSV text with rows separated by `\n`.
+ */
 function tableMarkdownToCsv(tableMarkdown) {
     var rows = tableMarkdown.trim().split("\n");
     var csvRows = [];

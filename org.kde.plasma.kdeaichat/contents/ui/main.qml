@@ -11,6 +11,8 @@ import "translations.js" as Translations
 import "ProviderService.js" as ProviderService
 import "SessionManager.js" as SessionManager
 import "MarkdownRenderer.js" as MarkdownRenderer
+import "WalletService.js" as WalletService
+import "RequestDeduplicator.js" as RequestDeduplicator
 
 PlasmoidItem {
     // No custom text and no way to read options from here,
@@ -143,6 +145,100 @@ PlasmoidItem {
                 root.focusInput();
             } else if (root.loading) {
                 root.stopStreaming();
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+I"
+        context: Qt.WindowShortcut
+        onActivated: root.focusInput()
+    }
+    Shortcut {
+        sequence: "Ctrl+L"
+        context: Qt.WindowShortcut
+        onActivated: {
+            root.chatInputText = "";
+            root.clearChatInput();
+            root.focusInput();
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+K"
+        context: Qt.WindowShortcut
+        onActivated: {
+            if (root.sessionsSidebar && root.sessionsSidebar.visible) {
+                if (root.searchBarActive) {
+                    root.searchBarActive = false;
+                    root.searchQuery = "";
+                } else {
+                    root.searchBarActive = true;
+                }
+                root.focusInput();
+            } else {
+                root.searchBarActive = true;
+                root.focusInput();
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+."
+        context: Qt.WindowShortcut
+        onActivated: {
+            var idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
+            if (idx < 0)
+                return ;
+            for (var i = idx + 1; i < root.sessions.length; i++) {
+                if (!(root.sessions[i].archived || false)) {
+                    root.switchSession(root.sessions[i].value);
+                    return ;
+                }
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+,"
+        context: Qt.WindowShortcut
+        onActivated: {
+            var idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
+            for (var i = (idx < 0 ? root.sessions.length - 1 : idx - 1); i >= 0; i--) {
+                if (!(root.sessions[i].archived || false)) {
+                    root.switchSession(root.sessions[i].value);
+                    return ;
+                }
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+R"
+        context: Qt.WindowShortcut
+        onActivated: {
+            if (root.loading) {
+                root.stopStreaming();
+            }
+            root.loadSessions();
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+C"
+        context: Qt.WindowShortcut
+        onActivated: {
+            for (var i = root.messages.length - 1; i >= 0; i--) {
+                if (root.messages[i].role === "assistant" && !(root.messages[i].isSystem || false)) {
+                    root.copyToClipboard(root.messages[i].content || "");
+                    return ;
+                }
+            }
+            root.pushErrorMessage(root.translate("No assistant reply to copy."));
+        }
+    }
+    Shortcut {
+        sequence: "F1"
+        context: Qt.WindowShortcut
+        onActivated: {
+            if (typeof root.openKeyboardShortcutsHelp === "function") {
+                root.openKeyboardShortcutsHelp();
+            } else {
+                root.pushErrorMessage(root.translate("Keyboard shortcuts: Ctrl+N new chat, Ctrl+F search, Ctrl+I focus input, Ctrl+L clear input, Ctrl+H history, Ctrl+, settings, Ctrl+R refresh, Ctrl+Shift+C copy last reply, Ctrl+Shift+,/Ctrl+Shift+. switch session, Esc stop/cancel."));
             }
         }
     }
@@ -3256,6 +3352,18 @@ PlasmoidItem {
         var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
         var xhr = new XMLHttpRequest();
         var errorHandled = false;
+        var lastUserText = "";
+        for (var mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+            if ((root.messages[mIdx].role || "") === "user") {
+                lastUserText = root.messages[mIdx].content || "";
+                break;
+            }
+        }
+        var dedupKey = RequestDeduplicator.key(plasmoid.configuration.provider || "openai", model, lastUserText, root.currentSessionId);
+        if (!RequestDeduplicator.tryClaim(dedupKey)) {
+            pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
+            return ;
+        }
         try {
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -3283,6 +3391,7 @@ PlasmoidItem {
         } catch (setupError) {
             root.loading = false;
             root.activeXhr = null;
+            RequestDeduplicator.release(dedupKey);
             pushErrorMessage("Failed to start request: " + setupError);
             return ;
         }
@@ -3297,6 +3406,7 @@ PlasmoidItem {
 
             root.loading = false;
             root.activeXhr = null;
+            RequestDeduplicator.release(dedupKey);
             if (xhr.status < 200 || xhr.status >= 300) {
                 if (errorHandled)
                     return ;
@@ -3375,6 +3485,7 @@ PlasmoidItem {
             errorHandled = true;
             root.loading = false;
             root.activeXhr = null;
+            RequestDeduplicator.release(dedupKey);
             pushErrorMessage("Could not reach " + url + ". Check the server URL and whether that endpoint accepts API requests.");
             processNextQueuedMessage();
         };
@@ -3387,6 +3498,7 @@ PlasmoidItem {
         } catch (sendError) {
             root.loading = false;
             root.activeXhr = null;
+            RequestDeduplicator.release(dedupKey);
             pushErrorMessage("Failed to send request: " + sendError);
         }
     }
@@ -3399,6 +3511,18 @@ PlasmoidItem {
         }
         var xhr = new XMLHttpRequest();
         var errorHandled = false;
+        var lastUserText = "";
+        for (var mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+            if ((root.messages[mIdx].role || "") === "user") {
+                lastUserText = root.messages[mIdx].content || "";
+                break;
+            }
+        }
+        var dedupKey = RequestDeduplicator.key("anthropic", model, lastUserText, root.currentSessionId);
+        if (!RequestDeduplicator.tryClaim(dedupKey)) {
+            pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
+            return ;
+        }
         root.loading = true;
         root.activeXhr = xhr;
         xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
@@ -3413,6 +3537,7 @@ PlasmoidItem {
             errorHandled = true;
             root.loading = false;
             root.activeXhr = null;
+            RequestDeduplicator.release(dedupKey);
             pushErrorMessage("Request timed out after 60 seconds.");
             processNextQueuedMessage();
         };
@@ -3422,6 +3547,7 @@ PlasmoidItem {
 
             root.loading = false;
             root.activeXhr = null;
+            RequestDeduplicator.release(dedupKey);
             if (xhr.status >= 200 && xhr.status < 300) {
                 triggerNotificationSound();
                 try {
@@ -3486,6 +3612,7 @@ PlasmoidItem {
             errorHandled = true;
             root.loading = false;
             root.activeXhr = null;
+            RequestDeduplicator.release(dedupKey);
             pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages. Check network access and API configuration.");
             processNextQueuedMessage();
         };
@@ -3925,10 +4052,7 @@ PlasmoidItem {
     }
 
     function walletBulkReadCommand(walletName) {
-        var escapedWallet = (walletName || "").replace(/'/g, "'\\''");
-        var escapedFolder = "KaiChat";
-        var escapedAppId = "org.kde.plasma.kdeaichat";
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; " + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm qwen moonshot mimo maritaca; do " + "key=\"kai-chat-${target}-api-key\"; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" = true ]; then secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; " + "done; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_BULK__:DONE\"'";
+        return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds());
     }
 
     function loadKWalletKeysIfNeeded() {
@@ -4163,6 +4287,23 @@ PlasmoidItem {
 
         engine: "executable"
         connectedSources: []
+    }
+
+    P5Support.DataSource {
+        id: clipboardDs
+
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            disconnectSource(sourceName);
+        }
+    }
+
+    function copyToClipboard(textValue) {
+        var text = textValue || "";
+        var escaped = text.replace(/'/g, "'\\''");
+        var cmd = "sh -lc \"if command -v wl-copy >/dev/null 2>&1; then printf '%s' '" + escaped + "' | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf '%s' '" + escaped + "' | xclip -selection clipboard; " + "else echo 'Clipboard tool missing: install wl-clipboard or xclip' 1>&2; exit 1; fi\"";
+        clipboardDs.connectSource(cmd + " #clipboard-copy");
     }
 
     P5Support.DataSource {
@@ -5410,211 +5551,10 @@ PlasmoidItem {
                                                     }
 
                                                     // ── Selectable / interactive message body ─────────────────
-                                                    Column {
-                                                        visible: root.editingMessageIndex !== index || modelData.role === "error"
-                                                        width: parent.width
-                                                        spacing: 4
-
-                                                        // For error messages just render plain selectable text
-                                                        TextEdit {
-                                                            visible: modelData.role === "error"
-                                                            width: parent.width
-                                                            wrapMode: Text.Wrap
-                                                            textFormat: Text.PlainText
-                                                            text: modelData.content
-                                                            color: Kirigami.Theme.negativeTextColor
-                                                            readOnly: true
-                                                            selectByMouse: true
-                                                            selectByKeyboard: true
-                                                            selectedTextColor: Kirigami.Theme.highlightedTextColor
-                                                            selectionColor: Kirigami.Theme.highlightColor
-                                                            font: Kirigami.Theme.defaultFont
-                                                        }
-
-                                                        // For non-error messages render block-by-block
-                                                        Repeater {
-                                                            visible: modelData.role !== "error" && modelData.role !== "schedules_list"
-                                                            model: modelData.role !== "error" && modelData.role !== "schedules_list" ? root.parseMessageBlocks(modelData.content) : []
-
-                                                            delegate: Item {
-                                                                required property var modelData
-
-                                                                width: parent.width
-                                                                implicitHeight: modelData.type === "code" ? codeLoader.implicitHeight : htmlEdit.implicitHeight
-
-                                                                // ── HTML / Markdown text block ───────────────────────
-                                                                TextEdit {
-                                                                    id: htmlEdit
-
-                                                                    visible: modelData.type === "text"
-                                                                    width: parent.width
-                                                                    wrapMode: Text.Wrap
-                                                                    textFormat: Text.RichText
-                                                                    text: root.convertMarkdownToHtml(modelData.content)
-                                                                    color: Kirigami.Theme.textColor
-                                                                    readOnly: true
-                                                                    selectByMouse: true
-                                                                    selectByKeyboard: true
-                                                                    selectedTextColor: Kirigami.Theme.highlightedTextColor
-                                                                    selectionColor: Kirigami.Theme.highlightColor
-                                                                    font: Kirigami.Theme.defaultFont
-                                                                    onLinkActivated: function(link) {
-                                                                        Qt.openUrlExternally(link);
-                                                                    }
-                                                                }
-
-                                                                // ── Code block with copy button ───────────────────────
-                                                                Item {
-                                                                    id: codeLoader
-
-                                                                    visible: modelData.type === "code"
-                                                                    width: parent.width
-                                                                    implicitHeight: codeContainer.implicitHeight + 2
-
-                                                                    Rectangle {
-                                                                        id: codeContainer
-
-                                                                        width: parent.width
-                                                                        implicitHeight: codeLangRow.implicitHeight + codeBody.implicitHeight + Kirigami.Units.smallSpacing * 3
-                                                                        radius: 6
-                                                                        color: root.popupIsDark ? "#2d3139" : "#f0f2f5"
-                                                                        border.width: 1
-                                                                        border.color: root.popupIsDark ? "#3e4452" : "#d0d4dc"
-                                                                        clip: true
-
-                                                                        // Lang label + copy button row
-                                                                        Row {
-                                                                            id: codeLangRow
-
-                                                                            width: parent.width
-                                                                            height: Math.max(langLabel.implicitHeight + Kirigami.Units.smallSpacing, copyCodeBtn.implicitHeight + Kirigami.Units.smallSpacing)
-                                                                            spacing: 0
-
-                                                                            PC3.Label {
-                                                                                id: langLabel
-
-                                                                                anchors.verticalCenter: parent.verticalCenter
-                                                                                leftPadding: Kirigami.Units.smallSpacing + 4
-                                                                                text: modelData.lang || "code"
-                                                                                font.pointSize: 8
-                                                                                font.bold: true
-                                                                                color: root.popupIsDark ? "#5c6370" : "#a0a1a7"
-                                                                                width: parent.width - copyCodeBtn.width - Kirigami.Units.smallSpacing
-                                                                            }
-
-                                                                            PC3.ToolButton {
-                                                                                id: copyCodeBtn
-
-                                                                                anchors.verticalCenter: parent.verticalCenter
-                                                                                icon.name: "edit-copy"
-                                                                                display: PC3.AbstractButton.IconOnly
-                                                                                flat: true
-                                                                                QQC2.ToolTip.visible: hovered
-                                                                                QQC2.ToolTip.text: "Copy code"
-                                                                                onClicked: {
-                                                                                    clipboardHelper.text = modelData.content;
-                                                                                    clipboardHelper.selectAll();
-                                                                                    clipboardHelper.copy();
-                                                                                }
-                                                                            }
-
-                                                                        }
-
-                                                                        // Thin divider
-                                                                        Rectangle {
-                                                                            y: codeLangRow.height
-                                                                            width: parent.width
-                                                                            height: 1
-                                                                            color: root.popupIsDark ? "#3e4452" : "#d0d4dc"
-                                                                        }
-
-                                                                        // Code text
-                                                                        TextEdit {
-                                                                            id: codeBody
-
-                                                                            y: codeLangRow.height + 1
-                                                                            width: parent.width
-                                                                            leftPadding: Kirigami.Units.smallSpacing + 4
-                                                                            rightPadding: Kirigami.Units.smallSpacing + 4
-                                                                            topPadding: Kirigami.Units.smallSpacing
-                                                                            bottomPadding: Kirigami.Units.smallSpacing
-                                                                            wrapMode: Text.Wrap
-                                                                            textFormat: Text.PlainText
-                                                                            text: modelData.content
-                                                                            color: root.popupIsDark ? "#abb2bf" : "#383a42"
-                                                                            font.family: "monospace"
-                                                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
-                                                                            readOnly: true
-                                                                            selectByMouse: true
-                                                                            selectByKeyboard: true
-                                                                            selectedTextColor: Kirigami.Theme.highlightedTextColor
-                                                                            selectionColor: Kirigami.Theme.highlightColor
-                                                                        }
-
-                                                                    }
-
-                                                                }
-
-                                                                // ── Markdown table with CSV export button ─────────────
-                                                                Item {
-                                                                    visible: modelData.type === "table"
-                                                                    width: parent.width
-                                                                    implicitHeight: tableOuterCol.implicitHeight
-
-                                                                    Column {
-                                                                        id: tableOuterCol
-
-                                                                        width: parent.width
-                                                                        spacing: 2
-
-                                                                        // Export button row
-                                                                        Row {
-                                                                            width: parent.width
-                                                                            layoutDirection: Qt.RightToLeft
-
-                                                                            PC3.ToolButton {
-                                                                                icon.name: "document-export"
-                                                                                display: PC3.AbstractButton.IconOnly
-                                                                                flat: true
-                                                                                QQC2.ToolTip.visible: hovered
-                                                                                QQC2.ToolTip.text: "Export table as CSV"
-                                                                                onClicked: {
-                                                                                    var csv = root.tableMarkdownToCsv(modelData.content);
-                                                                                    var ts = new Date().getTime();
-                                                                                    var path = "/tmp/kdeaichat-table-" + ts + ".csv";
-                                                                                    var escaped = path.replace(/'/g, "'\\''");
-                                                                                    clipboardHelper.text = csv;
-                                                                                    clipboardHelper.selectAll();
-                                                                                    clipboardHelper.copy();
-                                                                                    customStorageDs.connectSource("bash -c \"printf '%s' '" + csv.replace(/'/g, "'\\''") + "' > '" + escaped + "' && xdg-open '" + escaped + "'\" #csv-export-" + ts);
-                                                                                }
-                                                                            }
-
-                                                                        }
-
-                                                                        // Table rendered as HTML
-                                                                        TextEdit {
-                                                                            width: parent.width
-                                                                            wrapMode: Text.Wrap
-                                                                            textFormat: Text.RichText
-                                                                            text: root.convertMarkdownToHtml(modelData.content)
-                                                                            color: Kirigami.Theme.textColor
-                                                                            readOnly: true
-                                                                            selectByMouse: true
-                                                                            selectByKeyboard: true
-                                                                            selectedTextColor: Kirigami.Theme.highlightedTextColor
-                                                                            selectionColor: Kirigami.Theme.highlightColor
-                                                                            font: Kirigami.Theme.defaultFont
-                                                                        }
-
-                                                                    }
-
-                                                                }
-
-                                                            }
-
-                                                        }
-
+                                                    MessageContent {
+                                                        messageData: modelData
+                                                        messageIndex: index
+                                                        root: root
                                                     }
 
                                                     Row {
@@ -6624,212 +6564,10 @@ PlasmoidItem {
                     radius: 8
                     color: Kirigami.Theme.alternateBackgroundColor
 
-                    ListView {
-                        id: historyList
-
+                    SessionSidebar {
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.smallSpacing
-                        model: root.sessions
-                        spacing: Kirigami.Units.smallSpacing
-                        clip: true
-                        cacheBuffer: 5000
-
-                        QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                        }
-
-                        delegate: Rectangle {
-                            required property var modelData
-
-                            width: historyList.width
-                            height: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
-                            radius: 8
-                            opacity: modelData.archived ? 0.72 : 1
-                            color: root.historySessionTint(modelData)
-
-                            Column {
-                                id: historyCol
-
-                                anchors.fill: parent
-                                anchors.margins: Kirigami.Units.smallSpacing
-                                spacing: Kirigami.Units.smallSpacing / 2
-
-                                Row {
-                                    width: parent.width
-                                    spacing: Kirigami.Units.smallSpacing / 2
-
-                                    Rectangle {
-                                        id: modeBadge
-
-                                        visible: modelData.source === "opencode"
-                                        width: modeBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                                        height: modeBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                                        radius: 999
-                                        color: Qt.rgba(0.2, 0.48, 0.92, 0.18)
-
-                                        PC3.Label {
-                                            id: modeBadgeText
-
-                                            anchors.centerIn: parent
-                                            text: "OC"
-                                            font.bold: true
-                                            color: Qt.rgba(0.12, 0.35, 0.78, 1)
-                                        }
-
-                                    }
-
-                                    Rectangle {
-                                        id: schedBadge
-
-                                        visible: root.sessionHasSchedules(modelData.value)
-                                        width: schedBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                                        height: schedBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                                        radius: 999
-                                        color: Qt.rgba(0.92, 0.48, 0.2, 0.18)
-
-                                        PC3.Label {
-                                            id: schedBadgeText
-
-                                            anchors.centerIn: parent
-                                            text: "SC"
-                                            font.bold: true
-                                            color: Qt.rgba(0.78, 0.35, 0.12, 1)
-                                        }
-
-                                    }
-
-                                    Rectangle {
-                                        id: forkBadge
-
-                                        visible: modelData.value && modelData.value.indexOf("fork-") === 0
-                                        width: forkBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                                        height: forkBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                                        radius: 999
-                                        color: Qt.rgba(0.48, 0.2, 0.92, 0.18)
-
-                                        PC3.Label {
-                                            id: forkBadgeText
-
-                                            anchors.centerIn: parent
-                                            text: "FK"
-                                            font.bold: true
-                                            color: Qt.rgba(0.35, 0.12, 0.78, 1)
-                                        }
-
-                                    }
-
-                                    QQC2.TextField {
-                                        visible: root.editingSessionId === modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
-                                        text: root.editingSessionDraft
-                                        onTextChanged: root.editingSessionDraft = text
-                                        onAccepted: root.saveSessionRename(modelData.value)
-                                    }
-
-                                    PC3.Label {
-                                        id: sessionTitleLabel
-
-                                        visible: root.editingSessionId !== modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 4
-                                        text: {
-                                            var rawText = modelData.text || "New Chat";
-                                            if (rawText.indexOf("[FK] ") === 0)
-                                                rawText = rawText.substring(5);
-
-                                            return root.translate(rawText);
-                                        }
-                                        font.bold: modelData.value === root.currentSessionId
-                                        color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                root.switchSession(modelData.value);
-                                                root.historyOnlyMode = false;
-                                            }
-                                        }
-
-                                    }
-
-                                    Rectangle {
-                                        id: countBadge
-
-                                        property int totalCount: (modelData.messages || []).length
-                                        property int readCount: modelData.readCount !== undefined ? modelData.readCount : totalCount
-                                        property int unreadCount: Math.max(0, totalCount - readCount)
-
-                                        visible: unreadCount > 0
-                                        width: countBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 1.5
-                                        height: countBadgeText.implicitHeight + Kirigami.Units.smallSpacing * 0.5
-                                        radius: 10
-                                        color: Kirigami.Theme.highlightColor
-
-                                        PC3.Label {
-                                            id: countBadgeText
-
-                                            anchors.centerIn: parent
-                                            text: parent.unreadCount > 99 ? "99+" : parent.unreadCount
-                                            font.bold: true
-                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.75
-                                            color: Kirigami.Theme.highlightedTextColor
-                                        }
-
-                                    }
-
-                                    PC3.ToolButton {
-                                        id: saveRename
-
-                                        icon.name: root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
-                                        onClicked: {
-                                            if (root.editingSessionId === modelData.value)
-                                                root.saveSessionRename(modelData.value);
-                                            else
-                                                root.startSessionRename(modelData.value);
-                                        }
-                                    }
-
-                                    PC3.ToolButton {
-                                        id: archiveChat
-
-                                        icon.name: modelData.archived ? "archive-remove" : "archive-insert"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
-                                        onClicked: root.setSessionArchived(modelData.value, !modelData.archived)
-                                    }
-
-                                    PC3.ToolButton {
-                                        id: removeChat
-
-                                        icon.name: root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
-                                        onClicked: {
-                                            if (root.editingSessionId === modelData.value)
-                                                root.cancelSessionRename();
-                                            else
-                                                root.deleteSession(modelData.value);
-                                        }
-                                    }
-
-                                }
-
-                                PC3.Label {
-                                    opacity: root.popupIsDark ? 1 : 0.7
-                                    color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                                    text: root.sessionSubtitle(modelData)
-                                }
-
-                            }
-
-                        }
-
+                        root: root
                     }
 
                 }

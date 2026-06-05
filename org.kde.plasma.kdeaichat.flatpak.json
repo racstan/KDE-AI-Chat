@@ -1,0 +1,52 @@
+{
+    "app-id": "org.kde.plasma.kdeaichat",
+    "runtime": "org.kde.Platform",
+    "runtime-version": "6.8",
+    "sdk": "org.kde.Sdk",
+    "command": "build-plasmoid.sh",
+    "build-options": {
+        "append-path": "/usr/lib/sdk/llvm18/bin",
+        "env": {
+            "LC_ALL": "C.UTF-8"
+        }
+    },
+    "modules": [
+        {
+            "name": "plasmoid",
+            "buildsystem": "simple",
+            "build-commands": [
+                "install -Dm755 build-plasmoid.sh /app/bin/build-plasmoid.sh",
+                "install -Dm644 org.kde.plasma.kdeaichat/metadata.json /app/share/plasmoid/metadata.json",
+                "cp -r org.kde.plasma.kdeaichat/contents /app/share/plasmoid/"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/racstan/KDE-AI-Chat.git",
+                    "tag": "1.3.0"
+                },
+                {
+                    "type": "script",
+                    "dest-filename": "build-plasmoid.sh",
+                    "commands": [
+                        "#!/bin/sh",
+                        "set -e",
+                        "cd /app/share/plasmoid",
+                        "cd /app/share",
+                        "rm -f /app/org.kde.plasma.kdeaichat.plasmoid",
+                        "tar -czf /app/org.kde.plasma.kdeaichat.plasmoid plasmoid",
+                        "echo 'Built /app/org.kde.plasma.kdeaichat.plasmoid'"
+                    ]
+                }
+            ]
+        }
+    ],
+    "finish-args": [
+        "--share=network",
+        "--share=ipc",
+        "--socket=wayland",
+        "--socket=x11",
+        "--filesystem=xdg-config/kdeaichat:create",
+        "--filesystem=xdg-data/kdeaichat:create"
+    ]
+}
