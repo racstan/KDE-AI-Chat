@@ -89,17 +89,6 @@ KCM.SimpleKCM {
     property alias cfg_maritacaBaseUrl: maritacaBaseUrlField.text
     property alias cfg_maritacaApiKey: maritacaApiKeyField.text
     property alias cfg_maritacaModel: maritacaModelField.text
-    property alias cfg_keyToggleSearch: keyToggleSearchField.text
-    property alias cfg_keyNewChat: keyNewChatField.text
-    property alias cfg_keyToggleHistory: keyToggleHistoryField.text
-    property alias cfg_keySettings: keySettingsField.text
-    property alias cfg_keyFocusInput: keyFocusInputField.text
-    property alias cfg_keyClearInput: keyClearInputField.text
-    property alias cfg_keyToggleSearchSidebar: keyToggleSearchSidebarField.text
-    property alias cfg_keyNextSession: keyNextSessionField.text
-    property alias cfg_keyPrevSession: keyPrevSessionField.text
-    property alias cfg_keyRefresh: keyRefreshField.text
-    property alias cfg_keyCopyLastReply: keyCopyLastReplyField.text
     property string cfg_language: ""
     readonly property bool isLanguageEnglish: {
         let lang = cfg_language;
@@ -1451,17 +1440,6 @@ KCM.SimpleKCM {
         globalContextLimitSpin.value = 1;
         globalContextAutoCompactToggle.checked = false;
         globalContextCompactThresholdSpin.value = 10;
-        keyToggleSearchField.text = "Ctrl+F";
-        keyNewChatField.text = "Ctrl+N";
-        keyToggleHistoryField.text = "Ctrl+H";
-        keySettingsField.text = "Ctrl+,";
-        keyFocusInputField.text = "Ctrl+I";
-        keyClearInputField.text = "Ctrl+L";
-        keyToggleSearchSidebarField.text = "Ctrl+Shift+K";
-        keyNextSessionField.text = "Ctrl+Shift+.";
-        keyPrevSessionField.text = "Ctrl+Shift+,";
-        keyRefreshField.text = "Ctrl+R";
-        keyCopyLastReplyField.text = "Ctrl+Shift+C";
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
         openCodeModelCandidates = [];
@@ -5208,88 +5186,6 @@ KCM.SimpleKCM {
                     }
                 }
 
-            }
-
-            // ── Keyboard Shortcuts ────────────────────────────────────────────────
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: translate("Keyboard Shortcuts")
-            }
-
-            QQC2.Label {
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                wrapMode: Text.Wrap
-                opacity: 0.7
-                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
-                text: "These shortcuts are active only when the chat popup has focus. Enter standard Qt key sequences (e.g. <code>Ctrl+F</code>, <code>Ctrl+Shift+N</code>, or <code>F1</code>). Leave blank to disable a shortcut."
-                textFormat: Text.RichText
-            }
-
-            QQC2.TextField {
-                id: keyToggleSearchField
-                Kirigami.FormData.label: translate("Toggle search:")
-                placeholderText: "Ctrl+F"
-            }
-
-            QQC2.TextField {
-                id: keyNewChatField
-                Kirigami.FormData.label: translate("New chat:")
-                placeholderText: "Ctrl+N"
-            }
-
-            QQC2.TextField {
-                id: keyToggleHistoryField
-                Kirigami.FormData.label: translate("Toggle history sidebar:")
-                placeholderText: "Ctrl+H"
-            }
-
-            QQC2.TextField {
-                id: keySettingsField
-                Kirigami.FormData.label: translate("Open settings:")
-                placeholderText: "Ctrl+,"
-            }
-
-            QQC2.TextField {
-                id: keyFocusInputField
-                Kirigami.FormData.label: translate("Focus text input:")
-                placeholderText: "Ctrl+I"
-            }
-
-            QQC2.TextField {
-                id: keyClearInputField
-                Kirigami.FormData.label: translate("Clear text input:")
-                placeholderText: "Ctrl+L"
-            }
-
-            QQC2.TextField {
-                id: keyToggleSearchSidebarField
-                Kirigami.FormData.label: translate("Toggle search in sidebar:")
-                placeholderText: "Ctrl+Shift+K"
-            }
-
-            QQC2.TextField {
-                id: keyNextSessionField
-                Kirigami.FormData.label: translate("Next chat session:")
-                placeholderText: "Ctrl+Shift+."
-            }
-
-            QQC2.TextField {
-                id: keyPrevSessionField
-                Kirigami.FormData.label: translate("Previous chat session:")
-                placeholderText: "Ctrl+Shift+,"
-            }
-
-            QQC2.TextField {
-                id: keyRefreshField
-                Kirigami.FormData.label: translate("Refresh/reload sessions:")
-                placeholderText: "Ctrl+R"
-            }
-
-            QQC2.TextField {
-                id: keyCopyLastReplyField
-                Kirigami.FormData.label: translate("Copy last reply:")
-                placeholderText: "Ctrl+Shift+C"
             }
 
             QQC2.Label {
