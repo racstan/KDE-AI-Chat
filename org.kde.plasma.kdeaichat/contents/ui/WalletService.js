@@ -25,7 +25,24 @@
  * @returns {string}  Escaped value safe to embed in `'…'`.
  */
 function shellEscape(s) {
-    return (s || "").replace(/'/g, "'\\''");
+    return sanitizeForShell(s || "").replace(/'/g, "'\\''");
+}
+
+/**
+ * Strip shell metacharacters that survive single-quote escaping.
+ *
+ * Removes `$`, backtick, `(`, `)`, `\`, `;`, `&`, `|`, `<`, `>`, newline,
+ * carriage return, NUL, and BEL. Length-clamped to 4096 to keep command
+ * lines bounded. The result is then safe to single-quote-escape.
+ *
+ * Mirrors Security.js:sanitizeForShell so this .pragma-library module
+ * stays self-contained (it cannot import other .pragma-library modules).
+ */
+function sanitizeForShell(s) {
+    s = String(s);
+    if (s.length > 4096)
+        s = s.substring(0, 4096);
+    return s.replace(/[`$(){}|;&<>\n\r\x00\x07\\\\]/g, "");
 }
 
 /**

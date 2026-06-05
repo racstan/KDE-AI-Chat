@@ -10,6 +10,53 @@
  * @module MarkdownRenderer
  */
 
+var _ALLOWED_URL_SCHEMES = ["http:", "https:", "mailto:"];
+
+/**
+ * Sanitize a URL before inlining it into an HTML `href` attribute.
+ *
+ * Allows only `http:`, `https:`, and `mailto:`. Any other scheme
+ * (`javascript:`, `data:`, `file:`, `vbscript:`, custom schemes,
+ * `about:`, …) is rejected and the caller is expected to render
+ * the link label as plain text.
+ *
+ * @param {string} url  Raw URL.
+ * @returns {string}    Sanitized URL safe for `href="…"`, or `""`.
+ */
+function sanitizeHref(url) {
+    if (url === null || url === undefined)
+        return "";
+    var s = String(url).trim();
+    if (s === "")
+        return "";
+    var lower = s.toLowerCase();
+    for (var i = 0; i < _ALLOWED_URL_SCHEMES.length; i++) {
+        var scheme = _ALLOWED_URL_SCHEMES[i];
+        if (lower.indexOf(scheme) === 0) {
+            var after = s.substring(scheme.length);
+            if (after.length === 0)
+                continue;
+            var first = after.charAt(0);
+            var ok = false;
+            if (scheme === "mailto:") {
+                if (first !== " " && first !== "\t" && first !== "\n" && first !== "\r")
+                    ok = true;
+            } else {
+                if (first === "/" || first === "?" || first === "#")
+                    ok = true;
+            }
+            if (!ok)
+                return "";
+            // Defense in depth: drop characters that could escape
+            // the double-quoted attribute value.
+            return s.replace(/[\"\`<>]/g, "");
+        }
+    }
+    // No recognised scheme — most likely a relative path or a
+    // scheme we explicitly do not want. Reject.
+    return "";
+}
+
 /**
  * Convert a markdown string to an inline-styled HTML string suitable
  * for QML `Text` / `TextEdit` `textFormat: Text.RichText`.
@@ -113,7 +160,18 @@ function convertMarkdownToHtml(markdown, isDark) {
         html = html.replace(/_([^\_\n]+)_/g, '<i>$1</i>');
 
         // 7. Links
-        html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, '<a href="$2" style="color: ' + linkColor + '; text-decoration: underline;">$1</a>');
+        // URLs from LLM output are restricted to http(s) and mailto
+        // before being inlined into `href="…"`. Anything else (e.g.
+        // `javascript:`, `data:`, `file:`, `vbscript:`) is dropped and
+        // rendered as plain text. This blocks XSS via crafted markdown
+        // links.
+        html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, function(match, label, rawUrl) {
+            var safeUrl = sanitizeHref(rawUrl);
+            if (safeUrl === "") {
+                return label;
+            }
+            return '<a href="' + safeUrl + '" style="color: ' + linkColor + '; text-decoration: underline;">' + label + '</a>';
+        });
 
         // 8. Horizontal rule
         html = html.replace(/^---+$/gm, '<hr style="border: none; border-top: 1px solid ' + borderColor + '; margin: 10px 0;"/>');

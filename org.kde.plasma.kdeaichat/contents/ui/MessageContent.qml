@@ -19,6 +19,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "Security.js" as Sec
 
 Column {
     id: contentRoot
@@ -77,7 +78,12 @@ Column {
                 selectionColor: Kirigami.Theme.highlightColor
                 font: Kirigami.Theme.defaultFont
                 onLinkActivated: function(link) {
-                    Qt.openUrlExternally(link);
+                    // Only open URLs with a safe scheme. Anything else
+                    // (javascript:, data:, file:, custom schemes) is
+                    // dropped here as well as in the markdown renderer.
+                    var safe = Sec.validateUrl(link);
+                    if (safe !== "")
+                        Qt.openUrlExternally(safe);
                 }
             }
 
@@ -200,9 +206,16 @@ Column {
                                 }
                                 if (contentRoot.root.customStorageDs) {
                                     var ts = new Date().getTime();
+                                    // Use a sanitized timestamp inside a
+                                    // hard-coded prefix; the path is then
+                                    // routed through validateFilePath to
+                                    // reject any unexpected characters.
                                     var path = "/tmp/kdeaichat-table-" + ts + ".csv";
-                                    var escaped = path.replace(/'/g, "'\\''");
-                                    contentRoot.root.customStorageDs.connectSource("bash -c \"printf '%s' '" + csv.replace(/'/g, "'\\''") + "' > '" + escaped + "' && xdg-open '" + escaped + "'\" #csv-export-" + ts);
+                                    var safePath = Sec.validateFilePath(path);
+                                    if (safePath === "")
+                                        return;
+                                    var safeCsv = Sec.sanitizeForShell(csv);
+                                    contentRoot.root.customStorageDs.connectSource("bash -c " + Sec.quoteForShell("printf '%s' " + safeCsv + " > " + safePath + " && xdg-open " + safePath) + " #csv-export-" + ts);
                                 }
                             }
                         }
@@ -219,7 +232,11 @@ Column {
                         selectByKeyboard: true
                         selectedTextColor: Kirigami.Theme.highlightedTextColor
                         selectionColor: Kirigami.Theme.highlightColor
-                        font: Kirigami.Theme.defaultFont
+                        onLinkActivated: function(link) {
+                            var safe = Sec.validateUrl(link);
+                            if (safe !== "")
+                                Qt.openUrlExternally(safe);
+                        }
                     }
                 }
             }

@@ -13,6 +13,7 @@ import "SessionManager.js" as SessionManager
 import "MarkdownRenderer.js" as MarkdownRenderer
 import "WalletService.js" as WalletService
 import "RequestDeduplicator.js" as RequestDeduplicator
+import "Security.js" as Sec
 
 PlasmoidItem {
     // No custom text and no way to read options from here,
@@ -395,8 +396,8 @@ PlasmoidItem {
             "enabled": newEnabled
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' toggle_schedule '" + b64Payload + "'";
-        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-toggle-" + Date.now());
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " toggle_schedule " + Sec.quoteForShell(b64Payload);
+        schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-toggle-" + Date.now());
         // Update local schedulesList immediately
         var copy = root.schedulesList.slice();
         for (var i = 0; i < copy.length; i++) {
@@ -433,16 +434,16 @@ PlasmoidItem {
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
         // Validate provider/model configuration before executing
         var validationError = validateCurrentSendTarget();
-        if (validationError !== "") {
-            // Push validation error into chat window
-            pushErrorMessage(validationError);
-            // Display critical desktop notification popup of the configuration failure
-            if (notify) {
-                var escapedErr = validationError.replace(/'/g, "'\\''");
-                var errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
-                var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
-                soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-notify-err");
-            }
+            if (validationError !== "") {
+                // Push validation error into chat window
+                pushErrorMessage(validationError);
+                // Display critical desktop notification popup of the configuration failure
+                if (notify) {
+                    var safeErr = Sec.sanitizeForShell(validationError);
+                    var errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
+                    var safeErrTitle = Sec.sanitizeForShell(errTitle);
+                    soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
+                }
             // Sync the detailed failure back to the scheduler's run history log
             if (schedId) {
                 var historyPayload = {
@@ -450,8 +451,8 @@ PlasmoidItem {
                     "status": validationError
                 };
                 var b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
-                var cmd = "python3 '" + getHelperPath() + "' update_schedule_history_status '" + b64HistoryPayload + "'";
-                soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
+                var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64HistoryPayload);
+                soundDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-history-err");
             }
             return ;
         }
@@ -461,10 +462,10 @@ PlasmoidItem {
         sendMessageByIndex(root.messages.length - 1);
         // Show a desktop notification
         if (notify) {
-            var escapedText = messageText.substring(0, 150).replace(/'/g, "'\\''") + (messageText.length > 150 ? "…" : "");
+            var safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
             var title = "Scheduled: " + (root.currentSessionTitle || "Chat");
-            var escapedTitle = title.replace(/'/g, "'\\''");
-            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify");
+            var safeTitle = Sec.sanitizeForShell(title);
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify");
         }
     }
 
@@ -579,7 +580,7 @@ PlasmoidItem {
             "currentB64": b64Current
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' migrate_history '" + b64Payload + "'";
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " migrate_history " + Sec.quoteForShell(b64Payload);
         customStorageDs.connectSource(cmd + " #migrate-history-" + Date.now());
     }
 
@@ -596,7 +597,7 @@ PlasmoidItem {
                 "b64Str": b64Str
             };
             var b64Payload = base64Encode(JSON.stringify(payload));
-            var writeCmd = "python3 '" + getHelperPath() + "' write_history '" + b64Payload + "'";
+            var writeCmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " write_history " + Sec.quoteForShell(b64Payload);
             customStorageDs.connectSource(writeCmd + " #custom-history-write-" + Date.now());
         }
     }
@@ -854,8 +855,8 @@ PlasmoidItem {
             "sessionId": sessionId
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' delete_session_schedules '" + b64Payload + "'";
-        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-session-delete-" + Date.now());
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_session_schedules " + Sec.quoteForShell(b64Payload);
+        schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-session-delete-" + Date.now());
         // Also update root.schedulesList locally
         var copy = root.schedulesList.filter(function(s) {
             return s.chatId !== sessionId;
@@ -1390,10 +1391,14 @@ PlasmoidItem {
         // ── /session ──────────────────────────────────────────────────────
         if (verb === "session") {
             var sid = currentOpenCodeSessionId();
+            // Session objects are keyed by `value`, not `id` — see
+            // SessionManager.createSessionObj. The previous code looked
+            // for `s.id` and always returned -1, which made the
+            // session-name lookup fall through to "(unnamed)".
             var idx = root.sessions.findIndex ? root.sessions.findIndex(function(s) {
-                return s.id === root.currentSessionId;
+                return s.value === root.currentSessionId;
             }) : -1;
-            var sessionName = (idx >= 0 && root.sessions[idx]) ? (root.sessions[idx].name || "(unnamed)") : "(unnamed)";
+            var sessionName = (idx >= 0 && root.sessions[idx]) ? (root.sessions[idx].text || root.sessions[idx].title || "(unnamed)") : "(unnamed)";
             if (sid)
                 pushInfoMessage("**Current OpenCode Session**\n" + "- **Local session:** " + sessionName + "\n" + "- **Remote session ID:** `" + sid + "`\n" + "- **Server:** " + openCodeBaseUrl() + "\n" + "- **Messages in view:** " + root.messages.length);
             else
@@ -1482,7 +1487,11 @@ PlasmoidItem {
                             });
                         }
                         if (newMsgs.length > 0) {
-                            var idx = root.currentSessionIndex();
+                            // Use the local `sessionIndexById` helper —
+                            // `currentSessionIndex` does not exist on
+                            // `root` and would throw a TypeError at
+                            // runtime.
+                            var idx = sessionIndexById(root.currentSessionId);
                             if (idx >= 0) {
                                 root.messages = newMsgs;
                                 root.sessions[idx].messages = newMsgs;
@@ -2076,7 +2085,11 @@ PlasmoidItem {
             checkFinished = true;
             if (plasmoid.configuration.autoStartOpenCodeServer) {
                 var startCmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
-                opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
+                // The user-editable start command is intentionally a shell
+                // snippet (it can include `>`, `&`, `pkill`, etc.), so we
+                // do *not* strip shell metacharacters. We only escape
+                // single quotes for the outer `sh -lc '…'` wrapper.
+                opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(startCmd) + " #ensure-opencode-startup-" + Date.now());
                 if (chatId) {
                     var ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
                     scheduleMessageRemoval(chatId, ts1, 60000);
@@ -2454,10 +2467,10 @@ PlasmoidItem {
             }
         }
         if (isSched) {
-            var escapedErr = text.replace(/'/g, "'\\''");
+            var safeErr = Sec.sanitizeForShell(text);
             var errTitle = "Schedule Execution Failed";
-            var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
-            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-execution-notify-err");
+            var safeErrTitle = Sec.sanitizeForShell(errTitle);
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-execution-notify-err");
         }
     }
 
@@ -2958,10 +2971,10 @@ PlasmoidItem {
         };
         appendMessageToSession(chatId, errMsgObj);
         if (notify) {
-            var escapedErr = errorMsg.replace(/'/g, "'\\''");
+            var safeErr = Sec.sanitizeForShell(errorMsg);
             var errTitle = "Schedule Failed: " + (schedName || "Chat");
-            var escapedErrTitle = errTitle.replace(/'/g, "'\\''");
-            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning '" + escapedErrTitle + "' '" + escapedErr + "' #sched-notify-err");
+            var safeErrTitle = Sec.sanitizeForShell(errTitle);
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
         }
         if (schedId) {
             var payload = {
@@ -2969,8 +2982,8 @@ PlasmoidItem {
                 "status": errorMsg
             };
             var b64Payload = base64Encode(JSON.stringify(payload));
-            var cmd = "python3 '" + getHelperPath() + "' update_schedule_history_status '" + b64Payload + "'";
-            soundDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-history-err");
+            var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64Payload);
+            soundDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-history-err");
         }
     }
 
@@ -3038,10 +3051,10 @@ PlasmoidItem {
                             appendMessageToSession(chatId, msgObj);
                             triggerNotificationSound();
                             if (notify) {
-                                var escapedText = combined.substring(0, 150).replace(/'/g, "'\\''") + (combined.length > 150 ? "…" : "");
+                                var safeText = Sec.sanitizeForShell(combined.substring(0, 150)) + (combined.length > 150 ? "…" : "");
                                 var title = (schedName || "Scheduled message response ready");
-                                var escapedTitle = title.replace(/'/g, "'\\''");
-                                soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify-resp");
+                                var safeTitle = Sec.sanitizeForShell(title);
+                                soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
                             }
                         } else {
                             failBackgroundOpenCodeRequest("The model returned an empty response.");
@@ -3164,10 +3177,10 @@ PlasmoidItem {
                     }
                     triggerNotificationSound();
                     if (notify) {
-                        var escapedText = finalText.substring(0, 150).replace(/'/g, "'\\''") + (finalText.length > 150 ? "…" : "");
+                        var safeText = Sec.sanitizeForShell(finalText.substring(0, 150)) + (finalText.length > 150 ? "…" : "");
                         var title = (schedName || "Scheduled message response ready");
-                        var escapedTitle = title.replace(/'/g, "'\\''");
-                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify-resp");
+                        var safeTitle = Sec.sanitizeForShell(title);
+                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
                     }
                 } else {
                     handleBackgroundError(chatId, "The model returned an empty response.", notify, schedId, schedName);
@@ -3257,10 +3270,10 @@ PlasmoidItem {
                     }
                     triggerNotificationSound();
                     if (notify) {
-                        var escapedText = (text || "").substring(0, 150).replace(/'/g, "'\\''") + ((text || "").length > 150 ? "…" : "");
+                        var safeText = Sec.sanitizeForShell((text || "").substring(0, 150)) + ((text || "").length > 150 ? "…" : "");
                         var title = (schedName || "Scheduled message response ready");
-                        var escapedTitle = title.replace(/'/g, "'\\''");
-                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify-resp");
+                        var safeTitle = Sec.sanitizeForShell(title);
+                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
                     }
                 } catch (e) {
                     handleBackgroundError(chatId, "Failed to parse Anthropic response", notify, schedId, schedName);
@@ -3329,12 +3342,12 @@ PlasmoidItem {
         };
         appendMessageToSession(chatId, userMsgObj);
         if (notify) {
-            var escapedText = messageText.substring(0, 150).replace(/'/g, "'\\''") + (messageText.length > 150 ? "…" : "");
+            var safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
             var sIdx = sessionIndexById(chatId);
             var sTitle = (sIdx >= 0 && root.sessions[sIdx].title) ? root.sessions[sIdx].title : "Chat";
             var title = "Scheduled: " + sTitle;
-            var escapedTitle = title.replace(/'/g, "'\\''");
-            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information '" + escapedTitle + "' '" + escapedText + "' #sched-notify");
+            var safeTitle = Sec.sanitizeForShell(title);
+            soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify");
         }
         if (root.openCodeMode) {
             doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
@@ -3894,19 +3907,39 @@ PlasmoidItem {
     }
 
     function getDocExtractorPath() {
+        // Resolve the doc-extractor path and refuse anything outside the
+        // package's `contents/ui/` directory. See `getHelperPath()` for
+        // the rationale.
         var urlStr = String(Qt.resolvedUrl("doc_extractor.py"));
         if (urlStr.indexOf("file://") === 0)
             urlStr = urlStr.substring(7);
 
-        return decodeURIComponent(urlStr);
+        var path = decodeURIComponent(urlStr);
+        if (path.indexOf("/contents/ui/") === -1)
+            return "";
+        return path;
     }
 
     function getHelperPath() {
+        // Resolve the helper path relative to this QML file's package.
+        // We reject any path that does not point inside the package's
+        // `contents/ui/` directory — this prevents a compromised
+        // Qt.resolvedUrl override (e.g. via a symlinked install or
+        // custom `KDEDIRS` path) from steering the widget at an
+        // attacker-controlled script.
         var urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
         if (urlStr.indexOf("file://") === 0)
             urlStr = urlStr.substring(7);
 
-        return decodeURIComponent(urlStr);
+        var path = decodeURIComponent(urlStr);
+        // The helper must live inside the package's `contents/ui`
+        // directory. Anything outside (e.g. /tmp, $HOME) is rejected
+        // and the caller falls back to an empty string so the IPC
+        // command becomes a no-op instead of executing an arbitrary
+        // script.
+        if (path.indexOf("/contents/ui/") === -1)
+            return "";
+        return path;
     }
 
     function getScriptsPath() {
@@ -3945,8 +3978,13 @@ PlasmoidItem {
         files.push(newFile);
         root.attachedFiles = files;
         var docExtractorPath = getDocExtractorPath();
-        var escapedPath = localPath.replace(/'/g, "'\\''");
-        var cmd = "python3 '" + docExtractorPath + "' '" + escapedPath + "'";
+        var safePath = Sec.validateFilePath(localPath);
+        if (safePath === "") {
+            // Refuse to call the helper with an unsafe or non-existent path
+            console.warn("attachFile: rejected unsafe path");
+            return;
+        }
+        var cmd = "python3 " + Sec.quoteForShell(docExtractorPath) + " " + Sec.quoteForShell(safePath);
         fileReaderDs.connectSource(cmd);
     }
 
@@ -4148,7 +4186,8 @@ PlasmoidItem {
             "b64Content": b64Str
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' export_chat '" + b64Payload + "' && notify-send -i document-export 'KDE AI Chat' 'Chat session successfully exported to " + filePath.replace(/'/g, "'\\''") + "'";
+        var safeFilePath = Sec.sanitizeForShell(filePath);
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " export_chat " + Sec.quoteForShell(b64Payload) + " && notify-send -i document-export " + Sec.quoteForShell("KDE AI Chat") + " " + Sec.quoteForShell("Chat session successfully exported to " + safeFilePath);
         fileReaderDs.connectSource(cmd + " #export-chat-save");
     }
 
@@ -4255,9 +4294,13 @@ PlasmoidItem {
         root.activeHistoryPath = customDir;
         if (customDir !== "") {
             var fullPath = getHistoryFilePath(customDir);
-            var escapedPath = fullPath.replace(/'/g, "'\\''");
-            var readCmd = "python3 -c \"import base64, os; path=os.path.expanduser('" + escapedPath + "'); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\"";
-            customStorageDs.connectSource(readCmd + " #custom-history-read-" + Date.now());
+            var safePath = Sec.validateFilePath(fullPath);
+            if (safePath !== "") {
+                var readCmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(safePath) + "); print(base64.b64encode(open(path, 'rb').read()).decode('utf-8') if os.path.exists(path) else '')\"";
+                customStorageDs.connectSource(readCmd + " #custom-history-read-" + Date.now());
+            } else {
+                loadSessions();
+            }
         } else {
             loadSessions();
         }
@@ -4270,8 +4313,12 @@ PlasmoidItem {
         if (plasmoid.configuration.schedulerAutoStart) {
             plasmoid.configuration.schedulerEnabled = true;
             var schedulerScriptPath = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/kde-ai-scheduler.py";
-            var startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 '" + schedulerScriptPath + "' &) ; " + "echo SCHED_AUTOSTART_OK";
-            schedulerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #sched-startup");
+            // The auto-start snippet is built from a hard-coded template;
+            // only the writable XDG path is interpolated, so we route it
+            // through the file-path validator and the shell-quote helper.
+            var safeSchedulerPath = Sec.validateFilePath(schedulerScriptPath);
+            var startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerPath) + " &) ; " + "echo SCHED_AUTOSTART_OK";
+            schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(startCmd) + " #sched-startup");
         }
         checkAndMarkCurrentSessionAsRead();
     }
@@ -4301,8 +4348,13 @@ PlasmoidItem {
 
     function copyToClipboard(textValue) {
         var text = textValue || "";
-        var escaped = text.replace(/'/g, "'\\''");
-        var cmd = "sh -lc \"if command -v wl-copy >/dev/null 2>&1; then printf '%s' '" + escaped + "' | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf '%s' '" + escaped + "' | xclip -selection clipboard; " + "else echo 'Clipboard tool missing: install wl-clipboard or xclip' 1>&2; exit 1; fi\"";
+        // Sanitize first so the entire single-quote payload is harmless
+        // even if the surrounding wrapper is re-evaluated. The wrapper
+        // now uses a single-quoted string around the inner command so
+        // the outer `sh -lc` cannot perform command substitution on
+        // the value.
+        var safe = Sec.sanitizeForShell(text);
+        var cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
         clipboardDs.connectSource(cmd + " #clipboard-copy");
     }
 
@@ -4370,7 +4422,8 @@ PlasmoidItem {
         onTriggered: {
             if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
                 var stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
-                opencodeServerDs.connectSource("sh -lc '" + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
+                // User-editable stop command — see note above.
+                opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(stopCmd) + " #autokill-opencode");
                 debugLog("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
             }
         }
@@ -4448,8 +4501,8 @@ PlasmoidItem {
                 return ;
 
             root.schedPolling = true;
-            var cmd = "python3 '" + getHelperPath() + "' poll_pending_triggers";
-            schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-poll-" + Date.now());
+            var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " poll_pending_triggers";
+            schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-poll-" + Date.now());
         }
     }
 
@@ -4462,7 +4515,8 @@ PlasmoidItem {
         repeat: false
         onTriggered: {
             var cmd = (plasmoid.configuration.openCodeStartCommand || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo ok").trim();
-            opencodeServerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #autostart-opencode");
+            // User-editable start command — see note above.
+            opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #autostart-opencode");
         }
     }
 
@@ -5128,19 +5182,23 @@ PlasmoidItem {
                     QQC2.ToolTip.text: root.translate("Open OpenCode TUI in a terminal window")
                     onClicked: {
                         var opencodeSessionFile = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat/.opencode-session";
+                        var safeSessionFile = Sec.validateFilePath(opencodeSessionFile);
                         root.ensureCurrentOpenCodeSession(function(sid) {
                             var opencodeCmd = "opencode" + (sid !== "" ? " --session " + sid : "");
                             clipboardHelper.text = opencodeCmd;
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var termCmd = "echo -n '" + sid + "' > '" + opencodeSessionFile + "' && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
+                            var safeSid = Sec.validateSessionId(sid);
+                            var safeScriptsPath = Sec.validateFilePath(getScriptsPath());
+                            var termCmd = "echo -n " + Sec.quoteForShell(safeSid) + " > " + Sec.quoteForShell(safeSessionFile) + " && konsole --workdir " + Sec.quoteForShell(safeScriptsPath) + " -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         }, function(err) {
                             root.pushErrorMessage(err);
                             clipboardHelper.text = "opencode";
                             clipboardHelper.selectAll();
                             clipboardHelper.copy();
-                            var termCmd = "echo -n '' > '" + opencodeSessionFile + "' && konsole --workdir '" + getScriptsPath() + "' -e bash ./opencode-terminal.sh";
+                            var safeScriptsPath = Sec.validateFilePath(getScriptsPath());
+                            var termCmd = "echo -n " + Sec.quoteForShell("") + " > " + Sec.quoteForShell(safeSessionFile) + " && konsole --workdir " + Sec.quoteForShell(safeScriptsPath) + " -e bash ./opencode-terminal.sh";
                             customStorageDs.connectSource(termCmd + " #opencode-terminal-launch");
                         });
                     }
@@ -5629,7 +5687,11 @@ PlasmoidItem {
                                                                     cursorShape: Qt.PointingHandCursor
                                                                     QQC2.ToolTip.visible: hovered
                                                                     QQC2.ToolTip.text: "Open: " + modelData.path
-                                                                    onClicked: Qt.openUrlExternally("file://" + modelData.path)
+                                                                    onClicked: {
+                                                                        var safePath = Sec.validateFilePath(modelData.path);
+                                                                        if (safePath !== "")
+                                                                            Qt.openUrlExternally("file://" + safePath);
+                                                                    }
                                                                 }
 
                                                             }
@@ -5944,9 +6006,9 @@ PlasmoidItem {
                                                                                     var payload = {
                                                                                         "schedId": schedId
                                                                                     };
-                                                                                    var b64Payload = base64Encode(JSON.stringify(payload));
-                                                                                    var cmd = "python3 '" + getHelperPath() + "' delete_schedule '" + b64Payload + "'";
-                                                                                    schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
+                                                                                     var b64Payload = base64Encode(JSON.stringify(payload));
+                                                                                     var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
+                                                                                     schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
                                                                                     // Remove immediately from UI to be responsive!
                                                                                     var copy = root.schedulesList.slice();
                                                                                     root.schedulesList = copy.filter(function(s) {
@@ -7221,8 +7283,8 @@ PlasmoidItem {
                             "entry": entry
                         };
                         var b64Payload = base64Encode(JSON.stringify(payload));
-                        var cmd = "python3 '" + getHelperPath() + "' add_schedule '" + b64Payload + "'";
-                        schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save-" + Date.now());
+                        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " add_schedule " + Sec.quoteForShell(b64Payload);
+                        schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
                     }
@@ -7257,8 +7319,8 @@ PlasmoidItem {
                 "schedId": schedId
             };
             var b64Payload = base64Encode(JSON.stringify(payload));
-            var cmd = "python3 '" + getHelperPath() + "' delete_schedule '" + b64Payload + "'";
-            schedulerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-delete-" + Date.now());
+            var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
+            schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
             root.appendSystemMessage("🗑️ Schedule deleted successfully.");
         }
 

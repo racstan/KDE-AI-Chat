@@ -9,6 +9,7 @@ import org.kde.plasma.plasma5support as P5Support
 import "translations.js" as Translations
 import "ProviderService.js" as ProviderService
 import "WalletService.js" as WalletService
+import "Security.js" as Sec
 
 KCM.SimpleKCM {
     id: page
@@ -279,12 +280,16 @@ KCM.SimpleKCM {
     }
 
     function shellEscape(s) {
-        return (s || "").replace(/'/g, "'\\''");
+        return Sec.sanitizeForShell(s || "").replace(/'/g, "'\\''");
     }
 
     function copyToClipboard(textValue) {
         var text = textValue || "";
-        var cmd = "sh -lc \"if command -v wl-copy >/dev/null 2>&1; then printf '%s' '" + shellEscape(text) + "' | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf '%s' '" + shellEscape(text) + "' | xclip -selection clipboard; " + "else echo 'Clipboard tool missing: install wl-clipboard or xclip' 1>&2; exit 1; fi\"";
+        // Sanitize first so the value cannot be re-evaluated as shell
+        // grammar by the outer `sh -lc` wrapper. See the same function
+        // in main.qml for the rationale.
+        var safe = Sec.sanitizeForShell(text);
+        var cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
         utilityDs.connectSource(cmd + " #clipboard-copy");
     }
 
@@ -922,9 +927,17 @@ KCM.SimpleKCM {
 
     function killRunningOpenCodeSession(sessionId) {
         var baseUrl = openCodeUrlField.text;
-        var url = openCodeServerRoot(baseUrl) + "/session/" + sessionId;
-        openCodeSessionsStatus = translate("Killing session %1...").arg(sessionId);
-        
+        // Refuse any session id that does not match the expected
+        // character set. This blocks path traversal (`../`) and query
+        // string injection (`?evil=…`).
+        var safeSessionId = Sec.validateSessionId(sessionId);
+        if (safeSessionId === "") {
+            openCodeSessionsStatus = translate("Refusing to delete session: invalid id.");
+            return;
+        }
+        var url = openCodeServerRoot(baseUrl) + "/session/" + safeSessionId;
+        openCodeSessionsStatus = translate("Killing session %1...").arg(safeSessionId);
+
         var xhr = new XMLHttpRequest();
         xhr.open("DELETE", url, true);
         xhr.onreadystatechange = function() {
@@ -1168,11 +1181,17 @@ KCM.SimpleKCM {
     }
 
     function getHelperPath() {
+        // Resolve the helper path and refuse anything outside the
+        // package's `contents/ui/` directory. See the same function in
+        // main.qml for the rationale.
         var urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
         if (urlStr.indexOf("file://") === 0)
             urlStr = urlStr.substring(7);
 
-        return decodeURIComponent(urlStr);
+        var path = decodeURIComponent(urlStr);
+        if (path.indexOf("/contents/ui/") === -1)
+            return "";
+        return path;
     }
 
     function loadKeysFromPlainConfig() {
@@ -1180,7 +1199,7 @@ KCM.SimpleKCM {
             "configPath": configFilePath
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' load_config_keys '" + b64Payload + "'";
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " load_config_keys " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource(cmd + " #plainconfig-load");
     }
 
@@ -1231,8 +1250,11 @@ KCM.SimpleKCM {
             "keys": keysPayload
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' sync_config_keys '" + b64Payload + "' && xdg-open '" + configFilePath + "' #open-config";
-        utilityDs.connectSource(cmd);
+        var safeConfigPath = Sec.validateFilePath(configFilePath);
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
+        if (safeConfigPath !== "")
+            cmd += " && xdg-open " + Sec.quoteForShell(safeConfigPath);
+        utilityDs.connectSource(cmd + " #open-config");
     }
 
     function syncKeysToDisk() {
@@ -1263,7 +1285,7 @@ KCM.SimpleKCM {
             "keys": keysPayload
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' sync_config_keys '" + b64Payload + "'";
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource(cmd + " #plainconfig-sync");
     }
 
@@ -1273,7 +1295,7 @@ KCM.SimpleKCM {
             "keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' clear_config_keys '" + b64Payload + "'";
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " clear_config_keys " + Sec.quoteForShell(b64Payload);
         utilityDs.connectSource(cmd + " #plainconfig-clear");
         plasmoid.configuration.apiKey = "";
         plasmoid.configuration.anthropicApiKey = "";
@@ -1480,8 +1502,8 @@ KCM.SimpleKCM {
             "serviceContent": serviceContent
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' setup_scheduler_service '" + b64Payload + "'";
-        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-auto-setup");
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.quoteForShell(b64Payload);
+        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
     }
 
     function pollSchedulerState() {
@@ -1489,9 +1511,11 @@ KCM.SimpleKCM {
     }
 
     function schedLoadSchedules() {
-        var path = schedulesFilePath.replace(/'/g, "'\\''");
-        var cmd = "cat '" + path + "' 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
-        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-load");
+        var safePath = Sec.validateFilePath(schedulesFilePath);
+        if (safePath === "")
+            return;
+        var cmd = "cat " + Sec.quoteForShell(safePath) + " 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
+        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-load");
     }
 
     function schedSaveSchedules(items) {
@@ -1536,8 +1560,8 @@ KCM.SimpleKCM {
             }
         };
         var b64Payload = base64Encode(JSON.stringify(payload));
-        var cmd = "python3 '" + getHelperPath() + "' save_all_schedules '" + b64Payload + "'";
-        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-save");
+        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.quoteForShell(b64Payload);
+        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-save");
     }
 
     function schedTriggerNow(index) {
@@ -2733,7 +2757,12 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode start command...";
-                        var cmd = "sh -lc '" + shellEscape(openCodeStartCommandField.text || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'";
+                        // The user-editable start command is intentionally
+                        // a shell snippet (it can include `>`, `&`, `pkill`,
+                        // etc.), so we do *not* strip shell metacharacters.
+                        // We only escape single quotes for the outer
+                        // `sh -lc '…'` wrapper.
+                        var cmd = "sh -lc " + Sec.quoteForShell(openCodeStartCommandField.text || "nohup opencode serve --port 4096 --hostname 127.0.0.1 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.");
                         utilityDs.connectSource(cmd + " #opencode-start");
                     }
                 }
@@ -2749,7 +2778,8 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode stop command...";
-                        var cmd = "sh -lc '" + shellEscape(openCodeStopCommandField.text || "pkill -f opencode") + "'";
+                        // User-editable stop command — see note above.
+                        var cmd = "sh -lc " + Sec.quoteForShell(openCodeStopCommandField.text || "pkill -f opencode");
                         utilityDs.connectSource(cmd + " #opencode-stop");
                     }
                 }
@@ -4741,12 +4771,13 @@ KCM.SimpleKCM {
 
                     if (checked) {
                         page.schedulerStatus = "Starting…";
-                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 '" + schedulerScriptPath + "' &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-start-" + Date.now());
+                        var safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
+                        var cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " &) ; " + "echo SCHED_START_OK";
+                        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-start-" + Date.now());
                     } else {
                         page.schedulerStatus = "Stopping…";
                         var cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd + "' #sched-stop-" + Date.now());
+                        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-stop-" + Date.now());
                     }
                     schedPollTimer.restart();
                     // Immediately trigger a poll check to reflect the start/stop actions
@@ -4775,8 +4806,9 @@ KCM.SimpleKCM {
                     onClicked: {
                         page.schedulerStatus = page.schedulerDaemonRunning ? "Restarting…" : "Starting…";
                         page.schedulerDaemonRunning = false;
-                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 '" + schedulerScriptPath + "' >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #sched-start-" + Date.now());
+                        var safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
+                        var cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
+                        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-start-" + Date.now());
                         schedPollTimer.restart();
                     }
                 }
@@ -4847,8 +4879,10 @@ KCM.SimpleKCM {
                     icon.name: "document-open"
                     Layout.fillWidth: true
                     onClicked: {
-                        var path = schedulesFilePath.replace(/'/g, "'\\''");
-                        utilityDs.connectSource("xdg-open '" + path + "' || kde-open '" + path + "' || kwrite '" + path + "' || kate '" + path + "' || nano '" + path + "' #open-sched-file");
+                        var safeSchedPath = Sec.validateFilePath(schedulesFilePath);
+                        if (safeSchedPath === "")
+                            return;
+                        utilityDs.connectSource("xdg-open " + Sec.quoteForShell(safeSchedPath) + " || kde-open " + Sec.quoteForShell(safeSchedPath) + " || kwrite " + Sec.quoteForShell(safeSchedPath) + " || kate " + Sec.quoteForShell(safeSchedPath) + " || nano " + Sec.quoteForShell(safeSchedPath) + " #open-sched-file");
                     }
                 }
 
@@ -4890,7 +4924,7 @@ KCM.SimpleKCM {
                     enabled: !page.memRefreshing
                     onClicked: {
                         page.memRefreshing = true;
-                        var cmd = "python3 '" + getHelperPath() + "' get_memory_usage";
+                        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " get_memory_usage";
                         utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
                     }
                 }
@@ -5104,12 +5138,20 @@ KCM.SimpleKCM {
                             dir = decodeURIComponent(dir.slice(7));
                         }
                         var file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
+                        // Validate the path before embedding it in any
+                        // shell command. A user-supplied custom history
+                        // path must not be allowed to break out of the
+                        // single-quoted Python string.
+                        var safeFile = Sec.validateFilePath(file);
+                        if (safeFile === "") {
+                            page.storageExportStatus = "Refusing to write to unsafe path.";
+                            return;
+                        }
                         var jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
                         // Base64-encode to avoid shell quoting issues (properly handle Unicode)
                         var b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
-                        var cmd = "python3 -c \"import base64, os; path=os.path.expanduser('" +
-                            file.replace(/'/g, "\\'") + "'); os.makedirs(os.path.dirname(path), exist_ok=True); " +
-                            "open(path, 'w', encoding='utf-8').write(base64.b64decode('" + b64 + "').decode('utf-8')); print('OK')\"";
+                        var cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(safeFile) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " +
+                            "open(path, 'w', encoding='utf-8').write(base64.b64decode(" + Sec.quoteForShell(b64) + ").decode('utf-8')); print('OK')\"";
                         utilityDs.connectSource(cmd + " #storage-export-" + Date.now());
                         exportStatusTimer.restart();
                     }
@@ -5124,7 +5166,10 @@ KCM.SimpleKCM {
                         if (dir.indexOf("file://") === 0) {
                             dir = decodeURIComponent(dir.slice(7));
                         }
-                        utilityDs.connectSource("xdg-open '" + dir.replace(/'/g, "'\\''") + "' #open-storage-dir");
+                        var safeDir = Sec.validateFilePath(dir);
+                        if (safeDir === "")
+                            return;
+                        utilityDs.connectSource("xdg-open " + Sec.quoteForShell(safeDir) + " #open-storage-dir");
                     }
                 }
 
