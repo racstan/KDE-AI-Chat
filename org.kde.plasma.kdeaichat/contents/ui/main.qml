@@ -8,6 +8,9 @@ import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 import "translations.js" as Translations
+import "ProviderService.js" as ProviderService
+import "SessionManager.js" as SessionManager
+import "MarkdownRenderer.js" as MarkdownRenderer
 
 PlasmoidItem {
     // No custom text and no way to read options from here,
@@ -226,13 +229,11 @@ PlasmoidItem {
     }
 
     function makeSessionId() {
-        var uuid = Qt.createUuid().toString().replace(/[{}-]/g, "");
-        return "s-" + uuid.substring(0, 12);
+        return SessionManager.makeSessionId();
     }
 
     function makeForkSessionId() {
-        var uuid = Qt.createUuid().toString().replace(/[{}-]/g, "");
-        return "fork-" + uuid.substring(0, 12);
+        return SessionManager.makeForkSessionId();
     }
 
     function forkSession(messageIndex) {
@@ -533,8 +534,6 @@ PlasmoidItem {
 
     function sessionSubtitle(sessionData) {
         var parts = [];
-        if (sessionData.value)
-            parts.push("ID: " + sessionData.value);
 
         if (sessionData.source === "opencode")
             parts.push("OpenCode");
@@ -2503,55 +2502,7 @@ PlasmoidItem {
     }
 
     function providerDisplayName(providerId) {
-        if (providerId === "openai")
-            return "OpenAI";
-
-        if (providerId === "anthropic")
-            return "Anthropic";
-
-        if (providerId === "groq")
-            return "Groq";
-
-        if (providerId === "deepseek")
-            return "DeepSeek";
-
-        if (providerId === "minimax")
-            return "MiniMax";
-
-        if (providerId === "fireworks")
-            return "Fireworks";
-
-        if (providerId === "google")
-            return "Google Gemini";
-
-        if (providerId === "openrouter")
-            return "OpenRouter";
-
-        if (providerId === "mistral")
-            return "Mistral";
-
-        if (providerId === "cloudflare")
-            return "Cloudflare";
-
-        if (providerId === "nvidia")
-            return "NVIDIA NIM";
-
-        if (providerId === "huggingface")
-            return "Hugging Face";
-
-        if (providerId === "xai")
-            return "xAI";
-
-        if (providerId === "litellm")
-            return "LiteLLM Proxy";
-
-        if (providerId === "lmstudio")
-            return "LM Studio";
-
-        if (providerId === "local")
-            return "Local";
-
-        return providerId || "Selected provider";
+        return ProviderService.getProviderDisplayName(providerId);
     }
 
     function validateOpenCodeConfig() {
@@ -2700,218 +2651,7 @@ PlasmoidItem {
     }
 
     function getProviderConfig(provider) {
-        if (provider === "anthropic")
-            return {
-            "type": "anthropic",
-            "apiKey": (plasmoid.configuration.anthropicApiKey || "").trim(),
-            "model": plasmoid.configuration.anthropicModel || "",
-            "allowEmptyKey": false
-        };
-
-        if (provider === "local")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
-            "apiKey": "",
-            "model": plasmoid.configuration.localModel || "",
-            "headers": null,
-            "allowEmptyKey": true
-        };
-
-        if (provider === "ollama")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.ollamaBaseUrl || "http://localhost:11434/v1",
-            "apiKey": "",
-            "model": plasmoid.configuration.ollamaModel || "",
-            "headers": null,
-            "allowEmptyKey": true
-        };
-
-        if (provider === "litellm")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.litellmBaseUrl || "http://localhost:4000/v1",
-            "apiKey": (plasmoid.configuration.litellmApiKey || "").trim(),
-            "model": plasmoid.configuration.litellmModel || "",
-            "headers": null,
-            "allowEmptyKey": true
-        };
-
-        if (provider === "lmstudio")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.lmStudioBaseUrl || "http://localhost:1234/v1",
-            "apiKey": "",
-            "model": plasmoid.configuration.lmStudioModel || "",
-            "headers": null,
-            "allowEmptyKey": true
-        };
-
-        if (provider === "groq")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.groqBaseUrl || "https://api.groq.com/openai/v1",
-            "apiKey": (plasmoid.configuration.groqApiKey || "").trim(),
-            "model": plasmoid.configuration.groqModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "deepseek")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.deepSeekBaseUrl || "https://api.deepseek.com",
-            "apiKey": (plasmoid.configuration.deepSeekApiKey || "").trim(),
-            "model": plasmoid.configuration.deepSeekModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "minimax")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.miniMaxBaseUrl || "https://api.minimax.io/v1",
-            "apiKey": (plasmoid.configuration.miniMaxApiKey || "").trim(),
-            "model": plasmoid.configuration.miniMaxModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "fireworks")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.fireworksBaseUrl || "https://api.fireworks.ai/inference/v1",
-            "apiKey": (plasmoid.configuration.fireworksApiKey || "").trim(),
-            "model": plasmoid.configuration.fireworksModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "google")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.googleBaseUrl || "https://generativelanguage.googleapis.com/v1beta/openai/",
-            "apiKey": (plasmoid.configuration.googleApiKey || "").trim(),
-            "model": plasmoid.configuration.googleModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "openrouter") {
-            var headers = {
-            };
-            var referer = plasmoid.configuration.openRouterReferer || "https://github.com/racstan/KDE-AI-Chat";
-            var title = plasmoid.configuration.openRouterTitle || "KDE AI Chat";
-            headers["HTTP-Referer"] = referer;
-            headers["X-Title"] = title;
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.openRouterBaseUrl || "https://openrouter.ai/api/v1",
-                "apiKey": (plasmoid.configuration.openRouterApiKey || "").trim(),
-                "model": plasmoid.configuration.openRouterModel || "",
-                "headers": headers,
-                "allowEmptyKey": false
-            };
-        }
-        if (provider === "mistral")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.mistralBaseUrl || "https://api.mistral.ai/v1",
-            "apiKey": (plasmoid.configuration.mistralApiKey || "").trim(),
-            "model": plasmoid.configuration.mistralModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "cloudflare")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.cloudflareBaseUrl || "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
-            "apiKey": (plasmoid.configuration.cloudflareApiKey || "").trim(),
-            "model": plasmoid.configuration.cloudflareModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "nvidia")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.nvidiaBaseUrl || "https://integrate.api.nvidia.com/v1",
-            "apiKey": (plasmoid.configuration.nvidiaApiKey || "").trim(),
-            "model": plasmoid.configuration.nvidiaModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "huggingface")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.huggingFaceBaseUrl || "https://router.huggingface.co/v1",
-            "apiKey": (plasmoid.configuration.huggingFaceApiKey || "").trim(),
-            "model": plasmoid.configuration.huggingFaceModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "xai")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.xaiBaseUrl || "https://api.x.ai/v1",
-            "apiKey": (plasmoid.configuration.xaiApiKey || "").trim(),
-            "model": plasmoid.configuration.xaiModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "qwen")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.qwenBaseUrl || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-            "apiKey": (plasmoid.configuration.qwenApiKey || "").trim(),
-            "model": plasmoid.configuration.qwenModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "moonshot")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.moonshotBaseUrl || "https://api.moonshot.ai/v1",
-            "apiKey": (plasmoid.configuration.moonshotApiKey || "").trim(),
-            "model": plasmoid.configuration.moonshotModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "mimo")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.mimoBaseUrl || "https://api.xiaomimimo.com/v1",
-            "apiKey": (plasmoid.configuration.mimoApiKey || "").trim(),
-            "model": plasmoid.configuration.mimoModel || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        if (provider === "maritaca")
-            return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.maritacaBaseUrl || "https://chat.maritaca.ai/api",
-            "apiKey": (plasmoid.configuration.maritacaApiKey || "").trim(),
-            "model": plasmoid.configuration.maritacaModel || "sabia-4",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-
-        return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.baseUrl || "https://api.openai.com/v1",
-            "apiKey": (plasmoid.configuration.apiKey || "").trim(),
-            "model": plasmoid.configuration.model || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
+        return ProviderService.getProviderConfig(provider, plasmoid.configuration);
     }
 
     function translate(text) {
@@ -3992,101 +3732,7 @@ PlasmoidItem {
         }
 
         try {
-            var isDark = root.popupIsDark;
-            var codeBg = isDark ? "#2d3139" : "#f0f2f5";
-            var codeColor = isDark ? "#abb2bf" : "#383a42";
-            var inlineBg = isDark ? "#3e4452" : "#e5e5e5";
-            var inlineColor = isDark ? "#e06c75" : "#a626a4";
-            var linkColor = isDark ? "#61afef" : "#4078f2";
-            var borderColor = isDark ? "#3e4452" : "#d0d4dc";
-            var tableBorderColor = isDark ? "#4a5165" : "#c8cdd8";
-            var tableHeadBg = isDark ? "#363b48" : "#e8eaf0";
-            var tableRowAltBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)";
-            var html = markdown;
-            // 1. Escape HTML
-            html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            // 2. Extract fenced code blocks (with or without language)
-            var codeBlocks = [];
-            html = html.replace(/```([a-zA-Z0-9+#\-_]*)\n([\s\S]*?)```/g, function(match, lang, code) {
-                var blockIdx = codeBlocks.length;
-                var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<div style="font-size: 0.8em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">' + (lang ? lang : 'code') + '</div>' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
-                codeBlocks.push(rendered);
-                return "%%CB" + blockIdx + "%%";
-            });
-            html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
-                var blockIdx = codeBlocks.length;
-                var rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
-                codeBlocks.push(rendered);
-                return "%%CB" + blockIdx + "%%";
-            });
-            // 3. Markdown tables  |col|col| with optional alignment row
-            html = html.replace(/((?:[ \t]*\|.+\|[ \t]*\n)+)/g, function(block) {
-                var rows = block.trim().split("\n");
-                if (rows.length < 2)
-                    return block;
-    
-                // Check row 1 is separator (---|---)
-                var isSep = /^[\s|:\-]+$/.test(rows[1]);
-                var headerRow = rows[0];
-                var bodyRows = isSep ? rows.slice(2) : rows.slice(1);
-                var parseCells = function parseCells(row) {
-                    return row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split("|").map(function(c) {
-                        return c.trim();
-                    });
-                };
-                var t = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em;">';
-                // Header
-                t += '<thead><tr>';
-                parseCells(headerRow).forEach(function(cell) {
-                    t += '<th style="border: 1px solid ' + tableBorderColor + '; padding: 6px 10px; background: ' + tableHeadBg + '; text-align: left; font-weight: bold;">' + cell + '</th>';
-                });
-                t += '</tr></thead><tbody>';
-                // Body rows
-                bodyRows.forEach(function(row, ri) {
-                    if (row.trim() === '' || /^[\s|:\-]+$/.test(row))
-                        return ;
-    
-                    var bg = (ri % 2 === 1) ? ' background: ' + tableRowAltBg + ';' : '';
-                    t += '<tr>';
-                    parseCells(row).forEach(function(cell) {
-                        t += '<td style="border: 1px solid ' + tableBorderColor + '; padding: 5px 10px;' + bg + '">' + cell + '</td>';
-                    });
-                    t += '</tr>';
-                });
-                t += '</tbody></table>';
-                return t;
-            });
-            // 4. Inline code
-            html = html.replace(/`([^`\n]+)`/g, '<code style="background-color: ' + inlineBg + '; color: ' + inlineColor + '; font-family: monospace; padding: 2px 5px; border-radius: 3px; font-size: 0.92em;">$1</code>');
-            // 5. Headers
-            html = html.replace(/^#### (.*?)$/gm, '<h4 style="margin: 8px 0; font-weight: bold;">$1</h4>');
-            html = html.replace(/^### (.*?)$/gm, '<h3 style="margin: 10px 0; font-weight: bold;">$1</h3>');
-            html = html.replace(/^## (.*?)$/gm, '<h2 style="margin: 12px 0; font-weight: bold;">$1</h2>');
-            html = html.replace(/^# (.*?)$/gm, '<h1 style="margin: 14px 0; font-weight: bold;">$1</h1>');
-            // 6. Bold & Italic
-            html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<b>$1</b>');
-            html = html.replace(/__([^\_\n]+)__/g, '<b>$1</b>');
-            html = html.replace(/\*([^\*\n]+)\*/g, '<i>$1</i>');
-            html = html.replace(/_([^\_\n]+)_/g, '<i>$1</i>');
-            // 7. Links [text](url)
-            html = html.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, '<a href="$2" style="color: ' + linkColor + '; text-decoration: underline;">$1</a>');
-            // 8. Horizontal rule
-            html = html.replace(/^---+$/gm, '<hr style="border: none; border-top: 1px solid ' + borderColor + '; margin: 10px 0;"/>');
-            // 9. Blockquote
-            html = html.replace(/^&gt;\s?(.*?)$/gm, '<blockquote style="margin: 4px 0 4px 12px; padding: 4px 10px; border-left: 3px solid ' + borderColor + '; opacity: 0.8;">$1</blockquote>');
-            // 10. Bullet lists
-            html = html.replace(/^\s*[-*+]\s+(.*?)$/gm, '<ul><li>$1</li></ul>');
-            html = html.replace(/<\/ul>\s*\n?\s*<ul>/g, '');
-            // 11. Numbered lists
-            html = html.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<ol><li value="$1">$2</li></ol>');
-            html = html.replace(/<\/ol>\s*\n?\s*<ol>/g, '');
-            // 12. Paragraph breaks
-            html = html.replace(/\n\n/g, '<br/><br/>');
-            html = html.replace(/\n/g, '<br/>');
-            // 13. Restore code blocks
-            for (var idx = 0; idx < codeBlocks.length; idx++) {
-                html = html.replace("%%CB" + idx + "%%", codeBlocks[idx]);
-            }
+            var html = MarkdownRenderer.convertMarkdownToHtml(markdown, root.popupIsDark);
             root._markdownCache[cacheKey] = html;
             return html;
         } catch (e) {
@@ -4191,64 +3837,7 @@ PlasmoidItem {
         }
 
         try {
-            var blocks = [];
-            var lines = markdown.split("\n");
-            var i = 0;
-            while (i < lines.length) {
-                // Detect fenced code block
-                var fenceMatch = lines[i].match(/^```([a-zA-Z0-9+#\-_]*)\s*$/);
-                if (fenceMatch) {
-                    var lang = fenceMatch[1] || "";
-                    var codeLines = [];
-                    i++;
-                    while (i < lines.length && !lines[i].match(/^```\s*$/)) {
-                        codeLines.push(lines[i]);
-                        i++;
-                    }
-                    i++; // skip closing ```
-                    blocks.push({
-                        "type": "code",
-                        "content": codeLines.join("\n"),
-                        "lang": lang
-                    });
-                    continue;
-                }
-                // Detect markdown table block (consecutive lines with |)
-                if (/^\s*\|/.test(lines[i])) {
-                    var tableLines = [];
-                    while (i < lines.length && /^\s*\|/.test(lines[i])) {
-                        tableLines.push(lines[i]);
-                        i++;
-                    }
-                    blocks.push({
-                        "type": "table",
-                        "content": tableLines.join("\n") + "\n",
-                        "lang": ""
-                    });
-                    continue;
-                }
-                // Regular text — accumulate until next code/table block
-                var textLines = [];
-                while (i < lines.length && !lines[i].match(/^```/) && !/^\s*\|/.test(lines[i])) {
-                    textLines.push(lines[i]);
-                    i++;
-                }
-                var textContent = textLines.join("\n").replace(/^\n+/, "").replace(/\n+$/, "");
-                if (textContent !== "")
-                    blocks.push({
-                    "type": "text",
-                    "content": textContent,
-                    "lang": ""
-                });
-    
-            }
-            if (blocks.length === 0)
-                blocks.push({
-                "type": "text",
-                "content": markdown,
-                "lang": ""
-            });
-    
+            var blocks = MarkdownRenderer.parseMessageBlocks(markdown);
             root._blocksCache[markdown] = blocks;
             return blocks;
         } catch (e) {
@@ -4263,25 +3852,7 @@ PlasmoidItem {
 
     // Convert markdown table to CSV string
     function tableMarkdownToCsv(tableMarkdown) {
-        var rows = tableMarkdown.trim().split("\n");
-        var csvRows = [];
-        for (var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            // Skip separator rows (---|---)
-            if (/^[\s|:\-]+$/.test(row))
-                continue;
-
-            var cells = row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|");
-            var csvCells = cells.map(function(c) {
-                var v = c.trim();
-                if (v.indexOf(",") >= 0 || v.indexOf("\"") >= 0 || v.indexOf("\n") >= 0)
-                    v = "\"" + v.replace(/"/g, "\"\"") + "\"";
-
-                return v;
-            });
-            csvRows.push(csvCells.join(","));
-        }
-        return csvRows.join("\n");
+        return MarkdownRenderer.tableMarkdownToCsv(tableMarkdown);
     }
 
     function buildMessageContent(text, attachments, apiType) {
@@ -4347,42 +3918,10 @@ PlasmoidItem {
     }
 
     function applyKWalletKeyToMemory(targetId, secretValue) {
-        if (targetId === "openai")
-            plasmoid.configuration.apiKey = secretValue;
-        else if (targetId === "anthropic")
-            plasmoid.configuration.anthropicApiKey = secretValue;
-        else if (targetId === "groq")
-            plasmoid.configuration.groqApiKey = secretValue;
-        else if (targetId === "deepseek")
-            plasmoid.configuration.deepSeekApiKey = secretValue;
-        else if (targetId === "minimax")
-            plasmoid.configuration.miniMaxApiKey = secretValue;
-        else if (targetId === "fireworks")
-            plasmoid.configuration.fireworksApiKey = secretValue;
-        else if (targetId === "google")
-            plasmoid.configuration.googleApiKey = secretValue;
-        else if (targetId === "openrouter")
-            plasmoid.configuration.openRouterApiKey = secretValue;
-        else if (targetId === "mistral")
-            plasmoid.configuration.mistralApiKey = secretValue;
-        else if (targetId === "cloudflare")
-            plasmoid.configuration.cloudflareApiKey = secretValue;
-        else if (targetId === "nvidia")
-            plasmoid.configuration.nvidiaApiKey = secretValue;
-        else if (targetId === "huggingface")
-            plasmoid.configuration.huggingFaceApiKey = secretValue;
-        else if (targetId === "xai")
-            plasmoid.configuration.xaiApiKey = secretValue;
-        else if (targetId === "litellm")
-            plasmoid.configuration.litellmApiKey = secretValue;
-        else if (targetId === "qwen")
-            plasmoid.configuration.qwenApiKey = secretValue;
-        else if (targetId === "moonshot")
-            plasmoid.configuration.moonshotApiKey = secretValue;
-        else if (targetId === "mimo")
-            plasmoid.configuration.mimoApiKey = secretValue;
-        else if (targetId === "maritaca")
-            plasmoid.configuration.maritacaApiKey = secretValue;
+        var configKey = ProviderService.getApiKeyConfigKey(targetId);
+        if (configKey) {
+            plasmoid.configuration[configKey] = secretValue;
+        }
     }
 
     function walletBulkReadCommand(walletName) {
@@ -7924,7 +7463,7 @@ PlasmoidItem {
                         var hr2 = scheduleCommandDialog.humanText();
                         var msg = cmdMessage.text.trim();
                         var entry = {
-                            "id": "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000),
+                            "id": SessionManager.makeScheduleEntryId(),
                             "name": hr2,
                             "enabled": true,
                             "chatId": scheduleCommandDialog.chatId,
