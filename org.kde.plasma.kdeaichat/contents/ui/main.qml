@@ -144,7 +144,7 @@ PlasmoidItem {
     }
 
     Shortcut {
-        sequence: "Ctrl+F"
+        sequence: (plasmoid.configuration.keyToggleSearch !== undefined) ? plasmoid.configuration.keyToggleSearch : "Ctrl+F"
         context: Qt.WindowShortcut
         onActivated: {
             root.searchBarActive = !root.searchBarActive;
@@ -155,17 +155,17 @@ PlasmoidItem {
         }
     }
     Shortcut {
-        sequence: "Ctrl+N"
+        sequence: (plasmoid.configuration.keyNewChat !== undefined) ? plasmoid.configuration.keyNewChat : "Ctrl+N"
         context: Qt.WindowShortcut
         onActivated: root.createSession(true)
     }
     Shortcut {
-        sequence: "Ctrl+H"
+        sequence: (plasmoid.configuration.keyToggleHistory !== undefined) ? plasmoid.configuration.keyToggleHistory : "Ctrl+H"
         context: Qt.WindowShortcut
         onActivated: root.historyOnlyMode = !root.historyOnlyMode
     }
     Shortcut {
-        sequence: "Ctrl+,"
+        sequence: (plasmoid.configuration.keySettings !== undefined) ? plasmoid.configuration.keySettings : "Ctrl+,"
         context: Qt.WindowShortcut
         onActivated: root.triggerConfigure()
     }
@@ -183,12 +183,12 @@ PlasmoidItem {
         }
     }
     Shortcut {
-        sequence: "Ctrl+I"
+        sequence: (plasmoid.configuration.keyFocusInput !== undefined) ? plasmoid.configuration.keyFocusInput : "Ctrl+I"
         context: Qt.WindowShortcut
         onActivated: root.focusInput()
     }
     Shortcut {
-        sequence: "Ctrl+L"
+        sequence: (plasmoid.configuration.keyClearInput !== undefined) ? plasmoid.configuration.keyClearInput : "Ctrl+L"
         context: Qt.WindowShortcut
         onActivated: {
             root.chatInputText = "";
@@ -197,7 +197,7 @@ PlasmoidItem {
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+K"
+        sequence: (plasmoid.configuration.keyToggleSearchSidebar !== undefined) ? plasmoid.configuration.keyToggleSearchSidebar : "Ctrl+Shift+K"
         context: Qt.WindowShortcut
         onActivated: {
             if (root.sessionsSidebar && root.sessionsSidebar.visible) {
@@ -215,7 +215,7 @@ PlasmoidItem {
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+."
+        sequence: (plasmoid.configuration.keyNextSession !== undefined) ? plasmoid.configuration.keyNextSession : "Ctrl+Shift+."
         context: Qt.WindowShortcut
         onActivated: {
             let idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
@@ -230,7 +230,7 @@ PlasmoidItem {
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+,"
+        sequence: (plasmoid.configuration.keyPrevSession !== undefined) ? plasmoid.configuration.keyPrevSession : "Ctrl+Shift+,"
         context: Qt.WindowShortcut
         onActivated: {
             let idx = SessionManager.sessionIndexById(root.sessions, root.currentSessionId);
@@ -243,7 +243,7 @@ PlasmoidItem {
         }
     }
     Shortcut {
-        sequence: "Ctrl+R"
+        sequence: (plasmoid.configuration.keyRefresh !== undefined) ? plasmoid.configuration.keyRefresh : "Ctrl+R"
         context: Qt.WindowShortcut
         onActivated: {
             if (root.loading) {
@@ -253,7 +253,7 @@ PlasmoidItem {
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+C"
+        sequence: (plasmoid.configuration.keyCopyLastReply !== undefined) ? plasmoid.configuration.keyCopyLastReply : "Ctrl+Shift+C"
         context: Qt.WindowShortcut
         onActivated: {
             for (let i = root.messages.length - 1; i >= 0; i--) {
@@ -272,7 +272,18 @@ PlasmoidItem {
             if (typeof root.openKeyboardShortcutsHelp === "function") {
                 root.openKeyboardShortcutsHelp();
             } else {
-                root.pushErrorMessage(root.translate("Keyboard shortcuts: Ctrl+N new chat, Ctrl+F search, Ctrl+I focus input, Ctrl+L clear input, Ctrl+H history, Ctrl+, settings, Ctrl+R refresh, Ctrl+Shift+C copy last reply, Ctrl+Shift+,/Ctrl+Shift+. switch session, Esc stop/cancel."));
+                let msg = root.translate("Keyboard shortcuts:") + " " +
+                    (plasmoid.configuration.keyNewChat || root.translate("Disabled")) + " " + root.translate("new chat") + ", " +
+                    (plasmoid.configuration.keyToggleSearch || root.translate("Disabled")) + " " + root.translate("search") + ", " +
+                    (plasmoid.configuration.keyFocusInput || root.translate("Disabled")) + " " + root.translate("focus input") + ", " +
+                    (plasmoid.configuration.keyClearInput || root.translate("Disabled")) + " " + root.translate("clear input") + ", " +
+                    (plasmoid.configuration.keyToggleHistory || root.translate("Disabled")) + " " + root.translate("history") + ", " +
+                    (plasmoid.configuration.keySettings || root.translate("Disabled")) + " " + root.translate("settings") + ", " +
+                    (plasmoid.configuration.keyRefresh || root.translate("Disabled")) + " " + root.translate("refresh") + ", " +
+                    (plasmoid.configuration.keyCopyLastReply || root.translate("Disabled")) + " " + root.translate("copy last reply") + ", " +
+                    (plasmoid.configuration.keyPrevSession || root.translate("Disabled")) + "/" + (plasmoid.configuration.keyNextSession || root.translate("Disabled")) + " " + root.translate("switch session") + ", " +
+                    "Esc " + root.translate("stop/cancel") + ".";
+                root.pushErrorMessage(msg);
             }
         }
     }

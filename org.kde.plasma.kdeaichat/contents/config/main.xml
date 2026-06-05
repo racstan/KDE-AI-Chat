@@ -323,5 +323,38 @@
     <entry name="preselectedChatName" type="String">
       <default></default>
     </entry>
+    <entry name="keyToggleSearch" type="String">
+      <default>Ctrl+F</default>
+    </entry>
+    <entry name="keyNewChat" type="String">
+      <default>Ctrl+N</default>
+    </entry>
+    <entry name="keyToggleHistory" type="String">
+      <default>Ctrl+H</default>
+    </entry>
+    <entry name="keySettings" type="String">
+      <default>Ctrl+,</default>
+    </entry>
+    <entry name="keyFocusInput" type="String">
+      <default>Ctrl+I</default>
+    </entry>
+    <entry name="keyClearInput" type="String">
+      <default>Ctrl+L</default>
+    </entry>
+    <entry name="keyToggleSearchSidebar" type="String">
+      <default>Ctrl+Shift+K</default>
+    </entry>
+    <entry name="keyNextSession" type="String">
+      <default>Ctrl+Shift+.</default>
+    </entry>
+    <entry name="keyPrevSession" type="String">
+      <default>Ctrl+Shift+,</default>
+    </entry>
+    <entry name="keyRefresh" type="String">
+      <default>Ctrl+R</default>
+    </entry>
+    <entry name="keyCopyLastReply" type="String">
+      <default>Ctrl+Shift+C</default>
+    </entry>
   </group>
 </kcfg>
