@@ -16,6 +16,7 @@
  *   - `translate(string)` (optional)  -> localized strings
  */
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -47,11 +48,76 @@ Column {
         font: Kirigami.Theme.defaultFont
     }
 
+    // Quoted message bubble (if present)
+    Rectangle {
+        visible: !!(contentRoot.messageData && contentRoot.messageData.quote)
+        width: parent.width
+        implicitHeight: quoteCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+        radius: 6
+        color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+        border.width: 1
+        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2)
+
+        RowLayout {
+            id: quoteCol
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Icon {
+                source: "mail-reply-sender"
+                Layout.preferredWidth: 16
+                Layout.preferredHeight: 16
+                color: Kirigami.Theme.highlightColor
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+
+                PC3.Label {
+                    text: {
+                        if (!contentRoot.messageData || !contentRoot.messageData.quote) return "";
+                        let q = contentRoot.messageData.quote;
+                        let sender = q.role === "assistant" ? (q.model || "Assistant") : "User";
+                        return "Replying to @" + sender;
+                    }
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
+                    color: Kirigami.Theme.highlightColor
+                }
+
+                PC3.Label {
+                    Layout.fillWidth: true
+                    text: contentRoot.messageData && contentRoot.messageData.quote ? contentRoot.messageData.quote.content : ""
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    font.italic: true
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
+                    opacity: 0.8
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (contentRoot.messageData && contentRoot.messageData.quote && contentRoot.messageData.quote.at) {
+                    let targetAt = contentRoot.messageData.quote.at;
+                    if (contentRoot.chatRoot) {
+                        contentRoot.chatRoot.scrollToMessageByTimestamp(targetAt);
+                    }
+                }
+            }
+        }
+    }
+
     Repeater {
         visible: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
         width: parent.width
         model: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
-            ? (contentRoot.chatRoot ? contentRoot.chatRoot.parseMessageBlocks(contentRoot.messageData.content || "") : [])
+            ? (contentRoot.messageData.blocks || (contentRoot.chatRoot ? contentRoot.chatRoot.parseMessageBlocks(contentRoot.messageData.content || "") : []))
             : []
 
         delegate: Item {

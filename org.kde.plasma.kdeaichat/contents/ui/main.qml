@@ -47,6 +47,7 @@ PlasmoidItem {
     property string activeHistoryPath: ""
     property string currentSessionTitle: ""
     property var messages: []
+    property var quotedMessage: null
     property bool searchBarActive: false
     property string searchQuery: ""
     property int currentSearchMatchIndex: -1
@@ -2160,7 +2161,7 @@ PlasmoidItem {
                 // snippet (it can include `>`, `&`, `pkill`, etc.), so we
                 // do *not* strip shell metacharacters. We only escape
                 // single quotes for the outer `sh -lc '…'` wrapper.
-                opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(startCmd) + " #ensure-opencode-startup-" + Date.now());
+                opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
                 if (chatId) {
                     let ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
                     scheduleMessageRemoval(chatId, ts1, 60000);
@@ -2298,9 +2299,14 @@ PlasmoidItem {
                         failOpenCodeRequest("No user message found to send.");
                         return ;
                     }
+                    let userContent = lastMsg.content || "";
+                    if (lastMsg.quote) {
+                        let sender = lastMsg.quote.role === "assistant" ? (lastMsg.quote.model || "Assistant") : "User";
+                        userContent = "[Replying to @" + sender + ": \"" + lastMsg.quote.content + "\"]\n\n" + userContent;
+                    }
                     let parts = [];
                     if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-                        let payload = buildMessageContent(lastMsg.content, lastMsg.attachments, "openai");
+                        let payload = buildMessageContent(userContent, lastMsg.attachments, "openai");
                         if (typeof payload === "string") {
                             parts.push({
                                 "type": "text",
@@ -2327,7 +2333,7 @@ PlasmoidItem {
                     } else {
                         parts.push({
                             "type": "text",
-                            "text": lastMsg.content || ""
+                            "text": userContent
                         });
                     }
                     xhr.send(JSON.stringify({
@@ -2357,6 +2363,19 @@ PlasmoidItem {
         if (root.msgListViewRef)
             root.msgListViewRef.positionViewAtEnd();
 
+    }
+
+    function scrollToMessageByTimestamp(timestamp) {
+        if (!root.messages) return;
+        for (let i = 0; i < root.messages.length; i++) {
+            if (root.messages[i].at === timestamp) {
+                if (root.msgListViewRef) {
+                    root.msgListViewRef.currentIndex = i;
+                    root.msgListViewRef.positionViewAtIndex(i, ListView.Center);
+                }
+                break;
+            }
+        }
     }
 
     function messageTimestampAt(index) {
@@ -2561,7 +2580,7 @@ PlasmoidItem {
 
     function appendUserMessage(text, role, attachments, isScheduled) {
         let ts = Date.now();
-        root.messages = root.messages.concat([{
+        let msgObj = {
             "role": role || "user",
             "content": text,
             "time": nowTime(ts),
@@ -2570,7 +2589,17 @@ PlasmoidItem {
             "queueId": role === "queued" ? (++root.queueCounter) : 0,
             "attachments": attachments || [],
             "sc": !!isScheduled
-        }]);
+        };
+        if (root.quotedMessage && (role === "user" || role === "queued")) {
+            msgObj.quote = {
+                "role": root.quotedMessage.role,
+                "content": root.quotedMessage.content,
+                "model": root.quotedMessage.model || "",
+                "at": root.quotedMessage.at
+            };
+            root.quotedMessage = null;
+        }
+        root.messages = root.messages.concat([msgObj]);
         saveCurrentSessionState(true);
     }
 
@@ -2954,15 +2983,20 @@ PlasmoidItem {
         let window = buildContextWindow(messagesList, chatId);
         for (let i = 0; i < window.length; i++) {
             let m = window[i];
+            let contentVal = m.content;
+            if (m.quote) {
+                let sender = m.quote.role === "assistant" ? (m.quote.model || "Assistant") : "User";
+                contentVal = "[Replying to @" + sender + ": \"" + m.quote.content + "\"]\n\n" + contentVal;
+            }
             if (m.role === "user" && m.attachments && m.attachments.length > 0)
                 arr.push({
                     "role": m.role,
-                    "content": buildMessageContent(m.content, m.attachments, format)
+                    "content": buildMessageContent(contentVal, m.attachments, format)
                 });
             else
                 arr.push({
                     "role": m.role,
-                    "content": m.content
+                    "content": contentVal
                 });
         }
         return arr;
@@ -4359,11 +4393,20 @@ PlasmoidItem {
             // through the file-path validator and the shell-quote helper.
             let safeSchedulerPath = Sec.validateFilePath(schedulerScriptPath);
             let startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerPath) + " &) ; " + "echo SCHED_AUTOSTART_OK";
-            schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(startCmd) + " #sched-startup");
+            schedulerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #sched-startup");
         }
         checkAndMarkCurrentSessionAsRead();
     }
     onMessagesChanged: {
+        if (root.messages) {
+            for (let i = 0; i < root.messages.length; i++) {
+                let m = root.messages[i];
+                if (m && m.content !== undefined && (m.blocks === undefined || m.lastParsedContent !== m.content)) {
+                    m.blocks = root.parseMessageBlocks(m.content);
+                    m.lastParsedContent = m.content;
+                }
+            }
+        }
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom);
 
@@ -4536,7 +4579,7 @@ PlasmoidItem {
             if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
                 let stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
                 // User-editable stop command — see note above.
-                opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(stopCmd) + " #autokill-opencode");
+                opencodeServerDs.connectSource("sh -lc '" + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
                 debugLog("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
             }
         }
@@ -4629,7 +4672,7 @@ PlasmoidItem {
         onTriggered: {
             let cmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
             // User-editable start command — see note above.
-            opencodeServerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #autostart-opencode");
+            opencodeServerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #autostart-opencode");
         }
     }
 
@@ -5744,7 +5787,7 @@ PlasmoidItem {
 
                                                     Flow {
                                                         width: parent.width
-                                                        visible: modelData.attachments && modelData.attachments.length > 0
+                                                        visible: !!(modelData.attachments && modelData.attachments.length > 0)
                                                         spacing: Kirigami.Units.smallSpacing
 
                                                         Repeater {
@@ -6337,14 +6380,28 @@ PlasmoidItem {
                                                             }
                                                         }
 
-                                                        PC3.ToolButton {
-                                                            visible: !root.openCodeMode && modelData.role !== "error" && modelData.role !== "queued"
-                                                            icon.name: "git-branch"
-                                                            display: PC3.AbstractButton.IconOnly
-                                                            QQC2.ToolTip.visible: hovered
-                                                            QQC2.ToolTip.text: "Fork chat from this message"
-                                                            onClicked: root.forkSession(index)
-                                                        }
+                                                                                                                 PC3.ToolButton {
+                                                             visible: modelData.role !== "error" && modelData.role !== "queued" && modelData.role !== "schedules_list"
+                                                             icon.name: "mail-reply-sender"
+                                                             display: PC3.AbstractButton.IconOnly
+                                                             QQC2.ToolTip.visible: hovered
+                                                             QQC2.ToolTip.text: "Quote/Reply to message"
+                                                             onClicked: {
+                                                                 root.quotedMessage = modelData;
+                                                                 if (root.msgInputRef) {
+                                                                     root.msgInputRef.forceActiveFocus();
+                                                                 }
+                                                             }
+                                                         }
+
+                                                         PC3.ToolButton {
+                                                             visible: !root.openCodeMode && modelData.role !== "error" && modelData.role !== "queued"
+                                                             icon.name: "git-branch"
+                                                             display: PC3.AbstractButton.IconOnly
+                                                             QQC2.ToolTip.visible: hovered
+                                                             QQC2.ToolTip.text: "Fork chat from this message"
+                                                             onClicked: root.forkSession(index)
+                                                         }
 
                                                         PC3.ToolButton {
                                                             icon.name: "edit-delete"
@@ -6555,6 +6612,58 @@ PlasmoidItem {
 
                             }
 
+                        }
+
+                                                // Quoted Message Preview Bar
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: root.quotedMessage ? (quotePreviewRow.implicitHeight + Kirigami.Units.smallSpacing * 2) : 0
+                            visible: !!root.quotedMessage
+                            radius: 6
+                            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                            border.width: 1
+                            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2)
+
+                            RowLayout {
+                                id: quotePreviewRow
+                                anchors.fill: parent
+                                anchors.margins: Kirigami.Units.smallSpacing
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Kirigami.Icon {
+                                    source: "mail-reply-sender"
+                                    Layout.preferredWidth: 16
+                                    Layout.preferredHeight: 16
+                                    color: Kirigami.Theme.highlightColor
+                                }
+
+                                PC3.Label {
+                                    text: {
+                                        if (!root.quotedMessage) return "";
+                                        let q = root.quotedMessage;
+                                        let sender = q.role === "assistant" ? (q.model || "Assistant") : "User";
+                                        return "Replying to @" + sender + ": " + q.content;
+                                    }
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
+                                    font.italic: true
+                                    font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
+                                    opacity: 0.9
+                                }
+
+                                PC3.ToolButton {
+                                    icon.name: "dialog-close"
+                                    Layout.preferredWidth: 20
+                                    Layout.preferredHeight: 20
+                                    display: PC3.AbstractButton.IconOnly
+                                    QQC2.ToolTip.visible: hovered
+                                    QQC2.ToolTip.text: "Cancel reply"
+                                    onClicked: {
+                                        root.quotedMessage = null;
+                                    }
+                                }
+                            }
                         }
 
                         RowLayout {
