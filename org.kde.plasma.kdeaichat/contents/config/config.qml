@@ -8,7 +8,7 @@ ConfigModel {
         source: "ConfigGeneral.qml"
     }
     ConfigCategory {
-        name: i18n("Keyboard Shortcuts")
+        name: i18n("Widget Shortcuts")
         icon: "preferences-desktop-keyboard-shortcuts"
         source: "ConfigShortcuts.qml"
     }
