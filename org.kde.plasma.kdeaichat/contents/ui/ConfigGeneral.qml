@@ -871,6 +871,11 @@ KCM.SimpleKCM {
                 for (let i = 0; i < sessionsArray.length; i++) {
                     let s = sessionsArray[i];
                     if (s && s.id) {
+                        // If statusMap is available, only include sessions loaded in memory (present in statusMap).
+                        // If statusMap is not available (null fallback), include all sessions.
+                        if (statusMap && !statusMap[s.id]) {
+                            continue;
+                        }
                         let statusObj = (statusMap && statusMap[s.id]) ? statusMap[s.id] : null;
                         s.statusType = (statusObj && statusObj.type) ? statusObj.type : "active";
                         list.push(s);
@@ -2629,6 +2634,7 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: translate("Status:")
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 text: {
                     if (discoveryStatus.indexOf("check failed") >= 0 || discoveryStatus.indexOf("error") >= 0 || discoveryStatus.indexOf("Network error") >= 0)
                         return discoveryStatus + (openCodeToggle.checked ? " → Click \"Start server\" or \"Refresh\" to retry." : "");
@@ -2672,7 +2678,7 @@ KCM.SimpleKCM {
                 visible: openCodeToggle.checked
                 Kirigami.FormData.label: translate("Auto-start server:")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: translate("Automatically start OpenCode when settings open")
+                text: translate("Automatically start OpenCode when sending a message or on system boot")
             }
 
             QQC2.CheckBox {
@@ -2916,6 +2922,7 @@ KCM.SimpleKCM {
                 visible: openCodeToggle.checked && runningOpenCodeSessionsVisible && openCodeSessionsStatus !== ""
                 text: openCodeSessionsStatus
                 font.italic: true
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 color: Kirigami.Theme.disabledTextColor
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2956,62 +2963,76 @@ KCM.SimpleKCM {
                     opacity: 0.3
                 }
 
-                Repeater {
-                    model: runningOpenCodeSessions
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.mediumSpacing
+                QQC2.ScrollView {
+                    implicitHeight: Kirigami.Units.gridUnit * 8
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: formLayout.fieldMaxWidth
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 8
+                    Layout.maximumHeight: Kirigami.Units.gridUnit * 8
+                    clip: true
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-                            QQC2.Label {
-                                text: {
-                                    let base = modelData.title || modelData.slug || translate("Unnamed Session");
-                                    if (modelData.statusType) {
-                                        return base + " (" + modelData.statusType + ")";
-                                    }
-                                    return base;
-                                }
-                                wrapMode: Text.Wrap
-                                font.bold: true
+                    ColumnLayout {
+                        width: parent.width
+                        spacing: Kirigami.Units.smallSpacing
+
+                        Repeater {
+                            model: runningOpenCodeSessions
+                            delegate: RowLayout {
                                 Layout.fillWidth: true
-                            }
-                            QQC2.Label {
-                                text: modelData.id
-                                font.family: "monospace"
-                                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                                opacity: 0.7
-                                textFormat: Text.PlainText
-                                wrapMode: Text.Wrap
-                                Layout.fillWidth: true
-                            }
-                        }
+                                spacing: Kirigami.Units.mediumSpacing
 
-                        QQC2.Label {
-                            text: {
-                                let sId = modelData.id;
-                                let localSessions = [];
-                                try {
-                                    localSessions = JSON.parse(plasmoid.configuration.chatSessionsJson || "[]");
-                                } catch(e) { console.error("Error parsing chatSessionsJson: " + e); }
-                                for (let i = 0; i < localSessions.length; i++) {
-                                    if (localSessions[i] && localSessions[i].openCodeSessionId === sId) {
-                                        return localSessions[i].name || localSessions[i].id || "Matched";
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+                                    QQC2.Label {
+                                        text: {
+                                            let base = modelData.title || modelData.slug || translate("Unnamed Session");
+                                            if (modelData.statusType) {
+                                                return base + " (" + modelData.statusType + ")";
+                                            }
+                                            return base;
+                                        }
+                                        wrapMode: Text.Wrap
+                                        font.bold: true
+                                        Layout.fillWidth: true
+                                    }
+                                    QQC2.Label {
+                                        text: modelData.id
+                                        font.family: "monospace"
+                                        font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                        opacity: 0.7
+                                        textFormat: Text.PlainText
+                                        wrapMode: Text.Wrap
+                                        Layout.fillWidth: true
                                     }
                                 }
-                                return translate("None/External");
-                            }
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 6
-                            elide: Text.ElideRight
-                        }
 
-                        QQC2.Button {
-                            text: translate("Kill")
-                            icon.name: "edit-delete"
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
-                            onClicked: {
-                                killRunningOpenCodeSession(modelData.id)
+                                QQC2.Label {
+                                    text: {
+                                        let sId = modelData.id;
+                                        let localSessions = [];
+                                        try {
+                                            localSessions = JSON.parse(plasmoid.configuration.chatSessionsJson || "[]");
+                                        } catch(e) { console.error("Error parsing chatSessionsJson: " + e); }
+                                        for (let i = 0; i < localSessions.length; i++) {
+                                            if (localSessions[i] && localSessions[i].openCodeSessionId === sId) {
+                                                return localSessions[i].name || localSessions[i].id || "Matched";
+                                            }
+                                        }
+                                        return translate("None/External");
+                                    }
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+                                    elide: Text.ElideRight
+                                }
+
+                                QQC2.Button {
+                                    text: translate("Kill")
+                                    icon.name: "edit-delete"
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                                    onClicked: {
+                                        killRunningOpenCodeSession(modelData.id)
+                                    }
+                                }
                             }
                         }
                     }
