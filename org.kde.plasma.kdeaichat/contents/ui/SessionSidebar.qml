@@ -24,6 +24,7 @@
  */
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 
@@ -31,27 +32,204 @@ Rectangle {
     id: sidebarRoot
 
     property var chatRoot
+    property string sortBy: "date_desc"
 
     radius: 8
     color: Kirigami.Theme.alternateBackgroundColor
 
-    ListView {
-        id: historyList
+    function focusSearch() {
+        searchInput.forceActiveFocus();
+    }
 
+    function getFilteredSessions(isArchived) {
+        if (!sidebarRoot.chatRoot || !sidebarRoot.chatRoot.sessions) return [];
+        let rawList = sidebarRoot.chatRoot.sessions;
+        let filtered = [];
+        let query = searchInput.text.trim().toLowerCase();
+        for (let i = 0; i < rawList.length; i++) {
+            let s = rawList[i];
+            let isArch = s.archived || false;
+            if (isArch !== isArchived) continue;
+            if (query !== "") {
+                let title = (s.text || "New Chat").toLowerCase();
+                let subtitle = (sidebarRoot.chatRoot ? sidebarRoot.chatRoot.sessionSubtitle(s) : "").toLowerCase();
+                if (title.indexOf(query) === -1 && subtitle.indexOf(query) === -1) {
+                    continue;
+                }
+            }
+            filtered.push(s);
+        }
+        // Sort
+        filtered.sort(function(a, b) {
+            if (sortBy === "date_desc") {
+                let tA = a.updatedAt || a.createdAt || 0;
+                let tB = b.updatedAt || b.createdAt || 0;
+                return tB - tA;
+            } else if (sortBy === "date_asc") {
+                let tA = a.updatedAt || a.createdAt || 0;
+                let tB = b.updatedAt || b.createdAt || 0;
+                return tA - tB;
+            } else if (sortBy === "name_asc") {
+                let nA = (a.text || "New Chat").toLowerCase();
+                let nB = (b.text || "New Chat").toLowerCase();
+                return nA.localeCompare(nB);
+            } else if (sortBy === "name_desc") {
+                let nA = (a.text || "New Chat").toLowerCase();
+                let nB = (b.text || "New Chat").toLowerCase();
+                return nB.localeCompare(nA);
+            }
+            return 0;
+        });
+        return filtered;
+    }
+
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
-        model: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.sessions : []
         spacing: Kirigami.Units.smallSpacing
-        clip: true
-        cacheBuffer: 5000
 
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+        // Search & Sort bar
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
 
-        delegate: Rectangle {
+            QQC2.TextField {
+                id: searchInput
+                Layout.fillWidth: true
+                placeholderText: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Search chats...") : "Search chats..."
+                rightPadding: clearSearchButton.visible ? clearSearchButton.width : Kirigami.Units.smallSpacing
+                
+                PC3.ToolButton {
+                    id: clearSearchButton
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: parent.text !== ""
+                    icon.name: "edit-clear"
+                    display: PC3.AbstractButton.IconOnly
+                    onClicked: {
+                        parent.text = "";
+                    }
+                }
+            }
+
+            PC3.ToolButton {
+                id: sortButton
+                icon.name: "view-sort"
+                display: PC3.AbstractButton.IconOnly
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Sort order") : "Sort order"
+                onClicked: sortMenu.open()
+
+                QQC2.Menu {
+                    id: sortMenu
+                    y: parent.height
+
+                    QQC2.MenuItem {
+                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Newest first") : "Newest first"
+                        checkable: true
+                        checked: sortBy === "date_desc"
+                        onTriggered: sortBy = "date_desc"
+                    }
+                    QQC2.MenuItem {
+                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Oldest first") : "Oldest first"
+                        checkable: true
+                        checked: sortBy === "date_asc"
+                        onTriggered: sortBy = "date_asc"
+                    }
+                    QQC2.MenuItem {
+                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Name (A-Z)") : "Name (A-Z)"
+                        checkable: true
+                        checked: sortBy === "name_asc"
+                        onTriggered: sortBy = "name_asc"
+                    }
+                    QQC2.MenuItem {
+                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Name (Z-A)") : "Name (Z-A)"
+                        checkable: true
+                        checked: sortBy === "name_desc"
+                        onTriggered: sortBy = "name_desc"
+                    }
+                }
+            }
+        }
+
+        // Sessions list in ScrollView
+        QQC2.ScrollView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+
+            ColumnLayout {
+                width: parent.width - Kirigami.Units.smallSpacing * 2
+                spacing: Kirigami.Units.smallSpacing
+
+                // Active Chats Header
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: activeRepeater.count > 0
+                    
+                    PC3.Label {
+                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Active Chats") : "Active Chats"
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+                    
+                    PC3.Label {
+                        text: activeRepeater.count
+                        opacity: 0.6
+                        font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    }
+                }
+
+                Repeater {
+                    id: activeRepeater
+                    model: sidebarRoot.getFilteredSessions(false)
+                    delegate: sessionDelegateComponent
+                }
+
+                // Separator between Active and Archived if both exist
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+                    visible: activeRepeater.count > 0 && archivedRepeater.count > 0
+                }
+
+                // Archived Chats Header
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: archivedRepeater.count > 0
+                    
+                    PC3.Label {
+                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate("Archived Chats") : "Archived Chats"
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+                    
+                    PC3.Label {
+                        text: archivedRepeater.count
+                        opacity: 0.6
+                        font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    }
+                }
+
+                Repeater {
+                    id: archivedRepeater
+                    model: sidebarRoot.getFilteredSessions(true)
+                    delegate: sessionDelegateComponent
+                }
+            }
+        }
+    }
+
+    Component {
+        id: sessionDelegateComponent
+
+        Rectangle {
             required property var modelData
 
-            width: historyList.width
-            height: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+            Layout.fillWidth: true
+            implicitHeight: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
             radius: 8
             opacity: modelData.archived ? 0.72 : 1
             color: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.historySessionTint(modelData) : "transparent"

@@ -79,7 +79,7 @@ KCM.SimpleKCM {
 
         QQC2.TextField {
             id: keyToggleSearchSidebarField
-            Kirigami.FormData.label: page.translate("Toggle search in sidebar:")
+            Kirigami.FormData.label: page.translate("Focus chat history search:")
             placeholderText: "Ctrl+Shift+K"
         }
 

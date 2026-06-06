@@ -129,6 +129,7 @@ PlasmoidItem {
     property string chatInputText: ""
     property var msgListViewRef: null
     property var msgInputRef: null
+    property var sessionsSidebarRef: null
     property bool userScrolledUp: false
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
@@ -201,17 +202,8 @@ PlasmoidItem {
         sequence: (plasmoid.configuration.keyToggleSearchSidebar !== undefined) ? plasmoid.configuration.keyToggleSearchSidebar : "Ctrl+Shift+K"
         context: Qt.WindowShortcut
         onActivated: {
-            if (root.sessionsSidebar && root.sessionsSidebar.visible) {
-                if (root.searchBarActive) {
-                    root.searchBarActive = false;
-                    root.searchQuery = "";
-                } else {
-                    root.searchBarActive = true;
-                }
-                root.focusInput();
-            } else {
-                root.searchBarActive = true;
-                root.focusInput();
+            if (root.sessionsSidebarRef) {
+                root.sessionsSidebarRef.focusSearch();
             }
         }
     }
@@ -6839,9 +6831,13 @@ PlasmoidItem {
                     color: Kirigami.Theme.alternateBackgroundColor
 
                     SessionSidebar {
+                        id: sessionSidebarInstance
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.smallSpacing
                         chatRoot: root
+                        Component.onCompleted: {
+                            root.sessionsSidebarRef = sessionSidebarInstance;
+                        }
                     }
 
                 }
