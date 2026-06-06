@@ -771,7 +771,7 @@ KCM.SimpleKCM {
 
     function startOpenCodeServerAutomatically() {
         discoveryStatus = "Starting OpenCode server automatically...";
-        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
         let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
         let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + startCmd);
         utilityDs.connectSource(cmd + " #opencode-autostart");
@@ -2747,7 +2747,7 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode start command...";
-                        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+                        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
                         let rawCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.";
                         let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + rawCmd);
                         utilityDs.connectSource(cmd + " #opencode-start");
@@ -2765,7 +2765,7 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode stop command...";
-                        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+                        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
                         let rawCmd = openCodeStopCommandField.text || "pkill -f opencode";
                         let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + rawCmd);
                         utilityDs.connectSource(cmd + " #opencode-stop");
