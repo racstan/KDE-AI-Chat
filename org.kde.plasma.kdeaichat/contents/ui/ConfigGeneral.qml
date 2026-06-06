@@ -233,7 +233,7 @@ KCM.SimpleKCM {
     }
 
     function detectWallets() {
-        utilityDs.connectSource("sh -lc \"if ! command -v qdbus6 >/dev/null 2>&1 && ! command -v qdbus >/dev/null 2>&1; then echo '__NO_QDBUS__'; else qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null || qdbus org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null; fi\" #kwallet-wallet-list");
+        utilityDs.connectSource("sh -c \"if ! command -v qdbus6 >/dev/null 2>&1 && ! command -v qdbus >/dev/null 2>&1; then echo '__NO_QDBUS__'; else qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null || qdbus org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null; fi\" #kwallet-wallet-list");
     }
 
     function setActiveProviderModelValue(value) {
@@ -249,7 +249,7 @@ KCM.SimpleKCM {
         let escapedFolder = shellEscape(walletFolderName);
         let escapedKey = shellEscape(keyName);
         let escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_LOAD__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_LOAD__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_FOLDER\"; exit 0; fi; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_ENTRY\"; exit 0; fi; " + "secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_SECRET__:%s\" \"$secret\"'";
+        return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_LOAD__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_LOAD__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_FOLDER\"; exit 0; fi; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_ENTRY\"; exit 0; fi; " + "secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_SECRET__:%s\" \"$secret\"'";
     }
 
     function walletWriteCommand(walletName, keyName, value) {
@@ -258,21 +258,21 @@ KCM.SimpleKCM {
         let escapedKey = shellEscape(keyName);
         let escapedValue = shellEscape(value);
         let escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "value='\''" + escapedValue + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STORE__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " + "result=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_STORE__:%s\" \"$result\"'";
+        return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "value='\''" + escapedValue + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STORE__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " + "result=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_STORE__:%s\" \"$result\"'";
     }
 
     function walletInitCommand(walletName) {
         let escapedWallet = shellEscape(walletName);
         let escapedFolder = shellEscape(walletFolderName);
         let escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_INIT__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_INIT__:READY\"; else created=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); if [ \"$created\" = true ]; then printf \"__KAI_INIT__:CREATED\"; else printf \"__KAI_INIT__:CREATE_FAILED\"; fi; fi; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1'";
+        return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_INIT__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_INIT__:READY\"; else created=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); if [ \"$created\" = true ]; then printf \"__KAI_INIT__:CREATED\"; else printf \"__KAI_INIT__:CREATE_FAILED\"; fi; fi; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1'";
     }
 
     function walletStatusCommand(walletName) {
         let escapedWallet = shellEscape(walletName);
         let escapedFolder = shellEscape(walletFolderName);
         let escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_STATUS__:NO_WALLET:%s\" \"$wallets\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STATUS__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_STATUS__:READY\"; else printf \"__KAI_STATUS__:NO_FOLDER\"; fi'";
+        return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_STATUS__:NO_WALLET:%s\" \"$wallets\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STATUS__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_STATUS__:READY\"; else printf \"__KAI_STATUS__:NO_FOLDER\"; fi'";
     }
 
     function walletBulkReadCommand(walletName) {
@@ -286,10 +286,10 @@ KCM.SimpleKCM {
     function copyToClipboard(textValue) {
         let text = textValue || "";
         // Sanitize first so the value cannot be re-evaluated as shell
-        // grammar by the outer `sh -lc` wrapper. See the same function
+        // grammar by the outer `sh -c` wrapper. See the same function
         // in main.qml for the rationale.
         let safe = Sec.sanitizeForShell(text);
-        let cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
+        let cmd = "sh -c 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
         utilityDs.connectSource(cmd + " #clipboard-copy");
     }
 
@@ -771,8 +771,9 @@ KCM.SimpleKCM {
 
     function startOpenCodeServerAutomatically() {
         discoveryStatus = "Starting OpenCode server automatically...";
+        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
         let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
-        let cmd = "sh -lc " + Sec.rawShellSnippetQuote(startCmd);
+        let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + startCmd);
         utilityDs.connectSource(cmd + " #opencode-autostart");
         // After a short delay, attempt discovery again
         openCodeAutoStartTimer.restart();
@@ -856,31 +857,34 @@ KCM.SimpleKCM {
         
         openCodeSessionsStatus = translate("Loading active OpenCode sessions...");
         requestJson(urlStatus, {}, function(statusMap) {
-            requestJson(urlSessions, {}, function(sessionsArray) {
-                if (Array.isArray(sessionsArray)) {
-                    let filtered = [];
-                    for (let i = 0; i < sessionsArray.length; i++) {
-                        let s = sessionsArray[i];
-                        if (s && s.id && statusMap && statusMap[s.id]) {
-                            let statusObj = statusMap[s.id];
-                            if (statusObj && statusObj.type !== "idle") {
-                                filtered.push(s);
-                            }
-                        }
+            loadSessionsList(urlSessions, statusMap);
+        }, function(statusErr) {
+            console.warn("Failed to load session statuses (ignoring): " + statusErr);
+            loadSessionsList(urlSessions, null);
+        });
+    }
+
+    function loadSessionsList(urlSessions, statusMap) {
+        requestJson(urlSessions, {}, function(sessionsArray) {
+            if (Array.isArray(sessionsArray)) {
+                let list = [];
+                for (let i = 0; i < sessionsArray.length; i++) {
+                    let s = sessionsArray[i];
+                    if (s && s.id) {
+                        let statusObj = (statusMap && statusMap[s.id]) ? statusMap[s.id] : null;
+                        s.statusType = (statusObj && statusObj.type) ? statusObj.type : "active";
+                        list.push(s);
                     }
-                    runningOpenCodeSessions = filtered;
-                    openCodeSessionsStatus = translate("Found %1 active session(s).").arg(filtered.length);
-                } else {
-                    runningOpenCodeSessions = [];
-                    openCodeSessionsStatus = translate("Invalid response format from OpenCode server.");
                 }
-            }, function(err) {
+                runningOpenCodeSessions = list;
+                openCodeSessionsStatus = translate("Found %1 active session(s).").arg(list.length);
+            } else {
                 runningOpenCodeSessions = [];
-                openCodeSessionsStatus = translate("Failed to load sessions: %1").arg(err);
-            });
+                openCodeSessionsStatus = translate("Invalid response format from OpenCode server.");
+            }
         }, function(err) {
             runningOpenCodeSessions = [];
-            openCodeSessionsStatus = translate("Failed to load session statuses: %1").arg(err);
+            openCodeSessionsStatus = translate("Failed to load sessions: %1").arg(err);
         });
     }
 
@@ -1465,11 +1469,11 @@ KCM.SimpleKCM {
         page._lastSchedSetupPayload = payloadStr;
         let b64Payload = base64Encode(payloadStr);
         let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.quoteForShell(b64Payload);
-        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
+        utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
     }
 
     function pollSchedulerState() {
-        utilityDs.connectSource("sh -lc 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now());
+        utilityDs.connectSource("sh -c 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now());
     }
 
     function schedLoadSchedules() {
@@ -1477,7 +1481,7 @@ KCM.SimpleKCM {
         if (safePath === "")
             return;
         let cmd = "cat " + Sec.quoteForShell(safePath) + " 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
-        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-load");
+        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-load");
     }
 
     function schedSaveSchedules(items) {
@@ -1523,7 +1527,7 @@ KCM.SimpleKCM {
         };
         let b64Payload = base64Encode(JSON.stringify(payload));
         let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.quoteForShell(b64Payload);
-        utilityDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-save");
+        utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-save");
     }
 
     function schedTriggerNow(index) {
@@ -1941,6 +1945,30 @@ KCM.SimpleKCM {
             } else if (sourceName.indexOf("sched-save") >= 0) {
                 page.schedSaving = false;
                 page.schedulerStatus = "Schedules saved.";
+            } else if (sourceName.indexOf("#opencode-autostart") >= 0) {
+                if (err !== "" && err.indexOf("Warning:") < 0 && err.indexOf("nohup:") < 0) {
+                    discoveryStatus = "Auto-start failed: " + err;
+                } else {
+                    discoveryStatus = "OpenCode auto-start command launched. Checking server...";
+                }
+            } else if (sourceName.indexOf("#opencode-start") >= 0) {
+                if (err !== "" && err.indexOf("Warning:") < 0 && err.indexOf("nohup:") < 0) {
+                    discoveryStatus = "Start failed: " + err;
+                } else {
+                    discoveryStatus = "OpenCode start command launched. Checking server...";
+                    openCodeAutoStartTimer.restart();
+                }
+            } else if (sourceName.indexOf("#opencode-stop") >= 0) {
+                if (err !== "" && err.indexOf("Warning:") < 0 && err.indexOf("nohup:") < 0) {
+                    discoveryStatus = "Stop failed: " + err;
+                } else {
+                    discoveryStatus = "OpenCode server stopped.";
+                    openCodeProviderCandidates = [];
+                    openCodeModelCandidates = [];
+                    setOpenCodeProviderValue("");
+                    setOpenCodeModelValue("");
+                    updateFilteredOpenCodeModels("");
+                }
             } else {
                 discoveryStatus = out !== "" ? out : (err !== "" ? err : "Command finished.");
             }
@@ -2719,12 +2747,9 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode start command...";
-                        // The user-editable start command is intentionally
-                        // a shell snippet (it can include `>`, `&`, `pkill`,
-                        // etc.), so we do *not* strip shell metacharacters.
-                        // We only escape single quotes for the outer
-                        // `sh -lc '…'` wrapper.
-                        let cmd = "sh -lc " + Sec.rawShellSnippetQuote(openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.");
+                        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+                        let rawCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.";
+                        let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + rawCmd);
                         utilityDs.connectSource(cmd + " #opencode-start");
                     }
                 }
@@ -2740,8 +2765,9 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode stop command...";
-                        // User-editable stop command — see note above.
-                        let cmd = "sh -lc " + Sec.rawShellSnippetQuote(openCodeStopCommandField.text || "pkill -f opencode");
+                        let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+                        let rawCmd = openCodeStopCommandField.text || "pkill -f opencode";
+                        let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + rawCmd);
                         utilityDs.connectSource(cmd + " #opencode-stop");
                     }
                 }
@@ -2940,7 +2966,13 @@ KCM.SimpleKCM {
                             Layout.fillWidth: true
                             spacing: 2
                             QQC2.Label {
-                                text: modelData.title || modelData.slug || translate("Unnamed Session")
+                                text: {
+                                    let base = modelData.title || modelData.slug || translate("Unnamed Session");
+                                    if (modelData.statusType) {
+                                        return base + " (" + modelData.statusType + ")";
+                                    }
+                                    return base;
+                                }
                                 wrapMode: Text.Wrap
                                 font.bold: true
                                 Layout.fillWidth: true
@@ -4692,7 +4724,7 @@ KCM.SimpleKCM {
                         return ;
 
                     let verb = checked ? "enable" : "disable";
-                    utilityDs.connectSource("sh -lc 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable");
+                    utilityDs.connectSource("sh -c 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable");
                 }
             }
 
@@ -4735,11 +4767,11 @@ KCM.SimpleKCM {
                         page.schedulerStatus = "Starting…";
                         let safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
                         let cmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py 2>/dev/null; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-start-" + Date.now());
+                        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-start-" + Date.now());
                     } else {
                         page.schedulerStatus = "Stopping…";
                         let cmd = "systemctl --user stop kde-ai-scheduler.service 2>/dev/null; pkill -f kde-ai-scheduler.py 2>/dev/null; echo SCHED_STOP_OK";
-                        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-stop-" + Date.now());
+                        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-stop-" + Date.now());
                     }
                     schedPollTimer.restart();
                     // Immediately trigger a poll check to reflect the start/stop actions
@@ -4770,7 +4802,7 @@ KCM.SimpleKCM {
                         page.schedulerDaemonRunning = false;
                         let safeSchedulerScriptPath = Sec.validateFilePath(schedulerScriptPath);
                         let cmd = "(systemctl --user is-active --quiet kde-ai-scheduler.service && systemctl --user restart kde-ai-scheduler.service) || " + "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "nohup python3 " + Sec.quoteForShell(safeSchedulerScriptPath) + " >/dev/null 2>&1 &) ; " + "echo SCHED_START_OK";
-                        utilityDs.connectSource("sh -lc " + Sec.rawShellSnippetQuote(cmd) + " #sched-start-" + Date.now());
+                        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-start-" + Date.now());
                         schedPollTimer.restart();
                     }
                 }

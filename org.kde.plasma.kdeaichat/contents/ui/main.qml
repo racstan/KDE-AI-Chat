@@ -452,7 +452,7 @@ PlasmoidItem {
         };
         let b64Payload = base64Encode(JSON.stringify(payload));
         let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " toggle_schedule " + Sec.quoteForShell(b64Payload);
-        schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-toggle-" + Date.now());
+        schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-toggle-" + Date.now());
         // Update local schedulesList immediately
         let copy = root.schedulesList.slice();
         for (let i = 0; i < copy.length; i++) {
@@ -507,7 +507,7 @@ PlasmoidItem {
                 };
                 let b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
                 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64HistoryPayload);
-                soundDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-history-err");
+                soundDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-history-err");
             }
             return ;
         }
@@ -919,7 +919,7 @@ PlasmoidItem {
         };
         let b64Payload = base64Encode(JSON.stringify(payload));
         let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_session_schedules " + Sec.quoteForShell(b64Payload);
-        schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-session-delete-" + Date.now());
+        schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-session-delete-" + Date.now());
         // Also update root.schedulesList locally
         let copy = root.schedulesList.filter(function(s) {
             return s.chatId !== sessionId;
@@ -1385,6 +1385,7 @@ PlasmoidItem {
                 "model": root.openCodeAssistantModelLabel || "OpenCode"
             }]);
             root.openCodeAssistantMessageIndex = root.messages.length - 1;
+            root._pendingStreamingText = incoming;
             root.streamingResponse = true;
             if (!root.userScrolledUp)
                 Qt.callLater(scrollToBottom);
@@ -1402,10 +1403,13 @@ PlasmoidItem {
         if (modelLabel)
             root._pendingStreamingModelLabel = modelLabel;
         root._streamingDirty = true;
-        streamingBatchTimer.restart();
+        if (!streamingBatchTimer.running) {
+            streamingBatchTimer.start();
+        }
     }
 
     function finishOpenCodeRequest() {
+        flushStreamingBuffer();
         root.loading = false;
         root.activeXhr = null;
         root.openCodeActiveSessionId = "";
@@ -1413,7 +1417,6 @@ PlasmoidItem {
         root.openCodeAssistantServerMessageId = "";
         root.openCodeErrorShownForRequest = false;
         root.streamingResponse = false;
-        flushStreamingBuffer();
         saveCurrentSessionState(true);
         triggerNotificationSound();
         resetOpenCodeIdleKillTimer();
@@ -2157,11 +2160,8 @@ PlasmoidItem {
             checkFinished = true;
             if (plasmoid.configuration.autoStartOpenCodeServer) {
                 let startCmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
-                // The user-editable start command is intentionally a shell
-                // snippet (it can include `>`, `&`, `pkill`, etc.), so we
-                // do *not* strip shell metacharacters. We only escape
-                // single quotes for the outer `sh -lc '…'` wrapper.
-                opencodeServerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
+                let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+                opencodeServerDs.connectSource("sh -c '" + envPrefix + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
                 if (chatId) {
                     let ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
                     scheduleMessageRemoval(chatId, ts1, 3000);
@@ -2211,6 +2211,7 @@ PlasmoidItem {
     }
 
     function doOpenCodeRequest() {
+        let requestFinalized = false;
         function failOpenCodeRequest(message) {
             if (requestFinalized)
                 return ;
@@ -2222,8 +2223,6 @@ PlasmoidItem {
             }
             finishOpenCodeRequest();
         }
-
-        let requestFinalized = false;
         ensureOpenCodeServerRunning(root.currentSessionId, function() {
             ensureOpenCodeEventStream();
             root.loading = true;
@@ -3049,11 +3048,12 @@ PlasmoidItem {
             };
             let b64Payload = base64Encode(JSON.stringify(payload));
             let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64Payload);
-            soundDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-history-err");
+            soundDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-history-err");
         }
     }
 
     function doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName) {
+        let requestFinalized = false;
         function failBackgroundOpenCodeRequest(message) {
             if (requestFinalized)
                 return ;
@@ -3061,8 +3061,6 @@ PlasmoidItem {
             requestFinalized = true;
             handleBackgroundError(chatId, message, notify, schedId, schedName);
         }
-
-        let requestFinalized = false;
         ensureOpenCodeServerRunning(chatId, function() {
             ensureOpenCodeSessionForChatId(chatId, function(remoteSessionId) {
                 let xhr = new XMLHttpRequest();
@@ -4393,7 +4391,7 @@ PlasmoidItem {
             // through the file-path validator and the shell-quote helper.
             let safeSchedulerPath = Sec.validateFilePath(schedulerScriptPath);
             let startCmd = "systemctl --user enable --now kde-ai-scheduler.service 2>&1 || " + "(pkill -f kde-ai-scheduler.py; sleep 0.5; " + "python3 " + Sec.quoteForShell(safeSchedulerPath) + " &) ; " + "echo SCHED_AUTOSTART_OK";
-            schedulerDs.connectSource("sh -lc '" + startCmd.replace(/'/g, "'\\''") + "' #sched-startup");
+            schedulerDs.connectSource("sh -c '" + startCmd.replace(/'/g, "'\\''") + "' #sched-startup");
         }
         checkAndMarkCurrentSessionAsRead();
     }
@@ -4435,10 +4433,10 @@ PlasmoidItem {
         // Sanitize first so the entire single-quote payload is harmless
         // even if the surrounding wrapper is re-evaluated. The wrapper
         // now uses a single-quoted string around the inner command so
-        // the outer `sh -lc` cannot perform command substitution on
+        // the outer `sh -c` cannot perform command substitution on
         // the value.
         let safe = Sec.sanitizeForShell(text);
-        let cmd = "sh -lc 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
+        let cmd = "sh -c 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
         clipboardDs.connectSource(cmd + " #clipboard-copy");
     }
 
@@ -4523,7 +4521,7 @@ PlasmoidItem {
     property bool _streamingDirty: false
     Timer {
         id: streamingBatchTimer
-        interval: 33
+        interval: 150
         repeat: false
         onTriggered: root.flushStreamingBuffer()
     }
@@ -4531,6 +4529,7 @@ PlasmoidItem {
         if (!_streamingDirty)
             return;
         _streamingDirty = false;
+        streamingBatchTimer.stop();
         let text = _pendingStreamingText;
         let label = _pendingStreamingModelLabel;
         _pendingStreamingText = "";
@@ -4578,8 +4577,8 @@ PlasmoidItem {
         onTriggered: {
             if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
                 let stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
-                // User-editable stop command — see note above.
-                opencodeServerDs.connectSource("sh -lc '" + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
+                let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+                opencodeServerDs.connectSource("sh -c '" + envPrefix + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
                 debugLog("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
             }
         }
@@ -4658,7 +4657,7 @@ PlasmoidItem {
 
             root.schedPolling = true;
             let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " poll_pending_triggers";
-            schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-poll-" + Date.now());
+            schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-poll-" + Date.now());
         }
     }
 
@@ -4671,8 +4670,8 @@ PlasmoidItem {
         repeat: false
         onTriggered: {
             let cmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
-            // User-editable start command — see note above.
-            opencodeServerDs.connectSource("sh -lc '" + cmd.replace(/'/g, "'\\''") + "' #autostart-opencode");
+            let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin\"; ";
+            opencodeServerDs.connectSource("sh -c '" + envPrefix + cmd.replace(/'/g, "'\\''") + "' #autostart-opencode");
         }
     }
 
@@ -5582,14 +5581,6 @@ PlasmoidItem {
                             color: Kirigami.Theme.alternateBackgroundColor
                             clip: true
 
-                            Connections {
-                                function onClearChatInput() {
-                                    msgInput.text = "";
-                                }
-
-                                target: root
-                            }
-
                             ListView {
                                 id: msgList
 
@@ -6164,7 +6155,7 @@ PlasmoidItem {
                                                                                     };
                                                                                      let b64Payload = base64Encode(JSON.stringify(payload));
                                                                                      let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
-                                                                                     schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
+                                                                                     schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
                                                                                     // Remove immediately from UI to be responsive!
                                                                                     let copy = root.schedulesList.slice();
                                                                                     root.schedulesList = copy.filter(function(s) {
@@ -6723,7 +6714,7 @@ PlasmoidItem {
 
                                     width: inputScrollView.width - 16
                                     wrapMode: Text.Wrap
-                                    enabled: !root.loading
+                                    enabled: true
                                     placeholderText: root.translate("Type message (Enter sends, Shift+Enter newline)")
                                     focus: true
                                     Accessible.name: root.translate("Message input")
@@ -6787,13 +6778,14 @@ PlasmoidItem {
                                     }
 
                                     Connections {
+                                        target: root
                                         function onExpandedChanged() {
                                             if (root.expanded)
                                                 focusTimer.start();
-
                                         }
-
-                                        target: root
+                                        function onClearChatInput() {
+                                            msgInput.text = "";
+                                        }
                                     }
 
                                 }
@@ -7504,7 +7496,7 @@ PlasmoidItem {
                         };
                         let b64Payload = base64Encode(JSON.stringify(payload));
                         let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " add_schedule " + Sec.quoteForShell(b64Payload);
-                        schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-save-" + Date.now());
+                        schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
                     }
@@ -7540,7 +7532,7 @@ PlasmoidItem {
             };
             let b64Payload = base64Encode(JSON.stringify(payload));
             let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
-            schedulerDs.connectSource("sh -lc " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
+            schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
             root.appendSystemMessage("🗑️ Schedule deleted successfully.");
         }
 

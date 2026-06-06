@@ -5,7 +5,7 @@
  * and file-path sanitization.
  *
  * The widget's IPC layer (`P5Support.DataSource` with `engine: "executable"`)
- * runs every command through `sh -lc '…'`, which means any `$`, backtick,
+ * runs every command through `sh -c '…'`, which means any `$`, backtick,
  * `(` or `)` in an interpolated string becomes live shell grammar after
  * the outer single-quote context is closed by the inner escape. The
  * older single-quote-only escape left the door open for command
@@ -32,7 +32,7 @@ let _MAX_SHELL_ARG_LEN = 4096;
  * - Strips: `$`, backtick, `(`, `)`, `\`, `;`, `&`, `|`, `<`, `>`,
  *           newline, carriage-return, NUL, BEL.
  * - Length-clamped to `_MAX_SHELL_ARG_LEN` to bound memory use.
- * - Non-ASCII characters are preserved (UTF-8 safe for `sh -lc`).
+ * - Non-ASCII characters are preserved (UTF-8 safe for `sh -c`).
  *
  * @param {string} s  Raw value (null/undefined treated as empty).
  * @returns {string}  Sanitized value safe to embed in `'…'`.
@@ -175,10 +175,10 @@ function validateSessionId(id) {
 /**
  * Convenience wrapper: sanitize a string and return it wrapped in
  * shell single quotes, ready to be interpolated directly into a
- * `sh -lc '…'` command. Use this as a drop-in replacement for the
+ * `sh -c '…'` command. Use this as a drop-in replacement for the
  * old `shellEscape()` style calls.
  *
- *     cmd = "sh -lc 'notify-send \"KDE AI Chat\" \"" + Sec.quoteForShell(title) + "\" " + Sec.quoteForShell(body) + " '"
+ *     cmd = "sh -c 'notify-send \"KDE AI Chat\" \"" + Sec.quoteForShell(title) + "\" " + Sec.quoteForShell(body) + " '"
  *
  * @param {string} s  Raw value.
  * @returns {string}  Quoted, sanitized value (`'…'` with escapes).
