@@ -125,6 +125,9 @@ PlasmoidItem {
     property int configOpenCodeAutoKillMinutes: plasmoid.configuration.openCodeAutoKillMinutes || 5
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
+    property bool kwalletLoading: false
+    property var kwalletLoadSuccessCallbacks: []
+    property var kwalletLoadFailureCallbacks: []
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
     property string chatInputText: ""
     property var msgListViewRef: null
@@ -476,6 +479,35 @@ PlasmoidItem {
             executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
             return ;
         }
+        // If KWallet mode is active and keys are not loaded yet, load them first.
+        if (!root.openCodeMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
+            loadKWalletKeysIfNeeded(
+                function onSuccess() {
+                    injectScheduledMessage(chatId, messageText, notify, schedId, schedName);
+                },
+                function onFailure(err) {
+                    let errMsg = "KWallet access failed: " + err;
+                    pushErrorMessage(errMsg);
+                    if (notify) {
+                        let safeErr = Sec.sanitizeForShell(errMsg);
+                        let errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
+                        let safeErrTitle = Sec.sanitizeForShell(errTitle);
+                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
+                    }
+                    if (schedId) {
+                        let historyPayload = {
+                            "schedId": schedId,
+                            "status": errMsg
+                        };
+                        let b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
+                        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64HistoryPayload);
+                        soundDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-history-err");
+                    }
+                }
+            );
+            return ;
+        }
+
         // Play the custom scheduled execution sound
         let soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
@@ -2656,6 +2688,21 @@ PlasmoidItem {
         if (!text && !hasAttachments)
             return ;
 
+        if (!root.openCodeMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
+            root.loading = true;
+            loadKWalletKeysIfNeeded(
+                function onSuccess() {
+                    root.loading = false;
+                    sendMessageByIndex(index);
+                },
+                function onFailure(err) {
+                    root.loading = false;
+                    pushErrorMessage(root.translate("KWallet access failed: ") + err + ". " + root.translate("Please check settings or unlock your wallet."));
+                }
+            );
+            return ;
+        }
+
         let validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             pushErrorMessage(validationError);
@@ -3379,6 +3426,19 @@ PlasmoidItem {
     }
 
     function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
+        // If KWallet mode is active and keys are not loaded yet, load them first.
+        if (!root.openCodeMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
+            loadKWalletKeysIfNeeded(
+                function onSuccess() {
+                    executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
+                },
+                function onFailure(err) {
+                    handleBackgroundError(chatId, "KWallet access failed: " + err, notify, schedId, schedName);
+                }
+            );
+            return ;
+        }
+
         let soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
         soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
         let validationError = validateCurrentSendTarget();
@@ -4152,19 +4212,65 @@ PlasmoidItem {
         return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds());
     }
 
-    function loadKWalletKeysIfNeeded() {
-        if (root.kwalletKeysLoaded)
+    function triggerKWalletCallbacks(success, errorMsg) {
+        let successList = root.kwalletLoadSuccessCallbacks || [];
+        let failureList = root.kwalletLoadFailureCallbacks || [];
+        root.kwalletLoadSuccessCallbacks = [];
+        root.kwalletLoadFailureCallbacks = [];
+        root.kwalletLoading = false;
+
+        if (success) {
+            for (let i = 0; i < successList.length; i++) {
+                try {
+                    successList[i]();
+                } catch(e) {
+                    console.error("Error in KWallet success callback:", e);
+                }
+            }
+        } else {
+            for (let j = 0; j < failureList.length; j++) {
+                try {
+                    failureList[j](errorMsg);
+                } catch(e) {
+                    console.error("Error in KWallet failure callback:", e);
+                }
+            }
+        }
+    }
+
+    function loadKWalletKeysIfNeeded(onSuccess, onFailure) {
+        if (plasmoid.configuration.keyStorageMode !== 2) {
+            if (typeof onSuccess === "function")
+                onSuccess();
             return ;
+        }
+
+        if (root.kwalletKeysLoaded) {
+            if (typeof onSuccess === "function")
+                onSuccess();
+            return ;
+        }
+
+        if (typeof onSuccess === "function") {
+            root.kwalletLoadSuccessCallbacks.push(onSuccess);
+        }
+        if (typeof onFailure === "function") {
+            root.kwalletLoadFailureCallbacks.push(onFailure);
+        }
+
+        if (root.kwalletLoading) {
+            return ;
+        }
 
         if (root.kwalletOpenAttempts >= 3) {
             debugLog("[KAI-DEBUG] loadKWalletKeysIfNeeded open attempts limit of 3 exceeded. Skipping KWallet load.");
+            triggerKWalletCallbacks(false, "KWallet open attempts limit exceeded");
             return ;
         }
-        if (plasmoid.configuration.keyStorageMode === 2) {
-            root.kwalletKeysLoaded = true;
-            let walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
-            kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load");
-        }
+
+        root.kwalletLoading = true;
+        let walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
+        kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load");
     }
 
     function performExportChat(filePath) {
@@ -4312,7 +4418,7 @@ PlasmoidItem {
         if (configKeyStorageMode === 2) {
             root.kwalletKeysLoaded = false;
             root.kwalletOpenAttempts = 0;
-            loadKWalletKeysIfNeeded();
+            // Loaded on demand when sending a message or opening settings.
         }
     }
     onCurrentSessionIdChanged: {
@@ -4331,7 +4437,7 @@ PlasmoidItem {
     onOpenCodeModeChanged: {
         resetOpenCodeIdleKillTimer();
         if (!openCodeMode) {
-            loadKWalletKeysIfNeeded();
+            // Loaded on demand when sending a message.
         } else {
             if (plasmoid.configuration.autoStartOpenCodeServer)
                 autoStartOpenCodeTimer.start();
@@ -4352,8 +4458,8 @@ PlasmoidItem {
     }
     Component.onCompleted: {
         root.openCodeMode = plasmoid.configuration.useOpenCode;
-        if (!root.openCodeMode)
-            loadKWalletKeysIfNeeded();
+        // Do not load KWallet keys on startup to prevent password popup spam.
+        // They will be loaded on demand.
 
         let customDir = (plasmoid.configuration.customHistoryPath || "").trim();
         root.activeHistoryPath = customDir;
@@ -4918,12 +5024,17 @@ PlasmoidItem {
         onNewData: function(sourceName, data) {
             let stdout = data["stdout"] || "";
             if (sourceName.indexOf("kwallet-startup-load") >= 0) {
-                let lines = stdout.split(/?\n/);
+                let lines = stdout.split(/\r?\n/);
                 let openFailed = false;
+                let openFailedMsg = "KWallet open failed.";
                 for (let i = 0; i < lines.length; i++) {
                     let line = lines[i].trim();
                     if (line.indexOf("__KAI_BULK__:OPEN_FAILED") === 0) {
                         openFailed = true;
+                        openFailedMsg = "KWallet open failed.";
+                    } else if (line.indexOf("__KAI_BULK__:NO_WALLET") === 0) {
+                        openFailed = true;
+                        openFailedMsg = "Configured KWallet not found.";
                     } else if (line.indexOf("__KAI_SECRET__:") === 0) {
                         let rest = line.slice("__KAI_SECRET__:".length);
                         let sep = rest.indexOf(":");
@@ -4937,9 +5048,12 @@ PlasmoidItem {
                 if (openFailed) {
                     root.kwalletKeysLoaded = false;
                     root.kwalletOpenAttempts++;
-                    debugLog("[KAI-DEBUG] KWallet open failed on startup (attempt " + root.kwalletOpenAttempts + " of 3)");
+                    debugLog("[KAI-DEBUG] KWallet open failed (attempt " + root.kwalletOpenAttempts + " of 3)");
+                    triggerKWalletCallbacks(false, openFailedMsg);
                 } else {
                     root.kwalletOpenAttempts = 0;
+                    root.kwalletKeysLoaded = true;
+                    triggerKWalletCallbacks(true);
                 }
             }
             disconnectSource(sourceName);
