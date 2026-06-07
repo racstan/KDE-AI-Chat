@@ -128,6 +128,20 @@ KCM.SimpleKCM {
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
     property string keyringStatus: ""
+
+    // ── Layout metrics exposed so section files can read them via `page` ──
+    // These are computed once here and propagated down so all sub-FormLayouts
+    // size their fields identically.
+    readonly property real configBoundedWidth: {
+        let hostW = zoomHost ? zoomHost.width : 0;
+        if (hostW <= 0)
+            return Kirigami.Units.gridUnit * 28;
+        return Math.min(hostW / page.configZoom, Kirigami.Units.gridUnit * 32);
+    }
+    readonly property real configFieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, configBoundedWidth)
+    // Compat aliases so section files that use page.boundedWidth / page.fieldMaxWidth keep working
+    readonly property alias boundedWidth: page.configBoundedWidth
+    readonly property alias fieldMaxWidth: page.configFieldMaxWidth
     property string discoveryStatus: ""
     property string storageExportStatus: ""
     property string openCodeSessionsStatus: ""
@@ -177,6 +191,8 @@ KCM.SimpleKCM {
     readonly property alias generalSection: generalSection
     readonly property alias openCodeSection: openCodeSection
     readonly property alias providersSection: providersSection
+    readonly property alias keys1: keys1
+    readonly property alias keys2: keys2
     readonly property alias advancedSection: advancedSection
 
     readonly property alias walletNameField: generalSection.walletNameField
@@ -207,66 +223,66 @@ KCM.SimpleKCM {
     readonly property alias schedAutoStartToggle: advancedSection.schedAutoStartToggle
     readonly property alias executeMissedSchedulesToggle: advancedSection.executeMissedSchedulesToggle
 
-    // Provider fields compatibility
-    readonly property alias baseUrlField: providersSection.baseUrlField
-    readonly property alias apiKeyField: providersSection.apiKeyField
-    readonly property alias modelField: providersSection.modelField
-    readonly property alias anthropicApiKeyField: providersSection.anthropicApiKeyField
-    readonly property alias anthropicModelField: providersSection.anthropicModelField
-    readonly property alias groqBaseUrlField: providersSection.groqBaseUrlField
-    readonly property alias groqApiKeyField: providersSection.groqApiKeyField
-    readonly property alias groqModelField: providersSection.groqModelField
-    readonly property alias deepSeekBaseUrlField: providersSection.deepSeekBaseUrlField
-    readonly property alias deepSeekApiKeyField: providersSection.deepSeekApiKeyField
-    readonly property alias deepSeekModelField: providersSection.deepSeekModelField
-    readonly property alias miniMaxBaseUrlField: providersSection.miniMaxBaseUrlField
-    readonly property alias miniMaxApiKeyField: providersSection.miniMaxApiKeyField
-    readonly property alias miniMaxModelField: providersSection.miniMaxModelField
-    readonly property alias fireworksBaseUrlField: providersSection.fireworksBaseUrlField
-    readonly property alias fireworksApiKeyField: providersSection.fireworksApiKeyField
-    readonly property alias fireworksModelField: providersSection.fireworksModelField
-    readonly property alias googleBaseUrlField: providersSection.googleBaseUrlField
-    readonly property alias googleApiKeyField: providersSection.googleApiKeyField
-    readonly property alias googleModelField: providersSection.googleModelField
-    readonly property alias openRouterBaseUrlField: providersSection.openRouterBaseUrlField
-    readonly property alias openRouterApiKeyField: providersSection.openRouterApiKeyField
-    readonly property alias openRouterModelField: providersSection.openRouterModelField
-    readonly property alias mistralBaseUrlField: providersSection.mistralBaseUrlField
-    readonly property alias mistralApiKeyField: providersSection.mistralApiKeyField
-    readonly property alias mistralModelField: providersSection.mistralModelField
-    readonly property alias cloudflareBaseUrlField: providersSection.cloudflareBaseUrlField
-    readonly property alias cloudflareApiKeyField: providersSection.cloudflareApiKeyField
-    readonly property alias cloudflareModelField: providersSection.cloudflareModelField
-    readonly property alias nvidiaBaseUrlField: providersSection.nvidiaBaseUrlField
-    readonly property alias nvidiaApiKeyField: providersSection.nvidiaApiKeyField
-    readonly property alias nvidiaModelField: providersSection.nvidiaModelField
-    readonly property alias huggingFaceBaseUrlField: providersSection.huggingFaceBaseUrlField
-    readonly property alias huggingFaceApiKeyField: providersSection.huggingFaceApiKeyField
-    readonly property alias huggingFaceModelField: providersSection.huggingFaceModelField
-    readonly property alias xaiBaseUrlField: providersSection.xaiBaseUrlField
-    readonly property alias xaiApiKeyField: providersSection.xaiApiKeyField
-    readonly property alias xaiModelField: providersSection.xaiModelField
-    readonly property alias lmStudioBaseUrlField: providersSection.lmStudioBaseUrlField
-    readonly property alias lmStudioModelField: providersSection.lmStudioModelField
-    readonly property alias localBaseUrlField: providersSection.localBaseUrlField
-    readonly property alias localModelField: providersSection.localModelField
-    readonly property alias ollamaBaseUrlField: providersSection.ollamaBaseUrlField
-    readonly property alias ollamaModelField: providersSection.ollamaModelField
-    readonly property alias litellmBaseUrlField: providersSection.litellmBaseUrlField
-    readonly property alias litellmApiKeyField: providersSection.litellmApiKeyField
-    readonly property alias litellmModelField: providersSection.litellmModelField
-    readonly property alias qwenBaseUrlField: providersSection.qwenBaseUrlField
-    readonly property alias qwenApiKeyField: providersSection.qwenApiKeyField
-    readonly property alias qwenModelField: providersSection.qwenModelField
-    readonly property alias moonshotBaseUrlField: providersSection.moonshotBaseUrlField
-    readonly property alias moonshotApiKeyField: providersSection.moonshotApiKeyField
-    readonly property alias moonshotModelField: providersSection.moonshotModelField
-    readonly property alias mimoBaseUrlField: providersSection.mimoBaseUrlField
-    readonly property alias mimoApiKeyField: providersSection.mimoApiKeyField
-    readonly property alias mimoModelField: providersSection.mimoModelField
-    readonly property alias maritacaBaseUrlField: providersSection.maritacaBaseUrlField
-    readonly property alias maritacaApiKeyField: providersSection.maritacaApiKeyField
-    readonly property alias maritacaModelField: providersSection.maritacaModelField
+    // Provider fields compatibility — keys1 and keys2 are now top-level siblings in zoomHost
+    readonly property alias baseUrlField: keys1.baseUrlField
+    readonly property alias apiKeyField: keys1.apiKeyField
+    readonly property alias modelField: keys1.modelField
+    readonly property alias anthropicApiKeyField: keys1.anthropicApiKeyField
+    readonly property alias anthropicModelField: keys1.anthropicModelField
+    readonly property alias groqBaseUrlField: keys1.groqBaseUrlField
+    readonly property alias groqApiKeyField: keys1.groqApiKeyField
+    readonly property alias groqModelField: keys1.groqModelField
+    readonly property alias deepSeekBaseUrlField: keys1.deepSeekBaseUrlField
+    readonly property alias deepSeekApiKeyField: keys1.deepSeekApiKeyField
+    readonly property alias deepSeekModelField: keys1.deepSeekModelField
+    readonly property alias miniMaxBaseUrlField: keys1.miniMaxBaseUrlField
+    readonly property alias miniMaxApiKeyField: keys1.miniMaxApiKeyField
+    readonly property alias miniMaxModelField: keys1.miniMaxModelField
+    readonly property alias fireworksBaseUrlField: keys1.fireworksBaseUrlField
+    readonly property alias fireworksApiKeyField: keys1.fireworksApiKeyField
+    readonly property alias fireworksModelField: keys1.fireworksModelField
+    readonly property alias googleBaseUrlField: keys1.googleBaseUrlField
+    readonly property alias googleApiKeyField: keys1.googleApiKeyField
+    readonly property alias googleModelField: keys1.googleModelField
+    readonly property alias openRouterBaseUrlField: keys1.openRouterBaseUrlField
+    readonly property alias openRouterApiKeyField: keys1.openRouterApiKeyField
+    readonly property alias openRouterModelField: keys1.openRouterModelField
+    readonly property alias mistralBaseUrlField: keys1.mistralBaseUrlField
+    readonly property alias mistralApiKeyField: keys1.mistralApiKeyField
+    readonly property alias mistralModelField: keys1.mistralModelField
+    readonly property alias cloudflareBaseUrlField: keys1.cloudflareBaseUrlField
+    readonly property alias cloudflareApiKeyField: keys1.cloudflareApiKeyField
+    readonly property alias cloudflareModelField: keys1.cloudflareModelField
+    readonly property alias nvidiaBaseUrlField: keys1.nvidiaBaseUrlField
+    readonly property alias nvidiaApiKeyField: keys1.nvidiaApiKeyField
+    readonly property alias nvidiaModelField: keys1.nvidiaModelField
+    readonly property alias huggingFaceBaseUrlField: keys1.huggingFaceBaseUrlField
+    readonly property alias huggingFaceApiKeyField: keys1.huggingFaceApiKeyField
+    readonly property alias huggingFaceModelField: keys1.huggingFaceModelField
+    readonly property alias xaiBaseUrlField: keys2.xaiBaseUrlField
+    readonly property alias xaiApiKeyField: keys2.xaiApiKeyField
+    readonly property alias xaiModelField: keys2.xaiModelField
+    readonly property alias lmStudioBaseUrlField: keys2.lmStudioBaseUrlField
+    readonly property alias lmStudioModelField: keys2.lmStudioModelField
+    readonly property alias localBaseUrlField: keys2.localBaseUrlField
+    readonly property alias localModelField: keys2.localModelField
+    readonly property alias ollamaBaseUrlField: keys2.ollamaBaseUrlField
+    readonly property alias ollamaModelField: keys2.ollamaModelField
+    readonly property alias litellmBaseUrlField: keys2.litellmBaseUrlField
+    readonly property alias litellmApiKeyField: keys2.litellmApiKeyField
+    readonly property alias litellmModelField: keys2.litellmModelField
+    readonly property alias qwenBaseUrlField: keys2.qwenBaseUrlField
+    readonly property alias qwenApiKeyField: keys2.qwenApiKeyField
+    readonly property alias qwenModelField: keys2.qwenModelField
+    readonly property alias moonshotBaseUrlField: keys2.moonshotBaseUrlField
+    readonly property alias moonshotApiKeyField: keys2.moonshotApiKeyField
+    readonly property alias moonshotModelField: keys2.moonshotModelField
+    readonly property alias mimoBaseUrlField: keys2.mimoBaseUrlField
+    readonly property alias mimoApiKeyField: keys2.mimoApiKeyField
+    readonly property alias mimoModelField: keys2.mimoModelField
+    readonly property alias maritacaBaseUrlField: keys2.maritacaBaseUrlField
+    readonly property alias maritacaApiKeyField: keys2.maritacaApiKeyField
+    readonly property alias maritacaModelField: keys2.maritacaModelField
 
 
     readonly property string guideText: translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>" + "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" + "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" + "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" + "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" + "• <b>User Memory &amp; Global Context:</b> In the <b>Behavior</b> section, configure memory, set the context limit (default: 1), and enable auto-compacting.<br/>" + "• <b>Schedules:</b> Use the <b>Schedules</b> tool to schedule automated questions. Type <code>/schedule</code> inside any chat to list or create automated prompts.")
@@ -1017,53 +1033,103 @@ KCM.SimpleKCM {
         id: zoomHost
 
         implicitWidth: 0
-        implicitHeight: Math.ceil(formLayout.implicitHeight * page.configZoom)
+        // Sum the heights of all six sibling section FormLayouts
+        implicitHeight: Math.ceil(
+            (generalSection.implicitHeight +
+             openCodeSection.implicitHeight +
+             providersSection.implicitHeight +
+             keys1.implicitHeight +
+             keys2.implicitHeight +
+             advancedSection.implicitHeight) * page.configZoom
+        )
         clip: true
 
-        Kirigami.FormLayout {
-            id: formLayout
+        // ── General Settings ─────────────────────────────────────────────────
+        // LINKAGE: ConfigGeneralSection is the first Kirigami.FormLayout section.
+        // All six sibling FormLayouts are linked via twinFormLayouts so
+        // all label columns are identically wide across the whole settings page.
+        ConfigGeneralSection {
+            id: generalSection
+            page: page
+            x: 0; y: 0
+            clip: true
+            scale: page.configZoom
+            transformOrigin: Item.TopLeft
+            wideMode: false
+            width: page.configBoundedWidth
+            twinFormLayouts: [openCodeSection, providersSection, keys1, keys2, advancedSection]
+        }
 
-            readonly property real boundedWidth: {
-                let hostW = zoomHost.width;
-                if (hostW <= 0)
-                    return Kirigami.Units.gridUnit * 28;
-
-                return Math.min(hostW / page.configZoom, Kirigami.Units.gridUnit * 32);
-            }
-            //* FormLayout treats preferredWidth 0 as "unset" and uses implicitWidth — cap fields to the form instead.
-            readonly property real fieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, boundedWidth)
-
+        // ── OpenCode Settings ─────────────────────────────────────────────────
+        ConfigOpenCodeSection {
+            id: openCodeSection
+            page: page
             x: 0
             clip: true
             scale: page.configZoom
             transformOrigin: Item.TopLeft
-            //* Single column: wideMode uses implicitWidth for grid width and centers it, which clips labels in narrow config dialogs.
             wideMode: false
-            width: boundedWidth
+            width: page.configBoundedWidth
+            y: generalSection.implicitHeight * page.configZoom
+            twinFormLayouts: [generalSection, providersSection, keys1, keys2, advancedSection]
+        }
 
-            ConfigGeneralSection {
-                id: generalSection
-                page: page
-                Layout.fillWidth: true
-            }
+        // ── Provider Selection ─────────────────────────────────────────────────
+        ConfigProvidersSection {
+            id: providersSection
+            page: page
+            x: 0
+            clip: true
+            scale: page.configZoom
+            transformOrigin: Item.TopLeft
+            wideMode: false
+            width: page.configBoundedWidth
+            y: (generalSection.implicitHeight + openCodeSection.implicitHeight) * page.configZoom
+            twinFormLayouts: [generalSection, openCodeSection, keys1, keys2, advancedSection]
+        }
 
-            ConfigOpenCodeSection {
-                id: openCodeSection
-                page: page
-                Layout.fillWidth: true
-            }
+        // ── Provider API Keys (Group 1: OpenAI → Hugging Face) ──────────────────
+        // LINKAGE: keys1 is a sibling of providersSection (NOT nested inside it).
+        // It is positioned directly below providersSection in the vertical stack.
+        ConfigProvidersKeys1 {
+            id: keys1
+            page: page
+            x: 0
+            clip: true
+            scale: page.configZoom
+            transformOrigin: Item.TopLeft
+            wideMode: false
+            width: page.configBoundedWidth
+            y: (generalSection.implicitHeight + openCodeSection.implicitHeight + providersSection.implicitHeight) * page.configZoom
+            twinFormLayouts: [generalSection, openCodeSection, providersSection, keys2, advancedSection]
+        }
 
-            ConfigProvidersSection {
-                id: providersSection
-                page: page
-                Layout.fillWidth: true
-            }
+        // ── Provider API Keys (Group 2: xAI → Maritaca) ─────────────────────
+        ConfigProvidersKeys2 {
+            id: keys2
+            page: page
+            x: 0
+            clip: true
+            scale: page.configZoom
+            transformOrigin: Item.TopLeft
+            wideMode: false
+            width: page.configBoundedWidth
+            y: (generalSection.implicitHeight + openCodeSection.implicitHeight + providersSection.implicitHeight + keys1.implicitHeight) * page.configZoom
+            twinFormLayouts: [generalSection, openCodeSection, providersSection, keys1, advancedSection]
+        }
 
-            ConfigAdvancedSection {
-                id: advancedSection
-                page: page
-                Layout.fillWidth: true
-            }
+        // ── Advanced / Scheduler / Storage ────────────────────────────────────
+        ConfigAdvancedSection {
+            id: advancedSection
+            page: page
+            x: 0
+            clip: true
+            scale: page.configZoom
+            transformOrigin: Item.TopLeft
+            wideMode: false
+            width: page.configBoundedWidth
+            y: (generalSection.implicitHeight + openCodeSection.implicitHeight + providersSection.implicitHeight + keys1.implicitHeight + keys2.implicitHeight) * page.configZoom
+            twinFormLayouts: [generalSection, openCodeSection, providersSection, keys1, keys2]
         }
 
     }

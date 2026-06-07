@@ -324,18 +324,11 @@ Kirigami.FormLayout {
         color: page ? ((page.discoveryStatus.indexOf("check failed") >= 0 || page.discoveryStatus.indexOf("error") >= 0 || page.discoveryStatus.indexOf("Network error") >= 0) ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor) : Kirigami.Theme.textColor
     }
 
-    // Embed Keys1 and Keys2
-    ConfigProvidersKeys1 {
-        id: keys1
-        page: providersSection.page
-        Layout.fillWidth: true
-    }
-
-    ConfigProvidersKeys2 {
-        id: keys2
-        page: providersSection.page
-        Layout.fillWidth: true
-    }
+    // ── Keys1 and Keys2 are now sibling FormLayouts in ConfigGeneral.qml ──
+    // They are NOT nested here because nesting Kirigami.FormLayouts breaks
+    // the Kirigami.FormData label propagation. Instead they are separate
+    // Kirigami.FormLayout instances stacked vertically in zoomHost and
+    // linked back via twinFormLayouts.
 
     readonly property real fieldMaxWidth: page ? page.fieldMaxWidth : Kirigami.Units.gridUnit * 28
 }
