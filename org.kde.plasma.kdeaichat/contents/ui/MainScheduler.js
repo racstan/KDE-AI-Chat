@@ -202,7 +202,12 @@ console.error("Error in KWallet failure callback:", e);
 
 
 function loadKWalletKeysIfNeeded(root, onSuccess, onFailure) {
-if (plasmoid.configuration.keyStorageMode !== 2) {
+    if (root.openCodeMode) {
+        if (typeof onSuccess === "function")
+            onSuccess();
+        return ;
+    }
+    if (plasmoid.configuration.keyStorageMode !== 2) {
 if (typeof onSuccess === "function")
 onSuccess();
 return ;

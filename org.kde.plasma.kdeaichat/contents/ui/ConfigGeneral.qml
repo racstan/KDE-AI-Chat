@@ -458,6 +458,14 @@ KCM.SimpleKCM {
         return ConfigGeneralLogic.schedHumanCron(page, expr);
     }
 
+    onVisibleChanged: {
+        if (visible) {
+            if (!openCodeToggle.checked && plasmoid.configuration.keyStorageMode === 2) {
+                detectWallets();
+            }
+        }
+    }
+
     horizontalScrollBarPolicy: configZoom > 1.01 ? QQC2.ScrollBar.AsNeeded : QQC2.ScrollBar.AlwaysOff
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
@@ -466,7 +474,7 @@ KCM.SimpleKCM {
         // cfg_ aliases already load the Plasma-stored values automatically.
         // For KWallet mode, trigger wallet detection to populate the fields.
         // For session-only mode, wipe the fields so stale cfg values aren't used.
-        if (!openCodeToggle.checked && plasmoid.configuration.keyStorageMode === 2)
+        if (!openCodeToggle.checked && plasmoid.configuration.keyStorageMode === 2 && page.visible)
             detectWallets();
         else if (plasmoid.configuration.keyStorageMode === 0)
             clearAllApiKeyFields();
