@@ -226,136 +226,161 @@ Rectangle {
         id: sessionDelegateComponent
 
         Rectangle {
+            id: delegateBg
             required property var modelData
 
             Layout.fillWidth: true
-            implicitHeight: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+            implicitHeight: delegateLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
             radius: 8
             opacity: modelData.archived ? 0.72 : 1
             color: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.historySessionTint(modelData) : "transparent"
 
-            Column {
-                id: historyCol
-
+            MouseArea {
+                id: delegateMouseArea
                 anchors.fill: parent
+                hoverEnabled: true
+                onClicked: {
+                    if (sidebarRoot.chatRoot) {
+                        sidebarRoot.chatRoot.switchSession(modelData.value);
+                        sidebarRoot.chatRoot.historyOnlyMode = false;
+                    }
+                }
+            }
+
+            RowLayout {
+                id: delegateLayout
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
                 anchors.margins: Kirigami.Units.smallSpacing
-                spacing: Kirigami.Units.smallSpacing / 2
+                spacing: Kirigami.Units.smallSpacing
 
-                Row {
-                    width: parent.width
-                    spacing: Kirigami.Units.smallSpacing / 2
+                // Left side: Badges and Text (Title + Subtitle)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
 
-                    Rectangle {
-                        id: modeBadge
+                    // Badges layout (horizontal)
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing / 2
+                        visible: modeBadge.visible || schedBadge.visible || forkBadge.visible
+                        Layout.alignment: Qt.AlignVCenter
 
-                        visible: modelData.source === "opencode"
-                        width: modeBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                        height: modeBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                        radius: 999
-                        color: Qt.rgba(0.2, 0.48, 0.92, 0.18)
+                        Rectangle {
+                            id: modeBadge
+                            visible: modelData.source === "opencode"
+                            width: modeBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 1.5
+                            height: modeBadgeText.implicitHeight + Kirigami.Units.smallSpacing * 0.5
+                            radius: 4
+                            color: Qt.rgba(0.2, 0.48, 0.92, 0.15)
 
-                        PC3.Label {
-                            id: modeBadgeText
-
-                            anchors.centerIn: parent
-                            text: "OC"
-                            font.bold: true
-                            color: Qt.rgba(0.12, 0.35, 0.78, 1)
+                            PC3.Label {
+                                id: modeBadgeText
+                                anchors.centerIn: parent
+                                text: "OC"
+                                font.bold: true
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.8
+                                color: Qt.rgba(0.12, 0.35, 0.78, 1)
+                            }
                         }
-                    }
 
-                    Rectangle {
-                        id: schedBadge
+                        Rectangle {
+                            id: schedBadge
+                            visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.sessionHasSchedules(modelData.value)
+                            width: schedBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 1.5
+                            height: schedBadgeText.implicitHeight + Kirigami.Units.smallSpacing * 0.5
+                            radius: 4
+                            color: Qt.rgba(0.92, 0.48, 0.2, 0.15)
 
-                        visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.sessionHasSchedules(modelData.value)
-                        width: schedBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                        height: schedBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                        radius: 999
-                        color: Qt.rgba(0.92, 0.48, 0.2, 0.18)
-
-                        PC3.Label {
-                            id: schedBadgeText
-
-                            anchors.centerIn: parent
-                            text: "SC"
-                            font.bold: true
-                            color: Qt.rgba(0.78, 0.35, 0.12, 1)
+                            PC3.Label {
+                                id: schedBadgeText
+                                anchors.centerIn: parent
+                                text: "SC"
+                                font.bold: true
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.8
+                                color: Qt.rgba(0.78, 0.35, 0.12, 1)
+                            }
                         }
-                    }
 
-                    Rectangle {
-                        id: forkBadge
+                        Rectangle {
+                            id: forkBadge
+                            visible: modelData.value && modelData.value.indexOf("fork-") === 0
+                            width: forkBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 1.5
+                            height: forkBadgeText.implicitHeight + Kirigami.Units.smallSpacing * 0.5
+                            radius: 4
+                            color: Qt.rgba(0.48, 0.2, 0.92, 0.15)
 
-                        visible: modelData.value && modelData.value.indexOf("fork-") === 0
-                        width: forkBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                        height: forkBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                        radius: 999
-                        color: Qt.rgba(0.48, 0.2, 0.92, 0.18)
-
-                        PC3.Label {
-                            id: forkBadgeText
-
-                            anchors.centerIn: parent
-                            text: "FK"
-                            font.bold: true
-                            color: Qt.rgba(0.35, 0.12, 0.78, 1)
-                        }
-                    }
-
-                    QQC2.TextField {
-                        visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value
-                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width
-                            - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - Kirigami.Units.smallSpacing * 4
-                        text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.editingSessionDraft : ""
-                        onTextChanged: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.editingSessionDraft = text
-                        onAccepted: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.saveSessionRename(modelData.value)
-                    }
-
-                    PC3.Label {
-                        id: sessionTitleLabel
-
-                        visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId !== modelData.value
-                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width
-                            - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - (schedBadge.visible ? schedBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - (forkBadge.visible ? forkBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - (countBadge.visible ? countBadge.width + Kirigami.Units.smallSpacing / 2 : 0)
-                            - Kirigami.Units.smallSpacing * 4
-                        text: {
-                            let rawText = modelData.text || "New Chat";
-                            if (rawText.indexOf("[FK] ") === 0)
-                                rawText = rawText.substring(5);
-                            return sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate(rawText) : rawText;
-                        }
-                        font.bold: sidebarRoot.chatRoot && modelData.value === sidebarRoot.chatRoot.currentSessionId
-                        color: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                        elide: Text.ElideRight
-                        verticalAlignment: Text.AlignVCenter
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (sidebarRoot.chatRoot) {
-                                    sidebarRoot.chatRoot.switchSession(modelData.value);
-                                    sidebarRoot.chatRoot.historyOnlyMode = false;
-                                }
+                            PC3.Label {
+                                id: forkBadgeText
+                                anchors.centerIn: parent
+                                text: "FK"
+                                font.bold: true
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.8
+                                color: Qt.rgba(0.35, 0.12, 0.78, 1)
                             }
                         }
                     }
 
+                    // Title and Subtitle stacked vertically
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        // Rename field (if editing)
+                        QQC2.TextField {
+                            id: renameField
+                            visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value
+                            Layout.fillWidth: true
+                            text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.editingSessionDraft : ""
+                            onTextChanged: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.editingSessionDraft = text
+                            onAccepted: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.saveSessionRename(modelData.value)
+                            Component.onCompleted: {
+                                if (visible) forceActiveFocus();
+                            }
+                        }
+
+                        // Chat Title
+                        PC3.Label {
+                            id: sessionTitleLabel
+                            visible: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId !== modelData.value
+                            Layout.fillWidth: true
+                            text: {
+                                let rawText = modelData.text || "New Chat";
+                                if (rawText.indexOf("[FK] ") === 0)
+                                    rawText = rawText.substring(5);
+                                return sidebarRoot.chatRoot ? sidebarRoot.chatRoot.translate(rawText) : rawText;
+                            }
+                            font.bold: sidebarRoot.chatRoot && modelData.value === sidebarRoot.chatRoot.currentSessionId
+                            color: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                            elide: Text.ElideRight
+                        }
+
+                        // Chat Subtitle (Updated Date / Time / etc)
+                        PC3.Label {
+                            Layout.fillWidth: true
+                            opacity: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? 0.8 : 0.6
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.85
+                            color: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                            text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.sessionSubtitle(modelData) : ""
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                // Right side: Action Buttons & Message Count Badge
+                RowLayout {
+                    id: actionsRow
+                    spacing: Kirigami.Units.smallSpacing / 2
+                    Layout.alignment: Qt.AlignVCenter
+
+                    // Message Count Badge
                     Rectangle {
                         id: countBadge
-
                         property int totalCount: (modelData.messages || []).length
                         property int readCount: modelData.readCount !== undefined ? modelData.readCount : totalCount
                         property int unreadCount: Math.max(0, totalCount - readCount)
 
-                        visible: unreadCount > 0
+                        visible: unreadCount > 0 && !actionsContainer.visible
                         width: countBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 1.5
                         height: countBadgeText.implicitHeight + Kirigami.Units.smallSpacing * 0.5
                         radius: 10
@@ -363,7 +388,6 @@ Rectangle {
 
                         PC3.Label {
                             id: countBadgeText
-
                             anchors.centerIn: parent
                             text: parent.unreadCount > 99 ? "99+" : parent.unreadCount
                             font.bold: true
@@ -372,55 +396,61 @@ Rectangle {
                         }
                     }
 
-                    PC3.ToolButton {
-                        id: saveRename
+                    // Actions Container (only visible on hover or selected/editing)
+                    RowLayout {
+                        id: actionsContainer
+                        spacing: 2
+                        visible: delegateMouseArea.containsMouse || 
+                                 (sidebarRoot.chatRoot && (modelData.value === sidebarRoot.chatRoot.currentSessionId || 
+                                                           sidebarRoot.chatRoot.editingSessionId === modelData.value))
 
-                        icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
-                        display: PC3.AbstractButton.IconOnly
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Save title" : "Rename chat"
-                        onClicked: {
-                            if (sidebarRoot.chatRoot) {
-                                if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
-                                    sidebarRoot.chatRoot.saveSessionRename(modelData.value);
-                                else
-                                    sidebarRoot.chatRoot.startSessionRename(modelData.value);
+                        PC3.ToolButton {
+                            id: saveRename
+                            icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
+                            display: PC3.AbstractButton.IconOnly
+                            implicitWidth: Kirigami.Units.gridUnit * 1.5
+                            implicitHeight: Kirigami.Units.gridUnit * 1.5
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Save title" : "Rename chat"
+                            onClicked: {
+                                if (sidebarRoot.chatRoot) {
+                                    if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
+                                        sidebarRoot.chatRoot.saveSessionRename(modelData.value);
+                                    else
+                                        sidebarRoot.chatRoot.startSessionRename(modelData.value);
+                                }
+                            }
+                        }
+
+                        PC3.ToolButton {
+                            id: archiveChat
+                            icon.name: modelData.archived ? "archive-remove" : "archive-insert"
+                            display: PC3.AbstractButton.IconOnly
+                            implicitWidth: Kirigami.Units.gridUnit * 1.5
+                            implicitHeight: Kirigami.Units.gridUnit * 1.5
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
+                            onClicked: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.setSessionArchived(modelData.value, !modelData.archived)
+                        }
+
+                        PC3.ToolButton {
+                            id: removeChat
+                            icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
+                            display: PC3.AbstractButton.IconOnly
+                            implicitWidth: Kirigami.Units.gridUnit * 1.5
+                            implicitHeight: Kirigami.Units.gridUnit * 1.5
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
+                            onClicked: {
+                                if (sidebarRoot.chatRoot) {
+                                    if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
+                                        sidebarRoot.chatRoot.cancelSessionRename();
+                                    else
+                                        sidebarRoot.chatRoot.deleteSession(modelData.value);
+                                }
                             }
                         }
                     }
-
-                    PC3.ToolButton {
-                        id: archiveChat
-
-                        icon.name: modelData.archived ? "archive-remove" : "archive-insert"
-                        display: PC3.AbstractButton.IconOnly
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
-                        onClicked: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.setSessionArchived(modelData.value, !modelData.archived)
-                    }
-
-                    PC3.ToolButton {
-                        id: removeChat
-
-                        icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
-                        display: PC3.AbstractButton.IconOnly
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
-                        onClicked: {
-                            if (sidebarRoot.chatRoot) {
-                                if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
-                                    sidebarRoot.chatRoot.cancelSessionRename();
-                                else
-                                    sidebarRoot.chatRoot.deleteSession(modelData.value);
-                            }
-                        }
-                    }
-                }
-
-                PC3.Label {
-                    opacity: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? 1 : 0.7
-                    color: sidebarRoot.chatRoot && sidebarRoot.chatRoot.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                    text: sidebarRoot.chatRoot ? sidebarRoot.chatRoot.sessionSubtitle(modelData) : ""
                 }
             }
         }
