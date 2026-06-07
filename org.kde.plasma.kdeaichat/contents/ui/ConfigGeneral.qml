@@ -12,6 +12,12 @@ import "WalletService.js" as WalletService
 import "Security.js" as Sec
 import "ConfigGeneralLogic.js" as ConfigGeneralLogic
 
+// LINKAGE RELATIONSHIPS:
+// - ConfigGeneral.qml: The main settings page UI for the Plasmoid.
+// - Linked to ConfigGeneralLogic.js (imported as ConfigGeneralLogic):
+//   Holds all JavaScript configuration management, model building, and service handling logic to keep ConfigGeneral.qml modular.
+//   Functions in ConfigGeneralLogic.js accept a reference to the page instance to query component properties and execute state modifications.
+
 KCM.SimpleKCM {
     id: page
 

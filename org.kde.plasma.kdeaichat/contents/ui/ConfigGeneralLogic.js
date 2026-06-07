@@ -1,4 +1,10 @@
 // ConfigGeneralLogic.js - Extracted logic for ConfigGeneral
+//
+// LINKAGE RELATIONSHIPS:
+// - ConfigGeneralLogic.js: JavaScript file containing the business logic and helper functions for ConfigGeneral.qml.
+// - Linked to ConfigGeneral.qml:
+//   It is imported in ConfigGeneral.qml as ConfigGeneralLogic.
+//   Functions inside this file accept the 'page' parameter, representing the ConfigGeneral instance, allowing access to its QML components and properties.
 
 function debugLog(page) {
 if (debugMode) {
