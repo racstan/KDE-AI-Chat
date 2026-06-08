@@ -2150,6 +2150,29 @@ soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instan
 
 
 function respondToPermission(permissionId, approved) {
+let sessionId = root.openCodeActiveSessionId;
+if (!sessionId) {
+let idx = sessionIndexById(root.currentSessionId);
+if (idx >= 0)
+sessionId = root.sessions[idx].openCodeSessionId || "";
+}
+if (!sessionId || !permissionId)
+return ;
+
+let copy = root.messages.slice();
+for (let i = 0; i < copy.length; i++) {
+if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
+copy[i].status = approved ? "allowing..." : "denying...";
+break;
+}
+}
+root.messages = copy;
+
+let xhr = new XMLHttpRequest();
+let primaryUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permission/" + permissionId;
+let fallbackUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permissions/" + permissionId;
+let responseValue = approved ? "allow" : "deny";
+
 function sendToUrl(url, isRetry) {
 xhr.open("POST", url, true);
 xhr.setRequestHeader("Content-Type", "application/json");
@@ -2199,26 +2222,7 @@ xhr.send(JSON.stringify({
 "response": responseValue
 }));
 }
-let sessionId = root.openCodeActiveSessionId;
-if (!sessionId) {
-let idx = sessionIndexById(root.currentSessionId);
-if (idx >= 0)
-sessionId = root.sessions[idx].openCodeSessionId || "";
-}
-if (!sessionId || !permissionId)
-return ;
-let copy = root.messages.slice();
-for (let i = 0; i < copy.length; i++) {
-if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-copy[i].status = approved ? "allowing..." : "denying...";
-break;
-}
-}
-root.messages = copy;
-let xhr = new XMLHttpRequest();
-let primaryUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permission/" + permissionId;
-let fallbackUrl = openCodeBaseUrl() + "/session/" + sessionId + "/permissions/" + permissionId;
-let responseValue = approved ? "allow" : "deny";
+
 sendToUrl(primaryUrl, false);
 }
 
@@ -2255,6 +2259,28 @@ respondToQuestion(questionId, customText, false);
 
 
 function respondToQuestion(questionId, answerValue, isReject) {
+let sessionId = root.openCodeActiveSessionId;
+if (!sessionId) {
+let idx = sessionIndexById(root.currentSessionId);
+if (idx >= 0)
+sessionId = root.sessions[idx].openCodeSessionId || "";
+}
+if (!questionId)
+return ;
+let copy = root.messages.slice();
+for (let i = 0; i < copy.length; i++) {
+if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
+copy[i].status = isReject ? "dismissing..." : "answering...";
+break;
+}
+}
+root.messages = copy;
+
+let xhr = new XMLHttpRequest();
+let action = isReject ? "reject" : "reply";
+let urls = [openCodeBaseUrl() + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/questions/" + questionId + "/" + action];
+let currentUrlIdx = 0;
+
 function tryNextUrl() {
 if (currentUrlIdx >= urls.length) {
 let exhaustedMsgs = root.messages.slice();
@@ -2322,26 +2348,7 @@ xhr.send(JSON.stringify({
 tryNextUrl();
 }
 }
-let sessionId = root.openCodeActiveSessionId;
-if (!sessionId) {
-let idx = sessionIndexById(root.currentSessionId);
-if (idx >= 0)
-sessionId = root.sessions[idx].openCodeSessionId || "";
-}
-if (!questionId)
-return ;
-let copy = root.messages.slice();
-for (let i = 0; i < copy.length; i++) {
-if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-copy[i].status = isReject ? "dismissing..." : "answering...";
-break;
-}
-}
-root.messages = copy;
-let xhr = new XMLHttpRequest();
-let action = isReject ? "reject" : "reply";
-let urls = [openCodeBaseUrl() + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/questions/" + questionId + "/" + action];
-let currentUrlIdx = 0;
+
 tryNextUrl();
 }
 
