@@ -1,6 +1,8 @@
+.import "Security.js" as Sec
+.import "ProviderService.js" as ProviderService
 // MainScheduler.js - Extracted logic for Main
 
-function handleScheduleCommand(root, messageText) {
+function handleScheduleCommand(messageText) {
 scheduleCommandDialog.prefillMessage = messageText;
 scheduleCommandDialog.chatId = root.currentSessionId;
 scheduleCommandDialog.chatName = root.currentSessionTitle || "Current chat";
@@ -8,7 +10,7 @@ scheduleCommandDialog.open();
 }
 
 
-function toggleScheduleEnabled(root, schedId, newEnabled) {
+function toggleScheduleEnabled(schedId, newEnabled) {
 let payload = {
 "schedId": schedId,
 "enabled": newEnabled
@@ -33,7 +35,7 @@ root.appendSystemMessage(newEnabled ? "Schedule resumed successfully." : "Schedu
 }
 
 
-function injectScheduledMessage(root, chatId, messageText, notify, schedId, schedName) {
+function injectScheduledMessage(chatId, messageText, notify, schedId, schedName) {
 if (!chatId || !messageText)
 return ;
 // Switch to the correct session
@@ -115,7 +117,7 @@ soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-informat
 }
 
 
-function executeScheduledMessageInBackground(root, chatId, messageText, notify, schedId, schedName) {
+function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
 // If KWallet mode is active and keys are not loaded yet, load them first.
 if (!root.openCodeMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
 loadKWalletKeysIfNeeded(
@@ -167,7 +169,7 @@ doBackgroundOpenAICompatRequest(chatId, providerCfg.baseUrl, providerCfg.apiKey,
 }
 
 
-function applyKWalletKeyToMemory(root, targetId, secretValue) {
+function applyKWalletKeyToMemory(targetId, secretValue) {
 let configKey = ProviderService.getApiKeyConfigKey(targetId);
 if (configKey) {
 plasmoid.configuration[configKey] = secretValue;
@@ -175,7 +177,7 @@ plasmoid.configuration[configKey] = secretValue;
 }
 
 
-function triggerKWalletCallbacks(root, success, errorMsg) {
+function triggerKWalletCallbacks(success, errorMsg) {
 let successList = root.kwalletLoadSuccessCallbacks || [];
 let failureList = root.kwalletLoadFailureCallbacks || [];
 root.kwalletLoadSuccessCallbacks = [];
@@ -201,7 +203,7 @@ console.error("Error in KWallet failure callback:", e);
 }
 
 
-function loadKWalletKeysIfNeeded(root, onSuccess, onFailure) {
+function loadKWalletKeysIfNeeded(onSuccess, onFailure) {
     if (root.openCodeMode) {
         if (typeof onSuccess === "function")
             onSuccess();

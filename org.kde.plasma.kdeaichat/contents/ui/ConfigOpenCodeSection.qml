@@ -25,6 +25,16 @@ Kirigami.FormLayout {
     property alias openCodeProviderValueField: openCodeProviderValueField
     property alias openCodeModelValueField: openCodeModelValueField
 
+    // Value aliases for config bindings to avoid double-nested aliases in parent
+    property alias openCodeUrl: openCodeUrlField.text
+    property alias autoStartOpenCode: autoStartOpenCodeToggle.checked
+    property alias openCodeStartCommand: openCodeStartCommandField.text
+    property alias openCodeStopCommand: openCodeStopCommandField.text
+    property alias openCodeAutoKill: openCodeAutoKillToggle.checked
+    property alias openCodeAutoKillMinutes: openCodeAutoKillMinutesSpin.value
+    property alias openCodeProviderValue: openCodeProviderValueField.text
+    property alias openCodeModelValue: openCodeModelValueField.text
+
     Kirigami.Separator {
         visible: page ? page.cfg_useOpenCode : false
         Kirigami.FormData.isSection: true

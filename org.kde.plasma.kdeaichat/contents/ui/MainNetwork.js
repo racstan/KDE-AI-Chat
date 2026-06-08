@@ -1,6 +1,7 @@
+.import "Security.js" as Sec
 // MainNetwork.js - Extracted logic for Main
 
-function base64Encode(root, str) {
+function base64Encode(str) {
 try {
 return Qt.btoa(unescape(encodeURIComponent(str)));
 } catch (e) {
@@ -10,7 +11,7 @@ return "";
 }
 
 
-function base64Decode(root, str) {
+function base64Decode(str) {
 try {
 return decodeURIComponent(escape(Qt.atob(str)));
 } catch (e) {
@@ -24,7 +25,7 @@ return "";
 }
 
 
-function finishOpenCodeRequest(root) {
+function finishOpenCodeRequest() {
 flushStreamingBuffer();
 root.loading = false;
 root.activeXhr = null;
@@ -40,7 +41,7 @@ processNextQueuedMessage();
 }
 
 
-function pushErrorMessage(root, text) {
+function pushErrorMessage(text) {
 let ts = Date.now();
 root.messages = root.messages.concat([{
 "role": "error",
@@ -69,7 +70,7 @@ soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dia
 }
 
 
-function validateCurrentSendTarget(root) {
+function validateCurrentSendTarget() {
 if (root.openCodeMode)
 return validateOpenCodeConfig();
 let provider = plasmoid.configuration.provider || "openai";
@@ -78,12 +79,12 @@ return validateProviderConfig(provider, providerCfg);
 }
 
 
-function buildAnthropicPayloadForMessages(root, messagesList, chatId) {
+function buildAnthropicPayloadForMessages(messagesList, chatId) {
 return _buildMessageArray(messagesList, chatId, "anthropic");
 }
 
 
-function handleBackgroundError(root, chatId, errorMsg, notify, schedId, schedName) {
+function handleBackgroundError(chatId, errorMsg, notify, schedId, schedName) {
 let errTs = Date.now();
 let errMsgObj = {
 "role": "assistant",
@@ -111,7 +112,7 @@ soundDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-history-err")
 }
 
 
-function doBackgroundOpenAICompatRequest(root, chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
+function doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
 let url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
 let xhr = new XMLHttpRequest();
 let errorHandled = false;
@@ -224,7 +225,7 @@ handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, sc
 }
 
 
-function doBackgroundAnthropicRequest(root, chatId, apiKey, model, messageText, notify, schedId, schedName) {
+function doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName) {
 let xhr = new XMLHttpRequest();
 let errorHandled = false;
 let targetIdx = sessionIndexById(chatId);
@@ -330,7 +331,7 @@ handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, sc
 }
 
 
-function doOpenAICompatRequest(root, baseUrl, apiKey, model, extraHeaders, modelLabel) {
+function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
 let url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
 let xhr = new XMLHttpRequest();
 let errorHandled = false;
@@ -476,7 +477,7 @@ pushErrorMessage("Failed to send request: " + sendError);
 }
 
 
-function doAnthropicRequest(root, apiKey, model) {
+function doAnthropicRequest(apiKey, model) {
 if (!apiKey) {
 pushErrorMessage("Anthropic API key missing in settings.");
 processNextQueuedMessage();

@@ -38,7 +38,7 @@ PlasmoidItem {
 
     property bool debugMode: false
     function debugLog() {
-        return MainDatabase.debugLog(root);
+        return MainDatabase.debugLog();
     }
 
     property var sessions: []
@@ -296,39 +296,39 @@ PlasmoidItem {
     signal clearChatInput()
 
     function sessionHasSchedules(sessionId) {
-        return MainDatabase.sessionHasSchedules(root, sessionId);
+        return MainDatabase.sessionHasSchedules(sessionId);
     }
 
     function triggerConfigure() {
-        return MainDatabase.triggerConfigure(root);
+        return MainDatabase.triggerConfigure();
     }
 
     function focusInput() {
-        return MainDatabase.focusInput(root);
+        return MainDatabase.focusInput();
     }
 
     function searchNext() {
-        return MainDatabase.searchNext(root);
+        return MainDatabase.searchNext();
     }
 
     function searchPrev() {
-        return MainDatabase.searchPrev(root);
+        return MainDatabase.searchPrev();
     }
 
     function pad2(v) {
-        return MainDatabase.pad2(root, v);
+        return MainDatabase.pad2(v);
     }
 
     function nowTime(ts) {
-        return MainDatabase.nowTime(root, ts);
+        return MainDatabase.nowTime(ts);
     }
 
     function formatDateTime(ts) {
-        return MainDatabase.formatDateTime(root, ts);
+        return MainDatabase.formatDateTime(ts);
     }
 
     function makeSessionId() {
-        return MainDatabase.makeSessionId(root);
+        return MainDatabase.makeSessionId();
     }
 
     // Centralized helper for reporting a benign parse failure (e.g. an
@@ -336,196 +336,196 @@ PlasmoidItem {
     // Always logs to console for diagnostics and surfaces a non-blocking
     // notification to the user, so the failure is never silently dropped.
     function reportParseFailure(context, error) {
-        return MainDatabase.reportParseFailure(root, context, error);
+        return MainDatabase.reportParseFailure(context, error);
     }
 
     function makeForkSessionId() {
-        return MainDatabase.makeForkSessionId(root);
+        return MainDatabase.makeForkSessionId();
     }
 
     function forkSession(messageIndex) {
-        return MainDatabase.forkSession(root, messageIndex);
+        return MainDatabase.forkSession(messageIndex);
     }
 
     // ── /schedule command handler ──────────────────────────────────────────────
     function handleScheduleCommand(messageText) {
-        return MainScheduler.handleScheduleCommand(root, messageText);
+        return MainScheduler.handleScheduleCommand(messageText);
     }
 
     function toggleScheduleEnabled(schedId, newEnabled) {
-        return MainScheduler.toggleScheduleEnabled(root, schedId, newEnabled);
+        return MainScheduler.toggleScheduleEnabled(schedId, newEnabled);
     }
 
     function injectScheduledMessage(chatId, messageText, notify, schedId, schedName) {
-        return MainScheduler.injectScheduledMessage(root, chatId, messageText, notify, schedId, schedName);
+        return MainScheduler.injectScheduledMessage(chatId, messageText, notify, schedId, schedName);
     }
 
     function parseSessions(customRaw) {
-        return MainDatabase.parseSessions(root, customRaw);
+        return MainDatabase.parseSessions(customRaw);
     }
 
     function checkAndMarkCurrentSessionAsRead() {
-        return MainDatabase.checkAndMarkCurrentSessionAsRead(root);
+        return MainDatabase.checkAndMarkCurrentSessionAsRead();
     }
 
     function base64Encode(str) {
-        return MainNetwork.base64Encode(root, str);
+        return MainNetwork.base64Encode(str);
     }
 
     function base64Decode(str) {
-        return MainNetwork.base64Decode(root, str);
+        return MainNetwork.base64Decode(str);
     }
 
     function getHistoryFilePath(customDir) {
-        return MainDatabase.getHistoryFilePath(root, customDir);
+        return MainDatabase.getHistoryFilePath(customDir);
     }
 
     function migrateHistory(oldPath, newPath) {
-        return MainDatabase.migrateHistory(root, oldPath, newPath);
+        return MainDatabase.migrateHistory(oldPath, newPath);
     }
 
     function persistSessions() {
-        return MainDatabase.persistSessions(root);
+        return MainDatabase.persistSessions();
     }
 
     function flushPersistSessions() {
-        return MainDatabase.flushPersistSessions(root);
+        return MainDatabase.flushPersistSessions();
     }
 
     function sortSessionsByUpdated() {
-        return MainDatabase.sortSessionsByUpdated(root);
+        return MainDatabase.sortSessionsByUpdated();
     }
 
     function historySessionTint(sessionData) {
-        return MainDatabase.historySessionTint(root, sessionData);
+        return MainDatabase.historySessionTint(sessionData);
     }
 
     function sessionSubtitle(sessionData) {
-        return MainDatabase.sessionSubtitle(root, sessionData);
+        return MainDatabase.sessionSubtitle(sessionData);
     }
 
     function sessionIndexById(sessionId) {
-        return MainDatabase.sessionIndexById(root, sessionId);
+        return MainDatabase.sessionIndexById(sessionId);
     }
 
     function createSession(switchToNew) {
-        return MainDatabase.createSession(root, switchToNew);
+        return MainDatabase.createSession(switchToNew);
     }
 
     function loadSessions() {
-        return MainDatabase.loadSessions(root);
+        return MainDatabase.loadSessions();
     }
 
     function saveCurrentSessionState(touchUpdatedAt) {
-        return MainDatabase.saveCurrentSessionState(root, touchUpdatedAt);
+        return MainDatabase.saveCurrentSessionState(touchUpdatedAt);
     }
 
     function setCurrentSessionSource(source) {
-        return MainDatabase.setCurrentSessionSource(root, source);
+        return MainDatabase.setCurrentSessionSource(source);
     }
 
     function setSessionArchived(sessionId, archived) {
-        return MainDatabase.setSessionArchived(root, sessionId, archived);
+        return MainDatabase.setSessionArchived(sessionId, archived);
     }
 
     function switchSession(sessionId) {
-        return MainDatabase.switchSession(root, sessionId);
+        return MainDatabase.switchSession(sessionId);
     }
 
     function renameCurrentSession(newTitle) {
-        return MainDatabase.renameCurrentSession(root, newTitle);
+        return MainDatabase.renameCurrentSession(newTitle);
     }
 
     function startSessionRename(sessionId) {
-        return MainDatabase.startSessionRename(root, sessionId);
+        return MainDatabase.startSessionRename(sessionId);
     }
 
     function cancelSessionRename() {
-        return MainDatabase.cancelSessionRename(root);
+        return MainDatabase.cancelSessionRename();
     }
 
     function saveSessionRename(sessionId) {
-        return MainDatabase.saveSessionRename(root, sessionId);
+        return MainDatabase.saveSessionRename(sessionId);
     }
 
     function deleteSession(sessionId) {
-        return MainDatabase.deleteSession(root, sessionId);
+        return MainDatabase.deleteSession(sessionId);
     }
 
     function deleteMessage(index) {
-        return MainDatabase.deleteMessage(root, index);
+        return MainDatabase.deleteMessage(index);
     }
 
     function saveEditedMessage() {
-        return MainDatabase.saveEditedMessage(root);
+        return MainDatabase.saveEditedMessage();
     }
 
     function openCodeBaseUrl() {
-        return MainOpenCode.openCodeBaseUrl(root);
+        return MainOpenCode.openCodeBaseUrl();
     }
 
     function currentOpenCodeSessionId() {
-        return MainOpenCode.currentOpenCodeSessionId(root);
+        return MainOpenCode.currentOpenCodeSessionId();
     }
 
     function setCurrentOpenCodeSessionId(remoteSessionId) {
-        return MainOpenCode.setCurrentOpenCodeSessionId(root, remoteSessionId);
+        return MainOpenCode.setCurrentOpenCodeSessionId(remoteSessionId);
     }
 
     function clearCurrentOpenCodeSessionIfNeeded() {
-        return MainOpenCode.clearCurrentOpenCodeSessionIfNeeded(root);
+        return MainOpenCode.clearCurrentOpenCodeSessionIfNeeded();
     }
 
     function getSessionProperty(sessionId, key, defaultValue) {
-        return MainDatabase.getSessionProperty(root, sessionId, key, defaultValue);
+        return MainDatabase.getSessionProperty(sessionId, key, defaultValue);
     }
 
     function setSessionProperty(sessionId, key, value) {
-        return MainDatabase.setSessionProperty(root, sessionId, key, value);
+        return MainDatabase.setSessionProperty(sessionId, key, value);
     }
 
     function appendCompactPromptMessage(chatId) {
-        return MainDatabase.appendCompactPromptMessage(root, chatId);
+        return MainDatabase.appendCompactPromptMessage(chatId);
     }
 
     function respondToCompactRequest(msgIndex, approved) {
-        return MainDatabase.respondToCompactRequest(root, msgIndex, approved);
+        return MainDatabase.respondToCompactRequest(msgIndex, approved);
     }
 
     function touchSessionsList(chatId) {
-        return MainDatabase.touchSessionsList(root, chatId);
+        return MainDatabase.touchSessionsList(chatId);
     }
 
     function checkAndAutoCompact(sessionId) {
-        return MainDatabase.checkAndAutoCompact(root, sessionId);
+        return MainDatabase.checkAndAutoCompact(sessionId);
     }
 
     function compactSessionContext(sessionId) {
-        return MainDatabase.compactSessionContext(root, sessionId);
+        return MainDatabase.compactSessionContext(sessionId);
     }
 
     function sendBackgroundSummarizationRequest(sId, promptText, count) {
-        return MainDatabase.sendBackgroundSummarizationRequest(root, sId, promptText, count);
+        return MainDatabase.sendBackgroundSummarizationRequest(sId, promptText, count);
     }
 
     function updateAutocomplete() {
-        return MainDatabase.updateAutocomplete(root);
+        return MainDatabase.updateAutocomplete();
     }
 
     function extractReadableError(prefix, errObj, fallbackText) {
-        return MainDatabase.extractReadableError(root, prefix, errObj, fallbackText);
+        return MainDatabase.extractReadableError(prefix, errObj, fallbackText);
     }
 
     function beginAssistantStreaming(modelLabel) {
-        return MainDatabase.beginAssistantStreaming(root, modelLabel);
+        return MainDatabase.beginAssistantStreaming(modelLabel);
     }
 
     function updateAssistantStreamingContent(text, modelLabel) {
-        return MainDatabase.updateAssistantStreamingContent(root, text, modelLabel);
+        return MainDatabase.updateAssistantStreamingContent(text, modelLabel);
     }
 
     function finishOpenCodeRequest() {
-        return MainNetwork.finishOpenCodeRequest(root);
+        return MainNetwork.finishOpenCodeRequest();
     }
 
     // Handle slash commands in OpenCode mode.
@@ -536,159 +536,159 @@ PlasmoidItem {
     //  - /export                 → syncOpenCodeSessionHistory() (REST API)
     //  - TUI-only commands       → friendly explanation shown inline
     function runLocalOpenCodeCommand(cmdText) {
-        return MainDatabase.runLocalOpenCodeCommand(root, cmdText);
+        return MainDatabase.runLocalOpenCodeCommand(cmdText);
     }
 
     function syncOpenCodeSessionHistory() {
-        return MainDatabase.syncOpenCodeSessionHistory(root);
+        return MainDatabase.syncOpenCodeSessionHistory();
     }
 
     function ensureOpenCodeEventStream() {
-        return MainOpenCode.ensureOpenCodeEventStream(root);
+        return MainOpenCode.ensureOpenCodeEventStream();
     }
 
     function handleOpenCodeEvent(eventObj) {
-        return MainDatabase.handleOpenCodeEvent(root, eventObj);
+        return MainDatabase.handleOpenCodeEvent(eventObj);
     }
 
     function appendSystemMessageToSession(chatId, text) {
-        return MainDatabase.appendSystemMessageToSession(root, chatId, text);
+        return MainDatabase.appendSystemMessageToSession(chatId, text);
     }
 
     function removeMessageFromSessionByTimestamp(chatId, timestamp) {
-        return MainDatabase.removeMessageFromSessionByTimestamp(root, chatId, timestamp);
+        return MainDatabase.removeMessageFromSessionByTimestamp(chatId, timestamp);
     }
 
     function scheduleMessageRemoval(chatId, timestamp, delayMs) {
-        return MainDatabase.scheduleMessageRemoval(root, chatId, timestamp, delayMs);
+        return MainDatabase.scheduleMessageRemoval(chatId, timestamp, delayMs);
     }
 
     function setOpenCodeSessionIdForChatId(chatId, remoteSessionId) {
-        return MainDatabase.setOpenCodeSessionIdForChatId(root, chatId, remoteSessionId);
+        return MainDatabase.setOpenCodeSessionIdForChatId(chatId, remoteSessionId);
     }
 
     function ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback) {
-        return MainDatabase.ensureOpenCodeSessionForChatId(root, chatId, successCallback, failureCallback);
+        return MainDatabase.ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback);
     }
 
     function ensureCurrentOpenCodeSession(successCallback, failureCallback) {
-        return MainOpenCode.ensureCurrentOpenCodeSession(root, successCallback, failureCallback);
+        return MainOpenCode.ensureCurrentOpenCodeSession(successCallback, failureCallback);
     }
 
     function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
-        return MainOpenCode.ensureOpenCodeServerRunning(root, chatId, successCallback, failureCallback);
+        return MainOpenCode.ensureOpenCodeServerRunning(chatId, successCallback, failureCallback);
     }
 
     function doOpenCodeRequest() {
-        return MainOpenCode.doOpenCodeRequest(root);
+        return MainOpenCode.doOpenCodeRequest();
     }
 
     function scrollToBottom() {
-        return MainDatabase.scrollToBottom(root);
+        return MainDatabase.scrollToBottom();
     }
 
     function scrollToMessageByTimestamp(timestamp) {
-        return MainDatabase.scrollToMessageByTimestamp(root, timestamp);
+        return MainDatabase.scrollToMessageByTimestamp(timestamp);
     }
 
     function messageTimestampAt(index) {
-        return MainDatabase.messageTimestampAt(root, index);
+        return MainDatabase.messageTimestampAt(index);
     }
 
     function messageDayKeyAt(index) {
-        return MainDatabase.messageDayKeyAt(root, index);
+        return MainDatabase.messageDayKeyAt(index);
     }
 
     function dayBucketLabel(ts) {
-        return MainDatabase.dayBucketLabel(root, ts);
+        return MainDatabase.dayBucketLabel(ts);
     }
 
     function countMessagesForDayKey(dayKey) {
-        return MainDatabase.countMessagesForDayKey(root, dayKey);
+        return MainDatabase.countMessagesForDayKey(dayKey);
     }
 
     function dayDividerLabelForIndex(index) {
-        return MainDatabase.dayDividerLabelForIndex(root, index);
+        return MainDatabase.dayDividerLabelForIndex(index);
     }
 
     function formatMessageTime(message, index) {
-        return MainDatabase.formatMessageTime(root, message, index);
+        return MainDatabase.formatMessageTime(message, index);
     }
 
     function jumpOneMessageAbove() {
-        return MainDatabase.jumpOneMessageAbove(root);
+        return MainDatabase.jumpOneMessageAbove();
     }
 
     function jumpOneMessageBelow() {
-        return MainDatabase.jumpOneMessageBelow(root);
+        return MainDatabase.jumpOneMessageBelow();
     }
 
     function formatTokensUsage(tokens, cost) {
-        return MainDatabase.formatTokensUsage(root, tokens, cost);
+        return MainDatabase.formatTokensUsage(tokens, cost);
     }
 
     function pushErrorMessage(text) {
-        return MainNetwork.pushErrorMessage(root, text);
+        return MainNetwork.pushErrorMessage(text);
     }
 
     function pushInfoMessage(text) {
-        return MainDatabase.pushInfoMessage(root, text);
+        return MainDatabase.pushInfoMessage(text);
     }
 
     function appendUserMessage(text, role, attachments, isScheduled) {
-        return MainDatabase.appendUserMessage(root, text, role, attachments, isScheduled);
+        return MainDatabase.appendUserMessage(text, role, attachments, isScheduled);
     }
 
     function appendSystemMessage(text) {
-        return MainDatabase.appendSystemMessage(root, text);
+        return MainDatabase.appendSystemMessage(text);
     }
 
     function getSchedulesForSession(sessionId) {
-        return MainDatabase.getSchedulesForSession(root, sessionId);
+        return MainDatabase.getSchedulesForSession(sessionId);
     }
 
     function validateCurrentSendTarget() {
-        return MainNetwork.validateCurrentSendTarget(root);
+        return MainNetwork.validateCurrentSendTarget();
     }
 
     function sendMessageByIndex(index) {
-        return MainDatabase.sendMessageByIndex(root, index);
+        return MainDatabase.sendMessageByIndex(index);
     }
 
     function processNextQueuedMessage() {
-        return MainDatabase.processNextQueuedMessage(root);
+        return MainDatabase.processNextQueuedMessage();
     }
 
     function providerDisplayName(providerId) {
-        return MainDatabase.providerDisplayName(root, providerId);
+        return MainDatabase.providerDisplayName(providerId);
     }
 
     function validateOpenCodeConfig() {
-        return MainDatabase.validateOpenCodeConfig(root);
+        return MainDatabase.validateOpenCodeConfig();
     }
 
     function validateProviderConfig(providerId, cfg) {
-        return MainDatabase.validateProviderConfig(root, providerId, cfg);
+        return MainDatabase.validateProviderConfig(providerId, cfg);
     }
 
     function sendMessage() {
-        return MainDatabase.sendMessage(root);
+        return MainDatabase.sendMessage();
     }
 
     function getProviderConfig(provider) {
-        return MainDatabase.getProviderConfig(root, provider);
+        return MainDatabase.getProviderConfig(provider);
     }
 
     function translate(text) {
-        return MainDatabase.translate(root, text);
+        return MainDatabase.translate(text);
     }
 
     function isSessionScheduled(sessionId, messagesList) {
-        return MainDatabase.isSessionScheduled(root, sessionId, messagesList);
+        return MainDatabase.isSessionScheduled(sessionId, messagesList);
     }
 
     function buildEffectiveSystemPrompt(sessionId) {
-        return MainDatabase.buildEffectiveSystemPrompt(root, sessionId);
+        return MainDatabase.buildEffectiveSystemPrompt(sessionId);
     }
 
     // Returns a filtered, context-limited list of {role, content} pairs.
@@ -696,162 +696,162 @@ PlasmoidItem {
     // Messages before the compacted boundary are excluded.
     // Only the last N user/assistant messages are kept (N = per-session override OR global limit).
     function buildContextWindow(messagesList, sessionId) {
-        return MainDatabase.buildContextWindow(root, messagesList, sessionId);
+        return MainDatabase.buildContextWindow(messagesList, sessionId);
     }
 
     function buildOpenAICompatPayload() {
-        return MainDatabase.buildOpenAICompatPayload(root);
+        return MainDatabase.buildOpenAICompatPayload();
     }
 
     function buildAnthropicPayload() {
-        return MainDatabase.buildAnthropicPayload(root);
+        return MainDatabase.buildAnthropicPayload();
     }
 
     function buildOpenAICompatPayloadForMessages(messagesList, chatId) {
-        return MainDatabase.buildOpenAICompatPayloadForMessages(root, messagesList, chatId);
+        return MainDatabase.buildOpenAICompatPayloadForMessages(messagesList, chatId);
     }
 
     function buildAnthropicPayloadForMessages(messagesList, chatId) {
-        return MainNetwork.buildAnthropicPayloadForMessages(root, messagesList, chatId);
+        return MainNetwork.buildAnthropicPayloadForMessages(messagesList, chatId);
     }
 
     function _buildMessageArray(messagesList, chatId, format) {
-        return MainDatabase._buildMessageArray(root, messagesList, chatId, format);
+        return MainDatabase._buildMessageArray(messagesList, chatId, format);
     }
 
     function appendMessageToSession(chatId, msgObj) {
-        return MainDatabase.appendMessageToSession(root, chatId, msgObj);
+        return MainDatabase.appendMessageToSession(chatId, msgObj);
     }
 
     function handleBackgroundError(chatId, errorMsg, notify, schedId, schedName) {
-        return MainNetwork.handleBackgroundError(root, chatId, errorMsg, notify, schedId, schedName);
+        return MainNetwork.handleBackgroundError(chatId, errorMsg, notify, schedId, schedName);
     }
 
     function doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName) {
-        return MainOpenCode.doBackgroundOpenCodeRequest(root, chatId, messageText, notify, schedId, schedName);
+        return MainOpenCode.doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
     }
 
     function doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
-        return MainNetwork.doBackgroundOpenAICompatRequest(root, chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName);
+        return MainNetwork.doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName);
     }
 
     function doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName) {
-        return MainNetwork.doBackgroundAnthropicRequest(root, chatId, apiKey, model, messageText, notify, schedId, schedName);
+        return MainNetwork.doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName);
     }
 
     function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
-        return MainScheduler.executeScheduledMessageInBackground(root, chatId, messageText, notify, schedId, schedName);
+        return MainScheduler.executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
     }
 
     function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
-        return MainNetwork.doOpenAICompatRequest(root, baseUrl, apiKey, model, extraHeaders, modelLabel);
+        return MainNetwork.doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel);
     }
 
     function doAnthropicRequest(apiKey, model) {
-        return MainNetwork.doAnthropicRequest(root, apiKey, model);
+        return MainNetwork.doAnthropicRequest(apiKey, model);
     }
 
     function triggerNotificationSound() {
-        return MainDatabase.triggerNotificationSound(root);
+        return MainDatabase.triggerNotificationSound();
     }
 
     function respondToPermission(permissionId, approved) {
-        return MainDatabase.respondToPermission(root, permissionId, approved);
+        return MainDatabase.respondToPermission(permissionId, approved);
     }
 
     // Collect selected options from the question UI and submit the answer
     function submitQuestionAnswer(questionId, questions, customField) {
-        return MainDatabase.submitQuestionAnswer(root, questionId, questions, customField);
+        return MainDatabase.submitQuestionAnswer(questionId, questions, customField);
     }
 
     function respondToQuestion(questionId, answerValue, isReject) {
-        return MainDatabase.respondToQuestion(root, questionId, answerValue, isReject);
+        return MainDatabase.respondToQuestion(questionId, answerValue, isReject);
     }
 
     function stopStreaming() {
-        return MainDatabase.stopStreaming(root);
+        return MainDatabase.stopStreaming();
     }
 
     function convertMarkdownToHtml(markdown) {
-        return MainDatabase.convertMarkdownToHtml(root, markdown);
+        return MainDatabase.convertMarkdownToHtml(markdown);
     }
 
     function fileIconName(filename) {
-        return MainDatabase.fileIconName(root, filename);
+        return MainDatabase.fileIconName(filename);
     }
 
     function removeAttachedFile(index) {
-        return MainDatabase.removeAttachedFile(root, index);
+        return MainDatabase.removeAttachedFile(index);
     }
 
     function getDocExtractorPath() {
-        return MainDatabase.getDocExtractorPath(root);
+        return MainDatabase.getDocExtractorPath();
     }
 
     function getHelperPath() {
-        return MainDatabase.getHelperPath(root);
+        return MainDatabase.getHelperPath();
     }
 
     function getScriptsPath() {
-        return MainDatabase.getScriptsPath(root);
+        return MainDatabase.getScriptsPath();
     }
 
     function attachFile(fileUrl) {
-        return MainDatabase.attachFile(root, fileUrl);
+        return MainDatabase.attachFile(fileUrl);
     }
 
     // Split raw markdown into typed blocks: {type:"text"|"code"|"table", content, lang}
     function parseMessageBlocks(markdown) {
-        return MainDatabase.parseMessageBlocks(root, markdown);
+        return MainDatabase.parseMessageBlocks(markdown);
     }
 
     // Convert markdown table to CSV string
     function tableMarkdownToCsv(tableMarkdown) {
-        return MainDatabase.tableMarkdownToCsv(root, tableMarkdown);
+        return MainDatabase.tableMarkdownToCsv(tableMarkdown);
     }
 
     function buildMessageContent(text, attachments, apiType) {
-        return MainDatabase.buildMessageContent(root, text, attachments, apiType);
+        return MainDatabase.buildMessageContent(text, attachments, apiType);
     }
 
     function checkClipboardForAttachments() {
-        return MainDatabase.checkClipboardForAttachments(root);
+        return MainDatabase.checkClipboardForAttachments();
     }
 
     function readClipboardText() {
-        return MainDatabase.readClipboardText(root);
+        return MainDatabase.readClipboardText();
     }
 
     function applyKWalletKeyToMemory(targetId, secretValue) {
-        return MainScheduler.applyKWalletKeyToMemory(root, targetId, secretValue);
+        return MainScheduler.applyKWalletKeyToMemory(targetId, secretValue);
     }
 
     function walletBulkReadCommand(walletName) {
-        return MainDatabase.walletBulkReadCommand(root, walletName);
+        return MainDatabase.walletBulkReadCommand(walletName);
     }
 
     function triggerKWalletCallbacks(success, errorMsg) {
-        return MainScheduler.triggerKWalletCallbacks(root, success, errorMsg);
+        return MainScheduler.triggerKWalletCallbacks(success, errorMsg);
     }
 
     function loadKWalletKeysIfNeeded(onSuccess, onFailure) {
-        return MainScheduler.loadKWalletKeysIfNeeded(root, onSuccess, onFailure);
+        return MainScheduler.loadKWalletKeysIfNeeded(onSuccess, onFailure);
     }
 
     function performExportChat(filePath) {
-        return MainDatabase.performExportChat(root, filePath);
+        return MainDatabase.performExportChat(filePath);
     }
 
     function removeLastErrorMessages() {
-        return MainDatabase.removeLastErrorMessages(root);
+        return MainDatabase.removeLastErrorMessages();
     }
 
     function retryLastFailedMessage() {
-        return MainDatabase.retryLastFailedMessage(root);
+        return MainDatabase.retryLastFailedMessage();
     }
 
     function resetOpenCodeIdleKillTimer() {
-        return MainDatabase.resetOpenCodeIdleKillTimer(root);
+        return MainDatabase.resetOpenCodeIdleKillTimer();
     }
 
     onConfigOpenCodeAutoKillChanged: {

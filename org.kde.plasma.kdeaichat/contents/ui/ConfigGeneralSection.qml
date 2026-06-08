@@ -23,6 +23,14 @@ Kirigami.FormLayout {
     property alias storageModeCombo: storageModeCombo
     property alias walletNameField: walletNameField
 
+    // Value aliases for config bindings to avoid double-nested aliases in parent
+    property alias appearanceMode: appearanceModeCombo.currentIndex
+    property alias playSound: playSoundToggle.checked
+    property alias showGuides: showGuidesToggle.checked
+    property alias openCode: openCodeToggle.checked
+    property alias storageMode: storageModeCombo.currentIndex
+    property alias walletName: walletNameField.text
+
     QQC2.TextField {
         id: walletNameField
         visible: false

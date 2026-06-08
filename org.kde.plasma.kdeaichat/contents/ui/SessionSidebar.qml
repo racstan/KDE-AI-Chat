@@ -154,13 +154,15 @@ Rectangle {
 
         // Sessions list in ScrollView
         QQC2.ScrollView {
+            id: historyScrollView
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+            QQC2.ScrollBar.vertical.policy: QQC2.ScrollBar.AsNeeded
 
             ColumnLayout {
-                width: parent.width - Kirigami.Units.smallSpacing * 2
+                x: Kirigami.Units.smallSpacing
+                width: historyScrollView.width - Kirigami.Units.smallSpacing * 2
                 spacing: Kirigami.Units.smallSpacing
 
                 // Active Chats Header
@@ -397,14 +399,24 @@ Rectangle {
                     }
 
                     // Actions Container (only visible on hover or selected/editing)
-                    RowLayout {
+                    Rectangle {
                         id: actionsContainer
-                        spacing: 2
+                        radius: 6
+                        color: Qt.rgba(sidebarRoot.color, 1)
+                        border.width: 1
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
                         visible: delegateMouseArea.containsMouse || 
                                  (sidebarRoot.chatRoot && (modelData.value === sidebarRoot.chatRoot.currentSessionId || 
-                                                           sidebarRoot.chatRoot.editingSessionId === modelData.value))
+                                                            sidebarRoot.chatRoot.editingSessionId === modelData.value))
+                        implicitWidth: actionsRowInner.implicitWidth + Kirigami.Units.smallSpacing
+                        implicitHeight: actionsRowInner.implicitHeight + Kirigami.Units.smallSpacing
 
-                        PC3.ToolButton {
+                        RowLayout {
+                            id: actionsRowInner
+                            anchors.centerIn: parent
+                            spacing: 2
+
+                            PC3.ToolButton {
                             id: saveRename
                             icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
                             display: PC3.AbstractButton.IconOnly
@@ -455,4 +467,5 @@ Rectangle {
             }
         }
     }
+}
 }

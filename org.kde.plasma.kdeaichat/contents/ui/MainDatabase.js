@@ -1,6 +1,12 @@
+.import "Security.js" as Sec
+.import "SessionManager.js" as SessionManager
+.import "ProviderService.js" as ProviderService
+.import "WalletService.js" as WalletService
+.import "translations.js" as Translations
+.import "MarkdownRenderer.js" as MarkdownRenderer
 // MainDatabase.js - Extracted logic for Main
 
-function debugLog(root) {
+function debugLog() {
 if (debugMode) {
 let args = Array.prototype.slice.call(arguments);
 console.log.apply(console, args);
@@ -8,7 +14,7 @@ console.log.apply(console, args);
 }
 
 
-function sessionHasSchedules(root, sessionId) {
+function sessionHasSchedules(sessionId) {
 if (!sessionId)
 return false;
 for (let i = 0; i < root.schedulesList.length; i++) {
@@ -20,7 +26,7 @@ return false;
 }
 
 
-function triggerConfigure(root) {
+function triggerConfigure() {
 if (typeof plasmoid.containment !== "undefined" && typeof plasmoid.containment.configureRequested === "function") {
 plasmoid.containment.configureRequested(plasmoid);
 } else if (typeof root.plasmoidRef !== "undefined" && typeof root.plasmoidRef.configureRequested === "function") {
@@ -39,7 +45,7 @@ act2.trigger();
 }
 
 
-function focusInput(root) {
+function focusInput() {
 Qt.callLater(function() {
 if (typeof msgInput !== "undefined" && msgInput) {
 msgInput.forceActiveFocus();
@@ -50,7 +56,7 @@ msgInput.focusTimerRef.start();
 }
 
 
-function searchNext(root) {
+function searchNext() {
 if (root.searchMatches.length === 0) return;
 root.currentSearchMatchIndex = (root.currentSearchMatchIndex + 1) % root.searchMatches.length;
 if (root.msgListViewRef) {
@@ -59,7 +65,7 @@ root.msgListViewRef.positionViewAtIndex(root.searchMatches[root.currentSearchMat
 }
 
 
-function searchPrev(root) {
+function searchPrev() {
 if (root.searchMatches.length === 0) return;
 root.currentSearchMatchIndex = (root.currentSearchMatchIndex - 1 + root.searchMatches.length) % root.searchMatches.length;
 if (root.msgListViewRef) {
@@ -68,18 +74,19 @@ root.msgListViewRef.positionViewAtIndex(root.searchMatches[root.currentSearchMat
 }
 
 
-function pad2(root, v) {
+function pad2(v) {
 return v < 10 ? ("0" + v) : String(v);
 }
 
 
-function nowTime(root, ts) {
-let d = ts ? new Date(ts) : new Date();
+function nowTime(ts) {
+let realTs = (ts === undefined && typeof root !== "object") ? root : ts;
+let d = realTs ? new Date(realTs) : new Date();
 return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
 }
 
 
-function formatDateTime(root, ts) {
+function formatDateTime(ts) {
 return new Date(ts).toLocaleString(undefined, {
 "year": "numeric",
 "month": "short",
@@ -90,24 +97,24 @@ return new Date(ts).toLocaleString(undefined, {
 }
 
 
-function makeSessionId(root) {
+function makeSessionId() {
 return SessionManager.makeSessionId();
 }
 
 
-function reportParseFailure(root, context, error) {
+function reportParseFailure(context, error) {
 let msg = (context || "Parse failure") + ": " + (error && error.toString ? error.toString() : String(error || ""));
 console.warn(msg);
 pushErrorMessage(msg);
 }
 
 
-function makeForkSessionId(root) {
+function makeForkSessionId() {
 return SessionManager.makeForkSessionId();
 }
 
 
-function forkSession(root, messageIndex) {
+function forkSession(messageIndex) {
 if (root.currentSessionId === "")
 return ;
 let idx = sessionIndexById(root.currentSessionId);
@@ -155,7 +162,7 @@ root.focusInput();
 }
 
 
-function parseSessions(root, customRaw) {
+function parseSessions(customRaw) {
 let raw = customRaw !== undefined ? customRaw : (plasmoid.configuration.chatSessionsJson || "[]");
 try {
 let arr = typeof raw === "string" ? JSON.parse(raw) : raw;
@@ -187,7 +194,7 @@ return [];
 }
 
 
-function checkAndMarkCurrentSessionAsRead(root) {
+function checkAndMarkCurrentSessionAsRead() {
 if (root.expanded && !root.historyOnlyMode && root.currentSessionId !== "") {
 let idx = sessionIndexById(root.currentSessionId);
 if (idx >= 0) {
@@ -208,7 +215,7 @@ persistSessions();
 }
 
 
-function getHistoryFilePath(root, customDir) {
+function getHistoryFilePath(customDir) {
 let dir = (customDir || "").trim();
 if (dir === "")
 return "";
@@ -225,7 +232,7 @@ return fullPath;
 }
 
 
-function migrateHistory(root, oldPath, newPath) {
+function migrateHistory(oldPath, newPath) {
 let oldFullPath = getHistoryFilePath(oldPath);
 let newFullPath = getHistoryFilePath(newPath);
 // When switching TO a custom path, always export current in-memory sessions
@@ -243,7 +250,7 @@ customStorageDs.connectSource(cmd + " #migrate-history-" + Date.now());
 }
 
 
-function persistSessions(root) {
+function persistSessions() {
 // Debounce: schedule a flush within the next 1 second. Bursts
 // of state changes (streaming tokens, typing, label edits) all
 // collapse into a single write instead of one per call.
@@ -251,7 +258,7 @@ persistSessionsDebounce.restart();
 }
 
 
-function flushPersistSessions(root) {
+function flushPersistSessions() {
 let jsonStr = JSON.stringify(root.sessions);
 plasmoid.configuration.chatSessionsJson = jsonStr;
 plasmoid.configuration.lastSessionId = root.currentSessionId;
@@ -270,32 +277,38 @@ customStorageDs.connectSource(writeCmd + " #custom-history-write-" + Date.now())
 }
 
 
-function sortSessionsByUpdated(root) {
-// Audit 5.3: skip the O(n log n) sort + array reassignment cascade
-// when the list is already in canonical order. The reassignment
-// was the dominant cost during streaming because it invalidated
-// all sidebar binding caches on every save.
-if (SessionManager.isSessionOrderCorrect(root.sessions))
-return ;
-let copy = SessionManager.sortSessionsByUpdated(root.sessions);
-root.sessions = copy;
+function sortSessionsByUpdated(arg1) {
+    let r = arg1;
+    if (r === undefined) {
+        r = root;
+    }
+    if (!r || !r.sessions)
+        return;
+    // Audit 5.3: skip the O(n log n) sort + array reassignment cascade
+    // when the list is already in canonical order. The reassignment
+    // was the dominant cost during streaming because it invalidated
+    // all sidebar binding caches on every save.
+    if (SessionManager.isSessionOrderCorrect(r.sessions))
+        return ;
+    let copy = SessionManager.sortSessionsByUpdated(r.sessions);
+    r.sessions = copy;
 }
 
 
-function historySessionTint(root, sessionData) {
+function historySessionTint(sessionData) {
 if (!sessionData)
-return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05);
+return Qt.rgba(root.Kirigami.Theme.textColor.r, root.Kirigami.Theme.textColor.g, root.Kirigami.Theme.textColor.b, 0.05);
 if (sessionData.value === root.currentSessionId && sessionData.source === "opencode")
 return Qt.rgba(0.2, 0.48, 0.92, 0.22);
 if (sessionData.source === "opencode")
 return Qt.rgba(0.2, 0.48, 0.92, 0.1);
 if (sessionData.value === root.currentSessionId)
-return Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.18);
-return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05);
+return Qt.rgba(root.Kirigami.Theme.highlightColor.r, root.Kirigami.Theme.highlightColor.g, root.Kirigami.Theme.highlightColor.b, 0.18);
+return Qt.rgba(root.Kirigami.Theme.textColor.r, root.Kirigami.Theme.textColor.g, root.Kirigami.Theme.textColor.b, 0.05);
 }
 
 
-function sessionSubtitle(root, sessionData) {
+function sessionSubtitle(sessionData) {
 let parts = [];
 if (sessionData.source === "opencode")
 parts.push("OpenCode");
@@ -306,16 +319,24 @@ return parts.join(" · ");
 }
 
 
-function sessionIndexById(root, sessionId) {
-for (let i = 0; i < root.sessions.length; i++) {
-if (root.sessions[i].value === sessionId)
-return i;
-}
-return -1;
+function sessionIndexById(arg1, arg2) {
+    let r = arg1;
+    let sId = arg2;
+    if (sId === undefined) {
+        sId = arg1;
+        r = root;
+    }
+    if (!r || !r.sessions)
+        return -1;
+    for (let i = 0; i < r.sessions.length; i++) {
+        if (r.sessions[i].value === sId)
+            return i;
+    }
+    return -1;
 }
 
 
-function createSession(root, switchToNew) {
+function createSession(switchToNew) {
 let mode = plasmoid.configuration.useOpenCode;
 let s = {
 "value": makeSessionId(),
@@ -347,7 +368,7 @@ persistSessions();
 }
 
 
-function loadSessions(root) {
+function loadSessions() {
 root.sessions = parseSessions();
 if (root.sessions.length === 0)
 createSession(true);
@@ -364,7 +385,7 @@ sortSessionsByUpdated();
 }
 
 
-function saveCurrentSessionState(root, touchUpdatedAt) {
+function saveCurrentSessionState(touchUpdatedAt) {
 let idx = sessionIndexById(root.currentSessionId);
 if (idx < 0)
 return ;
@@ -387,7 +408,7 @@ persistSessions();
 }
 
 
-function setCurrentSessionSource(root, source) {
+function setCurrentSessionSource(source) {
 let idx = sessionIndexById(root.currentSessionId);
 if (idx < 0)
 return ;
@@ -402,7 +423,7 @@ persistSessions();
 }
 
 
-function setSessionArchived(root, sessionId, archived) {
+function setSessionArchived(sessionId, archived) {
 let idx = sessionIndexById(sessionId);
 if (idx < 0)
 return ;
@@ -418,7 +439,7 @@ persistSessions();
 }
 
 
-function switchSession(root, sessionId) {
+function switchSession(sessionId) {
 if (!sessionId || sessionId === root.currentSessionId)
 return ;
 saveCurrentSessionState(false);
@@ -443,7 +464,7 @@ root.focusInput();
 }
 
 
-function renameCurrentSession(root, newTitle) {
+function renameCurrentSession(newTitle) {
 let title = (newTitle || "").trim();
 if (title === "")
 title = "New Chat";
@@ -452,7 +473,7 @@ saveCurrentSessionState(true);
 }
 
 
-function startSessionRename(root, sessionId) {
+function startSessionRename(sessionId) {
 let idx = sessionIndexById(sessionId);
 if (idx < 0)
 return ;
@@ -461,13 +482,13 @@ root.editingSessionDraft = root.sessions[idx].text || "";
 }
 
 
-function cancelSessionRename(root) {
+function cancelSessionRename() {
 root.editingSessionId = "";
 root.editingSessionDraft = "";
 }
 
 
-function saveSessionRename(root, sessionId) {
+function saveSessionRename(sessionId) {
 let idx = sessionIndexById(sessionId);
 if (idx < 0)
 return ;
@@ -489,7 +510,7 @@ cancelSessionRename();
 }
 
 
-function deleteSession(root, sessionId) {
+function deleteSession(sessionId) {
 if (root.sessions.length <= 1)
 return ;
 let idx = sessionIndexById(sessionId);
@@ -521,7 +542,7 @@ root.schedulesList = copy;
 }
 
 
-function deleteMessage(root, index) {
+function deleteMessage(index) {
 let copy = root.messages.slice();
 if (index < 0 || index >= copy.length)
 return ;
@@ -534,7 +555,7 @@ saveCurrentSessionState(true);
 }
 
 
-function saveEditedMessage(root) {
+function saveEditedMessage() {
 let i = root.editingMessageIndex;
 if (i < 0 || i >= root.messages.length)
 return ;
@@ -567,7 +588,7 @@ sendMessageByIndex(i);
 }
 
 
-function getSessionProperty(root, sessionId, key, defaultValue) {
+function getSessionProperty(sessionId, key, defaultValue) {
 let idx = sessionIndexById(sessionId);
 if (idx < 0)
 return defaultValue;
@@ -576,7 +597,7 @@ return val !== undefined ? val : defaultValue;
 }
 
 
-function setSessionProperty(root, sessionId, key, value) {
+function setSessionProperty(sessionId, key, value) {
 let idx = sessionIndexById(sessionId);
 if (idx < 0)
 return ;
@@ -590,7 +611,7 @@ persistSessions();
 }
 
 
-function appendCompactPromptMessage(root, chatId) {
+function appendCompactPromptMessage(chatId) {
 let ts = Date.now();
 let msgObj = {
 "role": "compact_request",
@@ -611,7 +632,7 @@ Qt.callLater(scrollToBottom);
 }
 
 
-function respondToCompactRequest(root, msgIndex, approved) {
+function respondToCompactRequest(msgIndex, approved) {
 let copy = root.messages.slice();
 if (msgIndex < 0 || msgIndex >= copy.length)
 return;
@@ -633,7 +654,7 @@ saveCurrentSessionState(touchSessionsList(root.currentSessionId));
 }
 
 
-function touchSessionsList(root, chatId) {
+function touchSessionsList(chatId) {
 // Helper to force-notify sessions update on QML side
 let idx = sessionIndexById(chatId);
 if (idx >= 0) {
@@ -645,7 +666,7 @@ return true;
 }
 
 
-function checkAndAutoCompact(root, sessionId) {
+function checkAndAutoCompact(sessionId) {
 let sId = sessionId || root.currentSessionId;
 let idx = sessionIndexById(sId);
 if (idx < 0)
@@ -682,7 +703,7 @@ appendCompactPromptMessage(sId);
 }
 
 
-function compactSessionContext(root, sessionId) {
+function compactSessionContext(sessionId) {
 let sId = sessionId || root.currentSessionId;
 let idx = sessionIndexById(sId);
 if (idx < 0)
@@ -719,7 +740,7 @@ sendBackgroundSummarizationRequest(sId, promptText, limitRealIndex + 1);
 }
 
 
-function sendBackgroundSummarizationRequest(root, sId, promptText, count) {
+function sendBackgroundSummarizationRequest(sId, promptText, count) {
 let provider = "";
 let model = "";
 let apiKey = "";
@@ -834,7 +855,7 @@ appendSystemMessageToSession(sId, "Warning: Failed to send compaction request: "
 }
 
 
-function updateAutocomplete(root) {
+function updateAutocomplete() {
 let txt = (root.msgInputRef ? root.msgInputRef.text : "") || "";
 if (txt.startsWith("/")) {
 let search = txt.substring(1).toLowerCase();
@@ -881,7 +902,7 @@ root.autocompleteActive = false;
 }
 
 
-function extractReadableError(root, prefix, errObj, fallbackText) {
+function extractReadableError(prefix, errObj, fallbackText) {
 if (errObj) {
 if (errObj.data && errObj.data.message)
 return prefix + errObj.data.message;
@@ -894,13 +915,13 @@ return prefix + (fallbackText || "Unknown error");
 }
 
 
-function beginAssistantStreaming(root, modelLabel) {
+function beginAssistantStreaming(modelLabel) {
 if (modelLabel)
 root.openCodeAssistantModelLabel = modelLabel;
 }
 
 
-function updateAssistantStreamingContent(root, text, modelLabel) {
+function updateAssistantStreamingContent(text, modelLabel) {
 let incoming = text || "";
 if (incoming === "")
 return ;
@@ -947,7 +968,7 @@ streamingBatchTimer.start();
 }
 
 
-function runLocalOpenCodeCommand(root, cmdText) {
+function runLocalOpenCodeCommand(cmdText) {
 let cmd = cmdText.trim().toLowerCase();
 // Strip leading slash or "opencode " prefix
 let bare = cmd.startsWith("/") ? cmd.substring(1) : cmd;
@@ -993,7 +1014,7 @@ pushErrorMessage("Unknown command: `" + cmdText.trim() + "`\nType `/help` to see
 }
 
 
-function syncOpenCodeSessionHistory(root) {
+function syncOpenCodeSessionHistory() {
 let remoteSessionId = currentOpenCodeSessionId();
 if (!remoteSessionId)
 return ;
@@ -1091,7 +1112,7 @@ xhr.send();
 }
 
 
-function handleOpenCodeEvent(root, eventObj) {
+function handleOpenCodeEvent(eventObj) {
 let props = eventObj && eventObj.properties ? eventObj.properties : {
 };
 let sessionId = props.sessionID || "";
@@ -1353,7 +1374,7 @@ saveCurrentSessionState(true);
 }
 
 
-function appendSystemMessageToSession(root, chatId, text) {
+function appendSystemMessageToSession(chatId, text) {
 let ts = Date.now();
 let msgObj = {
 "role": "assistant",
@@ -1374,7 +1395,7 @@ return ts;
 }
 
 
-function removeMessageFromSessionByTimestamp(root, chatId, timestamp) {
+function removeMessageFromSessionByTimestamp(chatId, timestamp) {
 let idx = sessionIndexById(chatId);
 if (idx < 0)
 return ;
@@ -1400,7 +1421,7 @@ persistSessions();
 }
 
 
-function scheduleMessageRemoval(root, chatId, timestamp, delayMs) {
+function scheduleMessageRemoval(chatId, timestamp, delayMs) {
 // Coerce delayMs to a number, clamp to a sane range, then inject
 // the numeric form into the QML source. Reject NaN, negative
 // values, and values larger than one hour to avoid QML-injection
@@ -1418,7 +1439,7 @@ timerObj.destroy();
 }
 
 
-function setOpenCodeSessionIdForChatId(root, chatId, remoteSessionId) {
+function setOpenCodeSessionIdForChatId(chatId, remoteSessionId) {
 let idx = sessionIndexById(chatId);
 if (idx < 0)
 return ;
@@ -1432,7 +1453,7 @@ persistSessions();
 }
 
 
-function ensureOpenCodeSessionForChatId(root, chatId, successCallback, failureCallback) {
+function ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback) {
 let targetIdx = sessionIndexById(chatId);
 if (targetIdx < 0) {
 failureCallback("Session not found");
@@ -1491,13 +1512,13 @@ fail("OpenCode: failed to create session: " + sendError);
 }
 
 
-function scrollToBottom(root) {
+function scrollToBottom() {
 if (root.msgListViewRef)
 root.msgListViewRef.positionViewAtEnd();
 }
 
 
-function scrollToMessageByTimestamp(root, timestamp) {
+function scrollToMessageByTimestamp(timestamp) {
 if (!root.messages) return;
 for (let i = 0; i < root.messages.length; i++) {
 if (root.messages[i].at === timestamp) {
@@ -1511,7 +1532,7 @@ break;
 }
 
 
-function messageTimestampAt(root, index) {
+function messageTimestampAt(index) {
 if (index < 0 || index >= root.messages.length)
 return Date.now();
 let m = root.messages[index] || {
@@ -1520,13 +1541,13 @@ return m.at || Date.now();
 }
 
 
-function messageDayKeyAt(root, index) {
+function messageDayKeyAt(index) {
 let d = new Date(messageTimestampAt(index));
 return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
 }
 
 
-function dayBucketLabel(root, ts) {
+function dayBucketLabel(ts) {
 let target = new Date(ts);
 let now = new Date();
 let today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1543,7 +1564,7 @@ return months[target.getMonth()] + " " + pad2(target.getDate()) + ", " + target.
 }
 
 
-function countMessagesForDayKey(root, dayKey) {
+function countMessagesForDayKey(dayKey) {
 let count = 0;
 for (let i = 0; i < root.messages.length; i++) {
 if (messageDayKeyAt(i) === dayKey)
@@ -1553,20 +1574,20 @@ return count;
 }
 
 
-function dayDividerLabelForIndex(root, index) {
+function dayDividerLabelForIndex(index) {
 let key = messageDayKeyAt(index);
 return dayBucketLabel(messageTimestampAt(index)) + " (" + countMessagesForDayKey(key) + ")";
 }
 
 
-function formatMessageTime(root, message, index) {
+function formatMessageTime(message, index) {
 if (message && message.time)
 return message.time;
 return nowTime(messageTimestampAt(index));
 }
 
 
-function jumpOneMessageAbove(root) {
+function jumpOneMessageAbove() {
 if (!root.msgListViewRef || root.messages.length === 0)
 return ;
 let currentTop = -1;
@@ -1595,7 +1616,7 @@ root.msgListViewRef.positionViewAtBeginning();
 }
 
 
-function jumpOneMessageBelow(root) {
+function jumpOneMessageBelow() {
 if (!root.msgListViewRef || root.messages.length === 0)
 return ;
 let currentTop = -1;
@@ -1640,7 +1661,7 @@ root.scrollToBottom();
 }
 
 
-function formatTokensUsage(root, tokens, cost) {
+function formatTokensUsage(tokens, cost) {
 if (!tokens)
 return "";
 let parts = [];
@@ -1659,7 +1680,7 @@ return res;
 }
 
 
-function pushInfoMessage(root, text) {
+function pushInfoMessage(text) {
 let ts = Date.now();
 root.messages = root.messages.concat([{
 "role": "assistant",
@@ -1674,7 +1695,7 @@ saveCurrentSessionState(true);
 }
 
 
-function appendUserMessage(root, text, role, attachments, isScheduled) {
+function appendUserMessage(text, role, attachments, isScheduled) {
 let ts = Date.now();
 let msgObj = {
 "role": role || "user",
@@ -1700,7 +1721,7 @@ saveCurrentSessionState(true);
 }
 
 
-function appendSystemMessage(root, text) {
+function appendSystemMessage(text) {
 let ts = Date.now();
 root.messages = root.messages.concat([{
 "role": "assistant",
@@ -1718,7 +1739,7 @@ Qt.callLater(scrollToBottom);
 }
 
 
-function getSchedulesForSession(root, sessionId) {
+function getSchedulesForSession(sessionId) {
 let res = [];
 for (let i = 0; i < root.schedulesList.length; i++) {
 let s = root.schedulesList[i];
@@ -1741,7 +1762,7 @@ return res;
 }
 
 
-function sendMessageByIndex(root, index) {
+function sendMessageByIndex(index) {
 resetOpenCodeIdleKillTimer();
 let source = root.messages[index] || {
 };
@@ -1797,7 +1818,7 @@ doOpenAICompatRequest(providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model
 }
 
 
-function processNextQueuedMessage(root) {
+function processNextQueuedMessage() {
 if (root.loading)
 return ;
 for (let i = 0; i < root.messages.length; i++) {
@@ -1809,12 +1830,12 @@ return ;
 }
 
 
-function providerDisplayName(root, providerId) {
+function providerDisplayName(providerId) {
 return ProviderService.getProviderDisplayName(providerId);
 }
 
 
-function validateOpenCodeConfig(root) {
+function validateOpenCodeConfig() {
 let missing = [];
 if (!(plasmoid.configuration.openCodeUrl || "").trim())
 missing.push("OpenCode URL");
@@ -1828,7 +1849,7 @@ return "";
 }
 
 
-function validateProviderConfig(root, providerId, cfg) {
+function validateProviderConfig(providerId, cfg) {
 if (!cfg)
 return "Provider configuration missing.";
 let missing = [];
@@ -1864,7 +1885,7 @@ return "";
 }
 
 
-function sendMessage(root) {
+function sendMessage() {
 // ──────────────────────────────────────────────────────────────
 try {
 let text = (root.chatInputText || "").trim();
@@ -1945,17 +1966,17 @@ processNextQueuedMessage();
 }
 
 
-function getProviderConfig(root, provider) {
+function getProviderConfig(provider) {
 return ProviderService.getProviderConfig(provider, plasmoid.configuration);
 }
 
 
-function translate(root, text) {
+function translate(text) {
 return Translations.translate(text, plasmoid.configuration.language);
 }
 
 
-function isSessionScheduled(root, sessionId, messagesList) {
+function isSessionScheduled(sessionId, messagesList) {
 let msgs = messagesList;
 if (!msgs) {
 let idx = sessionIndexById(sessionId || root.currentSessionId);
@@ -1975,7 +1996,7 @@ return false;
 }
 
 
-function buildEffectiveSystemPrompt(root, sessionId) {
+function buildEffectiveSystemPrompt(sessionId) {
 let sId = sessionId || root.currentSessionId;
 let base = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
 let memoryOn = plasmoid.configuration.memoryEnabled || false;
@@ -1991,7 +2012,7 @@ return base;
 }
 
 
-function buildContextWindow(root, messagesList, sessionId) {
+function buildContextWindow(messagesList, sessionId) {
 let sId = sessionId || root.currentSessionId;
 let override = getSessionProperty(sId, "contextOverride", false);
 let contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : (plasmoid.configuration.globalContextEnabled !== false);
@@ -2032,7 +2053,7 @@ return e.msg;
 }
 
 
-function buildOpenAICompatPayload(root) {
+function buildOpenAICompatPayload() {
 let sys = buildEffectiveSystemPrompt();
 let arr = [{
 "role": "system",
@@ -2042,12 +2063,12 @@ return arr.concat(_buildMessageArray(root.messages, "", "openai"));
 }
 
 
-function buildAnthropicPayload(root) {
+function buildAnthropicPayload() {
 return _buildMessageArray(root.messages, "", "anthropic");
 }
 
 
-function buildOpenAICompatPayloadForMessages(root, messagesList, chatId) {
+function buildOpenAICompatPayloadForMessages(messagesList, chatId) {
 let sys = buildEffectiveSystemPrompt(chatId);
 let arr = [{
 "role": "system",
@@ -2057,7 +2078,7 @@ return arr.concat(_buildMessageArray(messagesList, chatId, "openai"));
 }
 
 
-function _buildMessageArray(root, messagesList, chatId, format) {
+function _buildMessageArray(messagesList, chatId, format) {
 let arr = [];
 let window = buildContextWindow(messagesList, chatId);
 for (let i = 0; i < window.length; i++) {
@@ -2082,7 +2103,7 @@ return arr;
 }
 
 
-function appendMessageToSession(root, chatId, msgObj) {
+function appendMessageToSession(chatId, msgObj) {
 let idx = sessionIndexById(chatId);
 if (idx < 0)
 return ;
@@ -2105,14 +2126,14 @@ persistSessions();
 }
 
 
-function triggerNotificationSound(root) {
+function triggerNotificationSound() {
 if (!plasmoid.configuration.playNotificationSound)
 return ;
 soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
 }
 
 
-function respondToPermission(root, permissionId, approved) {
+function respondToPermission(permissionId, approved) {
 function sendToUrl(url, isRetry) {
 xhr.open("POST", url, true);
 xhr.setRequestHeader("Content-Type", "application/json");
@@ -2186,7 +2207,7 @@ sendToUrl(primaryUrl, false);
 }
 
 
-function submitQuestionAnswer(root, questionId, questions, customField) {
+function submitQuestionAnswer(questionId, questions, customField) {
 // Find the question_request message to access its question data
 let msgIdx = -1;
 for (let i = 0; i < root.messages.length; i++) {
@@ -2217,7 +2238,7 @@ respondToQuestion(questionId, customText, false);
 }
 
 
-function respondToQuestion(root, questionId, answerValue, isReject) {
+function respondToQuestion(questionId, answerValue, isReject) {
 function tryNextUrl() {
 if (currentUrlIdx >= urls.length) {
 let exhaustedMsgs = root.messages.slice();
@@ -2309,7 +2330,7 @@ tryNextUrl();
 }
 
 
-function stopStreaming(root) {
+function stopStreaming() {
 if (root.activeXhr) {
 try {
 root.activeXhr.abort();
@@ -2324,7 +2345,7 @@ processNextQueuedMessage();
 }
 
 
-function convertMarkdownToHtml(root, markdown) {
+function convertMarkdownToHtml(markdown) {
 if (!markdown)
 return "";
 let cacheKey = markdown + "_" + (root.popupIsDark ? "dark" : "light");
@@ -2343,7 +2364,7 @@ return String(markdown).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/
 }
 
 
-function fileIconName(root, filename) {
+function fileIconName(filename) {
 let ext = filename.split('.').pop().toLowerCase();
 if (ext === 'pdf')
 return 'document-pdf';
@@ -2357,7 +2378,7 @@ return 'document-text';
 }
 
 
-function removeAttachedFile(root, index) {
+function removeAttachedFile(index) {
 let files = root.attachedFiles.slice();
 if (index >= 0 && index < files.length) {
 files.splice(index, 1);
@@ -2366,7 +2387,7 @@ root.attachedFiles = files;
 }
 
 
-function getDocExtractorPath(root) {
+function getDocExtractorPath() {
 // Resolve the doc-extractor path and refuse anything outside the
 // package's `contents/ui/` directory. See `getHelperPath()` for
 // the rationale.
@@ -2380,7 +2401,7 @@ return path;
 }
 
 
-function getHelperPath(root) {
+function getHelperPath() {
 // Resolve the helper path relative to this QML file's package.
 // We reject any path that does not point inside the package's
 // `contents/ui/` directory — this prevents a compromised
@@ -2402,7 +2423,7 @@ return path;
 }
 
 
-function getScriptsPath(root) {
+function getScriptsPath() {
 let helper = getHelperPath();
 let parts = helper.split("/");
 if (parts.length >= 2) {
@@ -2413,7 +2434,7 @@ return "";
 }
 
 
-function attachFile(root, fileUrl) {
+function attachFile(fileUrl) {
 let localPath = String(fileUrl);
 if (localPath.indexOf("file://") === 0)
 localPath = localPath.substring(7);
@@ -2448,7 +2469,7 @@ fileReaderDs.connectSource(cmd);
 }
 
 
-function parseMessageBlocks(root, markdown) {
+function parseMessageBlocks(markdown) {
 if (!markdown)
 return [{
 "type": "text",
@@ -2474,12 +2495,12 @@ return [{
 }
 
 
-function tableMarkdownToCsv(root, tableMarkdown) {
+function tableMarkdownToCsv(tableMarkdown) {
 return MarkdownRenderer.tableMarkdownToCsv(tableMarkdown);
 }
 
 
-function buildMessageContent(root, text, attachments, apiType) {
+function buildMessageContent(text, attachments, apiType) {
 let docs = [];
 let imgs = [];
 for (let i = 0; i < attachments.length; i++) {
@@ -2528,26 +2549,26 @@ return contentList;
 }
 
 
-function checkClipboardForAttachments(root) {
+function checkClipboardForAttachments() {
 let docExtractorPath = getDocExtractorPath();
 let cmd = "python3 '" + docExtractorPath + "' --clipboard";
 fileReaderDs.connectSource(cmd);
 }
 
 
-function readClipboardText(root) {
+function readClipboardText() {
 clipboardHelper.text = "";
 clipboardHelper.paste();
 return clipboardHelper.text;
 }
 
 
-function walletBulkReadCommand(root, walletName) {
+function walletBulkReadCommand(walletName) {
 return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds());
 }
 
 
-function performExportChat(root, filePath) {
+function performExportChat(filePath) {
 let isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown");
 let content = "";
 let sessionTitle = root.currentSessionTitle || "Untitled Session";
@@ -2630,7 +2651,7 @@ fileReaderDs.connectSource(cmd + " #export-chat-save");
 }
 
 
-function removeLastErrorMessages(root) {
+function removeLastErrorMessages() {
 let copy = root.messages.slice();
 while (copy.length > 0) {
 let lastRole = copy[copy.length - 1].role;
@@ -2645,7 +2666,7 @@ saveCurrentSessionState(true);
 }
 
 
-function retryLastFailedMessage(root) {
+function retryLastFailedMessage() {
 let lastUserIdx = -1;
 for (let i = root.messages.length - 1; i >= 0; i--) {
 if (root.messages[i].role === "user" || root.messages[i].role === "queued") {
@@ -2660,7 +2681,7 @@ sendMessageByIndex(lastUserIdx);
 }
 
 
-function resetOpenCodeIdleKillTimer(root) {
+function resetOpenCodeIdleKillTimer() {
 if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
 let mins = root.configOpenCodeAutoKillMinutes || 5;
 openCodeIdleKillTimer.interval = mins * 60000;
@@ -2671,7 +2692,7 @@ openCodeIdleKillTimer.stop();
 }
 
 
-function copyToClipboard(root, textValue) {
+function copyToClipboard(textValue) {
 let text = textValue || "";
 // Sanitize first so the entire single-quote payload is harmless
 // even if the surrounding wrapper is re-evaluated. The wrapper
@@ -2684,7 +2705,7 @@ clipboardDs.connectSource(cmd + " #clipboard-copy");
 }
 
 
-function flushStreamingBuffer(root) {
+function flushStreamingBuffer() {
 if (!_streamingDirty)
 return;
 _streamingDirty = false;

@@ -57,6 +57,32 @@ Kirigami.FormLayout {
     property alias maritacaApiKeyField: maritacaApiKeyField
     property alias maritacaModelField: maritacaModelField
 
+    // Value aliases for config bindings to avoid double-nested aliases in parent
+    property alias xaiBaseUrl: xaiBaseUrlField.text
+    property alias xaiApiKey: xaiApiKeyField.text
+    property alias xaiModel: xaiModelField.text
+    property alias lmStudioBaseUrl: lmStudioBaseUrlField.text
+    property alias lmStudioModel: lmStudioModelField.text
+    property alias localBaseUrl: localBaseUrlField.text
+    property alias localModel: localModelField.text
+    property alias ollamaBaseUrl: ollamaBaseUrlField.text
+    property alias ollamaModel: ollamaModelField.text
+    property alias litellmBaseUrl: litellmBaseUrlField.text
+    property alias litellmApiKey: litellmApiKeyField.text
+    property alias litellmModel: litellmModelField.text
+    property alias qwenBaseUrl: qwenBaseUrlField.text
+    property alias qwenApiKey: qwenApiKeyField.text
+    property alias qwenModel: qwenModelField.text
+    property alias moonshotBaseUrl: moonshotBaseUrlField.text
+    property alias moonshotApiKey: moonshotApiKeyField.text
+    property alias moonshotModel: moonshotModelField.text
+    property alias mimoBaseUrl: mimoBaseUrlField.text
+    property alias mimoApiKey: mimoApiKeyField.text
+    property alias mimoModel: mimoModelField.text
+    property alias maritacaBaseUrl: maritacaBaseUrlField.text
+    property alias maritacaApiKey: maritacaApiKeyField.text
+    property alias maritacaModel: maritacaModelField.text
+
     // ── xAI Grok ──────────────────────────────────────────────────────────
     QQC2.TextField {
         id: xaiBaseUrlField

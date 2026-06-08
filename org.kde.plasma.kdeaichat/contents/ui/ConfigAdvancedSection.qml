@@ -31,6 +31,20 @@ Kirigami.FormLayout {
     property alias appDisplayNameField: appDisplayNameField
     property alias customHistoryPathField: customHistoryPathField
 
+    // Value aliases for config bindings to avoid double-nested aliases in parent
+    property alias systemPrompt: systemPromptArea.text
+    property alias memoryEnabled: memoryEnabledToggle.checked
+    property alias userMemory: userMemoryArea.text
+    property alias globalContextEnabled: globalContextEnabledToggle.checked
+    property alias globalContextLimit: globalContextLimitSpin.value
+    property alias globalContextAutoCompact: globalContextAutoCompactToggle.checked
+    property alias globalContextCompactThreshold: globalContextCompactThresholdSpin.value
+    property alias schedulerEnabled: schedulerMasterSwitch.checked
+    property alias schedulerAutoStart: schedAutoStartToggle.checked
+    property alias executeMissedSchedules: executeMissedSchedulesToggle.checked
+    property alias appDisplayName: appDisplayNameField.text
+    property alias customHistoryPath: customHistoryPathField.text
+
     // ── Behavior Section ──────────────────────────────────────────────────
     Kirigami.Separator {
         Kirigami.FormData.isSection: true
@@ -524,7 +538,7 @@ Kirigami.FormLayout {
     Rectangle {
         Layout.fillWidth: true
         Layout.maximumWidth: advancedSection.fieldMaxWidth
-        visible: page ? (page.memScheduler > 0 || page.memOpenCode > 0) : false
+        visible: true
         implicitHeight: memGrid.implicitHeight + Kirigami.Units.gridUnit
         radius: 6
         color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)

@@ -1,3 +1,7 @@
+.import "Security.js" as Sec
+.import "translations.js" as Translations
+.import "ProviderService.js" as ProviderService
+.import "WalletService.js" as WalletService
 // ConfigGeneralLogic.js - Extracted logic for ConfigGeneral
 //
 // LINKAGE RELATIONSHIPS:
@@ -6,7 +10,7 @@
 //   It is imported in ConfigGeneral.qml as ConfigGeneralLogic.
 //   Functions inside this file accept the 'page' parameter, representing the ConfigGeneral instance, allowing access to its QML components and properties.
 
-function debugLog(page) {
+function debugLog() {
 if (debugMode) {
 let args = Array.prototype.slice.call(arguments);
 console.log.apply(console, args);
@@ -14,12 +18,12 @@ console.log.apply(console, args);
 }
 
 
-function translate(page, text) {
+function translate(text) {
 return Translations.translate(text, cfg_language);
 }
 
 
-function updateFilteredProviderModels(page, searchText) {
+function updateFilteredProviderModels(searchText) {
 let search = (searchText || "").toLowerCase();
 if (search === "") {
 filteredProviderModels = providerModelCandidates;
@@ -34,7 +38,7 @@ filteredProviderModels = filtered;
 }
 
 
-function updateFilteredOpenCodeModels(page, searchText) {
+function updateFilteredOpenCodeModels(searchText) {
 let search = (searchText || "").toLowerCase();
 if (search === "") {
 filteredOpenCodeModels = openCodeModelCandidates;
@@ -49,7 +53,7 @@ filteredOpenCodeModels = filtered;
 }
 
 
-function effectiveWalletName(page) {
+function effectiveWalletName() {
 let configuredName = (walletNameField.text || "").trim();
 if (configuredName !== "")
 return configuredName;
@@ -59,7 +63,7 @@ return "kdewallet";
 }
 
 
-function maybeAdoptDetectedWalletName(page) {
+function maybeAdoptDetectedWalletName() {
 if (availableWalletNames.length === 0)
 return ;
 let configured = (walletNameField.text || "").trim();
@@ -76,22 +80,22 @@ return ;
 }
 
 
-function detectWallets(page) {
+function detectWallets() {
 utilityDs.connectSource("sh -c \"if ! command -v qdbus6 >/dev/null 2>&1 && ! command -v qdbus >/dev/null 2>&1; then echo '__NO_QDBUS__'; else qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null || qdbus org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null; fi\" #kwallet-wallet-list");
 }
 
 
-function setActiveProviderModelValue(page, value) {
+function setActiveProviderModelValue(value) {
 currentProviderConfig().modelField.text = value || "";
 }
 
 
-function activeProviderModelValue(page) {
+function activeProviderModelValue() {
 return currentProviderConfig().modelField.text || "";
 }
 
 
-function walletReadCommand(page, walletName, keyName) {
+function walletReadCommand(walletName, keyName) {
 let escapedWallet = shellEscape(walletName);
 let escapedFolder = shellEscape(walletFolderName);
 let escapedKey = shellEscape(keyName);
@@ -100,7 +104,7 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 }
 
 
-function walletWriteCommand(page, walletName, keyName, value) {
+function walletWriteCommand(walletName, keyName, value) {
 let escapedWallet = shellEscape(walletName);
 let escapedFolder = shellEscape(walletFolderName);
 let escapedKey = shellEscape(keyName);
@@ -110,7 +114,7 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 }
 
 
-function walletInitCommand(page, walletName) {
+function walletInitCommand(walletName) {
 let escapedWallet = shellEscape(walletName);
 let escapedFolder = shellEscape(walletFolderName);
 let escapedAppId = shellEscape(walletAppId);
@@ -118,7 +122,7 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 }
 
 
-function walletStatusCommand(page, walletName) {
+function walletStatusCommand(walletName) {
 let escapedWallet = shellEscape(walletName);
 let escapedFolder = shellEscape(walletFolderName);
 let escapedAppId = shellEscape(walletAppId);
@@ -126,17 +130,17 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 }
 
 
-function walletBulkReadCommand(page, walletName) {
+function walletBulkReadCommand(walletName) {
 return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds(), walletFolderName, walletAppId);
 }
 
 
-function shellEscape(page, s) {
+function shellEscape(s) {
 return Sec.sanitizeForShell(s || "").replace(/'/g, "'\\''");
 }
 
 
-function copyToClipboard(page, textValue) {
+function copyToClipboard(textValue) {
 let text = textValue || "";
 // Sanitize first so the value cannot be re-evaluated as shell
 // grammar by the outer `sh -c` wrapper. See the same function
@@ -147,17 +151,17 @@ utilityDs.connectSource(cmd + " #clipboard-copy");
 }
 
 
-function providerEnabled(page, providerId) {
+function providerEnabled(providerId) {
 return !openCodeToggle.checked && providerBox.currentValue === providerId;
 }
 
 
-function providerNeedsApiKey(page, providerId) {
+function providerNeedsApiKey(providerId) {
 return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama" && providerId !== "litellm";
 }
 
 
-function providerHasConfiguredKey(page, providerId) {
+function providerHasConfiguredKey(providerId) {
 if (providerId === "anthropic")
 return (anthropicApiKeyField.text || "").trim() !== "";
 if (providerId === "groq")
@@ -198,28 +202,28 @@ return true;
 }
 
 
-function refreshIfActiveProvider(page, providerId) {
+function refreshIfActiveProvider(providerId) {
 if (providerBox.currentValue === providerId)
 refreshCurrentProviderModels();
 }
 
 
-function providerModelVisible(page, providerId) {
+function providerModelVisible(providerId) {
 return providerEnabled(providerId) && (!providerNeedsApiKey(providerId) || providerHasConfiguredKey(providerId));
 }
 
 
-function providerNeedsKeyHintVisible(page, providerId) {
+function providerNeedsKeyHintVisible(providerId) {
 return providerEnabled(providerId) && providerNeedsApiKey(providerId) && !providerHasConfiguredKey(providerId);
 }
 
 
-function currentProviderDisplayName(page) {
+function currentProviderDisplayName() {
 return providerBox.currentText || "Provider";
 }
 
 
-function currentProviderConfig(page) {
+function currentProviderConfig() {
 let p = providerBox.currentValue || "openai";
 if (p === "anthropic")
 return {
@@ -391,12 +395,12 @@ return {
 }
 
 
-function makeOpenAiModelsUrl(page, baseUrl) {
+function makeOpenAiModelsUrl(baseUrl) {
 return (baseUrl || "").replace(/\/$/, "") + "/models";
 }
 
 
-function parseModelIds(page, responseObj) {
+function parseModelIds(responseObj) {
 function pushId(v) {
 if (!v)
 return ;
@@ -434,7 +438,7 @@ return ids;
 }
 
 
-function requestJson(page, url, headers, onSuccess, onError) {
+function requestJson(url, headers, onSuccess, onError) {
 let xhr = new XMLHttpRequest();
 xhr.open("GET", url, true);
 for (let h in headers) {
@@ -461,7 +465,7 @@ xhr.send();
 }
 
 
-function refreshCurrentProviderModels(page) {
+function refreshCurrentProviderModels() {
 let cfg = currentProviderConfig();
 let headers = {
 };
@@ -506,28 +510,28 @@ discoveryStatus = err;
 }
 
 
-function applyDetectedModelToActiveProvider(page, modelId) {
+function applyDetectedModelToActiveProvider(modelId) {
 let cfg = currentProviderConfig();
 cfg.modelField.text = modelId || "";
 }
 
 
-function activeOpenCodeProvider(page) {
+function activeOpenCodeProvider() {
 return openCodeProviderValueField.text || "";
 }
 
 
-function setOpenCodeProviderValue(page, v) {
+function setOpenCodeProviderValue(v) {
 openCodeProviderValueField.text = v || "";
 }
 
 
-function setOpenCodeModelValue(page, v) {
+function setOpenCodeModelValue(v) {
 openCodeModelValueField.text = v || "";
 }
 
 
-function openCodeServerRoot(page, baseUrl) {
+function openCodeServerRoot(baseUrl) {
 let value = (baseUrl || "").replace(/\/$/, "");
 if (value.slice(-3) === "/v1")
 return value.slice(0, -3);
@@ -535,7 +539,7 @@ return value;
 }
 
 
-function parseOpenCodeProviderModels(page, providerObj) {
+function parseOpenCodeProviderModels(providerObj) {
 function pushId(v) {
 if (!v)
 return ;
@@ -563,7 +567,7 @@ return ids;
 }
 
 
-function syncOpenCodeProviderSelection(page, providerId, preferredModel) {
+function syncOpenCodeProviderSelection(providerId, preferredModel) {
 let selectedProvider = providerId || "";
 let candidateModels = openCodeProviderModelMap[selectedProvider] || [];
 let chosenModel = preferredModel || openCodeModelValueField.text || "";
@@ -585,12 +589,12 @@ if (openCodeModelTextField) {
 }
 
 
-function refreshOpenCodeDiscovery(page) {
+function refreshOpenCodeDiscovery() {
 probeOpenCodeProviders(openCodeUrlField.text);
 }
 
 
-function startOpenCodeServerAutomatically(page) {
+function startOpenCodeServerAutomatically() {
 discoveryStatus = "Starting OpenCode server automatically...";
 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
 let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
@@ -601,7 +605,7 @@ openCodeAutoStartTimer.restart();
 }
 
 
-function checkAndAutoStartOpenCodeServer(page) {
+function checkAndAutoStartOpenCodeServer() {
 let url = openCodeServerRoot(openCodeUrlField.text) + "/config/providers";
 discoveryStatus = "Checking OpenCode server...";
 requestJson(url, {
@@ -610,15 +614,16 @@ requestJson(url, {
 refreshOpenCodeDiscovery();
 }, function(err) {
 // Server not reachable — auto-start it
-if (autoStartOpenCodeToggle.checked)
+let autoStart = page && page.autoStartOpenCodeToggle ? page.autoStartOpenCodeToggle.checked : false;
+if (autoStart)
 startOpenCodeServerAutomatically();
-else
-discoveryStatus = "OpenCode server check failed: " + err + ". Click \"Start server\" or enable Auto-start.";
+else if (page)
+page.discoveryStatus = "OpenCode server check failed: " + err + ". Click \"Start server\" or enable Auto-start.";
 });
 }
 
 
-function probeOpenCodeProviders(page, baseUrl) {
+function probeOpenCodeProviders(baseUrl) {
 let url = openCodeServerRoot(baseUrl) + "/config/providers";
 discoveryStatus = "Checking OpenCode server...";
 requestJson(url, {
@@ -638,26 +643,25 @@ if (ids.indexOf(providerId) < 0)
 ids.push(providerId);
 modelsByProvider[providerId] = parseOpenCodeProviderModels(provider);
 }
-openCodeProviderCandidates = ids;
-openCodeProviderModelMap = modelsByProvider;
+if (page) { page.openCodeProviderCandidates = ids; page.openCodeProviderModelMap = modelsByProvider; }
 if (ids.length === 0) {
-discoveryStatus = "OpenCode server is reachable, but it returned no configured providers.";
+if (page) page.discoveryStatus = "OpenCode server is reachable, but it returned no configured providers.";
 return ;
 }
 let selectedProvider = activeOpenCodeProvider();
 if (ids.indexOf(selectedProvider) < 0)
 selectedProvider = ids[0];
-let rememberedModel = openCodeModelValueField.text || "";
+let rememberedModel = (page && page.openCodeModelValueField) ? (page.openCodeModelValueField.text || "") : "";
 let fallbackModel = defaults[selectedProvider] || "";
 syncOpenCodeProviderSelection(selectedProvider, rememberedModel || fallbackModel);
-discoveryStatus = "OpenCode server reachable. Loaded " + ids.length + " providers from /config/providers.";
+if (page) page.discoveryStatus = "OpenCode server reachable. Loaded " + ids.length + " providers from /config/providers.";
 }, function(err) {
-discoveryStatus = "OpenCode server check failed: " + err;
+if (page) page.discoveryStatus = "OpenCode server check failed: " + err;
 });
 }
 
 
-function probeOpenCodeModels(page, baseUrl, providerId) {
+function probeOpenCodeModels(baseUrl, providerId) {
 let selectedProvider = providerId || activeOpenCodeProvider();
 if (!selectedProvider) {
 openCodeModelCandidates = [];
@@ -671,7 +675,7 @@ discoveryStatus = openCodeModelCandidates.length > 0 ? ("Loaded " + openCodeMode
 }
 
 
-function refreshRunningOpenCodeSessions(page) {
+function refreshRunningOpenCodeSessions() {
 let baseUrl = openCodeUrlField.text;
 let rootUrl = openCodeServerRoot(baseUrl);
 let urlSessions = rootUrl + "/session";
@@ -686,7 +690,7 @@ loadSessionsList(urlSessions, null);
 }
 
 
-function loadSessionsList(page, urlSessions, statusMap) {
+function loadSessionsList(urlSessions, statusMap) {
 requestJson(urlSessions, {}, function(sessionsArray) {
 if (Array.isArray(sessionsArray)) {
 let list = [];
@@ -703,20 +707,17 @@ s.statusType = (statusObj && statusObj.type) ? statusObj.type : "active";
 list.push(s);
 }
 }
-runningOpenCodeSessions = list;
-openCodeSessionsStatus = translate("Found %1 active session(s).").arg(list.length);
+if (page) { page.runningOpenCodeSessions = list; page.openCodeSessionsStatus = translate("Found %1 active session(s).").arg(list.length); }
 } else {
-runningOpenCodeSessions = [];
-openCodeSessionsStatus = translate("Invalid response format from OpenCode server.");
+if (page) { page.runningOpenCodeSessions = []; page.openCodeSessionsStatus = translate("Invalid response format from OpenCode server."); }
 }
 }, function(err) {
-runningOpenCodeSessions = [];
-openCodeSessionsStatus = translate("Failed to load sessions: %1").arg(err);
+if (page) { page.runningOpenCodeSessions = []; page.openCodeSessionsStatus = translate("Failed to load sessions: %1").arg(err); }
 });
 }
 
 
-function killRunningOpenCodeSession(page, sessionId) {
+function killRunningOpenCodeSession(sessionId) {
 let baseUrl = openCodeUrlField.text;
 // Refuse any session id that does not match the expected
 // character set. This blocks path traversal (`../`) and query
@@ -734,20 +735,20 @@ xhr.onreadystatechange = function() {
 if (xhr.readyState !== XMLHttpRequest.DONE)
 return ;
 if (xhr.status >= 200 && xhr.status < 300) {
-openCodeSessionsStatus = translate("Session %1 successfully killed.").arg(sessionId);
+if (page) page.openCodeSessionsStatus = translate("Session %1 successfully killed.").arg(sessionId);
 refreshRunningOpenCodeSessions();
 } else {
-openCodeSessionsStatus = translate("Failed to kill session: HTTP %1").arg(xhr.status);
+if (page) page.openCodeSessionsStatus = translate("Failed to kill session: HTTP %1").arg(xhr.status);
 }
 };
 xhr.onerror = function() {
-openCodeSessionsStatus = translate("Failed to kill session: Network error.");
+if (page) page.openCodeSessionsStatus = translate("Failed to kill session: Network error.");
 };
 xhr.send();
 }
 
 
-function kwalletStore(page, targetId, value, isBulk) {
+function kwalletStore(targetId, value, isBulk) {
 if (!value || value.trim() === "")
 return ;
 if (!isBulk)
@@ -766,7 +767,7 @@ keyringDs.connectSource(cmd);
 }
 
 
-function saveKey(page, targetId, value) {
+function saveKey(targetId, value) {
 let val = (value || "").trim();
 if (cfg_keyStorageMode === 1)
 syncKeysToDisk();
@@ -775,7 +776,7 @@ kwalletStore(targetId, val, false);
 }
 
 
-function kwalletLoad(page, targetId, isBulk) {
+function kwalletLoad(targetId, isBulk) {
 if (!isBulk)
 cancelKeyringOps();
 let walletName = effectiveWalletName();
@@ -792,7 +793,7 @@ keyringDs.connectSource(cmd);
 }
 
 
-function applyLoadedKey(page, targetId, secretValue) {
+function applyLoadedKey(targetId, secretValue) {
 let normalized = (secretValue || "").trim();
 if (normalized === "")
 return ;
@@ -845,12 +846,12 @@ refreshCurrentProviderModels();
 }
 
 
-function keyTargetIds(page) {
+function keyTargetIds() {
 return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "qwen", "moonshot", "mimo", "maritaca"];
 }
 
 
-function apiKeyForTarget(page, targetId) {
+function apiKeyForTarget(targetId) {
 if (targetId === "openai")
 return apiKeyField.text;
 if (targetId === "anthropic")
@@ -891,7 +892,7 @@ return "";
 }
 
 
-function kwalletLoadAll(page) {
+function kwalletLoadAll() {
 cancelKeyringOps();
 let walletName = effectiveWalletName();
 debugLog("[KAI-DEBUG] kwalletLoadAll walletName:", walletName);
@@ -905,7 +906,7 @@ utilityDs.connectSource(cmd);
 }
 
 
-function kwalletStoreAll(page) {
+function kwalletStoreAll() {
 cancelKeyringOps();
 let ids = keyTargetIds();
 let count = 0;
@@ -920,7 +921,7 @@ keyringStatus = count > 0 ? ("Synced the above key as well as other keys (" + co
 }
 
 
-function clearAllApiKeyFields(page) {
+function clearAllApiKeyFields() {
 apiKeyField.text = "";
 anthropicApiKeyField.text = "";
 groqApiKeyField.text = "";
@@ -942,7 +943,7 @@ maritacaApiKeyField.text = "";
 }
 
 
-function base64Encode(page, str) {
+function base64Encode(str) {
 try {
 return Qt.btoa(unescape(encodeURIComponent(str)));
 } catch (e) {
@@ -952,7 +953,7 @@ return "";
 }
 
 
-function getHelperPath(page) {
+function getHelperPath() {
 // Resolve the helper path and refuse anything outside the
 // package's `contents/ui/` directory. See the same function in
 // main.qml for the rationale.
@@ -966,7 +967,7 @@ return path;
 }
 
 
-function loadKeysFromPlainConfig(page) {
+function loadKeysFromPlainConfig() {
 let payload = {
 "configPath": configFilePath
 };
@@ -976,7 +977,7 @@ utilityDs.connectSource(cmd + " #plainconfig-load");
 }
 
 
-function applyPlainConfigKeys(page, keys) {
+function applyPlainConfigKeys(keys) {
 apiKeyField.text = keys["apiKey"] || "";
 anthropicApiKeyField.text = keys["anthropicApiKey"] || "";
 groqApiKeyField.text = keys["groqApiKey"] || "";
@@ -998,7 +999,7 @@ maritacaApiKeyField.text = keys["maritacaApiKey"] || "";
 }
 
 
-function writeKeysToDiskAndOpen(page) {
+function writeKeysToDiskAndOpen() {
 let keysPayload = {
 "apiKey": apiKeyField.text,
 "anthropicApiKey": anthropicApiKeyField.text,
@@ -1032,7 +1033,7 @@ utilityDs.connectSource(cmd + " #open-config");
 }
 
 
-function syncKeysToDisk(page) {
+function syncKeysToDisk() {
 // Write current key fields to ~/.config/kdeaichatrc (plain-config extra copy).
 // cfg_ aliases handle saving to the Plasma config automatically on OK/Apply.
 let keysPayload = {
@@ -1065,7 +1066,7 @@ utilityDs.connectSource(cmd + " #plainconfig-sync");
 }
 
 
-function clearKeysFromDisk(page) {
+function clearKeysFromDisk() {
 let payload = {
 "configPath": configFilePath,
 "keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']
@@ -1094,7 +1095,7 @@ plasmoid.configuration.maritacaApiKey = "";
 }
 
 
-function saveGeneralSettingsOnly(page) {
+function saveGeneralSettingsOnly() {
 plasmoid.configuration.appDisplayName = appDisplayNameField.text;
 plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex;
 plasmoid.configuration.keyStorageMode = cfg_keyStorageMode;
@@ -1167,7 +1168,7 @@ plasmoid.configuration.globalContextCompactThreshold = globalContextCompactThres
 }
 
 
-function cancelKeyringOps(page) {
+function cancelKeyringOps() {
 let running = keyringDs.connectedSources;
 for (let i = 0; i < running.length; i++) keyringDs.disconnectSource(running[i])
 let utilityRunning = utilityDs.connectedSources;
@@ -1180,7 +1181,7 @@ pendingOps = ({
 }
 
 
-function resetToDefaults(page) {
+function resetToDefaults() {
 appDisplayNameField.text = "KDE AI Chat";
 providerBox.currentIndex = 0;
 baseUrlField.text = "https://api.openai.com/v1";
@@ -1271,7 +1272,7 @@ discoveryStatus = "Settings reset to defaults.";
 }
 
 
-function schedAutoSetup(page) {
+function schedAutoSetup() {
 let srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("file://", "");
 let serviceContent = "[Unit]\nDescription=KDE AI Chat Scheduler Daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\nRestart=on-failure\nRestartSec=30\nStandardOutput=journal\nStandardError=journal\nExecReload=/bin/kill -HUP $MAINPID\nKillMode=process\n\n[Install]\nWantedBy=default.target\n";
 let payload = {
@@ -1290,12 +1291,12 @@ utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-auto-setup"
 }
 
 
-function pollSchedulerState(page) {
+function pollSchedulerState() {
 utilityDs.connectSource("sh -c 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now());
 }
 
 
-function schedLoadSchedules(page) {
+function schedLoadSchedules() {
 let safePath = Sec.validateFilePath(schedulesFilePath);
 if (safePath === "")
 return;
@@ -1304,18 +1305,18 @@ utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-load
 }
 
 
-function schedSaveSchedules(page, items) {
+function schedSaveSchedules(items) {
 page.schedulerList = items;
 page.schedSaveAll();
 }
 
 
-function getHistoryLimitValue(page) {
+function getHistoryLimitValue() {
 return 100;
 }
 
 
-function schedSaveAll(page) {
+function schedSaveAll() {
 page.schedSaving = true;
 let all = [];
 // Add active
@@ -1351,7 +1352,7 @@ utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-save");
 }
 
 
-function schedTriggerNow(page, index) {
+function schedTriggerNow(index) {
 let copy = page.schedulerList.slice();
 if (index < 0 || index >= copy.length)
 return ;
@@ -1363,7 +1364,7 @@ page.schedSaveAll();
 }
 
 
-function schedMakeUuid(page) {
+function schedMakeUuid() {
 return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
 let r = Math.random() * 16 | 0;
 return (c === "x" ? r : (r & 3 | 8)).toString(16);
@@ -1371,7 +1372,7 @@ return (c === "x" ? r : (r & 3 | 8)).toString(16);
 }
 
 
-function openPrefilledScheduleDialog(page, pId, pName) {
+function openPrefilledScheduleDialog(pId, pName) {
 if (!pId || pId === "")
 return;
 let now = new Date();
@@ -1409,7 +1410,7 @@ plasmoid.configuration.preselectedChatName = "";
 }
 
 
-function schedDefaultBaseUrl(page, provider) {
+function schedDefaultBaseUrl(provider) {
 let urls = {
 "openai": "https://api.openai.com/v1",
 "anthropic": "https://api.anthropic.com/v1",
@@ -1437,7 +1438,7 @@ return urls[provider] || "https://api.openai.com/v1";
 }
 
 
-function schedHumanCron(page, expr) {
+function schedHumanCron(expr) {
 if (!expr)
 return "No schedule";
 let parts = expr.trim().split(/\s+/);

@@ -74,6 +74,43 @@ Kirigami.FormLayout {
     property alias huggingFaceApiKeyField: huggingFaceApiKeyField
     property alias huggingFaceModelField: huggingFaceModelField
 
+    // Value aliases for config bindings to avoid double-nested aliases in parent
+    property alias baseUrl: baseUrlField.text
+    property alias apiKey: apiKeyField.text
+    property alias model: modelField.text
+    property alias anthropicApiKey: anthropicApiKeyField.text
+    property alias anthropicModel: anthropicModelField.text
+    property alias groqBaseUrl: groqBaseUrlField.text
+    property alias groqApiKey: groqApiKeyField.text
+    property alias groqModel: groqModelField.text
+    property alias deepSeekBaseUrl: deepSeekBaseUrlField.text
+    property alias deepSeekApiKey: deepSeekApiKeyField.text
+    property alias deepSeekModel: deepSeekModelField.text
+    property alias miniMaxBaseUrl: miniMaxBaseUrlField.text
+    property alias miniMaxApiKey: miniMaxApiKeyField.text
+    property alias miniMaxModel: miniMaxModelField.text
+    property alias fireworksBaseUrl: fireworksBaseUrlField.text
+    property alias fireworksApiKey: fireworksApiKeyField.text
+    property alias fireworksModel: fireworksModelField.text
+    property alias googleBaseUrl: googleBaseUrlField.text
+    property alias googleApiKey: googleApiKeyField.text
+    property alias googleModel: googleModelField.text
+    property alias openRouterBaseUrl: openRouterBaseUrlField.text
+    property alias openRouterApiKey: openRouterApiKeyField.text
+    property alias openRouterModel: openRouterModelField.text
+    property alias mistralBaseUrl: mistralBaseUrlField.text
+    property alias mistralApiKey: mistralApiKeyField.text
+    property alias mistralModel: mistralModelField.text
+    property alias cloudflareBaseUrl: cloudflareBaseUrlField.text
+    property alias cloudflareApiKey: cloudflareApiKeyField.text
+    property alias cloudflareModel: cloudflareModelField.text
+    property alias nvidiaBaseUrl: nvidiaBaseUrlField.text
+    property alias nvidiaApiKey: nvidiaApiKeyField.text
+    property alias nvidiaModel: nvidiaModelField.text
+    property alias huggingFaceBaseUrl: huggingFaceBaseUrlField.text
+    property alias huggingFaceApiKey: huggingFaceApiKeyField.text
+    property alias huggingFaceModel: huggingFaceModelField.text
+
     // ── OpenAI ────────────────────────────────────────────────────────────
     QQC2.TextField {
         id: baseUrlField

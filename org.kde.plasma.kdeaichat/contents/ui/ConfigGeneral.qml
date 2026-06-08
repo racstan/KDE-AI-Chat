@@ -18,81 +18,84 @@ import "ConfigGeneralLogic.js" as ConfigGeneralLogic
 //   Holds all JavaScript configuration management, model building, and service handling logic to keep ConfigGeneral.qml modular.
 //   Functions in ConfigGeneralLogic.js accept a reference to the page instance to query component properties and execute state modifications.
 
-KCM.SimpleKCM {
+QQC2.ScrollView {
     id: page
+
+    contentWidth: availableWidth
+    contentHeight: zoomHost.implicitHeight
 
     property bool debugMode: false
     function debugLog() {
-        return ConfigGeneralLogic.debugLog(page);
+        return ConfigGeneralLogic.debugLog();
     }
 
     //* Ctrl+scroll zoom for the settings form (0.75–1.5).
     property real configZoom: 1
-    property alias cfg_appDisplayName: advancedSection.appDisplayNameField.text
-    property alias cfg_appearanceMode: generalSection.appearanceModeCombo.currentIndex
-    property alias cfg_keyStorageMode: generalSection.storageModeCombo.currentIndex
+    property alias cfg_appDisplayName: advancedSection.appDisplayName
+    property alias cfg_appearanceMode: generalSection.appearanceMode
+    property alias cfg_keyStorageMode: generalSection.storageMode
     // Convenience computed for all KWallet-only visibility guards
     readonly property bool kwalletModeActive: cfg_keyStorageMode === 2
     property string cfg_provider: ""
-    property alias cfg_baseUrl: providersSection.baseUrlField.text
-    property alias cfg_apiKey: providersSection.apiKeyField.text
-    property alias cfg_model: providersSection.modelField.text
-    property alias cfg_anthropicApiKey: providersSection.anthropicApiKeyField.text
-    property alias cfg_anthropicModel: providersSection.anthropicModelField.text
-    property alias cfg_groqBaseUrl: providersSection.groqBaseUrlField.text
-    property alias cfg_groqApiKey: providersSection.groqApiKeyField.text
-    property alias cfg_groqModel: providersSection.groqModelField.text
-    property alias cfg_deepSeekBaseUrl: providersSection.deepSeekBaseUrlField.text
-    property alias cfg_deepSeekApiKey: providersSection.deepSeekApiKeyField.text
-    property alias cfg_deepSeekModel: providersSection.deepSeekModelField.text
-    property alias cfg_miniMaxBaseUrl: providersSection.miniMaxBaseUrlField.text
-    property alias cfg_miniMaxApiKey: providersSection.miniMaxApiKeyField.text
-    property alias cfg_miniMaxModel: providersSection.miniMaxModelField.text
-    property alias cfg_fireworksBaseUrl: providersSection.fireworksBaseUrlField.text
-    property alias cfg_fireworksApiKey: providersSection.fireworksApiKeyField.text
-    property alias cfg_fireworksModel: providersSection.fireworksModelField.text
-    property alias cfg_googleBaseUrl: providersSection.googleBaseUrlField.text
-    property alias cfg_googleApiKey: providersSection.googleApiKeyField.text
-    property alias cfg_googleModel: providersSection.googleModelField.text
-    property alias cfg_openRouterBaseUrl: providersSection.openRouterBaseUrlField.text
-    property alias cfg_openRouterApiKey: providersSection.openRouterApiKeyField.text
-    property alias cfg_openRouterModel: providersSection.openRouterModelField.text
-    property alias cfg_mistralBaseUrl: providersSection.mistralBaseUrlField.text
-    property alias cfg_mistralApiKey: providersSection.mistralApiKeyField.text
-    property alias cfg_mistralModel: providersSection.mistralModelField.text
-    property alias cfg_cloudflareBaseUrl: providersSection.cloudflareBaseUrlField.text
-    property alias cfg_cloudflareApiKey: providersSection.cloudflareApiKeyField.text
-    property alias cfg_cloudflareModel: providersSection.cloudflareModelField.text
-    property alias cfg_nvidiaBaseUrl: providersSection.nvidiaBaseUrlField.text
-    property alias cfg_nvidiaApiKey: providersSection.nvidiaApiKeyField.text
-    property alias cfg_nvidiaModel: providersSection.nvidiaModelField.text
-    property alias cfg_huggingFaceBaseUrl: providersSection.huggingFaceBaseUrlField.text
-    property alias cfg_huggingFaceApiKey: providersSection.huggingFaceApiKeyField.text
-    property alias cfg_huggingFaceModel: providersSection.huggingFaceModelField.text
-    property alias cfg_xaiBaseUrl: providersSection.xaiBaseUrlField.text
-    property alias cfg_xaiApiKey: providersSection.xaiApiKeyField.text
-    property alias cfg_xaiModel: providersSection.xaiModelField.text
-    property alias cfg_lmStudioBaseUrl: providersSection.lmStudioBaseUrlField.text
-    property alias cfg_lmStudioModel: providersSection.lmStudioModelField.text
-    property alias cfg_localBaseUrl: providersSection.localBaseUrlField.text
-    property alias cfg_localModel: providersSection.localModelField.text
-    property alias cfg_ollamaBaseUrl: providersSection.ollamaBaseUrlField.text
-    property alias cfg_ollamaModel: providersSection.ollamaModelField.text
-    property alias cfg_litellmBaseUrl: providersSection.litellmBaseUrlField.text
-    property alias cfg_litellmApiKey: providersSection.litellmApiKeyField.text
-    property alias cfg_litellmModel: providersSection.litellmModelField.text
-    property alias cfg_qwenBaseUrl: providersSection.qwenBaseUrlField.text
-    property alias cfg_qwenApiKey: providersSection.qwenApiKeyField.text
-    property alias cfg_qwenModel: providersSection.qwenModelField.text
-    property alias cfg_moonshotBaseUrl: providersSection.moonshotBaseUrlField.text
-    property alias cfg_moonshotApiKey: providersSection.moonshotApiKeyField.text
-    property alias cfg_moonshotModel: providersSection.moonshotModelField.text
-    property alias cfg_mimoBaseUrl: providersSection.mimoBaseUrlField.text
-    property alias cfg_mimoApiKey: providersSection.mimoApiKeyField.text
-    property alias cfg_mimoModel: providersSection.mimoModelField.text
-    property alias cfg_maritacaBaseUrl: providersSection.maritacaBaseUrlField.text
-    property alias cfg_maritacaApiKey: providersSection.maritacaApiKeyField.text
-    property alias cfg_maritacaModel: providersSection.maritacaModelField.text
+    property alias cfg_baseUrl: keys1.baseUrl
+    property alias cfg_apiKey: keys1.apiKey
+    property alias cfg_model: keys1.model
+    property alias cfg_anthropicApiKey: keys1.anthropicApiKey
+    property alias cfg_anthropicModel: keys1.anthropicModel
+    property alias cfg_groqBaseUrl: keys1.groqBaseUrl
+    property alias cfg_groqApiKey: keys1.groqApiKey
+    property alias cfg_groqModel: keys1.groqModel
+    property alias cfg_deepSeekBaseUrl: keys1.deepSeekBaseUrl
+    property alias cfg_deepSeekApiKey: keys1.deepSeekApiKey
+    property alias cfg_deepSeekModel: keys1.deepSeekModel
+    property alias cfg_miniMaxBaseUrl: keys1.miniMaxBaseUrl
+    property alias cfg_miniMaxApiKey: keys1.miniMaxApiKey
+    property alias cfg_miniMaxModel: keys1.miniMaxModel
+    property alias cfg_fireworksBaseUrl: keys1.fireworksBaseUrl
+    property alias cfg_fireworksApiKey: keys1.fireworksApiKey
+    property alias cfg_fireworksModel: keys1.fireworksModel
+    property alias cfg_googleBaseUrl: keys1.googleBaseUrl
+    property alias cfg_googleApiKey: keys1.googleApiKey
+    property alias cfg_googleModel: keys1.googleModel
+    property alias cfg_openRouterBaseUrl: keys1.openRouterBaseUrl
+    property alias cfg_openRouterApiKey: keys1.openRouterApiKey
+    property alias cfg_openRouterModel: keys1.openRouterModel
+    property alias cfg_mistralBaseUrl: keys1.mistralBaseUrl
+    property alias cfg_mistralApiKey: keys1.mistralApiKey
+    property alias cfg_mistralModel: keys1.mistralModel
+    property alias cfg_cloudflareBaseUrl: keys1.cloudflareBaseUrl
+    property alias cfg_cloudflareApiKey: keys1.cloudflareApiKey
+    property alias cfg_cloudflareModel: keys1.cloudflareModel
+    property alias cfg_nvidiaBaseUrl: keys1.nvidiaBaseUrl
+    property alias cfg_nvidiaApiKey: keys1.nvidiaApiKey
+    property alias cfg_nvidiaModel: keys1.nvidiaModel
+    property alias cfg_huggingFaceBaseUrl: keys1.huggingFaceBaseUrl
+    property alias cfg_huggingFaceApiKey: keys1.huggingFaceApiKey
+    property alias cfg_huggingFaceModel: keys1.huggingFaceModel
+    property alias cfg_xaiBaseUrl: keys2.xaiBaseUrl
+    property alias cfg_xaiApiKey: keys2.xaiApiKey
+    property alias cfg_xaiModel: keys2.xaiModel
+    property alias cfg_lmStudioBaseUrl: keys2.lmStudioBaseUrl
+    property alias cfg_lmStudioModel: keys2.lmStudioModel
+    property alias cfg_localBaseUrl: keys2.localBaseUrl
+    property alias cfg_localModel: keys2.localModel
+    property alias cfg_ollamaBaseUrl: keys2.ollamaBaseUrl
+    property alias cfg_ollamaModel: keys2.ollamaModel
+    property alias cfg_litellmBaseUrl: keys2.litellmBaseUrl
+    property alias cfg_litellmApiKey: keys2.litellmApiKey
+    property alias cfg_litellmModel: keys2.litellmModel
+    property alias cfg_qwenBaseUrl: keys2.qwenBaseUrl
+    property alias cfg_qwenApiKey: keys2.qwenApiKey
+    property alias cfg_qwenModel: keys2.qwenModel
+    property alias cfg_moonshotBaseUrl: keys2.moonshotBaseUrl
+    property alias cfg_moonshotApiKey: keys2.moonshotApiKey
+    property alias cfg_moonshotModel: keys2.moonshotModel
+    property alias cfg_mimoBaseUrl: keys2.mimoBaseUrl
+    property alias cfg_mimoApiKey: keys2.mimoApiKey
+    property alias cfg_mimoModel: keys2.mimoModel
+    property alias cfg_maritacaBaseUrl: keys2.maritacaBaseUrl
+    property alias cfg_maritacaApiKey: keys2.maritacaApiKey
+    property alias cfg_maritacaModel: keys2.maritacaModel
     property string cfg_language: ""
     readonly property bool isLanguageEnglish: {
         let lang = cfg_language;
@@ -102,29 +105,29 @@ KCM.SimpleKCM {
         }
         return lang === "en";
     }
-    property alias cfg_showInteractiveGuides: generalSection.showGuidesToggle.checked
-    property alias cfg_autoStartOpenCodeServer: openCodeSection.autoStartOpenCodeToggle.checked
-    property alias cfg_useOpenCode: generalSection.openCodeToggle.checked
-    property alias cfg_playNotificationSound: generalSection.playSoundToggle.checked
-    property alias cfg_openCodeUrl: openCodeSection.openCodeUrlField.text
-    property alias cfg_openCodeModel: openCodeSection.openCodeModelValueField.text
-    property alias cfg_openCodeProvider: openCodeSection.openCodeProviderValueField.text
-    property alias cfg_openCodeStartCommand: openCodeSection.openCodeStartCommandField.text
-    property alias cfg_openCodeStopCommand: openCodeSection.openCodeStopCommandField.text
-    property alias cfg_openCodeAutoKill: openCodeSection.openCodeAutoKillToggle.checked
-    property alias cfg_openCodeAutoKillMinutes: openCodeSection.openCodeAutoKillMinutesSpin.value
-    property alias cfg_kwalletName: generalSection.walletNameField.text
-    property alias cfg_systemPrompt: advancedSection.systemPromptArea.text
-    property alias cfg_memoryEnabled: advancedSection.memoryEnabledToggle.checked
-    property alias cfg_userMemory: advancedSection.userMemoryArea.text
-    property alias cfg_globalContextEnabled: advancedSection.globalContextEnabledToggle.checked
-    property alias cfg_globalContextLimit: advancedSection.globalContextLimitSpin.value
-    property alias cfg_globalContextAutoCompact: advancedSection.globalContextAutoCompactToggle.checked
-    property alias cfg_globalContextCompactThreshold: advancedSection.globalContextCompactThresholdSpin.value
-    property alias cfg_customHistoryPath: advancedSection.customHistoryPathField.text
-    property alias cfg_schedulerEnabled: advancedSection.schedulerMasterSwitch.checked
-    property alias cfg_schedulerAutoStart: advancedSection.schedAutoStartToggle.checked
-    property alias cfg_executeMissedSchedules: advancedSection.executeMissedSchedulesToggle.checked
+    property alias cfg_showInteractiveGuides: generalSection.showGuides
+    property alias cfg_autoStartOpenCodeServer: openCodeSection.autoStartOpenCode
+    property alias cfg_useOpenCode: generalSection.openCode
+    property alias cfg_playNotificationSound: generalSection.playSound
+    property alias cfg_openCodeUrl: openCodeSection.openCodeUrl
+    property alias cfg_openCodeModel: openCodeSection.openCodeModelValue
+    property alias cfg_openCodeProvider: openCodeSection.openCodeProviderValue
+    property alias cfg_openCodeStartCommand: openCodeSection.openCodeStartCommand
+    property alias cfg_openCodeStopCommand: openCodeSection.openCodeStopCommand
+    property alias cfg_openCodeAutoKill: openCodeSection.openCodeAutoKill
+    property alias cfg_openCodeAutoKillMinutes: openCodeSection.openCodeAutoKillMinutes
+    property alias cfg_kwalletName: generalSection.walletName
+    property alias cfg_systemPrompt: advancedSection.systemPrompt
+    property alias cfg_memoryEnabled: advancedSection.memoryEnabled
+    property alias cfg_userMemory: advancedSection.userMemory
+    property alias cfg_globalContextEnabled: advancedSection.globalContextEnabled
+    property alias cfg_globalContextLimit: advancedSection.globalContextLimit
+    property alias cfg_globalContextAutoCompact: advancedSection.globalContextAutoCompact
+    property alias cfg_globalContextCompactThreshold: advancedSection.globalContextCompactThreshold
+    property alias cfg_customHistoryPath: advancedSection.customHistoryPath
+    property alias cfg_schedulerEnabled: advancedSection.schedulerEnabled
+    property alias cfg_schedulerAutoStart: advancedSection.schedulerAutoStart
+    property alias cfg_executeMissedSchedules: advancedSection.executeMissedSchedules
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
     property string keyringStatus: ""
@@ -390,293 +393,293 @@ KCM.SimpleKCM {
     }
 
     function translate(text) {
-        return ConfigGeneralLogic.translate(page, text);
+        return ConfigGeneralLogic.translate(text);
     }
 
     function updateFilteredProviderModels(searchText) {
-        return ConfigGeneralLogic.updateFilteredProviderModels(page, searchText);
+        return ConfigGeneralLogic.updateFilteredProviderModels(searchText);
     }
 
     function updateFilteredOpenCodeModels(searchText) {
-        return ConfigGeneralLogic.updateFilteredOpenCodeModels(page, searchText);
+        return ConfigGeneralLogic.updateFilteredOpenCodeModels(searchText);
     }
 
     function effectiveWalletName() {
-        return ConfigGeneralLogic.effectiveWalletName(page);
+        return ConfigGeneralLogic.effectiveWalletName();
     }
 
     function maybeAdoptDetectedWalletName() {
-        return ConfigGeneralLogic.maybeAdoptDetectedWalletName(page);
+        return ConfigGeneralLogic.maybeAdoptDetectedWalletName();
     }
 
     function detectWallets() {
-        return ConfigGeneralLogic.detectWallets(page);
+        return ConfigGeneralLogic.detectWallets();
     }
 
     function setActiveProviderModelValue(value) {
-        return ConfigGeneralLogic.setActiveProviderModelValue(page, value);
+        return ConfigGeneralLogic.setActiveProviderModelValue(value);
     }
 
     function activeProviderModelValue() {
-        return ConfigGeneralLogic.activeProviderModelValue(page);
+        return ConfigGeneralLogic.activeProviderModelValue();
     }
 
     function walletReadCommand(walletName, keyName) {
-        return ConfigGeneralLogic.walletReadCommand(page, walletName, keyName);
+        return ConfigGeneralLogic.walletReadCommand(walletName, keyName);
     }
 
     function walletWriteCommand(walletName, keyName, value) {
-        return ConfigGeneralLogic.walletWriteCommand(page, walletName, keyName, value);
+        return ConfigGeneralLogic.walletWriteCommand(walletName, keyName, value);
     }
 
     function walletInitCommand(walletName) {
-        return ConfigGeneralLogic.walletInitCommand(page, walletName);
+        return ConfigGeneralLogic.walletInitCommand(walletName);
     }
 
     function walletStatusCommand(walletName) {
-        return ConfigGeneralLogic.walletStatusCommand(page, walletName);
+        return ConfigGeneralLogic.walletStatusCommand(walletName);
     }
 
     function walletBulkReadCommand(walletName) {
-        return ConfigGeneralLogic.walletBulkReadCommand(page, walletName);
+        return ConfigGeneralLogic.walletBulkReadCommand(walletName);
     }
 
     function shellEscape(s) {
-        return ConfigGeneralLogic.shellEscape(page, s);
+        return ConfigGeneralLogic.shellEscape(s);
     }
 
     function copyToClipboard(textValue) {
-        return ConfigGeneralLogic.copyToClipboard(page, textValue);
+        return ConfigGeneralLogic.copyToClipboard(textValue);
     }
 
     function providerEnabled(providerId) {
-        return ConfigGeneralLogic.providerEnabled(page, providerId);
+        return ConfigGeneralLogic.providerEnabled(providerId);
     }
 
     function providerNeedsApiKey(providerId) {
-        return ConfigGeneralLogic.providerNeedsApiKey(page, providerId);
+        return ConfigGeneralLogic.providerNeedsApiKey(providerId);
     }
 
     function providerHasConfiguredKey(providerId) {
-        return ConfigGeneralLogic.providerHasConfiguredKey(page, providerId);
+        return ConfigGeneralLogic.providerHasConfiguredKey(providerId);
     }
 
     function refreshIfActiveProvider(providerId) {
-        return ConfigGeneralLogic.refreshIfActiveProvider(page, providerId);
+        return ConfigGeneralLogic.refreshIfActiveProvider(providerId);
     }
 
     function providerModelVisible(providerId) {
-        return ConfigGeneralLogic.providerModelVisible(page, providerId);
+        return ConfigGeneralLogic.providerModelVisible(providerId);
     }
 
     function providerNeedsKeyHintVisible(providerId) {
-        return ConfigGeneralLogic.providerNeedsKeyHintVisible(page, providerId);
+        return ConfigGeneralLogic.providerNeedsKeyHintVisible(providerId);
     }
 
     function currentProviderDisplayName() {
-        return ConfigGeneralLogic.currentProviderDisplayName(page);
+        return ConfigGeneralLogic.currentProviderDisplayName();
     }
 
     function currentProviderConfig() {
-        return ConfigGeneralLogic.currentProviderConfig(page);
+        return ConfigGeneralLogic.currentProviderConfig();
     }
 
     function makeOpenAiModelsUrl(baseUrl) {
-        return ConfigGeneralLogic.makeOpenAiModelsUrl(page, baseUrl);
+        return ConfigGeneralLogic.makeOpenAiModelsUrl(baseUrl);
     }
 
     function parseModelIds(responseObj) {
-        return ConfigGeneralLogic.parseModelIds(page, responseObj);
+        return ConfigGeneralLogic.parseModelIds(responseObj);
     }
 
     function requestJson(url, headers, onSuccess, onError) {
-        return ConfigGeneralLogic.requestJson(page, url, headers, onSuccess, onError);
+        return ConfigGeneralLogic.requestJson(url, headers, onSuccess, onError);
     }
 
     function refreshCurrentProviderModels() {
-        return ConfigGeneralLogic.refreshCurrentProviderModels(page);
+        return ConfigGeneralLogic.refreshCurrentProviderModels();
     }
 
     function applyDetectedModelToActiveProvider(modelId) {
-        return ConfigGeneralLogic.applyDetectedModelToActiveProvider(page, modelId);
+        return ConfigGeneralLogic.applyDetectedModelToActiveProvider(modelId);
     }
 
     function activeOpenCodeProvider() {
-        return ConfigGeneralLogic.activeOpenCodeProvider(page);
+        return ConfigGeneralLogic.activeOpenCodeProvider();
     }
 
     function setOpenCodeProviderValue(v) {
-        return ConfigGeneralLogic.setOpenCodeProviderValue(page, v);
+        return ConfigGeneralLogic.setOpenCodeProviderValue(v);
     }
 
     function setOpenCodeModelValue(v) {
-        return ConfigGeneralLogic.setOpenCodeModelValue(page, v);
+        return ConfigGeneralLogic.setOpenCodeModelValue(v);
     }
 
     function openCodeServerRoot(baseUrl) {
-        return ConfigGeneralLogic.openCodeServerRoot(page, baseUrl);
+        return ConfigGeneralLogic.openCodeServerRoot(baseUrl);
     }
 
     function parseOpenCodeProviderModels(providerObj) {
-        return ConfigGeneralLogic.parseOpenCodeProviderModels(page, providerObj);
+        return ConfigGeneralLogic.parseOpenCodeProviderModels(providerObj);
     }
 
     function syncOpenCodeProviderSelection(providerId, preferredModel) {
-        return ConfigGeneralLogic.syncOpenCodeProviderSelection(page, providerId, preferredModel);
+        return ConfigGeneralLogic.syncOpenCodeProviderSelection(providerId, preferredModel);
     }
 
     function refreshOpenCodeDiscovery() {
-        return ConfigGeneralLogic.refreshOpenCodeDiscovery(page);
+        return ConfigGeneralLogic.refreshOpenCodeDiscovery();
     }
 
     function startOpenCodeServerAutomatically() {
-        return ConfigGeneralLogic.startOpenCodeServerAutomatically(page);
+        return ConfigGeneralLogic.startOpenCodeServerAutomatically();
     }
 
     function checkAndAutoStartOpenCodeServer() {
-        return ConfigGeneralLogic.checkAndAutoStartOpenCodeServer(page);
+        return ConfigGeneralLogic.checkAndAutoStartOpenCodeServer();
     }
 
     function probeOpenCodeProviders(baseUrl) {
-        return ConfigGeneralLogic.probeOpenCodeProviders(page, baseUrl);
+        return ConfigGeneralLogic.probeOpenCodeProviders(baseUrl);
     }
 
     function probeOpenCodeModels(baseUrl, providerId) {
-        return ConfigGeneralLogic.probeOpenCodeModels(page, baseUrl, providerId);
+        return ConfigGeneralLogic.probeOpenCodeModels(baseUrl, providerId);
     }
 
     function refreshRunningOpenCodeSessions() {
-        return ConfigGeneralLogic.refreshRunningOpenCodeSessions(page);
+        return ConfigGeneralLogic.refreshRunningOpenCodeSessions();
     }
 
     function loadSessionsList(urlSessions, statusMap) {
-        return ConfigGeneralLogic.loadSessionsList(page, urlSessions, statusMap);
+        return ConfigGeneralLogic.loadSessionsList(urlSessions, statusMap);
     }
 
     function killRunningOpenCodeSession(sessionId) {
-        return ConfigGeneralLogic.killRunningOpenCodeSession(page, sessionId);
+        return ConfigGeneralLogic.killRunningOpenCodeSession(sessionId);
     }
 
     function kwalletStore(targetId, value, isBulk) {
-        return ConfigGeneralLogic.kwalletStore(page, targetId, value, isBulk);
+        return ConfigGeneralLogic.kwalletStore(targetId, value, isBulk);
     }
 
     function saveKey(targetId, value) {
-        return ConfigGeneralLogic.saveKey(page, targetId, value);
+        return ConfigGeneralLogic.saveKey(targetId, value);
     }
 
     function kwalletLoad(targetId, isBulk) {
-        return ConfigGeneralLogic.kwalletLoad(page, targetId, isBulk);
+        return ConfigGeneralLogic.kwalletLoad(targetId, isBulk);
     }
 
     function applyLoadedKey(targetId, secretValue) {
-        return ConfigGeneralLogic.applyLoadedKey(page, targetId, secretValue);
+        return ConfigGeneralLogic.applyLoadedKey(targetId, secretValue);
     }
 
     function keyTargetIds() {
-        return ConfigGeneralLogic.keyTargetIds(page);
+        return ConfigGeneralLogic.keyTargetIds();
     }
 
     function apiKeyForTarget(targetId) {
-        return ConfigGeneralLogic.apiKeyForTarget(page, targetId);
+        return ConfigGeneralLogic.apiKeyForTarget(targetId);
     }
 
     function kwalletLoadAll() {
-        return ConfigGeneralLogic.kwalletLoadAll(page);
+        return ConfigGeneralLogic.kwalletLoadAll();
     }
 
     function kwalletStoreAll() {
-        return ConfigGeneralLogic.kwalletStoreAll(page);
+        return ConfigGeneralLogic.kwalletStoreAll();
     }
 
     function clearAllApiKeyFields() {
-        return ConfigGeneralLogic.clearAllApiKeyFields(page);
+        return ConfigGeneralLogic.clearAllApiKeyFields();
     }
 
     function base64Encode(str) {
-        return ConfigGeneralLogic.base64Encode(page, str);
+        return ConfigGeneralLogic.base64Encode(str);
     }
 
     function getHelperPath() {
-        return ConfigGeneralLogic.getHelperPath(page);
+        return ConfigGeneralLogic.getHelperPath();
     }
 
     function loadKeysFromPlainConfig() {
-        return ConfigGeneralLogic.loadKeysFromPlainConfig(page);
+        return ConfigGeneralLogic.loadKeysFromPlainConfig();
     }
 
     function applyPlainConfigKeys(keys) {
-        return ConfigGeneralLogic.applyPlainConfigKeys(page, keys);
+        return ConfigGeneralLogic.applyPlainConfigKeys(keys);
     }
 
     function writeKeysToDiskAndOpen() {
-        return ConfigGeneralLogic.writeKeysToDiskAndOpen(page);
+        return ConfigGeneralLogic.writeKeysToDiskAndOpen();
     }
 
     function syncKeysToDisk() {
-        return ConfigGeneralLogic.syncKeysToDisk(page);
+        return ConfigGeneralLogic.syncKeysToDisk();
     }
 
     function clearKeysFromDisk() {
-        return ConfigGeneralLogic.clearKeysFromDisk(page);
+        return ConfigGeneralLogic.clearKeysFromDisk();
     }
 
     function saveGeneralSettingsOnly() {
-        return ConfigGeneralLogic.saveGeneralSettingsOnly(page);
+        return ConfigGeneralLogic.saveGeneralSettingsOnly();
     }
 
     function cancelKeyringOps() {
-        return ConfigGeneralLogic.cancelKeyringOps(page);
+        return ConfigGeneralLogic.cancelKeyringOps();
     }
 
     function resetToDefaults() {
-        return ConfigGeneralLogic.resetToDefaults(page);
+        return ConfigGeneralLogic.resetToDefaults();
     }
 
     // ── Scheduler helpers ──────────────────────────────────────────────────────
     property string _lastSchedSetupPayload: ""
     function schedAutoSetup() {
-        return ConfigGeneralLogic.schedAutoSetup(page);
+        return ConfigGeneralLogic.schedAutoSetup();
     }
 
     function pollSchedulerState() {
-        return ConfigGeneralLogic.pollSchedulerState(page);
+        return ConfigGeneralLogic.pollSchedulerState();
     }
 
     function schedLoadSchedules() {
-        return ConfigGeneralLogic.schedLoadSchedules(page);
+        return ConfigGeneralLogic.schedLoadSchedules();
     }
 
     function schedSaveSchedules(items) {
-        return ConfigGeneralLogic.schedSaveSchedules(page, items);
+        return ConfigGeneralLogic.schedSaveSchedules(items);
     }
 
     function getHistoryLimitValue() {
-        return ConfigGeneralLogic.getHistoryLimitValue(page);
+        return ConfigGeneralLogic.getHistoryLimitValue();
     }
 
     function schedSaveAll() {
-        return ConfigGeneralLogic.schedSaveAll(page);
+        return ConfigGeneralLogic.schedSaveAll();
     }
 
     function schedTriggerNow(index) {
-        return ConfigGeneralLogic.schedTriggerNow(page, index);
+        return ConfigGeneralLogic.schedTriggerNow(index);
     }
 
     function schedMakeUuid() {
-        return ConfigGeneralLogic.schedMakeUuid(page);
+        return ConfigGeneralLogic.schedMakeUuid();
     }
 
     function openPrefilledScheduleDialog(pId, pName) {
-        return ConfigGeneralLogic.openPrefilledScheduleDialog(page, pId, pName);
+        return ConfigGeneralLogic.openPrefilledScheduleDialog(pId, pName);
     }
 
     function schedDefaultBaseUrl(provider) {
-        return ConfigGeneralLogic.schedDefaultBaseUrl(page, provider);
+        return ConfigGeneralLogic.schedDefaultBaseUrl(provider);
     }
 
     function schedHumanCron(expr) {
-        return ConfigGeneralLogic.schedHumanCron(page, expr);
+        return ConfigGeneralLogic.schedHumanCron(expr);
     }
 
     onVisibleChanged: {
@@ -687,7 +690,7 @@ KCM.SimpleKCM {
         }
     }
 
-    horizontalScrollBarPolicy: configZoom > 1.01 ? QQC2.ScrollBar.AsNeeded : QQC2.ScrollBar.AlwaysOff
+    QQC2.ScrollBar.horizontal.policy: configZoom > 1.01 ? QQC2.ScrollBar.AsNeeded : QQC2.ScrollBar.AlwaysOff
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0;
@@ -1031,8 +1034,9 @@ KCM.SimpleKCM {
 
     Item {
         id: zoomHost
+        width: page.availableWidth
+        implicitWidth: page.availableWidth
 
-        implicitWidth: 0
         // Sum the heights of all six sibling section FormLayouts
         implicitHeight: Math.ceil(
             (generalSection.implicitHeight +
@@ -1052,6 +1056,7 @@ KCM.SimpleKCM {
             id: generalSection
             page: page
             x: 0; y: 0
+            height: implicitHeight
             clip: true
             scale: page.configZoom
             transformOrigin: Item.TopLeft
@@ -1065,6 +1070,7 @@ KCM.SimpleKCM {
             id: openCodeSection
             page: page
             x: 0
+            height: implicitHeight
             clip: true
             scale: page.configZoom
             transformOrigin: Item.TopLeft
@@ -1079,6 +1085,7 @@ KCM.SimpleKCM {
             id: providersSection
             page: page
             x: 0
+            height: implicitHeight
             clip: true
             scale: page.configZoom
             transformOrigin: Item.TopLeft
@@ -1095,6 +1102,7 @@ KCM.SimpleKCM {
             id: keys1
             page: page
             x: 0
+            height: implicitHeight
             clip: true
             scale: page.configZoom
             transformOrigin: Item.TopLeft
@@ -1109,6 +1117,7 @@ KCM.SimpleKCM {
             id: keys2
             page: page
             x: 0
+            height: implicitHeight
             clip: true
             scale: page.configZoom
             transformOrigin: Item.TopLeft
@@ -1123,6 +1132,7 @@ KCM.SimpleKCM {
             id: advancedSection
             page: page
             x: 0
+            height: implicitHeight
             clip: true
             scale: page.configZoom
             transformOrigin: Item.TopLeft

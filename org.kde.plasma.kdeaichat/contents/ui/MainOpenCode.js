@@ -1,11 +1,12 @@
+.import "Security.js" as Sec
 // MainOpenCode.js - Extracted logic for Main
 
-function openCodeBaseUrl(root) {
+function openCodeBaseUrl() {
 return root.openCodeBaseUrlVal;
 }
 
 
-function currentOpenCodeSessionId(root) {
+function currentOpenCodeSessionId() {
 let sId = root.currentSessionId;
 let override = getSessionProperty(sId, "contextOverride", false);
 let contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : plasmoid.configuration.globalContextEnabled;
@@ -18,7 +19,7 @@ return root.sessions[idx].openCodeSessionId || "";
 }
 
 
-function setCurrentOpenCodeSessionId(root, remoteSessionId) {
+function setCurrentOpenCodeSessionId(remoteSessionId) {
 let idx = sessionIndexById(root.currentSessionId);
 if (idx < 0)
 return ;
@@ -32,14 +33,14 @@ persistSessions();
 }
 
 
-function clearCurrentOpenCodeSessionIfNeeded(root) {
+function clearCurrentOpenCodeSessionIfNeeded() {
 if (!root.openCodeMode)
 return ;
 setCurrentOpenCodeSessionId("");
 }
 
 
-function ensureOpenCodeEventStream(root) {
+function ensureOpenCodeEventStream() {
 if (root.openCodeEventXhr)
 return ;
 let xhr = new XMLHttpRequest();
@@ -92,7 +93,7 @@ openCodeReconnectTimer.start();
 }
 
 
-function ensureCurrentOpenCodeSession(root, successCallback, failureCallback) {
+function ensureCurrentOpenCodeSession(successCallback, failureCallback) {
 let existing = currentOpenCodeSessionId();
 if (existing !== "") {
 successCallback(existing);
@@ -145,7 +146,7 @@ fail("OpenCode: failed to create session: " + sendError);
 }
 
 
-function ensureOpenCodeServerRunning(root, chatId, successCallback, failureCallback) {
+function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
 if (root.openCodeStarting) {
 if (successCallback) {
 let sCbs = root.openCodeStartSuccessCallbacks.slice();
@@ -251,7 +252,7 @@ handleNotRunning(e.toString());
 }
 
 
-function doOpenCodeRequest(root) {
+function doOpenCodeRequest() {
 let requestFinalized = false;
 function failOpenCodeRequest(message) {
 if (requestFinalized)
@@ -394,7 +395,7 @@ failOpenCodeRequest(err);
 }
 
 
-function doBackgroundOpenCodeRequest(root, chatId, messageText, notify, schedId, schedName) {
+function doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName) {
 let requestFinalized = false;
 function failBackgroundOpenCodeRequest(message) {
 if (requestFinalized)

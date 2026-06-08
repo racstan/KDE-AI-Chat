@@ -2,10 +2,12 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kcmutils as KCM
 
-KCM.SimpleKCM {
+QQC2.ScrollView {
     id: page
+
+    contentWidth: availableWidth
+    contentHeight: formLayout.implicitHeight
 
     property alias cfg_keyToggleSearch: keyToggleSearchField.text
     property alias cfg_keyNewChat: keyNewChatField.text
@@ -28,6 +30,7 @@ KCM.SimpleKCM {
 
     Kirigami.FormLayout {
         id: formLayout
+        width: page.availableWidth
 
         readonly property int fieldMaxWidth: Kirigami.Units.gridUnit * 18
 
