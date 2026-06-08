@@ -2339,6 +2339,7 @@ tryNextUrl();
 }
 }
 let sessionId = root.openCodeActiveSessionId;
+
 if (!sessionId) {
 let idx = sessionIndexById(root.currentSessionId);
 if (idx >= 0)
