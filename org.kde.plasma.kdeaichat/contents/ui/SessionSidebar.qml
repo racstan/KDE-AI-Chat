@@ -162,7 +162,7 @@ Rectangle {
 
             ColumnLayout {
                 x: Kirigami.Units.smallSpacing
-                width: historyScrollView.width - Kirigami.Units.smallSpacing * 2
+                width: historyScrollView.availableWidth - Kirigami.Units.smallSpacing * 2
                 spacing: Kirigami.Units.smallSpacing
 
                 // Active Chats Header
@@ -369,7 +369,7 @@ Rectangle {
                     }
                 }
 
-                // Right side: Action Buttons & Message Count Badge
+                // Right side: Message Count Badge (Actions are now an overlay)
                 RowLayout {
                     id: actionsRow
                     spacing: Kirigami.Units.smallSpacing / 2
@@ -397,69 +397,87 @@ Rectangle {
                             color: Kirigami.Theme.highlightedTextColor
                         }
                     }
+                }
+            }
 
-                    // Actions Container (only visible on hover or selected/editing)
-                    Rectangle {
-                        id: actionsContainer
-                        radius: 6
-                        color: Qt.rgba(sidebarRoot.color, 1)
-                        border.width: 1
-                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                        visible: delegateMouseArea.containsMouse || 
-                                 (sidebarRoot.chatRoot && (modelData.value === sidebarRoot.chatRoot.currentSessionId || 
-                                                            sidebarRoot.chatRoot.editingSessionId === modelData.value))
-                        implicitWidth: actionsRowInner.implicitWidth + Kirigami.Units.smallSpacing
-                        implicitHeight: actionsRowInner.implicitHeight + Kirigami.Units.smallSpacing
+            // Actions Container Overlay
+            // Positioned as an overlay to prevent layout reflows (flickering)
+            // anchored with a larger margin to clear the scrollbar.
+            Rectangle {
+                id: actionsContainer
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: Kirigami.Units.gridUnit * 0.8
+                radius: 6
+                color: {
+                    let bg = delegateBg.color;
+                    if (bg === "transparent" || bg === "#00000000" || bg === "rgba(0,0,0,0)")
+                        return Kirigami.Theme.alternateBackgroundColor;
+                    return bg;
+                }
+                border.width: 1
+                border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
+                
+                // Visibility logic: include button hover states to prevent flickering when
+                // the mouse enters the overlay (which might cause the main MouseArea to lose hover).
+                visible: delegateMouseArea.containsMouse || 
+                         saveRename.hovered || 
+                         archiveChat.hovered || 
+                         removeChat.hovered ||
+                         (sidebarRoot.chatRoot && (modelData.value === sidebarRoot.chatRoot.currentSessionId || 
+                                                    sidebarRoot.chatRoot.editingSessionId === modelData.value))
+                
+                width: actionsRowInner.implicitWidth + Kirigami.Units.smallSpacing
+                height: actionsRowInner.implicitHeight + Kirigami.Units.smallSpacing
 
-                        RowLayout {
-                            id: actionsRowInner
-                            anchors.centerIn: parent
-                            spacing: 2
+                RowLayout {
+                    id: actionsRowInner
+                    anchors.centerIn: parent
+                    spacing: 2
 
-                            PC3.ToolButton {
-                            id: saveRename
-                            icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
-                            display: PC3.AbstractButton.IconOnly
-                            implicitWidth: Kirigami.Units.gridUnit * 1.5
-                            implicitHeight: Kirigami.Units.gridUnit * 1.5
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Save title" : "Rename chat"
-                            onClicked: {
-                                if (sidebarRoot.chatRoot) {
-                                    if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
-                                        sidebarRoot.chatRoot.saveSessionRename(modelData.value);
-                                    else
-                                        sidebarRoot.chatRoot.startSessionRename(modelData.value);
-                                }
+                    PC3.ToolButton {
+                        id: saveRename
+                        icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
+                        display: PC3.AbstractButton.IconOnly
+                        implicitWidth: Kirigami.Units.gridUnit * 1.5
+                        implicitHeight: Kirigami.Units.gridUnit * 1.5
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Save title" : "Rename chat"
+                        onClicked: {
+                            if (sidebarRoot.chatRoot) {
+                                if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
+                                    sidebarRoot.chatRoot.saveSessionRename(modelData.value);
+                                else
+                                    sidebarRoot.chatRoot.startSessionRename(modelData.value);
                             }
                         }
+                    }
 
-                        PC3.ToolButton {
-                            id: archiveChat
-                            icon.name: modelData.archived ? "archive-remove" : "archive-insert"
-                            display: PC3.AbstractButton.IconOnly
-                            implicitWidth: Kirigami.Units.gridUnit * 1.5
-                            implicitHeight: Kirigami.Units.gridUnit * 1.5
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
-                            onClicked: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.setSessionArchived(modelData.value, !modelData.archived)
-                        }
+                    PC3.ToolButton {
+                        id: archiveChat
+                        icon.name: modelData.archived ? "archive-remove" : "archive-insert"
+                        display: PC3.AbstractButton.IconOnly
+                        implicitWidth: Kirigami.Units.gridUnit * 1.5
+                        implicitHeight: Kirigami.Units.gridUnit * 1.5
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
+                        onClicked: if (sidebarRoot.chatRoot) sidebarRoot.chatRoot.setSessionArchived(modelData.value, !modelData.archived)
+                    }
 
-                        PC3.ToolButton {
-                            id: removeChat
-                            icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
-                            display: PC3.AbstractButton.IconOnly
-                            implicitWidth: Kirigami.Units.gridUnit * 1.5
-                            implicitHeight: Kirigami.Units.gridUnit * 1.5
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
-                            onClicked: {
-                                if (sidebarRoot.chatRoot) {
-                                    if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
-                                        sidebarRoot.chatRoot.cancelSessionRename();
-                                    else
-                                        sidebarRoot.chatRoot.deleteSession(modelData.value);
-                                }
+                    PC3.ToolButton {
+                        id: removeChat
+                        icon.name: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
+                        display: PC3.AbstractButton.IconOnly
+                        implicitWidth: Kirigami.Units.gridUnit * 1.5
+                        implicitHeight: Kirigami.Units.gridUnit * 1.5
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: sidebarRoot.chatRoot && sidebarRoot.chatRoot.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
+                        onClicked: {
+                            if (sidebarRoot.chatRoot) {
+                                if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
+                                    sidebarRoot.chatRoot.cancelSessionRename();
+                                else
+                                    sidebarRoot.chatRoot.deleteSession(modelData.value);
                             }
                         }
                     }
@@ -467,5 +485,4 @@ Rectangle {
             }
         }
     }
-}
 }

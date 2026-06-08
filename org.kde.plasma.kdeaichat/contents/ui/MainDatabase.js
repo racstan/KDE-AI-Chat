@@ -555,6 +555,38 @@ saveCurrentSessionState(true);
 }
 
 
+function isLatestUserMessage(index) {
+if (index < 0 || index >= root.messages.length)
+return false;
+if (root.messages[index].role !== "user")
+return false;
+for (let i = index + 1; i < root.messages.length; i++) {
+if (root.messages[i].role === "user")
+return false;
+}
+return true;
+}
+
+
+function hasSubsequentAssistantMessage(index) {
+if (index < 0 || index >= root.messages.length - 1)
+return false;
+return root.messages[index + 1].role === "assistant";
+}
+
+
+function regenerateReply(index, type) {
+if (index < 0 || index >= root.messages.length - 1)
+return ;
+let userMsg = root.messages[index];
+let aiMsg = root.messages[index + 1];
+let instruction = type === "shorter" ? "generate a much shorter version" : "generate a much more detailed and longer version";
+let prompt = "I'm looking for a different version of your last response. \n\n" + "My original question was: \"" + userMsg.content + "\"\n" + "Your previous response was: \"" + aiMsg.content + "\"\n\n" + "Please " + instruction + " of that response.";
+root.chatInputText = prompt;
+sendMessage();
+}
+
+
 function saveEditedMessage() {
 let i = root.editingMessageIndex;
 if (i < 0 || i >= root.messages.length)

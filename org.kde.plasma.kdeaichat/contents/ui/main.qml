@@ -456,6 +456,18 @@ PlasmoidItem {
         return MainDatabase.deleteMessage(index);
     }
 
+    function isLatestUserMessage(index) {
+        return MainDatabase.isLatestUserMessage(index);
+    }
+
+    function hasSubsequentAssistantMessage(index) {
+        return MainDatabase.hasSubsequentAssistantMessage(index);
+    }
+
+    function regenerateReply(index, type) {
+        return MainDatabase.regenerateReply(index, type);
+    }
+
     function saveEditedMessage() {
         return MainDatabase.saveEditedMessage();
     }

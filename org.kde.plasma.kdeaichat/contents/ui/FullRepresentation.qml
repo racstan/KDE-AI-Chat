@@ -1342,6 +1342,28 @@ import "Security.js" as Sec
                                                             }
                                                         }
 
+                                                        PC3.ToolButton {
+                                                            visible: modelData.role === "user" && root.isLatestUserMessage(index) && root.hasSubsequentAssistantMessage(index)
+                                                            icon.name: "view-refresh"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Regenerate reply"
+                                                            onClicked: regenerateMenu.open()
+
+                                                            QQC2.Menu {
+                                                                id: regenerateMenu
+                                                                y: parent.height
+                                                                QQC2.MenuItem {
+                                                                    text: "Generate shorter reply"
+                                                                    onTriggered: root.regenerateReply(index, "shorter")
+                                                                }
+                                                                QQC2.MenuItem {
+                                                                    text: "Generate bigger reply"
+                                                                    onTriggered: root.regenerateReply(index, "longer")
+                                                                }
+                                                            }
+                                                        }
+
                                                                                                                  PC3.ToolButton {
                                                              visible: modelData.role !== "error" && modelData.role !== "queued" && modelData.role !== "schedules_list"
                                                              icon.name: "mail-reply-sender"
