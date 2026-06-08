@@ -555,12 +555,17 @@ return root.messages[index + 1].role === "assistant";
 
 
 function regenerateReply(index, type) {
-if (index < 0 || index >= root.messages.length - 1)
+if (index < 0 || index >= root.messages.length)
 return ;
 let userMsg = root.messages[index];
-let aiMsg = root.messages[index + 1];
+let aiMsg = (index + 1 < root.messages.length) ? root.messages[index + 1] : null;
 let instruction = type === "shorter" ? "generate a much shorter version" : "generate a much more detailed and longer version";
-let prompt = "I'm looking for a different version of your last response. \n\n" + "My original question was: \"" + userMsg.content + "\"\n" + "Your previous response was: \"" + aiMsg.content + "\"\n\n" + "Please " + instruction + " of that response.";
+let prompt = "";
+if (aiMsg && aiMsg.role === "assistant") {
+prompt = "I'm looking for a different version of your last response. \n\n" + "My original question was: \"" + userMsg.content + "\"\n" + "Your previous response was: \"" + aiMsg.content + "\"\n\n" + "Please " + instruction + " of that response.";
+} else {
+prompt = "Please " + instruction + " in response to my question: \"" + userMsg.content + "\"";
+}
 root.chatInputText = prompt;
 sendMessage();
 }

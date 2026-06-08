@@ -1343,7 +1343,7 @@ import "Security.js" as Sec
                                                         }
 
                                                         PC3.ToolButton {
-                                                            visible: modelData.role === "user" && root.isLatestUserMessage(index) && root.hasSubsequentAssistantMessage(index)
+                                                            visible: modelData.role === "user" && root.isLatestUserMessage(index)
                                                             icon.name: "view-refresh"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
