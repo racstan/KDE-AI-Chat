@@ -1,4 +1,5 @@
 .import "Security.js" as Sec
+
 // MainNetwork.js - Extracted logic for Main
 
 function base64Encode(str) {
@@ -342,8 +343,8 @@ lastUserText = root.messages[mIdx].content || "";
 break;
 }
 }
-let dedupKey = RequestDeduplicator.key(plasmoid.configuration.provider || "openai", model, lastUserText, root.currentSessionId);
-if (!RequestDeduplicator.tryClaim(dedupKey)) {
+let dedupKey = root.reqDedupKey(plasmoid.configuration.provider || "openai", model, lastUserText, root.currentSessionId);
+if (!root.reqDedupTryClaim(dedupKey)) {
 pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
 return ;
 }
@@ -371,7 +372,7 @@ processNextQueuedMessage();
 } catch (setupError) {
 root.loading = false;
 root.activeXhr = null;
-RequestDeduplicator.release(dedupKey);
+root.reqDedupRelease(dedupKey);
 pushErrorMessage("Failed to start request: " + setupError);
 return ;
 }
@@ -385,7 +386,7 @@ if (xhr.readyState !== XMLHttpRequest.DONE)
 return ;
 root.loading = false;
 root.activeXhr = null;
-RequestDeduplicator.release(dedupKey);
+root.reqDedupRelease(dedupKey);
 if (xhr.status < 200 || xhr.status >= 300) {
 if (errorHandled)
 return ;
@@ -458,7 +459,7 @@ return ;
 errorHandled = true;
 root.loading = false;
 root.activeXhr = null;
-RequestDeduplicator.release(dedupKey);
+root.reqDedupRelease(dedupKey);
 pushErrorMessage("Could not reach " + Sec.scrubSecrets(url) + ". Check the server URL and whether that endpoint accepts API requests.");
 processNextQueuedMessage();
 };
@@ -471,7 +472,7 @@ xhr.send(JSON.stringify({
 } catch (sendError) {
 root.loading = false;
 root.activeXhr = null;
-RequestDeduplicator.release(dedupKey);
+root.reqDedupRelease(dedupKey);
 pushErrorMessage("Failed to send request: " + sendError);
 }
 }
@@ -492,8 +493,8 @@ lastUserText = root.messages[mIdx].content || "";
 break;
 }
 }
-let dedupKey = RequestDeduplicator.key("anthropic", model, lastUserText, root.currentSessionId);
-if (!RequestDeduplicator.tryClaim(dedupKey)) {
+let dedupKey = root.reqDedupKey("anthropic", model, lastUserText, root.currentSessionId);
+if (!root.reqDedupTryClaim(dedupKey)) {
 pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
 return ;
 }
@@ -510,7 +511,7 @@ return ;
 errorHandled = true;
 root.loading = false;
 root.activeXhr = null;
-RequestDeduplicator.release(dedupKey);
+root.reqDedupRelease(dedupKey);
 pushErrorMessage("Request timed out after 60 seconds.");
 processNextQueuedMessage();
 };
@@ -519,7 +520,7 @@ if (xhr.readyState !== XMLHttpRequest.DONE)
 return ;
 root.loading = false;
 root.activeXhr = null;
-RequestDeduplicator.release(dedupKey);
+root.reqDedupRelease(dedupKey);
 if (xhr.status >= 200 && xhr.status < 300) {
 triggerNotificationSound();
 try {
@@ -579,7 +580,7 @@ return ;
 errorHandled = true;
 root.loading = false;
 root.activeXhr = null;
-RequestDeduplicator.release(dedupKey);
+root.reqDedupRelease(dedupKey);
 pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages. Check network access and API configuration.");
 processNextQueuedMessage();
 };

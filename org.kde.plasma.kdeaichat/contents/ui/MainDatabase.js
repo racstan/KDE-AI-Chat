@@ -1734,6 +1734,21 @@ root.quotedMessage = null;
 }
 root.messages = root.messages.concat([msgObj]);
 saveCurrentSessionState(true);
+
+if ((role === "user" || role === "queued") && root.currentSessionTitle === "New Chat") {
+    let cleanText = (text || "").trim();
+    if (cleanText.length > 0) {
+        let words = cleanText.split(/\s+/);
+        let newTitle = words.slice(0, 5).join(" ");
+        if (words.length > 5 || newTitle.length > 30) {
+            if (newTitle.length > 30) {
+                newTitle = newTitle.substring(0, 30);
+            }
+            newTitle += "...";
+        }
+        renameCurrentSession(newTitle);
+    }
+}
 }
 
 

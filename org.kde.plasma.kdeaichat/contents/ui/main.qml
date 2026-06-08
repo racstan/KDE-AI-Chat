@@ -765,6 +765,19 @@ PlasmoidItem {
         return MainNetwork.doAnthropicRequest(apiKey, model);
     }
 
+    // RequestDeduplicator wrappers
+    function reqDedupKey(provider, model, text, sessionId) {
+        return RequestDeduplicator.key(provider, model, text, sessionId);
+    }
+
+    function reqDedupTryClaim(key) {
+        return RequestDeduplicator.tryClaim(key);
+    }
+
+    function reqDedupRelease(key) {
+        RequestDeduplicator.release(key);
+    }
+
     function triggerNotificationSound() {
         return MainDatabase.triggerNotificationSound();
     }
