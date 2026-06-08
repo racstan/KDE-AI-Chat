@@ -441,6 +441,7 @@ return ids;
 function requestJson(url, headers, onSuccess, onError) {
 let xhr = new XMLHttpRequest();
 xhr.open("GET", url, true);
+xhr.responseType = "text";
 for (let h in headers) {
 if (Object.prototype.hasOwnProperty.call(headers, h) && headers[h])
 xhr.setRequestHeader(h, headers[h]);
@@ -452,7 +453,8 @@ if (xhr.status >= 200 && xhr.status < 300) {
 try {
 onSuccess(JSON.parse(xhr.responseText));
 } catch (e) {
-onError("Invalid JSON from " + url);
+console.error("JSON parse error:", e.toString(), "Response start:", (xhr.responseText || "").substring(0, 100));
+onError("Invalid JSON: " + e.toString() + " (Len: " + (xhr.responseText || "").length + ") from " + url);
 }
 } else {
 onError("HTTP " + xhr.status + " from " + url);
@@ -527,7 +529,7 @@ openCodeProviderValueField.text = v || "";
 
 
 function setOpenCodeModelValue(v) {
-openCodeModelValueField.text = v || "";
+if (page) page.cfg_openCodeModel = v || "";
 }
 
 
@@ -570,7 +572,7 @@ return ids;
 function syncOpenCodeProviderSelection(providerId, preferredModel) {
 let selectedProvider = providerId || "";
 let candidateModels = openCodeProviderModelMap[selectedProvider] || [];
-let chosenModel = preferredModel || openCodeModelValueField.text || "";
+let chosenModel = preferredModel || (page ? page.cfg_openCodeModel : "") || "";
 if (candidateModels.indexOf(chosenModel) < 0)
 chosenModel = candidateModels.length > 0 ? candidateModels[0] : "";
 setOpenCodeProviderValue(selectedProvider);
@@ -584,13 +586,13 @@ if (pidx >= 0)
 openCodeProvidersCombo.currentIndex = pidx;
 }
 if (openCodeModelTextField) {
-// No manual synchronization needed for openCodeModelTextField as it binds to openCodeModelValueField.text
+// No manual synchronization needed for openCodeModelTextField as it binds to if (page) page.cfg_openCodeModel
 }
 }
 
 
 function refreshOpenCodeDiscovery() {
-probeOpenCodeProviders(openCodeUrlField.text);
+probeOpenCodeProviders((page ? page.cfg_openCodeUrl : ""));
 }
 
 
@@ -606,7 +608,7 @@ openCodeAutoStartTimer.restart();
 
 
 function checkAndAutoStartOpenCodeServer() {
-let url = openCodeServerRoot(openCodeUrlField.text) + "/config/providers";
+let url = openCodeServerRoot(page ? page.cfg_openCodeUrl : "") + "/config/providers";
 discoveryStatus = "Checking OpenCode server...";
 requestJson(url, {
 }, function(obj) {
@@ -651,7 +653,7 @@ return ;
 let selectedProvider = activeOpenCodeProvider();
 if (ids.indexOf(selectedProvider) < 0)
 selectedProvider = ids[0];
-let rememberedModel = (page && page.openCodeModelValueField) ? (page.openCodeModelValueField.text || "") : "";
+let rememberedModel = (page && page.openCodeModelValueField) ? ((page ? page.cfg_openCodeModel : "") || "") : "";
 let fallbackModel = defaults[selectedProvider] || "";
 syncOpenCodeProviderSelection(selectedProvider, rememberedModel || fallbackModel);
 if (page) page.discoveryStatus = "OpenCode server reachable. Loaded " + ids.length + " providers from /config/providers.";
@@ -670,13 +672,13 @@ updateFilteredOpenCodeModels("");
 discoveryStatus = "Select an OpenCode provider first.";
 return ;
 }
-syncOpenCodeProviderSelection(selectedProvider, openCodeModelValueField.text);
+syncOpenCodeProviderSelection(selectedProvider, (page ? page.cfg_openCodeModel : ""));
 discoveryStatus = openCodeModelCandidates.length > 0 ? ("Loaded " + openCodeModelCandidates.length + " models for OpenCode provider " + selectedProvider + ".") : ("OpenCode provider " + selectedProvider + " has no models listed by /config/providers.");
 }
 
 
 function refreshRunningOpenCodeSessions() {
-let baseUrl = openCodeUrlField.text;
+let baseUrl = (page ? page.cfg_openCodeUrl : "");
 let rootUrl = openCodeServerRoot(baseUrl);
 let urlSessions = rootUrl + "/session";
 let urlStatus = rootUrl + "/session/status";
@@ -718,7 +720,7 @@ if (page) { page.runningOpenCodeSessions = []; page.openCodeSessionsStatus = tra
 
 
 function killRunningOpenCodeSession(sessionId) {
-let baseUrl = openCodeUrlField.text;
+let baseUrl = (page ? page.cfg_openCodeUrl : "");
 // Refuse any session id that does not match the expected
 // character set. This blocks path traversal (`../`) and query
 // string injection (`?evil=…`).
@@ -1150,8 +1152,8 @@ plasmoid.configuration.showInteractiveGuides = showGuidesToggle.checked;
 plasmoid.configuration.autoStartOpenCodeServer = autoStartOpenCodeToggle.checked;
 plasmoid.configuration.useOpenCode = openCodeToggle.checked;
 plasmoid.configuration.playNotificationSound = playSoundToggle.checked;
-plasmoid.configuration.openCodeUrl = openCodeUrlField.text;
-plasmoid.configuration.openCodeModel = openCodeModelValueField.text;
+plasmoid.configuration.openCodeUrl = (page ? page.cfg_openCodeUrl : "");
+plasmoid.configuration.openCodeModel = (page ? page.cfg_openCodeModel : "");
 plasmoid.configuration.openCodeProvider = openCodeProviderValueField.text;
 plasmoid.configuration.openCodeStartCommand = openCodeStartCommandField.text;
 plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text;
@@ -1247,9 +1249,9 @@ languageCombo.currentIndex = 0;
 showGuidesToggle.checked = true;
 autoStartOpenCodeToggle.checked = false;
 openCodeToggle.checked = false;
-openCodeUrlField.text = "http://127.0.0.1:4096/v1";
+if (page) page.cfg_openCodeUrl = "http://127.0.0.1:4096/v1";
 openCodeProviderValueField.text = "";
-openCodeModelValueField.text = "";
+if (page) page.cfg_openCodeModel = "";
 openCodeStartCommandField.text = "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.";
 openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
 openCodeAutoKillToggle.checked = true;

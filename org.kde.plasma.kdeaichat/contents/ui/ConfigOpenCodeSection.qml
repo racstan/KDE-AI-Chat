@@ -146,14 +146,13 @@ Kirigami.FormLayout {
         }
     }
 
-    QQC2.Label {
+    QQC2.Button {
         visible: page ? (page.cfg_useOpenCode && page.openCodeProviderCandidates.length > 0) : false
         Kirigami.FormData.label: page ? page.translate("OpenCode models:") : "OpenCode models:"
-        Layout.fillWidth: true
-        Layout.maximumWidth: openCodeSection.fieldMaxWidth
-        text: page ? (page.openCodeModelCandidates.length > 0 ? page.openCodeModelCandidates.join(", ") : page.translate("None")) : ""
-        wrapMode: Text.Wrap
-        opacity: 0.8
+        text: page ? page.translate("Refresh models") : "Refresh models"
+        onClicked: {
+            if (page) page.probeOpenCodeModels(page.cfg_openCodeUrl, page.activeOpenCodeProvider());
+        }
     }
 
     QQC2.TextField {
