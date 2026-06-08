@@ -104,6 +104,18 @@ import "Security.js" as Sec
             anchors.margins: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
 
+            function isLatestUserMessage(index) {
+                return MainDatabase.isLatestUserMessage(index);
+            }
+
+            function hasSubsequentAssistantMessage(index) {
+                return MainDatabase.hasSubsequentAssistantMessage(index);
+            }
+
+            function regenerateReply(index, type) {
+                return MainDatabase.regenerateReply(index, type);
+            }
+
             RowLayout {
                 Layout.fillWidth: true
 
@@ -1343,7 +1355,7 @@ import "Security.js" as Sec
                                                         }
 
                                                         PC3.ToolButton {
-                                                            visible: modelData.role === "user" && root.isLatestUserMessage(index) && root.hasSubsequentAssistantMessage(index)
+                                                            visible: modelData.role === "user" && isLatestUserMessage(index) && hasSubsequentAssistantMessage(index)
                                                             icon.name: "view-refresh"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
@@ -1355,11 +1367,11 @@ import "Security.js" as Sec
                                                                 y: parent.height
                                                                 QQC2.MenuItem {
                                                                     text: "Generate shorter reply"
-                                                                    onTriggered: root.regenerateReply(index, "shorter")
+                                                                    onTriggered: regenerateReply(index, "shorter")
                                                                 }
                                                                 QQC2.MenuItem {
                                                                     text: "Generate bigger reply"
-                                                                    onTriggered: root.regenerateReply(index, "longer")
+                                                                    onTriggered: regenerateReply(index, "longer")
                                                                 }
                                                             }
                                                         }
