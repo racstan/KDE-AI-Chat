@@ -580,13 +580,10 @@ openCodeModelCandidates = candidateModels;
 openCodeModelSearch = "";
 updateFilteredOpenCodeModels("");
 setOpenCodeModelValue(chosenModel);
-if (openCodeProvidersCombo) {
+if (page && page.openCodeProviderBox) {
 let pidx = openCodeProviderCandidates.indexOf(selectedProvider);
 if (pidx >= 0)
-openCodeProvidersCombo.currentIndex = pidx;
-}
-if (openCodeModelTextField) {
-// No manual synchronization needed for openCodeModelTextField as it binds to if (page) page.cfg_openCodeModel
+page.openCodeProviderBox.currentIndex = pidx;
 }
 }
 

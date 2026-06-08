@@ -17,6 +17,7 @@ Kirigami.FormLayout {
 
     // Expose fields via alias for configuration bindings in the parent KCM
     property alias openCodeUrlField: openCodeUrlField
+    property alias openCodeProviderBox: openCodeProviderBox
     property alias autoStartOpenCodeToggle: autoStartOpenCodeToggle
     property alias openCodeStartCommandField: openCodeStartCommandField
     property alias openCodeStopCommandField: openCodeStopCommandField

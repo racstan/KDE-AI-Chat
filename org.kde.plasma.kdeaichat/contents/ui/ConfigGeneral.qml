@@ -130,6 +130,23 @@ QQC2.ScrollView {
     property alias cfg_executeMissedSchedules: advancedSection.executeMissedSchedules
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
+    property string cfg_chatSessionsJson: "[]"
+    property int cfg_customPopupWidth: 0
+    property int cfg_customPopupHeight: 0
+    property string cfg_lastSessionId: ""
+    property string cfg_openRouterReferer: ""
+    property string cfg_openRouterTitle: ""
+    property string cfg_keyToggleSearch: ""
+    property string cfg_keyNewChat: ""
+    property string cfg_keyToggleHistory: ""
+    property string cfg_keySettings: ""
+    property string cfg_keyFocusInput: ""
+    property string cfg_keyClearInput: ""
+    property string cfg_keyToggleSearchSidebar: ""
+    property string cfg_keyNextSession: ""
+    property string cfg_keyPrevSession: ""
+    property string cfg_keyRefresh: ""
+    property string cfg_keyCopyLastReply: ""
     property string keyringStatus: ""
 
     // ── Layout metrics exposed so section files can read them via `page` ──
@@ -201,6 +218,7 @@ QQC2.ScrollView {
     readonly property alias walletNameField: generalSection.walletNameField
     readonly property alias providerBox: providersSection.providerBox
     readonly property alias openCodeProviderValueField: openCodeSection.openCodeProviderValueField
+    readonly property alias openCodeProviderBox: openCodeSection.openCodeProviderBox
     readonly property alias openCodeModelValueField: openCodeSection.openCodeModelValueField
     readonly property alias openCodeUrlField: openCodeSection.openCodeUrlField
     readonly property alias openCodeStartCommandField: openCodeSection.openCodeStartCommandField
@@ -213,6 +231,10 @@ QQC2.ScrollView {
     readonly property alias playSoundToggle: generalSection.playSoundToggle
     readonly property alias storageModeCombo: generalSection.storageModeCombo
     readonly property alias appearanceModeCombo: generalSection.appearanceModeCombo
+
+    // DataSources
+    readonly property alias utilityDs: utilityDs
+    readonly property alias keyringDs: keyringDs
     readonly property alias appDisplayNameField: advancedSection.appDisplayNameField
     readonly property alias systemPromptArea: advancedSection.systemPromptArea
     readonly property alias memoryEnabledToggle: advancedSection.memoryEnabledToggle
@@ -744,6 +766,7 @@ QQC2.ScrollView {
         }
     }
 
+    /*
     Connections {
         target: plasmoid.configuration
         function onPreselectedChatIdChanged() {
@@ -754,6 +777,7 @@ QQC2.ScrollView {
             }
         }
     }
+    */
     Component.onDestruction: {
         saveGeneralSettingsOnly();
         // cfg_ aliases are auto-saved by KCM on OK/Apply — no async work needed here.

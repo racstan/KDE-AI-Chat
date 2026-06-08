@@ -20,7 +20,7 @@ import org.kde.plasma.plasma5support as P5Support
         }
 
         function getChatsList() {
-            let raw = plasmoid.configuration.chatSessionsJson || "[]";
+            let raw = (typeof page !== "undefined" && page && page.cfg_chatSessionsJson) ? page.cfg_chatSessionsJson : "[]";
             try {
                 let arr = JSON.parse(raw);
                 let list = [];
@@ -168,8 +168,8 @@ import org.kde.plasma.plasma5support as P5Support
 
         title: (editingIndex === -2) ? translate("Create Schedule") : ((editingIndex >= 0) ? translate("Edit Schedule") : translate("Schedules"))
         modal: true
-        width: Math.min(parent.width * 0.95, Kirigami.Units.gridUnit * 50)
-        height: Math.min(parent.height * 0.92, Kirigami.Units.gridUnit * 46)
+        width: Math.min((parent ? parent.width : page.width) * 0.95, Kirigami.Units.gridUnit * 50)
+        height: Math.min((parent ? parent.height : page.height) * 0.92, Kirigami.Units.gridUnit * 46)
         standardButtons: QQC2.Dialog.NoButton
         onOpened: {
             schedLoadSchedules();
