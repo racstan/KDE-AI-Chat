@@ -36,6 +36,8 @@ PlasmoidItem {
 
     id: root
 
+    property color themeTextColor: Kirigami.Theme.textColor
+    property color themeHighlightColor: Kirigami.Theme.highlightColor
     property bool debugMode: false
     function debugLog() {
         return MainDatabase.debugLog();

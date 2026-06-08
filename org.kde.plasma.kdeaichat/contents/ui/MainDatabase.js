@@ -1,9 +1,3 @@
-.import "Security.js" as Sec
-.import "SessionManager.js" as SessionManager
-.import "ProviderService.js" as ProviderService
-.import "WalletService.js" as WalletService
-.import "translations.js" as Translations
-.import "MarkdownRenderer.js" as MarkdownRenderer
 // MainDatabase.js - Extracted logic for Main
 
 function debugLog() {
@@ -80,8 +74,7 @@ return v < 10 ? ("0" + v) : String(v);
 
 
 function nowTime(ts) {
-let realTs = (ts === undefined && typeof root !== "object") ? root : ts;
-let d = realTs ? new Date(realTs) : new Date();
+let d = ts ? new Date(ts) : new Date();
 return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
 }
 
@@ -277,34 +270,28 @@ customStorageDs.connectSource(writeCmd + " #custom-history-write-" + Date.now())
 }
 
 
-function sortSessionsByUpdated(arg1) {
-    let r = arg1;
-    if (r === undefined) {
-        r = root;
-    }
-    if (!r || !r.sessions)
-        return;
-    // Audit 5.3: skip the O(n log n) sort + array reassignment cascade
-    // when the list is already in canonical order. The reassignment
-    // was the dominant cost during streaming because it invalidated
-    // all sidebar binding caches on every save.
-    if (SessionManager.isSessionOrderCorrect(r.sessions))
-        return ;
-    let copy = SessionManager.sortSessionsByUpdated(r.sessions);
-    r.sessions = copy;
+function sortSessionsByUpdated() {
+// Audit 5.3: skip the O(n log n) sort + array reassignment cascade
+// when the list is already in canonical order. The reassignment
+// was the dominant cost during streaming because it invalidated
+// all sidebar binding caches on every save.
+if (SessionManager.isSessionOrderCorrect(root.sessions))
+return ;
+let copy = SessionManager.sortSessionsByUpdated(root.sessions);
+root.sessions = copy;
 }
 
 
 function historySessionTint(sessionData) {
 if (!sessionData)
-return Qt.rgba(root.Kirigami.Theme.textColor.r, root.Kirigami.Theme.textColor.g, root.Kirigami.Theme.textColor.b, 0.05);
+return Qt.rgba(root.themeTextColor.r, root.themeTextColor.g, root.themeTextColor.b, 0.05);
 if (sessionData.value === root.currentSessionId && sessionData.source === "opencode")
 return Qt.rgba(0.2, 0.48, 0.92, 0.22);
 if (sessionData.source === "opencode")
 return Qt.rgba(0.2, 0.48, 0.92, 0.1);
 if (sessionData.value === root.currentSessionId)
-return Qt.rgba(root.Kirigami.Theme.highlightColor.r, root.Kirigami.Theme.highlightColor.g, root.Kirigami.Theme.highlightColor.b, 0.18);
-return Qt.rgba(root.Kirigami.Theme.textColor.r, root.Kirigami.Theme.textColor.g, root.Kirigami.Theme.textColor.b, 0.05);
+return Qt.rgba(root.themeHighlightColor.r, root.themeHighlightColor.g, root.themeHighlightColor.b, 0.18);
+return Qt.rgba(root.themeTextColor.r, root.themeTextColor.g, root.themeTextColor.b, 0.05);
 }
 
 
@@ -319,20 +306,12 @@ return parts.join(" · ");
 }
 
 
-function sessionIndexById(arg1, arg2) {
-    let r = arg1;
-    let sId = arg2;
-    if (sId === undefined) {
-        sId = arg1;
-        r = root;
-    }
-    if (!r || !r.sessions)
-        return -1;
-    for (let i = 0; i < r.sessions.length; i++) {
-        if (r.sessions[i].value === sId)
-            return i;
-    }
-    return -1;
+function sessionIndexById(sessionId) {
+for (let i = 0; i < root.sessions.length; i++) {
+if (root.sessions[i].value === sessionId)
+return i;
+}
+return -1;
 }
 
 
@@ -2271,28 +2250,6 @@ respondToQuestion(questionId, customText, false);
 
 
 function respondToQuestion(questionId, answerValue, isReject) {
-let sessionId = root.openCodeActiveSessionId;
-if (!sessionId) {
-let idx = sessionIndexById(root.currentSessionId);
-if (idx >= 0)
-sessionId = root.sessions[idx].openCodeSessionId || "";
-}
-if (!questionId)
-return ;
-let copy = root.messages.slice();
-for (let i = 0; i < copy.length; i++) {
-if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-copy[i].status = isReject ? "dismissing..." : "answering...";
-break;
-}
-}
-root.messages = copy;
-let xhr = new XMLHttpRequest();
-let action = isReject ? "reject" : "reply";
-let urls = [openCodeBaseUrl() + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/questions/" + questionId + "/" + action];
-let currentUrlIdx = 0;
-
-
 function tryNextUrl() {
 if (currentUrlIdx >= urls.length) {
 let exhaustedMsgs = root.messages.slice();
@@ -2360,6 +2317,26 @@ xhr.send(JSON.stringify({
 tryNextUrl();
 }
 }
+let sessionId = root.openCodeActiveSessionId;
+if (!sessionId) {
+let idx = sessionIndexById(root.currentSessionId);
+if (idx >= 0)
+sessionId = root.sessions[idx].openCodeSessionId || "";
+}
+if (!questionId)
+return ;
+let copy = root.messages.slice();
+for (let i = 0; i < copy.length; i++) {
+if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
+copy[i].status = isReject ? "dismissing..." : "answering...";
+break;
+}
+}
+root.messages = copy;
+let xhr = new XMLHttpRequest();
+let action = isReject ? "reject" : "reply";
+let urls = [openCodeBaseUrl() + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/question/" + questionId + "/" + action, openCodeBaseUrl() + "/session/" + sessionId + "/questions/" + questionId + "/" + action];
+let currentUrlIdx = 0;
 tryNextUrl();
 }
 
