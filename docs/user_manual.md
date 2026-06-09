@@ -14,9 +14,11 @@ This manual provides an in-depth operations guide, walkthroughs of every feature
 5. [OpenCode Developer Bridge Guide](#5-opencode-developer-bridge-guide)
 6. [Scheduled AI Prompts](#6-scheduled-ai-prompts)
 7. [Managing Conversations & Chat History](#7-managing-conversations--chat-history)
-8. [Chat Export](#8-chat-export)
-9. [File Attachments](#9-file-attachments)
-10. [Frequently Asked Questions (FAQ)](#10-frequently-asked-questions-faq)
+8. [Chat Search & Keyboard Shortcuts](#8-chat-search--keyboard-shortcuts)
+9. [Response Actions: Regenerate, Quote & Fork](#9-response-actions-regenerate-quote--fork)
+10. [Chat Export](#10-chat-export)
+11. [File Attachments](#11-file-attachments)
+12. [Frequently Asked Questions (FAQ)](#12-frequently-asked-questions-faq)
 
 ---
 
@@ -221,31 +223,54 @@ Conversation threads are tracked in the persistent session panel.
 * **Archiving Threads**: Move older conversations into a safe secondary filter list to keep your sidebar active and uncluttered.
 * **Deleting Threads**: Click the trashcan icon to delete the thread and its stored data.
 * **Visual Identifiers**: OpenCode chats are rendered with distinct system badges to instantly separate development workspaces from standard AI conversations.
+* **Auto-Renaming**: New conversations are automatically titled based on the first user message, eliminating generic "New Chat" names.
 * **Branching**: Click the **Edit** button on any older user message to automatically delete all subsequent messages and start a fresh branch from that point.
+* **Sidebar Search & Sort**: Use the search field in the session sidebar to filter conversations by title. Sort options include by date, title, or unread count. Conversations are automatically categorized (Today, Yesterday, Older, Forked, OpenCode).
 
 ---
 
-## 8. Chat Search
+## 8. Chat Search & Keyboard Shortcuts
 
+### In-Chat Message Search
 Search across the active conversation to find specific messages.
 
-### How to Search
 1. Press **Ctrl+F** (or click the search icon in the toolbar) to open the search bar.
 2. Type your query — matches are highlighted in the chat as you type.
 3. Use **Enter** / **Shift+Enter** (or the up/down arrow buttons) to jump between matches.
 4. Press **Escape** or click the close button to dismiss the search bar.
 
-### Keyboard Shortcuts
+### Default Keyboard Shortcuts
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+F` | Toggle search bar |
 | `Enter` | Next match |
 | `Shift+Enter` | Previous match |
 | `Escape` | Close search / stop streaming |
+| `Ctrl+L` | New chat |
+| `Ctrl+E` | Export conversation |
+| `Ctrl+Shift+R` | Regenerate last response |
+| `Ctrl+Shift+Up` | Jump to previous user message |
+
+> **Tip**: All shortcuts are customizable! Go to **Settings → Shortcuts** to remap any key binding.
 
 ---
 
-## 9. Chat Export
+## 9. Response Actions: Regenerate, Quote & Fork
+
+### Regenerate Shorter / Longer
+Every assistant response includes action buttons for regenerating:
+- **Shorter**: Re-requests the response with reduced `max_tokens` for a more concise answer.
+- **Longer**: Re-requests the response with increased `max_tokens` for a more detailed answer.
+
+### Quote & Reply
+Hover any message (user or assistant) and click the **Quote** button. The quoted text appears as a styled blockquote in the input area. Type your reply below and send — the AI sees both the quoted context and your new message.
+
+### Conversation Forking
+Click the **Edit** (pencil) button on any older user message to fork the conversation. All messages after that point are removed, and the edited message is sent as a new prompt, creating a clean branch.
+
+---
+
+## 10. Chat Export
 
 Export any conversation to a file directly from the chat toolbar.
 
@@ -262,7 +287,7 @@ Export any conversation to a file directly from the chat toolbar.
 
 ---
 
-## 10. File Attachments
+## 11. File Attachments
 
 ### Supported Formats
 - **PDF** — requires `pdftotext` (poppler-utils)
@@ -280,7 +305,7 @@ Export any conversation to a file directly from the chat toolbar.
 
 ---
 
-## 11. Frequently Asked Questions (FAQ)
+## 12. Frequently Asked Questions (FAQ)
 
 ### Q: Why does the widget say "Thinking" and hang on OpenCode queries?
 **A**: This is usually caused by the local OpenCode server dropping connection mid-stream. Verify that the server is active by navigating to the OpenCode settings tab and clicking **Restart Server**. You can also check the server log: `cat "${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"`.

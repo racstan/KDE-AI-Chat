@@ -5,6 +5,57 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-06-09
+
+### Added
+- **♻️ Regenerate Shorter / Longer Reply**: Added per-message regenerate buttons offering shorter or longer rewrites of any AI response. Each regeneration creates a fresh API request with adjusted `max_tokens`.
+- **💬 Quote / Reply Feature**: Added inline quote-and-reply — hover any message, click the quote button, and the quoted text appears in the input area as a styled quote block before your reply.
+- **🔍 Session Sidebar Search, Sort & Categories**: Revamped the session sidebar with real-time search filtering, sort modes (by date, title, unread count), and automatic categorization (today, yesterday, older, forked, OpenCode).
+- **⌨️ Customizable Keyboard Shortcuts**: Added a dedicated **Shortcuts** settings page where users can remap every key binding. Pre-configured defaults: `Ctrl+F` (search), `Ctrl+L` (new chat), `Ctrl+E` (export), `Ctrl+Shift+R` (regenerate), and more.
+- **🔎 In-Chat Message Search**: Press `Ctrl+F` to open a search bar that highlights matching text in the active conversation. Navigate matches with Enter/Shift+Enter.
+- **⏱️ OpenCode Auto-Kill**: Added configurable idle timeout and auto-kill for the OpenCode server. The server automatically stops after a set period of inactivity to save memory, and restarts on the next message.
+- **🏷️ Auto-Rename New Chats**: New conversations are automatically assigned descriptive titles based on the first user message, eliminating "New Chat" clutter in the sidebar.
+- **🖼️ Smooth Streaming Footer**: Streaming responses now render inside a dedicated footer component to prevent full list-view model resets on every token, eliminating flicker and improving performance.
+- **✅ Context Compaction Confirmation**: A confirmation prompt now appears before context compaction runs, giving users control over when older messages are summarized.
+- **⬆️ OpenCode Auto-Remove Startup Messages**: OpenCode startup system messages are automatically removed after 1 minute to keep the conversation clean.
+
+### Fixed
+- **Critical: Missing `root` proxy functions**: Added missing `flushStreamingBuffer()` and `copyToClipboard()` proxy functions to `main.qml` that caused AI responses to never appear (P1-A) and copy to silently fail (P1-B). See audit.md/audit2.md/audit3.md.
+- **Unqualified `base64Encode`/`getHelperPath` calls**: Prefixed 6 call sites in `FullRepresentation.qml` with `root.` to prevent fragile QML scope resolution (P3-A/B).
+- **Wrong `copyToClipboard` signature**: Fixed `MainDataSources.qml` wrapper that passed an extra `root` argument (P7-A).
+- **RequestDeduplicator reference error**: Resolved `ReferenceError` causing message send failures.
+- **Settings UI crashes**: Fixed critical crashes in settings panel and memory load failures.
+- **OpenCode discovery reference errors**: Resolved OpenCode server discovery chain crashes.
+- **OpenCode UI layout restored**: Restored OpenCode mode UI layout from v1.3.0 baseline.
+- **JSON payload parsing**: Fixed JSON parsing in OpenCode payload handling.
+- **TDZ (Temporal Dead Zone) variables**: Resolved critical parsing failure caused by TDZ variables in JS modules.
+- **Regenerate button visibility**: Made regenerate button visible even when no AI response exists yet.
+- **Kirigami theme access**: Fixed theme property access in JS modules after refactoring.
+- **Syntax errors in MainDatabase.js**: Resolved multiple syntax errors that broke the widget after modular refactoring.
+- **KWallet spam on startup**: Eliminated excessive KWallet prompts during widget initialization.
+- **Active sessions filter**: Fixed filter logic in session sidebar.
+- **Keyboard shortcut category naming**: Renamed custom shortcut category to "Widget Shortcuts" to avoid collision with global Plasma settings.
+- **QML scope shadowing**: Fixed rendering bug caused by variable scope shadowing in QML.
+- **Translation dictionary regression**: Reverted translation dictionaries from `let` to `var` to prevent `QtObject::include` crash.
+- **OpenCode help text glitch**: Fixed server help text display in settings.
+
+### Refactored
+- **Modular JS/QML architecture**: Split `main.qml` (1800+ lines) and `ConfigGeneral.qml` (1400+ lines) into focused modules: `MainDatabase.js`, `MainNetwork.js`, `MainOpenCode.js`, `MainScheduler.js`, `MainDataSources.qml`, `ConfigGeneralLogic.js`, `ConfigGeneralSection.qml`, `ConfigAdvancedSection.qml`, `ConfigKeys1.qml`, `ConfigKeys2.qml`, `ConfigShortcuts.qml`.
+- **Session delegate cleanup**: Refactored `SessionSidebar.qml` delegate using `RowLayout`/`ColumnLayout` for a cleaner, less cluttered UI.
+- **Config form layout fix**: Un-nested `Kirigami.FormLayout` sections — each section is now a sibling `FormLayout` in `zoomHost`, fixing layout stretch issues.
+- **Inline exec(base64) removal**: Eliminated inline shell script execution for improved security and portability across distributions.
+- **Security audit remediation**:
+  - Pass 1: Default key storage security hardening, `console.log` → `debugLog` migration.
+  - Pass 2: Hardcoded developer path removal, `findSessionIndex` reference fix.
+  - Pass 3: Performance optimization, test coverage improvements.
+  - Pass 4: Batch streaming token updates to mitigate desktop freezes.
+  - Pass 5 & 6: Variable conversion, test expansion, refactoring.
+  - Pass 7: Rendering and URL caching for performance optimization.
+  - Pass 8: Context compaction confirmation decoupled from scheduling.
+  - Final pass: Defense-in-depth fixes and temp file leak resolution.
+
+---
+
 ## [1.3.0] - 2026-06-03
 
 ### Added

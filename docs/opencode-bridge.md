@@ -58,6 +58,15 @@ nohup opencode serve --port 4096 >"$logf" 2>&1 &
 
 You can customize the start and stop commands in the settings panel.
 
+### 4. Auto-Kill Configuration
+
+Enable **Auto-kill session** in settings to stop the OpenCode server after a configurable period of inactivity. When the server auto-kills:
+- The server process is terminated to free system resources
+- The widget detects the idle state and shows a "Server stopped" badge
+- The server automatically restarts when you send a new message
+
+This is useful for saving memory when the widget is open but not actively used.
+
 ## Usage
 
 ### Basic Chat
@@ -89,6 +98,7 @@ The bridge supports several interactive features:
 The bridge maintains a mapping between widget chat sessions and OpenCode server sessions. Each chat session gets a corresponding remote session on the OpenCode server. This enables:
 
 - History persistence across widget reloads
+- Auto-naming of new conversations based on the first message
 - Session export via `/export` (synced from OpenCode server)
 - Forking conversation branches
 

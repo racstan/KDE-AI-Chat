@@ -363,9 +363,13 @@ Follow the steps below for each provider you want to use.
 - Click **Copy** button on any assistant message
 - Full response is copied to clipboard
 
-**Regenerate Response:**
-- Click **Regenerate** button
-- Resends the last user message and gets a fresh AI response
+**Regenerate Shorter / Longer:**
+- Click **Shorter** or **Longer** on any assistant response for a rewritten version
+- Shorter reduces `max_tokens` for concise answers; Longer increases them for detail
+
+**Quote & Reply:**
+- Hover any message and click **Quote** to insert a styled blockquote into the input
+- Type your reply below and send — the AI sees both the quoted context and new message
 
 **Edit Message:**
 - Click the **Edit** (pencil) button on any user message
@@ -377,7 +381,19 @@ Follow the steps below for each provider you want to use.
 
 ---
 
-### 6. Chat Export
+### 6. Chat Search & Keyboard Shortcuts
+
+**In-Chat Message Search:**
+- Press **Ctrl+F** to open a search bar that highlights matching text in the active conversation
+- Navigate matches with **Enter** / **Shift+Enter**
+
+**Customizable Shortcuts:**
+- All keyboard shortcuts can be remapped in **Settings → Shortcuts**
+- Pre-configured defaults: `Ctrl+F` (search), `Ctrl+L` (new chat), `Ctrl+E` (export), `Ctrl+Shift+R` (regenerate)
+
+---
+
+### 7. Chat Export
 
 **How to export:**
 1. Click the **Export** button (download icon) in the chat toolbar
@@ -387,7 +403,7 @@ Follow the steps below for each provider you want to use.
 
 ---
 
-### 7. Scheduled Prompts
+### 8. Scheduled Prompts
 
 **What it does:**
 - Automate AI prompts at specific times or intervals using the built-in scheduler
@@ -403,23 +419,25 @@ See [scheduler-usage.md](scheduler-usage.md) for full scheduler documentation.
 
 ---
 
-### 8. OpenCode Developer Bridge
+### 9. OpenCode Developer Bridge
 
 **What it does:**
 - Routes chat through a local [OpenCode](https://opencode.ai/) server for AI-powered development tasks
 - Supports tool invocation, file operations, bash execution, and interactive prompts
+- Auto-kill feature stops the OpenCode server after a configurable inactivity period to save memory
 
 **How to enable:**
 1. Install OpenCode: https://opencode.ai/
 2. Open Settings → **OpenCode** tab → toggle **OpenCode Mode** on
 3. Set the server URL (default: `http://127.0.0.1:4096/v1`)
 4. Click **Start OpenCode Server** or enable auto-start
+5. (Optional) Enable **Auto-kill session** and set an inactivity delay to stop the server when idle
 
 See [opencode-bridge.md](opencode-bridge.md) for full bridge documentation.
 
 ---
 
-### 9. KWallet / API Key Storage
+### 10. KWallet / API Key Storage
 
 **What it does:**
 - API keys can be stored using **KDE Wallet (KWallet)** via DBus, in a **plain config file**, or kept **session-only** in memory.
@@ -441,7 +459,7 @@ qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
 
 ---
 
-### 10. Background Notifications
+### 11. Background Notifications
 
 **What it does:**
 - When a response completes, a desktop notification is sent (if enabled)
@@ -455,6 +473,19 @@ qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
 ---
 
 ## Advanced Configuration
+
+### Session Sidebar
+
+**What it does:**
+- Search, sort, and filter conversations directly from the sidebar
+- Conversations auto-categorize into Today, Yesterday, Older, Forked, and OpenCode
+- Sort by date, title, or unread count
+- New chats are auto-named based on the first user message
+
+**How to use:**
+1. Use the **search field** at the top of the sidebar to filter by title
+2. Click the **sort dropdown** to change the sort order
+3. View unread message badges next to conversations with new responses
 
 ### Custom API Endpoints
 
