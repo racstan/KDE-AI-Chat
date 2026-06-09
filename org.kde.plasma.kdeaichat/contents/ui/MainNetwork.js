@@ -359,120 +359,81 @@ if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeade
 xhr.setRequestHeader(headerName, extraHeaders[headerName]);
 }
 }
-xhr.timeout = 60000;
+xhr.timeout = 90000;
 xhr.ontimeout = function() {
 if (errorHandled)
 return ;
 errorHandled = true;
-root.loading = false;
-root.activeXhr = null;
-pushErrorMessage("Request timed out after 60 seconds.");
-processNextQueuedMessage();
+finishOpenCodeRequest();
+pushErrorMessage("Request timed out after 90 seconds.");
 };
 } catch (setupError) {
-root.loading = false;
-root.activeXhr = null;
 root.reqDedupRelease(dedupKey);
 pushErrorMessage("Failed to start request: " + setupError);
 return ;
 }
 root.loading = true;
 root.activeXhr = xhr;
-// Non-streaming: wait for the complete response, then display it at once.
-// This is intentional — streaming caused the QML engine to re-render on every
-// individual token, saturating the main thread and freezing the KDE desktop.
+beginAssistantStreaming(modelLabel || model || "");
+
+let offset = 0;
+let buffer = "";
 xhr.onreadystatechange = function() {
-if (xhr.readyState !== XMLHttpRequest.DONE)
+if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
 return ;
-root.loading = false;
-root.activeXhr = null;
-root.reqDedupRelease(dedupKey);
-if (xhr.status < 200 || xhr.status >= 300) {
-if (errorHandled)
-return ;
+let delta = xhr.responseText.slice(offset);
+offset = xhr.responseText.length;
+buffer += delta;
+let lines = buffer.split("\n");
+buffer = lines.pop();
+for (let i = 0; i < lines.length; i++) {
+let line = lines[i].trim();
+if (!line || line.indexOf("data:") !== 0)
+continue;
+let data = line.slice(5).trim();
+if (data === "[DONE]") {
 errorHandled = true;
-let err = "Request to " + Sec.scrubSecrets(url) + " failed";
-if (xhr.status)
-err += " (HTTP " + xhr.status + ")";
-try {
-let eobj = JSON.parse(xhr.responseText);
-if (eobj.error) {
-if (typeof eobj.error === "string") {
-err += " | " + Sec.scrubSecrets(eobj.error);
-} else {
-if (eobj.error.message)
-err = "API Error (" + xhr.status + "): " + Sec.scrubSecrets(eobj.error.message);
-if (eobj.error.metadata) {
-try {
-err += " | " + Sec.scrubSecrets(JSON.stringify(eobj.error.metadata));
-} catch (ex) {
-err += " | " + Sec.scrubSecrets(String(eobj.error.metadata));
-}
-}
-}
-} else if (eobj.detail)
-err += " | " + Sec.scrubSecrets(eobj.detail);
-else if (eobj.message)
-err += " | " + Sec.scrubSecrets(eobj.message);
-} catch (e2) {
-}
-pushErrorMessage(err);
-processNextQueuedMessage();
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
 return ;
 }
 try {
-let parsed = JSON.parse(xhr.responseText);
-let finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
-if (finalText !== "") {
-let doneTs = Date.now();
-let msgObj = {
-"role": "assistant",
-"content": finalText,
-"time": nowTime(doneTs),
-"at": doneTs,
-"model": modelLabel || model || ""
-};
-if (parsed.usage)
-msgObj.tokens = {
-"input": parsed.usage.prompt_tokens || 0,
-"output": parsed.usage.completion_tokens || 0
-};
-root.messages = root.messages.concat([msgObj]);
-if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
-} else {
-pushErrorMessage("The model returned an empty response.");
+let parsed = JSON.parse(data);
+let content = (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) || "";
+if (content) {
+updateAssistantStreamingContent(content, modelLabel || model);
 }
-} catch (parseError) {
-pushErrorMessage("Failed to parse response: " + parseError);
+} catch (e) {
 }
-triggerNotificationSound();
-saveCurrentSessionState(true);
-Qt.callLater(function() {
-checkAndAutoCompact();
-});
-processNextQueuedMessage();
+}
+if (xhr.readyState === XMLHttpRequest.DONE) {
+root.reqDedupRelease(dedupKey);
+if (!errorHandled) {
+if (xhr.status < 200 || xhr.status >= 300) {
+let err = "Request to " + Sec.scrubSecrets(url) + " failed (HTTP " + xhr.status + ")";
+pushErrorMessage(err);
+}
+finishOpenCodeRequest();
+}
+}
 };
 xhr.onerror = function() {
 if (errorHandled)
 return ;
 errorHandled = true;
-root.loading = false;
-root.activeXhr = null;
 root.reqDedupRelease(dedupKey);
-pushErrorMessage("Could not reach " + Sec.scrubSecrets(url) + ". Check the server URL and whether that endpoint accepts API requests.");
-processNextQueuedMessage();
+finishOpenCodeRequest();
+pushErrorMessage("Could not reach " + Sec.scrubSecrets(url));
 };
 try {
 xhr.send(JSON.stringify({
 "model": model,
 "messages": buildOpenAICompatPayload(),
-"stream": false
+"stream": true
 }));
 } catch (sendError) {
-root.loading = false;
-root.activeXhr = null;
 root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
 pushErrorMessage("Failed to send request: " + sendError);
 }
 }
@@ -500,95 +461,72 @@ return ;
 }
 root.loading = true;
 root.activeXhr = xhr;
+beginAssistantStreaming(model || "");
 xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
 xhr.setRequestHeader("Content-Type", "application/json");
 xhr.setRequestHeader("x-api-key", apiKey);
 xhr.setRequestHeader("anthropic-version", "2023-06-01");
-xhr.timeout = 60000;
+xhr.timeout = 90000;
 xhr.ontimeout = function() {
 if (errorHandled)
 return ;
 errorHandled = true;
-root.loading = false;
-root.activeXhr = null;
+finishOpenCodeRequest();
 root.reqDedupRelease(dedupKey);
-pushErrorMessage("Request timed out after 60 seconds.");
-processNextQueuedMessage();
+pushErrorMessage("Request timed out after 90 seconds.");
 };
+let offset = 0;
+let buffer = "";
 xhr.onreadystatechange = function() {
-if (xhr.readyState !== XMLHttpRequest.DONE)
+if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
 return ;
-root.loading = false;
-root.activeXhr = null;
+let delta = xhr.responseText.slice(offset);
+offset = xhr.responseText.length;
+buffer += delta;
+let lines = buffer.split("\n");
+buffer = lines.pop();
+for (let i = 0; i < lines.length; i++) {
+let line = lines[i].trim();
+if (!line || line.indexOf("data:") !== 0)
+continue;
+let dataStr = line.slice(5).trim();
+try {
+let data = JSON.parse(dataStr);
+if (data.type === "content_block_delta" && data.delta && data.delta.text) {
+updateAssistantStreamingContent(data.delta.text, model);
+} else if (data.type === "message_stop") {
+errorHandled = true;
 root.reqDedupRelease(dedupKey);
-if (xhr.status >= 200 && xhr.status < 300) {
-triggerNotificationSound();
-try {
-let obj = JSON.parse(xhr.responseText);
-let text = "";
-if (obj.content && obj.content.length) {
-for (let i = 0; i < obj.content.length; i++) {
-if (obj.content[i].type === "text")
-text += obj.content[i].text;
+finishOpenCodeRequest();
+return ;
 }
-}
-let ts = Date.now();
-let msgObj = {
-"role": "assistant",
-"content": text || "(empty response)",
-"time": nowTime(ts),
-"at": ts,
-"model": model || ""
-};
-if (obj.usage)
-msgObj.tokens = {
-"input": obj.usage.input_tokens || 0,
-"output": obj.usage.output_tokens || 0
-};
-root.messages = root.messages.concat([msgObj]);
 } catch (e) {
-pushErrorMessage("Failed to parse Anthropic response");
-}
-} else {
-let err = "Anthropic HTTP " + xhr.status;
-try {
-let eobj = JSON.parse(xhr.responseText);
-if (eobj.error) {
-if (typeof eobj.error === "string") {
-err += " | " + Sec.scrubSecrets(eobj.error);
-} else {
-if (eobj.error.message)
-err = "Anthropic Error (" + xhr.status + "): " + Sec.scrubSecrets(eobj.error.message);
-if (eobj.error.type)
-err = "[" + eobj.error.type + "] " + err;
 }
 }
-} catch (e2) {
+if (xhr.readyState === XMLHttpRequest.DONE) {
+root.reqDedupRelease(dedupKey);
+if (!errorHandled) {
+if (xhr.status < 200 || xhr.status >= 300) {
+pushErrorMessage("Anthropic request failed (HTTP " + xhr.status + ")");
 }
-pushErrorMessage(err);
+finishOpenCodeRequest();
 }
-scrollToBottom();
-saveCurrentSessionState(true);
-Qt.callLater(function() {
-checkAndAutoCompact();
-});
-processNextQueuedMessage();
+}
 };
 xhr.onerror = function() {
 if (errorHandled)
 return ;
 errorHandled = true;
-root.loading = false;
-root.activeXhr = null;
 root.reqDedupRelease(dedupKey);
-pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages. Check network access and API configuration.");
-processNextQueuedMessage();
+finishOpenCodeRequest();
+pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages.");
 };
 xhr.send(JSON.stringify({
 "model": model,
 "max_tokens": 1024,
 "system": buildEffectiveSystemPrompt(),
-"messages": buildAnthropicPayload()
+"messages": buildAnthropicPayload(),
+"stream": true
 }));
 }
 

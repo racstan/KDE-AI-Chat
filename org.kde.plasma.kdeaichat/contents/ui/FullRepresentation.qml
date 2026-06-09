@@ -585,6 +585,89 @@ import "Security.js" as Sec
                                     id: verticalScrollBar
                                 }
 
+                                footer: Item {
+                                    width: msgList.width
+                                    height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
+                                    visible: root.streamingResponse && root.streamingContent !== ""
+
+                                    Rectangle {
+                                        id: footerBubble
+                                        width: Math.min(msgList.width * 0.76, 560)
+                                        implicitHeight: footerCol.implicitHeight + Kirigami.Units.largeSpacing
+                                        radius: 10
+                                        color: Kirigami.Theme.backgroundColor
+                                        border.width: 1
+                                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
+                                        anchors.left: parent.left
+                                        anchors.margins: Kirigami.Units.smallSpacing
+
+                                        Column {
+                                            id: footerCol
+                                            width: parent.width - Kirigami.Units.largeSpacing
+                                            x: Kirigami.Units.smallSpacing + Kirigami.Units.smallSpacing / 2
+                                            y: Kirigami.Units.smallSpacing + Kirigami.Units.smallSpacing / 2
+                                            spacing: Kirigami.Units.smallSpacing
+
+                                            Row {
+                                                width: parent.width
+                                                spacing: Kirigami.Units.smallSpacing
+                                                PC3.Label {
+                                                    text: "AI"
+                                                    font.bold: true
+                                                }
+                                                PC3.Label {
+                                                    text: root.streamingModel ? ("(" + root.streamingModel + ")") : ""
+                                                    opacity: 0.6
+                                                    visible: text !== ""
+                                                }
+                                            }
+
+                                            MessageContent {
+                                                messageData: ({
+                                                    "role": "assistant",
+                                                    "content": root.streamingContent,
+                                                    "model": root.streamingModel
+                                                })
+                                                chatRoot: root
+                                            }
+
+                                            // Context items (tool invocations) display in footer
+                                            Column {
+                                                visible: root.streamingContextItems.length > 0
+                                                width: parent.width
+                                                spacing: 2
+
+                                                Row {
+                                                    spacing: Kirigami.Units.smallSpacing
+                                                    Kirigami.Icon {
+                                                        source: "code-context"
+                                                        width: 14
+                                                        height: 14
+                                                        opacity: 0.6
+                                                    }
+                                                    PC3.Label {
+                                                        text: root.translate("Thinking process...")
+                                                        font.italic: true
+                                                        font.pointSize: 8
+                                                        opacity: 0.6
+                                                    }
+                                                }
+
+                                                Repeater {
+                                                    model: root.streamingContextItems
+                                                    delegate: PC3.Label {
+                                                        width: parent.width
+                                                        text: "• " + modelData
+                                                        font.pointSize: 8
+                                                        opacity: 0.5
+                                                        elide: Text.ElideRight
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 delegate: Item {
                                     property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
                                     property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData.content && modelData.content.toLowerCase().indexOf(root.searchQuery.toLowerCase()) >= 0

@@ -113,6 +113,9 @@ PlasmoidItem {
     property string openCodeAssistantModelLabel: "OpenCode"
     property bool openCodeErrorShownForRequest: false
     property bool streamingResponse: false
+    property string streamingContent: ""
+    property string streamingModel: ""
+    property var streamingContextItems: []
     property bool autocompleteActive: false
     property int autocompleteSelectedIndex: 0
     property var filteredCommands: []

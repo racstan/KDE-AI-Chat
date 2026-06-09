@@ -932,8 +932,10 @@ return prefix + (fallbackText || "Unknown error");
 
 
 function beginAssistantStreaming(modelLabel) {
-if (modelLabel)
-root.openCodeAssistantModelLabel = modelLabel;
+root.streamingResponse = true;
+root.streamingContent = "";
+root.streamingModel = modelLabel || "";
+root.streamingContextItems = [];
 }
 
 
@@ -942,45 +944,20 @@ let incoming = text || "";
 if (incoming === "")
 return ;
 if (modelLabel)
-root.openCodeAssistantModelLabel = modelLabel;
-// Audit 5.1: buffer streaming chunks and flush at ~30 Hz
-// instead of rebuilding the `messages` array on every token.
-// This is the dominant cost during streaming — each rebuild
-// was triggering a full ListView model reset, destroying and
-// recreating all delegates.
-if (root.openCodeAssistantMessageIndex < 0) {
-// First chunk for this stream — flush immediately so the
-// bubble appears without waiting for the batch window.
-let ts = Date.now();
-root.messages = root.messages.concat([{
-"role": "assistant",
-"content": incoming,
-"time": nowTime(ts),
-"at": ts,
-"model": root.openCodeAssistantModelLabel || "OpenCode"
-}]);
-root.openCodeAssistantMessageIndex = root.messages.length - 1;
-root._pendingStreamingText = incoming;
-root.streamingResponse = true;
-if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
-return;
-}
-// Subsequent chunks — buffer and restart the batch timer.
-let existing = root._pendingStreamingText;
+root.streamingModel = modelLabel;
+
+let existing = root.streamingContent;
 // OpenCode streams can be cumulative or token-delta; handle both.
 if (incoming.indexOf(existing) === 0)
-root._pendingStreamingText = incoming;
+root.streamingContent = incoming;
 else if (existing.indexOf(incoming) === 0)
 {} // already have it
 else
-root._pendingStreamingText = existing + incoming;
-if (modelLabel)
-root._pendingStreamingModelLabel = modelLabel;
-root._streamingDirty = true;
-if (!streamingBatchTimer.running) {
-streamingBatchTimer.start();
-}
+root.streamingContent = existing + incoming;
+
+root.streamingResponse = true;
+if (!root.userScrolledUp)
+Qt.callLater(scrollToBottom);
 }
 
 
@@ -1151,16 +1128,12 @@ let part = props.part || {
 if (part.type === "text" && root.openCodeAssistantServerMessageId !== "" && part.messageID === root.openCodeAssistantServerMessageId)
 updateAssistantStreamingContent(part.text || "", "OpenCode");
 // Track tool invocations as context items on the assistant message
-if (part.type === "tool-invocation" && root.openCodeAssistantMessageIndex >= 0) {
+if (part.type === "tool-invocation") {
 let toolName = part.toolName || part.tool || "";
 let toolArgs = part.args || part.input || {
 };
 let toolState = part.state || "";
 if (toolName !== "") {
-let toolMsgs = root.messages.slice();
-let item = Object.assign({
-}, toolMsgs[root.openCodeAssistantMessageIndex]);
-let ctx = item.contextItems || [];
 // Build a concise description of the tool call
 let desc = toolName;
 if (toolArgs.filePath || toolArgs.path || toolArgs.file)
@@ -1170,6 +1143,7 @@ desc += ": " + String(toolArgs.command).substring(0, 60);
 else if (toolArgs.query || toolArgs.pattern)
 desc += ": " + (toolArgs.query || toolArgs.pattern);
 // Avoid duplicates
+let ctx = root.streamingContextItems;
 let exists = false;
 for (let ci = 0; ci < ctx.length; ci++) {
 if (ctx[ci] === desc) {
@@ -1178,10 +1152,7 @@ break;
 }
 }
 if (!exists) {
-ctx = ctx.concat([desc]);
-item.contextItems = ctx;
-toolMsgs[root.openCodeAssistantMessageIndex] = item;
-root.messages = toolMsgs;
+root.streamingContextItems = ctx.concat([desc]);
 }
 }
 }
@@ -2744,45 +2715,26 @@ clipboardDs.connectSource(cmd + " #clipboard-copy");
 
 
 function flushStreamingBuffer() {
-if (!_streamingDirty)
-return;
-_streamingDirty = false;
-streamingBatchTimer.stop();
-let text = _pendingStreamingText;
-let label = _pendingStreamingModelLabel;
-_pendingStreamingText = "";
-_pendingStreamingModelLabel = "";
-// Apply the coalesced update directly (bypasses re-buffering).
-if (root.openCodeAssistantMessageIndex < 0) {
+let text = root.streamingContent;
+let label = root.streamingModel;
+let ctx = root.streamingContextItems;
+if (text === "" && ctx.length === 0) {
+root.streamingResponse = false;
+return ;
+}
+root.streamingContent = "";
+root.streamingModel = "";
+root.streamingContextItems = [];
+root.streamingResponse = false;
 let ts = Date.now();
 root.messages = root.messages.concat([{
 "role": "assistant",
 "content": text,
 "time": nowTime(ts),
 "at": ts,
-"model": label || "OpenCode"
+"model": label || "OpenCode",
+"contextItems": ctx
 }]);
-root.openCodeAssistantMessageIndex = root.messages.length - 1;
-root.streamingResponse = true;
-if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
-return;
-}
-let copy = root.messages.slice();
-let item = Object.assign({}, copy[root.openCodeAssistantMessageIndex]);
-let existing = item.content || "";
-if (text.indexOf(existing) === 0)
-item.content = text;
-else if (existing.indexOf(text) === 0)
-item.content = existing;
-else
-item.content = existing + text;
-item.at = Date.now();
-item.time = nowTime(item.at);
-item.model = label || item.model || "OpenCode";
-root.streamingResponse = (item.content || "") !== "";
-copy[root.openCodeAssistantMessageIndex] = item;
-root.messages = copy;
 if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);
 }
