@@ -5,7 +5,7 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0] - 2026-06-09
+## [1.3.1] - 2026-06-09
 
 ### Added
 - **♻️ Regenerate Shorter / Longer Reply**: Added per-message regenerate buttons offering shorter or longer rewrites of any AI response. Each regeneration creates a fresh API request with adjusted `max_tokens`.
