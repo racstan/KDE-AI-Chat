@@ -63,7 +63,7 @@ Item {
     }
 
     function copyToClipboard(textValue) {
-        return MainDatabase.copyToClipboard(root, textValue);
+        return MainDatabase.copyToClipboard(textValue);
     }
 
     P5Support.DataSource {

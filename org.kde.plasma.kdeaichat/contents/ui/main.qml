@@ -802,6 +802,14 @@ PlasmoidItem {
         return MainDatabase.stopStreaming();
     }
 
+    function flushStreamingBuffer() {
+        return MainDatabase.flushStreamingBuffer();
+    }
+
+    function copyToClipboard(textValue) {
+        return MainDatabase.copyToClipboard(textValue);
+    }
+
     function convertMarkdownToHtml(markdown) {
         return MainDatabase.convertMarkdownToHtml(markdown);
     }

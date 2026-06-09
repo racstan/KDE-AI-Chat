@@ -1207,8 +1207,8 @@ import "Security.js" as Sec
                                                                                     let payload = {
                                                                                         "schedId": schedId
                                                                                     };
-                                                                                     let b64Payload = base64Encode(JSON.stringify(payload));
-                                                                                     let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
+                                                                                     let b64Payload = root.base64Encode(JSON.stringify(payload));
+                                                                                     let cmd = "python3 " + Sec.quoteForShell(root.getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
                                                                                      schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
                                                                                     // Remove immediately from UI to be responsive!
                                                                                     let copy = root.schedulesList.slice();
@@ -2574,8 +2574,8 @@ import "Security.js" as Sec
                         let payload = {
                             "entry": entry
                         };
-                        let b64Payload = base64Encode(JSON.stringify(payload));
-                        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " add_schedule " + Sec.quoteForShell(b64Payload);
+                        let b64Payload = root.base64Encode(JSON.stringify(payload));
+                        let cmd = "python3 " + Sec.quoteForShell(root.getHelperPath()) + " add_schedule " + Sec.quoteForShell(b64Payload);
                         schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-save-" + Date.now());
                         scheduleCommandDialog.close();
                         root.appendSystemMessage("✅ Scheduled! I'll send \"" + msg.substring(0, 50) + (msg.length > 50 ? "…" : "") + "\" " + hr2 + ".");
@@ -2610,8 +2610,8 @@ import "Security.js" as Sec
             let payload = {
                 "schedId": schedId
             };
-            let b64Payload = base64Encode(JSON.stringify(payload));
-            let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
+            let b64Payload = root.base64Encode(JSON.stringify(payload));
+            let cmd = "python3 " + Sec.quoteForShell(root.getHelperPath()) + " delete_schedule " + Sec.quoteForShell(b64Payload);
             schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-delete-" + Date.now());
             root.appendSystemMessage("🗑️ Schedule deleted successfully.");
         }
