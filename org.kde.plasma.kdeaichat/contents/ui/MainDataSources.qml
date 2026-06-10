@@ -420,6 +420,10 @@ Item {
                     root.loadSessions();
                 }
                 root.checkAndMarkCurrentSessionAsRead();
+            } else if (sourceName.indexOf("#custom-history-write-") !== -1) {
+                // Write completed — just disconnect
+                disconnectSource(sourceName);
+                return;
             } else if (sourceName.indexOf("#migrate-history") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {

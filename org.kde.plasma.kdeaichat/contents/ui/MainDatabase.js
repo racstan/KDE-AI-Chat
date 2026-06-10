@@ -1998,11 +1998,17 @@ return false;
 
 function buildEffectiveSystemPrompt(sessionId) {
 let sId = sessionId || root.currentSessionId;
-let base = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
+let globalPrompt = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
+let chatPrompt = getSessionProperty(sId, "chatSystemPrompt", "").trim();
+let base = chatPrompt !== "" ? chatPrompt : globalPrompt;
 let memoryOn = plasmoid.configuration.memoryEnabled || false;
 let memoryTxt = (plasmoid.configuration.userMemory || "").trim();
-if (memoryOn && memoryTxt !== "")
-base = base + "\n\n--- User Memory ---\n" + memoryTxt + "\n--- End of User Memory ---";
+let chatMemoryTxt = getSessionProperty(sId, "chatMemory", "").trim();
+
+if (memoryTxt !== "")
+base = base + "\n\n--- Global Memory ---\n" + memoryTxt + "\n--- End of Global Memory ---";
+if (chatMemoryTxt !== "")
+base = base + "\n\n--- Chat Memory ---\n" + chatMemoryTxt + "\n--- End of Chat Memory ---";
 if (!isSessionScheduled(sId)) {
 let summary = getSessionProperty(sId, "compactedSummary", "");
 if (summary !== "")

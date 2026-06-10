@@ -132,7 +132,7 @@ Kirigami.FormLayout {
 
     QQC2.CheckBox {
         id: memoryEnabledToggle
-        Kirigami.FormData.label: page ? page.translate("User Memory:") : "User Memory:"
+        Kirigami.FormData.label: page ? page.translate("Global Memory:") : "Global Memory:"
         Layout.maximumWidth: advancedSection.fieldMaxWidth
         text: memoryEnabledToggle.checked ? "Enabled — memory is injected into every prompt" : "Disabled"
     }

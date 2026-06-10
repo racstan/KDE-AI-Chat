@@ -2006,6 +2006,8 @@ import "Security.js" as Sec
             let limitVal = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
             let autoCompactVal = getSessionProperty(sId, "contextAutoCompact", plasmoid.configuration.globalContextAutoCompact || false);
             let compactThresholdVal = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
+            let chatSysPromptVal = getSessionProperty(sId, "chatSystemPrompt", "");
+            let chatMemoryVal = getSessionProperty(sId, "chatMemory", "");
 
             debugLog("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
 
@@ -2015,6 +2017,8 @@ import "Security.js" as Sec
             contextLimitSpin.value = limitVal;
             autoCompactToggle.checked = autoCompactVal;
             compactThresholdSpin.value = compactThresholdVal;
+            chatSystemPromptArea.text = chatSysPromptVal;
+            chatMemoryArea.text = chatMemoryVal;
         }
         onAccepted: {
             let sId = root.currentSessionId;
@@ -2023,6 +2027,8 @@ import "Security.js" as Sec
             let limitVal = contextLimitSpin.value;
             let autoCompactVal = autoCompactToggle.checked;
             let compactThresholdVal = compactThresholdSpin.value;
+            let chatSysPromptVal = chatSystemPromptArea.text;
+            let chatMemoryVal = chatMemoryArea.text;
 
             debugLog("[KDE AIChat] Saving settings for session ID: " + sId);
             debugLog("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
@@ -2032,11 +2038,75 @@ import "Security.js" as Sec
             setSessionProperty(sId, "contextLimit", limitVal);
             setSessionProperty(sId, "contextAutoCompact", autoCompactVal);
             setSessionProperty(sId, "contextCompactThreshold", compactThresholdVal);
+            setSessionProperty(sId, "chatSystemPrompt", chatSysPromptVal);
+            setSessionProperty(sId, "chatMemory", chatMemoryVal);
         }
 
         ColumnLayout {
             width: parent.width
             spacing: Kirigami.Units.smallSpacing
+
+            // ── Chat System Prompt ─────────────────────────────────────
+            QQC2.Label {
+                text: root.translate("Chat System Prompt:")
+                font.bold: true
+                Layout.fillWidth: true
+            }
+
+            QQC2.Label {
+                text: root.translate("Override the global system prompt for this chat only. Leave blank to use the global default.")
+                wrapMode: Text.Wrap
+                font: Kirigami.Theme.smallFont
+                opacity: 0.7
+                Layout.fillWidth: true
+            }
+
+            QQC2.ScrollView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+                clip: true
+
+                QQC2.TextArea {
+                    id: chatSystemPromptArea
+                    wrapMode: Text.Wrap
+                    placeholderText: root.translate("Leave blank to use global system prompt")
+                }
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            // ── Chat Memory ────────────────────────────────────────────
+            QQC2.Label {
+                text: root.translate("Chat Memory:")
+                font.bold: true
+                Layout.fillWidth: true
+            }
+
+            QQC2.Label {
+                text: root.translate("Facts the AI should remember for this chat only. Deleted when the chat is deleted.")
+                wrapMode: Text.Wrap
+                font: Kirigami.Theme.smallFont
+                opacity: 0.7
+                Layout.fillWidth: true
+            }
+
+            QQC2.ScrollView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+                clip: true
+
+                QQC2.TextArea {
+                    id: chatMemoryArea
+                    wrapMode: Text.Wrap
+                    placeholderText: root.translate("E.g., This chat is about my Python project. Prefer type hints.")
+                }
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
 
             // ── Override toggle ─────────────────────────────────────────
             QQC2.CheckBox {

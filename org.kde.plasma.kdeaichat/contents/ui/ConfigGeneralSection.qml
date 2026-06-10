@@ -322,6 +322,12 @@ Kirigami.FormLayout {
     }
 
     // Key Storage section fields
+    Kirigami.Separator {
+        visible: page ? !page.cfg_useOpenCode : true
+        Kirigami.FormData.isSection: true
+        Kirigami.FormData.label: page ? page.translate("API Key Storage") : "API Key Storage"
+    }
+
     RowLayout {
         visible: (page && page.cfg_showInteractiveGuides && !page.cfg_useOpenCode)
         Layout.fillWidth: true
