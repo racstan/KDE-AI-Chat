@@ -253,6 +253,37 @@
       <default>black-forest-labs/FLUX.1-schnell-Free</default>
     </entry>
 
+    <entry name="openaiImageModel" type="String">
+      <default>dall-e-3</default>
+    </entry>
+
+    <entry name="googleImageBaseUrl" type="String">
+      <default>https://generativelanguage.googleapis.com/v1beta</default>
+    </entry>
+    <entry name="googleImageModel" type="String">
+      <default>imagen-4</default>
+    </entry>
+
+    <entry name="stabilityImageBaseUrl" type="String">
+      <default>https://api.stability.ai</default>
+    </entry>
+    <entry name="stabilityApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="stabilityImageModel" type="String">
+      <default>stable-diffusion-xl-1024-v1-0</default>
+    </entry>
+
+    <entry name="replicateImageBaseUrl" type="String">
+      <default>https://api.replicate.com</default>
+    </entry>
+    <entry name="replicateApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="replicateImageModel" type="String">
+      <default>black-forest-labs/flux-schnell</default>
+    </entry>
+
     <!-- Prompt Templates -->
     <entry name="promptTemplates" type="String">
       <default>[]</default>

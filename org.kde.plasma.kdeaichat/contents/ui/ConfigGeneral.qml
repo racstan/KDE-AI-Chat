@@ -828,6 +828,17 @@ QQC2.ScrollView {
         if (pId !== "") {
             openPrefilledScheduleDialog(pId, pName);
         }
+        // Auto-refresh models for the current provider on settings open
+        if (!openCodeToggle.checked) {
+            let isImg = false;
+            try {
+                let pCfg = ProviderService.getProviderConfig(plasmoid.configuration.provider, plasmoid.configuration);
+                isImg = (pCfg && pCfg.type === "image-gen");
+            } catch(e) {}
+            if (!isImg) {
+                refreshCurrentProviderModels();
+            }
+        }
     }
 
     /*

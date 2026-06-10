@@ -11,6 +11,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
+import "ProviderService.js" as ProviderService
 
 Kirigami.FormLayout {
     id: providersSection
@@ -101,6 +102,18 @@ Kirigami.FormLayout {
         }, {
             "value": "together-image",
             "text": "[Image] Together AI"
+        }, {
+            "value": "openai-image",
+            "text": "[Image] OpenAI DALL-E"
+        }, {
+            "value": "google-image",
+            "text": "[Image] Google Imagen"
+        }, {
+            "value": "stability-image",
+            "text": "[Image] Stability AI"
+        }, {
+            "value": "replicate-image",
+            "text": "[Image] Replicate"
         }]
         currentIndex: {
             if (!page) return 0;
@@ -115,6 +128,40 @@ Kirigami.FormLayout {
                 page.cfg_provider = currentValue;
                 page.providerModelCandidates = [];
                 page.discoveryStatus = "";
+                let isImg = false;
+                try {
+                    let pCfg = ProviderService.getProviderConfig(currentValue, page);
+                    isImg = (pCfg && pCfg.type === "image-gen");
+                } catch(e) {}
+                if (!isImg) {
+                    modelRefreshTimer.restart();
+                }
+            }
+        }
+        popup: QQC2.Popup {
+            y: providerBox.height
+            width: providerBox.width
+            height: Math.min(300, contentItem.implicitHeight + 2)
+            padding: 1
+            contentItem: ListView {
+                clip: true
+                implicitHeight: contentHeight
+                model: providerBox.popup.visible ? providerBox.delegateModel : null
+                currentIndex: providerBox.highlightedIndex
+                QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+                    policy: QQC2.ScrollBar.AsNeeded
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: modelRefreshTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            if (page && typeof page.refreshCurrentProviderModels === "function") {
+                page.refreshCurrentProviderModels();
             }
         }
     }

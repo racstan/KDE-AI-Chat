@@ -1763,7 +1763,7 @@ return res;
 
 
 function isImageProvider(providerId) {
-    return providerId === "pollinations" || providerId === "huggingface-image" || providerId === "together-image";
+    return providerId === "pollinations" || providerId === "huggingface-image" || providerId === "together-image" || providerId === "openai-image" || providerId === "google-image" || providerId === "stability-image" || providerId === "replicate-image";
 }
 
 
@@ -1918,8 +1918,299 @@ function doImageGenerationRequest(text, providerId) {
         }));
         return;
     }
+    if (providerId === "openai-image") {
+        let apiKey = config.apiKey || "";
+        let model = config.openaiImageModel || "dall-e-3";
+        let baseUrl = (config.baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
+        let url = baseUrl + "/images/generations";
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        if (apiKey)
+            xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+            root.loading = false;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    let resp = JSON.parse(xhr.responseText);
+                    let imgUrl = (resp.data && resp.data[0] && resp.data[0].url) || "";
+                    if (imgUrl) {
+                        let msg = {
+                            "role": "assistant",
+                            "content": "",
+                            "isImage": true,
+                            "imageUrl": imgUrl,
+                            "imageProvider": providerId,
+                            "time": nowTime(Date.now()),
+                            "at": Date.now()
+                        };
+                        appendMessageToSession(root.currentSessionId, msg);
+                        root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+                    } else {
+                        pushErrorMessage("No image URL in OpenAI response.");
+                    }
+                } catch (e) {
+                    pushErrorMessage("Failed to parse OpenAI image response: " + e);
+                }
+            } else {
+                pushErrorMessage("OpenAI image error: HTTP " + xhr.status + " " + (xhr.responseText || "").substring(0, 200));
+            }
+            saveCurrentSessionState(true);
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during OpenAI image generation.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send(JSON.stringify({
+            "model": model,
+            "prompt": text,
+            "n": 1,
+            "size": "1024x1024"
+        }));
+        return;
+    }
+    if (providerId === "google-image") {
+        let apiKey = config.googleApiKey || "";
+        let model = config.googleImageModel || "imagen-4";
+        let baseUrl = (config.googleImageBaseUrl || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
+        let url = baseUrl + "/models/" + model + ":predict";
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        if (apiKey)
+            xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+            root.loading = false;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    let resp = JSON.parse(xhr.responseText);
+                    let predictions = resp.predictions || [];
+                    if (predictions.length > 0 && predictions[0].bytesBase64Encoded) {
+                        let b64 = predictions[0].bytesBase64Encoded;
+                        let mime = predictions[0].mimeType || "image/png";
+                        let dataUrl = "data:" + mime + ";base64," + b64;
+                        let msg = {
+                            "role": "assistant",
+                            "content": "",
+                            "isImage": true,
+                            "imageUrl": dataUrl,
+                            "imageProvider": providerId,
+                            "time": nowTime(Date.now()),
+                            "at": Date.now()
+                        };
+                        appendMessageToSession(root.currentSessionId, msg);
+                        root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+                    } else {
+                        pushErrorMessage("No image data in Google Imagen response.");
+                    }
+                } catch (e) {
+                    pushErrorMessage("Failed to parse Google Imagen response: " + e);
+                }
+            } else {
+                pushErrorMessage("Google Imagen error: HTTP " + xhr.status + " " + (xhr.responseText || "").substring(0, 200));
+            }
+            saveCurrentSessionState(true);
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during Google Imagen generation.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send(JSON.stringify({
+            "instances": [{"prompt": text}],
+            "parameters": {"sampleCount": 1}
+        }));
+        return;
+    }
+    if (providerId === "stability-image") {
+        let apiKey = config.stabilityApiKey || "";
+        let model = config.stabilityImageModel || "stable-diffusion-xl-1024-v1-0";
+        let baseUrl = (config.stabilityImageBaseUrl || "https://api.stability.ai").replace(/\/$/, "");
+        let url = baseUrl + "/v1/generation/" + model + "/text-to-image";
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        if (apiKey)
+            xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+            root.loading = false;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    let resp = JSON.parse(xhr.responseText);
+                    let artifacts = resp.artifacts || [];
+                    if (artifacts.length > 0 && artifacts[0].base64) {
+                        let b64 = artifacts[0].base64;
+                        let dataUrl = "data:image/png;base64," + b64;
+                        let msg = {
+                            "role": "assistant",
+                            "content": "",
+                            "isImage": true,
+                            "imageUrl": dataUrl,
+                            "imageProvider": providerId,
+                            "time": nowTime(Date.now()),
+                            "at": Date.now()
+                        };
+                        appendMessageToSession(root.currentSessionId, msg);
+                        root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+                    } else {
+                        pushErrorMessage("No image data in Stability AI response.");
+                    }
+                } catch (e) {
+                    pushErrorMessage("Failed to parse Stability AI response: " + e);
+                }
+            } else {
+                pushErrorMessage("Stability AI image error: HTTP " + xhr.status + " " + (xhr.responseText || "").substring(0, 200));
+            }
+            saveCurrentSessionState(true);
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during Stability AI image generation.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send(JSON.stringify({
+            "text_prompts": [{"text": text}],
+            "cfg_scale": 7,
+            "height": 1024,
+            "width": 1024,
+            "samples": 1
+        }));
+        return;
+    }
+    if (providerId === "replicate-image") {
+        let apiKey = config.replicateApiKey || "";
+        let model = config.replicateImageModel || "black-forest-labs/flux-schnell";
+        let baseUrl = (config.replicateImageBaseUrl || "https://api.replicate.com").replace(/\/$/, "");
+        let createUrl = baseUrl + "/v1/models/" + model + "/predictions";
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", createUrl, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        if (apiKey)
+            xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    let resp = JSON.parse(xhr.responseText);
+                    let predId = resp.id;
+                    if (predId) {
+                        pollReplicatePrediction(apiKey, baseUrl, predId, providerId);
+                    } else {
+                        root.loading = false;
+                        pushErrorMessage("No prediction ID in Replicate response.");
+                        saveCurrentSessionState(true);
+                    }
+                } catch (e) {
+                    root.loading = false;
+                    pushErrorMessage("Failed to parse Replicate response: " + e);
+                    saveCurrentSessionState(true);
+                }
+            } else {
+                root.loading = false;
+                pushErrorMessage("Replicate image error: HTTP " + xhr.status + " " + (xhr.responseText || "").substring(0, 200));
+                saveCurrentSessionState(true);
+            }
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during Replicate image generation.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send(JSON.stringify({
+            "input": {"prompt": text}
+        }));
+        return;
+    }
     pushErrorMessage("Image generation not supported for this provider.");
     root.loading = false;
+}
+
+function pollReplicatePrediction(apiKey, baseUrl, predId, providerId) {
+    let pollUrl = baseUrl + "/v1/predictions/" + predId;
+    let attempts = 0;
+    let maxAttempts = 60;
+    let pollInterval = 2000;
+    function poll() {
+        attempts++;
+        if (attempts > maxAttempts) {
+            root.loading = false;
+            pushErrorMessage("Replicate prediction timed out after " + (maxAttempts * pollInterval / 1000) + " seconds.");
+            saveCurrentSessionState(true);
+            return;
+        }
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", pollUrl, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        if (apiKey)
+            xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    let resp = JSON.parse(xhr.responseText);
+                    let status = resp.status;
+                    if (status === "succeeded") {
+                        let output = resp.output;
+                        let imgUrl = "";
+                        if (Array.isArray(output) && output.length > 0) {
+                            imgUrl = output[0];
+                        } else if (typeof output === "string") {
+                            imgUrl = output;
+                        }
+                        if (imgUrl) {
+                            let msg = {
+                                "role": "assistant",
+                                "content": "",
+                                "isImage": true,
+                                "imageUrl": imgUrl,
+                                "imageProvider": providerId,
+                                "time": nowTime(Date.now()),
+                                "at": Date.now()
+                            };
+                            appendMessageToSession(root.currentSessionId, msg);
+                            root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+                            root.loading = false;
+                            saveCurrentSessionState(true);
+                        } else {
+                            root.loading = false;
+                            pushErrorMessage("No image URL in Replicate output.");
+                            saveCurrentSessionState(true);
+                        }
+                    } else if (status === "failed" || status === "canceled") {
+                        root.loading = false;
+                        pushErrorMessage("Replicate prediction failed: " + (resp.error || "Unknown error"));
+                        saveCurrentSessionState(true);
+                    } else {
+                        setTimeout(poll, pollInterval);
+                    }
+                } catch (e) {
+                    root.loading = false;
+                    pushErrorMessage("Failed to parse Replicate poll response: " + e);
+                    saveCurrentSessionState(true);
+                }
+            } else {
+                root.loading = false;
+                pushErrorMessage("Replicate poll error: HTTP " + xhr.status);
+                saveCurrentSessionState(true);
+            }
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during Replicate poll.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send();
+    }
+    poll();
 }
 
 

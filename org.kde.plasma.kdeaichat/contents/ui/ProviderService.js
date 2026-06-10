@@ -235,6 +235,42 @@ let PROVIDER_CONFIGS = {
         defaultBaseUrl: "https://api.together.xyz/v1",
         defaultModel: "black-forest-labs/FLUX.1-schnell-Free",
         allowEmptyKey: false
+    },
+    "openai-image": {
+        type: "image-gen",
+        configKey: "apiKey",
+        modelKey: "openaiImageModel",
+        baseUrlKey: "baseUrl",
+        defaultBaseUrl: "https://api.openai.com/v1",
+        defaultModel: "dall-e-3",
+        allowEmptyKey: false
+    },
+    "google-image": {
+        type: "image-gen",
+        configKey: "googleApiKey",
+        modelKey: "googleImageModel",
+        baseUrlKey: "googleImageBaseUrl",
+        defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
+        defaultModel: "imagen-4",
+        allowEmptyKey: false
+    },
+    "stability-image": {
+        type: "image-gen",
+        configKey: "stabilityApiKey",
+        modelKey: "stabilityImageModel",
+        baseUrlKey: "stabilityImageBaseUrl",
+        defaultBaseUrl: "https://api.stability.ai",
+        defaultModel: "stable-diffusion-xl-1024-v1-0",
+        allowEmptyKey: false
+    },
+    "replicate-image": {
+        type: "image-gen",
+        configKey: "replicateApiKey",
+        modelKey: "replicateImageModel",
+        baseUrlKey: "replicateImageBaseUrl",
+        defaultBaseUrl: "https://api.replicate.com",
+        defaultModel: "black-forest-labs/flux-schnell",
+        allowEmptyKey: false
     }
 };
 
@@ -262,7 +298,11 @@ let DISPLAY_NAMES = {
     "maritaca": "Maritaca",
     "pollinations": "[Image] Pollinations.ai",
     "huggingface-image": "[Image] HuggingFace Image",
-    "together-image": "[Image] Together AI"
+    "together-image": "[Image] Together AI",
+    "openai-image": "[Image] OpenAI DALL-E",
+    "google-image": "[Image] Google Imagen",
+    "stability-image": "[Image] Stability AI",
+    "replicate-image": "[Image] Replicate"
 };
 
 let API_KEY_CONFIG_MAP = {
@@ -285,7 +325,11 @@ let API_KEY_CONFIG_MAP = {
     "mimo": "mimoApiKey",
     "maritaca": "maritacaApiKey",
     "huggingface-image": "huggingfaceImageApiKey",
-    "together-image": "togetherImageApiKey"
+    "together-image": "togetherImageApiKey",
+    "openai-image": "apiKey",
+    "google-image": "googleApiKey",
+    "stability-image": "stabilityApiKey",
+    "replicate-image": "replicateApiKey"
 };
 
 /**
