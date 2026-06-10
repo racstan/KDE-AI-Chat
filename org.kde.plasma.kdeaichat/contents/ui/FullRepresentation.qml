@@ -163,7 +163,28 @@ import "Security.js" as Sec
                     }
                 }
 
-                PC3.ToolButton {
+                QQC2.ComboBox {
+                    id: quickModelSwitch
+                    visible: !root.historyOnlyMode && !plasmoid.configuration.useOpenCode
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 10
+                    model: {
+                        let models = [];
+                        let pm = plasmoid.configuration[plasmoid.configuration.provider + "Model"] || "";
+                        if (pm) models.push(pm);
+                        return models.length > 0 ? models : ["(default)"];
+                    }
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: root.translate("Switch model")
+                    onActivated: {
+                        if (currentIndex >= 0 && model[currentIndex]) {
+                            let key = plasmoid.configuration.provider + "Model";
+                            plasmoid.configuration[key] = model[currentIndex];
+                        }
+                    }
+                }
+
+                 PC3.ToolButton {
                     visible: !root.historyOnlyMode
                     icon.name: "configure"
                     QQC2.ToolTip.visible: hovered
@@ -1889,6 +1910,20 @@ import "Security.js" as Sec
                                 Accessible.role: Accessible.Button
                                 Accessible.description: root.translate("Stop generating the response")
                                 onClicked: root.stopStreaming()
+                            }
+
+                            QQC2.ComboBox {
+                                id: responseLengthCombo
+                                visible: !plasmoid.configuration.useOpenCode
+                                model: [root.translate("Default"), root.translate("Short"), root.translate("Medium"), root.translate("Long"), root.translate("Max")]
+                                currentIndex: plasmoid.configuration.responseLength || 0
+                                font.pointSize: 8
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.translate("Response length")
+                                onActivated: {
+                                    plasmoid.configuration.responseLength = currentIndex;
+                                }
                             }
 
                             PC3.Label {

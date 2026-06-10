@@ -509,6 +509,77 @@ Kirigami.FormLayout {
         }
     }
 
+    // ── Prompt Templates ──────────────────────────────────────────
+    Kirigami.Separator {
+        Kirigami.FormData.isSection: true
+        Kirigami.FormData.label: page ? page.translate("Prompt Templates") : "Prompt Templates"
+    }
+
+    QQC2.Label {
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        wrapMode: Text.Wrap
+        opacity: 0.72
+        font: Kirigami.Theme.smallFont
+        text: page ? page.translate("Save frequently used prompts. Use /template in chat to apply them.") : ""
+    }
+
+    Repeater {
+        model: {
+            try {
+                return JSON.parse(page ? page.cfg_promptTemplates || "[]" : "[]");
+            } catch(e) { return []; }
+        }
+        delegate: RowLayout {
+            Layout.fillWidth: true
+            Layout.maximumWidth: advancedSection.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label {
+                text: modelData.name || ("Template " + (index + 1))
+                Layout.fillWidth: true
+                elide: Text.ElideRight
+            }
+            QQC2.ToolButton {
+                icon.name: "edit-delete"
+                onClicked: {
+                    if (!page) return;
+                    let arr = JSON.parse(page.cfg_promptTemplates || "[]");
+                    arr.splice(index, 1);
+                    page.cfg_promptTemplates = JSON.stringify(arr);
+                }
+            }
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.TextField {
+            id: newTemplateName
+            placeholderText: page ? page.translate("Template name") : "Template name"
+            Layout.fillWidth: true
+        }
+        QQC2.TextField {
+            id: newTemplatePrompt
+            placeholderText: page ? page.translate("System prompt") : "System prompt"
+            Layout.fillWidth: true
+        }
+        QQC2.Button {
+            text: page ? page.translate("Add") : "Add"
+            onClicked: {
+                if (!page || !newTemplateName.text.trim()) return;
+                let arr = JSON.parse(page.cfg_promptTemplates || "[]");
+                arr.push({"name": newTemplateName.text.trim(), "prompt": newTemplatePrompt.text.trim()});
+                page.cfg_promptTemplates = JSON.stringify(arr);
+                newTemplateName.text = "";
+                newTemplatePrompt.text = "";
+            }
+        }
+    }
+
     // ── Other settings ────────────────────────────────────────────────────
     Kirigami.Separator {
         Kirigami.FormData.isSection: true

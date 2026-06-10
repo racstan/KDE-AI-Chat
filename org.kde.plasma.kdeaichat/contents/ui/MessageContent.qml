@@ -29,7 +29,7 @@ Column {
     property var chatRoot
     property int messageIndex: -1
 
-    visible: messageData && (chatRoot && chatRoot.editingMessageIndex !== messageIndex || messageData.role === "error")
+    visible: messageData && (chatRoot && chatRoot.editingMessageIndex !== messageIndex || messageData.role === "error" || messageData.isImage)
     width: parent ? parent.width : 0
     spacing: 4
 
@@ -46,6 +46,76 @@ Column {
         selectedTextColor: Kirigami.Theme.highlightedTextColor
         selectionColor: Kirigami.Theme.highlightColor
         font: Kirigami.Theme.defaultFont
+    }
+
+    // Image generation display
+    Column {
+        visible: contentRoot.messageData && contentRoot.messageData.isImage
+        width: parent.width
+        spacing: Kirigami.Units.smallSpacing
+
+        PC3.Label {
+            text: {
+                let prov = contentRoot.messageData.imageProvider || "";
+                let names = {"pollinations": "Pollinations.ai", "huggingface-image": "HuggingFace", "together-image": "Together AI"};
+                return names[prov] || prov;
+            }
+            font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
+            font.italic: true
+            color: Kirigami.Theme.disabledTextColor
+        }
+
+        Rectangle {
+            width: Math.min(parent.width, 512)
+            height: chatImage.status === Image.Ready ? chatImage.implicitHeight : 300
+            radius: 6
+            color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#2d3139" : "#f0f2f5"
+            border.width: 1
+            border.color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
+            clip: true
+
+            Image {
+                id: chatImage
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectFit
+                source: contentRoot.messageData.imageUrl || ""
+                asynchronous: true
+                cache: true
+
+                QQC2.BusyIndicator {
+                    anchors.centerIn: parent
+                    running: chatImage.status === Image.Loading
+                    width: Kirigami.Units.gridUnit * 3
+                    height: Kirigami.Units.gridUnit * 3
+                }
+
+                QQC2.Label {
+                    anchors.centerIn: parent
+                    visible: chatImage.status === Image.Error
+                    text: root.translate("Failed to load image")
+                    color: Kirigami.Theme.negativeTextColor
+                }
+            }
+        }
+
+        PC3.ToolButton {
+            icon.name: "download"
+            display: PC3.AbstractButton.TextBesideIcon
+            flat: true
+            text: root.translate("Save image")
+            visible: contentRoot.messageData.imageUrl !== ""
+            onClicked: {
+                if (contentRoot.chatRoot && contentRoot.chatRoot.msgListViewRef) {
+                    let url = contentRoot.messageData.imageUrl || "";
+                    if (url.indexOf("data:") === 0) {
+                        let cmd = "python3 -c \"import base64,sys; d=sys.stdin.buffer.read(); open('/tmp/kdeaichat_img.png','wb').write(base64.b64decode(d.split(',')[1]))\" <<< '" + url.split(",")[1] + "'";
+                        contentRoot.chatRoot.customStorageDs.connectSource(cmd + " #save-img-" + Date.now());
+                    } else {
+                        Qt.openUrlExternally(url);
+                    }
+                }
+            }
+        }
     }
 
     // Quoted message bubble (if present)
@@ -116,7 +186,7 @@ Column {
     Repeater {
         visible: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
         width: parent.width
-        model: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
+        model: contentRoot.messageData && !contentRoot.messageData.isImage && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
             ? (contentRoot.messageData.blocks || (contentRoot.chatRoot ? contentRoot.chatRoot.parseMessageBlocks(contentRoot.messageData.content || "") : []))
             : []
 

@@ -1762,6 +1762,140 @@ return res;
 }
 
 
+function isImageProvider(providerId) {
+    return providerId === "pollinations" || providerId === "huggingface-image" || providerId === "together-image";
+}
+
+
+function doImageGenerationRequest(text, providerId) {
+    let config = plasmoid.configuration;
+    if (providerId === "pollinations") {
+        let encoded = encodeURIComponent(text);
+        let model = config.pollinationsModel || "flux";
+        let imageUrl = "https://image.pollinations.ai/prompt/" + encoded + "?width=1024&height=1024&model=" + model + "&nologo=true";
+        let assistantMsg = {
+            "role": "assistant",
+            "content": "",
+            "isImage": true,
+            "imageUrl": imageUrl,
+            "imageProvider": providerId,
+            "time": nowTime(Date.now()),
+            "at": Date.now()
+        };
+        appendMessageToSession(root.currentSessionId, assistantMsg);
+        root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+        root.loading = false;
+        saveCurrentSessionState(true);
+        return;
+    }
+    if (providerId === "together-image") {
+        let apiKey = config.togetherImageApiKey || "";
+        let model = config.togetherImageModel || "black-forest-labs/FLUX.1-schnell-Free";
+        let baseUrl = (config.togetherImageBaseUrl || "https://api.together.xyz/v1").replace(/\/$/, "");
+        let url = baseUrl + "/images/generations";
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        if (apiKey)
+            xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+            root.loading = false;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    let resp = JSON.parse(xhr.responseText);
+                    let imgUrl = (resp.data && resp.data[0] && resp.data[0].url) || "";
+                    if (imgUrl) {
+                        let msg = {
+                            "role": "assistant",
+                            "content": "",
+                            "isImage": true,
+                            "imageUrl": imgUrl,
+                            "imageProvider": providerId,
+                            "time": nowTime(Date.now()),
+                            "at": Date.now()
+                        };
+                        appendMessageToSession(root.currentSessionId, msg);
+                        root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+                    } else {
+                        pushErrorMessage("No image URL in Together AI response.");
+                    }
+                } catch (e) {
+                    pushErrorMessage("Failed to parse Together AI response: " + e);
+                }
+            } else {
+                pushErrorMessage("Together AI image error: HTTP " + xhr.status + " " + (xhr.responseText || "").substring(0, 200));
+            }
+            saveCurrentSessionState(true);
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during image generation.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send(JSON.stringify({
+            "model": model,
+            "prompt": text,
+            "n": 1,
+            "steps": 4,
+            "width": 1024,
+            "height": 1024
+        }));
+        return;
+    }
+    if (providerId === "huggingface-image") {
+        let apiKey = config.huggingfaceImageApiKey || "";
+        let model = config.huggingfaceImageModel || "stabilityai/stable-diffusion-xl-base-1.0";
+        let baseUrl = (config.huggingfaceImageBaseUrl || "https://api-inference.huggingface.co").replace(/\/$/, "");
+        let url = baseUrl + "/models/" + model;
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        if (apiKey)
+            xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return ;
+            root.loading = false;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    let b64 = btoa(String.fromCharCode.apply(null, new Uint8Array(xhr.response || [])));
+                    let dataUrl = "data:image/png;base64," + b64;
+                    let msg = {
+                        "role": "assistant",
+                        "content": "",
+                        "isImage": true,
+                        "imageUrl": dataUrl,
+                        "imageProvider": providerId,
+                        "time": nowTime(Date.now()),
+                        "at": Date.now()
+                    };
+                    appendMessageToSession(root.currentSessionId, msg);
+                    root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+                } catch (e) {
+                    pushErrorMessage("Failed to process HuggingFace image response.");
+                }
+            } else {
+                pushErrorMessage("HuggingFace image error: HTTP " + xhr.status);
+            }
+            saveCurrentSessionState(true);
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during HuggingFace image generation.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send(JSON.stringify({
+            "inputs": text
+        }));
+        return;
+    }
+    pushErrorMessage("Image generation not supported for this provider.");
+    root.loading = false;
+}
+
+
 function sendMessageByIndex(index) {
 resetOpenCodeIdleKillTimer();
 let source = root.messages[index] || {
@@ -1809,6 +1943,10 @@ return ;
 doOpenCodeRequest();
 return ;
 }
+if (isImageProvider(plasmoid.configuration.provider)) {
+    doImageGenerationRequest(text, plasmoid.configuration.provider);
+    return ;
+}
 let provider = plasmoid.configuration.provider || "openai";
 let providerCfg = getProviderConfig(provider);
 if (providerCfg.type === "anthropic")
@@ -1852,6 +1990,9 @@ return "";
 function validateProviderConfig(providerId, cfg) {
 if (!cfg)
 return "Provider configuration missing.";
+let imgProviderIds = ["pollinations", "huggingface-image", "together-image"];
+if (imgProviderIds.indexOf(providerId) >= 0)
+    return "";
 let missing = [];
 let name = providerDisplayName(providerId);
 if (!providerId)
@@ -2564,7 +2705,7 @@ return contentList;
 
 function checkClipboardForAttachments() {
 let docExtractorPath = getDocExtractorPath();
-let cmd = "python3 '" + docExtractorPath + "' --clipboard";
+let cmd = "python3 " + Sec.quoteForShell(docExtractorPath) + " --clipboard";
 fileReaderDs.connectSource(cmd);
 }
 

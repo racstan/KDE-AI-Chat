@@ -221,6 +221,48 @@
       <default>sabia-4</default>
     </entry>
 
+    <!-- Image Generation Providers -->
+    <entry name="imageProvider" type="String">
+      <default>pollinations</default>
+    </entry>
+
+    <entry name="pollinationsBaseUrl" type="String">
+      <default>https://image.pollinations.ai</default>
+    </entry>
+    <entry name="pollinationsModel" type="String">
+      <default>flux</default>
+    </entry>
+
+    <entry name="huggingfaceImageBaseUrl" type="String">
+      <default>https://api-inference.huggingface.co</default>
+    </entry>
+    <entry name="huggingfaceImageApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="huggingfaceImageModel" type="String">
+      <default>stabilityai/stable-diffusion-xl-base-1.0</default>
+    </entry>
+
+    <entry name="togetherImageBaseUrl" type="String">
+      <default>https://api.together.xyz/v1</default>
+    </entry>
+    <entry name="togetherImageApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="togetherImageModel" type="String">
+      <default>black-forest-labs/FLUX.1-schnell-Free</default>
+    </entry>
+
+    <!-- Prompt Templates -->
+    <entry name="promptTemplates" type="String">
+      <default>[]</default>
+    </entry>
+
+    <!-- Response length preference: 0=default, 1=short, 2=medium, 3=long, 4=max -->
+    <entry name="responseLength" type="Int">
+      <default>0</default>
+    </entry>
+
     <!-- language: "" = system default, "en" = English, "pt" = Portuguese, etc. -->
     <entry name="language" type="String">
       <default></default>

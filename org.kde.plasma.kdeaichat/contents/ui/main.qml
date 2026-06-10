@@ -138,6 +138,7 @@ PlasmoidItem {
     property bool configKwalletAutoPrompt: plasmoid.configuration.kwalletAutoPrompt !== undefined ? !!plasmoid.configuration.kwalletAutoPrompt : true
     property bool configOpenCodeAutoKill: !!plasmoid.configuration.openCodeAutoKill
     property int configOpenCodeAutoKillMinutes: plasmoid.configuration.openCodeAutoKillMinutes || 5
+    property int configResponseLength: plasmoid.configuration.responseLength || 0
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
     property bool kwalletLoading: false
@@ -285,22 +286,18 @@ PlasmoidItem {
         sequence: "F1"
         context: Qt.WindowShortcut
         onActivated: {
-            if (typeof root.openKeyboardShortcutsHelp === "function") {
-                root.openKeyboardShortcutsHelp();
-            } else {
-                let msg = root.translate("Keyboard shortcuts:") + " " +
-                    (plasmoid.configuration.keyNewChat || root.translate("Disabled")) + " " + root.translate("new chat") + ", " +
-                    (plasmoid.configuration.keyToggleSearch || root.translate("Disabled")) + " " + root.translate("search") + ", " +
-                    (plasmoid.configuration.keyFocusInput || root.translate("Disabled")) + " " + root.translate("focus input") + ", " +
-                    (plasmoid.configuration.keyClearInput || root.translate("Disabled")) + " " + root.translate("clear input") + ", " +
-                    (plasmoid.configuration.keyToggleHistory || root.translate("Disabled")) + " " + root.translate("history") + ", " +
-                    (plasmoid.configuration.keySettings || root.translate("Disabled")) + " " + root.translate("settings") + ", " +
-                    (plasmoid.configuration.keyRefresh || root.translate("Disabled")) + " " + root.translate("refresh") + ", " +
-                    (plasmoid.configuration.keyCopyLastReply || root.translate("Disabled")) + " " + root.translate("copy last reply") + ", " +
-                    (plasmoid.configuration.keyPrevSession || root.translate("Disabled")) + "/" + (plasmoid.configuration.keyNextSession || root.translate("Disabled")) + " " + root.translate("switch session") + ", " +
-                    "Esc " + root.translate("stop/cancel") + ".";
-                root.pushErrorMessage(msg);
-            }
+            let msg = root.translate("Keyboard shortcuts:") + " " +
+                (plasmoid.configuration.keyNewChat || root.translate("Disabled")) + " " + root.translate("new chat") + ", " +
+                (plasmoid.configuration.keyToggleSearch || root.translate("Disabled")) + " " + root.translate("search") + ", " +
+                (plasmoid.configuration.keyFocusInput || root.translate("Disabled")) + " " + root.translate("focus input") + ", " +
+                (plasmoid.configuration.keyClearInput || root.translate("Disabled")) + " " + root.translate("clear input") + ", " +
+                (plasmoid.configuration.keyToggleHistory || root.translate("Disabled")) + " " + root.translate("history") + ", " +
+                (plasmoid.configuration.keySettings || root.translate("Disabled")) + " " + root.translate("settings") + ", " +
+                (plasmoid.configuration.keyRefresh || root.translate("Disabled")) + " " + root.translate("refresh") + ", " +
+                (plasmoid.configuration.keyCopyLastReply || root.translate("Disabled")) + " " + root.translate("copy last reply") + ", " +
+                (plasmoid.configuration.keyPrevSession || root.translate("Disabled")) + "/" + (plasmoid.configuration.keyNextSession || root.translate("Disabled")) + " " + root.translate("switch session") + ", " +
+                "Esc " + root.translate("stop/cancel") + ".";
+            root.pushErrorMessage(msg);
         }
     }
 
@@ -937,6 +934,9 @@ PlasmoidItem {
             root.kwalletFailReason = "";
             // Loaded on demand when sending a message or opening settings.
         }
+    }
+    onConfigResponseLengthChanged: {
+        // Response length preference changed; applies on next send
     }
     onCurrentSessionIdChanged: {
         // Switches are rare; flush any pending debounced write so the

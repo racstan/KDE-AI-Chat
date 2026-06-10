@@ -40,7 +40,8 @@ def _load_schedules() -> Dict[str, Any]:
     sp = _schedules_path()
     if os.path.exists(sp):
         try:
-            data: Any = json.load(open(sp))
+            with open(sp) as f:
+                data: Any = json.load(f)
         except Exception:
             data = None
     else:
@@ -60,7 +61,8 @@ def cmd_toggle_schedule(payload: Dict[str, Any]) -> None:
             s["enabled"] = payload["enabled"]
             if payload["enabled"]:
                 s["nextRunAt"] = ""
-    json.dump(data, open(_schedules_path(), "w"), indent=2)
+    with open(_schedules_path(), "w") as f:
+        json.dump(data, f, indent=2)
 
 
 def cmd_update_schedule_history_status(payload: Dict[str, Any]) -> None:
@@ -69,7 +71,8 @@ def cmd_update_schedule_history_status(payload: Dict[str, Any]) -> None:
     if not os.path.exists(sp):
         return
     try:
-        data: Any = json.load(open(sp))
+        with open(sp) as f:
+            data: Any = json.load(f)
     except Exception:
         return
     if not isinstance(data, dict):
@@ -79,7 +82,8 @@ def cmd_update_schedule_history_status(payload: Dict[str, Any]) -> None:
         if entry.get("scheduleId") == payload["schedId"]:
             entry["status"] = payload["status"]
             break
-    json.dump(data, open(sp, "w"), indent=2)
+    with open(sp, "w") as f:
+        json.dump(data, f, indent=2)
 
 
 def cmd_migrate_history(payload: Dict[str, Any]) -> None:
@@ -92,14 +96,16 @@ def cmd_migrate_history(payload: Dict[str, Any]) -> None:
         if not new_p:
             if old_p and os.path.exists(old_p):
                 res["action"] = "load"
-                res["content"] = base64.b64encode(open(old_p, "rb").read()).decode("utf-8")
+                with open(old_p, "rb") as f:
+                    res["content"] = base64.b64encode(f.read()).decode("utf-8")
         else:
             folder = os.path.dirname(new_p)
             if folder:
                 os.makedirs(folder, exist_ok=True)
             if os.path.exists(new_p):
                 res["action"] = "load"
-                res["content"] = base64.b64encode(open(new_p, "rb").read()).decode("utf-8")
+                with open(new_p, "rb") as f:
+                    res["content"] = base64.b64encode(f.read()).decode("utf-8")
             elif old_p and os.path.exists(old_p):
                 shutil.copy2(old_p, new_p)
                 res["action"] = "copied"
@@ -131,14 +137,16 @@ def cmd_delete_session_schedules(payload: Dict[str, Any]) -> None:
     if not os.path.exists(sp):
         return
     try:
-        data: Any = json.load(open(sp))
+        with open(sp) as f:
+            data: Any = json.load(f)
     except Exception:
         return
     if not isinstance(data, dict):
         return
     scheds: List[Dict[str, Any]] = data.get("schedules", [])
     data["schedules"] = [s for s in scheds if s.get("chatId") != payload["sessionId"]]
-    json.dump(data, open(sp, "w"), indent=2)
+    with open(sp, "w") as f:
+        json.dump(data, f, indent=2)
 
 
 def cmd_poll_pending_triggers(payload: Dict[str, Any]) -> None:
@@ -155,7 +163,8 @@ def cmd_poll_pending_triggers(payload: Dict[str, Any]) -> None:
             if f.endswith(".json"):
                 p = os.path.join(pd, f)
                 try:
-                    res.append(json.load(open(p)))
+                    with open(p) as pf:
+                        res.append(json.load(pf))
                     os.remove(p)
                 except Exception:
                     pass
@@ -163,7 +172,8 @@ def cmd_poll_pending_triggers(payload: Dict[str, Any]) -> None:
     sp = _schedules_path()
     if os.path.exists(sp):
         try:
-            s_data: Any = json.load(open(sp))
+            with open(sp) as sf:
+                s_data: Any = json.load(sf)
             scheds = s_data.get("schedules", []) if isinstance(s_data, dict) else s_data
         except Exception:
             pass
@@ -174,14 +184,16 @@ def cmd_delete_schedule(payload: Dict[str, Any]) -> None:
     """Remove a single schedule by id."""
     data = _load_schedules()
     data["schedules"] = [s for s in data.get("schedules", []) if s.get("id") != payload["schedId"]]
-    json.dump(data, open(_schedules_path(), "w"), indent=2)
+    with open(_schedules_path(), "w") as f:
+        json.dump(data, f, indent=2)
 
 
 def cmd_add_schedule(payload: Dict[str, Any]) -> None:
     """Append a new schedule entry to the store."""
     data = _load_schedules()
     data.setdefault("schedules", []).append(payload["entry"])
-    json.dump(data, open(_schedules_path(), "w"), indent=2)
+    with open(_schedules_path(), "w") as f:
+        json.dump(data, f, indent=2)
 
 
 def _load_config(path: str) -> configparser.ConfigParser:

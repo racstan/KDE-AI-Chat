@@ -208,6 +208,33 @@ let PROVIDER_CONFIGS = {
         defaultBaseUrl: "https://chat.maritaca.ai/api",
         defaultModel: "sabia-4",
         allowEmptyKey: false
+    },
+    "pollinations": {
+        type: "image-gen",
+        configKey: "",
+        modelKey: "pollinationsModel",
+        baseUrlKey: "pollinationsBaseUrl",
+        defaultBaseUrl: "https://image.pollinations.ai",
+        defaultModel: "flux",
+        allowEmptyKey: true
+    },
+    "huggingface-image": {
+        type: "image-gen",
+        configKey: "huggingfaceImageApiKey",
+        modelKey: "huggingfaceImageModel",
+        baseUrlKey: "huggingfaceImageBaseUrl",
+        defaultBaseUrl: "https://api-inference.huggingface.co",
+        defaultModel: "stabilityai/stable-diffusion-xl-base-1.0",
+        allowEmptyKey: false
+    },
+    "together-image": {
+        type: "image-gen",
+        configKey: "togetherImageApiKey",
+        modelKey: "togetherImageModel",
+        baseUrlKey: "togetherImageBaseUrl",
+        defaultBaseUrl: "https://api.together.xyz/v1",
+        defaultModel: "black-forest-labs/FLUX.1-schnell-Free",
+        allowEmptyKey: false
     }
 };
 
@@ -232,7 +259,10 @@ let DISPLAY_NAMES = {
     "qwen": "Qwen",
     "moonshot": "Moonshot",
     "mimo": "MiMo",
-    "maritaca": "Maritaca"
+    "maritaca": "Maritaca",
+    "pollinations": "[Image] Pollinations.ai",
+    "huggingface-image": "[Image] HuggingFace Image",
+    "together-image": "[Image] Together AI"
 };
 
 let API_KEY_CONFIG_MAP = {
@@ -253,7 +283,9 @@ let API_KEY_CONFIG_MAP = {
     "qwen": "qwenApiKey",
     "moonshot": "moonshotApiKey",
     "mimo": "mimoApiKey",
-    "maritaca": "maritacaApiKey"
+    "maritaca": "maritacaApiKey",
+    "huggingface-image": "huggingfaceImageApiKey",
+    "together-image": "togetherImageApiKey"
 };
 
 /**

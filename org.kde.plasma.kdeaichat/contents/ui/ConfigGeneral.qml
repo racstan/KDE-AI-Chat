@@ -137,6 +137,7 @@ QQC2.ScrollView {
     property string cfg_lastSessionId: ""
     property string cfg_openRouterReferer: ""
     property string cfg_openRouterTitle: ""
+    property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
     property string cfg_keyToggleSearch: ""
     property string cfg_keyNewChat: ""
     property string cfg_keyToggleHistory: ""
@@ -578,6 +579,14 @@ QQC2.ScrollView {
 
     function startOpenCodeServerAutomatically() {
         return ConfigGeneralLogic.startOpenCodeServerAutomatically();
+    }
+
+    function startOpenCodeServer() {
+        return ConfigGeneralLogic.startOpenCodeServer();
+    }
+
+    function stopOpenCodeServer() {
+        return ConfigGeneralLogic.stopOpenCodeServer();
     }
 
     function checkAndAutoStartOpenCodeServer() {

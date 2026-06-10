@@ -92,6 +92,15 @@ Kirigami.FormLayout {
         }, {
             "value": "maritaca",
             "text": "Maritaca AI"
+        }, {
+            "value": "pollinations",
+            "text": "[Image] Pollinations.ai (Free)"
+        }, {
+            "value": "huggingface-image",
+            "text": "[Image] HuggingFace Image"
+        }, {
+            "value": "together-image",
+            "text": "[Image] Together AI"
         }]
         currentIndex: {
             if (!page) return 0;
@@ -128,6 +137,55 @@ Kirigami.FormLayout {
         text: page ? page.translate("Refresh") : "Refresh"
         enabled: page ? (!page.providerNeedsApiKey(providerBox.currentValue || "openai") || page.providerHasConfiguredKey(providerBox.currentValue || "openai")) : false
         onClicked: { if (page) page.refreshCurrentProviderModels(); }
+    }
+
+    QQC2.Button {
+        visible: page ? !page.cfg_useOpenCode : true
+        Kirigami.FormData.label: ""
+        Layout.fillWidth: true
+        Layout.maximumWidth: providersSection.fieldMaxWidth
+        text: page ? page.translate("Test Connection") : "Test Connection"
+        icon.name: "network-connect"
+        enabled: page ? (!page.providerNeedsApiKey(providerBox.currentValue || "openai") || page.providerHasConfiguredKey(providerBox.currentValue || "openai")) : false
+        onClicked: {
+            if (!page) return;
+            let prov = providerBox.currentValue || "openai";
+            let name = page.providerDisplayName(prov);
+            let cfg = page.getProviderConfig(prov);
+            if (!cfg) {
+                page.discoveryStatus = "No configuration for " + name;
+                return;
+            }
+            let url = (cfg.baseUrl || "").replace(/\/$/, "") + "/models";
+            if (cfg.type === "anthropic") {
+                url = "https://api.anthropic.com/v1/models";
+            }
+            page.discoveryStatus = "Testing " + name + "...";
+            let headers = {};
+            if (cfg.apiKey) headers["Authorization"] = "Bearer " + cfg.apiKey;
+            if (cfg.type === "anthropic") {
+                headers["x-api-key"] = cfg.apiKey;
+                headers["anthropic-version"] = "2023-06-01";
+            }
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.responseType = "text";
+            for (let h in headers) {
+                if (headers[h]) xhr.setRequestHeader(h, headers[h]);
+            }
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    page.discoveryStatus = "✓ " + name + " connected successfully (HTTP " + xhr.status + ")";
+                } else {
+                    page.discoveryStatus = "✗ " + name + " failed (HTTP " + xhr.status + ")";
+                }
+            };
+            xhr.onerror = function() {
+                page.discoveryStatus = "✗ " + name + " network error — check URL and connectivity";
+            };
+            xhr.send();
+        }
     }
 
     QQC2.Label {

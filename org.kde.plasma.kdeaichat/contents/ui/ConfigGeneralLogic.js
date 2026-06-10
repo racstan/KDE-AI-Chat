@@ -598,6 +598,25 @@ probeOpenCodeProviders((page ? page.cfg_openCodeUrl : ""));
 }
 
 
+function startOpenCodeServer() {
+discoveryStatus = "Starting OpenCode server...";
+let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
+let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
+let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + startCmd);
+utilityDs.connectSource(cmd + " #opencode-start-manual");
+openCodeAutoStartTimer.restart();
+}
+
+
+function stopOpenCodeServer() {
+discoveryStatus = "Stopping OpenCode server...";
+let stopCmd = openCodeStopCommandField.text || "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stopped. || echo No OpenCode process matched.";
+let cmd = "sh -c " + Sec.rawShellSnippetQuote(stopCmd);
+utilityDs.connectSource(cmd + " #opencode-stop-manual");
+discoveryStatus = "OpenCode server stopped.";
+}
+
+
 function startOpenCodeServerAutomatically() {
 discoveryStatus = "Starting OpenCode server automatically...";
 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
