@@ -29,7 +29,7 @@ Column {
     property var chatRoot
     property int messageIndex: -1
 
-    visible: messageData && (chatRoot && chatRoot.editingMessageIndex !== messageIndex || messageData.role === "error" || messageData.isImage)
+    visible: messageData && (chatRoot && chatRoot.editingMessageIndex !== messageIndex || messageData.role === "error" || messageData.isImage === true)
     width: parent ? parent.width : 0
     spacing: 4
 
@@ -50,7 +50,7 @@ Column {
 
     // Image generation display
     Column {
-        visible: contentRoot.messageData && contentRoot.messageData.isImage
+        visible: contentRoot.messageData && contentRoot.messageData.isImage === true
         width: parent.width
         spacing: Kirigami.Units.smallSpacing
 
@@ -67,7 +67,7 @@ Column {
 
         Rectangle {
             width: Math.min(parent.width, 512)
-            height: chatImage.status === Image.Ready ? chatImage.implicitHeight : 300
+            height: chatImage.status === Image.Ready ? chatImage.implicitHeight : (chatImage.status === Image.Loading ? 300 : 0)
             radius: 6
             color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#2d3139" : "#f0f2f5"
             border.width: 1
@@ -186,7 +186,7 @@ Column {
     Repeater {
         visible: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
         width: parent.width
-        model: contentRoot.messageData && !contentRoot.messageData.isImage && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
+        model: contentRoot.messageData && contentRoot.messageData.isImage !== true && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
             ? (contentRoot.messageData.blocks || (contentRoot.chatRoot ? contentRoot.chatRoot.parseMessageBlocks(contentRoot.messageData.content || "") : []))
             : []
 

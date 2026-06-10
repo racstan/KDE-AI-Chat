@@ -163,27 +163,6 @@ import "Security.js" as Sec
                     }
                 }
 
-                QQC2.ComboBox {
-                    id: quickModelSwitch
-                    visible: !root.historyOnlyMode && !plasmoid.configuration.useOpenCode
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 10
-                    model: {
-                        let models = [];
-                        let pm = plasmoid.configuration[plasmoid.configuration.provider + "Model"] || "";
-                        if (pm) models.push(pm);
-                        return models.length > 0 ? models : ["(default)"];
-                    }
-                    font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: root.translate("Switch model")
-                    onActivated: {
-                        if (currentIndex >= 0 && model[currentIndex]) {
-                            let key = plasmoid.configuration.provider + "Model";
-                            plasmoid.configuration[key] = model[currentIndex];
-                        }
-                    }
-                }
-
                  PC3.ToolButton {
                     visible: !root.historyOnlyMode
                     icon.name: "configure"
@@ -1912,20 +1891,6 @@ import "Security.js" as Sec
                                 onClicked: root.stopStreaming()
                             }
 
-                            QQC2.ComboBox {
-                                id: responseLengthCombo
-                                visible: !plasmoid.configuration.useOpenCode
-                                model: [root.translate("Default"), root.translate("Short"), root.translate("Medium"), root.translate("Long"), root.translate("Max")]
-                                currentIndex: plasmoid.configuration.responseLength || 0
-                                font.pointSize: 8
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 5
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: root.translate("Response length")
-                                onActivated: {
-                                    plasmoid.configuration.responseLength = currentIndex;
-                                }
-                            }
-
                             PC3.Label {
                                 text: {
                                     let chars = root.chatInputText.length;
@@ -2136,6 +2101,87 @@ import "Security.js" as Sec
                     id: chatMemoryArea
                     wrapMode: Text.Wrap
                     placeholderText: root.translate("E.g., This chat is about my Python project. Prefer type hints.")
+                }
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            // ── Model Switch ────────────────────────────────────────────
+            QQC2.Label {
+                text: root.translate("Model:")
+                font.bold: true
+                visible: !plasmoid.configuration.useOpenCode
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                visible: !plasmoid.configuration.useOpenCode
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.ComboBox {
+                    id: quickModelSwitch
+                    Layout.fillWidth: true
+                    model: {
+                        let models = [];
+                        let prov = plasmoid.configuration.provider || "openai";
+                        let pm = plasmoid.configuration[prov + "Model"] || "";
+                        if (pm) models.push(pm);
+                        return models.length > 0 ? models : ["(default)"];
+                    }
+                    currentIndex: 0
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize
+                    QQC2.ToolTip.text: root.translate("Switch model for this chat")
+                }
+
+                QQC2.Button {
+                    text: root.translate("Apply")
+                    onClicked: {
+                        if (quickModelSwitch.currentIndex >= 0 && quickModelSwitch.model[quickModelSwitch.currentIndex]) {
+                            let prov = plasmoid.configuration.provider || "openai";
+                            let key = prov + "Model";
+                            plasmoid.configuration[key] = quickModelSwitch.model[quickModelSwitch.currentIndex];
+                        }
+                    }
+                }
+            }
+
+            // ── Response Length ──────────────────────────────────────────
+            QQC2.Label {
+                text: root.translate("Response Length:")
+                font.bold: true
+                visible: !plasmoid.configuration.useOpenCode
+                Layout.fillWidth: true
+            }
+
+            QQC2.ComboBox {
+                id: responseLengthCombo
+                visible: !plasmoid.configuration.useOpenCode
+                Layout.fillWidth: true
+                model: [root.translate("Default"), root.translate("Short"), root.translate("Medium"), root.translate("Long"), root.translate("Max")]
+                currentIndex: plasmoid.configuration.responseLength || 0
+                onActivated: {
+                    plasmoid.configuration.responseLength = currentIndex;
+                }
+            }
+
+            QQC2.Label {
+                visible: !plasmoid.configuration.useOpenCode
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                font: Kirigami.Theme.smallFont
+                opacity: 0.7
+                text: {
+                    let lengths = [
+                        root.translate("Default — no limit"),
+                        root.translate("Short (~256 tokens)"),
+                        root.translate("Medium (~1024 tokens)"),
+                        root.translate("Long (~4096 tokens)"),
+                        root.translate("Max (~8192 tokens)")
+                    ];
+                    return lengths[responseLengthCombo.currentIndex] || lengths[0];
                 }
             }
 

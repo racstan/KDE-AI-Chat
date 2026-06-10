@@ -580,6 +580,238 @@ Kirigami.FormLayout {
         }
     }
 
+    // ── API Key Storage ────────────────────────────────────────────────
+    Kirigami.Separator {
+        visible: page ? !page.cfg_useOpenCode : true
+        Kirigami.FormData.isSection: true
+        Kirigami.FormData.label: page ? page.translate("API Key Storage") : "API Key Storage"
+    }
+
+    QQC2.Label {
+        visible: page ? !page.cfg_useOpenCode : true
+        Kirigami.FormData.label: page ? page.translate("Storage mode:") : "Storage mode:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        text: page ? page.translate("Choose how your API keys are stored between sessions:") : ""
+        wrapMode: Text.Wrap
+        opacity: 0.75
+    }
+
+    QQC2.ComboBox {
+        id: storageModeCombo
+        visible: page ? !page.cfg_useOpenCode : true
+        Kirigami.FormData.label: page ? page.translate("Storage mode:") : "Storage mode:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        model: ["🔒 Session only (forget keys on close)", "📄 Plain config (save to ~/.config/kdeaichatrc)", "🔑 KWallet (secure encrypted storage)"]
+        currentIndex: page ? page.cfg_keyStorageMode : 1
+        onCurrentIndexChanged: {
+            if (!page || !page.pageReady)
+                return;
+            page.keyringStatus = "";
+            if (currentIndex === 1) {
+                page.syncKeysToDisk();
+                page.keyringStatus = "Switched to Plain Config. Current keys synced to config file.";
+            } else if (currentIndex === 2) {
+                if (page.availableWalletNames.length === 0)
+                    page.detectWallets();
+            }
+        }
+    }
+
+    RowLayout {
+        visible: page ? (!page.cfg_useOpenCode && page.cfg_keyStorageMode === 1) : false
+        Kirigami.FormData.label: page ? page.translate("Config actions:") : "Config actions:"
+        Layout.fillWidth: true
+
+        QQC2.Button {
+            text: page ? page.translate("Reload from config file") : "Reload from config file"
+            onClicked: { if (page) page.loadKeysFromPlainConfig(); }
+        }
+
+        QQC2.Button {
+            text: page ? page.translate("Open config file") : "Open config file"
+            onClicked: { if (page) page.writeKeysToDiskAndOpen(); }
+        }
+    }
+
+    QQC2.Label {
+        visible: page ? (!page.cfg_useOpenCode && page.cfg_keyStorageMode === 2) : false
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        text: page ? page.translate("Keys are encrypted and stored via DBus in your system KWallet. Recommended for shared or multi-user machines.") : ""
+        wrapMode: Text.Wrap
+        opacity: 0.75
+    }
+
+    QQC2.ComboBox {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive && page.availableWalletNames.length > 0) : false
+        Kirigami.FormData.label: page ? page.translate("Wallet name:") : "Wallet name:"
+        Layout.fillWidth: true
+        model: page ? page.availableWalletNames : []
+        currentIndex: page ? page.availableWalletNames.indexOf(page.kwalletName || "") : -1
+        onActivated: {
+            if (currentIndex >= 0 && page)
+                page.cfg_kwalletName = currentText;
+        }
+    }
+
+    QQC2.TextField {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive && page.availableWalletNames.length === 0) : false
+        Kirigami.FormData.label: page ? page.translate("Wallet name:") : "Wallet name:"
+        Layout.fillWidth: true
+        text: page ? page.cfg_kwalletName : ""
+        placeholderText: "kdewallet"
+        onTextChanged: { if (page) page.cfg_kwalletName = text; }
+    }
+
+    QQC2.CheckBox {
+        id: kwalletAutoPromptCheck
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive) : false
+        Kirigami.FormData.label: page ? page.translate("Auto-unlock:") : "Auto-unlock:"
+        text: page ? page.translate("Automatically prompt for password") : "Automatically prompt for password"
+        Layout.fillWidth: true
+    }
+
+    QQC2.Label {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive) : false
+        Kirigami.FormData.label: page ? page.translate("Wallet info:") : "Wallet info:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        text: page ? page.translate("KWallet controls wallet creation and password policy. A new wallet name may trigger KDE to create or unlock that wallet, depending on your system wallet settings.") : ""
+        wrapMode: Text.Wrap
+        opacity: 0.8
+    }
+
+    RowLayout {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive) : false
+        Kirigami.FormData.label: page ? page.translate("Wallet actions:") : "Wallet actions:"
+        Layout.fillWidth: true
+
+        QQC2.Button {
+            text: page ? page.translate("Detect wallets") : "Detect wallets"
+            enabled: page ? !page.keyringBusy : true
+            onClicked: { if (page) page.detectWallets(); }
+        }
+
+        QQC2.Button {
+            text: "Launch KWalletManager"
+            onClicked: {
+                if (page) page.utilityDs.connectSource("kwalletmanager6 || kwalletmanager5 || kwalletmanager #launch-kwallet");
+            }
+        }
+
+        QQC2.Button {
+            text: page ? page.translate("Create wallet") : "Create wallet"
+            visible: page ? page.availableWalletNames.length === 0 : false
+            enabled: page ? !page.keyringBusy : true
+            onClicked: {
+                if (page) {
+                    page.cancelKeyringOps();
+                    let walletName = page.effectiveWalletName();
+                    page.keyringStatus = "Requesting wallet creation/open: " + walletName + "...";
+                    page.utilityDs.connectSource(page.walletInitCommand(walletName) + " #kwallet-create");
+                }
+            }
+        }
+    }
+
+    QQC2.Button {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive) : false
+        Kirigami.FormData.label: page ? page.translate("Wallet status:") : "Wallet status:"
+        text: page ? page.translate("Check wallet status") : "Check wallet status"
+        enabled: page ? !page.keyringBusy : true
+        onClicked: {
+            if (page) {
+                page.cancelKeyringOps();
+                page.keyringStatus = "Checking wallet status...";
+                page.utilityDs.connectSource(page.walletStatusCommand(page.effectiveWalletName()) + " #kwallet-status-check");
+            }
+        }
+    }
+
+    RowLayout {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive) : false
+        Kirigami.FormData.label: page ? page.translate("KWallet sync:") : "KWallet sync:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+
+        QQC2.Button {
+            text: page ? page.translate("Refresh from KWallet") : "Refresh from KWallet"
+            enabled: page ? !page.keyringBusy : true
+            icon.name: "view-refresh"
+            onClicked: {
+                if (page) {
+                    if (typeof page.resetKwalletFailState === "function") {
+                        page.resetKwalletFailState();
+                    }
+                    page.kwalletLoadAll(true);
+                }
+            }
+        }
+
+        QQC2.Button {
+            text: page ? page.translate("Sync to KWallet") : "Sync to KWallet"
+            enabled: page ? !page.keyringBusy : true
+            icon.name: "document-save"
+            onClicked: { if (page) page.kwalletStoreAll(true); }
+        }
+    }
+
+    // KWallet permanently-failed warning banner
+    Rectangle {
+        visible: {
+            if (!page || !page.kwalletModeActive || page.cfg_useOpenCode) return false;
+            return page.kwalletSyncPermanentlyFailed === true;
+        }
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        Kirigami.FormData.label: ""
+        implicitHeight: kwalletFailRow.implicitHeight + Kirigami.Units.gridUnit
+        radius: 5
+        color: Qt.rgba(Kirigami.Theme.negativeTextColor.r, Kirigami.Theme.negativeTextColor.g, Kirigami.Theme.negativeTextColor.b, 0.1)
+        border.color: Qt.rgba(Kirigami.Theme.negativeTextColor.r, Kirigami.Theme.negativeTextColor.g, Kirigami.Theme.negativeTextColor.b, 0.4)
+        border.width: 1
+
+        RowLayout {
+            id: kwalletFailRow
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Icon {
+                source: "dialog-warning"
+                Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                Layout.alignment: Qt.AlignTop
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Kirigami.Theme.negativeTextColor
+                font.bold: true
+                text: page ? (page.kwalletSyncFailReason || "KWallet sync failed — possibly wrong password or wallet not unlocked. Click \"Refresh from KWallet\" above to retry.") : ""
+            }
+        }
+    }
+
+    QQC2.BusyIndicator {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive && page.keyringBusy) : false
+        running: visible
+        Kirigami.FormData.label: page ? page.translate("Working:") : "Working:"
+    }
+
+    QQC2.Label {
+        visible: page ? (!page.cfg_useOpenCode && page.keyringStatus !== "") : false
+        Kirigami.FormData.label: page ? page.translate("Status:") : "Status:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        text: page ? page.keyringStatus : ""
+        wrapMode: Text.Wrap
+        opacity: 0.8
+    }
+
     // ── Other settings ────────────────────────────────────────────────────
     Kirigami.Separator {
         Kirigami.FormData.isSection: true
