@@ -36,6 +36,9 @@ class VoiceHelper:
 
     def check_env(self, payload):
         """Check environment for voice capabilities."""
+        stt_model_path = payload.get("stt_model_path", "")
+        tts_model_path = payload.get("tts_model_path", "")
+
         result = {
             "type": "env_check",
             "mic_available": False,
@@ -49,6 +52,8 @@ class VoiceHelper:
             "faster_whisper_ok": False,
             "kokoro_ok": False,
             "numpy_ok": False,
+            "stt_model_path_ok": False,
+            "tts_model_path_ok": False,
         }
 
         # Check microphone (via sounddevice)
@@ -85,12 +90,18 @@ class VoiceHelper:
         except ImportError:
             pass
 
+        # Check custom model paths
+        if stt_model_path and os.path.isdir(stt_model_path):
+            result["stt_model_path_ok"] = True
+        if tts_model_path and os.path.isdir(tts_model_path):
+            result["tts_model_path_ok"] = True
+
         # Overall readiness
         result["venv_ready"] = result["sounddevice_ok"] and result["numpy_ok"]
-        result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"]
+        result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and (result["stt_model_path_ok"] or not stt_model_path)
         result["tts_ready"] = result["kokoro_ok"] and result["espeak_available"] and (
             result["paplay_available"] or result["aplay_available"]
-        )
+        ) and (result["tts_model_path_ok"] or not tts_model_path)
 
         self.emit(result)
 
@@ -455,6 +466,11 @@ class VoiceHelper:
             if not line:
                 continue
             self.process_command(line)
+        # Wait for any running threads before exiting
+        if self.stt_thread and self.stt_thread.is_alive():
+            self.stt_thread.join(timeout=120)
+        if self.tts_thread and self.tts_thread.is_alive():
+            self.tts_thread.join(timeout=120)
 
 
 if __name__ == "__main__":

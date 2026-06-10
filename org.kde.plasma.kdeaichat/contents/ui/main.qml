@@ -137,6 +137,8 @@ PlasmoidItem {
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
     property string voicePendingText: ""
+    property bool voiceSttTesting: false
+    property string voiceSttTestResult: ""
     property var plasmoidRef: plasmoid
     property string configCustomHistoryPath: plasmoid.configuration.customHistoryPath || ""
     property bool configUseOpenCode: !!plasmoid.configuration.useOpenCode

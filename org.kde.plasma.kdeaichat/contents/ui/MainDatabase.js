@@ -3285,7 +3285,10 @@ function handleVoiceResponse(resp, sourceName) {
     } else if (respType === "stt_result") {
         root.voiceRecording = false;
         let text = (resp.text || "").trim();
-        if (text) {
+        if (root.voiceSttTesting) {
+            root.voiceSttTesting = false;
+            root.voiceSttTestResult = text || "(no speech detected)";
+        } else if (text) {
             if (plasmoid.configuration.voiceAutoSend) {
                 root.chatInputText = text;
                 Qt.callLater(root.sendMessage);
@@ -3295,6 +3298,8 @@ function handleVoiceResponse(resp, sourceName) {
         }
     } else if (respType === "stt_error") {
         root.voiceRecording = false;
+        root.voiceSttTesting = false;
+        root.voiceSttTestResult = "Error: " + (resp.error || "Unknown error");
         pushErrorMessage("Voice error: " + (resp.error || "Unknown error"));
     } else if (respType === "stt_status") {
         // Status updates (loading_model, recording, transcribing)
