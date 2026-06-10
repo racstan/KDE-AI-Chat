@@ -1050,16 +1050,12 @@ import "Security.js" as Sec
                                                                                     if (!questionItemCol.qMultiple && optionBtn.selected)
                                                                                         root.respondToQuestion(questionCol.qId, optionBtn.modelData.label || "", false);
 
-                }
-            }
+                                                                                }
+                                                                            }
 
-        }
+                                                                        }
 
-    }
-
-    }
-
-    // ── Inline /schedule command dialog ───────────────────────────────────────
+                                                                    }
 
                                                                 }
 
@@ -2330,6 +2326,8 @@ import "Security.js" as Sec
                         chatSettingsDialog.accept();
                     }
                 }
+            }
+
             }
 
         }
