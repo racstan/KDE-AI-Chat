@@ -146,17 +146,6 @@ QQC2.ScrollView {
     property string cfg_openRouterReferer: ""
     property string cfg_openRouterTitle: ""
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
-    // Voice (STT/TTS) cfg bindings
-    property alias cfg_voiceEnabled: advancedSection.voiceEnabled
-    property alias cfg_voiceTtsEnabled: advancedSection.voiceTtsEnabled
-    property string cfg_voiceSttModel: ""
-    property string cfg_voiceTtsModel: ""
-    property string cfg_voiceSttModelPath: ""
-    property string cfg_voiceTtsModelPath: ""
-    property string cfg_voiceLanguage: "en"
-    property string cfg_voiceTtsVoice: "af_heart"
-    property alias cfg_voiceAutoSend: advancedSection.voiceAutoSend
-    property string cfg_voiceVenvPath: "~/.local/share/kdeaichat/venv"
     property string cfg_keyToggleSearch: ""
     property string cfg_keyNewChat: ""
     property string cfg_keyToggleHistory: ""

@@ -8,9 +8,9 @@ ConfigModel {
         source: "ConfigGeneral.qml"
     }
     ConfigCategory {
-        name: i18n("Behavior")
-        icon: "preferences-desktop-default-applications"
-        source: "ConfigBehavior.qml"
+        name: i18n("Advanced Features")
+        icon: "tools"
+        source: "ConfigAdvancedFeatures.qml"
     }
     ConfigCategory {
         name: i18n("Widget Shortcuts")
