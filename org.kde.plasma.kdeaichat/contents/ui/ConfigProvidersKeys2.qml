@@ -57,6 +57,20 @@ Kirigami.FormLayout {
     property alias maritacaApiKeyField: maritacaApiKeyField
     property alias maritacaModelField: maritacaModelField
 
+    // Pollinations AI aliases
+    property alias pollinationsBaseUrlField: pollinationsBaseUrlField
+    property alias pollinationsModelField: pollinationsModelField
+
+    // HuggingFace Image aliases
+    property alias huggingfaceImageBaseUrlField: huggingfaceImageBaseUrlField
+    property alias huggingfaceImageApiKeyField: huggingfaceImageApiKeyField
+    property alias huggingfaceImageModelField: huggingfaceImageModelField
+
+    // Together Image aliases
+    property alias togetherImageBaseUrlField: togetherImageBaseUrlField
+    property alias togetherImageApiKeyField: togetherImageApiKeyField
+    property alias togetherImageModelField: togetherImageModelField
+
     // Value aliases for config bindings to avoid double-nested aliases in parent
     property alias xaiBaseUrl: xaiBaseUrlField.text
     property alias xaiApiKey: xaiApiKeyField.text
@@ -82,6 +96,15 @@ Kirigami.FormLayout {
     property alias maritacaBaseUrl: maritacaBaseUrlField.text
     property alias maritacaApiKey: maritacaApiKeyField.text
     property alias maritacaModel: maritacaModelField.text
+    property alias pollinationsBaseUrl: pollinationsBaseUrlField.text
+    property alias pollinationsModel: pollinationsModelField.text
+    property alias huggingfaceImageBaseUrl: huggingfaceImageBaseUrlField.text
+    property alias huggingfaceImageApiKey: huggingfaceImageApiKeyField.text
+    property alias huggingfaceImageModel: huggingfaceImageModelField.text
+    property alias togetherImageBaseUrl: togetherImageBaseUrlField.text
+    property alias togetherImageApiKey: togetherImageApiKeyField.text
+    property alias togetherImageModel: togetherImageModelField.text
+
 
     // ── xAI Grok ──────────────────────────────────────────────────────────
     QQC2.TextField {
@@ -504,5 +527,115 @@ Kirigami.FormLayout {
         placeholderText: "sabia-4"
     }
 
+    // ── Pollinations AI ───────────────────────────────────────────────────
+    QQC2.TextField {
+        id: pollinationsBaseUrlField
+        visible: false
+        placeholderText: "https://image.pollinations.ai"
+    }
+
+    QQC2.TextField {
+        id: pollinationsModelField
+        visible: false
+        placeholderText: "flux"
+    }
+
+    // ── HuggingFace Image ─────────────────────────────────────────────────
+    QQC2.TextField {
+        id: huggingfaceImageBaseUrlField
+        visible: false
+        placeholderText: "https://api-inference.huggingface.co"
+    }
+
+    RowLayout {
+        Kirigami.FormData.label: page ? page.translate("HuggingFace Image key:") : "HuggingFace Image key:"
+        visible: page ? page.providerEnabled("huggingface-image") : false
+        Layout.fillWidth: true
+        Layout.maximumWidth: keys2.fieldMaxWidth
+
+        QQC2.TextField {
+            id: huggingfaceImageApiKeyField
+            Layout.fillWidth: true
+            echoMode: hfImgKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+            onEditingFinished: {
+                if (page) {
+                    page.saveKey("huggingface-image", text);
+                    page.refreshIfActiveProvider("huggingface-image");
+                }
+            }
+        }
+
+        QQC2.Button {
+            id: hfImgKeyShowHide
+            checkable: true
+            text: checked ? (page ? page.translate("Hide") : "Hide") : (page ? page.translate("Show") : "Show")
+        }
+    }
+
+    QQC2.Label {
+        visible: page ? page.providerNeedsKeyHintVisible("huggingface-image") : false
+        Kirigami.FormData.label: page ? page.translate("HuggingFace Image model:") : "HuggingFace Image model:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: keys2.fieldMaxWidth
+        text: page ? page.translate("Enter the HuggingFace API key first, then refresh models or type a model name.") : ""
+        wrapMode: Text.Wrap
+        opacity: 0.75
+    }
+
+    QQC2.TextField {
+        id: huggingfaceImageModelField
+        visible: false
+        placeholderText: "stabilityai/stable-diffusion-xl-base-1.0"
+    }
+
+    // ── Together AI Image ─────────────────────────────────────────────────
+    QQC2.TextField {
+        id: togetherImageBaseUrlField
+        visible: false
+        placeholderText: "https://api.together.xyz/v1"
+    }
+
+    RowLayout {
+        Kirigami.FormData.label: page ? page.translate("Together Image key:") : "Together Image key:"
+        visible: page ? page.providerEnabled("together-image") : false
+        Layout.fillWidth: true
+        Layout.maximumWidth: keys2.fieldMaxWidth
+
+        QQC2.TextField {
+            id: togetherImageApiKeyField
+            Layout.fillWidth: true
+            echoMode: tgImgKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+            onEditingFinished: {
+                if (page) {
+                    page.saveKey("together-image", text);
+                    page.refreshIfActiveProvider("together-image");
+                }
+            }
+        }
+
+        QQC2.Button {
+            id: tgImgKeyShowHide
+            checkable: true
+            text: checked ? (page ? page.translate("Hide") : "Hide") : (page ? page.translate("Show") : "Show")
+        }
+    }
+
+    QQC2.Label {
+        visible: page ? page.providerNeedsKeyHintVisible("together-image") : false
+        Kirigami.FormData.label: page ? page.translate("Together Image model:") : "Together Image model:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: keys2.fieldMaxWidth
+        text: page ? page.translate("Enter the Together AI API key first, then refresh models or type a model name.") : ""
+        wrapMode: Text.Wrap
+        opacity: 0.75
+    }
+
+    QQC2.TextField {
+        id: togetherImageModelField
+        visible: false
+        placeholderText: "black-forest-labs/FLUX.1-schnell-Free"
+    }
+
     readonly property real fieldMaxWidth: page ? page.fieldMaxWidth : Kirigami.Units.gridUnit * 28
 }
+

@@ -1773,19 +1773,45 @@ function doImageGenerationRequest(text, providerId) {
         let encoded = encodeURIComponent(text);
         let model = config.pollinationsModel || "flux";
         let imageUrl = "https://image.pollinations.ai/prompt/" + encoded + "?width=1024&height=1024&model=" + model + "&nologo=true";
-        let assistantMsg = {
-            "role": "assistant",
-            "content": "",
-            "isImage": true,
-            "imageUrl": imageUrl,
-            "imageProvider": providerId,
-            "time": nowTime(Date.now()),
-            "at": Date.now()
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", imageUrl, true);
+        xhr.responseType = "blob";
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return;
+            root.loading = false;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                let contentType = xhr.getResponseHeader("Content-Type") || "";
+                if (contentType.indexOf("image") >= 0) {
+                    let assistantMsg = {
+                        "role": "assistant",
+                        "content": "",
+                        "isImage": true,
+                        "imageUrl": imageUrl,
+                        "imageProvider": providerId,
+                        "time": nowTime(Date.now()),
+                        "at": Date.now()
+                    };
+                    appendMessageToSession(root.currentSessionId, assistantMsg);
+                    root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
+                } else {
+                    let body = "";
+                    try { body = xhr.responseText || ""; } catch(e) {}
+                    pushErrorMessage("Pollinations returned non-image response (status " + xhr.status + "): " + body.substring(0, 200));
+                }
+            } else {
+                let body = "";
+                try { body = xhr.responseText || ""; } catch(e) {}
+                pushErrorMessage("Pollinations image error: HTTP " + xhr.status + " " + body.substring(0, 200));
+            }
+            saveCurrentSessionState(true);
         };
-        appendMessageToSession(root.currentSessionId, assistantMsg);
-        root.messages = root.sessions[root.sessionIndexById(root.currentSessionId)].messages;
-        root.loading = false;
-        saveCurrentSessionState(true);
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Network error during Pollinations image generation.");
+            saveCurrentSessionState(true);
+        };
+        xhr.send();
         return;
     }
     if (providerId === "together-image") {
@@ -1851,6 +1877,7 @@ function doImageGenerationRequest(text, providerId) {
         let url = baseUrl + "/models/" + model;
         let xhr = new XMLHttpRequest();
         xhr.open("POST", url, true);
+        xhr.responseType = "arraybuffer";
         xhr.setRequestHeader("Content-Type", "application/json");
         if (apiKey)
             xhr.setRequestHeader("Authorization", "Bearer " + apiKey);

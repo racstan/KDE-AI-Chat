@@ -35,6 +35,8 @@ Kirigami.FormLayout {
     property alias kwalletAutoPromptCheck: kwalletAutoPromptCheck
 
     // Value aliases for config bindings to avoid double-nested aliases in parent
+    property alias storageMode: storageModeCombo.currentIndex
+    property alias kwalletAutoPrompt: kwalletAutoPromptCheck.checked
     property alias walletName: walletNameField.text
     property alias systemPrompt: systemPromptArea.text
     property alias memoryEnabled: memoryEnabledToggle.checked
@@ -653,7 +655,7 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: page ? page.translate("Wallet name:") : "Wallet name:"
         Layout.fillWidth: true
         model: page ? page.availableWalletNames : []
-        currentIndex: page ? page.availableWalletNames.indexOf(page.kwalletName || "") : -1
+        currentIndex: page ? page.availableWalletNames.indexOf(page.cfg_kwalletName || "") : -1
         onActivated: {
             if (currentIndex >= 0 && page)
                 page.cfg_kwalletName = currentText;
@@ -661,12 +663,11 @@ Kirigami.FormLayout {
     }
 
     QQC2.TextField {
+        id: walletNameField
         visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive && page.availableWalletNames.length === 0) : false
         Kirigami.FormData.label: page ? page.translate("Wallet name:") : "Wallet name:"
         Layout.fillWidth: true
-        text: page ? page.cfg_kwalletName : ""
         placeholderText: "kdewallet"
-        onTextChanged: { if (page) page.cfg_kwalletName = text; }
     }
 
     QQC2.CheckBox {

@@ -33,8 +33,8 @@ QQC2.ScrollView {
     property real configZoom: 1
     property alias cfg_appDisplayName: advancedSection.appDisplayName
     property alias cfg_appearanceMode: generalSection.appearanceMode
-    property alias cfg_keyStorageMode: advancedSection.storageModeCombo.currentIndex
-    property alias cfg_kwalletAutoPrompt: advancedSection.kwalletAutoPromptCheck.checked
+    property alias cfg_keyStorageMode: advancedSection.storageMode
+    property alias cfg_kwalletAutoPrompt: advancedSection.kwalletAutoPrompt
     // Convenience computed for all KWallet-only visibility guards
     readonly property bool kwalletModeActive: cfg_keyStorageMode === 2
     property string cfg_provider: ""
@@ -97,6 +97,14 @@ QQC2.ScrollView {
     property alias cfg_maritacaBaseUrl: keys2.maritacaBaseUrl
     property alias cfg_maritacaApiKey: keys2.maritacaApiKey
     property alias cfg_maritacaModel: keys2.maritacaModel
+    property alias cfg_pollinationsBaseUrl: keys2.pollinationsBaseUrl
+    property alias cfg_pollinationsModel: keys2.pollinationsModel
+    property alias cfg_huggingfaceImageBaseUrl: keys2.huggingfaceImageBaseUrl
+    property alias cfg_huggingfaceImageApiKey: keys2.huggingfaceImageApiKey
+    property alias cfg_huggingfaceImageModel: keys2.huggingfaceImageModel
+    property alias cfg_togetherImageBaseUrl: keys2.togetherImageBaseUrl
+    property alias cfg_togetherImageApiKey: keys2.togetherImageApiKey
+    property alias cfg_togetherImageModel: keys2.togetherImageModel
     property string cfg_language: ""
     readonly property bool isLanguageEnglish: {
         let lang = cfg_language;
@@ -331,6 +339,14 @@ QQC2.ScrollView {
     readonly property alias maritacaBaseUrlField: keys2.maritacaBaseUrlField
     readonly property alias maritacaApiKeyField: keys2.maritacaApiKeyField
     readonly property alias maritacaModelField: keys2.maritacaModelField
+    readonly property alias pollinationsBaseUrlField: keys2.pollinationsBaseUrlField
+    readonly property alias pollinationsModelField: keys2.pollinationsModelField
+    readonly property alias huggingfaceImageBaseUrlField: keys2.huggingfaceImageBaseUrlField
+    readonly property alias huggingfaceImageApiKeyField: keys2.huggingfaceImageApiKeyField
+    readonly property alias huggingfaceImageModelField: keys2.huggingfaceImageModelField
+    readonly property alias togetherImageBaseUrlField: keys2.togetherImageBaseUrlField
+    readonly property alias togetherImageApiKeyField: keys2.togetherImageApiKeyField
+    readonly property alias togetherImageModelField: keys2.togetherImageModelField
 
 
     readonly property string guideText: translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>" + "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" + "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" + "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" + "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" + "• <b>Chat features:</b> Press <b>Ctrl+F</b> to search the active conversation. Click <b>Quote</b> on any message to reply inline. Use <b>Regenerate</b> to get a shorter or longer version of any AI response.<br/>" + "• <b>Session sidebar:</b> Search, sort, and filter conversations. New chats are auto-named for easy identification.<br/>" + "• <b>Global Memory &amp; Global Context:</b> In the <b>Behavior</b> section, configure memory, set the context limit (default: 1), and enable auto-compacting.<br/>" + "• <b>Schedules:</b> Use the <b>Schedules</b> tool to schedule automated questions. Type <code>/schedule</code> inside any chat to list or create automated prompts.<br/>" + "• <b>Image Generation:</b> Select an image provider (Pollinations.ai, HuggingFace, Together AI) to generate images from text prompts. Pollinations.ai is free and requires no API key.<br/>" + "• <b>Chat Settings:</b> Click the gear icon to access per-chat settings: model switch, response length, system prompt, memory, and context overrides.<br/>" + "• <b>Prompt Templates:</b> Save frequently used prompts in the Behavior section and apply them from chat using <code>/template</code>.<br/>" + "• <b>Test Connection:</b> Use the <b>Test Connection</b> button in Provider settings to verify your API key and endpoint work.")
@@ -524,6 +540,14 @@ QQC2.ScrollView {
 
     function providerModelVisible(providerId) {
         return ConfigGeneralLogic.providerModelVisible(providerId);
+    }
+
+    function providerDisplayName(providerId) {
+        return ProviderService.getProviderDisplayName(providerId);
+    }
+
+    function getProviderConfig(providerId) {
+        return ProviderService.getProviderConfig(providerId, plasmoid.configuration);
     }
 
     function providerNeedsKeyHintVisible(providerId) {

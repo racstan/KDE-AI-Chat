@@ -11,7 +11,7 @@
 //   Functions inside this file accept the 'page' parameter, representing the ConfigGeneral instance, allowing access to its QML components and properties.
 
 function debugLog() {
-if (debugMode) {
+if (page.debugMode) {
 let args = Array.prototype.slice.call(arguments);
 console.log.apply(console, args);
 }
@@ -19,21 +19,21 @@ console.log.apply(console, args);
 
 
 function translate(text) {
-return Translations.translate(text, cfg_language);
+return Translations.translate(text, page.cfg_language);
 }
 
 
 function updateFilteredProviderModels(searchText) {
 let search = (searchText || "").toLowerCase();
 if (search === "") {
-filteredProviderModels = providerModelCandidates;
+page.filteredProviderModels = page.providerModelCandidates;
 } else {
 let filtered = [];
-for (let i = 0; i < providerModelCandidates.length; i++) {
-if (providerModelCandidates[i].toLowerCase().indexOf(search) >= 0)
-filtered.push(providerModelCandidates[i]);
+for (let i = 0; i < page.providerModelCandidates.length; i++) {
+if (page.providerModelCandidates[i].toLowerCase().indexOf(search) >= 0)
+filtered.push(page.providerModelCandidates[i]);
 }
-filteredProviderModels = filtered;
+page.filteredProviderModels = filtered;
 }
 }
 
@@ -41,39 +41,39 @@ filteredProviderModels = filtered;
 function updateFilteredOpenCodeModels(searchText) {
 let search = (searchText || "").toLowerCase();
 if (search === "") {
-filteredOpenCodeModels = openCodeModelCandidates;
+page.filteredOpenCodeModels = page.openCodeModelCandidates;
 } else {
 let filtered = [];
-for (let i = 0; i < openCodeModelCandidates.length; i++) {
-if (openCodeModelCandidates[i].toLowerCase().indexOf(search) >= 0)
-filtered.push(openCodeModelCandidates[i]);
+for (let i = 0; i < page.openCodeModelCandidates.length; i++) {
+if (page.openCodeModelCandidates[i].toLowerCase().indexOf(search) >= 0)
+filtered.push(page.openCodeModelCandidates[i]);
 }
-filteredOpenCodeModels = filtered;
+page.filteredOpenCodeModels = filtered;
 }
 }
 
 
 function effectiveWalletName() {
-let configuredName = (walletNameField.text || "").trim();
+let configuredName = (page.walletNameField.text || "").trim();
 if (configuredName !== "")
 return configuredName;
-if (availableWalletNames.length > 0)
-return availableWalletNames[0];
+if (page.availableWalletNames.length > 0)
+return page.availableWalletNames[0];
 return "kdewallet";
 }
 
 
 function maybeAdoptDetectedWalletName() {
-if (availableWalletNames.length === 0)
+if (page.availableWalletNames.length === 0)
 return ;
-let configured = (walletNameField.text || "").trim();
+let configured = (page.walletNameField.text || "").trim();
 if (configured === "") {
-walletNameField.text = availableWalletNames[0];
+page.walletNameField.text = page.availableWalletNames[0];
 return ;
 }
-for (let i = 0; i < availableWalletNames.length; i++) {
-if (availableWalletNames[i].toLowerCase() === configured.toLowerCase()) {
-walletNameField.text = availableWalletNames[i];
+for (let i = 0; i < page.availableWalletNames.length; i++) {
+if (page.availableWalletNames[i].toLowerCase() === configured.toLowerCase()) {
+page.walletNameField.text = page.availableWalletNames[i];
 return ;
 }
 }
@@ -81,25 +81,25 @@ return ;
 
 
 function detectWallets() {
-utilityDs.connectSource("sh -c \"if ! command -v qdbus6 >/dev/null 2>&1 && ! command -v qdbus >/dev/null 2>&1; then echo '__NO_QDBUS__'; else qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null || qdbus org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null; fi\" #kwallet-wallet-list");
+page.utilityDs.connectSource("sh -c \"if ! command -v qdbus6 >/dev/null 2>&1 && ! command -v qdbus >/dev/null 2>&1; then echo '__NO_QDBUS__'; else qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null || qdbus org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null; fi\" #kwallet-wallet-list");
 }
 
 
 function setActiveProviderModelValue(value) {
-currentProviderConfig().modelField.text = value || "";
+    currentProviderConfig().modelField.text = value || "";
 }
 
 
 function activeProviderModelValue() {
-return currentProviderConfig().modelField.text || "";
+    return currentProviderConfig().modelField.text || "";
 }
 
 
 function walletReadCommand(walletName, keyName) {
 let escapedWallet = shellEscape(walletName);
-let escapedFolder = shellEscape(walletFolderName);
+let escapedFolder = shellEscape(page.walletFolderName);
 let escapedKey = shellEscape(keyName);
-let escapedAppId = shellEscape(walletAppId);
+let escapedAppId = shellEscape(page.walletAppId);
 return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_LOAD__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_LOAD__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_FOLDER\"; exit 0; fi; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_ENTRY\"; exit 0; fi; " + "secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_SECRET__:%s\" \"$secret\"'";
 }
 
@@ -107,10 +107,10 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 function walletWriteCommand(walletName, keyName, value, autoPrompt) {
 if (autoPrompt === undefined) autoPrompt = true;
 let escapedWallet = shellEscape(walletName);
-let escapedFolder = shellEscape(walletFolderName);
+let escapedFolder = shellEscape(page.walletFolderName);
 let escapedKey = shellEscape(keyName);
 let escapedValue = shellEscape(value);
-let escapedAppId = shellEscape(walletAppId);
+let escapedAppId = shellEscape(page.walletAppId);
 let checkOpenScript = "";
 if (!autoPrompt) {
 checkOpenScript = "if ! $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.isOpen \"$wallet\" 2>/dev/null | grep -q true; then printf \"__KAI_STORE__:NOT_UNLOCKED\"; exit 0; fi; ";
@@ -121,22 +121,22 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 
 function walletInitCommand(walletName) {
 let escapedWallet = shellEscape(walletName);
-let escapedFolder = shellEscape(walletFolderName);
-let escapedAppId = shellEscape(walletAppId);
+let escapedFolder = shellEscape(page.walletFolderName);
+let escapedAppId = shellEscape(page.walletAppId);
 return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_INIT__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_INIT__:READY\"; else created=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); if [ \"$created\" = true ]; then printf \"__KAI_INIT__:CREATED\"; else printf \"__KAI_INIT__:CREATE_FAILED\"; fi; fi; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1'";
 }
 
 
 function walletStatusCommand(walletName) {
 let escapedWallet = shellEscape(walletName);
-let escapedFolder = shellEscape(walletFolderName);
-let escapedAppId = shellEscape(walletAppId);
+let escapedFolder = shellEscape(page.walletFolderName);
+let escapedAppId = shellEscape(page.walletAppId);
 return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_STATUS__:NO_WALLET:%s\" \"$wallets\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STATUS__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_STATUS__:READY\"; else printf \"__KAI_STATUS__:NO_FOLDER\"; fi'";
 }
 
 
 function walletBulkReadCommand(walletName, autoPrompt) {
-return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds(), walletFolderName, walletAppId, autoPrompt);
+return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds(), page.walletFolderName, page.walletAppId, autoPrompt);
 }
 
 
@@ -152,63 +152,67 @@ let text = textValue || "";
 // in main.qml for the rationale.
 let safe = Sec.sanitizeForShell(text);
 let cmd = "sh -c 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; " + "elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; " + "else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi'";
-utilityDs.connectSource(cmd + " #clipboard-copy");
+page.utilityDs.connectSource(cmd + " #clipboard-copy");
 }
 
 
 function providerEnabled(providerId) {
-return !openCodeToggle.checked && providerBox.currentValue === providerId;
+return !page.openCodeToggle.checked && page.providerBox.currentValue === providerId;
 }
 
 
 function providerNeedsApiKey(providerId) {
-return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama" && providerId !== "litellm";
+return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama" && providerId !== "litellm" && providerId !== "pollinations";
 }
 
 
 function providerHasConfiguredKey(providerId) {
 if (providerId === "anthropic")
-return (anthropicApiKeyField.text || "").trim() !== "";
+return (page.anthropicApiKeyField.text || "").trim() !== "";
 if (providerId === "groq")
-return (groqApiKeyField.text || "").trim() !== "";
+return (page.groqApiKeyField.text || "").trim() !== "";
 if (providerId === "deepseek")
-return (deepSeekApiKeyField.text || "").trim() !== "";
+return (page.deepSeekApiKeyField.text || "").trim() !== "";
 if (providerId === "minimax")
-return (miniMaxApiKeyField.text || "").trim() !== "";
+return (page.miniMaxApiKeyField.text || "").trim() !== "";
 if (providerId === "fireworks")
-return (fireworksApiKeyField.text || "").trim() !== "";
+return (page.fireworksApiKeyField.text || "").trim() !== "";
 if (providerId === "google")
-return (googleApiKeyField.text || "").trim() !== "";
+return (page.googleApiKeyField.text || "").trim() !== "";
 if (providerId === "openrouter")
-return (openRouterApiKeyField.text || "").trim() !== "";
+return (page.openRouterApiKeyField.text || "").trim() !== "";
 if (providerId === "mistral")
-return (mistralApiKeyField.text || "").trim() !== "";
+return (page.mistralApiKeyField.text || "").trim() !== "";
 if (providerId === "cloudflare")
-return (cloudflareApiKeyField.text || "").trim() !== "";
+return (page.cloudflareApiKeyField.text || "").trim() !== "";
 if (providerId === "nvidia")
-return (nvidiaApiKeyField.text || "").trim() !== "";
+return (page.nvidiaApiKeyField.text || "").trim() !== "";
 if (providerId === "huggingface")
-return (huggingFaceApiKeyField.text || "").trim() !== "";
+return (page.huggingFaceApiKeyField.text || "").trim() !== "";
 if (providerId === "xai")
-return (xaiApiKeyField.text || "").trim() !== "";
+return (page.xaiApiKeyField.text || "").trim() !== "";
 if (providerId === "litellm")
-return (litellmApiKeyField.text || "").trim() !== "";
+return (page.litellmApiKeyField.text || "").trim() !== "";
 if (providerId === "qwen")
-return (qwenApiKeyField.text || "").trim() !== "";
+return (page.qwenApiKeyField.text || "").trim() !== "";
 if (providerId === "moonshot")
-return (moonshotApiKeyField.text || "").trim() !== "";
+return (page.moonshotApiKeyField.text || "").trim() !== "";
 if (providerId === "mimo")
-return (mimoApiKeyField.text || "").trim() !== "";
+return (page.mimoApiKeyField.text || "").trim() !== "";
 if (providerId === "maritaca")
-return (maritacaApiKeyField.text || "").trim() !== "";
+return (page.maritacaApiKeyField.text || "").trim() !== "";
 if (providerId === "openai")
-return (apiKeyField.text || "").trim() !== "";
+return (page.apiKeyField.text || "").trim() !== "";
+if (providerId === "huggingface-image")
+return (page.huggingfaceImageApiKeyField.text || "").trim() !== "";
+if (providerId === "together-image")
+return (page.togetherImageApiKeyField.text || "").trim() !== "";
 return true;
 }
 
 
 function refreshIfActiveProvider(providerId) {
-if (providerBox.currentValue === providerId)
+if (page.providerBox.currentValue === providerId)
 refreshCurrentProviderModels();
 }
 
@@ -224,179 +228,203 @@ return providerEnabled(providerId) && providerNeedsApiKey(providerId) && !provid
 
 
 function currentProviderDisplayName() {
-return providerBox.currentText || "Provider";
+return page.providerBox.currentText || "Provider";
 }
 
 
 function currentProviderConfig() {
-let p = providerBox.currentValue || "openai";
-if (p === "anthropic")
-return {
-"id": p,
-"type": "anthropic",
-"baseUrl": "https://api.anthropic.com/v1",
-"apiKey": anthropicApiKeyField.text,
-"modelField": anthropicModelField
-};
-if (p === "local")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": localBaseUrlField.text,
-"apiKey": "",
-"modelField": localModelField
-};
-if (p === "groq")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": groqBaseUrlField.text,
-"apiKey": groqApiKeyField.text,
-"modelField": groqModelField
-};
-if (p === "deepseek")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": deepSeekBaseUrlField.text,
-"apiKey": deepSeekApiKeyField.text,
-"modelField": deepSeekModelField
-};
-if (p === "minimax")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": miniMaxBaseUrlField.text,
-"apiKey": miniMaxApiKeyField.text,
-"modelField": miniMaxModelField
-};
-if (p === "fireworks")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": fireworksBaseUrlField.text,
-"apiKey": fireworksApiKeyField.text,
-"modelField": fireworksModelField
-};
-if (p === "google")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": googleBaseUrlField.text,
-"apiKey": googleApiKeyField.text,
-"modelField": googleModelField
-};
-if (p === "openrouter")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": openRouterBaseUrlField.text,
-"apiKey": openRouterApiKeyField.text,
-"modelField": openRouterModelField
-};
-if (p === "mistral")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": mistralBaseUrlField.text,
-"apiKey": mistralApiKeyField.text,
-"modelField": mistralModelField
-};
-if (p === "cloudflare")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": cloudflareBaseUrlField.text,
-"apiKey": cloudflareApiKeyField.text,
-"modelField": cloudflareModelField
-};
-if (p === "nvidia")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": nvidiaBaseUrlField.text,
-"apiKey": nvidiaApiKeyField.text,
-"modelField": nvidiaModelField
-};
-if (p === "huggingface")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": huggingFaceBaseUrlField.text,
-"apiKey": huggingFaceApiKeyField.text,
-"modelField": huggingFaceModelField
-};
-if (p === "xai")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": xaiBaseUrlField.text,
-"apiKey": xaiApiKeyField.text,
-"modelField": xaiModelField
-};
-if (p === "lmstudio")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": lmStudioBaseUrlField.text,
-"apiKey": "",
-"modelField": lmStudioModelField
-};
-if (p === "ollama")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": ollamaBaseUrlField.text,
-"apiKey": "",
-"modelField": ollamaModelField
-};
-if (p === "litellm")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": litellmBaseUrlField.text,
-"apiKey": litellmApiKeyField.text,
-"modelField": litellmModelField
-};
-if (p === "qwen")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": qwenBaseUrlField.text,
-"apiKey": qwenApiKeyField.text,
-"modelField": qwenModelField
-};
-if (p === "moonshot")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": moonshotBaseUrlField.text,
-"apiKey": moonshotApiKeyField.text,
-"modelField": moonshotModelField
-};
-if (p === "mimo")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": mimoBaseUrlField.text,
-"apiKey": mimoApiKeyField.text,
-"modelField": mimoModelField
-};
-if (p === "maritaca")
-return {
-"id": p,
-"type": "openai-compat",
-"baseUrl": maritacaBaseUrlField.text,
-"apiKey": maritacaApiKeyField.text,
-"modelField": maritacaModelField
-};
-return {
-"id": "openai",
-"type": "openai-compat",
-"baseUrl": baseUrlField.text,
-"apiKey": apiKeyField.text,
-"modelField": modelField
-};
+    let p = page.providerBox.currentValue || "openai";
+    if (p === "anthropic")
+        return {
+            "id": p,
+            "type": "anthropic",
+            "baseUrl": "https://api.anthropic.com/v1",
+            "apiKey": page.anthropicApiKeyField.text,
+            "modelField": page.anthropicModelField
+        };
+    if (p === "local")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.localBaseUrlField.text,
+            "apiKey": "",
+            "modelField": page.localModelField
+        };
+    if (p === "groq")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.groqBaseUrlField.text,
+            "apiKey": page.groqApiKeyField.text,
+            "modelField": page.groqModelField
+        };
+    if (p === "deepseek")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.deepSeekBaseUrlField.text,
+            "apiKey": page.deepSeekApiKeyField.text,
+            "modelField": page.deepSeekModelField
+        };
+    if (p === "minimax")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.miniMaxBaseUrlField.text,
+            "apiKey": page.miniMaxApiKeyField.text,
+            "modelField": page.miniMaxModelField
+        };
+    if (p === "fireworks")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.fireworksBaseUrlField.text,
+            "apiKey": page.fireworksApiKeyField.text,
+            "modelField": page.fireworksModelField
+        };
+    if (p === "google")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.googleBaseUrlField.text,
+            "apiKey": page.googleApiKeyField.text,
+            "modelField": page.googleModelField
+        };
+    if (p === "openrouter")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.openRouterBaseUrlField.text,
+            "apiKey": page.openRouterApiKeyField.text,
+            "modelField": page.openRouterModelField
+        };
+    if (p === "mistral")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.mistralBaseUrlField.text,
+            "apiKey": page.mistralApiKeyField.text,
+            "modelField": page.mistralModelField
+        };
+    if (p === "cloudflare")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.cloudflareBaseUrlField.text,
+            "apiKey": page.cloudflareApiKeyField.text,
+            "modelField": page.cloudflareModelField
+        };
+    if (p === "nvidia")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.nvidiaBaseUrlField.text,
+            "apiKey": page.nvidiaApiKeyField.text,
+            "modelField": page.nvidiaModelField
+        };
+    if (p === "huggingface")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.huggingFaceBaseUrlField.text,
+            "apiKey": page.huggingFaceApiKeyField.text,
+            "modelField": page.huggingFaceModelField
+        };
+    if (p === "xai")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.xaiBaseUrlField.text,
+            "apiKey": page.xaiApiKeyField.text,
+            "modelField": page.xaiModelField
+        };
+    if (p === "lmstudio")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.lmStudioBaseUrlField.text,
+            "apiKey": "",
+            "modelField": page.lmStudioModelField
+        };
+    if (p === "ollama")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.ollamaBaseUrlField.text,
+            "apiKey": "",
+            "modelField": page.ollamaModelField
+        };
+    if (p === "litellm")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.litellmBaseUrlField.text,
+            "apiKey": page.litellmApiKeyField.text,
+            "modelField": page.litellmModelField
+        };
+    if (p === "qwen")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.qwenBaseUrlField.text,
+            "apiKey": page.qwenApiKeyField.text,
+            "modelField": page.qwenModelField
+        };
+    if (p === "moonshot")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.moonshotBaseUrlField.text,
+            "apiKey": page.moonshotApiKeyField.text,
+            "modelField": page.moonshotModelField
+        };
+    if (p === "mimo")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.mimoBaseUrlField.text,
+            "apiKey": page.mimoApiKeyField.text,
+            "modelField": page.mimoModelField
+        };
+    if (p === "maritaca")
+        return {
+            "id": p,
+            "type": "openai-compat",
+            "baseUrl": page.maritacaBaseUrlField.text,
+            "apiKey": page.maritacaApiKeyField.text,
+            "modelField": page.maritacaModelField
+        };
+    if (p === "pollinations")
+        return {
+            "id": p,
+            "type": "image-gen",
+            "baseUrl": page.pollinationsBaseUrlField.text,
+            "apiKey": "",
+            "modelField": page.pollinationsModelField
+        };
+    if (p === "huggingface-image")
+        return {
+            "id": p,
+            "type": "image-gen",
+            "baseUrl": page.huggingfaceImageBaseUrlField.text,
+            "apiKey": page.huggingfaceImageApiKeyField.text,
+            "modelField": page.huggingfaceImageModelField
+        };
+    if (p === "together-image")
+        return {
+            "id": p,
+            "type": "image-gen",
+            "baseUrl": page.togetherImageBaseUrlField.text,
+            "apiKey": page.togetherImageApiKeyField.text,
+            "modelField": page.togetherImageModelField
+        };
+    return {
+        "id": "openai",
+        "type": "openai-compat",
+        "baseUrl": page.baseUrlField.text,
+        "apiKey": page.apiKeyField.text,
+        "modelField": page.modelField
+    };
 }
 
 
@@ -477,10 +505,10 @@ let cfg = currentProviderConfig();
 let headers = {
 };
 if (providerNeedsApiKey(cfg.id) && (!cfg.apiKey || cfg.apiKey.trim() === "")) {
-providerModelCandidates = [];
-providerModelSearch = "";
+page.providerModelCandidates = [];
+page.providerModelSearch = "";
 updateFilteredProviderModels("");
-discoveryStatus = "API key is missing for " + currentProviderDisplayName() + ". Add key first, then refresh models.";
+page.discoveryStatus = "API key is missing for " + currentProviderDisplayName() + ". Add key first, then refresh models.";
 return ;
 }
 if (cfg.apiKey)
@@ -490,46 +518,46 @@ headers["x-api-key"] = cfg.apiKey;
 headers["anthropic-version"] = "2023-06-01";
 requestJson("https://api.anthropic.com/v1/models", headers, function(obj) {
 let ids = parseModelIds(obj);
-providerModelCandidates = ids;
-providerModelSearch = "";
+page.providerModelCandidates = ids;
+page.providerModelSearch = "";
 updateFilteredProviderModels("");
-discoveryStatus = ids.length > 0 ? ("Loaded " + ids.length + " models for " + currentProviderDisplayName() + ".") : "No models returned for this provider/API key.";
+page.discoveryStatus = ids.length > 0 ? ("Loaded " + ids.length + " models for " + currentProviderDisplayName() + ".") : "No models returned for this provider/API key.";
 }, function(err) {
-providerModelCandidates = [];
-providerModelSearch = "";
+page.providerModelCandidates = [];
+page.providerModelSearch = "";
 updateFilteredProviderModels("");
-discoveryStatus = err;
+page.discoveryStatus = err;
 });
 return ;
 }
 requestJson(makeOpenAiModelsUrl(cfg.baseUrl), headers, function(obj) {
 let ids = parseModelIds(obj);
-providerModelCandidates = ids;
-providerModelSearch = "";
+page.providerModelCandidates = ids;
+page.providerModelSearch = "";
 updateFilteredProviderModels("");
-discoveryStatus = ids.length > 0 ? ("Loaded " + ids.length + " models for " + currentProviderDisplayName() + ".") : "No models returned for this provider/API key.";
+page.discoveryStatus = ids.length > 0 ? ("Loaded " + ids.length + " models for " + currentProviderDisplayName() + ".") : "No models returned for this provider/API key.";
 }, function(err) {
-providerModelCandidates = [];
-providerModelSearch = "";
+page.providerModelCandidates = [];
+page.providerModelSearch = "";
 updateFilteredProviderModels("");
-discoveryStatus = err;
+page.discoveryStatus = err;
 });
 }
 
 
 function applyDetectedModelToActiveProvider(modelId) {
-let cfg = currentProviderConfig();
-cfg.modelField.text = modelId || "";
+    let cfg = currentProviderConfig();
+    cfg.modelField.text = modelId || "";
 }
 
 
 function activeOpenCodeProvider() {
-return openCodeProviderValueField.text || "";
+return page.openCodeProviderValueField.text || "";
 }
 
 
 function setOpenCodeProviderValue(v) {
-openCodeProviderValueField.text = v || "";
+page.openCodeProviderValueField.text = v || "";
 }
 
 
@@ -576,17 +604,17 @@ return ids;
 
 function syncOpenCodeProviderSelection(providerId, preferredModel) {
 let selectedProvider = providerId || "";
-let candidateModels = openCodeProviderModelMap[selectedProvider] || [];
+let candidateModels = page.openCodeProviderModelMap[selectedProvider] || [];
 let chosenModel = preferredModel || (page ? page.cfg_openCodeModel : "") || "";
 if (candidateModels.indexOf(chosenModel) < 0)
 chosenModel = candidateModels.length > 0 ? candidateModels[0] : "";
 setOpenCodeProviderValue(selectedProvider);
-openCodeModelCandidates = candidateModels;
-openCodeModelSearch = "";
+page.openCodeModelCandidates = candidateModels;
+page.openCodeModelSearch = "";
 updateFilteredOpenCodeModels("");
 setOpenCodeModelValue(chosenModel);
 if (page && page.openCodeProviderBox) {
-let pidx = openCodeProviderCandidates.indexOf(selectedProvider);
+let pidx = page.openCodeProviderCandidates.indexOf(selectedProvider);
 if (pidx >= 0)
 page.openCodeProviderBox.currentIndex = pidx;
 }
@@ -599,30 +627,30 @@ probeOpenCodeProviders((page ? page.cfg_openCodeUrl : ""));
 
 
 function startOpenCodeServer() {
-discoveryStatus = "Starting OpenCode server...";
+page.discoveryStatus = "Starting OpenCode server...";
 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
-let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
+let startCmd = page.openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
 let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + startCmd);
-utilityDs.connectSource(cmd + " #opencode-start-manual");
+page.utilityDs.connectSource(cmd + " #opencode-start-manual");
 openCodeAutoStartTimer.restart();
 }
 
 
 function stopOpenCodeServer() {
-discoveryStatus = "Stopping OpenCode server...";
-let stopCmd = openCodeStopCommandField.text || "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stopped. || echo No OpenCode process matched.";
+page.discoveryStatus = "Stopping OpenCode server...";
+let stopCmd = page.openCodeStopCommandField.text || "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stopped. || echo No OpenCode process matched.";
 let cmd = "sh -c " + Sec.rawShellSnippetQuote(stopCmd);
-utilityDs.connectSource(cmd + " #opencode-stop-manual");
-discoveryStatus = "OpenCode server stopped.";
+page.utilityDs.connectSource(cmd + " #opencode-stop-manual");
+page.discoveryStatus = "OpenCode server stopped.";
 }
 
 
 function startOpenCodeServerAutomatically() {
-discoveryStatus = "Starting OpenCode server automatically...";
+page.discoveryStatus = "Starting OpenCode server automatically...";
 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
-let startCmd = openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
+let startCmd = page.openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
 let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + startCmd);
-utilityDs.connectSource(cmd + " #opencode-autostart");
+page.utilityDs.connectSource(cmd + " #opencode-autostart");
 // After a short delay, attempt discovery again
 openCodeAutoStartTimer.restart();
 }
@@ -630,7 +658,7 @@ openCodeAutoStartTimer.restart();
 
 function checkAndAutoStartOpenCodeServer() {
 let url = openCodeServerRoot(page ? page.cfg_openCodeUrl : "") + "/config/providers";
-discoveryStatus = "Checking OpenCode server...";
+page.discoveryStatus = "Checking OpenCode server...";
 requestJson(url, {
 }, function(obj) {
 // Server is already running — just do normal discovery
@@ -648,7 +676,7 @@ page.discoveryStatus = "OpenCode server check failed: " + err + ". Click \"Start
 
 function probeOpenCodeProviders(baseUrl) {
 let url = openCodeServerRoot(baseUrl) + "/config/providers";
-discoveryStatus = "Checking OpenCode server...";
+page.discoveryStatus = "Checking OpenCode server...";
 requestJson(url, {
 }, function(obj) {
 let providers = (obj && obj.providers) || [];
@@ -687,14 +715,14 @@ if (page) page.discoveryStatus = "OpenCode server check failed: " + err;
 function probeOpenCodeModels(baseUrl, providerId) {
 let selectedProvider = providerId || activeOpenCodeProvider();
 if (!selectedProvider) {
-openCodeModelCandidates = [];
-openCodeModelSearch = "";
+page.openCodeModelCandidates = [];
+page.openCodeModelSearch = "";
 updateFilteredOpenCodeModels("");
-discoveryStatus = "Select an OpenCode provider first.";
+page.discoveryStatus = "Select an OpenCode provider first.";
 return ;
 }
 syncOpenCodeProviderSelection(selectedProvider, (page ? page.cfg_openCodeModel : ""));
-discoveryStatus = openCodeModelCandidates.length > 0 ? ("Loaded " + openCodeModelCandidates.length + " models for OpenCode provider " + selectedProvider + ".") : ("OpenCode provider " + selectedProvider + " has no models listed by /config/providers.");
+page.discoveryStatus = page.openCodeModelCandidates.length > 0 ? ("Loaded " + page.openCodeModelCandidates.length + " models for OpenCode provider " + selectedProvider + ".") : ("OpenCode provider " + selectedProvider + " has no models listed by /config/providers.");
 }
 
 
@@ -703,7 +731,7 @@ let baseUrl = (page ? page.cfg_openCodeUrl : "");
 let rootUrl = openCodeServerRoot(baseUrl);
 let urlSessions = rootUrl + "/session";
 let urlStatus = rootUrl + "/session/status";
-openCodeSessionsStatus = translate("Loading active OpenCode sessions...");
+page.openCodeSessionsStatus = translate("Loading active OpenCode sessions...");
 requestJson(urlStatus, {}, function(statusMap) {
 loadSessionsList(urlSessions, statusMap);
 }, function(statusErr) {
@@ -747,11 +775,11 @@ let baseUrl = (page ? page.cfg_openCodeUrl : "");
 // string injection (`?evil=…`).
 let safeSessionId = Sec.validateSessionId(sessionId);
 if (safeSessionId === "") {
-openCodeSessionsStatus = translate("Refusing to delete session: invalid id.");
+page.openCodeSessionsStatus = translate("Refusing to delete session: invalid id.");
 return;
 }
 let url = openCodeServerRoot(baseUrl) + "/session/" + safeSessionId;
-openCodeSessionsStatus = translate("Killing session %1...").arg(safeSessionId);
+page.openCodeSessionsStatus = translate("Killing session %1...").arg(safeSessionId);
 let xhr = new XMLHttpRequest();
 xhr.open("DELETE", url, true);
 xhr.onreadystatechange = function() {
@@ -786,15 +814,15 @@ ops[cmd] = {
 "bulk": !!isBulk
 };
 page.pendingOps = ops;
-keyringDs.connectSource(cmd);
+page.keyringDs.connectSource(cmd);
 }
 
 
 function saveKey(targetId, value) {
 let val = (value || "").trim();
-if (cfg_keyStorageMode === 1)
+if (page.cfg_keyStorageMode === 1)
 syncKeysToDisk();
-else if (cfg_keyStorageMode === 2)
+else if (page.cfg_keyStorageMode === 2)
 kwalletStore(targetId, val, false);
 }
 
@@ -812,7 +840,7 @@ ops[cmd] = {
 "bulk": !!isBulk
 };
 page.pendingOps = ops;
-keyringDs.connectSource(cmd);
+page.keyringDs.connectSource(cmd);
 }
 
 
@@ -828,89 +856,97 @@ if (/^__KAI_(?:LOAD|INIT|STATUS|BULK)__:/.test(normalized))
 return ;
 let before = apiKeyForTarget(targetId);
 if (targetId === "openai")
-apiKeyField.text = normalized;
+page.apiKeyField.text = normalized;
 else if (targetId === "anthropic")
-anthropicApiKeyField.text = normalized;
+page.anthropicApiKeyField.text = normalized;
 else if (targetId === "groq")
-groqApiKeyField.text = normalized;
+page.groqApiKeyField.text = normalized;
 else if (targetId === "deepseek")
-deepSeekApiKeyField.text = normalized;
+page.deepSeekApiKeyField.text = normalized;
 else if (targetId === "minimax")
-miniMaxApiKeyField.text = normalized;
+page.miniMaxApiKeyField.text = normalized;
 else if (targetId === "fireworks")
-fireworksApiKeyField.text = normalized;
+page.fireworksApiKeyField.text = normalized;
 else if (targetId === "google")
-googleApiKeyField.text = normalized;
+page.googleApiKeyField.text = normalized;
 else if (targetId === "openrouter")
-openRouterApiKeyField.text = normalized;
+page.openRouterApiKeyField.text = normalized;
 else if (targetId === "mistral")
-mistralApiKeyField.text = normalized;
+page.mistralApiKeyField.text = normalized;
 else if (targetId === "cloudflare")
-cloudflareApiKeyField.text = normalized;
+page.cloudflareApiKeyField.text = normalized;
 else if (targetId === "nvidia")
-nvidiaApiKeyField.text = normalized;
+page.nvidiaApiKeyField.text = normalized;
 else if (targetId === "huggingface")
-huggingFaceApiKeyField.text = normalized;
+page.huggingFaceApiKeyField.text = normalized;
 else if (targetId === "xai")
-xaiApiKeyField.text = normalized;
+page.xaiApiKeyField.text = normalized;
 else if (targetId === "litellm")
-litellmApiKeyField.text = normalized;
+page.litellmApiKeyField.text = normalized;
 else if (targetId === "qwen")
-qwenApiKeyField.text = normalized;
+page.qwenApiKeyField.text = normalized;
 else if (targetId === "moonshot")
-moonshotApiKeyField.text = normalized;
+page.moonshotApiKeyField.text = normalized;
 else if (targetId === "mimo")
-mimoApiKeyField.text = normalized;
+page.mimoApiKeyField.text = normalized;
 else if (targetId === "maritaca")
-maritacaApiKeyField.text = normalized;
+page.maritacaApiKeyField.text = normalized;
+else if (targetId === "huggingface-image")
+page.huggingfaceImageApiKeyField.text = normalized;
+else if (targetId === "together-image")
+page.togetherImageApiKeyField.text = normalized;
 let after = apiKeyForTarget(targetId);
-if (before !== after && providerBox.currentValue === targetId)
+if (before !== after && page.providerBox.currentValue === targetId)
 refreshCurrentProviderModels();
 }
 
 
 function keyTargetIds() {
-return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "qwen", "moonshot", "mimo", "maritaca"];
+return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "qwen", "moonshot", "mimo", "maritaca", "huggingface-image", "together-image"];
 }
 
 
 function apiKeyForTarget(targetId) {
 if (targetId === "openai")
-return apiKeyField.text;
+return page.apiKeyField.text;
 if (targetId === "anthropic")
-return anthropicApiKeyField.text;
+return page.anthropicApiKeyField.text;
 if (targetId === "groq")
-return groqApiKeyField.text;
+return page.groqApiKeyField.text;
 if (targetId === "deepseek")
-return deepSeekApiKeyField.text;
+return page.deepSeekApiKeyField.text;
 if (targetId === "minimax")
-return miniMaxApiKeyField.text;
+return page.miniMaxApiKeyField.text;
 if (targetId === "fireworks")
-return fireworksApiKeyField.text;
+return page.fireworksApiKeyField.text;
 if (targetId === "google")
-return googleApiKeyField.text;
+return page.googleApiKeyField.text;
 if (targetId === "openrouter")
-return openRouterApiKeyField.text;
+return page.openRouterApiKeyField.text;
 if (targetId === "mistral")
-return mistralApiKeyField.text;
+return page.mistralApiKeyField.text;
 if (targetId === "cloudflare")
-return cloudflareApiKeyField.text;
+return page.cloudflareApiKeyField.text;
 if (targetId === "nvidia")
-return nvidiaApiKeyField.text;
+return page.nvidiaApiKeyField.text;
 if (targetId === "huggingface")
-return huggingFaceApiKeyField.text;
+return page.huggingFaceApiKeyField.text;
 if (targetId === "xai")
-return xaiApiKeyField.text;
+return page.xaiApiKeyField.text;
 if (targetId === "litellm")
-return litellmApiKeyField.text;
+return page.litellmApiKeyField.text;
 if (targetId === "qwen")
-return qwenApiKeyField.text;
+return page.qwenApiKeyField.text;
 if (targetId === "moonshot")
-return moonshotApiKeyField.text;
+return page.moonshotApiKeyField.text;
 if (targetId === "mimo")
-return mimoApiKeyField.text;
+return page.mimoApiKeyField.text;
 if (targetId === "maritaca")
-return maritacaApiKeyField.text;
+return page.maritacaApiKeyField.text;
+if (targetId === "huggingface-image")
+return page.huggingfaceImageApiKeyField.text;
+if (targetId === "together-image")
+return page.togetherImageApiKeyField.text;
 return "";
 }
 
@@ -928,8 +964,8 @@ let cmd = walletBulkReadCommand(walletName, autoPrompt) + " #kwallet-refresh-all
 // single-quote variables) before logging, so debug-mode output
 // does not contain the live wallet identifier.
 debugLog("[KAI-DEBUG] kwalletLoadAll command:", Sec.scrubSecrets(cmd));
-keyringStatus = "Refreshing API keys from KWallet...";
-utilityDs.connectSource(cmd);
+page.keyringStatus = "Refreshing API keys from KWallet...";
+page.utilityDs.connectSource(cmd);
 }
 
 
@@ -951,10 +987,10 @@ for (let i = 0; i < ids.length; i++) {
     count++;
 }
 if (count === 0) {
-    keyringStatus = "No API keys to sync.";
+    page.keyringStatus = "No API keys to sync.";
     return;
 }
-let cmd = WalletService.buildBulkWriteCommand(walletName, walletFolderName, walletAppId, targetValueMap, autoPrompt) + " #kwallet-bulk-store";
+let cmd = WalletService.buildBulkWriteCommand(walletName, page.walletFolderName, page.walletAppId, targetValueMap, autoPrompt) + " #kwallet-bulk-store";
 let ops = page.pendingOps;
 ops[cmd] = {
     "mode": "bulk_store",
@@ -962,30 +998,32 @@ ops[cmd] = {
     "bulk": true
 };
 page.pendingOps = ops;
-keyringStatus = "Syncing API keys to KWallet...";
-keyringDs.connectSource(cmd);
+page.keyringStatus = "Syncing API keys to KWallet...";
+page.keyringDs.connectSource(cmd);
 }
 
 
 function clearAllApiKeyFields() {
-apiKeyField.text = "";
-anthropicApiKeyField.text = "";
-groqApiKeyField.text = "";
-deepSeekApiKeyField.text = "";
-miniMaxApiKeyField.text = "";
-fireworksApiKeyField.text = "";
-googleApiKeyField.text = "";
-openRouterApiKeyField.text = "";
-mistralApiKeyField.text = "";
-cloudflareApiKeyField.text = "";
-nvidiaApiKeyField.text = "";
-huggingFaceApiKeyField.text = "";
-xaiApiKeyField.text = "";
-litellmApiKeyField.text = "";
-qwenApiKeyField.text = "";
-moonshotApiKeyField.text = "";
-mimoApiKeyField.text = "";
-maritacaApiKeyField.text = "";
+page.apiKeyField.text = "";
+page.anthropicApiKeyField.text = "";
+page.groqApiKeyField.text = "";
+page.deepSeekApiKeyField.text = "";
+page.miniMaxApiKeyField.text = "";
+page.fireworksApiKeyField.text = "";
+page.googleApiKeyField.text = "";
+page.openRouterApiKeyField.text = "";
+page.mistralApiKeyField.text = "";
+page.cloudflareApiKeyField.text = "";
+page.nvidiaApiKeyField.text = "";
+page.huggingFaceApiKeyField.text = "";
+page.xaiApiKeyField.text = "";
+page.litellmApiKeyField.text = "";
+page.qwenApiKeyField.text = "";
+page.moonshotApiKeyField.text = "";
+page.mimoApiKeyField.text = "";
+page.maritacaApiKeyField.text = "";
+page.huggingfaceImageApiKeyField.text = "";
+page.togetherImageApiKeyField.text = "";
 }
 
 
@@ -1015,67 +1053,71 @@ return path;
 
 function loadKeysFromPlainConfig() {
 let payload = {
-"configPath": configFilePath
+"configPath": page.configFilePath
 };
 let b64Payload = base64Encode(JSON.stringify(payload));
 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " load_config_keys " + Sec.quoteForShell(b64Payload);
-utilityDs.connectSource(cmd + " #plainconfig-load");
+page.utilityDs.connectSource(cmd + " #plainconfig-load");
 }
 
 
 function applyPlainConfigKeys(keys) {
-apiKeyField.text = keys["apiKey"] || "";
-anthropicApiKeyField.text = keys["anthropicApiKey"] || "";
-groqApiKeyField.text = keys["groqApiKey"] || "";
-deepSeekApiKeyField.text = keys["deepSeekApiKey"] || "";
-miniMaxApiKeyField.text = keys["miniMaxApiKey"] || "";
-fireworksApiKeyField.text = keys["fireworksApiKey"] || "";
-googleApiKeyField.text = keys["googleApiKey"] || "";
-openRouterApiKeyField.text = keys["openRouterApiKey"] || "";
-mistralApiKeyField.text = keys["mistralApiKey"] || "";
-cloudflareApiKeyField.text = keys["cloudflareApiKey"] || "";
-nvidiaApiKeyField.text = keys["nvidiaApiKey"] || "";
-huggingFaceApiKeyField.text = keys["huggingFaceApiKey"] || "";
-xaiApiKeyField.text = keys["xaiApiKey"] || "";
-litellmApiKeyField.text = keys["litellmApiKey"] || "";
-qwenApiKeyField.text = keys["qwenApiKey"] || "";
-moonshotApiKeyField.text = keys["moonshotApiKey"] || "";
-mimoApiKeyField.text = keys["mimoApiKey"] || "";
-maritacaApiKeyField.text = keys["maritacaApiKey"] || "";
+page.apiKeyField.text = keys["apiKey"] || "";
+page.anthropicApiKeyField.text = keys["anthropicApiKey"] || "";
+page.groqApiKeyField.text = keys["groqApiKey"] || "";
+page.deepSeekApiKeyField.text = keys["deepSeekApiKey"] || "";
+page.miniMaxApiKeyField.text = keys["miniMaxApiKey"] || "";
+page.fireworksApiKeyField.text = keys["fireworksApiKey"] || "";
+page.googleApiKeyField.text = keys["googleApiKey"] || "";
+page.openRouterApiKeyField.text = keys["openRouterApiKey"] || "";
+page.mistralApiKeyField.text = keys["mistralApiKey"] || "";
+page.cloudflareApiKeyField.text = keys["cloudflareApiKey"] || "";
+page.nvidiaApiKeyField.text = keys["nvidiaApiKey"] || "";
+page.huggingFaceApiKeyField.text = keys["huggingFaceApiKey"] || "";
+page.xaiApiKeyField.text = keys["xaiApiKey"] || "";
+page.litellmApiKeyField.text = keys["litellmApiKey"] || "";
+page.qwenApiKeyField.text = keys["qwenApiKey"] || "";
+page.moonshotApiKeyField.text = keys["moonshotApiKey"] || "";
+page.mimoApiKeyField.text = keys["mimoApiKey"] || "";
+page.maritacaApiKeyField.text = keys["maritacaApiKey"] || "";
+page.huggingfaceImageApiKeyField.text = keys["huggingfaceImageApiKey"] || "";
+page.togetherImageApiKeyField.text = keys["togetherImageApiKey"] || "";
 }
 
 
 function writeKeysToDiskAndOpen() {
 let keysPayload = {
-"apiKey": apiKeyField.text,
-"anthropicApiKey": anthropicApiKeyField.text,
-"groqApiKey": groqApiKeyField.text,
-"deepSeekApiKey": deepSeekApiKeyField.text,
-"miniMaxApiKey": miniMaxApiKeyField.text,
-"fireworksApiKey": fireworksApiKeyField.text,
-"googleApiKey": googleApiKeyField.text,
-"openRouterApiKey": openRouterApiKeyField.text,
-"mistralApiKey": mistralApiKeyField.text,
-"cloudflareApiKey": cloudflareApiKeyField.text,
-"nvidiaApiKey": nvidiaApiKeyField.text,
-"huggingFaceApiKey": huggingFaceApiKeyField.text,
-"xaiApiKey": xaiApiKeyField.text,
-"litellmApiKey": litellmApiKeyField.text,
-"qwenApiKey": qwenApiKeyField.text,
-"moonshotApiKey": moonshotApiKeyField.text,
-"mimoApiKey": mimoApiKeyField.text,
-"maritacaApiKey": maritacaApiKeyField.text
+"apiKey": page.apiKeyField.text,
+"anthropicApiKey": page.anthropicApiKeyField.text,
+"groqApiKey": page.groqApiKeyField.text,
+"deepSeekApiKey": page.deepSeekApiKeyField.text,
+"miniMaxApiKey": page.miniMaxApiKeyField.text,
+"fireworksApiKey": page.fireworksApiKeyField.text,
+"googleApiKey": page.googleApiKeyField.text,
+"openRouterApiKey": page.openRouterApiKeyField.text,
+"mistralApiKey": page.mistralApiKeyField.text,
+"cloudflareApiKey": page.cloudflareApiKeyField.text,
+"nvidiaApiKey": page.nvidiaApiKeyField.text,
+"huggingFaceApiKey": page.huggingFaceApiKeyField.text,
+"xaiApiKey": page.xaiApiKeyField.text,
+"litellmApiKey": page.litellmApiKeyField.text,
+"qwenApiKey": page.qwenApiKeyField.text,
+"moonshotApiKey": page.moonshotApiKeyField.text,
+"mimoApiKey": page.mimoApiKeyField.text,
+"maritacaApiKey": page.maritacaApiKeyField.text,
+"huggingfaceImageApiKey": page.huggingfaceImageApiKeyField.text,
+"togetherImageApiKey": page.togetherImageApiKeyField.text
 };
 let payload = {
-"configPath": configFilePath,
+"configPath": page.configFilePath,
 "keys": keysPayload
 };
 let b64Payload = base64Encode(JSON.stringify(payload));
-let safeConfigPath = Sec.validateFilePath(configFilePath);
+let safeConfigPath = Sec.validateFilePath(page.configFilePath);
 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
 if (safeConfigPath !== "")
 cmd += " && xdg-open " + Sec.quoteForShell(safeConfigPath);
-utilityDs.connectSource(cmd + " #open-config");
+page.utilityDs.connectSource(cmd + " #open-config");
 }
 
 
@@ -1083,43 +1125,45 @@ function syncKeysToDisk() {
 // Write current key fields to ~/.config/kdeaichatrc (plain-config extra copy).
 // cfg_ aliases handle saving to the Plasma config automatically on OK/Apply.
 let keysPayload = {
-"apiKey": apiKeyField.text,
-"anthropicApiKey": anthropicApiKeyField.text,
-"groqApiKey": groqApiKeyField.text,
-"deepSeekApiKey": deepSeekApiKeyField.text,
-"miniMaxApiKey": miniMaxApiKeyField.text,
-"fireworksApiKey": fireworksApiKeyField.text,
-"googleApiKey": googleApiKeyField.text,
-"openRouterApiKey": openRouterApiKeyField.text,
-"mistralApiKey": mistralApiKeyField.text,
-"cloudflareApiKey": cloudflareApiKeyField.text,
-"nvidiaApiKey": nvidiaApiKeyField.text,
-"huggingFaceApiKey": huggingFaceApiKeyField.text,
-"xaiApiKey": xaiApiKeyField.text,
-"litellmApiKey": litellmApiKeyField.text,
-"qwenApiKey": qwenApiKeyField.text,
-"moonshotApiKey": moonshotApiKeyField.text,
-"mimoApiKey": mimoApiKeyField.text,
-"maritacaApiKey": maritacaApiKeyField.text
+"apiKey": page.apiKeyField.text,
+"anthropicApiKey": page.anthropicApiKeyField.text,
+"groqApiKey": page.groqApiKeyField.text,
+"deepSeekApiKey": page.deepSeekApiKeyField.text,
+"miniMaxApiKey": page.miniMaxApiKeyField.text,
+"fireworksApiKey": page.fireworksApiKeyField.text,
+"googleApiKey": page.googleApiKeyField.text,
+"openRouterApiKey": page.openRouterApiKeyField.text,
+"mistralApiKey": page.mistralApiKeyField.text,
+"cloudflareApiKey": page.cloudflareApiKeyField.text,
+"nvidiaApiKey": page.nvidiaApiKeyField.text,
+"huggingFaceApiKey": page.huggingFaceApiKeyField.text,
+"xaiApiKey": page.xaiApiKeyField.text,
+"litellmApiKey": page.litellmApiKeyField.text,
+"qwenApiKey": page.qwenApiKeyField.text,
+"moonshotApiKey": page.moonshotApiKeyField.text,
+"mimoApiKey": page.mimoApiKeyField.text,
+"maritacaApiKey": page.maritacaApiKeyField.text,
+"huggingfaceImageApiKey": page.huggingfaceImageApiKeyField.text,
+"togetherImageApiKey": page.togetherImageApiKeyField.text
 };
 let payload = {
-"configPath": configFilePath,
+"configPath": page.configFilePath,
 "keys": keysPayload
 };
 let b64Payload = base64Encode(JSON.stringify(payload));
 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " sync_config_keys " + Sec.quoteForShell(b64Payload);
-utilityDs.connectSource(cmd + " #plainconfig-sync");
+page.utilityDs.connectSource(cmd + " #plainconfig-sync");
 }
 
 
 function clearKeysFromDisk() {
 let payload = {
-"configPath": configFilePath,
-"keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey']
+"configPath": page.configFilePath,
+"keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey', 'huggingfaceImageApiKey', 'togetherImageApiKey']
 };
 let b64Payload = base64Encode(JSON.stringify(payload));
 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " clear_config_keys " + Sec.quoteForShell(b64Payload);
-utilityDs.connectSource(cmd + " #plainconfig-clear");
+page.utilityDs.connectSource(cmd + " #plainconfig-clear");
 plasmoid.configuration.apiKey = "";
 plasmoid.configuration.anthropicApiKey = "";
 plasmoid.configuration.groqApiKey = "";
@@ -1138,183 +1182,193 @@ plasmoid.configuration.qwenApiKey = "";
 plasmoid.configuration.moonshotApiKey = "";
 plasmoid.configuration.mimoApiKey = "";
 plasmoid.configuration.maritacaApiKey = "";
+plasmoid.configuration.huggingfaceImageApiKey = "";
+plasmoid.configuration.togetherImageApiKey = "";
 }
 
 
 function saveGeneralSettingsOnly() {
-plasmoid.configuration.appDisplayName = appDisplayNameField.text;
-plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex;
-plasmoid.configuration.keyStorageMode = cfg_keyStorageMode;
-plasmoid.configuration.provider = cfg_provider;
-plasmoid.configuration.baseUrl = baseUrlField.text;
-plasmoid.configuration.model = modelField.text;
-plasmoid.configuration.anthropicModel = anthropicModelField.text;
-plasmoid.configuration.groqBaseUrl = groqBaseUrlField.text;
-plasmoid.configuration.groqModel = groqModelField.text;
-plasmoid.configuration.deepSeekBaseUrl = deepSeekBaseUrlField.text;
-plasmoid.configuration.deepSeekModel = deepSeekModelField.text;
-plasmoid.configuration.miniMaxBaseUrl = miniMaxBaseUrlField.text;
-plasmoid.configuration.miniMaxModel = miniMaxModelField.text;
-plasmoid.configuration.fireworksBaseUrl = fireworksBaseUrlField.text;
-plasmoid.configuration.fireworksModel = fireworksModelField.text;
-plasmoid.configuration.googleBaseUrl = googleBaseUrlField.text;
-plasmoid.configuration.googleModel = googleModelField.text;
-plasmoid.configuration.openRouterBaseUrl = openRouterBaseUrlField.text;
-plasmoid.configuration.openRouterModel = openRouterModelField.text;
-plasmoid.configuration.mistralBaseUrl = mistralBaseUrlField.text;
-plasmoid.configuration.mistralModel = mistralModelField.text;
-plasmoid.configuration.cloudflareBaseUrl = cloudflareBaseUrlField.text;
-plasmoid.configuration.cloudflareModel = cloudflareModelField.text;
-plasmoid.configuration.nvidiaBaseUrl = nvidiaBaseUrlField.text;
-plasmoid.configuration.nvidiaModel = nvidiaModelField.text;
-plasmoid.configuration.huggingFaceBaseUrl = huggingFaceBaseUrlField.text;
-plasmoid.configuration.huggingFaceModel = huggingFaceModelField.text;
-plasmoid.configuration.xaiBaseUrl = xaiBaseUrlField.text;
-plasmoid.configuration.xaiModel = xaiModelField.text;
-plasmoid.configuration.lmStudioBaseUrl = lmStudioBaseUrlField.text;
-plasmoid.configuration.lmStudioModel = lmStudioModelField.text;
-plasmoid.configuration.localBaseUrl = localBaseUrlField.text;
-plasmoid.configuration.localModel = localModelField.text;
-plasmoid.configuration.ollamaBaseUrl = ollamaBaseUrlField.text;
-plasmoid.configuration.ollamaModel = ollamaModelField.text;
-plasmoid.configuration.litellmBaseUrl = litellmBaseUrlField.text;
-plasmoid.configuration.litellmModel = litellmModelField.text;
-plasmoid.configuration.qwenBaseUrl = qwenBaseUrlField.text;
-plasmoid.configuration.qwenApiKey = qwenApiKeyField.text;
-plasmoid.configuration.qwenModel = qwenModelField.text;
-plasmoid.configuration.moonshotBaseUrl = moonshotBaseUrlField.text;
-plasmoid.configuration.moonshotApiKey = moonshotApiKeyField.text;
-plasmoid.configuration.moonshotModel = moonshotModelField.text;
-plasmoid.configuration.mimoBaseUrl = mimoBaseUrlField.text;
-plasmoid.configuration.mimoApiKey = mimoApiKeyField.text;
-plasmoid.configuration.mimoModel = mimoModelField.text;
-plasmoid.configuration.maritacaBaseUrl = maritacaBaseUrlField.text;
-plasmoid.configuration.maritacaApiKey = maritacaApiKeyField.text;
-plasmoid.configuration.maritacaModel = maritacaModelField.text;
-plasmoid.configuration.language = cfg_language || "";
-plasmoid.configuration.showInteractiveGuides = showGuidesToggle.checked;
-plasmoid.configuration.autoStartOpenCodeServer = autoStartOpenCodeToggle.checked;
-plasmoid.configuration.useOpenCode = openCodeToggle.checked;
-plasmoid.configuration.playNotificationSound = playSoundToggle.checked;
+plasmoid.configuration.appDisplayName = page.appDisplayNameField.text;
+plasmoid.configuration.appearanceMode = page.appearanceModeCombo.currentIndex;
+plasmoid.configuration.keyStorageMode = page.cfg_keyStorageMode;
+plasmoid.configuration.provider = page.cfg_provider;
+plasmoid.configuration.baseUrl = page.baseUrlField.text;
+plasmoid.configuration.model = page.modelField.text;
+plasmoid.configuration.anthropicModel = page.anthropicModelField.text;
+plasmoid.configuration.groqBaseUrl = page.groqBaseUrlField.text;
+plasmoid.configuration.groqModel = page.groqModelField.text;
+plasmoid.configuration.deepSeekBaseUrl = page.deepSeekBaseUrlField.text;
+plasmoid.configuration.deepSeekModel = page.deepSeekModelField.text;
+plasmoid.configuration.miniMaxBaseUrl = page.miniMaxBaseUrlField.text;
+plasmoid.configuration.miniMaxModel = page.miniMaxModelField.text;
+plasmoid.configuration.fireworksBaseUrl = page.fireworksBaseUrlField.text;
+plasmoid.configuration.fireworksModel = page.fireworksModelField.text;
+plasmoid.configuration.googleBaseUrl = page.googleBaseUrlField.text;
+plasmoid.configuration.googleModel = page.googleModelField.text;
+plasmoid.configuration.openRouterBaseUrl = page.openRouterBaseUrlField.text;
+plasmoid.configuration.openRouterModel = page.openRouterModelField.text;
+plasmoid.configuration.mistralBaseUrl = page.mistralBaseUrlField.text;
+plasmoid.configuration.mistralModel = page.mistralModelField.text;
+plasmoid.configuration.cloudflareBaseUrl = page.cloudflareBaseUrlField.text;
+plasmoid.configuration.cloudflareModel = page.cloudflareModelField.text;
+plasmoid.configuration.nvidiaBaseUrl = page.nvidiaBaseUrlField.text;
+plasmoid.configuration.nvidiaModel = page.nvidiaModelField.text;
+plasmoid.configuration.huggingFaceBaseUrl = page.huggingFaceBaseUrlField.text;
+plasmoid.configuration.huggingFaceModel = page.huggingFaceModelField.text;
+plasmoid.configuration.xaiBaseUrl = page.xaiBaseUrlField.text;
+plasmoid.configuration.xaiModel = page.xaiModelField.text;
+plasmoid.configuration.lmStudioBaseUrl = page.lmStudioBaseUrlField.text;
+plasmoid.configuration.lmStudioModel = page.lmStudioModelField.text;
+plasmoid.configuration.localBaseUrl = page.localBaseUrlField.text;
+plasmoid.configuration.localModel = page.localModelField.text;
+plasmoid.configuration.ollamaBaseUrl = page.ollamaBaseUrlField.text;
+plasmoid.configuration.ollamaModel = page.ollamaModelField.text;
+plasmoid.configuration.litellmBaseUrl = page.litellmBaseUrlField.text;
+plasmoid.configuration.litellmModel = page.litellmModelField.text;
+plasmoid.configuration.qwenBaseUrl = page.qwenBaseUrlField.text;
+plasmoid.configuration.qwenApiKey = page.qwenApiKeyField.text;
+plasmoid.configuration.qwenModel = page.qwenModelField.text;
+plasmoid.configuration.moonshotBaseUrl = page.moonshotBaseUrlField.text;
+plasmoid.configuration.moonshotApiKey = page.moonshotApiKeyField.text;
+plasmoid.configuration.moonshotModel = page.moonshotModelField.text;
+plasmoid.configuration.mimoBaseUrl = page.mimoBaseUrlField.text;
+plasmoid.configuration.mimoApiKey = page.mimoApiKeyField.text;
+plasmoid.configuration.mimoModel = page.mimoModelField.text;
+plasmoid.configuration.maritacaBaseUrl = page.maritacaBaseUrlField.text;
+plasmoid.configuration.maritacaApiKey = page.maritacaApiKeyField.text;
+plasmoid.configuration.maritacaModel = page.maritacaModelField.text;
+plasmoid.configuration.pollinationsBaseUrl = page.pollinationsBaseUrlField.text;
+plasmoid.configuration.pollinationsModel = page.pollinationsModelField.text;
+plasmoid.configuration.huggingfaceImageBaseUrl = page.huggingfaceImageBaseUrlField.text;
+plasmoid.configuration.huggingfaceImageApiKey = page.huggingfaceImageApiKeyField.text;
+plasmoid.configuration.huggingfaceImageModel = page.huggingfaceImageModelField.text;
+plasmoid.configuration.togetherImageBaseUrl = page.togetherImageBaseUrlField.text;
+plasmoid.configuration.togetherImageApiKey = page.togetherImageApiKeyField.text;
+plasmoid.configuration.togetherImageModel = page.togetherImageModelField.text;
+plasmoid.configuration.language = page.cfg_language || "";
+plasmoid.configuration.showInteractiveGuides = page.showGuidesToggle.checked;
+plasmoid.configuration.autoStartOpenCodeServer = page.autoStartOpenCodeToggle.checked;
+plasmoid.configuration.useOpenCode = page.openCodeToggle.checked;
+plasmoid.configuration.playNotificationSound = page.playSoundToggle.checked;
 plasmoid.configuration.openCodeUrl = (page ? page.cfg_openCodeUrl : "");
 plasmoid.configuration.openCodeModel = (page ? page.cfg_openCodeModel : "");
-plasmoid.configuration.openCodeProvider = openCodeProviderValueField.text;
-plasmoid.configuration.openCodeStartCommand = openCodeStartCommandField.text;
-plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text;
-plasmoid.configuration.openCodeAutoKill = openCodeAutoKillToggle.checked;
-plasmoid.configuration.openCodeAutoKillMinutes = openCodeAutoKillMinutesSpin.value;
-plasmoid.configuration.kwalletName = walletNameField.text;
-plasmoid.configuration.systemPrompt = systemPromptArea.text;
-plasmoid.configuration.memoryEnabled = memoryEnabledToggle.checked;
-plasmoid.configuration.userMemory = userMemoryArea.text;
-plasmoid.configuration.globalContextEnabled = globalContextEnabledToggle.checked;
-plasmoid.configuration.globalContextLimit = globalContextLimitSpin.value;
-plasmoid.configuration.globalContextAutoCompact = globalContextAutoCompactToggle.checked;
-plasmoid.configuration.globalContextCompactThreshold = globalContextCompactThresholdSpin.value;
+plasmoid.configuration.openCodeProvider = page.openCodeProviderValueField.text;
+plasmoid.configuration.openCodeStartCommand = page.openCodeStartCommandField.text;
+plasmoid.configuration.openCodeStopCommand = page.openCodeStopCommandField.text;
+plasmoid.configuration.openCodeAutoKill = page.openCodeAutoKillToggle.checked;
+plasmoid.configuration.openCodeAutoKillMinutes = page.openCodeAutoKillMinutesSpin.value;
+plasmoid.configuration.kwalletName = page.walletNameField.text;
+plasmoid.configuration.systemPrompt = page.systemPromptArea.text;
+plasmoid.configuration.memoryEnabled = page.memoryEnabledToggle.checked;
+plasmoid.configuration.userMemory = page.userMemoryArea.text;
+plasmoid.configuration.globalContextEnabled = page.globalContextEnabledToggle.checked;
+plasmoid.configuration.globalContextLimit = page.globalContextLimitSpin.value;
+plasmoid.configuration.globalContextAutoCompact = page.globalContextAutoCompactToggle.checked;
+plasmoid.configuration.globalContextCompactThreshold = page.globalContextCompactThresholdSpin.value;
 }
 
 
 function cancelKeyringOps() {
-let running = keyringDs.connectedSources;
-for (let i = 0; i < running.length; i++) keyringDs.disconnectSource(running[i])
-let utilityRunning = utilityDs.connectedSources;
+let running = page.keyringDs.connectedSources;
+for (let i = 0; i < running.length; i++) page.keyringDs.disconnectSource(running[i])
+let utilityRunning = page.utilityDs.connectedSources;
 for (let j = 0; j < utilityRunning.length; j++) {
 if (utilityRunning[j].indexOf("#kwallet-") >= 0)
-utilityDs.disconnectSource(utilityRunning[j]);
+page.utilityDs.disconnectSource(utilityRunning[j]);
 }
-pendingOps = ({
+page.pendingOps = ({
 });
 }
 
 
 function resetToDefaults() {
-appDisplayNameField.text = "KDE AI Chat";
-providerBox.currentIndex = 0;
-baseUrlField.text = "https://api.openai.com/v1";
-apiKeyField.text = "";
-modelField.text = "gpt-4o-mini";
-anthropicApiKeyField.text = "";
-anthropicModelField.text = "claude-3-5-sonnet-latest";
-groqBaseUrlField.text = "https://api.groq.com/openai/v1";
-groqApiKeyField.text = "";
-groqModelField.text = "llama-3.3-70b-versatile";
-deepSeekBaseUrlField.text = "https://api.deepseek.com";
-deepSeekApiKeyField.text = "";
-deepSeekModelField.text = "deepseek-v4-pro";
-miniMaxBaseUrlField.text = "https://api.minimax.io/v1";
-miniMaxApiKeyField.text = "";
-miniMaxModelField.text = "MiniMax-M2.7";
-fireworksBaseUrlField.text = "https://api.fireworks.ai/inference/v1";
-fireworksApiKeyField.text = "";
-fireworksModelField.text = "accounts/fireworks/models/llama-v3p3-70b-instruct";
-googleBaseUrlField.text = "https://generativelanguage.googleapis.com/v1beta/openai/";
-googleApiKeyField.text = "";
-googleModelField.text = "gemini-3-flash-preview";
-openRouterBaseUrlField.text = "https://openrouter.ai/api/v1";
-openRouterApiKeyField.text = "";
-openRouterModelField.text = "openai/gpt-4o-mini";
-mistralBaseUrlField.text = "https://api.mistral.ai/v1";
-mistralApiKeyField.text = "";
-mistralModelField.text = "mistral-small-latest";
-cloudflareBaseUrlField.text = "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1";
-cloudflareApiKeyField.text = "";
-cloudflareModelField.text = "@cf/meta/llama-3.1-8b-instruct";
-nvidiaBaseUrlField.text = "https://integrate.api.nvidia.com/v1";
-nvidiaApiKeyField.text = "";
-nvidiaModelField.text = "meta/llama-3.1-70b-instruct";
-huggingFaceBaseUrlField.text = "https://router.huggingface.co/v1";
-huggingFaceApiKeyField.text = "";
-huggingFaceModelField.text = "openai/gpt-oss-120b:groq";
-xaiBaseUrlField.text = "https://api.x.ai/v1";
-xaiApiKeyField.text = "";
-xaiModelField.text = "grok-2-latest";
-lmStudioBaseUrlField.text = "http://localhost:1234/v1";
-lmStudioModelField.text = "";
-localBaseUrlField.text = "http://localhost:11434/v1";
-localModelField.text = "llama3.2";
-ollamaBaseUrlField.text = "http://localhost:11434/v1";
-ollamaModelField.text = "llama3.2";
-litellmBaseUrlField.text = "http://localhost:4000/v1";
-litellmApiKeyField.text = "";
-litellmModelField.text = "";
-qwenBaseUrlField.text = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-qwenApiKeyField.text = "";
-qwenModelField.text = "qwen-max";
-moonshotBaseUrlField.text = "https://api.moonshot.ai/v1";
-moonshotApiKeyField.text = "";
-moonshotModelField.text = "moonshot-v1-8k";
-mimoBaseUrlField.text = "https://api.xiaomimimo.com/v1";
-mimoApiKeyField.text = "";
-mimoModelField.text = "mimo-v2-pro";
-maritacaBaseUrlField.text = "https://chat.maritaca.ai/api";
-maritacaApiKeyField.text = "";
-maritacaModelField.text = "sabia-4";
+page.appDisplayNameField.text = "KDE AI Chat";
+page.providerBox.currentIndex = 0;
+page.baseUrlField.text = "https://api.openai.com/v1";
+page.apiKeyField.text = "";
+page.modelField.text = "gpt-4o-mini";
+page.anthropicApiKeyField.text = "";
+page.anthropicModelField.text = "claude-3-5-sonnet-latest";
+page.groqBaseUrlField.text = "https://api.groq.com/openai/v1";
+page.groqApiKeyField.text = "";
+page.groqModelField.text = "llama-3.3-70b-versatile";
+page.deepSeekBaseUrlField.text = "https://api.deepseek.com";
+page.deepSeekApiKeyField.text = "";
+page.deepSeekModelField.text = "deepseek-v4-pro";
+page.miniMaxBaseUrlField.text = "https://api.minimax.io/v1";
+page.miniMaxApiKeyField.text = "";
+page.miniMaxModelField.text = "MiniMax-M2.7";
+page.fireworksBaseUrlField.text = "https://api.fireworks.ai/inference/v1";
+page.fireworksApiKeyField.text = "";
+page.fireworksModelField.text = "accounts/fireworks/models/llama-v3p3-70b-instruct";
+page.googleBaseUrlField.text = "https://generativelanguage.googleapis.com/v1beta/openai/";
+page.googleApiKeyField.text = "";
+page.googleModelField.text = "gemini-3-flash-preview";
+page.openRouterBaseUrlField.text = "https://openrouter.ai/api/v1";
+page.openRouterApiKeyField.text = "";
+page.openRouterModelField.text = "openai/gpt-4o-mini";
+page.mistralBaseUrlField.text = "https://api.mistral.ai/v1";
+page.mistralApiKeyField.text = "";
+page.mistralModelField.text = "mistral-small-latest";
+page.cloudflareBaseUrlField.text = "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1";
+page.cloudflareApiKeyField.text = "";
+page.cloudflareModelField.text = "@cf/meta/llama-3.1-8b-instruct";
+page.nvidiaBaseUrlField.text = "https://integrate.api.nvidia.com/v1";
+page.nvidiaApiKeyField.text = "";
+page.nvidiaModelField.text = "meta/llama-3.1-70b-instruct";
+page.huggingFaceBaseUrlField.text = "https://router.huggingface.co/v1";
+page.huggingFaceApiKeyField.text = "";
+page.huggingFaceModelField.text = "openai/gpt-oss-120b:groq";
+page.xaiBaseUrlField.text = "https://api.x.ai/v1";
+page.xaiApiKeyField.text = "";
+page.xaiModelField.text = "grok-2-latest";
+page.lmStudioBaseUrlField.text = "http://localhost:1234/v1";
+page.lmStudioModelField.text = "";
+page.localBaseUrlField.text = "http://localhost:11434/v1";
+page.localModelField.text = "llama3.2";
+page.ollamaBaseUrlField.text = "http://localhost:11434/v1";
+page.ollamaModelField.text = "llama3.2";
+page.litellmBaseUrlField.text = "http://localhost:4000/v1";
+page.litellmApiKeyField.text = "";
+page.litellmModelField.text = "";
+page.qwenBaseUrlField.text = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+page.qwenApiKeyField.text = "";
+page.qwenModelField.text = "qwen-max";
+page.moonshotBaseUrlField.text = "https://api.moonshot.ai/v1";
+page.moonshotApiKeyField.text = "";
+page.moonshotModelField.text = "moonshot-v1-8k";
+page.mimoBaseUrlField.text = "https://api.xiaomimimo.com/v1";
+page.mimoApiKeyField.text = "";
+page.mimoModelField.text = "mimo-v2-pro";
+page.maritacaBaseUrlField.text = "https://chat.maritaca.ai/api";
+page.maritacaApiKeyField.text = "";
+page.maritacaModelField.text = "sabia-4";
 languageCombo.currentIndex = 0;
-showGuidesToggle.checked = true;
-autoStartOpenCodeToggle.checked = false;
-openCodeToggle.checked = false;
+page.showGuidesToggle.checked = true;
+page.autoStartOpenCodeToggle.checked = false;
+page.openCodeToggle.checked = false;
 if (page) page.cfg_openCodeUrl = "http://127.0.0.1:4096/v1";
-openCodeProviderValueField.text = "";
+page.openCodeProviderValueField.text = "";
 if (page) page.cfg_openCodeModel = "";
-openCodeStartCommandField.text = "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.";
-openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
-openCodeAutoKillToggle.checked = true;
-openCodeAutoKillMinutesSpin.value = 5;
-walletNameField.text = availableWalletNames.length > 0 ? availableWalletNames[0] : "kdewallet";
-systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
-memoryEnabledToggle.checked = false;
-userMemoryArea.text = "";
-customHistoryPathField.text = StandardPaths.writableLocation(StandardPaths.ConfigLocation);
-globalContextEnabledToggle.checked = true;
-globalContextLimitSpin.value = 1;
-globalContextAutoCompactToggle.checked = false;
-globalContextCompactThresholdSpin.value = 10;
-providerModelCandidates = [];
-openCodeProviderCandidates = [];
-openCodeModelCandidates = [];
-openCodeProviderModelMap = ({
+page.openCodeStartCommandField.text = "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.";
+page.openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
+page.openCodeAutoKillToggle.checked = true;
+page.openCodeAutoKillMinutesSpin.value = 5;
+page.walletNameField.text = page.availableWalletNames.length > 0 ? page.availableWalletNames[0] : "kdewallet";
+page.systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
+page.memoryEnabledToggle.checked = false;
+page.userMemoryArea.text = "";
+page.customHistoryPathField.text = StandardPaths.writableLocation(StandardPaths.ConfigLocation);
+page.globalContextEnabledToggle.checked = true;
+page.globalContextLimitSpin.value = 1;
+page.globalContextAutoCompactToggle.checked = false;
+page.globalContextCompactThresholdSpin.value = 10;
+page.providerModelCandidates = [];
+page.openCodeProviderCandidates = [];
+page.openCodeModelCandidates = [];
+page.openCodeProviderModelMap = ({
 });
-discoveryStatus = "Settings reset to defaults.";
+page.discoveryStatus = "Settings reset to defaults.";
 }
 
 
@@ -1323,7 +1377,7 @@ let srcPath = String(Qt.resolvedUrl("../scripts/kde-ai-scheduler.py")).replace("
 let serviceContent = "[Unit]\nDescription=KDE AI Chat Scheduler Daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 %h/.local/share/kdeaichat/kde-ai-scheduler.py\nRestart=on-failure\nRestartSec=30\nStandardOutput=journal\nStandardError=journal\nExecReload=/bin/kill -HUP $MAINPID\nKillMode=process\n\n[Install]\nWantedBy=default.target\n";
 let payload = {
 "srcPath": srcPath,
-"destPath": schedulerScriptPath,
+"destPath": page.schedulerScriptPath,
 "serviceContent": serviceContent
 };
 let payloadStr = JSON.stringify(payload);
@@ -1333,21 +1387,21 @@ return;
 page._lastSchedSetupPayload = payloadStr;
 let b64Payload = base64Encode(payloadStr);
 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.quoteForShell(b64Payload);
-utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
+page.utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
 }
 
 
 function pollSchedulerState() {
-utilityDs.connectSource("sh -c 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now());
+page.utilityDs.connectSource("sh -c 'pgrep -f kde-ai-scheduler.py > /dev/null 2>&1 && echo SCHED_RUNNING || echo SCHED_STOPPED' #sched-poll-" + Date.now());
 }
 
 
 function schedLoadSchedules() {
-let safePath = Sec.validateFilePath(schedulesFilePath);
+let safePath = Sec.validateFilePath(page.schedulesFilePath);
 if (safePath === "")
 return;
 let cmd = "cat " + Sec.quoteForShell(safePath) + " 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
-utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-load");
+page.utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-load");
 }
 
 
@@ -1388,13 +1442,13 @@ let payload = {
 "schedules": all,
 "history": hist,
 "settings": {
-"executeMissedSchedules": !!executeMissedSchedulesToggle.checked,
+"executeMissedSchedules": !!page.executeMissedSchedulesToggle.checked,
 "historyLimit": limit
 }
 };
 let b64Payload = base64Encode(JSON.stringify(payload));
 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.quoteForShell(b64Payload);
-utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-save");
+page.utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-save");
 }
 
 
@@ -1423,7 +1477,7 @@ if (!pId || pId === "")
 return;
 let now = new Date();
 now.setMinutes(now.getMinutes() + 5);
-scheduleDialog.draft = {
+page.scheduleDialog.draft = {
 "id": page.schedMakeUuid(),
 "name": "",
 "enabled": true,
@@ -1442,8 +1496,8 @@ scheduleDialog.draft = {
 "notify": true,
 "createdAt": new Date().toISOString()
 };
-scheduleDialog.editingIndex = -2;
-scheduleDialog.open();
+page.scheduleDialog.editingIndex = -2;
+page.scheduleDialog.open();
 // Clear configuration values immediately so it doesn't pop up again next time!
 if (typeof page.cfg_preselectedChatId !== "undefined") {
 page.cfg_preselectedChatId = "";
