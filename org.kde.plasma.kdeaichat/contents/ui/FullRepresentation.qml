@@ -1051,11 +1051,13 @@ import "Security.js" as Sec
                                                                                         root.respondToQuestion(questionCol.qId, optionBtn.modelData.label || "", false);
 
                                                                                 }
-                                                                            }
+            }
 
-                                                                        }
+        }
 
-                                                                    }
+    }
+
+    // ── Inline /schedule command dialog ───────────────────────────────────────
 
                                                                 }
 
@@ -1997,6 +1999,7 @@ import "Security.js" as Sec
         x: Math.round((parent.width - width) / 2)
         y: Math.round((parent.height - height) / 2)
         width: Math.min(420, parent.width * 0.9)
+        height: Math.min(600, parent.height * 0.85)
         standardButtons: QQC2.Dialog.NoButton
         onAboutToShow: {
             let sId = root.currentSessionId;
@@ -2042,9 +2045,14 @@ import "Security.js" as Sec
             setSessionProperty(sId, "chatMemory", chatMemoryVal);
         }
 
-        ColumnLayout {
-            width: parent.width
-            spacing: Kirigami.Units.smallSpacing
+        QQC2.ScrollView {
+            anchors.fill: parent
+            clip: true
+            contentWidth: availableWidth
+
+            ColumnLayout {
+                width: parent.width
+                spacing: Kirigami.Units.smallSpacing
 
             // ── Chat System Prompt ─────────────────────────────────────
             QQC2.Label {

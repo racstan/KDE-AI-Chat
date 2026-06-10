@@ -33,8 +33,8 @@ QQC2.ScrollView {
     property real configZoom: 1
     property alias cfg_appDisplayName: advancedSection.appDisplayName
     property alias cfg_appearanceMode: generalSection.appearanceMode
-    property alias cfg_keyStorageMode: generalSection.storageMode
-    property alias cfg_kwalletAutoPrompt: generalSection.kwalletAutoPrompt
+    property alias cfg_keyStorageMode: advancedSection.storageModeCombo.currentIndex
+    property alias cfg_kwalletAutoPrompt: advancedSection.kwalletAutoPromptCheck.checked
     // Convenience computed for all KWallet-only visibility guards
     readonly property bool kwalletModeActive: cfg_keyStorageMode === 2
     property string cfg_provider: ""
@@ -238,7 +238,7 @@ QQC2.ScrollView {
     readonly property alias advancedSection: advancedSection
     readonly property alias scheduleDialog: scheduleDialog
 
-    readonly property alias walletNameField: generalSection.walletNameField
+    readonly property alias walletNameField: advancedSection.walletNameField
     readonly property alias providerBox: providersSection.providerBox
     readonly property alias openCodeProviderValueField: openCodeSection.openCodeProviderValueField
     readonly property alias openCodeProviderBox: openCodeSection.openCodeProviderBox
@@ -252,7 +252,7 @@ QQC2.ScrollView {
     readonly property alias showGuidesToggle: generalSection.showGuidesToggle
     readonly property alias openCodeToggle: generalSection.openCodeToggle
     readonly property alias playSoundToggle: generalSection.playSoundToggle
-    readonly property alias storageModeCombo: generalSection.storageModeCombo
+    readonly property alias storageModeCombo: advancedSection.storageModeCombo
     readonly property alias appearanceModeCombo: generalSection.appearanceModeCombo
 
     // DataSources

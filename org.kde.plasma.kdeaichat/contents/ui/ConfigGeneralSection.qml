@@ -20,23 +20,12 @@ Kirigami.FormLayout {
     property alias playSoundToggle: playSoundToggle
     property alias showGuidesToggle: showGuidesToggle
     property alias openCodeToggle: openCodeToggle
-    property alias storageModeCombo: storageModeCombo
-    property alias walletNameField: walletNameField
 
     // Value aliases for config bindings to avoid double-nested aliases in parent
     property alias appearanceMode: appearanceModeCombo.currentIndex
     property alias playSound: playSoundToggle.checked
     property alias showGuides: showGuidesToggle.checked
     property alias openCode: openCodeToggle.checked
-    property alias storageMode: storageModeCombo.currentIndex
-    property alias walletName: walletNameField.text
-    property alias kwalletAutoPrompt: kwalletAutoPromptCheck.checked
-
-    QQC2.TextField {
-        id: walletNameField
-        visible: false
-        text: "kdeaichatwallet"
-    }
 
     RowLayout {
         visible: page ? page.cfg_showInteractiveGuides : false

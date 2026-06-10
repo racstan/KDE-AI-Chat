@@ -30,6 +30,9 @@ Kirigami.FormLayout {
     property alias executeMissedSchedulesToggle: executeMissedSchedulesToggle
     property alias appDisplayNameField: appDisplayNameField
     property alias customHistoryPathField: customHistoryPathField
+    property alias storageModeCombo: storageModeCombo
+    property alias walletNameField: walletNameField
+    property alias kwalletAutoPromptCheck: kwalletAutoPromptCheck
 
     // Value aliases for config bindings to avoid double-nested aliases in parent
     property alias systemPrompt: systemPromptArea.text
