@@ -117,7 +117,7 @@ QQC2.ScrollView {
     property alias cfg_openCodeStopCommand: openCodeSection.openCodeStopCommand
     property alias cfg_openCodeAutoKill: openCodeSection.openCodeAutoKill
     property alias cfg_openCodeAutoKillMinutes: openCodeSection.openCodeAutoKillMinutes
-    property alias cfg_kwalletName: generalSection.walletName
+    property alias cfg_kwalletName: advancedSection.walletName
     property alias cfg_systemPrompt: advancedSection.systemPrompt
     property alias cfg_memoryEnabled: advancedSection.memoryEnabled
     property alias cfg_userMemory: advancedSection.userMemory

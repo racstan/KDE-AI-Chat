@@ -35,6 +35,7 @@ Kirigami.FormLayout {
     property alias kwalletAutoPromptCheck: kwalletAutoPromptCheck
 
     // Value aliases for config bindings to avoid double-nested aliases in parent
+    property alias walletName: walletNameField.text
     property alias systemPrompt: systemPromptArea.text
     property alias memoryEnabled: memoryEnabledToggle.checked
     property alias userMemory: userMemoryArea.text
