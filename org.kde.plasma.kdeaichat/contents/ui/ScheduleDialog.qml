@@ -8,6 +8,11 @@ import org.kde.plasma.plasma5support as P5Support
     QQC2.Dialog {
         id: scheduleDialog
 
+        // Reference to the parent ConfigGeneral.qml page.
+        // Must be set when instantiating: ScheduleDialog { id: scheduleDialog; page: page }
+        // QML component files do NOT inherit id-namespace from parent files.
+        property var page: null
+
         property int editingIndex: -1 // -2=new, >=0=edit, -1=list
         property var draft: ({
         })
@@ -15,8 +20,23 @@ import org.kde.plasma.plasma5support as P5Support
         property var localActiveList: []
         property var localArchivedList: []
 
+        Connections {
+            target: page
+            ignoreUnknownSignals: true
+            function onSchedulerListChanged() {
+                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1) {
+                    scheduleDialog.localActiveList = page.schedulerList.slice();
+                }
+            }
+            function onSchedulerArchivedListChanged() {
+                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1) {
+                    scheduleDialog.localArchivedList = page.schedulerArchivedList.slice();
+                }
+            }
+        }
+
         function translate(text) {
-            return page.translate(text);
+            return (page && typeof page.translate === "function") ? page.translate(text) : text;
         }
 
         function getChatsList() {
@@ -172,9 +192,11 @@ import org.kde.plasma.plasma5support as P5Support
         height: Math.min((parent ? parent.height : page.height) * 0.92, Kirigami.Units.gridUnit * 46)
         standardButtons: QQC2.Dialog.NoButton
         onOpened: {
-            schedLoadSchedules();
-            localActiveList = page.schedulerList.slice();
-            localArchivedList = page.schedulerArchivedList.slice();
+            if (page) {
+                page.schedLoadSchedules();
+                localActiveList = page.schedulerList.slice();
+                localArchivedList = page.schedulerArchivedList.slice();
+            }
             if (editingIndex !== -2 && editingIndex < 0) {
                 editingIndex = -1;
             }

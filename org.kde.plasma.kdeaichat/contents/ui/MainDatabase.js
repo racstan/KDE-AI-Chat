@@ -1748,11 +1748,9 @@ let s = root.schedulesList[i];
 if (s && s.chatId === sessionId && !s.archived) {
 let isExecuted = false;
 if (s.taskType === "single") {
-if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0) || s.enabled === false)
+if ((s.lastRunAt && s.lastRunAt !== "") || (s.runCount && s.runCount > 0))
 isExecuted = true;
 } else {
-if (s.enabled === false)
-isExecuted = true;
 if (s.limitEnabled && s.runCount >= s.limitCount)
 isExecuted = true;
 }

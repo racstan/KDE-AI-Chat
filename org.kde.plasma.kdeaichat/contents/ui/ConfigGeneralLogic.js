@@ -104,13 +104,18 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 }
 
 
-function walletWriteCommand(walletName, keyName, value) {
+function walletWriteCommand(walletName, keyName, value, autoPrompt) {
+if (autoPrompt === undefined) autoPrompt = true;
 let escapedWallet = shellEscape(walletName);
 let escapedFolder = shellEscape(walletFolderName);
 let escapedKey = shellEscape(keyName);
 let escapedValue = shellEscape(value);
 let escapedAppId = shellEscape(walletAppId);
-return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "value='\''" + escapedValue + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STORE__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " + "result=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_STORE__:%s\" \"$result\"'";
+let checkOpenScript = "";
+if (!autoPrompt) {
+checkOpenScript = "if ! $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.isOpen \"$wallet\" 2>/dev/null | grep -q true; then printf \"__KAI_STORE__:NOT_UNLOCKED\"; exit 0; fi; ";
+}
+return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "value='\''" + escapedValue + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + checkOpenScript + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STORE__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " + "result=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_STORE__:%s\" \"$result\"'";
 }
 
 
@@ -130,8 +135,8 @@ return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + es
 }
 
 
-function walletBulkReadCommand(walletName) {
-return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds(), walletFolderName, walletAppId);
+function walletBulkReadCommand(walletName, autoPrompt) {
+return WalletService.buildBulkReadCommand(walletName, ProviderService.getApiKeyProviderIds(), walletFolderName, walletAppId, autoPrompt);
 }
 
 
@@ -891,11 +896,15 @@ return "";
 }
 
 
-function kwalletLoadAll() {
+function kwalletLoadAll(autoPrompt) {
+if (autoPrompt === undefined) autoPrompt = true;
+if (page.kwalletSyncPermanentlyFailed && !autoPrompt) {
+    return;
+}
 cancelKeyringOps();
 let walletName = effectiveWalletName();
 debugLog("[KAI-DEBUG] kwalletLoadAll walletName:", walletName);
-let cmd = walletBulkReadCommand(walletName) + " #kwallet-refresh-all";
+let cmd = walletBulkReadCommand(walletName, autoPrompt) + " #kwallet-refresh-all";
 // Scrub the full pipeline (which includes the wallet/folder/appid
 // single-quote variables) before logging, so debug-mode output
 // does not contain the live wallet identifier.
@@ -905,18 +914,37 @@ utilityDs.connectSource(cmd);
 }
 
 
-function kwalletStoreAll() {
+function kwalletStoreAll(autoPrompt) {
+if (autoPrompt === undefined) autoPrompt = true;
+if (page.kwalletSyncPermanentlyFailed && !autoPrompt) {
+    return;
+}
 cancelKeyringOps();
+let walletName = effectiveWalletName();
 let ids = keyTargetIds();
+let targetValueMap = {};
 let count = 0;
 for (let i = 0; i < ids.length; i++) {
-let value = (apiKeyForTarget(ids[i]) || "").trim();
-if (value === "")
-continue;
-kwalletStore(ids[i], value, true);
-count++;
+    let value = (apiKeyForTarget(ids[i]) || "").trim();
+    if (value === "")
+        continue;
+    targetValueMap[ids[i]] = value;
+    count++;
 }
-keyringStatus = count > 0 ? ("Synced the above key as well as other keys (" + count + " total).") : "No API keys to sync.";
+if (count === 0) {
+    keyringStatus = "No API keys to sync.";
+    return;
+}
+let cmd = WalletService.buildBulkWriteCommand(walletName, walletFolderName, walletAppId, targetValueMap, autoPrompt) + " #kwallet-bulk-store";
+let ops = page.pendingOps;
+ops[cmd] = {
+    "mode": "bulk_store",
+    "target": "bulk",
+    "bulk": true
+};
+page.pendingOps = ops;
+keyringStatus = "Syncing API keys to KWallet...";
+keyringDs.connectSource(cmd);
 }
 
 

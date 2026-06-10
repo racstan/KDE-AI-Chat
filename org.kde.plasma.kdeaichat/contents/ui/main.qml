@@ -135,6 +135,7 @@ PlasmoidItem {
     property string configCustomHistoryPath: plasmoid.configuration.customHistoryPath || ""
     property bool configUseOpenCode: !!plasmoid.configuration.useOpenCode
     property int configKeyStorageMode: plasmoid.configuration.keyStorageMode || 0
+    property bool configKwalletAutoPrompt: plasmoid.configuration.kwalletAutoPrompt !== undefined ? !!plasmoid.configuration.kwalletAutoPrompt : true
     property bool configOpenCodeAutoKill: !!plasmoid.configuration.openCodeAutoKill
     property int configOpenCodeAutoKillMinutes: plasmoid.configuration.openCodeAutoKillMinutes || 5
     property bool kwalletKeysLoaded: false
@@ -142,6 +143,11 @@ PlasmoidItem {
     property bool kwalletLoading: false
     property var kwalletLoadSuccessCallbacks: []
     property var kwalletLoadFailureCallbacks: []
+    // When kwalletOpenAttempts reaches 3 this is set true and no further
+    // automatic prompts are made. Reset explicitly by the "Refresh from KWallet"
+    // button in settings, which resets kwalletOpenAttempts to 0 as well.
+    property bool kwalletPermanentlyFailed: false
+    property string kwalletFailReason: ""
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
     property string chatInputText: ""
     property var msgListViewRef: null
@@ -876,6 +882,17 @@ PlasmoidItem {
         return MainScheduler.loadKWalletKeysIfNeeded(onSuccess, onFailure);
     }
 
+    // Resets all KWallet failure state so that the next call to
+    // loadKWalletKeysIfNeeded() can try again. Called from the
+    // "Refresh from KWallet" button in settings after a permanent fail.
+    function resetKwalletFailState() {
+        root.kwalletPermanentlyFailed = false;
+        root.kwalletFailReason = "";
+        root.kwalletOpenAttempts = 0;
+        root.kwalletLoading = false;
+        root.kwalletKeysLoaded = false;
+    }
+
     function performExportChat(filePath) {
         return MainDatabase.performExportChat(filePath);
     }
@@ -916,6 +933,8 @@ PlasmoidItem {
         if (configKeyStorageMode === 2) {
             root.kwalletKeysLoaded = false;
             root.kwalletOpenAttempts = 0;
+            root.kwalletPermanentlyFailed = false;
+            root.kwalletFailReason = "";
             // Loaded on demand when sending a message or opening settings.
         }
     }

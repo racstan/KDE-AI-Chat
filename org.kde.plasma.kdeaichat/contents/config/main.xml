@@ -263,6 +263,10 @@
       <default>kdeaichatwallet</default>
     </entry>
 
+    <entry name="kwalletAutoPrompt" type="Bool">
+      <default>true</default>
+    </entry>
+
     <!-- keyStorageMode: 0 = session only (forget on restart), 1 = plain config file, 2 = KWallet -->
     <entry name="keyStorageMode" type="Int">
       <default>2</default>

@@ -30,6 +30,7 @@ Kirigami.FormLayout {
     property alias openCode: openCodeToggle.checked
     property alias storageMode: storageModeCombo.currentIndex
     property alias walletName: walletNameField.text
+    property alias kwalletAutoPrompt: kwalletAutoPromptCheck.checked
 
     QQC2.TextField {
         id: walletNameField
@@ -450,6 +451,25 @@ Kirigami.FormLayout {
         opacity: 0.8
     }
 
+    QQC2.CheckBox {
+        id: kwalletAutoPromptCheck
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive) : false
+        Kirigami.FormData.label: page ? page.translate("Auto-unlock:") : "Auto-unlock:"
+        text: page ? page.translate("Automatically prompt for password") : "Automatically prompt for password"
+        Layout.fillWidth: true
+    }
+
+    QQC2.Label {
+        visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive && !kwalletAutoPromptCheck.checked) : false
+        Kirigami.FormData.label: ""
+        Layout.fillWidth: true
+        Layout.maximumWidth: generalSection.fieldMaxWidth
+        text: page ? page.translate("When disabled, the app will not display KWallet password prompt popups on startup or when accessing API keys. Keys will only load if the wallet is already unlocked in your system, or if you click the 'Refresh from KWallet' button manually.") : ""
+        wrapMode: Text.Wrap
+        opacity: 0.7
+        font.italic: true
+    }
+
     QQC2.Label {
         visible: page ? (!page.cfg_useOpenCode && page.kwalletModeActive) : false
         Kirigami.FormData.label: page ? page.translate("Wallet info:") : "Wallet info:"
@@ -516,13 +536,71 @@ Kirigami.FormLayout {
         QQC2.Button {
             text: page ? page.translate("Refresh from KWallet") : "Refresh from KWallet"
             enabled: page ? !page.keyringBusy : true
-            onClicked: { if (page) page.kwalletLoadAll(); }
+            icon.name: "view-refresh"
+            onClicked: {
+                if (page) {
+                    // Reset the permanently-failed state on root so the next
+                    // loadKWalletKeysIfNeeded() call can actually attempt a load.
+                    if (typeof plasmoid !== "undefined" && plasmoid && plasmoid.self) {
+                        // Access root via plasmoid reference
+                    }
+                    // Call resetKwalletFailState on root if it was wired up
+                    if (typeof page.resetKwalletFailState === "function") {
+                        page.resetKwalletFailState();
+                    } else if (page.plasmoid && typeof page.plasmoid.resetKwalletFailState === "function") {
+                        page.plasmoid.resetKwalletFailState();
+                    }
+                    page.kwalletLoadAll(true);
+                }
+            }
         }
 
         QQC2.Button {
             text: page ? page.translate("Sync to KWallet") : "Sync to KWallet"
             enabled: page ? !page.keyringBusy : true
-            onClicked: { if (page) page.kwalletStoreAll(); }
+            icon.name: "document-save"
+            onClicked: { if (page) page.kwalletStoreAll(true); }
+        }
+    }
+
+    // KWallet permanently-failed warning banner
+    Rectangle {
+        visible: {
+            if (!page || !page.kwalletModeActive || page.cfg_useOpenCode) return false;
+            // Show if plasmoid root has kwalletPermanentlyFailed set
+            return typeof plasmoid !== "undefined" &&
+                   plasmoid.configuration &&
+                   page.kwalletSyncPermanentlyFailed === true;
+        }
+        Layout.fillWidth: true
+        Layout.maximumWidth: generalSection.fieldMaxWidth
+        Kirigami.FormData.label: ""
+        implicitHeight: kwalletFailRow.implicitHeight + Kirigami.Units.gridUnit
+        radius: 5
+        color: Qt.rgba(Kirigami.Theme.negativeTextColor.r, Kirigami.Theme.negativeTextColor.g, Kirigami.Theme.negativeTextColor.b, 0.1)
+        border.color: Qt.rgba(Kirigami.Theme.negativeTextColor.r, Kirigami.Theme.negativeTextColor.g, Kirigami.Theme.negativeTextColor.b, 0.4)
+        border.width: 1
+
+        RowLayout {
+            id: kwalletFailRow
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Icon {
+                source: "dialog-warning"
+                Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                Layout.alignment: Qt.AlignTop
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Kirigami.Theme.negativeTextColor
+                font.bold: true
+                text: page ? (page.kwalletSyncFailReason || "KWallet sync failed — possibly wrong password or wallet not unlocked. Click \"Refresh from KWallet\" above to retry.") : ""
+            }
         }
     }
 

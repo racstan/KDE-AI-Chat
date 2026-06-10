@@ -30,5 +30,6 @@ __pycache__/
 # Local scratch and temporary files
 scratch/
 newaudit.md
+persistentinformation.md
 
 

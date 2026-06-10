@@ -228,13 +228,25 @@ root.kwalletLoadFailureCallbacks.push(onFailure);
 if (root.kwalletLoading) {
 return ;
 }
+// kwalletPermanentlyFailed is set after 3 consecutive failures.
+// No further automatic prompts are shown until the user clicks
+// "Refresh from KWallet" which resets both this flag and kwalletOpenAttempts.
+if (root.kwalletPermanentlyFailed) {
+debugLog("[KAI-DEBUG] loadKWalletKeysIfNeeded: permanently failed, not retrying. User must click Refresh.");
+triggerKWalletCallbacks(false, root.kwalletFailReason || "KWallet sync failed");
+return ;
+}
 if (root.kwalletOpenAttempts >= 3) {
-debugLog("[KAI-DEBUG] loadKWalletKeysIfNeeded open attempts limit of 3 exceeded. Skipping KWallet load.");
-triggerKWalletCallbacks(false, "KWallet open attempts limit exceeded");
+let reason = "KWallet sync failed (3 attempts). Please click 'Refresh from KWallet' in settings.";
+debugLog("[KAI-DEBUG] loadKWalletKeysIfNeeded open attempts limit of 3 exceeded. Setting permanently failed.");
+root.kwalletPermanentlyFailed = true;
+root.kwalletFailReason = reason;
+root.kwalletLoading = false;
+triggerKWalletCallbacks(false, reason);
 return ;
 }
 root.kwalletLoading = true;
 let walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
-kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load");
+kwalletStartupDs.connectSource(walletBulkReadCommand(walletName, root.configKwalletAutoPrompt) + " #kwallet-startup-load");
 }
 

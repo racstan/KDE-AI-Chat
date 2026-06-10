@@ -509,6 +509,7 @@ Item {
                 let lines = stdout.split(/\r?\n/);
                 let openFailed = false;
                 let openFailedMsg = "KWallet open failed.";
+                let notUnlocked = false;
                 for (let i = 0; i < lines.length; i++) {
                     let line = lines[i].trim();
                     if (line.indexOf("__KAI_BULK__:OPEN_FAILED") === 0) {
@@ -517,6 +518,8 @@ Item {
                     } else if (line.indexOf("__KAI_BULK__:NO_WALLET") === 0) {
                         openFailed = true;
                         openFailedMsg = "Configured KWallet not found.";
+                    } else if (line.indexOf("__KAI_BULK__:NOT_UNLOCKED") === 0) {
+                        notUnlocked = true;
                     } else if (line.indexOf("__KAI_SECRET__:") === 0) {
                         let rest = line.slice("__KAI_SECRET__:".length);
                         let sep = rest.indexOf(":");
@@ -527,13 +530,28 @@ Item {
                         }
                     }
                 }
-                if (openFailed) {
+                if (notUnlocked) {
+                    root.kwalletKeysLoaded = false;
+                    root.kwalletLoading = false;
+                    root.triggerKWalletCallbacks(false, "KWallet is locked/closed. Click 'Refresh from KWallet' in settings to unlock.");
+                } else if (openFailed) {
                     root.kwalletKeysLoaded = false;
                     root.kwalletOpenAttempts++;
                     debugLog("[KAI-DEBUG] KWallet open failed (attempt " + root.kwalletOpenAttempts + " of 3)");
-                    root.triggerKWalletCallbacks(false, openFailedMsg);
+                    if (root.kwalletOpenAttempts >= 3) {
+                        // Hard stop: mark permanently failed so no more automatic prompts.
+                        let reason = "KWallet sync failed after 3 attempts — possibly wrong password or wallet locked. Click \"Refresh from KWallet\" in settings to retry.";
+                        root.kwalletPermanentlyFailed = true;
+                        root.kwalletFailReason = reason;
+                        root.kwalletLoading = false;
+                        root.triggerKWalletCallbacks(false, reason);
+                    } else {
+                        root.triggerKWalletCallbacks(false, openFailedMsg);
+                    }
                 } else {
                     root.kwalletOpenAttempts = 0;
+                    root.kwalletPermanentlyFailed = false;
+                    root.kwalletFailReason = "";
                     root.kwalletKeysLoaded = true;
                     root.triggerKWalletCallbacks(true);
                 }

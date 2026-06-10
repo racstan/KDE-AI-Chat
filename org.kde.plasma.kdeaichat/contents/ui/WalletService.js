@@ -60,10 +60,52 @@ function sanitizeForShell(s) {
  * @returns {string}           Full shell pipeline ending in a comment
  *                             placeholder for the QML DataSource job tag.
  */
-function buildBulkReadCommand(walletName, targets, folder, appId) {
+function buildBulkReadCommand(walletName, targets, folder, appId, autoPrompt) {
+    if (autoPrompt === undefined) autoPrompt = true;
     let escapedWallet = shellEscape(walletName);
     let escapedFolder = shellEscape(folder || "KaiChat");
     let escapedAppId = shellEscape(appId || "org.kde.plasma.kdeaichat");
     let targetList = (targets || []).join(" ");
-    return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; " + "for target in " + targetList + "; do " + "key=\"kai-chat-${target}-api-key\"; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" = true ]; then secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; " + "done; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_BULK__:DONE\"'";
+    let checkOpenScript = "";
+    if (!autoPrompt) {
+        checkOpenScript = "if ! $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.isOpen \"$wallet\" 2>/dev/null | grep -q true; then printf \"__KAI_BULK__:NOT_UNLOCKED\"; exit 0; fi; ";
+    }
+    return "sh -c '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; " + checkOpenScript + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; " + "for target in " + targetList + "; do " + "key=\"kai-chat-${target}-api-key\"; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" = true ]; then secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; " + "done; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_BULK__:DONE\"'";
+}
+
+function buildBulkWriteCommand(walletName, folder, appId, targetValueMap, autoPrompt) {
+    if (autoPrompt === undefined) autoPrompt = true;
+    let escapedWallet = shellEscape(walletName);
+    let escapedFolder = shellEscape(folder || "KaiChat");
+    let escapedAppId = shellEscape(appId || "org.kde.plasma.kdeaichat");
+    
+    let checkOpenScript = "";
+    if (!autoPrompt) {
+        checkOpenScript = "if ! $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.isOpen \"$wallet\" 2>/dev/null | grep -q true; then printf \"__KAI_BULK_STORE__:NOT_UNLOCKED\"; exit 0; fi; ";
+    }
+    
+    let cmd = "sh -c '" + 
+        "wallet=\"$1\"; folder=\"$2\"; appid=\"$3\"; qdbus_cmd=\"qdbus6\"; " +
+        "if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " +
+        "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " +
+        "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK_STORE__:NO_WALLET\"; exit 0; fi; " +
+        checkOpenScript +
+        "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " +
+        "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK_STORE__:OPEN_FAILED\"; exit 0; fi; " +
+        "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " +
+        "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " +
+        "shift 3; " +
+        "while [ $# -gt 1 ]; do " +
+        "target=\"$1\"; value=\"$2\"; key=\"kai-chat-${target}-api-key\"; " +
+        "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" >/dev/null 2>&1; " +
+        "shift 2; " +
+        "done; " +
+        "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " +
+        "printf \"__KAI_BULK_STORE__:DONE\"' -- '" + escapedWallet + "' '" + escapedFolder + "' '" + escapedAppId + "'";
+        
+    for (let target in targetValueMap) {
+        let value = targetValueMap[target];
+        cmd += " '" + shellEscape(target) + "' '" + shellEscape(value) + "'";
+    }
+    return cmd;
 }

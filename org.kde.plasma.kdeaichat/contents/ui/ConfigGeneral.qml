@@ -34,6 +34,7 @@ QQC2.ScrollView {
     property alias cfg_appDisplayName: advancedSection.appDisplayName
     property alias cfg_appearanceMode: generalSection.appearanceMode
     property alias cfg_keyStorageMode: generalSection.storageMode
+    property alias cfg_kwalletAutoPrompt: generalSection.kwalletAutoPrompt
     // Convenience computed for all KWallet-only visibility guards
     readonly property bool kwalletModeActive: cfg_keyStorageMode === 2
     property string cfg_provider: ""
@@ -193,6 +194,26 @@ QQC2.ScrollView {
     property bool keyringBusy: keyringDs.connectedSources.length > 0 || utilityDs.connectedSources.filter(function(sourceName) {
         return sourceName.indexOf("#kwallet-") >= 0;
     }).length > 0
+
+    // Mirrors the plasmoid root kwalletPermanentlyFailed / kwalletFailReason state
+    // so the settings UI can show the banner and the Refresh button can reset it.
+    // We read directly from plasmoid here; main.qml is the authoritative store.
+    readonly property bool kwalletSyncPermanentlyFailed: {
+        try { return plasmoid.self ? plasmoid.self.kwalletPermanentlyFailed : false; } catch(e) { return false; }
+    }
+    readonly property string kwalletSyncFailReason: {
+        try { return plasmoid.self ? plasmoid.self.kwalletFailReason : ""; } catch(e) { return ""; }
+    }
+    function resetKwalletFailState() {
+        try {
+            if (plasmoid.self && typeof plasmoid.self.resetKwalletFailState === "function") {
+                plasmoid.self.resetKwalletFailState();
+            }
+        } catch(e) {
+            console.error("resetKwalletFailState error:", e);
+        }
+    }
+
     property bool openCodeBusy: utilityDs.connectedSources.filter(function(sourceName) {
         return sourceName.indexOf("#opencode-") >= 0;
     }).length > 0
@@ -214,6 +235,7 @@ QQC2.ScrollView {
     readonly property alias keys1: keys1
     readonly property alias keys2: keys2
     readonly property alias advancedSection: advancedSection
+    readonly property alias scheduleDialog: scheduleDialog
 
     readonly property alias walletNameField: generalSection.walletNameField
     readonly property alias providerBox: providersSection.providerBox
@@ -606,12 +628,12 @@ QQC2.ScrollView {
         return ConfigGeneralLogic.apiKeyForTarget(targetId);
     }
 
-    function kwalletLoadAll() {
-        return ConfigGeneralLogic.kwalletLoadAll();
+    function kwalletLoadAll(autoPrompt) {
+        return ConfigGeneralLogic.kwalletLoadAll(autoPrompt);
     }
 
-    function kwalletStoreAll() {
-        return ConfigGeneralLogic.kwalletStoreAll();
+    function kwalletStoreAll(autoPrompt) {
+        return ConfigGeneralLogic.kwalletStoreAll(autoPrompt);
     }
 
     function clearAllApiKeyFields() {
@@ -800,8 +822,12 @@ QQC2.ScrollView {
     }
 
     // ── Schedule Management Dialog (human-friendly) ────────────────────────────
+    // page: page is required — QML component files do NOT inherit id-namespace
+    // from the parent file. Without this, all page.xxx calls inside ScheduleDialog
+    // would resolve to undefined.
     ScheduleDialog {
         id: scheduleDialog
+        page: page
     }
 
     WheelHandler {
@@ -836,30 +862,79 @@ QQC2.ScrollView {
                     let loadedValue = stdout.slice("__KAI_SECRET__:".length);
                     page.applyLoadedKey(op.target, loadedValue);
                     page.keyringStatus = op.bulk ? "Refreshing API keys from KWallet..." : ("Loaded key for " + op.target + " from KWallet.");
+                    try { if (plasmoid.self) plasmoid.self.kwalletOpenAttempts = 0; } catch(e) {}
                 } else if (!op.bulk) {
-                    if (stdout === "__KAI_LOAD__:NO_WALLET")
+                    if (stdout === "__KAI_LOAD__:NO_WALLET") {
                         page.keyringStatus = "Configured wallet not found. Use Detect wallets or Create wallet.";
-                    else if (stdout === "__KAI_LOAD__:OPEN_FAILED")
+                    } else if (stdout === "__KAI_LOAD__:OPEN_FAILED") {
                         page.keyringStatus = "KWallet did not open the selected wallet.";
-                    else if (stdout === "__KAI_LOAD__:NO_FOLDER")
+                        try {
+                            if (plasmoid.self) {
+                                plasmoid.self.kwalletOpenAttempts++;
+                                if (plasmoid.self.kwalletOpenAttempts >= 3) {
+                                    let reason = "KWallet sync failed (3 attempts) possibly due to wrong password. Please click 'Refresh from KWallet' to retry.";
+                                    plasmoid.self.kwalletPermanentlyFailed = true;
+                                    plasmoid.self.kwalletFailReason = reason;
+                                }
+                            }
+                        } catch(e) {}
+                    } else if (stdout === "__KAI_LOAD__:NO_FOLDER") {
                         page.keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet. Click Create wallet first.";
-                    else if (stdout === "__KAI_LOAD__:NO_ENTRY")
+                    } else if (stdout === "__KAI_LOAD__:NO_ENTRY") {
                         page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
-                    else if (stderr !== "")
+                    } else if (stderr !== "") {
                         page.keyringStatus = "KWallet (" + op.target + "): " + stderr;
-                    else
+                    } else {
                         page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
+                    }
+                }
+            } else if (op.mode === "bulk_store") {
+                if (stdout === "__KAI_BULK_STORE__:OPEN_FAILED") {
+                    page.keyringStatus = "KWallet did not open the selected wallet.";
+                    try {
+                        if (plasmoid.self) {
+                            plasmoid.self.kwalletOpenAttempts++;
+                            if (plasmoid.self.kwalletOpenAttempts >= 3) {
+                                let reason = "KWallet sync failed (3 attempts) possibly due to wrong password. Please click 'Refresh from KWallet' to retry.";
+                                plasmoid.self.kwalletPermanentlyFailed = true;
+                                plasmoid.self.kwalletFailReason = reason;
+                            }
+                        }
+                    } catch(e) {}
+                } else if (stdout === "__KAI_BULK_STORE__:NOT_UNLOCKED") {
+                    page.keyringStatus = "KWallet is locked/closed. Manual sync required.";
+                } else if (stdout.indexOf("__KAI_BULK_STORE__:DONE") === 0) {
+                    page.keyringStatus = "Synced all API keys to KWallet.";
+                    try { if (plasmoid.self) { plasmoid.self.kwalletOpenAttempts = 0; plasmoid.self.kwalletPermanentlyFailed = false; } } catch(e) {}
+                } else if (stderr !== "") {
+                    page.keyringStatus = "KWallet error: " + stderr;
+                } else {
+                    page.keyringStatus = "Synced API keys to KWallet.";
+                    try { if (plasmoid.self) { plasmoid.self.kwalletOpenAttempts = 0; plasmoid.self.kwalletPermanentlyFailed = false; } } catch(e) {}
                 }
             } else {
                 if (!op.bulk) {
-                    if (stdout === "__KAI_STORE__:OPEN_FAILED")
+                    if (stdout === "__KAI_STORE__:OPEN_FAILED") {
                         page.keyringStatus = "KWallet did not open the selected wallet.";
-                    else if (stdout.indexOf("__KAI_STORE__:") === 0)
+                        try {
+                            if (plasmoid.self) {
+                                plasmoid.self.kwalletOpenAttempts++;
+                                if (plasmoid.self.kwalletOpenAttempts >= 3) {
+                                    let reason = "KWallet sync failed (3 attempts) possibly due to wrong password. Please click 'Refresh from KWallet' to retry.";
+                                    plasmoid.self.kwalletPermanentlyFailed = true;
+                                    plasmoid.self.kwalletFailReason = reason;
+                                }
+                            }
+                        } catch(e) {}
+                    } else if (stdout.indexOf("__KAI_STORE__:") === 0) {
                         page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
-                    else if (stderr !== "")
+                        try { if (plasmoid.self) plasmoid.self.kwalletOpenAttempts = 0; } catch(e) {}
+                    } else if (stderr !== "") {
                         page.keyringStatus = "KWallet error: " + stderr;
-                    else
+                    } else {
                         page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
+                        try { if (plasmoid.self) plasmoid.self.kwalletOpenAttempts = 0; } catch(e) {}
+                    }
                 }
             }
             disconnectSource(sourceName);
@@ -900,9 +975,28 @@ QQC2.ScrollView {
                     keyringStatus = "Configured wallet not found. Pick a detected wallet and retry.";
                 } else if (out === "__KAI_BULK__:OPEN_FAILED") {
                     keyringStatus = "KWallet did not open the selected wallet.";
+                    try {
+                        if (plasmoid.self) {
+                            plasmoid.self.kwalletOpenAttempts++;
+                            if (plasmoid.self.kwalletOpenAttempts >= 3) {
+                                let reason = "KWallet sync failed (3 attempts) possibly due to wrong password. Please click 'Refresh from KWallet' to retry.";
+                                plasmoid.self.kwalletPermanentlyFailed = true;
+                                plasmoid.self.kwalletFailReason = reason;
+                            }
+                        }
+                    } catch(e) {}
+                } else if (out === "__KAI_BULK__:NOT_UNLOCKED") {
+                    keyringStatus = "KWallet is locked/closed. Click 'Refresh from KWallet' to unlock.";
                 } else if (out === "__KAI_BULK__:NO_FOLDER") {
                     keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet.";
                 } else {
+                    try {
+                        if (plasmoid.self) {
+                            plasmoid.self.kwalletOpenAttempts = 0;
+                            plasmoid.self.kwalletPermanentlyFailed = false;
+                            plasmoid.self.kwalletFailReason = "";
+                        }
+                    } catch(e) {}
                     let lines = out === "" ? [] : out.split(/\n+/);
                     let loaded = 0;
                     for (let i = 0; i < lines.length; i++) {
