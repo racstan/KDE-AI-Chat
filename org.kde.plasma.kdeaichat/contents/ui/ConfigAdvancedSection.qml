@@ -520,15 +520,17 @@ Kirigami.FormLayout {
         }
     }
 
-    // ── Prompt Templates ──────────────────────────────────────────
+    // ── Advanced Features ──────────────────────────────────────────
     Kirigami.Separator {
         Kirigami.FormData.isSection: true
-        Kirigami.FormData.label: page ? page.translate("Prompt Templates") : "Prompt Templates"
+        Kirigami.FormData.label: page ? page.translate("Advanced Features") : "Advanced Features"
     }
 
+    // ── Prompt Templates ──────────────────────────────────────────
     QQC2.Label {
         Layout.fillWidth: true
         Layout.maximumWidth: advancedSection.fieldMaxWidth
+        Kirigami.FormData.label: page ? page.translate("Prompt Templates") : "Prompt Templates"
         wrapMode: Text.Wrap
         opacity: 0.72
         font: Kirigami.Theme.smallFont
@@ -822,10 +824,16 @@ Kirigami.FormLayout {
         opacity: 0.8
     }
 
-    // ── Voice & Audio (Experimental) ─────────────────────────────────────
-    Kirigami.Separator {
-        Kirigami.FormData.isSection: true
-        Kirigami.FormData.label: page ? page.translate("Voice & Audio (Experimental)") : "Voice & Audio (Experimental)"
+    // ── Voice & Audio ─────────────────────────────────────────────
+    QQC2.Label {
+        visible: true
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        Kirigami.FormData.label: page ? page.translate("Voice & Audio (Experimental):") : "Voice & Audio (Experimental):"
+        wrapMode: Text.Wrap
+        opacity: 0.72
+        font: Kirigami.Theme.smallFont
+        text: page ? page.translate("Speech-to-text and text-to-speech. Requires Python venv with faster-whisper and kokoro.") : ""
     }
 
     QQC2.CheckBox {
