@@ -1881,6 +1881,50 @@ import "Security.js" as Sec
                             }
 
                             PC3.ToolButton {
+                                visible: plasmoid.configuration.voiceEnabled && !root.voiceRecording && !root.ttsPlaying
+                                icon.name: "audio-input-microphone"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                enabled: !root.loading
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.translate("Start voice input")
+                                Accessible.name: root.translate("Voice input")
+                                Accessible.role: Accessible.Button
+                                onClicked: MainDatabase.startVoiceRecording()
+                            }
+
+                            PC3.ToolButton {
+                                visible: root.voiceRecording
+                                icon.name: "media-playback-stop"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.translate("Stop recording")
+                                Accessible.name: root.translate("Stop recording")
+                                Accessible.role: Accessible.Button
+                                onClicked: MainDatabase.stopVoiceRecording()
+                                PC3.BusyIndicator {
+                                    anchors.centerIn: parent
+                                    width: parent.width * 0.6
+                                    height: parent.height * 0.6
+                                    running: root.voiceRecording
+                                    visible: root.voiceRecording
+                                }
+                            }
+
+                            PC3.ToolButton {
+                                visible: root.ttsPlaying
+                                icon.name: "media-playback-stop"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.translate("Stop reading aloud")
+                                Accessible.name: root.translate("Stop TTS")
+                                Accessible.role: Accessible.Button
+                                onClicked: MainDatabase.stopTts()
+                            }
+
+                            PC3.ToolButton {
                                 visible: root.loading
                                 icon.name: "process-stop"
                                 QQC2.ToolTip.visible: hovered

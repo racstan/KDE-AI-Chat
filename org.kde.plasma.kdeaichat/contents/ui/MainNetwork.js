@@ -282,6 +282,9 @@ if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);
 }
 triggerNotificationSound();
+if (chatId === root.currentSessionId && plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled) {
+MainDatabase.triggerTts(text || "");
+}
 if (notify) {
 let safeText = Sec.sanitizeForShell((text || "").substring(0, 150)) + ((text || "").length > 150 ? "…" : "");
 let title = (schedName || "Scheduled message response ready");

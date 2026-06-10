@@ -131,6 +131,12 @@ PlasmoidItem {
     property var openCodeStartSuccessCallbacks: []
     property var openCodeStartFailureCallbacks: []
     property bool schedPolling: false
+    // Voice (STT/TTS) state
+    property bool voiceRecording: false
+    property bool ttsPlaying: false
+    property bool voiceEnvChecked: false
+    property var voiceEnvResult: null
+    property string voicePendingText: ""
     property var plasmoidRef: plasmoid
     property string configCustomHistoryPath: plasmoid.configuration.customHistoryPath || ""
     property bool configUseOpenCode: !!plasmoid.configuration.useOpenCode
@@ -1050,6 +1056,7 @@ PlasmoidItem {
     property alias kwalletStartupDs: dataSources.kwalletStartupDs
     property alias opencodeTerminalDs: dataSources.opencodeTerminalDs
     property alias openCodePollTimer: dataSources.openCodePollTimer
+    property alias voiceDs: dataSources.voiceDs
 
         compactRepresentation: MouseArea {
         onClicked: root.expanded = !root.expanded

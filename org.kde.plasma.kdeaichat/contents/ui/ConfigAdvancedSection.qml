@@ -11,6 +11,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
 import "Security.js" as Sec
+import "MainDatabase.js" as MainDatabase
 
 Kirigami.FormLayout {
     id: advancedSection
@@ -50,6 +51,10 @@ Kirigami.FormLayout {
     property alias executeMissedSchedules: executeMissedSchedulesToggle.checked
     property alias appDisplayName: appDisplayNameField.text
     property alias customHistoryPath: customHistoryPathField.text
+    // Voice property aliases
+    property alias voiceEnabled: voiceEnabledToggle.checked
+    property alias voiceTtsEnabled: voiceTtsEnabledToggle.checked
+    property alias voiceAutoSend: voiceAutoSendToggle.checked
 
     // ── Behavior Section ──────────────────────────────────────────────────
     Kirigami.Separator {
@@ -815,6 +820,273 @@ Kirigami.FormLayout {
         text: page ? page.keyringStatus : ""
         wrapMode: Text.Wrap
         opacity: 0.8
+    }
+
+    // ── Voice & Audio (Experimental) ─────────────────────────────────────
+    Kirigami.Separator {
+        Kirigami.FormData.isSection: true
+        Kirigami.FormData.label: page ? page.translate("Voice & Audio (Experimental)") : "Voice & Audio (Experimental)"
+    }
+
+    QQC2.CheckBox {
+        id: voiceEnabledToggle
+        Kirigami.FormData.label: page ? page.translate("Enable voice features:") : "Enable voice features:"
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        checked: plasmoid.configuration.voiceEnabled || false
+        text: voiceEnabledToggle.checked ? "Enabled — mic button appears in chat" : "Disabled"
+    }
+
+    QQC2.Label {
+        visible: voiceEnabledToggle.checked
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        wrapMode: Text.Wrap
+        opacity: 0.72
+        font: Kirigami.Theme.smallFont
+        text: "Requires Python venv with faster-whisper, kokoro, sounddevice. Click 'Setup Voice' to install dependencies."
+    }
+
+    RowLayout {
+        visible: voiceEnabledToggle.checked
+        Kirigami.FormData.label: page ? page.translate("Setup:") : "Setup:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.Button {
+            id: voiceSetupButton
+            text: "Setup Voice Environment"
+            icon.name: "setup"
+            onClicked: {
+                if (page) {
+                    let setupPath = MainDatabase.getVoiceSetupPath();
+                    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+                    let cmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath);
+                    page.utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-" + Date.now());
+                    voiceSetupButton.text = "Installing...";
+                    voiceSetupButton.enabled = false;
+                }
+            }
+        }
+
+        QQC2.Button {
+            text: "Check Environment"
+            icon.name: "dialog-ok"
+            onClicked: {
+                if (page) MainDatabase.checkVoiceEnv();
+            }
+        }
+    }
+
+    Rectangle {
+        visible: voiceEnabledToggle.checked && page && page.voiceEnvChecked
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        implicitHeight: voiceEnvGrid.implicitHeight + Kirigami.Units.gridUnit
+        radius: 6
+        color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+        border.width: 1
+
+        GridLayout {
+            id: voiceEnvGrid
+            anchors { left: parent.left; right: parent.right; top: parent.top }
+            anchors.margins: Kirigami.Units.gridUnit * 0.6
+            columns: 2
+
+            QQC2.Label { text: "Microphone:"; font.bold: true }
+            QQC2.Label { text: page && page.voiceEnvResult && page.voiceEnvResult.mic_available ? "✓ Available" : "✗ Not found" }
+
+            QQC2.Label { text: "Audio player:"; font.bold: true }
+            QQC2.Label { text: page && page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? "✓ Available" : "✗ Install pulseaudio-utils" }
+
+            QQC2.Label { text: "STT engine:"; font.bold: true }
+            QQC2.Label { text: page && page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ faster-whisper ready" : "✗ Not installed" }
+
+            QQC2.Label { text: "TTS engine:"; font.bold: true }
+            QQC2.Label { text: page && page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ Kokoro ready" : "✗ Not installed" }
+
+            QQC2.Label { text: "espeak-ng:"; font.bold: true }
+            QQC2.Label { text: page && page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ Available" : "✗ Install espeak-ng" }
+        }
+    }
+
+    RowLayout {
+        visible: voiceEnabledToggle.checked
+        Kirigami.FormData.label: page ? page.translate("Speech-to-Text:") : "Speech-to-Text:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.ComboBox {
+            id: voiceSttModelCombo
+            Layout.fillWidth: true
+            model: ["large-v3-turbo", "large-v3", "medium", "small", "base", "tiny"]
+            currentIndex: {
+                let m = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
+                for (let i = 0; i < model.length; i++) {
+                    if (model[i] === m) return i;
+                }
+                return 0;
+            }
+            onActivated: {
+                plasmoid.configuration.voiceSttModel = currentValue;
+            }
+        }
+
+        QQC2.Button {
+            text: "Download Model"
+            icon.name: "download"
+            onClicked: {
+                if (page) {
+                    let helperPath = MainDatabase.getVoiceHelperPath();
+                    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+                    let payload = JSON.stringify({cmd: "download_stt", model: plasmoid.configuration.voiceSttModel || "large-v3-turbo"});
+                    let venvPy = venvPath + "/bin/python3";
+                    let cmd = "echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath);
+                    page.utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-dl-stt-" + Date.now());
+                }
+            }
+        }
+    }
+
+    RowLayout {
+        visible: voiceEnabledToggle.checked
+        Kirigami.FormData.label: page ? page.translate("STT model path:") : "STT model path:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.TextField {
+            id: voiceSttModelPathField
+            Layout.fillWidth: true
+            placeholderText: "Leave empty for default (HuggingFace cache)"
+            text: plasmoid.configuration.voiceSttModelPath || ""
+            onEditingFinished: {
+                plasmoid.configuration.voiceSttModelPath = text;
+            }
+        }
+    }
+
+    RowLayout {
+        visible: voiceEnabledToggle.checked
+        Kirigami.FormData.label: page ? page.translate("STT language:") : "STT language:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.ComboBox {
+            id: voiceLanguageCombo
+            Layout.fillWidth: true
+            model: ["en", "auto", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi"]
+            currentIndex: {
+                let l = plasmoid.configuration.voiceLanguage || "en";
+                for (let i = 0; i < model.length; i++) {
+                    if (model[i] === l) return i;
+                }
+                return 0;
+            }
+            onActivated: {
+                plasmoid.configuration.voiceLanguage = currentValue;
+            }
+        }
+    }
+
+    QQC2.CheckBox {
+        visible: voiceEnabledToggle.checked
+        Kirigami.FormData.label: page ? page.translate("Read AI responses aloud:") : "Read AI responses aloud:"
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        id: voiceTtsEnabledToggle
+        checked: plasmoid.configuration.voiceTtsEnabled || false
+        text: checked ? "Enabled — AI responses will be spoken" : "Disabled"
+    }
+
+    RowLayout {
+        visible: voiceEnabledToggle.checked && plasmoid.configuration.voiceTtsEnabled
+        Kirigami.FormData.label: page ? page.translate("Text-to-Speech:") : "Text-to-Speech:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.ComboBox {
+            id: voiceTtsModelCombo
+            Layout.fillWidth: true
+            model: ["kokoro-82m"]
+            currentIndex: 0
+        }
+
+        QQC2.Button {
+            text: "Download TTS Model"
+            icon.name: "download"
+            onClicked: {
+                if (page) {
+                    let helperPath = MainDatabase.getVoiceHelperPath();
+                    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+                    let payload = JSON.stringify({cmd: "download_tts", voice: plasmoid.configuration.voiceTtsVoice || "af_heart"});
+                    let venvPy = venvPath + "/bin/python3";
+                    let cmd = "echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath);
+                    page.utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-dl-tts-" + Date.now());
+                }
+            }
+        }
+    }
+
+    RowLayout {
+        visible: voiceEnabledToggle.checked && plasmoid.configuration.voiceTtsEnabled
+        Kirigami.FormData.label: page ? page.translate("TTS voice:") : "TTS voice:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.ComboBox {
+            id: voiceTtsVoiceCombo
+            Layout.fillWidth: true
+            model: ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
+            currentIndex: {
+                let v = plasmoid.configuration.voiceTtsVoice || "af_heart";
+                for (let i = 0; i < model.length; i++) {
+                    if (model[i] === v) return i;
+                }
+                return 0;
+            }
+            onActivated: {
+                plasmoid.configuration.voiceTtsVoice = currentValue;
+            }
+        }
+    }
+
+    RowLayout {
+        visible: voiceEnabledToggle.checked && plasmoid.configuration.voiceTtsEnabled
+        Kirigami.FormData.label: page ? page.translate("Test TTS:") : "Test TTS:"
+        Layout.fillWidth: true
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.Button {
+            text: "Test Voice"
+            icon.name: "audio-speakers"
+            onClicked: {
+                if (page) MainDatabase.triggerTts("Hello! This is a test of the text to speech system.");
+            }
+        }
+
+        QQC2.Button {
+            text: "Stop"
+            icon.name: "media-playback-stop"
+            visible: page && page.ttsPlaying
+            onClicked: {
+                if (page) MainDatabase.stopTts();
+            }
+        }
+    }
+
+    QQC2.CheckBox {
+        visible: voiceEnabledToggle.checked
+        Kirigami.FormData.label: page ? page.translate("Auto-send voice input:") : "Auto-send voice input:"
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        id: voiceAutoSendToggle
+        checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
+        text: checked ? "Enabled — transcribed text is sent automatically" : "Disabled — transcribed text goes to input field"
     }
 
     // ── Other settings ────────────────────────────────────────────────────

@@ -3202,3 +3202,112 @@ if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);
 }
 
+
+// ── Voice (STT/TTS) Functions ───────────────────────────────────────────
+
+function getVoiceHelperPath() {
+    let base = Qt.resolvedUrl("./voice/voice_helper.py");
+    if (base.indexOf("file://") === 0)
+        base = base.substring(7);
+    return base;
+}
+
+function getVoiceSetupPath() {
+    let base = Qt.resolvedUrl("./voice/voice_setup.sh");
+    if (base.indexOf("file://") === 0)
+        base = base.substring(7);
+    return base;
+}
+
+function checkVoiceEnv() {
+    let helperPath = getVoiceHelperPath();
+    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
+    let venvPy = venvPath + "/bin/python3";
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + " check_env; else python3 " + Sec.quoteForShell(helperPath) + " check_env; fi";
+    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-env-" + Date.now());
+}
+
+function startVoiceRecording() {
+    if (root.voiceRecording) return;
+    root.voiceRecording = true;
+    root.voicePendingText = "";
+    let helperPath = getVoiceHelperPath();
+    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
+    let venvPy = venvPath + "/bin/python3";
+    let lang = plasmoid.configuration.voiceLanguage || "en";
+    let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
+    let modelPath = plasmoid.configuration.voiceSttModelPath || "";
+    let payload = JSON.stringify({cmd: "start_stt", duration: 10, language: lang, model: model, model_path: modelPath});
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stt-" + Date.now());
+}
+
+function stopVoiceRecording() {
+    if (!root.voiceRecording) return;
+    let helperPath = getVoiceHelperPath();
+    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
+    let venvPy = venvPath + "/bin/python3";
+    let payload = JSON.stringify({cmd: "stop_stt"});
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stop-" + Date.now());
+}
+
+function triggerTts(text) {
+    if (!text || !plasmoid.configuration.voiceTtsEnabled) return;
+    let helperPath = getVoiceHelperPath();
+    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
+    let venvPy = venvPath + "/bin/python3";
+    let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
+    let payload = JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a"});
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-tts-" + Date.now());
+}
+
+function stopTts() {
+    let helperPath = getVoiceHelperPath();
+    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
+    let venvPy = venvPath + "/bin/python3";
+    let payload = JSON.stringify({cmd: "stop_tts"});
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stoptts-" + Date.now());
+}
+
+function handleVoiceResponse(resp, sourceName) {
+    let respType = resp.type || "";
+    if (respType === "env_check") {
+        root.voiceEnvResult = resp;
+        root.voiceEnvChecked = true;
+    } else if (respType === "stt_result") {
+        root.voiceRecording = false;
+        let text = (resp.text || "").trim();
+        if (text) {
+            if (plasmoid.configuration.voiceAutoSend) {
+                root.chatInputText = text;
+                Qt.callLater(root.sendMessage);
+            } else {
+                root.chatInputText = text;
+            }
+        }
+    } else if (respType === "stt_error") {
+        root.voiceRecording = false;
+        pushErrorMessage("Voice error: " + (resp.error || "Unknown error"));
+    } else if (respType === "stt_status") {
+        // Status updates (loading_model, recording, transcribing)
+    } else if (respType === "tts_done") {
+        root.ttsPlaying = false;
+    } else if (respType === "tts_error") {
+        root.ttsPlaying = false;
+    } else if (respType === "tts_status") {
+        if (resp.status === "playing") root.ttsPlaying = true;
+    } else if (respType === "download_done") {
+        // Model downloaded
+    } else if (respType === "download_error") {
+        pushErrorMessage("Voice model download error: " + (resp.error || "Unknown error"));
+    }
+}
+

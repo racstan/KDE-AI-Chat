@@ -44,6 +44,7 @@ Item {
     property alias kwalletStartupDs: kwalletStartupDs
     property alias opencodeTerminalDs: opencodeTerminalDs
     property alias openCodePollTimer: openCodePollTimer
+    property alias voiceDs: voiceDs
 
     P5Support.DataSource {
         id: soundDs
@@ -640,6 +641,29 @@ Item {
                 return ;
             }
             checkServerStatus();
+        }
+    }
+
+    P5Support.DataSource {
+        id: voiceDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let stdout = (data["stdout"] || "").trim();
+            let exitCode = data["exit code"];
+            disconnectSource(sourceName);
+            if (stdout === "") return;
+            let lines = stdout.split("\n");
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+                try {
+                    let resp = JSON.parse(line);
+                    MainDatabase.handleVoiceResponse(resp, sourceName);
+                } catch (e) {
+                    // skip non-JSON lines
+                }
+            }
         }
     }
 }
