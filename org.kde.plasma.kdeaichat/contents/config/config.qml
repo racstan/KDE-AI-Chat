@@ -8,6 +8,11 @@ ConfigModel {
         source: "ConfigGeneral.qml"
     }
     ConfigCategory {
+        name: i18n("Behavior")
+        icon: "preferences-desktop-default-applications"
+        source: "ConfigBehavior.qml"
+    }
+    ConfigCategory {
         name: i18n("Widget Shortcuts")
         icon: "preferences-desktop-keyboard-shortcuts"
         source: "ConfigShortcuts.qml"
