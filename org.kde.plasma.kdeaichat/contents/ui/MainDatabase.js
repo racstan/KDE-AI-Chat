@@ -2417,7 +2417,7 @@ appendUserMessage(text, "queued", attachments);
 return ;
 }
 appendUserMessage(text, "user", attachments);
-sendMessageByIndex(root.messages.length - 1);
+Qt.callLater(function() { sendMessageByIndex(root.messages.length - 1); });
 } catch (err) {
 root.loading = false;
 root.activeXhr = null;

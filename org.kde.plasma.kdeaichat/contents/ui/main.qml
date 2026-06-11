@@ -1031,7 +1031,7 @@ PlasmoidItem {
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom);
 
-        checkAndMarkCurrentSessionAsRead();
+        Qt.callLater(checkAndMarkCurrentSessionAsRead);
     }
 
     MainDataSources {
