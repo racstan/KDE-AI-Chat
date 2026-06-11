@@ -18,8 +18,6 @@ QQC2.ScrollView {
     property bool ttsPlaying: false
     property bool sttTesting: false
     property string sttTestResult: ""
-    property bool voiceSetupRunning: false
-    property string voiceSetupStatus: ""
     property string storageExportStatus: ""
 
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
@@ -48,10 +46,8 @@ QQC2.ScrollView {
                 }
             }
             if (exitCode !== undefined && exitCode !== 0) {
-                voiceSetupRunning = false;
                 sttTesting = false;
                 ttsPlaying = false;
-                voiceSetupStatus = i18n("Error: ") + (stderr || stdout || i18n("Command failed"));
             }
             disconnectSource(sourceName);
         }
@@ -61,21 +57,6 @@ QQC2.ScrollView {
         if (resp.type === "env_check") {
             voiceEnvResult = resp;
             voiceEnvChecked = true;
-            voiceSetupRunning = false;
-            if (resp.stt_ready || resp.tts_ready) {
-                voiceSetupStatus = i18n("Environment ready");
-            } else {
-                voiceSetupStatus = i18n("Some components missing — see status below");
-            }
-        } else if (resp.type === "setup_status") {
-            if (resp.status === "creating_venv") {
-                voiceSetupStatus = i18n("Creating virtual environment...");
-            } else if (resp.status === "installing_packages") {
-                voiceSetupStatus = i18n("Installing packages (this may take a few minutes)...");
-            } else if (resp.status === "done") {
-                voiceSetupStatus = i18n("Setup complete — checking environment...");
-                runEnvCheck();
-            }
         } else if (resp.type === "stt_result") {
             sttTesting = false;
             sttTestResult = resp.text || i18n("(no speech detected)");
@@ -122,24 +103,19 @@ QQC2.ScrollView {
         let sttPath = plasmoid.configuration.voiceSttModelPath || "";
         let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
         let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-        voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-env-" + Date.now());
-    }
-
-    function runVoiceSetup() {
-        voiceSetupRunning = true;
-        voiceSetupStatus = i18n("Starting setup...");
-        let setupPath = getSetupPath();
-        let venvPath = getVenvPath();
-        let cmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath);
-        voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-" + Date.now());
+        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi #voice-env-" + Date.now();
+        voicePageDs.connectSource(cmd);
     }
 
     function sendVoiceCommand(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-        voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-cmd-" + Date.now());
+        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi #voice-cmd-" + Date.now();
+        voicePageDs.connectSource(cmd);
+    }
+
+    function getSetupCommand() {
+        return "bash " + getSetupPath() + " " + getVenvPath();
     }
 
     FolderDialog {
@@ -159,15 +135,6 @@ QQC2.ScrollView {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
             plasmoid.configuration.voiceTtsModelPath = path;
-        }
-    }
-
-    Timer {
-        id: autoSetupTimer
-        interval: 500
-        repeat: false
-        onTriggered: {
-            runVoiceSetup();
         }
     }
 
@@ -253,36 +220,6 @@ QQC2.ScrollView {
             text: i18n("Template names become /commands in chat. Type /name to apply a template.")
         }
 
-        Repeater {
-            model: {
-                try {
-                    return JSON.parse(page.cfg_promptTemplates || "[]");
-                } catch(e) { return []; }
-            }
-            delegate: RowLayout {
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                spacing: Kirigami.Units.smallSpacing
-
-                QQC2.Label {
-                    text: "/" + (modelData.name || ("template-" + (index + 1)))
-                    Layout.fillWidth: true
-                    elide: Text.ElideRight
-                    font.family: "monospace"
-                    opacity: 0.8
-                }
-                QQC2.ToolButton {
-                    icon.name: "edit-delete"
-                    QQC2.ToolTip.text: i18n("Delete template")
-                    onClicked: {
-                        let arr = JSON.parse(page.cfg_promptTemplates || "[]");
-                        arr.splice(index, 1);
-                        page.cfg_promptTemplates = JSON.stringify(arr);
-                    }
-                }
-            }
-        }
-
         RowLayout {
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -354,12 +291,12 @@ QQC2.ScrollView {
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                     color: Kirigami.Theme.textColor
                     text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" +
-                          "The Python environment is <b>set up automatically</b> when you enable this feature.<br><br>" +
+                          "Run the <b>setup command</b> shown below in your terminal to install dependencies.<br><br>" +
                           "<b>How to use:</b><br>" +
-                          "1. <b>Enable</b> voice features below — dependencies install automatically.<br>" +
-                          "2. <b>Point to your model</b> directory or download default models.<br>" +
-                          "3. Click the <b>microphone</b> button in chat to record voice input.<br>" +
-                          "4. Enable <b>read-aloud</b> to hear AI responses spoken back.<br><br>" +
+                          "1. <b>Enable</b> voice features below.<br>" +
+                          "2. <b>Copy and run</b> the setup command in your terminal.<br>" +
+                          "3. Click <b>Check Status</b> to verify installation.<br>" +
+                          "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" +
                           "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" +
                           "You can point to existing model directories instead of downloading."
                 }
@@ -372,26 +309,46 @@ QQC2.ScrollView {
             Layout.maximumWidth: formLayout.fieldMaxWidth
             checked: plasmoid.configuration.voiceEnabled || false
             text: checked ? i18n("Enabled — mic button appears in chat") : i18n("Disabled")
-            onCheckedChanged: {
-                if (checked && !voiceEnvChecked && !voiceSetupRunning) {
-                    autoSetupTimer.restart();
+        }
+
+        // ── Setup Command ─────────────────────────────────────────────
+        RowLayout {
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Setup command:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                Layout.fillWidth: true
+                readOnly: true
+                text: getSetupCommand()
+            }
+            QQC2.Button {
+                text: i18n("Copy")
+                icon.name: "edit-copy"
+                onClicked: {
+                    voicePageDs.connectSource("printf %s " + Sec.quoteForShell(getSetupCommand()) + " | wl-copy 2>/dev/null || printf %s " + Sec.quoteForShell(getSetupCommand()) + " | xclip -selection clipboard 2>/dev/null #voice-copy-" + Date.now());
                 }
             }
         }
 
-        // ── Setup Status ──────────────────────────────────────────────
+        QQC2.Label {
+            visible: voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            opacity: 0.7
+            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
+            text: i18n("Run this command in your terminal to install voice dependencies. After setup, click Check Status.")
+        }
+
+        // ── Check Status ─────────────────────────────────────────────
         RowLayout {
             visible: voiceEnabledToggle.checked
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
-
-            QQC2.BusyIndicator {
-                visible: voiceSetupRunning
-                running: voiceSetupRunning
-                Layout.preferredWidth: Kirigami.Units.gridUnit
-                Layout.preferredHeight: Kirigami.Units.gridUnit
-            }
 
             QQC2.Label {
                 Layout.fillWidth: true
@@ -399,15 +356,13 @@ QQC2.ScrollView {
                 font: Kirigami.Theme.smallFont
                 opacity: 0.8
                 text: {
-                    if (voiceSetupRunning) return voiceSetupStatus;
                     if (voiceEnvChecked && voiceEnvResult) {
                         let ok = (voiceEnvResult.stt_ready || voiceEnvResult.faster_whisper_ok) && voiceEnvResult.sounddevice_ok;
-                        return ok ? i18n("Environment ready") : i18n("Environment needs setup — click Check Status");
+                        return ok ? i18n("Environment ready") : i18n("Environment needs setup — run the command above");
                     }
-                    return i18n("Checking environment...");
+                    return i18n("Not checked yet — click Check Status");
                 }
                 color: {
-                    if (voiceSetupRunning) return Kirigami.Theme.neutralTextColor;
                     if (voiceEnvChecked && voiceEnvResult) {
                         let ok = (voiceEnvResult.stt_ready || voiceEnvResult.faster_whisper_ok) && voiceEnvResult.sounddevice_ok;
                         return ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
@@ -420,13 +375,6 @@ QQC2.ScrollView {
                 text: i18n("Check Status")
                 icon.name: "view-refresh"
                 onClicked: runEnvCheck()
-            }
-
-            QQC2.Button {
-                text: i18n("Reinstall")
-                icon.name: "tools-wizard"
-                visible: voiceEnvChecked && voiceEnvResult && !voiceEnvResult.stt_ready
-                onClicked: runVoiceSetup()
             }
         }
 
