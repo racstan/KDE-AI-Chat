@@ -2,8 +2,10 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 import "MainDatabase.js" as MainDatabase
 import "Security.js" as Sec
 
@@ -13,10 +15,15 @@ QQC2.ScrollView {
     contentWidth: availableWidth
     contentHeight: formLayout.implicitHeight
 
+    KQuickControlsAddons.Clipboard {
+        id: configClipboard
+    }
+
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
     property bool ttsPlaying: false
     property bool sttTesting: false
+    property int sttCountdown: 0
     property string sttTestResult: ""
     property string storageExportStatus: ""
     property string copiedText: ""
@@ -50,12 +57,19 @@ QQC2.ScrollView {
         onTriggered: page.copiedText = ""
     }
 
+    // Countdown timer: fires every second, stops stt at 0
     Timer {
         id: sttTimer
-        interval: 5000
+        interval: 1000
+        repeat: true
         onTriggered: {
-            page.sttTesting = false;
-            sendVoiceCommand(JSON.stringify({cmd: "stop_stt"}));
+            page.sttCountdown -= 1;
+            if (page.sttCountdown <= 0) {
+                stop();
+                page.sttTesting = false;
+                // The helper auto-stops at duration; send stop in case it's still running
+                sendVoiceCommand(JSON.stringify({cmd: "stop_stt"}));
+            }
         }
     }
 
@@ -125,7 +139,12 @@ QQC2.ScrollView {
     function getVenvPath() {
         let path = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
         if (path.charAt(0) === "~") {
-            path = Qt.homePath + path.substring(1);
+            let home = StandardPaths.writableLocation(StandardPaths.HomeLocation).toString();
+            if (home.indexOf("file://") === 0) {
+                home = home.substring(7);
+                try { home = decodeURIComponent(home); } catch (e) {}
+            }
+            path = home + path.substring(1);
         }
         return path;
     }
@@ -164,16 +183,21 @@ QQC2.ScrollView {
 
     function commandCopied() {
         let cmd = getSetupCommand();
-        if (cmd === "") {
+        if (!cmd || cmd.trim() === "") {
             copiedText = "error";
             copiedTimer.restart();
             return;
         }
-        copiedText = "copying";
-        let okPayload = JSON.stringify({type: "copy_result", ok: true});
-        let failPayload = JSON.stringify({type: "copy_result", ok: false, error: "No clipboard tool"});
-        let copyCmd = "(printf %s " + Sec.quoteForShell(cmd) + " | wl-copy 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xclip -selection clipboard 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xsel -b 2>/dev/null) && echo " + Sec.quoteForShell(okPayload) + " || echo " + Sec.quoteForShell(failPayload) + " #voice-copy-" + Date.now();
-        voicePageDs.connectSource(copyCmd);
+        // Reset first so repeated clicks always re-trigger the binding
+        copiedText = "";
+        try {
+            configClipboard.content = cmd;
+            copiedText = "copied";
+        } catch (e) {
+            console.error("Clipboard copy failed:", e);
+            copiedText = "error";
+        }
+        copiedTimer.restart();
     }
 
     function runInTerminal(payload) {
@@ -190,14 +214,16 @@ QQC2.ScrollView {
         let sttPath = plasmoid.configuration.voiceSttModelPath || "";
         let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
         let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi #voice-env-" + Date.now();
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+        let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-env-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
 
     function sendVoiceCommand(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi #voice-cmd-" + Date.now();
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+        let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-cmd-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
 
@@ -427,9 +453,8 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
-                text: copiedText === "copied" ? i18n("Copied!") : copiedText === "copying" ? i18n("Copying...") : i18n("Copy Setup Command")
+                text: copiedText === "copied" ? i18n("Command copied!") : i18n("Copy Setup Command")
                 icon.name: copiedText === "copied" ? "dialog-ok-apply" : "edit-copy"
-                enabled: getSetupCommand() !== ""
                 onClicked: page.commandCopied()
             }
         }
@@ -594,25 +619,37 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
-                text: page.sttTesting ? i18n("Recording...") : i18n("Record & Transcribe")
+                text: page.sttTesting
+                      ? i18n("Recording... (%1s)", page.sttCountdown)
+                      : i18n("Record & Transcribe (5s)")
                 icon.name: page.sttTesting ? "media-record" : "audio-input-microphone"
-                enabled: !page.sttTesting
+                highlighted: page.sttTesting
                 onClicked: {
+                    if (page.sttTesting) {
+                        // Allow manual early stop
+                        sttTimer.stop();
+                        page.sttTesting = false;
+                        page.sttCountdown = 0;
+                        sendVoiceCommand(JSON.stringify({cmd: "stop_stt"}));
+                        return;
+                    }
                     page.sttTesting = true;
+                    page.sttCountdown = 5;
                     page.sttTestResult = "";
-                    page.recordedAudioPath = "";
+                    // Don't clear recordedAudioPath so previous play button stays visible
                     let lang = plasmoid.configuration.voiceLanguage || "en";
                     let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
                     let modelPath = plasmoid.configuration.voiceSttModelPath || "";
                     sendVoiceCommand(JSON.stringify({cmd: "start_stt", duration: 5, language: lang, model: model, model_path: modelPath}));
-                    sttTimer.start();
+                    sttTimer.restart();
                 }
             }
 
             QQC2.Button {
-                text: i18n("Play Recording")
+                text: i18n("Play Recorded Audio")
                 icon.name: "media-playback-start"
                 visible: page.recordedAudioPath !== ""
+                enabled: !page.sttTesting
                 onClicked: {
                     sendVoiceCommand(JSON.stringify({cmd: "play_audio", path: page.recordedAudioPath}));
                 }
@@ -647,6 +684,8 @@ QQC2.ScrollView {
             checked: plasmoid.configuration.voiceTtsEnabled || false
             text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
         }
+
+        // spacing separator between auto-send and read-aloud (already in correct order above)
 
         RowLayout {
             visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
