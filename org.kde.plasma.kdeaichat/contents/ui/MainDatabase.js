@@ -903,6 +903,21 @@ all.push({
 "desc": "Create/manage schedules"
 });
 }
+let templatesRaw = plasmoid.configuration.promptTemplates || "[]";
+try {
+let templates = JSON.parse(templatesRaw);
+for (let t of templates) {
+if (t.name) {
+let desc = (t.prompt || "").substring(0, 80);
+if ((t.prompt || "").length > 80) desc += "…";
+all.push({
+"name": "/" + t.name,
+"desc": desc,
+"isTemplate": true
+});
+}
+}
+} catch(e) {}
 for (let i = 0; i < all.length; i++) {
 if (all[i].name.toLowerCase().indexOf("/" + search) === 0 || all[i].name.toLowerCase().substring(1).indexOf(search) >= 0)
 filtered.push(all[i]);
@@ -2399,7 +2414,25 @@ saveCurrentSessionState(true);
 if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);
 }
-return ;
+return;
+}
+// ── Template command ──────────────────────────────────────────
+if (text.startsWith("/")) {
+let cmd = text.substring(1).trim();
+let templatesRaw = plasmoid.configuration.promptTemplates || "[]";
+try {
+let templates = JSON.parse(templatesRaw);
+for (let t of templates) {
+if (t.name && t.name.toLowerCase() === cmd.toLowerCase()) {
+let prompt = t.prompt || "";
+root.chatInputText = prompt;
+if (root.msgInputRef)
+    root.msgInputRef.text = prompt;
+root.autocompleteActive = false;
+return;
+}
+}
+} catch(e) {}
 }
 root.attachedFiles = [];
 root.chatInputText = "";
