@@ -21,6 +21,28 @@ QQC2.ScrollView {
     property string storageExportStatus: ""
     property string copiedText: ""
 
+    // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult)
+    property string statusText: {
+        if (copiedText === "copied") return i18n("Copied command");
+        if (copiedText === "copying") return i18n("Copying...");
+        if (copiedText === "error") return i18n("Copy failed — install wl-copy, xclip, or xsel");
+        if (!voiceEnvChecked) return i18n("Not checked — click Check Status");
+        var r = voiceEnvResult;
+        var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
+        if (ok) return i18n("Environment ready");
+        return i18n("Needs setup — copy and run the setup command");
+    }
+    property color statusColor: {
+        if (copiedText === "copied") return Kirigami.Theme.positiveTextColor;
+        if (copiedText === "copying") return Kirigami.Theme.neutralTextColor;
+        if (copiedText === "error") return Kirigami.Theme.negativeTextColor;
+        if (!voiceEnvChecked) return Kirigami.Theme.textColor;
+        var r = voiceEnvResult;
+        var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
+        if (ok) return Kirigami.Theme.positiveTextColor;
+        return Kirigami.Theme.negativeTextColor;
+    }
+
     Timer {
         id: copiedTimer
         interval: 2000
@@ -64,6 +86,9 @@ QQC2.ScrollView {
         if (resp.type === "env_check") {
             voiceEnvResult = resp;
             voiceEnvChecked = true;
+        } else if (resp.type === "copy_result") {
+            copiedText = resp.ok ? "copied" : "error";
+            copiedTimer.restart();
         } else if (resp.type === "stt_result") {
             sttTesting = false;
             sttTestResult = resp.text || i18n("(no speech detected)");
@@ -121,10 +146,16 @@ QQC2.ScrollView {
 
     function commandCopied() {
         let cmd = getSetupCommand();
-        if (cmd === "") return;
-        voicePageDs.connectSource("printf %s " + Sec.quoteForShell(cmd) + " | wl-copy 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xclip -selection clipboard 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xsel -b 2>/dev/null #voice-copy-" + Date.now());
-        copiedText = "copied";
-        copiedTimer.restart();
+        if (cmd === "") {
+            copiedText = "error";
+            copiedTimer.restart();
+            return;
+        }
+        copiedText = "copying";
+        let okPayload = JSON.stringify({type: "copy_result", ok: true});
+        let failPayload = JSON.stringify({type: "copy_result", ok: false, error: "No clipboard tool"});
+        let copyCmd = "(printf %s " + Sec.quoteForShell(cmd) + " | wl-copy 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xclip -selection clipboard 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xsel -b 2>/dev/null) && echo " + Sec.quoteForShell(okPayload) + " || echo " + Sec.quoteForShell(failPayload) + " #voice-copy-" + Date.now();
+        voicePageDs.connectSource(copyCmd);
     }
 
     function runInTerminal(payload) {
@@ -133,22 +164,6 @@ QQC2.ScrollView {
         let innerCmd = "echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; echo; read -p 'Press Enter to close...'";
         let fullCmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.quoteForShell(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.quoteForShell(innerCmd) + "; fi #voice-term-" + Date.now();
         voicePageDs.connectSource(fullCmd);
-    }
-
-    function getStatusText() {
-        if (copiedText === "copied") return i18n("Copied command");
-        if (!voiceEnvChecked) return i18n("Not checked — click Check Status");
-        let ok = (voiceEnvResult.stt_ready || voiceEnvResult.faster_whisper_ok) && voiceEnvResult.sounddevice_ok;
-        if (ok) return i18n("Environment ready");
-        return i18n("Needs setup — copy and run the setup command");
-    }
-
-    function getStatusColor() {
-        if (copiedText === "copied") return Kirigami.Theme.positiveTextColor;
-        if (!voiceEnvChecked) return Kirigami.Theme.textColor;
-        let ok = (voiceEnvResult.stt_ready || voiceEnvResult.faster_whisper_ok) && voiceEnvResult.sounddevice_ok;
-        if (ok) return Kirigami.Theme.positiveTextColor;
-        return Kirigami.Theme.negativeTextColor;
     }
 
     function runEnvCheck() {
@@ -374,8 +389,8 @@ QQC2.ScrollView {
                 wrapMode: Text.Wrap
                 font: Kirigami.Theme.smallFont
                 opacity: 0.8
-                text: getStatusText()
-                color: getStatusColor()
+                text: page.statusText
+                color: page.statusColor
             }
 
             QQC2.Button {
@@ -393,7 +408,7 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
-                text: copiedText === "copied" ? i18n("Copied!") : i18n("Copy Setup Command")
+                text: copiedText === "copied" ? i18n("Copied!") : copiedText === "copying" ? i18n("Copying...") : i18n("Copy Setup Command")
                 icon.name: copiedText === "copied" ? "dialog-ok-apply" : "edit-copy"
                 enabled: getSetupCommand() !== ""
                 onClicked: commandCopied()
