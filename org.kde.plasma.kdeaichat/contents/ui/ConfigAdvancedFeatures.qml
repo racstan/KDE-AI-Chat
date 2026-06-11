@@ -1,18 +1,15 @@
+import "MainDatabase.js" as MainDatabase
+import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
-import QtQuick.Layouts
 import QtQuick.Dialogs
-import QtCore
+import QtQuick.Layouts
+import "Security.js" as Sec
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
-import "MainDatabase.js" as MainDatabase
-import "Security.js" as Sec
 
 QQC2.ScrollView {
     id: page
-
-    contentWidth: availableWidth
-    contentHeight: formLayout.implicitHeight
 
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
@@ -25,108 +22,58 @@ QQC2.ScrollView {
     property string recordedAudioPath: ""
     property string sttStatus: ""
     property string activeSttSource: ""
-
     // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult)
     property string statusText: {
-        if (page.copiedText === "copied") return i18n("Command copied");
-        if (page.copiedText === "copying") return i18n("Copying...");
-        if (page.copiedText === "error") return i18n("Copy failed — check system clipboard");
-        if (!page.voiceEnvChecked) return i18n("Not checked — click Check Status");
+        if (page.copiedText === "copied")
+            return i18n("Command copied");
+
+        if (page.copiedText === "copying")
+            return i18n("Copying...");
+
+        if (page.copiedText === "error")
+            return i18n("Copy failed — check system clipboard");
+
+        if (!page.voiceEnvChecked)
+            return i18n("Not checked — click Check Status");
+
         var r = page.voiceEnvResult;
         var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
-        if (ok) return i18n("Environment ready");
+        if (ok)
+            return i18n("Environment ready");
+
         return i18n("Needs setup — copy and run the setup command");
     }
     property color statusColor: {
-        if (page.copiedText === "copied") return Kirigami.Theme.positiveTextColor;
-        if (page.copiedText === "copying") return Kirigami.Theme.neutralTextColor;
-        if (page.copiedText === "error") return Kirigami.Theme.negativeTextColor;
-        if (!page.voiceEnvChecked) return Kirigami.Theme.textColor;
+        if (page.copiedText === "copied")
+            return Kirigami.Theme.positiveTextColor;
+
+        if (page.copiedText === "copying")
+            return Kirigami.Theme.neutralTextColor;
+
+        if (page.copiedText === "error")
+            return Kirigami.Theme.negativeTextColor;
+
+        if (!page.voiceEnvChecked)
+            return Kirigami.Theme.textColor;
+
         var r = page.voiceEnvResult;
         var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
-        if (ok) return Kirigami.Theme.positiveTextColor;
+        if (ok)
+            return Kirigami.Theme.positiveTextColor;
+
         return Kirigami.Theme.negativeTextColor;
     }
-
-    Timer {
-        id: copiedTimer
-        interval: 2000
-        onTriggered: page.copiedText = ""
-    }
-
-    // Countdown timer: fires every second, stops stt at 0
-    Timer {
-        id: sttTimer
-        interval: 1000
-        repeat: true
-        onTriggered: {
-            page.sttCountdown -= 1;
-            if (page.sttCountdown <= 0) {
-                stop();
-                page.sttTesting = false;
-                // The helper auto-stops at duration; send stop in case it's still running
-                sendVoiceCommand(JSON.stringify({cmd: "stop_stt"}));
-            }
-        }
-    }
-
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
-    onCfg_showInteractiveGuidesChanged: {
-        plasmoid.configuration.showInteractiveGuides = cfg_showInteractiveGuides;
-    }
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
-
     property alias cfg_voiceSttModelPath: voiceSttModelPathField.text
     property alias cfg_voiceTtsModelPath: voiceTtsModelPathField.text
     property alias cfg_voiceVenvPath: voiceVenvPathField.text
-
     property string cfg_voiceSttModel: plasmoid.configuration.voiceSttModel || "large-v3-turbo"
     property string cfg_voiceLanguage: plasmoid.configuration.voiceLanguage || "en"
     property string cfg_voiceTtsVoice: plasmoid.configuration.voiceTtsVoice || "af_heart"
-
-    P5Support.DataSource {
-        id: voicePageDs
-        engine: "executable"
-        connectedSources: []
-        onNewData: function(sourceName, data) {
-            let stdout = (data["stdout"] || "").trim();
-            let stderr = (data["stderr"] || "").trim();
-            let exitCode = data["exit code"];
-            if (stdout !== "") {
-                let lines = stdout.split("\n");
-                for (let i = 0; i < lines.length; i++) {
-                    let line = lines[i].trim();
-                    if (!line) continue;
-                    try {
-                        let resp = JSON.parse(line);
-                        handleVoicePageResponse(resp, sourceName);
-                    } catch (e) {}
-                }
-            }
-            if (exitCode !== undefined) {
-                if (exitCode !== 0) {
-                    if (page.sttTesting && sourceName === page.activeSttSource) {
-                        page.sttTesting = false;
-                        page.sttStatus = "";
-                        sttTimer.stop();
-                        page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr : "");
-                    }
-                    if (sourceName.indexOf("voice-env-") >= 0) {
-                        page.voiceEnvResult = {type: "env_check", error: stderr || i18n("Unknown error")};
-                        page.voiceEnvChecked = true;
-                    }
-                    page.ttsPlaying = false;
-                }
-                disconnectSource(sourceName);
-                if (sourceName === page.activeSttSource) {
-                    page.activeSttSource = "";
-                }
-            }
-        }
-    }
 
     function handleVoicePageResponse(resp, sourceName) {
         if (resp.type === "env_check") {
@@ -152,9 +99,9 @@ QQC2.ScrollView {
             page.sttStatus = "";
             sttTimer.stop();
             page.sttTestResult = resp.text || i18n("(no speech detected)");
-            if (resp.audio_path) {
+            if (resp.audio_path)
                 page.recordedAudioPath = resp.audio_path;
-            }
+
         } else if (resp.type === "stt_error") {
             page.sttTesting = false;
             page.sttStatus = "";
@@ -165,7 +112,9 @@ QQC2.ScrollView {
         } else if (resp.type === "tts_error") {
             page.ttsPlaying = false;
         } else if (resp.type === "tts_status") {
-            if (resp.status === "playing") page.ttsPlaying = true;
+            if (resp.status === "playing")
+                page.ttsPlaying = true;
+
         }
     }
 
@@ -175,7 +124,10 @@ QQC2.ScrollView {
             let home = StandardPaths.writableLocation(StandardPaths.HomeLocation).toString();
             if (home.indexOf("file://") === 0) {
                 home = home.substring(7);
-                try { home = decodeURIComponent(home); } catch (e) {}
+                try {
+                    home = decodeURIComponent(home);
+                } catch (e) {
+                }
             }
             path = home + path.substring(1);
         }
@@ -189,20 +141,30 @@ QQC2.ScrollView {
 
     function getHelperPath() {
         let base = Qt.resolvedUrl("./voice/voice_helper.py").toString();
-        if (base === "") return "";
+        if (base === "")
+            return "";
+
         if (base.indexOf("file://") === 0) {
             base = base.substring(7);
-            try { base = decodeURIComponent(base); } catch (e) {}
+            try {
+                base = decodeURIComponent(base);
+            } catch (e) {
+            }
         }
         return base;
     }
 
     function getSetupPath() {
         let base = Qt.resolvedUrl("./voice/voice_setup.sh").toString();
-        if (base === "") return "";
+        if (base === "")
+            return "";
+
         if (base.indexOf("file://") === 0) {
             base = base.substring(7);
-            try { base = decodeURIComponent(base); } catch (e) {}
+            try {
+                base = decodeURIComponent(base);
+            } catch (e) {
+            }
         }
         return base;
     }
@@ -210,7 +172,9 @@ QQC2.ScrollView {
     function getSetupCommand() {
         let setupPath = getSetupPath();
         let venvPath = getVenvPath();
-        if (setupPath === "") return i18n("Installation path not found — reinstall widget");
+        if (setupPath === "")
+            return i18n("Installation path not found — reinstall widget");
+
         return "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath);
     }
 
@@ -219,7 +183,7 @@ QQC2.ScrollView {
         if (!cmd || cmd.trim() === "") {
             copiedText = "error";
             copiedTimer.restart();
-            return;
+            return ;
         }
         copiedText = "copying";
         copiedTimer.stop();
@@ -250,7 +214,11 @@ QQC2.ScrollView {
         let venvPy = getVenvPython();
         let sttPath = page.cfg_voiceSttModelPath || "";
         let ttsPath = page.cfg_voiceTtsModelPath || "";
-        let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
+        let payload = JSON.stringify({
+            "cmd": "check_env",
+            "stt_model_path": sttPath,
+            "tts_model_path": ttsPath
+        });
         let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
         let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-env-" + Date.now();
         voicePageDs.connectSource(cmd);
@@ -265,43 +233,134 @@ QQC2.ScrollView {
         return cmd;
     }
 
+    contentWidth: availableWidth
+    contentHeight: formLayout.implicitHeight
+    onCfg_showInteractiveGuidesChanged: {
+        plasmoid.configuration.showInteractiveGuides = cfg_showInteractiveGuides;
+    }
+
+    Timer {
+        id: copiedTimer
+
+        interval: 2000
+        onTriggered: page.copiedText = ""
+    }
+
+    // Countdown timer: fires every second, stops stt at 0
+    Timer {
+        id: sttTimer
+
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            page.sttCountdown -= 1;
+            if (page.sttCountdown <= 0) {
+                stop();
+                page.sttTesting = false;
+                // The helper auto-stops at duration; send stop in case it's still running
+                sendVoiceCommand(JSON.stringify({
+                    "cmd": "stop_stt"
+                }));
+            }
+        }
+    }
+
+    P5Support.DataSource {
+        id: voicePageDs
+
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let stdout = (data["stdout"] || "").trim();
+            let stderr = (data["stderr"] || "").trim();
+            let exitCode = data["exit code"];
+            if (stdout !== "") {
+                let lines = stdout.split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (!line)
+                        continue;
+
+                    try {
+                        let resp = JSON.parse(line);
+                        handleVoicePageResponse(resp, sourceName);
+                    } catch (e) {
+                    }
+                }
+            }
+            if (exitCode !== undefined) {
+                if (exitCode !== 0) {
+                    if (page.sttTesting && sourceName === page.activeSttSource) {
+                        page.sttTesting = false;
+                        page.sttStatus = "";
+                        sttTimer.stop();
+                        page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr : "");
+                    }
+                    if (sourceName.indexOf("voice-env-") >= 0) {
+                        page.voiceEnvResult = {
+                            "type": "env_check",
+                            "error": stderr || i18n("Unknown error")
+                        };
+                        page.voiceEnvChecked = true;
+                    }
+                    page.ttsPlaying = false;
+                }
+                disconnectSource(sourceName);
+                if (sourceName === page.activeSttSource)
+                    page.activeSttSource = "";
+
+            }
+        }
+    }
+
     FolderDialog {
         id: sttFolderDialog
+
         title: i18n("Select STT Model Directory")
         onAccepted: {
             let path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+
             voiceSttModelPathField.text = path;
         }
     }
 
     FolderDialog {
         id: ttsFolderDialog
+
         title: i18n("Select TTS Model Directory")
         onAccepted: {
             let path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+
             voiceTtsModelPathField.text = path;
         }
     }
 
     FolderDialog {
         id: venvFolderDialog
+
         title: i18n("Select Python Virtual Environment Directory")
         onAccepted: {
             let path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+
             voiceVenvPathField.text = path;
         }
     }
 
     Kirigami.FormLayout {
         id: formLayout
+
         width: page.availableWidth
 
         // ── Guides Toggle ──────────────────────────────────────────────
         QQC2.CheckBox {
             id: showGuidesToggle
+
             Kirigami.FormData.label: i18n("Interactive Guides:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
             text: checked ? i18n("Guides visible — showing setup instructions") : i18n("Guides hidden")
@@ -338,6 +397,7 @@ QQC2.ScrollView {
 
             RowLayout {
                 id: templateGuideLayout
+
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.gridUnit * 0.6
                 spacing: Kirigami.Units.smallSpacing
@@ -355,18 +415,11 @@ QQC2.ScrollView {
                     textFormat: Text.RichText
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                     color: Kirigami.Theme.textColor
-                    text: "<b>Prompt Templates</b> let you save frequently used system prompts.<br>" +
-                          "Each template you create becomes a <b>slash command</b> in the chat.<br><br>" +
-                          "<b>How to use:</b><br>" +
-                          "1. Give your template a <b>name</b> (e.g. \"code-reviewer\").<br>" +
-                          "2. Write the <b>system prompt</b> for that template.<br>" +
-                          "3. In chat, type <b>/code-reviewer</b> and send — the AI will use that system prompt.<br><br>" +
-                          "<b>Examples:</b><br>" +
-                          "• Name: <code>translator</code> → Prompt: <i>You are a professional translator...</i><br>" +
-                          "• Name: <code>code-review</code> → Prompt: <i>Review this code for bugs...</i><br>" +
-                          "• Name: <code>summarize</code> → Prompt: <i>Summarize the following text...</i>"
+                    text: "<b>Prompt Templates</b> let you save frequently used system prompts.<br>" + "Each template you create becomes a <b>slash command</b> in the chat.<br><br>" + "<b>How to use:</b><br>" + "1. Give your template a <b>name</b> (e.g. \"code-reviewer\").<br>" + "2. Write the <b>system prompt</b> for that template.<br>" + "3. In chat, type <b>/code-reviewer</b> and send — the AI will use that system prompt.<br><br>" + "<b>Examples:</b><br>" + "• Name: <code>translator</code> → Prompt: <i>You are a professional translator...</i><br>" + "• Name: <code>code-review</code> → Prompt: <i>Review this code for bugs...</i><br>" + "• Name: <code>summarize</code> → Prompt: <i>Summarize the following text...</i>"
                 }
+
             }
+
         }
 
         QQC2.Label {
@@ -385,32 +438,43 @@ QQC2.ScrollView {
 
             QQC2.TextField {
                 id: newTemplateName
+
                 placeholderText: i18n("Template name (e.g. code-review)")
                 Layout.fillWidth: true
             }
+
             QQC2.TextField {
                 id: newTemplatePrompt
+
                 placeholderText: i18n("System prompt for this template")
                 Layout.fillWidth: true
             }
+
             QQC2.Button {
                 text: i18n("Add")
                 icon.name: "list-add"
                 enabled: newTemplateName.text.trim().length > 0
                 onClicked: {
-                    if (!newTemplateName.text.trim()) return;
+                    if (!newTemplateName.text.trim())
+                        return ;
+
                     let arr = JSON.parse(page.cfg_promptTemplates || "[]");
-                    arr.push({"name": newTemplateName.text.trim(), "prompt": newTemplatePrompt.text.trim()});
+                    arr.push({
+                        "name": newTemplateName.text.trim(),
+                        "prompt": newTemplatePrompt.text.trim()
+                    });
                     page.cfg_promptTemplates = JSON.stringify(arr);
                     newTemplateName.text = "";
                     newTemplatePrompt.text = "";
                 }
             }
+
             QQC2.Button {
                 text: i18n("View Templates")
                 icon.name: "view-list-details"
                 onClicked: templateDialog.open()
             }
+
         }
 
         // ── Voice & Audio ─────────────────────────────────────────────
@@ -431,6 +495,7 @@ QQC2.ScrollView {
 
             RowLayout {
                 id: voiceGuideLayout
+
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.gridUnit * 0.6
                 spacing: Kirigami.Units.smallSpacing
@@ -448,30 +513,19 @@ QQC2.ScrollView {
                     textFormat: Text.RichText
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                     color: Kirigami.Theme.textColor
-                    onLinkActivated: function(link) { Qt.openUrlExternally(link); }
-                    text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" +
-                          "Click <b>Copy Setup Command</b> and run it in your terminal to install dependencies.<br><br>" +
-                          "<b>How to use:</b><br>" +
-                          "1. <b>Enable</b> voice features below.<br>" +
-                          "2. <b>Copy</b> and run the setup command in your terminal.<br>" +
-                          "3. Click <b>Check Status</b> to verify installation.<br>" +
-                          "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" +
-                          "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" +
-                          "You can point to existing model directories instead of downloading.<br><br>" +
-                          "<b>System Requirements & Package Manager Links:</b><br>" +
-                          "• <b>espeak-ng</b>: Required for text phonemization. Without this, Kokoro TTS fails. (<a href='https://github.com/espeak-ng/espeak-ng'>GitHub</a>)<br>" +
-                          "• <b>Clipboard utilities</b>: <code>wl-clipboard</code> (for Wayland) or <code>xclip</code> (for X11).<br>" +
-                          "• <b>Audio playback</b>: <code>pulseaudio-utils</code> (for paplay) or <code>alsa-utils</code> (for aplay).<br><br>" +
-                          "<b>Quick Install Command:</b><br>" +
-                          "• Ubuntu/Debian: <code>sudo apt install espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" +
-                          "• Arch Linux: <code>sudo pacman -S espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" +
-                          "• Fedora: <code>sudo dnf install espeak-ng wl-clipboard xclip pulseaudio-utils</code>"
+                    onLinkActivated: function(link) {
+                        Qt.openUrlExternally(link);
+                    }
+                    text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" + "Click <b>Copy Setup Command</b> and run it in your terminal to install dependencies.<br><br>" + "<b>How to use:</b><br>" + "1. <b>Enable</b> voice features below.<br>" + "2. <b>Copy</b> and run the setup command in your terminal.<br>" + "3. Click <b>Check Status</b> to verify installation.<br>" + "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" + "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" + "You can point to existing model directories instead of downloading.<br><br>" + "<b>System Requirements & Package Manager Links:</b><br>" + "• <b>espeak-ng</b>: Required for text phonemization. Without this, Kokoro TTS fails. (<a href='https://github.com/espeak-ng/espeak-ng'>GitHub</a>)<br>" + "• <b>Clipboard utilities</b>: <code>wl-clipboard</code> (for Wayland) or <code>xclip</code> (for X11).<br>" + "• <b>Audio playback</b>: <code>pulseaudio-utils</code> (for paplay) or <code>alsa-utils</code> (for aplay).<br><br>" + "<b>Quick Install Command:</b><br>" + "• Ubuntu/Debian: <code>sudo apt install espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Arch Linux: <code>sudo pacman -S espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Fedora: <code>sudo dnf install espeak-ng wl-clipboard xclip pulseaudio-utils</code>"
                 }
+
             }
+
         }
 
         QQC2.CheckBox {
             id: voiceEnabledToggle
+
             Kirigami.FormData.label: i18n("Enable voice features:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
             checked: plasmoid.configuration.voiceEnabled || false
@@ -500,6 +554,7 @@ QQC2.ScrollView {
                 icon.name: "view-refresh"
                 onClicked: runEnvCheck()
             }
+
         }
 
         // ── Copy Setup Command ──────────────────────────────────────
@@ -514,6 +569,7 @@ QQC2.ScrollView {
                 icon.name: copiedText === "copied" ? "dialog-ok-apply" : "edit-copy"
                 onClicked: page.commandCopied()
             }
+
         }
 
         // ── Environment Status Grid ───────────────────────────────────
@@ -529,34 +585,60 @@ QQC2.ScrollView {
 
             GridLayout {
                 id: statusGrid
-                anchors { left: parent.left; right: parent.right; top: parent.top }
+
                 anchors.margins: Kirigami.Units.gridUnit * 0.5
                 columns: 2
                 columnSpacing: Kirigami.Units.gridUnit
                 rowSpacing: Kirigami.Units.smallSpacing * 0.5
 
-                QQC2.Label { text: i18n("Microphone:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
+                }
+
+                QQC2.Label {
+                    text: i18n("Microphone:")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
                 QQC2.Label {
                     text: page.voiceEnvResult && page.voiceEnvResult.mic_available ? "✓ " + i18n("Available") : "✗ " + i18n("Not found")
                     color: page.voiceEnvResult && page.voiceEnvResult.mic_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("Audio player:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: i18n("Audio player:")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
                 QQC2.Label {
                     text: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
                     color: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("STT engine:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: i18n("STT engine:")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
                 QQC2.Label {
                     text: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ faster-whisper" : "✗ " + i18n("Not installed")
                     color: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("TTS engine:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: i18n("TTS engine:")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
                 QQC2.Label {
                     text: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ Kokoro" : "✗ " + i18n("Not installed")
                     color: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
@@ -570,53 +652,84 @@ QQC2.ScrollView {
                     QQC2.ToolTip.delay: 400
                     QQC2.ToolTip.visible: maEspeak.hovered
                     QQC2.ToolTip.text: i18n("espeak-ng translates text into phonetic codes. Required for Kokoro text-to-speech.")
-                    
+
                     MouseArea {
                         id: maEspeak
+
                         anchors.fill: parent
                         hoverEnabled: true
                     }
+
                 }
+
                 QQC2.Label {
                     text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
                     color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("STT model:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: i18n("STT model:")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
                 QQC2.Label {
                     text: {
-                        if (!page.voiceEnvResult) return "";
+                        if (!page.voiceEnvResult)
+                            return "";
+
                         let hasPath = plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
+                        if (hasPath)
+                            return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
+
                         return page.voiceEnvResult.faster_whisper_ok ? "✓ " + i18n("Default ready") : "✗ " + i18n("Not downloaded");
                     }
                     color: {
-                        if (!page.voiceEnvResult) return Kirigami.Theme.textColor;
+                        if (!page.voiceEnvResult)
+                            return Kirigami.Theme.textColor;
+
                         let hasPath = plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                        if (hasPath)
+                            return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+
                         return page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
                     }
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("TTS model:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: i18n("TTS model:")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
                 QQC2.Label {
                     text: {
-                        if (!page.voiceEnvResult) return "";
+                        if (!page.voiceEnvResult)
+                            return "";
+
                         let hasPath = plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
+                        if (hasPath)
+                            return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
+
                         return page.voiceEnvResult.kokoro_ok ? "✓ " + i18n("Default ready") : "✗ " + i18n("Not downloaded");
                     }
                     color: {
-                        if (!page.voiceEnvResult) return Kirigami.Theme.textColor;
+                        if (!page.voiceEnvResult)
+                            return Kirigami.Theme.textColor;
+
                         let hasPath = plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                        if (hasPath)
+                            return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+
                         return page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
                     }
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
+
             }
+
         }
 
         // ── STT Settings ──────────────────────────────────────────────
@@ -629,14 +742,17 @@ QQC2.ScrollView {
 
             QQC2.TextField {
                 id: voiceSttModelPathField
+
                 Layout.fillWidth: true
                 placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
             }
+
             QQC2.Button {
                 icon.name: "folder-open"
                 QQC2.ToolTip.text: i18n("Browse for STT model directory")
                 onClicked: sttFolderDialog.open()
             }
+
         }
 
         RowLayout {
@@ -648,20 +764,28 @@ QQC2.ScrollView {
 
             QQC2.ComboBox {
                 id: voiceSttModelCombo
+
                 Layout.fillWidth: true
                 model: ["large-v3-turbo", "large-v3", "medium", "small", "base", "tiny"]
                 currentIndex: {
                     let m = page.cfg_voiceSttModel || "large-v3-turbo";
-                    for (let i = 0; i < model.length; i++) if (model[i] === m) return i;
+                    for (let i = 0; i < model.length; i++) if (model[i] === m) {
+                        return i;
+                    }
                     return 0;
                 }
                 onActivated: page.cfg_voiceSttModel = currentValue
             }
+
             QQC2.Button {
                 text: i18n("Download")
                 icon.name: "download"
-                onClicked: runInTerminal({cmd: "download_stt", model: page.cfg_voiceSttModel || "large-v3-turbo"})
+                onClicked: runInTerminal({
+                    "cmd": "download_stt",
+                    "model": page.cfg_voiceSttModel || "large-v3-turbo"
+                })
             }
+
         }
 
         RowLayout {
@@ -673,15 +797,19 @@ QQC2.ScrollView {
 
             QQC2.ComboBox {
                 id: voiceLanguageCombo
+
                 Layout.fillWidth: true
                 model: ["en", "auto", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi"]
                 currentIndex: {
                     let l = page.cfg_voiceLanguage || "en";
-                    for (let i = 0; i < model.length; i++) if (model[i] === l) return i;
+                    for (let i = 0; i < model.length; i++) if (model[i] === l) {
+                        return i;
+                    }
                     return 0;
                 }
                 onActivated: page.cfg_voiceLanguage = currentValue
             }
+
         }
 
         RowLayout {
@@ -692,15 +820,14 @@ QQC2.ScrollView {
             QQC2.Button {
                 text: {
                     if (page.sttTesting) {
-                        if (page.sttStatus === "loading_model") {
+                        if (page.sttStatus === "loading_model")
                             return i18n("Loading model...");
-                        } else if (page.sttStatus === "recording") {
+                        else if (page.sttStatus === "recording")
                             return i18n("Recording... (%1s)", page.sttCountdown);
-                        } else if (page.sttStatus === "transcribing") {
+                        else if (page.sttStatus === "transcribing")
                             return i18n("Transcribing...");
-                        } else {
+                        else
                             return i18n("Initializing...");
-                        }
                     }
                     return i18n("Record & Transcribe (5s)");
                 }
@@ -716,7 +843,7 @@ QQC2.ScrollView {
                             voicePageDs.disconnectSource(page.activeSttSource);
                             page.activeSttSource = "";
                         }
-                        return;
+                        return ;
                     }
                     page.sttTesting = true;
                     page.sttStatus = "loading_model";
@@ -726,7 +853,13 @@ QQC2.ScrollView {
                     let lang = page.cfg_voiceLanguage || "en";
                     let model = page.cfg_voiceSttModel || "large-v3-turbo";
                     let modelPath = page.cfg_voiceSttModelPath || "";
-                    page.activeSttSource = sendVoiceCommand(JSON.stringify({cmd: "start_stt", duration: 5, language: lang, model: model, model_path: modelPath}));
+                    page.activeSttSource = sendVoiceCommand(JSON.stringify({
+                        "cmd": "start_stt",
+                        "duration": 5,
+                        "language": lang,
+                        "model": model,
+                        "model_path": modelPath
+                    }));
                 }
             }
 
@@ -736,9 +869,13 @@ QQC2.ScrollView {
                 visible: page.recordedAudioPath !== ""
                 enabled: !page.sttTesting
                 onClicked: {
-                    sendVoiceCommand(JSON.stringify({cmd: "play_audio", path: page.recordedAudioPath}));
+                    sendVoiceCommand(JSON.stringify({
+                        "cmd": "play_audio",
+                        "path": page.recordedAudioPath
+                    }));
                 }
             }
+
         }
 
         QQC2.Label {
@@ -753,19 +890,21 @@ QQC2.ScrollView {
 
         // ── TTS Settings ──────────────────────────────────────────────
         QQC2.CheckBox {
+            id: voiceAutoSendToggle
+
             visible: voiceEnabledToggle.checked
             Kirigami.FormData.label: i18n("Auto-send voice input:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            id: voiceAutoSendToggle
             checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
             text: checked ? i18n("Enabled — transcribed text is sent automatically") : i18n("Disabled — transcribed text goes to input field")
         }
 
         QQC2.CheckBox {
+            id: voiceTtsEnabledToggle
+
             visible: voiceEnabledToggle.checked
             Kirigami.FormData.label: i18n("Read AI responses aloud:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            id: voiceTtsEnabledToggle
             checked: plasmoid.configuration.voiceTtsEnabled || false
             text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
         }
@@ -779,14 +918,17 @@ QQC2.ScrollView {
 
             QQC2.TextField {
                 id: voiceTtsModelPathField
+
                 Layout.fillWidth: true
                 placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
             }
+
             QQC2.Button {
                 icon.name: "folder-open"
                 QQC2.ToolTip.text: i18n("Browse for TTS model directory")
                 onClicked: ttsFolderDialog.open()
             }
+
         }
 
         RowLayout {
@@ -801,11 +943,16 @@ QQC2.ScrollView {
                 model: ["kokoro-82m"]
                 currentIndex: 0
             }
+
             QQC2.Button {
                 text: i18n("Download")
                 icon.name: "download"
-                onClicked: runInTerminal({cmd: "download_tts", voice: page.cfg_voiceTtsVoice || "af_heart"})
+                onClicked: runInTerminal({
+                    "cmd": "download_tts",
+                    "voice": page.cfg_voiceTtsVoice || "af_heart"
+                })
             }
+
         }
 
         RowLayout {
@@ -817,15 +964,19 @@ QQC2.ScrollView {
 
             QQC2.ComboBox {
                 id: voiceTtsVoiceCombo
+
                 Layout.fillWidth: true
                 model: ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
                 currentIndex: {
                     let v = page.cfg_voiceTtsVoice || "af_heart";
-                    for (let i = 0; i < model.length; i++) if (model[i] === v) return i;
+                    for (let i = 0; i < model.length; i++) if (model[i] === v) {
+                        return i;
+                    }
                     return 0;
                 }
                 onActivated: page.cfg_voiceTtsVoice = currentValue
             }
+
         }
 
         RowLayout {
@@ -838,15 +989,24 @@ QQC2.ScrollView {
                 icon.name: "audio-speakers"
                 onClicked: {
                     page.ttsPlaying = true;
-                    sendVoiceCommand(JSON.stringify({cmd: "tts", text: i18n("Hello! This is a test of the text to speech system."), voice: page.cfg_voiceTtsVoice || "af_heart", lang_code: "a"}));
+                    sendVoiceCommand(JSON.stringify({
+                        "cmd": "tts",
+                        "text": i18n("Hello! This is a test of the text to speech system."),
+                        "voice": page.cfg_voiceTtsVoice || "af_heart",
+                        "lang_code": "a"
+                    }));
                 }
             }
+
             QQC2.Button {
                 text: i18n("Stop")
                 icon.name: "media-playback-stop"
                 visible: page.ttsPlaying
-                onClicked: sendVoiceCommand(JSON.stringify({cmd: "stop_tts"}))
+                onClicked: sendVoiceCommand(JSON.stringify({
+                    "cmd": "stop_tts"
+                }))
             }
+
         }
 
         RowLayout {
@@ -858,14 +1018,17 @@ QQC2.ScrollView {
 
             QQC2.TextField {
                 id: voiceVenvPathField
+
                 Layout.fillWidth: true
                 placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
             }
+
             QQC2.Button {
                 icon.name: "folder-open"
                 QQC2.ToolTip.text: i18n("Browse for Python virtual environment directory")
                 onClicked: venvFolderDialog.open()
             }
+
         }
 
         // ── Chat Storage ─────────────────────────────────────────────────
@@ -882,6 +1045,7 @@ QQC2.ScrollView {
 
             QQC2.TextField {
                 id: customHistoryPathField
+
                 Layout.fillWidth: true
                 placeholderText: i18n("Default (~/.config)")
                 text: plasmoid.configuration.customHistoryPath || ""
@@ -893,6 +1057,7 @@ QQC2.ScrollView {
                 icon.name: "folder-open"
                 onClicked: storageFolderDialog.open()
             }
+
         }
 
         Rectangle {
@@ -907,9 +1072,15 @@ QQC2.ScrollView {
 
             RowLayout {
                 id: storageInfoRow
-                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
+
                 anchors.margins: Kirigami.Units.smallSpacing
                 spacing: Kirigami.Units.smallSpacing
+
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                }
 
                 Kirigami.Icon {
                     source: "folder-sync"
@@ -924,16 +1095,20 @@ QQC2.ScrollView {
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
                     text: {
                         let p = customHistoryPathField.text.trim();
-                        if (p === "") return "";
-                        if (p.indexOf("file://") === 0) {
+                        if (p === "")
+                            return "";
+
+                        if (p.indexOf("file://") === 0)
                             p = decodeURIComponent(p.slice(7));
-                        }
+
                         let file = p.endsWith("/") ? p + "kdeaichat_history.json" : p + "/kdeaichat_history.json";
                         return i18n("Chats will be saved to: <b>%1</b><br/>Your existing chats are <b>automatically exported</b> when you press Apply / OK.").arg(file);
                     }
                     textFormat: Text.RichText
                 }
+
             }
+
         }
 
         RowLayout {
@@ -944,20 +1119,20 @@ QQC2.ScrollView {
 
             QQC2.Button {
                 id: exportNowBtn
+
                 text: page.storageExportStatus !== "" ? page.storageExportStatus : i18n("Export Now")
                 icon.name: "document-export"
                 enabled: customHistoryPathField.text.trim() !== "" && page.storageExportStatus === ""
                 onClicked: {
                     page.storageExportStatus = i18n("Exporting…");
                     let dir = customHistoryPathField.text.trim();
-                    if (dir.indexOf("file://") === 0) {
+                    if (dir.indexOf("file://") === 0)
                         dir = decodeURIComponent(dir.slice(7));
-                    }
+
                     let file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
                     let jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
                     let b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
-                    let cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(file) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " +
-                        "open(path, 'w', encoding='utf-8').write(base64.b64decode(" + Sec.quoteForShell(b64) + ").decode('utf-8')); print('OK')\"";
+                    let cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(file) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " + "open(path, 'w', encoding='utf-8').write(base64.b64decode(" + Sec.quoteForShell(b64) + ").decode('utf-8')); print('OK')\"";
                     storageDs.connectSource(cmd + " #storage-export-" + Date.now());
                     storageExportTimer.restart();
                 }
@@ -969,9 +1144,9 @@ QQC2.ScrollView {
                 visible: customHistoryPathField.text.trim() !== ""
                 onClicked: {
                     let dir = customHistoryPathField.text.trim();
-                    if (dir.indexOf("file://") === 0) {
+                    if (dir.indexOf("file://") === 0)
                         dir = decodeURIComponent(dir.slice(7));
-                    }
+
                     storageDs.connectSource("xdg-open " + Sec.quoteForShell(dir) + " #open-storage-dir");
                 }
             }
@@ -984,6 +1159,7 @@ QQC2.ScrollView {
                     customHistoryPathField.text = "";
                 }
             }
+
         }
 
         QQC2.Label {
@@ -992,16 +1168,16 @@ QQC2.ScrollView {
             wrapMode: Text.Wrap
             opacity: 0.7
             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
-            text: customHistoryPathField.text.trim() === ""
-                ? i18n("Chats are saved in the default KDE config location. Select a folder above to store them elsewhere (e.g. a synced cloud drive).")
-                : i18n("<b>Warning: Beta feature.</b> After changing this path, press <b>Apply</b> or <b>OK</b> — your chats will automatically be exported to the new location.")
+            text: customHistoryPathField.text.trim() === "" ? i18n("Chats are saved in the default KDE config location. Select a folder above to store them elsewhere (e.g. a synced cloud drive).") : i18n("<b>Warning: Beta feature.</b> After changing this path, press <b>Apply</b> or <b>OK</b> — your chats will automatically be exported to the new location.")
             textFormat: Text.RichText
         }
+
     }
 
     // ── Storage DataSource ──────────────────────────────────────────────────
     P5Support.DataSource {
         id: storageDs
+
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
@@ -1017,6 +1193,7 @@ QQC2.ScrollView {
 
     Timer {
         id: storageExportTimer
+
         interval: 2500
         repeat: false
         onTriggered: {
@@ -1026,13 +1203,16 @@ QQC2.ScrollView {
 
     FolderDialog {
         id: storageFolderDialog
+
         title: i18n("Select Chat History Directory")
         onAccepted: {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0)
                 path = decodeURIComponent(path.slice(7));
+
             if (path.length > 1 && path.slice(-1) === "/")
                 path = path.slice(0, -1);
+
             customHistoryPathField.text = path;
         }
     }
@@ -1040,6 +1220,7 @@ QQC2.ScrollView {
     // ── Template Viewer Dialog ───────────────────────────────────────────────
     QQC2.Dialog {
         id: templateDialog
+
         modal: true
         standardButtons: QQC2.Dialog.Close
         title: i18n("Prompt Templates")
@@ -1070,11 +1251,15 @@ QQC2.ScrollView {
 
                 ListView {
                     id: templateListView
+
                     model: {
                         try {
                             return JSON.parse(page.cfg_promptTemplates || "[]");
-                        } catch(e) { return []; }
+                        } catch (e) {
+                            return [];
+                        }
                     }
+
                     delegate: Rectangle {
                         width: templateListView.width
                         implicitHeight: templateItemLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
@@ -1085,9 +1270,15 @@ QQC2.ScrollView {
 
                         ColumnLayout {
                             id: templateItemLayout
-                            anchors { left: parent.left; right: parent.right; top: parent.top }
+
                             anchors.margins: Kirigami.Units.smallSpacing
                             spacing: Kirigami.Units.smallSpacing / 2
+
+                            anchors {
+                                left: parent.left
+                                right: parent.right
+                                top: parent.top
+                            }
 
                             QQC2.Label {
                                 text: "/" + (modelData.name || ("template-" + (index + 1)))
@@ -1095,6 +1286,7 @@ QQC2.ScrollView {
                                 font.family: "monospace"
                                 color: Kirigami.Theme.highlightColor
                             }
+
                             QQC2.Label {
                                 Layout.fillWidth: true
                                 wrapMode: Text.Wrap
@@ -1102,10 +1294,10 @@ QQC2.ScrollView {
                                 opacity: 0.8
                                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
                             }
+
                         }
 
                         QQC2.ToolButton {
-                            anchors { right: parent.right; top: parent.top; margins: Kirigami.Units.smallSpacing }
                             icon.name: "edit-delete"
                             QQC2.ToolTip.text: i18n("Delete template")
                             onClicked: {
@@ -1113,9 +1305,19 @@ QQC2.ScrollView {
                                 arr.splice(index, 1);
                                 page.cfg_promptTemplates = JSON.stringify(arr);
                             }
+
+                            anchors {
+                                right: parent.right
+                                top: parent.top
+                                margins: Kirigami.Units.smallSpacing
+                            }
+
                         }
+
                     }
+
                 }
+
             }
 
             QQC2.Label {
@@ -1126,6 +1328,9 @@ QQC2.ScrollView {
                 text: i18n("No templates yet. Create one above.")
                 font: Kirigami.Theme.smallFont
             }
+
         }
+
     }
+
 }
