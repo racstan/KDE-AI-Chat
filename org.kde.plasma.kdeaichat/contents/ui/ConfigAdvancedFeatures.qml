@@ -5,7 +5,6 @@ import QtQuick.Dialogs
 import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
-import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 import "MainDatabase.js" as MainDatabase
 import "Security.js" as Sec
 
@@ -14,10 +13,6 @@ QQC2.ScrollView {
 
     contentWidth: availableWidth
     contentHeight: formLayout.implicitHeight
-
-    KQuickControlsAddons.Clipboard {
-        id: configClipboard
-    }
 
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
@@ -101,11 +96,21 @@ QQC2.ScrollView {
                     } catch (e) {}
                 }
             }
-            if (exitCode !== undefined && exitCode !== 0) {
-                sttTesting = false;
-                ttsPlaying = false;
+            if (exitCode !== undefined) {
+                if (exitCode !== 0) {
+                    if (page.sttTesting) {
+                        page.sttTesting = false;
+                        sttTimer.stop();
+                        page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr : "");
+                    }
+                    if (!page.voiceEnvChecked && sourceName.indexOf("voice-env-") >= 0) {
+                        page.voiceEnvResult = {type: "env_check", error: stderr || i18n("Unknown error")};
+                        page.voiceEnvChecked = true;
+                    }
+                    ttsPlaying = false;
+                }
+                disconnectSource(sourceName);
             }
-            disconnectSource(sourceName);
         }
     }
 
@@ -188,10 +193,11 @@ QQC2.ScrollView {
             copiedTimer.restart();
             return;
         }
-        // Reset first so repeated clicks always re-trigger the binding
         copiedText = "";
         try {
-            configClipboard.content = cmd;
+            let safe = Sec.sanitizeForShell(cmd);
+            let copyCmd = "sh -c 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi' #copy-" + Date.now();
+            voicePageDs.connectSource(copyCmd);
             copiedText = "copied";
         } catch (e) {
             console.error("Clipboard copy failed:", e);

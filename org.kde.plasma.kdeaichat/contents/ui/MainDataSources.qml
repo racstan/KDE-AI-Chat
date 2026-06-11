@@ -662,18 +662,21 @@ Item {
         onNewData: function(sourceName, data) {
             let stdout = (data["stdout"] || "").trim();
             let exitCode = data["exit code"];
-            disconnectSource(sourceName);
-            if (stdout === "") return;
-            let lines = stdout.split("\n");
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
-                if (!line) continue;
-                try {
-                    let resp = JSON.parse(line);
-                    MainDatabase.handleVoiceResponse(resp, sourceName);
-                } catch (e) {
-                    // skip non-JSON lines
+            if (stdout !== "") {
+                let lines = stdout.split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (!line) continue;
+                    try {
+                        let resp = JSON.parse(line);
+                        MainDatabase.handleVoiceResponse(resp, sourceName);
+                    } catch (e) {
+                        // skip non-JSON lines
+                    }
                 }
+            }
+            if (exitCode !== undefined) {
+                disconnectSource(sourceName);
             }
         }
     }
