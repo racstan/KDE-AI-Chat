@@ -2,8 +2,10 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 import "MainDatabase.js" as MainDatabase
 import "Security.js" as Sec
 
@@ -12,6 +14,10 @@ QQC2.ScrollView {
 
     contentWidth: availableWidth
     contentHeight: formLayout.implicitHeight
+
+    KQuickControlsAddons.Clipboard {
+        id: configClipboard
+    }
 
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
@@ -25,7 +31,7 @@ QQC2.ScrollView {
     property string statusText: {
         if (copiedText === "copied") return i18n("Copied command");
         if (copiedText === "copying") return i18n("Copying...");
-        if (copiedText === "error") return i18n("Copy failed — install wl-copy, xclip, or xsel");
+        if (copiedText === "error") return i18n("Copy failed — check system clipboard");
         if (!voiceEnvChecked) return i18n("Not checked — click Check Status");
         var r = voiceEnvResult;
         var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
@@ -50,7 +56,10 @@ QQC2.ScrollView {
     }
 
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
-    property alias cfg_showInteractiveGuides: showGuidesToggle.checked
+    property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
+    onCfg_showInteractiveGuidesChanged: {
+        plasmoid.configuration.showInteractiveGuides = cfg_showInteractiveGuides;
+    }
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
@@ -107,7 +116,12 @@ QQC2.ScrollView {
     function getVenvPath() {
         let path = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
         if (path.charAt(0) === "~") {
-            path = Qt.homePath + path.substring(1);
+            let home = StandardPaths.writableLocation(StandardPaths.HomeLocation).toString();
+            if (home.indexOf("file://") === 0) {
+                home = home.substring(7);
+                try { home = decodeURIComponent(home); } catch (e) {}
+            }
+            path = home + path.substring(1);
         }
         return path;
     }
@@ -152,18 +166,23 @@ QQC2.ScrollView {
             return;
         }
         copiedText = "copying";
-        let okPayload = JSON.stringify({type: "copy_result", ok: true});
-        let failPayload = JSON.stringify({type: "copy_result", ok: false, error: "No clipboard tool"});
-        let copyCmd = "(printf %s " + Sec.quoteForShell(cmd) + " | wl-copy 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xclip -selection clipboard 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xsel -b 2>/dev/null) && echo " + Sec.quoteForShell(okPayload) + " || echo " + Sec.quoteForShell(failPayload) + " #voice-copy-" + Date.now();
-        voicePageDs.connectSource(copyCmd);
+        try {
+            configClipboard.content = cmd;
+            copiedText = "copied";
+        } catch (e) {
+            console.error("Failed to copy voice setup command to clipboard:", e);
+            copiedText = "error";
+        }
+        copiedTimer.restart();
     }
 
     function runInTerminal(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
         let innerCmd = "echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; echo; read -p 'Press Enter to close...'";
-        let fullCmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.quoteForShell(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.quoteForShell(innerCmd) + "; fi #voice-term-" + Date.now();
-        voicePageDs.connectSource(fullCmd);
+        let fullCmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.quoteForShell(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.quoteForShell(innerCmd) + "; fi";
+        let cmd = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-term-" + Date.now();
+        voicePageDs.connectSource(cmd);
     }
 
     function runEnvCheck() {
@@ -172,14 +191,16 @@ QQC2.ScrollView {
         let sttPath = plasmoid.configuration.voiceSttModelPath || "";
         let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
         let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi #voice-env-" + Date.now();
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+        let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-env-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
 
     function sendVoiceCommand(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi #voice-cmd-" + Date.now();
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+        let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-cmd-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
 
@@ -213,8 +234,9 @@ QQC2.ScrollView {
             Kirigami.FormData.label: i18n("Interactive Guides:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
             text: checked ? i18n("Guides visible — showing setup instructions") : i18n("Guides hidden")
-            onCheckedChanged: {
-                plasmoid.configuration.showInteractiveGuides = checked;
+            checked: page.cfg_showInteractiveGuides
+            onToggled: {
+                page.cfg_showInteractiveGuides = checked;
             }
         }
 

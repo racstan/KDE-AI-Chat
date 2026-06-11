@@ -114,7 +114,10 @@ QQC2.ScrollView {
         }
         return lang === "en";
     }
-    property alias cfg_showInteractiveGuides: generalSection.showGuides
+    property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
+    onCfg_showInteractiveGuidesChanged: {
+        plasmoid.configuration.showInteractiveGuides = cfg_showInteractiveGuides;
+    }
     property alias cfg_autoStartOpenCodeServer: openCodeSection.autoStartOpenCode
     property alias cfg_useOpenCode: generalSection.openCode
     property alias cfg_playNotificationSound: generalSection.playSound
@@ -136,6 +139,8 @@ QQC2.ScrollView {
     property alias cfg_schedulerEnabled: advancedSection.schedulerEnabled
     property alias cfg_schedulerAutoStart: advancedSection.schedulerAutoStart
     property alias cfg_executeMissedSchedules: advancedSection.executeMissedSchedules
+    property alias cfg_askClearChatConfirmation: advancedSection.askClearChatConfirmation
+    property alias cfg_askDeleteChatConfirmation: advancedSection.askDeleteChatConfirmation
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
     property string cfg_chatSessionsJson: "[]"

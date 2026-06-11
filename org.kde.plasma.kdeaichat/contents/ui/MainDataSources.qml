@@ -30,6 +30,7 @@ Item {
     property alias schedulerDs: schedulerDs
     property alias openCodeReconnectTimer: openCodeReconnectTimer
     property alias persistSessionsDebounce: persistSessionsDebounce
+    property alias deferSaveStateTimer: deferSaveStateTimer
     property alias streamingBatchTimer: streamingBatchTimer
     property alias openCodeIdleKillTimer: openCodeIdleKillTimer
     property alias openCodeStartPollTimer: openCodeStartPollTimer
@@ -136,6 +137,16 @@ Item {
         interval: 1000
         repeat: false
         onTriggered: root.flushPersistSessions()
+    }
+
+    Timer {
+        id: deferSaveStateTimer
+        interval: 300
+        repeat: false
+        onTriggered: {
+            root.clearCurrentOpenCodeSessionIfNeeded();
+            root.saveCurrentSessionState(true);
+        }
     }
 
     // Audit 5.1: batch streaming token updates to avoid full model

@@ -477,7 +477,7 @@ Rectangle {
                                 if (sidebarRoot.chatRoot.editingSessionId === modelData.value)
                                     sidebarRoot.chatRoot.cancelSessionRename();
                                 else
-                                    sidebarRoot.chatRoot.deleteSession(modelData.value);
+                                    sidebarRoot.chatRoot.requestDeleteSession(modelData.value);
                             }
                         }
                     }

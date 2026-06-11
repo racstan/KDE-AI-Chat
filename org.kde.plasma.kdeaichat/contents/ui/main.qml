@@ -1048,6 +1048,7 @@ PlasmoidItem {
     property alias schedulerDs: dataSources.schedulerDs
     property alias openCodeReconnectTimer: dataSources.openCodeReconnectTimer
     property alias persistSessionsDebounce: dataSources.persistSessionsDebounce
+    property alias deferSaveStateTimer: dataSources.deferSaveStateTimer
     property alias streamingBatchTimer: dataSources.streamingBatchTimer
     property alias openCodeIdleKillTimer: dataSources.openCodeIdleKillTimer
     property alias openCodeStartPollTimer: dataSources.openCodeStartPollTimer

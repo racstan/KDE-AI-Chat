@@ -32,6 +32,8 @@ Kirigami.FormLayout {
     property alias storageModeCombo: storageModeCombo
     property alias walletNameField: walletNameField
     property alias kwalletAutoPromptCheck: kwalletAutoPromptCheck
+    property alias askClearChatConfirmationCheck: askClearChatConfirmationCheck
+    property alias askDeleteChatConfirmationCheck: askDeleteChatConfirmationCheck
 
     // Value aliases for config bindings to avoid double-nested aliases in parent
     property alias storageMode: storageModeCombo.currentIndex
@@ -48,6 +50,8 @@ Kirigami.FormLayout {
     property alias schedulerAutoStart: schedAutoStartToggle.checked
     property alias executeMissedSchedules: executeMissedSchedulesToggle.checked
     property alias appDisplayName: appDisplayNameField.text
+    property alias askClearChatConfirmation: askClearChatConfirmationCheck.checked
+    property alias askDeleteChatConfirmation: askDeleteChatConfirmationCheck.checked
 
     // ── Behavior Section ──────────────────────────────────────────────────
     Kirigami.Separator {
@@ -285,6 +289,20 @@ Kirigami.FormLayout {
         opacity: 0.72
         font: Kirigami.Theme.smallFont
         text: page ? page.translate("When the number of uncompacted messages exceeds this threshold, the widget automatically summarizes them in the background and replaces them with a single summary message to save context tokens.") : ""
+    }
+
+    QQC2.CheckBox {
+        id: askClearChatConfirmationCheck
+        Kirigami.FormData.label: page ? page.translate("Confirmations:") : "Confirmations:"
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        text: page ? page.translate("Ask for confirmation when clearing current chat history") : "Ask for confirmation when clearing current chat history"
+    }
+
+    QQC2.CheckBox {
+        id: askDeleteChatConfirmationCheck
+        Kirigami.FormData.label: ""
+        Layout.maximumWidth: advancedSection.fieldMaxWidth
+        text: page ? page.translate("Ask for confirmation when deleting a chat session") : "Ask for confirmation when deleting a chat session"
     }
 
     // ── Scheduler Section ─────────────────────────────────────────────────

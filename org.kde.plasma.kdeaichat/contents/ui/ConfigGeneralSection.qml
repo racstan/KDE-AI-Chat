@@ -194,6 +194,10 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: page ? page.translate("Interactive Guides:") : "Interactive Guides:"
         Layout.maximumWidth: generalSection.fieldMaxWidth
         text: page ? page.translate("Turn on interactive guides (Recommended)") : ""
+        checked: page ? page.cfg_showInteractiveGuides : false
+        onToggled: {
+            if (page) page.cfg_showInteractiveGuides = checked;
+        }
     }
 
     QQC2.Label {

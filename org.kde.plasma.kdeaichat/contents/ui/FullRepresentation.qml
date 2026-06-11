@@ -17,6 +17,18 @@ import "LRUCache.js" as LRUCache
 import "Security.js" as Sec
 
     Item {
+        id: fullRep
+
+        function requestDeleteSession(sessionId) {
+            if (plasmoid.configuration.askDeleteChatConfirmation) {
+                deleteChatConfirmDialog.sessionIdToDelete = sessionId;
+                dontAskDeleteChatCheck.checked = false;
+                deleteChatConfirmDialog.open();
+            } else {
+                root.deleteSession(sessionId);
+            }
+        }
+
         // Plasma popup sizing follows implicit size more reliably than Layout hints here.
         implicitWidth: root.popupPreferredWidth
         implicitHeight: root.popupPreferredHeight
@@ -3005,6 +3017,45 @@ import "Security.js" as Sec
             root.editingDraft = "";
             root.clearCurrentOpenCodeSessionIfNeeded();
             root.saveCurrentSessionState(true);
+        }
+    }
+
+    QQC2.Dialog {
+        id: deleteChatConfirmDialog
+        title: root.translate("Delete Chat Session")
+        modal: true
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Math.min(380, parent.width * 0.9)
+        standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
+
+        property string sessionIdToDelete: ""
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Kirigami.Units.largeSpacing
+
+            PC3.Label {
+                Layout.fillWidth: true
+                text: root.translate("Are you sure you want to delete this chat session? All messages in this session will be permanently deleted.")
+                wrapMode: Text.Wrap
+            }
+
+            QQC2.CheckBox {
+                id: dontAskDeleteChatCheck
+                Layout.fillWidth: true
+                text: root.translate("Don't ask again")
+                checked: false
+            }
+        }
+
+        onAccepted: {
+            if (dontAskDeleteChatCheck.checked) {
+                plasmoid.configuration.askDeleteChatConfirmation = false;
+            }
+            if (sessionIdToDelete !== "") {
+                root.deleteSession(sessionIdToDelete);
+            }
         }
     }
 
