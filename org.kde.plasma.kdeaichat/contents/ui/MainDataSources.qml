@@ -147,7 +147,7 @@ Item {
         id: streamingBatchTimer
         interval: 150
         repeat: false
-        onTriggered: root.flushStreamingBuffer()
+        onTriggered: root.flushIntermediateStreaming()
     }
 
     Timer {

@@ -817,6 +817,10 @@ PlasmoidItem {
         return MainDatabase.flushStreamingBuffer();
     }
 
+    function flushIntermediateStreaming() {
+        return MainDatabase.flushIntermediateStreaming();
+    }
+
     function copyToClipboard(textValue) {
         return MainDatabase.copyToClipboard(textValue);
     }

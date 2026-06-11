@@ -1,4 +1,5 @@
 // MainDatabase.js - Extracted logic for Main
+var _pendingStreamingText = "";
 
 function debugLog() {
 if (debugMode) {
@@ -948,18 +949,20 @@ return ;
 if (modelLabel)
 root.streamingModel = modelLabel;
 
-let existing = root.streamingContent;
-// OpenCode streams can be cumulative or token-delta; handle both.
-if (incoming.indexOf(existing) === 0)
-root.streamingContent = incoming;
-else if (existing.indexOf(incoming) === 0)
-{} // already have it
-else
-root.streamingContent = existing + incoming;
-
+_pendingStreamingText += incoming;
 root.streamingResponse = true;
+if (root.streamingBatchTimer)
+    root.streamingBatchTimer.restart();
 if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);
+}
+
+
+function flushIntermediateStreaming() {
+if (_pendingStreamingText !== "") {
+    root.streamingContent = (root.streamingContent || "") + _pendingStreamingText;
+    _pendingStreamingText = "";
+}
 }
 
 
@@ -3180,6 +3183,7 @@ clipboardDs.connectSource(cmd + " #clipboard-copy");
 
 
 function flushStreamingBuffer() {
+flushIntermediateStreaming();
 let text = root.streamingContent;
 let label = root.streamingModel;
 let ctx = root.streamingContextItems;
