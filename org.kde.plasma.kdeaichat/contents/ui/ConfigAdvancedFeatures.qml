@@ -26,6 +26,7 @@ QQC2.ScrollView {
     property string sttTestResult: ""
     property string storageExportStatus: ""
     property string copiedText: ""
+    property string recordedAudioPath: ""
 
     // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult)
     property string statusText: {
@@ -53,6 +54,15 @@ QQC2.ScrollView {
         id: copiedTimer
         interval: 2000
         onTriggered: page.copiedText = ""
+    }
+
+    Timer {
+        id: sttTimer
+        interval: 5000
+        onTriggered: {
+            page.sttTesting = false;
+            sendVoiceCommand(JSON.stringify({cmd: "stop_stt"}));
+        }
     }
 
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
@@ -100,9 +110,14 @@ QQC2.ScrollView {
             copiedTimer.restart();
         } else if (resp.type === "stt_result") {
             sttTesting = false;
+            sttTimer.stop();
             sttTestResult = resp.text || i18n("(no speech detected)");
+            if (resp.audio_path) {
+                recordedAudioPath = resp.audio_path;
+            }
         } else if (resp.type === "stt_error") {
             sttTesting = false;
+            sttTimer.stop();
             sttTestResult = i18n("Error: ") + (resp.error || i18n("Unknown"));
         } else if (resp.type === "tts_done") {
             ttsPlaying = false;
@@ -169,11 +184,12 @@ QQC2.ScrollView {
         try {
             configClipboard.content = cmd;
             copiedText = "copied";
+            copiedTimer.restart();
         } catch (e) {
             console.error("Failed to copy voice setup command to clipboard:", e);
             copiedText = "error";
+            copiedTimer.restart();
         }
-        copiedTimer.restart();
     }
 
     function runInTerminal(payload) {
@@ -603,10 +619,21 @@ QQC2.ScrollView {
                 onClicked: {
                     page.sttTesting = true;
                     page.sttTestResult = "";
+                    page.recordedAudioPath = "";
                     let lang = plasmoid.configuration.voiceLanguage || "en";
                     let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
                     let modelPath = plasmoid.configuration.voiceSttModelPath || "";
                     sendVoiceCommand(JSON.stringify({cmd: "start_stt", duration: 5, language: lang, model: model, model_path: modelPath}));
+                    sttTimer.start();
+                }
+            }
+
+            QQC2.Button {
+                text: i18n("Play Recording")
+                icon.name: "media-playback-start"
+                visible: page.recordedAudioPath !== ""
+                onClicked: {
+                    sendVoiceCommand(JSON.stringify({cmd: "play_audio", path: page.recordedAudioPath}));
                 }
             }
         }
@@ -622,6 +649,15 @@ QQC2.ScrollView {
         }
 
         // ── TTS Settings ──────────────────────────────────────────────
+        QQC2.CheckBox {
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Auto-send voice input:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            id: voiceAutoSendToggle
+            checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
+            text: checked ? i18n("Enabled — transcribed text is sent automatically") : i18n("Disabled — transcribed text goes to input field")
+        }
+
         QQC2.CheckBox {
             visible: voiceEnabledToggle.checked
             Kirigami.FormData.label: i18n("Read AI responses aloud:")
@@ -708,15 +744,6 @@ QQC2.ScrollView {
                 visible: page.ttsPlaying
                 onClicked: sendVoiceCommand(JSON.stringify({cmd: "stop_tts"}))
             }
-        }
-
-        QQC2.CheckBox {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Auto-send voice input:")
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            id: voiceAutoSendToggle
-            checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
-            text: checked ? i18n("Enabled — transcribed text is sent automatically") : i18n("Disabled — transcribed text goes to input field")
         }
 
         RowLayout {

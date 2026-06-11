@@ -278,9 +278,14 @@ class VoiceHelper:
                 import numpy as np
                 audio = np.concatenate(all_audio)
 
+                # Save audio to temp file for playback
+                import soundfile as sf
+                audio_path = os.path.join(tempfile.gettempdir(), "kdeaichat_stt_test.wav")
+                sf.write(audio_path, audio, sample_rate)
+
                 # Skip very short audio
                 if len(audio) < sample_rate * 0.5:
-                    self.emit({"type": "stt_result", "text": "", "duration": total_recorded})
+                    self.emit({"type": "stt_result", "text": "", "duration": total_recorded, "audio_path": audio_path})
                     self.recording = False
                     return
 
@@ -297,6 +302,7 @@ class VoiceHelper:
                     "text": text,
                     "duration": total_recorded,
                     "language": info.language if hasattr(info, "language") else language,
+                    "audio_path": audio_path,
                 })
 
             except Exception as e:
@@ -314,6 +320,30 @@ class VoiceHelper:
             self.emit({"type": "stt_status", "status": "stopping"})
         else:
             self.emit({"type": "stt_stopped"})
+
+    def play_audio(self, payload):
+        """Play an audio file."""
+        audio_path = payload.get("path", "")
+        if not audio_path or not os.path.exists(audio_path):
+            self.emit({"type": "play_error", "error": "Audio file not found"})
+            return
+
+        def do_play():
+            try:
+                # Try paplay first (PulseAudio)
+                if shutil.which("paplay"):
+                    subprocess.run(["paplay", audio_path], check=True, capture_output=True)
+                # Fallback to aplay (ALSA)
+                elif shutil.which("aplay"):
+                    subprocess.run(["aplay", audio_path], check=True, capture_output=True)
+                else:
+                    self.emit({"type": "play_error", "error": "No audio player found (paplay or aplay)"})
+                    return
+                self.emit({"type": "play_done"})
+            except Exception as e:
+                self.emit({"type": "play_error", "error": str(e)})
+
+        threading.Thread(target=do_play, daemon=True).start()
 
     def tts(self, payload):
         """Text-to-speech synthesis and playback."""
@@ -448,6 +478,7 @@ class VoiceHelper:
             "download_tts": self.download_tts,
             "start_stt": self.start_stt,
             "stop_stt": self.stop_stt,
+            "play_audio": self.play_audio,
             "tts": self.tts,
             "stop_tts": self.stop_tts_cmd,
         }
