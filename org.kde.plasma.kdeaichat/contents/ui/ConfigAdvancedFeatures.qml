@@ -26,7 +26,7 @@ QQC2.ScrollView {
 
     // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult)
     property string statusText: {
-        if (copiedText === "copied") return i18n("Copied command");
+        if (copiedText === "copied") return i18n("Command copied");
         if (copiedText === "copying") return i18n("Copying...");
         if (copiedText === "error") return i18n("Copy failed — check system clipboard");
         if (!voiceEnvChecked) return i18n("Not checked — click Check Status");
@@ -160,7 +160,7 @@ QQC2.ScrollView {
     }
 
     function getHelperPath() {
-        let base = Qt.resolvedUrl("./voice/voice_helper.py");
+        let base = Qt.resolvedUrl("./voice/voice_helper.py").toString();
         if (base === "") return "";
         if (base.indexOf("file://") === 0) {
             base = base.substring(7);
@@ -170,7 +170,7 @@ QQC2.ScrollView {
     }
 
     function getSetupPath() {
-        let base = Qt.resolvedUrl("./voice/voice_setup.sh");
+        let base = Qt.resolvedUrl("./voice/voice_setup.sh").toString();
         if (base === "") return "";
         if (base.indexOf("file://") === 0) {
             base = base.substring(7);
@@ -193,17 +193,20 @@ QQC2.ScrollView {
             copiedTimer.restart();
             return;
         }
-        copiedText = "";
-        try {
-            let safe = Sec.sanitizeForShell(cmd);
-            let copyCmd = "sh -c 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi' #copy-" + Date.now();
-            voicePageDs.connectSource(copyCmd);
-            copiedText = "copied";
-        } catch (e) {
-            console.error("Clipboard copy failed:", e);
-            copiedText = "error";
-        }
-        copiedTimer.restart();
+        copiedText = "copying";
+        copiedTimer.stop();
+        Qt.callLater(function() {
+            try {
+                let safe = Sec.sanitizeForShell(cmd);
+                let copyCmd = "sh -c 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi' #copy-" + Date.now();
+                voicePageDs.connectSource(copyCmd);
+                copiedText = "copied";
+            } catch (e) {
+                console.error("Clipboard copy failed:", e);
+                copiedText = "error";
+            }
+            copiedTimer.restart();
+        });
     }
 
     function runInTerminal(payload) {
