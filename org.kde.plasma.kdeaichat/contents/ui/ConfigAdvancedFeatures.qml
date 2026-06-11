@@ -77,6 +77,14 @@ QQC2.ScrollView {
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
 
+    property alias cfg_voiceSttModelPath: voiceSttModelPathField.text
+    property alias cfg_voiceTtsModelPath: voiceTtsModelPathField.text
+    property alias cfg_voiceVenvPath: voiceVenvPathField.text
+
+    property string cfg_voiceSttModel: plasmoid.configuration.voiceSttModel || "large-v3-turbo"
+    property string cfg_voiceLanguage: plasmoid.configuration.voiceLanguage || "en"
+    property string cfg_voiceTtsVoice: plasmoid.configuration.voiceTtsVoice || "af_heart"
+
     P5Support.DataSource {
         id: voicePageDs
         engine: "executable"
@@ -142,7 +150,7 @@ QQC2.ScrollView {
     }
 
     function getVenvPath() {
-        let path = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+        let path = page.cfg_voiceVenvPath || "~/.local/share/kdeaichat/venv";
         if (path.charAt(0) === "~") {
             let home = StandardPaths.writableLocation(StandardPaths.HomeLocation).toString();
             if (home.indexOf("file://") === 0) {
@@ -212,7 +220,7 @@ QQC2.ScrollView {
     function runInTerminal(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let innerCmd = "echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; echo; read -p 'Press Enter to close...'";
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi; echo; read -p 'Press Enter to close...'";
         let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.quoteForShell(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.quoteForShell(innerCmd) + "; fi #voice-term-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
@@ -220,8 +228,8 @@ QQC2.ScrollView {
     function runEnvCheck() {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let sttPath = plasmoid.configuration.voiceSttModelPath || "";
-        let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
+        let sttPath = page.cfg_voiceSttModelPath || "";
+        let ttsPath = page.cfg_voiceTtsModelPath || "";
         let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
         let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
         let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-env-" + Date.now();
@@ -242,7 +250,7 @@ QQC2.ScrollView {
         onAccepted: {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
-            plasmoid.configuration.voiceSttModelPath = path;
+            voiceSttModelPathField.text = path;
         }
     }
 
@@ -252,7 +260,17 @@ QQC2.ScrollView {
         onAccepted: {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
-            plasmoid.configuration.voiceTtsModelPath = path;
+            voiceTtsModelPathField.text = path;
+        }
+    }
+
+    FolderDialog {
+        id: venvFolderDialog
+        title: i18n("Select Python Virtual Environment Directory")
+        onAccepted: {
+            let path = selectedFolder.toString();
+            if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
+            voiceVenvPathField.text = path;
         }
     }
 
@@ -409,6 +427,7 @@ QQC2.ScrollView {
                     textFormat: Text.RichText
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                     color: Kirigami.Theme.textColor
+                    onLinkActivated: function(link) { Qt.openUrlExternally(link); }
                     text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" +
                           "Click <b>Copy Setup Command</b> and run it in your terminal to install dependencies.<br><br>" +
                           "<b>How to use:</b><br>" +
@@ -417,7 +436,15 @@ QQC2.ScrollView {
                           "3. Click <b>Check Status</b> to verify installation.<br>" +
                           "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" +
                           "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" +
-                          "You can point to existing model directories instead of downloading."
+                          "You can point to existing model directories instead of downloading.<br><br>" +
+                          "<b>System Requirements & Package Manager Links:</b><br>" +
+                          "• <b>espeak-ng</b>: Required for text phonemization. Without this, Kokoro TTS fails. (<a href='https://github.com/espeak-ng/espeak-ng'>GitHub</a>)<br>" +
+                          "• <b>Clipboard utilities</b>: <code>wl-clipboard</code> (for Wayland) or <code>xclip</code> (for X11).<br>" +
+                          "• <b>Audio playback</b>: <code>pulseaudio-utils</code> (for paplay) or <code>alsa-utils</code> (for aplay).<br><br>" +
+                          "<b>Quick Install Command:</b><br>" +
+                          "• Ubuntu/Debian: <code>sudo apt install espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" +
+                          "• Arch Linux: <code>sudo pacman -S espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" +
+                          "• Fedora: <code>sudo dnf install espeak-ng wl-clipboard xclip pulseaudio-utils</code>"
                 }
             }
         }
@@ -515,7 +542,20 @@ QQC2.ScrollView {
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("espeak-ng:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: i18n("Phonemizer (espeak-ng):")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    QQC2.ToolTip.delay: 400
+                    QQC2.ToolTip.visible: maEspeak.hovered
+                    QQC2.ToolTip.text: i18n("espeak-ng translates text into phonetic codes. Required for Kokoro text-to-speech.")
+                    
+                    MouseArea {
+                        id: maEspeak
+                        anchors.fill: parent
+                        hoverEnabled: true
+                    }
+                }
                 QQC2.Label {
                     text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
                     color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
@@ -567,10 +607,9 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.TextField {
+                id: voiceSttModelPathField
                 Layout.fillWidth: true
-                placeholderText: i18n("Leave empty to use default model")
-                text: plasmoid.configuration.voiceSttModelPath || ""
-                onEditingFinished: plasmoid.configuration.voiceSttModelPath = text
+                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
             }
             QQC2.Button {
                 icon.name: "folder-open"
@@ -580,26 +619,27 @@ QQC2.ScrollView {
         }
 
         RowLayout {
-            visible: voiceEnabledToggle.checked && !(plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0)
+            visible: voiceEnabledToggle.checked && !(page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0)
             Kirigami.FormData.label: i18n("Default STT model:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.ComboBox {
+                id: voiceSttModelCombo
                 Layout.fillWidth: true
                 model: ["large-v3-turbo", "large-v3", "medium", "small", "base", "tiny"]
                 currentIndex: {
-                    let m = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
+                    let m = page.cfg_voiceSttModel || "large-v3-turbo";
                     for (let i = 0; i < model.length; i++) if (model[i] === m) return i;
                     return 0;
                 }
-                onActivated: plasmoid.configuration.voiceSttModel = currentValue
+                onActivated: page.cfg_voiceSttModel = currentValue
             }
             QQC2.Button {
                 text: i18n("Download")
                 icon.name: "download"
-                onClicked: runInTerminal({cmd: "download_stt", model: plasmoid.configuration.voiceSttModel || "large-v3-turbo"})
+                onClicked: runInTerminal({cmd: "download_stt", model: page.cfg_voiceSttModel || "large-v3-turbo"})
             }
         }
 
@@ -611,14 +651,15 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.ComboBox {
+                id: voiceLanguageCombo
                 Layout.fillWidth: true
                 model: ["en", "auto", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi"]
                 currentIndex: {
-                    let l = plasmoid.configuration.voiceLanguage || "en";
+                    let l = page.cfg_voiceLanguage || "en";
                     for (let i = 0; i < model.length; i++) if (model[i] === l) return i;
                     return 0;
                 }
-                onActivated: plasmoid.configuration.voiceLanguage = currentValue
+                onActivated: page.cfg_voiceLanguage = currentValue
             }
         }
 
@@ -635,7 +676,6 @@ QQC2.ScrollView {
                 highlighted: page.sttTesting
                 onClicked: {
                     if (page.sttTesting) {
-                        // Allow manual early stop
                         sttTimer.stop();
                         page.sttTesting = false;
                         page.sttCountdown = 0;
@@ -645,10 +685,9 @@ QQC2.ScrollView {
                     page.sttTesting = true;
                     page.sttCountdown = 5;
                     page.sttTestResult = "";
-                    // Don't clear recordedAudioPath so previous play button stays visible
-                    let lang = plasmoid.configuration.voiceLanguage || "en";
-                    let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
-                    let modelPath = plasmoid.configuration.voiceSttModelPath || "";
+                    let lang = page.cfg_voiceLanguage || "en";
+                    let model = page.cfg_voiceSttModel || "large-v3-turbo";
+                    let modelPath = page.cfg_voiceSttModelPath || "";
                     sendVoiceCommand(JSON.stringify({cmd: "start_stt", duration: 5, language: lang, model: model, model_path: modelPath}));
                     sttTimer.restart();
                 }
@@ -694,8 +733,6 @@ QQC2.ScrollView {
             text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
         }
 
-        // spacing separator between auto-send and read-aloud (already in correct order above)
-
         RowLayout {
             visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
             Kirigami.FormData.label: i18n("TTS model path:")
@@ -704,10 +741,9 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.TextField {
+                id: voiceTtsModelPathField
                 Layout.fillWidth: true
-                placeholderText: i18n("Leave empty to use default model")
-                text: plasmoid.configuration.voiceTtsModelPath || ""
-                onEditingFinished: plasmoid.configuration.voiceTtsModelPath = text
+                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
             }
             QQC2.Button {
                 icon.name: "folder-open"
@@ -717,7 +753,7 @@ QQC2.ScrollView {
         }
 
         RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && !(plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0)
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && !(page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0)
             Kirigami.FormData.label: i18n("Default TTS:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -731,7 +767,7 @@ QQC2.ScrollView {
             QQC2.Button {
                 text: i18n("Download")
                 icon.name: "download"
-                onClicked: runInTerminal({cmd: "download_tts", voice: plasmoid.configuration.voiceTtsVoice || "af_heart"})
+                onClicked: runInTerminal({cmd: "download_tts", voice: page.cfg_voiceTtsVoice || "af_heart"})
             }
         }
 
@@ -743,14 +779,15 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.ComboBox {
+                id: voiceTtsVoiceCombo
                 Layout.fillWidth: true
                 model: ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
                 currentIndex: {
-                    let v = plasmoid.configuration.voiceTtsVoice || "af_heart";
+                    let v = page.cfg_voiceTtsVoice || "af_heart";
                     for (let i = 0; i < model.length; i++) if (model[i] === v) return i;
                     return 0;
                 }
-                onActivated: plasmoid.configuration.voiceTtsVoice = currentValue
+                onActivated: page.cfg_voiceTtsVoice = currentValue
             }
         }
 
@@ -764,7 +801,7 @@ QQC2.ScrollView {
                 icon.name: "audio-speakers"
                 onClicked: {
                     page.ttsPlaying = true;
-                    sendVoiceCommand(JSON.stringify({cmd: "tts", text: i18n("Hello! This is a test of the text to speech system."), voice: plasmoid.configuration.voiceTtsVoice || "af_heart", lang_code: "a"}));
+                    sendVoiceCommand(JSON.stringify({cmd: "tts", text: i18n("Hello! This is a test of the text to speech system."), voice: page.cfg_voiceTtsVoice || "af_heart", lang_code: "a"}));
                 }
             }
             QQC2.Button {
@@ -783,9 +820,14 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.TextField {
+                id: voiceVenvPathField
                 Layout.fillWidth: true
-                text: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv"
-                onEditingFinished: plasmoid.configuration.voiceVenvPath = text
+                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
+            }
+            QQC2.Button {
+                icon.name: "folder-open"
+                QQC2.ToolTip.text: i18n("Browse for Python virtual environment directory")
+                onClicked: venvFolderDialog.open()
             }
         }
 
