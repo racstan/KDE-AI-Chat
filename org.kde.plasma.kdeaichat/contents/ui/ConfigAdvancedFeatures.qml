@@ -23,24 +23,26 @@ QQC2.ScrollView {
     property string storageExportStatus: ""
     property string copiedText: ""
     property string recordedAudioPath: ""
+    property string sttStatus: ""
+    property string activeSttSource: ""
 
     // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult)
     property string statusText: {
-        if (copiedText === "copied") return i18n("Command copied");
-        if (copiedText === "copying") return i18n("Copying...");
-        if (copiedText === "error") return i18n("Copy failed — check system clipboard");
-        if (!voiceEnvChecked) return i18n("Not checked — click Check Status");
-        var r = voiceEnvResult;
+        if (page.copiedText === "copied") return i18n("Command copied");
+        if (page.copiedText === "copying") return i18n("Copying...");
+        if (page.copiedText === "error") return i18n("Copy failed — check system clipboard");
+        if (!page.voiceEnvChecked) return i18n("Not checked — click Check Status");
+        var r = page.voiceEnvResult;
         var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
         if (ok) return i18n("Environment ready");
         return i18n("Needs setup — copy and run the setup command");
     }
     property color statusColor: {
-        if (copiedText === "copied") return Kirigami.Theme.positiveTextColor;
-        if (copiedText === "copying") return Kirigami.Theme.neutralTextColor;
-        if (copiedText === "error") return Kirigami.Theme.negativeTextColor;
-        if (!voiceEnvChecked) return Kirigami.Theme.textColor;
-        var r = voiceEnvResult;
+        if (page.copiedText === "copied") return Kirigami.Theme.positiveTextColor;
+        if (page.copiedText === "copying") return Kirigami.Theme.neutralTextColor;
+        if (page.copiedText === "error") return Kirigami.Theme.negativeTextColor;
+        if (!page.voiceEnvChecked) return Kirigami.Theme.textColor;
+        var r = page.voiceEnvResult;
         var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
         if (ok) return Kirigami.Theme.positiveTextColor;
         return Kirigami.Theme.negativeTextColor;
@@ -106,46 +108,64 @@ QQC2.ScrollView {
             }
             if (exitCode !== undefined) {
                 if (exitCode !== 0) {
-                    if (page.sttTesting) {
+                    if (page.sttTesting && sourceName === page.activeSttSource) {
                         page.sttTesting = false;
+                        page.sttStatus = "";
                         sttTimer.stop();
                         page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr : "");
                     }
-                    if (!page.voiceEnvChecked && sourceName.indexOf("voice-env-") >= 0) {
+                    if (sourceName.indexOf("voice-env-") >= 0) {
                         page.voiceEnvResult = {type: "env_check", error: stderr || i18n("Unknown error")};
                         page.voiceEnvChecked = true;
                     }
-                    ttsPlaying = false;
+                    page.ttsPlaying = false;
                 }
                 disconnectSource(sourceName);
+                if (sourceName === page.activeSttSource) {
+                    page.activeSttSource = "";
+                }
             }
         }
     }
 
     function handleVoicePageResponse(resp, sourceName) {
         if (resp.type === "env_check") {
-            voiceEnvResult = resp;
-            voiceEnvChecked = true;
+            page.voiceEnvResult = resp;
+            page.voiceEnvChecked = true;
         } else if (resp.type === "copy_result") {
-            copiedText = resp.ok ? "copied" : "error";
+            page.copiedText = resp.ok ? "copied" : "error";
             copiedTimer.restart();
+        } else if (resp.type === "stt_status") {
+            page.sttStatus = resp.status;
+            if (resp.status === "loading_model") {
+                page.sttTestResult = i18n("Loading model...");
+            } else if (resp.status === "recording") {
+                page.sttCountdown = 5;
+                page.sttTestResult = i18n("Recording...");
+                sttTimer.restart();
+            } else if (resp.status === "transcribing") {
+                sttTimer.stop();
+                page.sttTestResult = i18n("Transcribing...");
+            }
         } else if (resp.type === "stt_result") {
-            sttTesting = false;
+            page.sttTesting = false;
+            page.sttStatus = "";
             sttTimer.stop();
-            sttTestResult = resp.text || i18n("(no speech detected)");
+            page.sttTestResult = resp.text || i18n("(no speech detected)");
             if (resp.audio_path) {
-                recordedAudioPath = resp.audio_path;
+                page.recordedAudioPath = resp.audio_path;
             }
         } else if (resp.type === "stt_error") {
-            sttTesting = false;
+            page.sttTesting = false;
+            page.sttStatus = "";
             sttTimer.stop();
-            sttTestResult = i18n("Error: ") + (resp.error || i18n("Unknown"));
+            page.sttTestResult = i18n("Error: ") + (resp.error || i18n("Unknown"));
         } else if (resp.type === "tts_done") {
-            ttsPlaying = false;
+            page.ttsPlaying = false;
         } else if (resp.type === "tts_error") {
-            ttsPlaying = false;
+            page.ttsPlaying = false;
         } else if (resp.type === "tts_status") {
-            if (resp.status === "playing") ttsPlaying = true;
+            if (resp.status === "playing") page.ttsPlaying = true;
         }
     }
 
@@ -242,6 +262,7 @@ QQC2.ScrollView {
         let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
         let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-cmd-" + Date.now();
         voicePageDs.connectSource(cmd);
+        return cmd;
     }
 
     FolderDialog {
@@ -669,27 +690,43 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
-                text: page.sttTesting
-                      ? i18n("Recording... (%1s)", page.sttCountdown)
-                      : i18n("Record & Transcribe (5s)")
+                text: {
+                    if (page.sttTesting) {
+                        if (page.sttStatus === "loading_model") {
+                            return i18n("Loading model...");
+                        } else if (page.sttStatus === "recording") {
+                            return i18n("Recording... (%1s)", page.sttCountdown);
+                        } else if (page.sttStatus === "transcribing") {
+                            return i18n("Transcribing...");
+                        } else {
+                            return i18n("Initializing...");
+                        }
+                    }
+                    return i18n("Record & Transcribe (5s)");
+                }
                 icon.name: page.sttTesting ? "media-record" : "audio-input-microphone"
                 highlighted: page.sttTesting
                 onClicked: {
                     if (page.sttTesting) {
                         sttTimer.stop();
                         page.sttTesting = false;
+                        page.sttStatus = "";
                         page.sttCountdown = 0;
-                        sendVoiceCommand(JSON.stringify({cmd: "stop_stt"}));
+                        if (page.activeSttSource !== "") {
+                            voicePageDs.disconnectSource(page.activeSttSource);
+                            page.activeSttSource = "";
+                        }
                         return;
                     }
                     page.sttTesting = true;
+                    page.sttStatus = "loading_model";
                     page.sttCountdown = 5;
                     page.sttTestResult = "";
+                    page.recordedAudioPath = "";
                     let lang = page.cfg_voiceLanguage || "en";
                     let model = page.cfg_voiceSttModel || "large-v3-turbo";
                     let modelPath = page.cfg_voiceSttModelPath || "";
-                    sendVoiceCommand(JSON.stringify({cmd: "start_stt", duration: 5, language: lang, model: model, model_path: modelPath}));
-                    sttTimer.restart();
+                    page.activeSttSource = sendVoiceCommand(JSON.stringify({cmd: "start_stt", duration: 5, language: lang, model: model, model_path: modelPath}));
                 }
             }
 
