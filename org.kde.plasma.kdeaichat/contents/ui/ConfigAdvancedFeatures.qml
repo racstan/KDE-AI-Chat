@@ -95,14 +95,20 @@ QQC2.ScrollView {
     function getHelperPath() {
         let base = Qt.resolvedUrl("./voice/voice_helper.py");
         if (base === "") return "";
-        if (base.indexOf("file://") === 0) base = decodeURIComponent(base.substring(7));
+        if (base.indexOf("file://") === 0) {
+            base = base.substring(7);
+            try { base = decodeURIComponent(base); } catch (e) {}
+        }
         return base;
     }
 
     function getSetupPath() {
         let base = Qt.resolvedUrl("./voice/voice_setup.sh");
         if (base === "") return "";
-        if (base.indexOf("file://") === 0) base = decodeURIComponent(base.substring(7));
+        if (base.indexOf("file://") === 0) {
+            base = base.substring(7);
+            try { base = decodeURIComponent(base); } catch (e) {}
+        }
         return base;
     }
 
@@ -116,7 +122,7 @@ QQC2.ScrollView {
     function commandCopied() {
         let cmd = getSetupCommand();
         if (cmd === "") return;
-        voicePageDs.connectSource("printf %s " + Sec.quoteForShell(cmd) + " | wl-copy 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xclip -selection clipboard 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xargs -0 xsel -b 2>/dev/null #voice-copy-" + Date.now());
+        voicePageDs.connectSource("printf %s " + Sec.quoteForShell(cmd) + " | wl-copy 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xclip -selection clipboard 2>/dev/null || printf %s " + Sec.quoteForShell(cmd) + " | xsel -b 2>/dev/null #voice-copy-" + Date.now());
         copiedText = "copied";
         copiedTimer.restart();
     }
@@ -124,8 +130,8 @@ QQC2.ScrollView {
     function runInTerminal(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let innerCmd = "echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; echo; echo '=== Done. Close this window. ==='; sleep 9999";
-        let fullCmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.quoteForShell(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.quoteForShell(innerCmd) + "; else echo 'No terminal found'; fi #voice-term-" + Date.now();
+        let innerCmd = "echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; echo; read -p 'Press Enter to close...'";
+        let fullCmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.quoteForShell(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.quoteForShell(innerCmd) + "; fi #voice-term-" + Date.now();
         voicePageDs.connectSource(fullCmd);
     }
 
