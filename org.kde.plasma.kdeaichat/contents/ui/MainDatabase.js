@@ -529,8 +529,10 @@ copy.splice(index, 1);
 root.messages = copy;
 root.editingMessageIndex = -1;
 root.editingDraft = "";
+Qt.callLater(function() {
 clearCurrentOpenCodeSessionIfNeeded();
 saveCurrentSessionState(true);
+});
 }
 
 

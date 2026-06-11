@@ -20,8 +20,10 @@ QQC2.ScrollView {
     property string sttTestResult: ""
     property bool voiceSetupRunning: false
     property string voiceSetupStatus: ""
+    property string storageExportStatus: ""
 
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
+    property alias cfg_showInteractiveGuides: showGuidesToggle.checked
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
@@ -160,6 +162,26 @@ QQC2.ScrollView {
         id: formLayout
         width: page.availableWidth
 
+        // ── Guides Toggle ──────────────────────────────────────────────
+        QQC2.CheckBox {
+            id: showGuidesToggle
+            Kirigami.FormData.label: i18n("Interactive Guides:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: checked ? i18n("Guides visible — showing setup instructions") : i18n("Guides hidden")
+            onCheckedChanged: {
+                plasmoid.configuration.showInteractiveGuides = checked;
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            opacity: 0.72
+            font: Kirigami.Theme.smallFont
+            text: i18n("Show or hide the setup guide cards below each section.")
+        }
+
         // ── Prompt Templates Guide ────────────────────────────────────
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
@@ -167,6 +189,7 @@ QQC2.ScrollView {
         }
 
         Rectangle {
+            visible: page.cfg_showInteractiveGuides
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: templateGuideLayout.implicitHeight + Kirigami.Units.gridUnit
@@ -275,6 +298,11 @@ QQC2.ScrollView {
                     newTemplatePrompt.text = "";
                 }
             }
+            QQC2.Button {
+                text: i18n("View Templates")
+                icon.name: "view-list-details"
+                onClicked: templateDialog.open()
+            }
         }
 
         // ── Voice & Audio ─────────────────────────────────────────────
@@ -284,6 +312,7 @@ QQC2.ScrollView {
         }
 
         Rectangle {
+            visible: page.cfg_showInteractiveGuides
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: voiceGuideLayout.implicitHeight + Kirigami.Units.gridUnit
@@ -681,6 +710,266 @@ QQC2.ScrollView {
                 Layout.fillWidth: true
                 text: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv"
                 onEditingFinished: plasmoid.configuration.voiceVenvPath = text
+            }
+        }
+
+        // ── Chat Storage ─────────────────────────────────────────────────
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Chat Storage")
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Save chats to:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                id: customHistoryPathField
+                Layout.fillWidth: true
+                placeholderText: i18n("Default (~/.config)")
+                text: plasmoid.configuration.customHistoryPath || ""
+                onTextChanged: plasmoid.configuration.customHistoryPath = text
+            }
+
+            QQC2.Button {
+                text: i18n("Browse…")
+                icon.name: "folder-open"
+                onClicked: storageFolderDialog.open()
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            visible: customHistoryPathField.text.trim() !== ""
+            implicitHeight: storageInfoRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2)
+            border.width: 1
+
+            RowLayout {
+                id: storageInfoRow
+                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
+                anchors.margins: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Icon {
+                    source: "folder-sync"
+                    implicitWidth: Kirigami.Units.iconSizes.small
+                    implicitHeight: Kirigami.Units.iconSizes.small
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
+                    text: {
+                        let p = customHistoryPathField.text.trim();
+                        if (p === "") return "";
+                        if (p.indexOf("file://") === 0) {
+                            p = decodeURIComponent(p.slice(7));
+                        }
+                        let file = p.endsWith("/") ? p + "kdeaichat_history.json" : p + "/kdeaichat_history.json";
+                        return i18n("Chats will be saved to: <b>%1</b><br/>Your existing chats are <b>automatically exported</b> when you press Apply / OK.").arg(file);
+                    }
+                    textFormat: Text.RichText
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            visible: customHistoryPathField.text.trim() !== ""
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Button {
+                id: exportNowBtn
+                text: page.storageExportStatus !== "" ? page.storageExportStatus : i18n("Export Now")
+                icon.name: "document-export"
+                enabled: customHistoryPathField.text.trim() !== "" && page.storageExportStatus === ""
+                onClicked: {
+                    page.storageExportStatus = i18n("Exporting…");
+                    let dir = customHistoryPathField.text.trim();
+                    if (dir.indexOf("file://") === 0) {
+                        dir = decodeURIComponent(dir.slice(7));
+                    }
+                    let file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
+                    let jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
+                    let b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
+                    let cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(file) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " +
+                        "open(path, 'w', encoding='utf-8').write(base64.b64decode(" + Sec.quoteForShell(b64) + ").decode('utf-8')); print('OK')\"";
+                    storageDs.connectSource(cmd + " #storage-export-" + Date.now());
+                    storageExportTimer.restart();
+                }
+            }
+
+            QQC2.Button {
+                text: i18n("Open Folder")
+                icon.name: "folder-open"
+                visible: customHistoryPathField.text.trim() !== ""
+                onClicked: {
+                    let dir = customHistoryPathField.text.trim();
+                    if (dir.indexOf("file://") === 0) {
+                        dir = decodeURIComponent(dir.slice(7));
+                    }
+                    storageDs.connectSource("xdg-open " + Sec.quoteForShell(dir) + " #open-storage-dir");
+                }
+            }
+
+            QQC2.Button {
+                text: i18n("Clear Path")
+                icon.name: "edit-clear"
+                visible: customHistoryPathField.text.trim() !== ""
+                onClicked: {
+                    customHistoryPathField.text = "";
+                }
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            opacity: 0.7
+            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
+            text: customHistoryPathField.text.trim() === ""
+                ? i18n("Chats are saved in the default KDE config location. Select a folder above to store them elsewhere (e.g. a synced cloud drive).")
+                : i18n("<b>Warning: Beta feature.</b> After changing this path, press <b>Apply</b> or <b>OK</b> — your chats will automatically be exported to the new location.")
+            textFormat: Text.RichText
+        }
+    }
+
+    // ── Storage DataSource ──────────────────────────────────────────────────
+    P5Support.DataSource {
+        id: storageDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let out = (data["stdout"] || "").trim();
+            let err = (data["stderr"] || "").trim();
+            if (sourceName.indexOf("storage-export-") >= 0) {
+                page.storageExportStatus = (out.trim() === "OK" || err === "") ? i18n("✓ Exported!") : i18n("Export failed");
+                storageExportTimer.restart();
+            }
+            disconnectSource(sourceName);
+        }
+    }
+
+    Timer {
+        id: storageExportTimer
+        interval: 2500
+        repeat: false
+        onTriggered: {
+            page.storageExportStatus = "";
+        }
+    }
+
+    FolderDialog {
+        id: storageFolderDialog
+        title: i18n("Select Chat History Directory")
+        onAccepted: {
+            let path = selectedFolder.toString();
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+            if (path.length > 1 && path.slice(-1) === "/")
+                path = path.slice(0, -1);
+            customHistoryPathField.text = path;
+        }
+    }
+
+    // ── Template Viewer Dialog ───────────────────────────────────────────────
+    QQC2.Dialog {
+        id: templateDialog
+        modal: true
+        standardButtons: QQC2.Dialog.Close
+        title: i18n("Prompt Templates")
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Kirigami.Units.gridUnit * 32
+        height: Kirigami.Units.gridUnit * 28
+
+        contentItem: ColumnLayout {
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
+                text: i18n("Your saved prompt templates. Type /&lt;name&gt; in chat to use them.")
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            QQC2.ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                ListView {
+                    id: templateListView
+                    model: {
+                        try {
+                            return JSON.parse(page.cfg_promptTemplates || "[]");
+                        } catch(e) { return []; }
+                    }
+                    delegate: Rectangle {
+                        width: templateListView.width
+                        implicitHeight: templateItemLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
+                        radius: 4
+                        color: index % 2 === 0 ? Kirigami.Theme.backgroundColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
+                        border.width: 1
+
+                        ColumnLayout {
+                            id: templateItemLayout
+                            anchors { left: parent.left; right: parent.right; top: parent.top }
+                            anchors.margins: Kirigami.Units.smallSpacing
+                            spacing: Kirigami.Units.smallSpacing / 2
+
+                            QQC2.Label {
+                                text: "/" + (modelData.name || ("template-" + (index + 1)))
+                                font.bold: true
+                                font.family: "monospace"
+                                color: Kirigami.Theme.highlightColor
+                            }
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                wrapMode: Text.Wrap
+                                text: modelData.prompt || ""
+                                opacity: 0.8
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
+                            }
+                        }
+
+                        QQC2.ToolButton {
+                            anchors { right: parent.right; top: parent.top; margins: Kirigami.Units.smallSpacing }
+                            icon.name: "edit-delete"
+                            QQC2.ToolTip.text: i18n("Delete template")
+                            onClicked: {
+                                let arr = JSON.parse(page.cfg_promptTemplates || "[]");
+                                arr.splice(index, 1);
+                                page.cfg_promptTemplates = JSON.stringify(arr);
+                            }
+                        }
+                    }
+                }
+            }
+
+            QQC2.Label {
+                visible: templateListView.model.length === 0
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignCenter
+                opacity: 0.5
+                text: i18n("No templates yet. Create one above.")
+                font: Kirigami.Theme.smallFont
             }
         }
     }

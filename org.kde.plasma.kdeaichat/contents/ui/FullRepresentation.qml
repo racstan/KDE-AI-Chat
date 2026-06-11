@@ -240,11 +240,16 @@ import "Security.js" as Sec
                     Accessible.description: root.translate("Delete all messages in the current session")
                     enabled: !root.loading && root.messages.length > 0
                     onClicked: {
-                        root.messages = [];
-                        root.editingMessageIndex = -1;
-                        root.editingDraft = "";
-                        root.clearCurrentOpenCodeSessionIfNeeded();
-                        root.saveCurrentSessionState(true);
+                        if (plasmoid.configuration.askClearChatConfirmation) {
+                            dontAskClearChatCheck.checked = false;
+                            clearChatConfirmDialog.open();
+                        } else {
+                            root.messages = [];
+                            root.editingMessageIndex = -1;
+                            root.editingDraft = "";
+                            root.clearCurrentOpenCodeSessionIfNeeded();
+                            root.saveCurrentSessionState(true);
+                        }
                     }
                 }
 
@@ -2964,5 +2969,43 @@ import "Security.js" as Sec
 
     }
 
+    QQC2.Dialog {
+        id: clearChatConfirmDialog
+        title: root.translate("Clear Chat History")
+        modal: true
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Math.min(380, parent.width * 0.9)
+        standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Kirigami.Units.largeSpacing
+
+            PC3.Label {
+                Layout.fillWidth: true
+                text: root.translate("Are you sure you want to clear all messages in the current session? This action cannot be undone.")
+                wrapMode: Text.Wrap
+            }
+
+            QQC2.CheckBox {
+                id: dontAskClearChatCheck
+                Layout.fillWidth: true
+                text: root.translate("Don't ask again")
+                checked: false
+            }
+        }
+
+        onAccepted: {
+            if (dontAskClearChatCheck.checked) {
+                plasmoid.configuration.askClearChatConfirmation = false;
+            }
+            root.messages = [];
+            root.editingMessageIndex = -1;
+            root.editingDraft = "";
+            root.clearCurrentOpenCodeSessionIfNeeded();
+            root.saveCurrentSessionState(true);
+        }
+    }
 
 }

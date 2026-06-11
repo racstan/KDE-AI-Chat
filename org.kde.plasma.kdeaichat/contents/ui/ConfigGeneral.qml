@@ -133,7 +133,6 @@ QQC2.ScrollView {
     property alias cfg_globalContextLimit: advancedSection.globalContextLimit
     property alias cfg_globalContextAutoCompact: advancedSection.globalContextAutoCompact
     property alias cfg_globalContextCompactThreshold: advancedSection.globalContextCompactThreshold
-    property alias cfg_customHistoryPath: advancedSection.customHistoryPath
     property alias cfg_schedulerEnabled: advancedSection.schedulerEnabled
     property alias cfg_schedulerAutoStart: advancedSection.schedulerAutoStart
     property alias cfg_executeMissedSchedules: advancedSection.executeMissedSchedules
@@ -173,7 +172,6 @@ QQC2.ScrollView {
     readonly property alias boundedWidth: page.configBoundedWidth
     readonly property alias fieldMaxWidth: page.configFieldMaxWidth
     property string discoveryStatus: ""
-    property string storageExportStatus: ""
     property string openCodeSessionsStatus: ""
     property var runningOpenCodeSessions: []
     property bool runningOpenCodeSessionsVisible: false
@@ -274,7 +272,6 @@ QQC2.ScrollView {
     readonly property alias globalContextLimitSpin: advancedSection.globalContextLimitSpin
     readonly property alias globalContextAutoCompactToggle: advancedSection.globalContextAutoCompactToggle
     readonly property alias globalContextCompactThresholdSpin: advancedSection.globalContextCompactThresholdSpin
-    readonly property alias customHistoryPathField: advancedSection.customHistoryPathField
     readonly property alias schedulerMasterSwitch: advancedSection.schedulerMasterSwitch
     readonly property alias schedAutoStartToggle: advancedSection.schedAutoStartToggle
     readonly property alias executeMissedSchedulesToggle: advancedSection.executeMissedSchedulesToggle
@@ -349,7 +346,7 @@ QQC2.ScrollView {
     readonly property alias togetherImageModelField: keys2.togetherImageModelField
 
 
-    readonly property string guideText: translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>" + "• <b>Appearance:</b> Use the <b>Appearance</b> dropdown to choose <i>Follow system</i>, <i>Light mode</i>, or <i>Dark mode</i> for the chat popup.<br/>" + "• <b>Language:</b> Use the <b>Language</b> dropdown to change the UI language of the chat popup. <i>Follow system language</i> uses your system locale automatically.<br/>" + "• <b>Notification sound:</b> Tick <b>Play sound when AI finishes a response</b> to hear an alert after every reply.<br/>" + "• <b>Interactive guides:</b> Toggle <b>Turn on interactive guides</b> to show/hide these setup cards throughout the settings.<br/>" + "• <b>Chat features:</b> Press <b>Ctrl+F</b> to search the active conversation. Click <b>Quote</b> on any message to reply inline. Use <b>Regenerate</b> to get a shorter or longer version of any AI response.<br/>" + "• <b>Session sidebar:</b> Search, sort, and filter conversations. New chats are auto-named for easy identification.<br/>" + "• <b>Global Memory &amp; Global Context:</b> In the <b>Behavior</b> section, configure memory, set the context limit (default: 1), and enable auto-compacting.<br/>" + "• <b>Schedules:</b> Use the <b>Schedules</b> tool to schedule automated questions. Type <code>/schedule</code> inside any chat to list or create automated prompts.<br/>" + "• <b>Image Generation:</b> Select an image provider (Pollinations.ai, HuggingFace, Together AI) to generate images from text prompts. Pollinations.ai is free and requires no API key.<br/>" + "• <b>Chat Settings:</b> Click the gear icon to access per-chat settings: model switch, response length, system prompt, memory, and context overrides.<br/>" + "• <b>Prompt Templates:</b> Save frequently used prompts in the Behavior section and apply them from chat using <code>/template</code>.<br/>" + "• <b>Test Connection:</b> Use the <b>Test Connection</b> button in Provider settings to verify your API key and endpoint work.")
+    readonly property string guideText: translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>• <b>Appearance:</b> Select a theme (Follow system, Light mode, or Dark mode) to customize the chat look.<br/>• <b>Language:</b> Select your preferred display language for the widget interface.<br/>• <b>Notification Sound:</b> Toggle sound alerts when the AI agent completes generating responses.<br/>• <b>Interactive Guides:</b> Enable or disable these detailed configuration cards at the top of the settings panel.")
 
     readonly property string behaviorGuideText: translate("<b>Behavior &amp; Context Guide:</b><br/>" +
         "• <b>System prompt:</b> Set a default instruction template for the AI (e.g., <i>\"Be extremely concise\"</i>).<br/>" +
@@ -427,7 +424,7 @@ QQC2.ScrollView {
         return "";
     }
 
-    readonly property string otherSettingsGuideText: translate("<b>Other Settings Guide:</b><br/>• <b>Keyboard Shortcuts:</b> Customize keyboard shortcuts in the <b>Shortcuts</b> tab. Configure hotkeys for all common actions — search, new chat, export, regenerate, and more.<br/>• <b>App name:</b> Change the display name shown in the widget title bar. After clicking Apply/OK, restart the shell with the command shown to apply it.<br/>• <b>System prompt:</b> Set a default system instruction for every chat session (e.g. <i>\"You are a helpful Linux assistant.\"</i>). Leave blank to use the default.<br/>• <b>Chat storage path (beta):</b> Choose a folder to save your chat history. Click <b>Browse...</b> to pick a folder, or type a path directly. History is saved as <code>kdeaichat_history.json</code> inside that folder. Default is <code>~/.config</code>.<br/>• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.")
+    readonly property string otherSettingsGuideText: translate("<b>Other Settings Guide:</b><br/>• <b>Keyboard Shortcuts:</b> Customize keyboard shortcuts in the <b>Shortcuts</b> tab. Configure hotkeys for all common actions — search, new chat, export, regenerate, and more.<br/>• <b>App name:</b> Change the display name shown in the widget title bar. After clicking Apply/OK, restart the shell with the command shown to apply it.<br/>• <b>System prompt:</b> Set a default system instruction for every chat session (e.g. <i>\"You are a helpful Linux assistant.\"</i>). Leave blank to use the default.<br/>• <b>Chat storage path (beta):</b> Now in the <b>Advanced Features</b> tab. Choose a folder to save your chat history. History is saved as <code>kdeaichat_history.json</code> inside that folder. Default is <code>~/.config</code>.<br/>• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.")
 
     readonly property string schedulerGuideText: {
         if (!cfg_schedulerEnabled) {
@@ -1119,9 +1116,6 @@ QQC2.ScrollView {
                 Qt.callLater(pollSchedulerState);
             } else if (sourceName.indexOf("sched-hup") >= 0) {
                 page.schedulerStatus = "Schedules reloaded (SIGHUP sent).";
-            } else if (sourceName.indexOf("storage-export-") >= 0) {
-                page.storageExportStatus = (out.trim() === "OK" || err === "") ? "✓ Exported!" : "Export failed";
-                exportStatusTimer.restart();
             } else if (sourceName.indexOf("mem-usage-") >= 0) {
                 page.memRefreshing = false;
                 try {
@@ -1313,22 +1307,6 @@ QQC2.ScrollView {
             twinFormLayouts: [generalSection, openCodeSection, providersSection, keys1, keys2]
         }
 
-    }
-
-    FolderDialog {
-        id: folderDialog
-
-        title: "Select Chat History Directory"
-        onAccepted: {
-            let path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0)
-                path = decodeURIComponent(path.slice(7));
-
-            if (path.length > 1 && path.slice(-1) === "/")
-                path = path.slice(0, -1);
-
-            advancedSection.customHistoryPathField.text = path;
-        }
     }
 
 }

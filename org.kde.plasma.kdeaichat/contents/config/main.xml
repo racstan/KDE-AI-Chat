@@ -352,6 +352,9 @@
     <entry name="chatSessionsJson" type="String">
       <default>[]</default>
     </entry>
+    <entry name="askClearChatConfirmation" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="customHistoryPath" type="String">
       <default>~/.config</default>
     </entry>

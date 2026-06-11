@@ -29,7 +29,6 @@ Kirigami.FormLayout {
     property alias schedAutoStartToggle: schedAutoStartToggle
     property alias executeMissedSchedulesToggle: executeMissedSchedulesToggle
     property alias appDisplayNameField: appDisplayNameField
-    property alias customHistoryPathField: customHistoryPathField
     property alias storageModeCombo: storageModeCombo
     property alias walletNameField: walletNameField
     property alias kwalletAutoPromptCheck: kwalletAutoPromptCheck
@@ -49,7 +48,6 @@ Kirigami.FormLayout {
     property alias schedulerAutoStart: schedAutoStartToggle.checked
     property alias executeMissedSchedules: executeMissedSchedulesToggle.checked
     property alias appDisplayName: appDisplayNameField.text
-    property alias customHistoryPath: customHistoryPathField.text
 
     // ── Behavior Section ──────────────────────────────────────────────────
     Kirigami.Separator {
@@ -881,156 +879,6 @@ Kirigami.FormLayout {
         }
     }
 
-    // ── Chat Storage Path ─────────────────────────────────────────────────
-    Kirigami.Separator {
-        Kirigami.FormData.isSection: true
-        Kirigami.FormData.label: page ? page.translate("Chat Storage") : "Chat Storage"
-    }
-
-    RowLayout {
-        Kirigami.FormData.label: page ? page.translate("Save chats to:") : "Save chats to:"
-        Layout.fillWidth: true
-        Layout.maximumWidth: advancedSection.fieldMaxWidth
-        spacing: Kirigami.Units.smallSpacing
-
-        QQC2.TextField {
-            id: customHistoryPathField
-            Layout.fillWidth: true
-            placeholderText: "Default (~/.config)"
-        }
-
-        QQC2.Button {
-            text: "Browse…"
-            icon.name: "folder-open"
-            onClicked: folderDialog.open()
-        }
-    }
-
-    Rectangle {
-        Layout.fillWidth: true
-        Layout.maximumWidth: advancedSection.fieldMaxWidth
-        visible: customHistoryPathField.text.trim() !== ""
-        implicitHeight: storageInfoRow.implicitHeight + Kirigami.Units.smallSpacing * 2
-        radius: 5
-        color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
-        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2)
-        border.width: 1
-
-        RowLayout {
-            id: storageInfoRow
-            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
-            anchors.margins: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
-
-            Kirigami.Icon {
-                source: "folder-sync"
-                implicitWidth: Kirigami.Units.iconSizes.small
-                implicitHeight: Kirigami.Units.iconSizes.small
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            QQC2.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
-                text: {
-                    let p = customHistoryPathField.text.trim();
-                    if (p === "") return "";
-                    if (p.indexOf("file://") === 0) {
-                        p = decodeURIComponent(p.slice(7));
-                    }
-                    let file = p.endsWith("/") ? p + "kdeaichat_history.json" : p + "/kdeaichat_history.json";
-                    return "Chats will be saved to: <b>" + file + "</b><br/>" +
-                           "Your existing chats are <b>automatically exported</b> when you press Apply / OK.";
-                }
-                textFormat: Text.RichText
-            }
-        }
-    }
-
-    RowLayout {
-        Layout.fillWidth: true
-        Layout.maximumWidth: advancedSection.fieldMaxWidth
-        visible: customHistoryPathField.text.trim() !== ""
-        spacing: Kirigami.Units.smallSpacing
-
-        QQC2.Button {
-            id: exportNowBtn
-            text: page ? (page.storageExportStatus !== "" ? page.storageExportStatus : "Export Now") : "Export Now"
-            icon.name: "document-export"
-            enabled: page ? (customHistoryPathField.text.trim() !== "" && page.storageExportStatus === "") : false
-            onClicked: {
-                if (page) {
-                    page.storageExportStatus = "Exporting…";
-                    let dir = customHistoryPathField.text.trim();
-                    if (dir.indexOf("file://") === 0) {
-                        dir = decodeURIComponent(dir.slice(7));
-                    }
-                    let file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
-                    let safeFile = Sec.validateFilePath(file);
-                    if (safeFile === "") {
-                        page.storageExportStatus = "Refusing to write to unsafe path.";
-                        return;
-                    }
-                    let jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
-                    let b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
-                    let cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(safeFile) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " +
-                        "open(path, 'w', encoding='utf-8').write(base64.b64decode(" + Sec.quoteForShell(b64) + ").decode('utf-8')); print('OK')\"";
-                    page.utilityDs.connectSource(cmd + " #storage-export-" + Date.now());
-                    exportStatusTimer.restart();
-                }
-            }
-        }
-
-        QQC2.Button {
-            text: "Open Folder"
-            icon.name: "folder-open"
-            visible: customHistoryPathField.text.trim() !== ""
-            onClicked: {
-                if (page) {
-                    let dir = customHistoryPathField.text.trim();
-                    if (dir.indexOf("file://") === 0) {
-                        dir = decodeURIComponent(dir.slice(7));
-                    }
-                    let safeDir = Sec.validateFilePath(dir);
-                    if (safeDir === "")
-                        return;
-                    page.utilityDs.connectSource("xdg-open " + Sec.quoteForShell(safeDir) + " #open-storage-dir");
-                }
-            }
-        }
-
-        QQC2.Button {
-            text: "Clear Path"
-            icon.name: "edit-clear"
-            visible: customHistoryPathField.text.trim() !== ""
-            onClicked: {
-                customHistoryPathField.text = "";
-            }
-        }
-    }
-
-    QQC2.Label {
-        Layout.fillWidth: true
-        Layout.maximumWidth: advancedSection.fieldMaxWidth
-        wrapMode: Text.Wrap
-        opacity: 0.7
-        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
-        text: customHistoryPathField.text.trim() === ""
-            ? "Chats are saved in the default KDE config location. Select a folder above to store them elsewhere (e.g. a synced cloud drive)."
-            : "<b>Warning: Beta feature.</b> After changing this path, press <b>Apply</b> or <b>OK</b> — your chats will automatically be exported to the new location."
-        textFormat: Text.RichText
-    }
-
-    Timer {
-        id: exportStatusTimer
-        interval: 2500
-        repeat: false
-        onTriggered: {
-            if (page) page.storageExportStatus = "";
-        }
-    }
-
     RowLayout {
         visible: page ? page.discoveryStatus.indexOf("systemctl") >= 0 : false
         Kirigami.FormData.label: page ? page.translate("Next step:") : "Next step:"
@@ -1068,21 +916,6 @@ Kirigami.FormLayout {
         text: "Reset to defaults"
         onClicked: {
             if (page) page.resetToDefaults();
-        }
-    }
-
-    FolderDialog {
-        id: folderDialog
-        title: "Select Chat History Directory"
-        onAccepted: {
-            let path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0)
-                path = decodeURIComponent(path.slice(7));
-
-            if (path.length > 1 && path.slice(-1) === "/")
-                path = path.slice(0, -1);
-
-            customHistoryPathField.text = path;
         }
     }
 
