@@ -34,17 +34,26 @@ QQC2.ScrollView {
         connectedSources: []
         onNewData: function(sourceName, data) {
             let stdout = (data["stdout"] || "").trim();
-            disconnectSource(sourceName);
-            if (stdout === "") return;
-            let lines = stdout.split("\n");
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
-                if (!line) continue;
-                try {
-                    let resp = JSON.parse(line);
-                    handleVoicePageResponse(resp, sourceName);
-                } catch (e) {}
+            let stderr = (data["stderr"] || "").trim();
+            let exitCode = data["exit code"];
+            if (stdout !== "") {
+                let lines = stdout.split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (!line) continue;
+                    try {
+                        let resp = JSON.parse(line);
+                        handleVoicePageResponse(resp, sourceName);
+                    } catch (e) {}
+                }
             }
+            if (exitCode !== undefined && exitCode !== 0) {
+                voiceSetupRunning = false;
+                sttTesting = false;
+                ttsPlaying = false;
+                voiceSetupStatus = i18n("Error: ") + (stderr || stdout || i18n("Command failed"));
+            }
+            disconnectSource(sourceName);
         }
     }
 
@@ -83,7 +92,11 @@ QQC2.ScrollView {
     }
 
     function getVenvPath() {
-        return plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+        let path = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+        if (path.charAt(0) === "~") {
+            path = Qt.resolvedUrl("~").substring(7) + path.substring(1);
+        }
+        return path;
     }
 
     function getVenvPython() {

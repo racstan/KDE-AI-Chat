@@ -3263,7 +3263,10 @@ function checkVoiceEnv() {
     let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
     venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
     let venvPy = venvPath + "/bin/python3";
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + " check_env; else python3 " + Sec.quoteForShell(helperPath) + " check_env; fi";
+    let sttPath = plasmoid.configuration.voiceSttModelPath || "";
+    let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
+    let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
     root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-env-" + Date.now());
 }
 
