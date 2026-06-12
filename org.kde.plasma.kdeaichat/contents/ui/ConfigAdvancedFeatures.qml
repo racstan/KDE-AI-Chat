@@ -29,7 +29,6 @@ QQC2.ScrollView {
     property int sttCountdown: 0
     property string sttTestResult: ""
     property string storageExportStatus: ""
-    property string copiedText: ""
     property string recordedAudioPath: ""
     property string sttStatus: ""
     property string activeSttSource: ""
@@ -37,17 +36,8 @@ QQC2.ScrollView {
     property bool sttServiceEnabled: false
     property bool ttsServiceActive: false
     property bool ttsServiceEnabled: false
-    // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult, voiceEnvChecking)
+    // Computed binding — QML tracks dependencies (voiceEnvChecked, voiceEnvResult, voiceEnvChecking)
     property string statusText: {
-        if (page.copiedText === "copied_cpu" || page.copiedText === "copied_gpu")
-            return i18n("Command copied");
-
-        if (page.copiedText === "copying")
-            return i18n("Copying...");
-
-        if (page.copiedText === "error")
-            return i18n("Copy failed — check system clipboard");
-
         if (page.voiceEnvChecking)
             return i18n("Checking environment status...");
 
@@ -62,23 +52,14 @@ QQC2.ScrollView {
         if (ok)
             return i18n("Environment ready");
 
-        return i18n("Needs setup — copy and run the setup command");
+        return i18n("Needs setup — run CPU Setup or GPU Setup");
     }
     property color statusColor: {
-        if (page.copiedText === "copied_cpu" || page.copiedText === "copied_gpu")
-            return Kirigami.Theme.positiveTextColor;
-
-        if (page.copiedText === "copying")
-            return Kirigami.Theme.neutralTextColor;
-
-        if (page.copiedText === "error")
-            return Kirigami.Theme.negativeTextColor;
-
         if (page.voiceEnvChecking)
             return Kirigami.Theme.neutralTextColor;
 
         if (!page.voiceEnvChecked)
-            return Kirigami.Theme.textColor;
+            return Kirigami.Theme.disabledTextColor;
 
         var r = page.voiceEnvResult;
         if (r && r.error)
@@ -108,9 +89,6 @@ QQC2.ScrollView {
             page.voiceEnvResult = resp;
             page.voiceEnvChecked = true;
             page.voiceEnvChecking = false;
-        } else if (resp.type === "copy_result") {
-            page.copiedText = resp.ok ? "copied" : "error";
-            copiedTimer.restart();
         } else if (resp.type === "stt_status") {
             page.sttStatus = resp.status;
             if (resp.status === "loading_model") {
@@ -758,9 +736,9 @@ QQC2.ScrollView {
             }
 
             QQC2.Button {
-                text: copiedText === "copied_cpu" ? i18n("CPU Command Copied!") : i18n("Copy CPU Setup Command")
-                icon.name: copiedText === "copied_cpu" ? "dialog-ok-apply" : "edit-copy"
-                onClicked: page.commandCopied("cpu")
+                text: i18n("Run GPU Setup")
+                icon.name: "utilities-terminal"
+                onClicked: page.runSetupInTerminal("gpu")
             }
 
             QQC2.Button {
@@ -776,24 +754,12 @@ QQC2.ScrollView {
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
-            QQC2.Button {
-                text: i18n("Run GPU Setup")
-                icon.name: "utilities-terminal"
-                onClicked: page.runSetupInTerminal("gpu")
-            }
-
-            QQC2.Button {
-                text: copiedText === "copied_gpu" ? i18n("GPU Command Copied!") : i18n("Copy GPU Setup Command")
-                icon.name: copiedText === "copied_gpu" ? "dialog-ok-apply" : "edit-copy"
-                onClicked: page.commandCopied("gpu")
-            }
-
             QQC2.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 font: Kirigami.Theme.smallFont
                 opacity: 0.6
-                text: i18n("Note: Requires NVIDIA CUDA drivers & library dependencies.")
+                text: i18n("Note: GPU Setup requires NVIDIA CUDA drivers & library dependencies.")
             }
         }
 
@@ -1242,7 +1208,7 @@ QQC2.ScrollView {
                 id: voiceEspeakPathField
 
                 Layout.fillWidth: true
-                placeholderText: i18n("Don't write anything if installed from the install button.")
+                placeholderText: i18n("Auto-detected (leave blank if installed via system package manager)")
             }
 
             QQC2.Button {

@@ -256,21 +256,22 @@ class VoiceHelper:
         self.emit({"type": "download_started", "target": "tts", "model": "kokoro-82m"})
 
     def start_stt(self, payload):
-        """Start speech-to-text recording."""
+        """Speech-to-text recording and transcription."""
         if self.recording:
             self.emit({"type": "stt_error", "error": "Already recording"})
             return
-
-        duration = payload.get("duration", 10)
-        language = payload.get("language", "en")
-        model_name = payload.get("model", "large-v3-turbo")
-        resolved_custom_path = payload.get("model_path", "")
 
         self.recording = True
         self.stop_recording = False
 
         def do_stt():
             try:
+                # Fetch payload values locally to prevent enclosing scope assignment/UnboundLocalError
+                duration = payload.get("duration", 10)
+                language = payload.get("language", "en")
+                model_name = payload.get("model", "large-v3-turbo")
+                custom_model_path = payload.get("model_path", "")
+
                 # Check microphone
                 try:
                     import sounddevice as sd
@@ -320,9 +321,9 @@ class VoiceHelper:
                         compute_type = "float16" if device == "cuda" else "int8"
                         
                         try:
-                            if resolved_custom_path:
-                                resolved_custom_path = os.path.expanduser(resolved_custom_path)
-                                custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
+                            if custom_model_path:
+                                custom_model_path = os.path.expanduser(custom_model_path)
+                                custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
                                 if os.path.isdir(custom_dir):
                                     self.stt_model = WhisperModel(custom_dir, device=device, compute_type=compute_type)
                                 else:
@@ -332,9 +333,9 @@ class VoiceHelper:
                         except Exception:
                             # Fallback to CPU if CUDA fails
                             if device == "cuda":
-                                if resolved_custom_path:
-                                    resolved_custom_path = os.path.expanduser(resolved_custom_path)
-                                    custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
+                                if custom_model_path:
+                                    custom_model_path = os.path.expanduser(custom_model_path)
+                                    custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
                                     if os.path.isdir(custom_dir):
                                         self.stt_model = WhisperModel(custom_dir, device="cpu", compute_type="int8")
                                     else:
@@ -457,13 +458,7 @@ class VoiceHelper:
 
     def tts(self, payload):
         """Text-to-speech synthesis and playback."""
-        text = payload.get("text", "")
-        voice = payload.get("voice", "af_heart")
-        lang_code = payload.get("lang_code", "a")
-        custom_path = payload.get("model_path", "")
-        espeak_path = payload.get("espeak_path", "")
-
-        if not text:
+        if not payload.get("text", ""):
             self.emit({"type": "tts_error", "error": "No text provided"})
             return
 
@@ -476,6 +471,13 @@ class VoiceHelper:
 
         def do_tts():
             try:
+                # Fetch payload values locally to prevent enclosing scope assignment/UnboundLocalError
+                text = payload.get("text", "")
+                voice = payload.get("voice", "af_heart")
+                lang_code = payload.get("lang_code", "a")
+                custom_model_path = payload.get("model_path", "")
+                espeak_path = payload.get("espeak_path", "")
+
                 # Setup custom espeak path if provided
                 if espeak_path:
                     ep = os.path.expanduser(espeak_path)
@@ -511,11 +513,10 @@ class VoiceHelper:
                 import numpy as np
                 import torch
 
-                resolved_custom_path = custom_path
                 if self.tts_pipeline is None:
-                    if resolved_custom_path:
-                        resolved_custom_path = os.path.expanduser(resolved_custom_path)
-                        custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
+                    if custom_model_path:
+                        custom_model_path = os.path.expanduser(custom_model_path)
+                        custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
                         # Find config.json and .pth file in custom_dir
                         config_file = os.path.join(custom_dir, "config.json")
                         model_file = None
@@ -541,8 +542,8 @@ class VoiceHelper:
 
                 # Resolve local voice file if custom path is set
                 resolved_voice = voice
-                if resolved_custom_path:
-                    custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
+                if custom_model_path:
+                    custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
                     custom_voice_path = os.path.join(custom_dir, f"{voice}.pt")
                     if os.path.exists(custom_voice_path):
                         resolved_voice = custom_voice_path

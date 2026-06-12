@@ -828,9 +828,31 @@ Kirigami.FormLayout {
                 font.bold: page ? page.memOpenCode > 0 : false
             }
 
+            RowLayout {
+                spacing: Kirigami.Units.smallSpacing
+                Kirigami.Icon { source: "audio-input-microphone"; implicitWidth: 16; implicitHeight: 16 }
+                QQC2.Label { text: "STT Daemon" }
+            }
+            QQC2.Label {
+                text: page ? (page.memStt > 0 ? (page.memStt / 1024).toFixed(1) + " MB" : "Not running") : ""
+                color: page ? (page.memStt > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor) : Kirigami.Theme.textColor
+                font.bold: page ? page.memStt > 0 : false
+            }
+
+            RowLayout {
+                spacing: Kirigami.Units.smallSpacing
+                Kirigami.Icon { source: "audio-volume-high"; implicitWidth: 16; implicitHeight: 16 }
+                QQC2.Label { text: "TTS Daemon" }
+            }
+            QQC2.Label {
+                text: page ? (page.memTts > 0 ? (page.memTts / 1024).toFixed(1) + " MB" : "Not running") : ""
+                color: page ? (page.memTts > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor) : Kirigami.Theme.textColor
+                font.bold: page ? page.memTts > 0 : false
+            }
+
             QQC2.Label { text: "Total"; font.bold: true }
             QQC2.Label {
-                text: page ? ((page.memScheduler + page.memOpenCode) > 0 ? ((page.memScheduler + page.memOpenCode) / 1024).toFixed(1) + " MB" : "—") : ""
+                text: page ? ((page.memScheduler + page.memOpenCode + page.memStt + page.memTts) > 0 ? ((page.memScheduler + page.memOpenCode + page.memStt + page.memTts) / 1024).toFixed(1) + " MB" : "—") : ""
                 font.bold: true
                 color: Kirigami.Theme.highlightColor
             }

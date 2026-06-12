@@ -24,7 +24,8 @@ if [ -d "$VENV_DIR" ]; then
         echo "  ✓ All required Python packages are already installed."
         echo "================================================================="
         echo ""
-        read -p "Press Enter to close..."
+        read -n 1 -s -r -p "Press any key to exit..."
+        echo ""
         exit 0
     fi
 fi
@@ -65,4 +66,5 @@ echo "-----------------------------------------------------------------"
 echo "  ✓ Voice setup ($MODE) completed successfully!"
 echo "================================================================="
 echo ""
-read -p "Press Enter to close..."
+read -n 1 -s -r -p "Press any key to exit..."
+echo ""
