@@ -6,6 +6,7 @@ import "MainNetwork.js" as MainNetwork
 import "MainScheduler.js" as MainScheduler
 import "MainOpenCode.js" as MainOpenCode
 import "Security.js" as Sec
+import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 
 /*
  * MainDataSources.qml — KDE AI Chat DataSources & Timers Container
@@ -23,6 +24,10 @@ Item {
     id: dataSourcesContainer
 
     required property var root
+
+    KQuickControlsAddons.Clipboard {
+        id: clipboardHelper
+    }
 
     // Expose internal components to the parent via properties/aliases
     property alias soundDs: soundDs
@@ -65,7 +70,7 @@ Item {
     }
 
     function copyToClipboard(textValue) {
-        return MainDatabase.copyToClipboard(textValue);
+        clipboardHelper.content = textValue;
     }
 
     P5Support.DataSource {

@@ -11,6 +11,7 @@ import "ProviderService.js" as ProviderService
 import "WalletService.js" as WalletService
 import "Security.js" as Sec
 import "ConfigGeneralLogic.js" as ConfigGeneralLogic
+import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 
 // LINKAGE RELATIONSHIPS:
 // - ConfigGeneral.qml: The main settings page UI for the Plasmoid.
@@ -20,6 +21,10 @@ import "ConfigGeneralLogic.js" as ConfigGeneralLogic
 
 QQC2.ScrollView {
     id: page
+
+    KQuickControlsAddons.Clipboard {
+        id: clipboardHelper
+    }
 
     contentWidth: availableWidth
     contentHeight: zoomHost.implicitHeight
@@ -521,7 +526,7 @@ QQC2.ScrollView {
     }
 
     function copyToClipboard(textValue) {
-        return ConfigGeneralLogic.copyToClipboard(textValue);
+        clipboardHelper.content = textValue;
     }
 
     function providerEnabled(providerId) {

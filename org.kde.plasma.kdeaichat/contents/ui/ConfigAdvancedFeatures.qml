@@ -7,9 +7,15 @@ import QtQuick.Layouts
 import "Security.js" as Sec
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 
 QQC2.ScrollView {
     id: page
+
+    KQuickControlsAddons.Clipboard {
+        id: clipboardHelper
+    }
+
 
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
@@ -193,9 +199,7 @@ QQC2.ScrollView {
         copiedTimer.stop();
         Qt.callLater(function() {
             try {
-                let safe = Sec.sanitizeForShell(cmd);
-                let copyCmd = "sh -c 'if command -v wl-copy >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + Sec.quoteForShell(safe) + " | xclip -selection clipboard; else echo \"Clipboard tool missing: install wl-clipboard or xclip\" 1>&2; exit 1; fi' #copy-" + Date.now();
-                voicePageDs.connectSource(copyCmd);
+                clipboardHelper.content = cmd;
                 copiedText = "copied";
             } catch (e) {
                 console.error("Clipboard copy failed:", e);
@@ -1037,7 +1041,7 @@ QQC2.ScrollView {
             id: voiceTtsEnabledToggle
 
             visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Read AI responses aloud:")
+            Kirigami.FormData.label: i18n("Read AI responses aloud (TTS):")
             Layout.maximumWidth: formLayout.fieldMaxWidth
             checked: plasmoid.configuration.voiceTtsEnabled || false
             text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
