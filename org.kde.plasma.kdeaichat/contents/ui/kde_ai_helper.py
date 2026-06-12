@@ -284,6 +284,17 @@ def cmd_setup_voice_services(payload: Dict[str, Any]) -> None:
     sdir = os.path.expanduser("~/.config/systemd/user")
     os.makedirs(sdir, exist_ok=True)
 
+    espeak_path = payload.get("espeakPath", "")
+    espeak_env = ""
+    if espeak_path:
+        espeak_path = os.path.expanduser(espeak_path)
+        if os.path.isdir(espeak_path):
+            dir_path = espeak_path
+        else:
+            dir_path = os.path.dirname(espeak_path)
+        if dir_path:
+            espeak_env = f'\nEnvironment="PATH={dir_path}:%h/.local/bin:/usr/local/bin:/usr/bin:/bin"\nEnvironment="PHONEMIZER_ESPEAK_PATH={dir_path}"'
+
     # Write STT service
     stt_file = os.path.join(sdir, "kde-ai-stt.service")
     stt_content = f"""[Unit]
@@ -295,7 +306,7 @@ Type=simple
 ExecStart={venv_py} {voice_helper} --stt-server
 Restart=always
 RestartSec=5
-Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONUNBUFFERED=1{espeak_env}
 
 [Install]
 WantedBy=default.target
@@ -314,7 +325,7 @@ Type=simple
 ExecStart={venv_py} {voice_helper} --tts-server
 Restart=always
 RestartSec=5
-Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONUNBUFFERED=1{espeak_env}
 
 [Install]
 WantedBy=default.target
@@ -324,6 +335,63 @@ WantedBy=default.target
 
     os.system("systemctl --user daemon-reload")
     print("VOICE_SERVICES_SETUP_OK")
+
+
+def cmd_delete_voice_setup(payload: Dict[str, Any]) -> None:
+    """Disable/stop voice systemd services and delete the venv & downloaded models."""
+    # Stop & disable services
+    os.system("systemctl --user stop kde-ai-stt.service 2>/dev/null")
+    os.system("systemctl --user stop kde-ai-tts.service 2>/dev/null")
+    os.system("systemctl --user disable kde-ai-stt.service 2>/dev/null")
+    os.system("systemctl --user disable kde-ai-tts.service 2>/dev/null")
+    
+    # Remove service files
+    sdir = os.path.expanduser("~/.config/systemd/user")
+    for sfile in ("kde-ai-stt.service", "kde-ai-tts.service"):
+        p = os.path.join(sdir, sfile)
+        if os.path.exists(p):
+            try:
+                os.remove(p)
+            except Exception:
+                pass
+    os.system("systemctl --user daemon-reload")
+    
+    # Remove venv
+    venv_py = os.path.expanduser(payload.get("venvPy", "~/.local/share/kdeaichat/venv/bin/python3"))
+    venv_dir = venv_py
+    if venv_dir.endswith("/bin/python3"):
+        venv_dir = venv_dir[:-12]
+    
+    if os.path.exists(venv_dir) and venv_dir != "/usr" and len(venv_dir) > 5:
+        try:
+            shutil.rmtree(venv_dir)
+        except Exception:
+            pass
+            
+    # Remove default models folder
+    models_dir = os.path.expanduser("~/.cache/kdeaichat/models")
+    if os.path.exists(models_dir):
+        try:
+            shutil.rmtree(models_dir)
+        except Exception:
+            pass
+            
+    # Remove default huggingface cache faster-whisper/kokoro entries
+    hf_cache = os.path.expanduser("~/.cache/huggingface/hub")
+    if os.path.isdir(hf_cache):
+        try:
+            for entry in os.listdir(hf_cache):
+                if "faster-whisper" in entry or "kokoro" in entry:
+                    p = os.path.join(hf_cache, entry)
+                    if os.path.isdir(p):
+                        try:
+                            shutil.rmtree(p)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+                        
+    print("DELETE_SETUP_OK")
 
 
 def cmd_save_all_schedules(payload: Dict[str, Any]) -> None:
@@ -413,6 +481,7 @@ def main() -> None:
         "load_config_keys": cmd_load_config_keys,
         "setup_scheduler_service": cmd_setup_scheduler_service,
         "setup_voice_services": cmd_setup_voice_services,
+        "delete_voice_setup": cmd_delete_voice_setup,
         "save_all_schedules": cmd_save_all_schedules,
         "get_memory_usage": cmd_get_memory_usage,
         "export_chat": cmd_export_chat,

@@ -98,6 +98,7 @@ QQC2.ScrollView {
     property alias cfg_voiceSttModelPath: voiceSttModelPathField.text
     property alias cfg_voiceTtsModelPath: voiceTtsModelPathField.text
     property alias cfg_voiceVenvPath: voiceVenvPathField.text
+    property alias cfg_voiceEspeakPath: voiceEspeakPathField.text
     property string cfg_voiceSttModel: plasmoid.configuration.voiceSttModel || "large-v3-turbo"
     property string cfg_voiceLanguage: plasmoid.configuration.voiceLanguage || "en"
     property string cfg_voiceTtsVoice: plasmoid.configuration.voiceTtsVoice || "af_heart"
@@ -240,13 +241,10 @@ QQC2.ScrollView {
                 console.error("TextField clipboard copy failed:", e);
             }
             try {
-                let safe = Sec.sanitizeForShell(cmd);
-                let q = Sec.quoteForShell(safe);
-                let copyCmd = "dbus-send --type=method_call --dest=org.kde.klipper /klipper org.kde.klipper.klipper.setClipboardContents string:" + q + " || { if command -v wl-copy >/dev/null 2>&1; then printf %s " + q + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + q + " | xclip -selection clipboard; fi } #copy-" + Date.now();
-                voicePageDs.connectSource(copyCmd);
+                MainDatabase.copyToClipboard(cmd);
                 copiedText = "copied";
             } catch (e2) {
-                console.error("Shell DBus clipboard copy failed:", e2);
+                console.error("MainDatabase clipboard copy failed:", e2);
             }
             copiedTimer.restart();
         });
@@ -267,10 +265,13 @@ QQC2.ScrollView {
         let venvPy = getVenvPython();
         let sttPath = page.cfg_voiceSttModelPath || "";
         let ttsPath = page.cfg_voiceTtsModelPath || "";
+        let espeakPath = page.cfg_voiceEspeakPath || "";
         let payload = JSON.stringify({
             "cmd": "check_env",
             "stt_model_path": sttPath,
-            "tts_model_path": ttsPath
+            "tts_model_path": ttsPath,
+            "espeak_path": espeakPath,
+            "venv_path": getVenvPath()
         });
         let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
         let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-env-" + Date.now();
@@ -314,12 +315,26 @@ QQC2.ScrollView {
 
     function setupVoiceServices() {
         let venvPy = getVenvPython();
+        let espeakPath = page.cfg_voiceEspeakPath || "";
         let payload = JSON.stringify({
-            "venvPy": venvPy
+            "venvPy": venvPy,
+            "espeakPath": espeakPath
         });
         let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
         let cmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
         voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-services");
+    }
+
+    function deleteVoiceSetup() {
+        page.voiceEnvChecking = true;
+        page.voiceEnvChecked = false;
+        let venvPy = getVenvPython();
+        let payload = JSON.stringify({
+            "venvPy": venvPy
+        });
+        let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+        let cmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " delete_voice_setup " + Sec.quoteForShell(b64Payload);
+        voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-delete-setup");
     }
 
     function refreshServiceStatuses() {
@@ -428,6 +443,12 @@ QQC2.ScrollView {
                         voicePageDs.connectSource("systemctl --user start kde-ai-tts.service #start-tts-auto");
                     }
                     Qt.callLater(refreshServiceStatuses);
+                } else if (stdout.indexOf("DELETE_SETUP_OK") >= 0) {
+                    page.voiceEnvResult = null;
+                    page.voiceEnvChecked = false;
+                    page.voiceEnvChecking = false;
+                    Qt.callLater(runEnvCheck);
+                    Qt.callLater(refreshServiceStatuses);
                 } else {
                     let lines = stdout.split("\n");
                     for (let i = 0; i < lines.length; i++) {
@@ -497,6 +518,17 @@ QQC2.ScrollView {
                 path = decodeURIComponent(path.slice(7));
 
             voiceTtsModelPathField.text = path;
+        }
+    }
+
+    FileDialog {
+        id: espeakFileDialog
+        title: i18n("Select espeak-ng/espeak executable")
+        onAccepted: {
+            let path = selectedFile.toString();
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+            voiceEspeakPathField.text = path;
         }
     }
 
@@ -738,6 +770,19 @@ QQC2.ScrollView {
                 onClicked: page.commandCopied()
             }
 
+            QQC2.Button {
+                text: i18n("Delete Setup")
+                icon.name: "edit-delete"
+                onClicked: confirmDeleteSetupDialog.open()
+            }
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                font: Kirigami.Theme.smallFont
+                opacity: 0.6
+                text: i18n("Note: Setup is a one-time process only.")
+            }
         }
 
         // ── Environment Status Grid ───────────────────────────────────
@@ -796,31 +841,36 @@ QQC2.ScrollView {
                 }
 
                 QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? "✓ " + i18n("Ready") : "✗ " + i18n("Missing")
+                    text: {
+                        if (!page.voiceEnvResult) return i18n("Not checked");
+                        if (page.voiceEnvResult.venv_ready) return "✓ " + i18n("Ready");
+                        if (page.voiceEnvResult.venv_exists) return "✗ " + i18n("Incomplete (run setup)");
+                        return "✗ " + i18n("Missing");
+                    }
                     color: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
                 QQC2.Label {
-                    text: i18n("STT engine:")
+                    text: i18n("STT library (faster-whisper):")
                     font.bold: true
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
                 QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ faster-whisper" : "✗ " + i18n("Not installed")
+                    text: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
                     color: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
                 QQC2.Label {
-                    text: i18n("TTS engine:")
+                    text: i18n("TTS library (kokoro):")
                     font.bold: true
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
                 QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ Kokoro" : "✗ " + i18n("Not installed")
+                    text: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
                     color: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
@@ -859,7 +909,7 @@ QQC2.ScrollView {
                         if (!page.voiceEnvResult)
                             return "";
 
-                        let hasPath = plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0;
+                        let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
                         if (hasPath)
                             return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
 
@@ -869,7 +919,7 @@ QQC2.ScrollView {
                         if (!page.voiceEnvResult)
                             return Kirigami.Theme.textColor;
 
-                        let hasPath = plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0;
+                        let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
                         if (hasPath)
                             return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
 
@@ -889,7 +939,7 @@ QQC2.ScrollView {
                         if (!page.voiceEnvResult)
                             return "";
 
-                        let hasPath = plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0;
+                        let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
                         if (hasPath)
                             return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
 
@@ -899,7 +949,7 @@ QQC2.ScrollView {
                         if (!page.voiceEnvResult)
                             return Kirigami.Theme.textColor;
 
-                        let hasPath = plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0;
+                        let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
                         if (hasPath)
                             return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
 
@@ -1142,6 +1192,55 @@ QQC2.ScrollView {
                 onClicked: ttsFolderDialog.open()
             }
 
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Kirigami.FormData.label: i18n("espeak-ng path:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                id: voiceEspeakPathField
+
+                Layout.fillWidth: true
+                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
+            }
+
+            QQC2.Button {
+                icon.name: "folder-open"
+                QQC2.ToolTip.text: i18n("Browse for espeak-ng/espeak executable")
+                onClicked: espeakFileDialog.open()
+            }
+
+            QQC2.Button {
+                text: i18n("Install")
+                icon.name: "download"
+                QQC2.ToolTip.text: i18n("Install espeak-ng using your system package manager")
+                onClicked: {
+                    let detectAndInstall = "echo '=== Installing espeak-ng (Phonemizer) ==='; " +
+                        "if command -v apt-get >/dev/null 2>&1; then " +
+                        "  echo 'Detected Debian/Ubuntu/Mint (apt)...'; sudo apt-get update && sudo apt-get install -y espeak-ng; " +
+                        "elif command -v dnf >/dev/null 2>&1; then " +
+                        "  echo 'Detected Fedora/RHEL (dnf)...'; sudo dnf install -y espeak-ng; " +
+                        "elif command -v pacman >/dev/null 2>&1; then " +
+                        "  echo 'Detected Arch Linux (pacman)...'; sudo pacman -S --noconfirm espeak-ng; " +
+                        "elif command -v zypper >/dev/null 2>&1; then " +
+                        "  echo 'Detected openSUSE (zypper)...'; sudo zypper install -y espeak-ng; " +
+                        "elif command -v emerge >/dev/null 2>&1; then " +
+                        "  echo 'Detected Gentoo (emerge)...'; sudo emerge app-accessibility/espeak-ng; " +
+                        "elif command -v apk >/dev/null 2>&1; then " +
+                        "  echo 'Detected Alpine Linux (apk)...'; sudo apk add espeak-ng; " +
+                        "else " +
+                        "  echo 'Could not auto-detect package manager. Please install \"espeak-ng\" manually.'; " +
+                        "fi; " +
+                        "echo; read -p 'Press Enter to close...'";
+                    let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; " +
+                        "elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; fi #voice-install-espeak-" + Date.now();
+                    voicePageDs.connectSource(cmd);
+                }
+            }
         }
 
         RowLayout {
@@ -1570,6 +1669,30 @@ QQC2.ScrollView {
 
         }
 
+    }
+
+    QQC2.Dialog {
+        id: confirmDeleteSetupDialog
+
+        modal: true
+        standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
+        title: i18n("Confirm Delete Setup")
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: Kirigami.Units.gridUnit * 22
+
+        contentItem: ColumnLayout {
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: i18n("Are you sure you want to delete the voice setup? This will stop and disable the services, and remove the venv and downloaded models completely.")
+            }
+        }
+        onAccepted: {
+            page.deleteVoiceSetup();
+        }
     }
 
 }

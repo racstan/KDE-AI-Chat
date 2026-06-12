@@ -39,8 +39,8 @@ Item {
     property alias opencodeServerDs: opencodeServerDs
     property alias fileReaderDs: fileReaderDs
     property alias customStorageDs: customStorageDs
-    property alias fileDialog: fileDialog
-    property alias exportFileDialog: exportFileDialog
+    property alias fileDialog: kaiAttachFileDialog
+    property alias exportFileDialog: kaiExportChatFileDialog
     property alias clipboardHelper: clipboardHelper
     property alias kwalletStartupDs: kwalletStartupDs
     property alias opencodeTerminalDs: opencodeTerminalDs
@@ -494,30 +494,30 @@ Item {
     }
 
     FileDialog {
-        id: fileDialog
+        id: kaiAttachFileDialog
 
         title: "Attach Files"
         fileMode: FileDialog.OpenFiles
         nameFilters: ["All supported files (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", "Documents (*.pdf *.docx *.csv *.txt *.md *.json)", "All files (*)"]
-        onAccepted: {
-            for (let i = 0; i < selectedFiles.length; i++) {
+        onAccepted: function() {
+            for (var i = 0; i < selectedFiles.length; i++) {
                 root.attachFile(selectedFiles[i]);
             }
         }
     }
 
     FileDialog {
-        id: exportFileDialog
+        id: kaiExportChatFileDialog
 
         title: "Export Chat Session"
         fileMode: FileDialog.SaveFile
         nameFilters: ["Markdown files (*.md)", "Plain text files (*.txt)"]
-        onAccepted: {
-            let path = selectedFile.toString();
-            if (path.indexOf("file://") === 0)
-                path = decodeURIComponent(path.slice(7));
+        onAccepted: function() {
+            var rawPath = selectedFile.toString();
+            if (rawPath.indexOf("file://") === 0)
+                rawPath = decodeURIComponent(rawPath.slice(7));
 
-            root.performExportChat(path);
+            root.performExportChat(rawPath);
         }
     }
 

@@ -50,6 +50,7 @@ class VoiceHelper:
         """Check environment for voice capabilities."""
         stt_model_path = payload.get("stt_model_path", "")
         tts_model_path = payload.get("tts_model_path", "")
+        venv_path = payload.get("venv_path", "")
 
         result = {
             "type": "env_check",
@@ -58,6 +59,7 @@ class VoiceHelper:
             "aplay_available": False,
             "espeak_available": False,
             "venv_ready": False,
+            "venv_exists": False,
             "stt_ready": False,
             "tts_ready": False,
             "sounddevice_ok": False,
@@ -67,6 +69,14 @@ class VoiceHelper:
             "stt_model_path_ok": False,
             "tts_model_path_ok": False,
         }
+
+        # Check venv path existence
+        if venv_path:
+            venv_path = os.path.expanduser(venv_path)
+            result["venv_exists"] = os.path.isdir(venv_path) and (
+                os.path.exists(os.path.join(venv_path, "bin", "python")) or
+                os.path.exists(os.path.join(venv_path, "bin", "python3"))
+            )
 
         # Check microphone (via sounddevice)
         try:
@@ -81,7 +91,19 @@ class VoiceHelper:
         # Check audio players
         result["paplay_available"] = shutil.which("paplay") is not None
         result["aplay_available"] = shutil.which("aplay") is not None
-        result["espeak_available"] = shutil.which("espeak-ng") is not None
+
+        espeak_path = payload.get("espeak_path", "")
+        if espeak_path:
+            espeak_path = os.path.expanduser(espeak_path)
+            if os.path.isdir(espeak_path):
+                espeak_dir = espeak_path
+            else:
+                espeak_dir = os.path.dirname(espeak_path)
+            if espeak_dir and espeak_dir not in os.environ.get("PATH", "").split(os.pathsep):
+                os.environ["PATH"] = espeak_dir + os.pathsep + os.environ.get("PATH", "")
+                os.environ["PHONEMIZER_ESPEAK_PATH"] = espeak_dir
+
+        result["espeak_available"] = (shutil.which("espeak-ng") is not None) or (shutil.which("espeak") is not None)
 
         # Check venv packages
         try:
@@ -102,11 +124,17 @@ class VoiceHelper:
         except ImportError:
             pass
 
-        # Check custom model paths
-        if stt_model_path and os.path.isdir(stt_model_path):
-            result["stt_model_path_ok"] = True
-        if tts_model_path and os.path.isdir(tts_model_path):
-            result["tts_model_path_ok"] = True
+        # Check custom model paths strictly
+        if stt_model_path and os.path.isdir(os.path.expanduser(stt_model_path)):
+            stt_p = os.path.expanduser(stt_model_path)
+            if os.path.exists(os.path.join(stt_p, "model.bin")) and os.path.exists(os.path.join(stt_p, "config.json")):
+                result["stt_model_path_ok"] = True
+        if tts_model_path and os.path.isdir(os.path.expanduser(tts_model_path)):
+            tts_p = os.path.expanduser(tts_model_path)
+            config_file = os.path.join(tts_p, "config.json")
+            has_pth = any(f.endswith(".pth") for f in os.listdir(tts_p)) if os.path.exists(tts_p) else False
+            if os.path.exists(config_file) and has_pth:
+                result["tts_model_path_ok"] = True
 
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
@@ -385,9 +413,9 @@ class VoiceHelper:
 
         def do_tts():
             try:
-                # Check espeak-ng
-                if not shutil.which("espeak-ng"):
-                    self.emit({"type": "tts_error", "error": "espeak-ng not installed. Install with: sudo apt install espeak-ng"})
+                # Check espeak-ng / espeak
+                if not (shutil.which("espeak-ng") or shutil.which("espeak")):
+                    self.emit({"type": "tts_error", "error": "espeak-ng/espeak not installed. Install with: sudo apt install espeak-ng"})
                     return
 
                 # Check audio player
@@ -407,20 +435,44 @@ class VoiceHelper:
 
                 # Load pipeline
                 from kokoro import KPipeline
+                from kokoro.model import KModel
                 import soundfile as sf
                 import numpy as np
+                import torch
 
                 if self.tts_pipeline is None:
                     if custom_path:
-                        self.tts_pipeline = KPipeline(lang_code=lang_code, repo_id=custom_path)
+                        custom_path = os.path.expanduser(custom_path)
+                        # Find config.json and .pth file in custom_path
+                        config_file = os.path.join(custom_path, "config.json")
+                        model_file = None
+                        if os.path.exists(custom_path):
+                            for f in os.listdir(custom_path):
+                                if f.endswith(".pth"):
+                                    model_file = os.path.join(custom_path, f)
+                                    break
+                        
+                        if os.path.exists(config_file) and model_file and os.path.exists(model_file):
+                            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                            kmodel = KModel(config=config_file, model=model_file).to(device).eval()
+                            self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
+                        else:
+                            self.tts_pipeline = KPipeline(lang_code=lang_code)
                     else:
                         self.tts_pipeline = KPipeline(lang_code=lang_code)
 
                 self.current_status = "playing"
                 self.emit({"type": "tts_status", "status": "playing"})
 
+                # Resolve local voice file if custom path is set
+                resolved_voice = voice
+                if custom_path:
+                    custom_voice_path = os.path.join(os.path.expanduser(custom_path), f"{voice}.pt")
+                    if os.path.exists(custom_voice_path):
+                        resolved_voice = custom_voice_path
+
                 # Synthesize and play in segments
-                for _, _, audio in self.tts_pipeline(text, voice=voice):
+                for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
                     if self.stop_tts:
                         break
 
