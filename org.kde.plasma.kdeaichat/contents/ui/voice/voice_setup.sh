@@ -9,7 +9,7 @@ VENV_DIR="${1:-$HOME/.local/share/kdeaichat/venv}"
 VENV_DIR="${VENV_DIR/#\~/$HOME}"
 
 echo "================================================================="
-echo "  KDE AI Chat — Voice Setup"
+echo "  KDE AI Chat - Virtual Environment setup for TTS and STT"
 echo "================================================================="
 
 # Check if venv is already fully set up
@@ -21,12 +21,9 @@ if [ -d "$VENV_DIR" ]; then
     if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub" 2>/dev/null; then
         echo "  ✓ Virtual environment already exists at: $VENV_DIR"
         echo "  ✓ All required Python packages are already installed."
-        echo ""
-        echo "  Duplicate setup is not needed."
         echo "================================================================="
         echo ""
-        read -n 1 -s -r -p "Press any key to exit..."
-        echo ""
+        read -p "Press Enter to close..."
         exit 0
     fi
 fi
@@ -55,5 +52,4 @@ echo "-----------------------------------------------------------------"
 echo "  ✓ Voice setup completed successfully!"
 echo "================================================================="
 echo ""
-read -n 1 -s -r -p "Press any key to exit..."
-echo ""
+read -p "Press Enter to close..."
