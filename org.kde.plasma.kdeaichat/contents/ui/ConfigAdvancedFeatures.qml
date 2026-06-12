@@ -741,31 +741,6 @@ QQC2.ScrollView {
             }
         }
 
-        // ── Status ──────────────────────────────────────────────────
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Status:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                font: Kirigami.Theme.smallFont
-                opacity: 0.8
-                text: page.statusText
-                color: page.statusColor
-            }
-
-            QQC2.Button {
-                text: i18n("Check Status")
-                icon.name: "view-refresh"
-                onClicked: runEnvCheck()
-            }
-
-        }
-
         // ── Setup Operations ──────────────────────────────────────
         RowLayout {
             visible: voiceEnabledToggle.checked
@@ -798,6 +773,31 @@ QQC2.ScrollView {
                 opacity: 0.6
                 text: i18n("Note: Setup is a one-time process only.")
             }
+        }
+
+        // ── Status ──────────────────────────────────────────────────
+        RowLayout {
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Status:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                font: Kirigami.Theme.smallFont
+                opacity: 0.8
+                text: page.statusText
+                color: page.statusColor
+            }
+
+            QQC2.Button {
+                text: i18n("Check Status")
+                icon.name: "view-refresh"
+                onClicked: runEnvCheck()
+            }
+
         }
 
         // ── Environment Status Grid ───────────────────────────────────
@@ -1220,7 +1220,7 @@ QQC2.ScrollView {
                 id: voiceEspeakPathField
 
                 Layout.fillWidth: true
-                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
+                placeholderText: i18n("Don't write anything if installed from the install button.")
             }
 
             QQC2.Button {
@@ -1309,7 +1309,16 @@ QQC2.ScrollView {
         RowLayout {
             visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
             Kirigami.FormData.label: i18n("Test TTS:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                id: voiceTtsTestInputField
+                Layout.fillWidth: true
+                placeholderText: i18n("Enter text to speak...")
+                text: i18n("Hello! This is a test of the text to speech system.")
+            }
 
             QQC2.Button {
                 text: i18n("Speak Test")
@@ -1318,9 +1327,11 @@ QQC2.ScrollView {
                     page.ttsPlaying = true;
                     sendVoiceCommand(JSON.stringify({
                         "cmd": "tts",
-                        "text": i18n("Hello! This is a test of the text to speech system."),
+                        "text": voiceTtsTestInputField.text.trim() || i18n("Hello! This is a test of the text to speech system."),
                         "voice": page.cfg_voiceTtsVoice || "af_heart",
-                        "lang_code": "a"
+                        "lang_code": "a",
+                        "model_path": page.cfg_voiceTtsModelPath || "",
+                        "espeak_path": page.cfg_voiceEspeakPath || ""
                     }));
                 }
             }

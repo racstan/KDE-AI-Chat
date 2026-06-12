@@ -3339,7 +3339,16 @@ function triggerTts(text) {
     venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
     let venvPy = venvPath + "/bin/python3";
     let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
-    let payload = {cmd: "tts", text: text, voice: voice, lang_code: "a"};
+    let ttsModelPath = plasmoid.configuration.voiceTtsModelPath || "";
+    let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
+    let payload = {
+        cmd: "tts",
+        text: text,
+        voice: voice,
+        lang_code: "a",
+        model_path: ttsModelPath,
+        espeak_path: espeakPath
+    };
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
     let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-tts-" + Date.now();

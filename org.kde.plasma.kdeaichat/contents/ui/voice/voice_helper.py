@@ -264,7 +264,7 @@ class VoiceHelper:
         duration = payload.get("duration", 10)
         language = payload.get("language", "en")
         model_name = payload.get("model", "large-v3-turbo")
-        custom_path = payload.get("model_path", "")
+        resolved_custom_path = payload.get("model_path", "")
 
         self.recording = True
         self.stop_recording = False
@@ -299,15 +299,35 @@ class VoiceHelper:
                     self.emit({"type": "stt_status", "status": "loading_model"})
                     try:
                         from faster_whisper import WhisperModel
-                        if custom_path:
-                            custom_path = os.path.expanduser(custom_path)
-                            custom_dir = os.path.dirname(custom_path) if os.path.isfile(custom_path) else custom_path
-                            if os.path.isdir(custom_dir):
-                                self.stt_model = WhisperModel(custom_dir, device="cpu", compute_type="int8")
+                        import torch
+                        device = "cuda" if torch.cuda.is_available() else "cpu"
+                        compute_type = "float16" if device == "cuda" else "int8"
+                        
+                        try:
+                            if resolved_custom_path:
+                                resolved_custom_path = os.path.expanduser(resolved_custom_path)
+                                custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
+                                if os.path.isdir(custom_dir):
+                                    self.stt_model = WhisperModel(custom_dir, device=device, compute_type=compute_type)
+                                else:
+                                    self.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
                             else:
-                                self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
-                        else:
-                            self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+                                self.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
+                        except Exception:
+                            # Fallback to CPU if CUDA fails
+                            if device == "cuda":
+                                if resolved_custom_path:
+                                    resolved_custom_path = os.path.expanduser(resolved_custom_path)
+                                    custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
+                                    if os.path.isdir(custom_dir):
+                                        self.stt_model = WhisperModel(custom_dir, device="cpu", compute_type="int8")
+                                    else:
+                                        self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+                                else:
+                                    self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+                            else:
+                                raise
+
                         self.stt_model_name = model_name
                     except Exception as e:
                         self.emit({"type": "stt_error", "error": "Failed to load STT model: " + str(e)})
@@ -425,6 +445,7 @@ class VoiceHelper:
         voice = payload.get("voice", "af_heart")
         lang_code = payload.get("lang_code", "a")
         custom_path = payload.get("model_path", "")
+        espeak_path = payload.get("espeak_path", "")
 
         if not text:
             self.emit({"type": "tts_error", "error": "No text provided"})
@@ -439,6 +460,14 @@ class VoiceHelper:
 
         def do_tts():
             try:
+                # Setup custom espeak path if provided
+                if espeak_path:
+                    ep = os.path.expanduser(espeak_path)
+                    espeak_dir = ep if os.path.isdir(ep) else os.path.dirname(ep)
+                    if espeak_dir and espeak_dir not in os.environ.get("PATH", "").split(os.pathsep):
+                        os.environ["PATH"] = espeak_dir + os.pathsep + os.environ.get("PATH", "")
+                        os.environ["PHONEMIZER_ESPEAK_PATH"] = espeak_dir
+
                 # Check espeak-ng / espeak
                 if not (shutil.which("espeak-ng") or shutil.which("espeak")):
                     self.emit({"type": "tts_error", "error": "espeak-ng/espeak not installed. Install with: sudo apt install espeak-ng"})
