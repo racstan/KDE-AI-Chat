@@ -5,6 +5,35 @@
 set -e
 
 VENV_DIR="${1:-$HOME/.local/share/kdeaichat/venv}"
+# Expand tilde if present
+VENV_DIR="${VENV_DIR/#\~/$HOME}"
+
+echo "================================================================="
+echo "  KDE AI Chat — Voice Setup"
+echo "================================================================="
+
+# Check if venv is already fully set up
+if [ -d "$VENV_DIR" ]; then
+    VENV_PY="$VENV_DIR/bin/python3"
+    if [ ! -f "$VENV_PY" ]; then
+        VENV_PY="$VENV_DIR/bin/python"
+    fi
+    if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub" 2>/dev/null; then
+        echo "  ✓ Virtual environment already exists at: $VENV_DIR"
+        echo "  ✓ All required Python packages are already installed."
+        echo ""
+        echo "  Duplicate setup is not needed."
+        echo "================================================================="
+        echo ""
+        read -n 1 -s -r -p "Press any key to exit..."
+        echo ""
+        exit 0
+    fi
+fi
+
+echo "  Setting up virtual environment at: $VENV_DIR"
+echo "  This might take a few minutes..."
+echo "-----------------------------------------------------------------"
 
 echo '{"type":"setup_status","status":"creating_venv","path":"'"$VENV_DIR"'"}'
 
@@ -22,3 +51,9 @@ echo '{"type":"setup_status","status":"installing_packages"}'
     huggingface_hub
 
 echo '{"type":"setup_status","status":"done"}'
+echo "-----------------------------------------------------------------"
+echo "  ✓ Voice setup completed successfully!"
+echo "================================================================="
+echo ""
+read -n 1 -s -r -p "Press any key to exit..."
+echo ""

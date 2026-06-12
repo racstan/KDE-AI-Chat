@@ -250,6 +250,15 @@ QQC2.ScrollView {
         });
     }
 
+    function runSetupInTerminal() {
+        let setupPath = getSetupPath();
+        let venvPath = getVenvPath();
+        if (setupPath === "" || venvPath === "") return;
+        let innerCmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath);
+        let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-setup-term-" + Date.now();
+        voicePageDs.connectSource(cmd);
+    }
+
     function runInTerminal(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
@@ -757,12 +766,18 @@ QQC2.ScrollView {
 
         }
 
-        // ── Copy Setup Command ──────────────────────────────────────
+        // ── Setup Operations ──────────────────────────────────────
         RowLayout {
             visible: voiceEnabledToggle.checked
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Button {
+                text: i18n("Run Setup")
+                icon.name: "utilities-terminal"
+                onClicked: page.runSetupInTerminal()
+            }
 
             QQC2.Button {
                 text: copiedText === "copied" ? i18n("Command copied!") : i18n("Copy Setup Command")

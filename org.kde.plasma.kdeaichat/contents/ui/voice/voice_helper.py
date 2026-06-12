@@ -46,6 +46,21 @@ class VoiceHelper:
         elif dtype in ("tts_done", "tts_error", "tts_stopped"):
             self.tts_result = data
 
+        # Write human-readable messages to stderr if stdout is running in a terminal
+        if sys.stdout.isatty():
+            if dtype == "download_started":
+                sys.stderr.write(f"\n>>> Starting download for {data.get('target', '').upper()} model ({data.get('model', '')})...\n")
+                sys.stderr.flush()
+            elif dtype == "download_progress":
+                sys.stderr.write(f"\r>>> Progress: {data.get('pct', 0)}% completed.")
+                sys.stderr.flush()
+            elif dtype == "download_done":
+                sys.stderr.write(f"\n>>> Success! {data.get('target', '').upper()} model downloaded successfully.\n")
+                sys.stderr.flush()
+            elif dtype == "download_error":
+                sys.stderr.write(f"\n>>> ERROR: Failed to download {data.get('target', '').upper()} model: {data.get('error', '')}\n")
+                sys.stderr.flush()
+
     def check_env(self, payload):
         """Check environment for voice capabilities."""
         stt_model_path = payload.get("stt_model_path", "")
@@ -125,16 +140,21 @@ class VoiceHelper:
             pass
 
         # Check custom model paths strictly
-        if stt_model_path and os.path.isdir(os.path.expanduser(stt_model_path)):
+        if stt_model_path:
             stt_p = os.path.expanduser(stt_model_path)
-            if os.path.exists(os.path.join(stt_p, "model.bin")) and os.path.exists(os.path.join(stt_p, "config.json")):
-                result["stt_model_path_ok"] = True
-        if tts_model_path and os.path.isdir(os.path.expanduser(tts_model_path)):
+            stt_dir = os.path.dirname(stt_p) if os.path.isfile(stt_p) else stt_p
+            if os.path.isdir(stt_dir):
+                if os.path.exists(os.path.join(stt_dir, "model.bin")) and os.path.exists(os.path.join(stt_dir, "config.json")):
+                    result["stt_model_path_ok"] = True
+
+        if tts_model_path:
             tts_p = os.path.expanduser(tts_model_path)
-            config_file = os.path.join(tts_p, "config.json")
-            has_pth = any(f.endswith(".pth") for f in os.listdir(tts_p)) if os.path.exists(tts_p) else False
-            if os.path.exists(config_file) and has_pth:
-                result["tts_model_path_ok"] = True
+            tts_dir = os.path.dirname(tts_p) if os.path.isfile(tts_p) else tts_p
+            if os.path.isdir(tts_dir):
+                config_file = os.path.join(tts_dir, "config.json")
+                has_pth = any(f.endswith(".pth") for f in os.listdir(tts_dir))
+                if os.path.exists(config_file) and has_pth:
+                    result["tts_model_path_ok"] = True
 
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
@@ -209,7 +229,7 @@ class VoiceHelper:
 
         thread = threading.Thread(target=do_download, daemon=True)
         thread.start()
-        # Return immediately
+        self.download_thread = thread
         self.emit({"type": "download_started", "target": "stt", "model": model_name})
 
     def download_tts(self, payload):
@@ -232,6 +252,7 @@ class VoiceHelper:
 
         thread = threading.Thread(target=do_download, daemon=True)
         thread.start()
+        self.download_thread = thread
         self.emit({"type": "download_started", "target": "tts", "model": "kokoro-82m"})
 
     def start_stt(self, payload):
@@ -278,8 +299,13 @@ class VoiceHelper:
                     self.emit({"type": "stt_status", "status": "loading_model"})
                     try:
                         from faster_whisper import WhisperModel
-                        if custom_path and os.path.isdir(custom_path):
-                            self.stt_model = WhisperModel(custom_path, device="cpu", compute_type="int8")
+                        if custom_path:
+                            custom_path = os.path.expanduser(custom_path)
+                            custom_dir = os.path.dirname(custom_path) if os.path.isfile(custom_path) else custom_path
+                            if os.path.isdir(custom_dir):
+                                self.stt_model = WhisperModel(custom_dir, device="cpu", compute_type="int8")
+                            else:
+                                self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
                         else:
                             self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
                         self.stt_model_name = model_name
@@ -443,13 +469,14 @@ class VoiceHelper:
                 if self.tts_pipeline is None:
                     if custom_path:
                         custom_path = os.path.expanduser(custom_path)
-                        # Find config.json and .pth file in custom_path
-                        config_file = os.path.join(custom_path, "config.json")
+                        custom_dir = os.path.dirname(custom_path) if os.path.isfile(custom_path) else custom_path
+                        # Find config.json and .pth file in custom_dir
+                        config_file = os.path.join(custom_dir, "config.json")
                         model_file = None
-                        if os.path.exists(custom_path):
-                            for f in os.listdir(custom_path):
+                        if os.path.exists(custom_dir):
+                            for f in os.listdir(custom_dir):
                                 if f.endswith(".pth"):
-                                    model_file = os.path.join(custom_path, f)
+                                    model_file = os.path.join(custom_dir, f)
                                     break
                         
                         if os.path.exists(config_file) and model_file and os.path.exists(model_file):
@@ -467,7 +494,8 @@ class VoiceHelper:
                 # Resolve local voice file if custom path is set
                 resolved_voice = voice
                 if custom_path:
-                    custom_voice_path = os.path.join(os.path.expanduser(custom_path), f"{voice}.pt")
+                    custom_dir = os.path.dirname(custom_path) if os.path.isfile(custom_path) else custom_path
+                    custom_voice_path = os.path.join(custom_dir, f"{voice}.pt")
                     if os.path.exists(custom_voice_path):
                         resolved_voice = custom_voice_path
 
@@ -692,6 +720,8 @@ class VoiceHelper:
             self.stt_thread.join(timeout=120)
         if self.tts_thread and self.tts_thread.is_alive():
             self.tts_thread.join(timeout=120)
+        if hasattr(self, 'download_thread') and self.download_thread and self.download_thread.is_alive():
+            self.download_thread.join(timeout=300)
 
 
 if __name__ == "__main__":
