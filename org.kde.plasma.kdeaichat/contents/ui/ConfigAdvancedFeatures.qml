@@ -49,10 +49,22 @@ QQC2.ScrollView {
             return i18n("Check failed: %1").arg(r.error);
 
         var ok = r && r.venv_ready && r.numpy_ok && r.sounddevice_ok;
-        if (ok)
-            return i18n("Environment ready");
+        if (!ok)
+            return i18n("Needs setup — run CPU Setup or GPU Setup");
 
-        return i18n("Needs setup — run CPU Setup or GPU Setup");
+        var sttReady = r.stt_ready;
+        var ttsReady = r.tts_ready;
+
+        if (sttReady && ttsReady)
+            return i18n("Environment and models ready");
+
+        if (!sttReady && !ttsReady)
+            return i18n("Environment ready. STT & TTS models need to be downloaded.");
+
+        if (!sttReady)
+            return i18n("Environment ready. STT model needs to be downloaded.");
+
+        return i18n("Environment ready. TTS model needs to be downloaded.");
     }
     property color statusColor: {
         if (page.voiceEnvChecking)
@@ -66,10 +78,15 @@ QQC2.ScrollView {
             return Kirigami.Theme.negativeTextColor;
 
         var ok = r && r.venv_ready && r.numpy_ok && r.sounddevice_ok;
-        if (ok)
+        if (!ok)
+            return Kirigami.Theme.negativeTextColor;
+
+        var sttReady = r.stt_ready;
+        var ttsReady = r.tts_ready;
+        if (sttReady && ttsReady)
             return Kirigami.Theme.positiveTextColor;
 
-        return Kirigami.Theme.negativeTextColor;
+        return Kirigami.Theme.neutralTextColor;
     }
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
@@ -243,7 +260,7 @@ QQC2.ScrollView {
     function runInTerminal(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi; echo; read -n 1 -s -r -p 'Press any key to exit...'";
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi; echo; read -n 1 -s -r -p 'Press any key to exit...' </dev/tty";
         let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-term-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
@@ -261,7 +278,9 @@ QQC2.ScrollView {
             "stt_model_path": sttPath,
             "tts_model_path": ttsPath,
             "espeak_path": espeakPath,
-            "venv_path": getVenvPath()
+            "venv_path": getVenvPath(),
+            "stt_model": page.cfg_voiceSttModel || "large-v3-turbo",
+            "tts_model": "kokoro-82m"
         });
         let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
         let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-env-" + Date.now();
@@ -916,7 +935,7 @@ QQC2.ScrollView {
                         if (hasPath)
                             return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
 
-                        return page.voiceEnvResult.faster_whisper_ok ? "✓ " + i18n("Default ready") : "✗ " + i18n("Not downloaded");
+                        return page.voiceEnvResult.stt_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
                     }
                     color: {
                         if (!page.voiceEnvResult)
@@ -926,7 +945,7 @@ QQC2.ScrollView {
                         if (hasPath)
                             return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
 
-                        return page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                        return page.voiceEnvResult.stt_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
                     }
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
@@ -946,7 +965,7 @@ QQC2.ScrollView {
                         if (hasPath)
                             return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
 
-                        return page.voiceEnvResult.kokoro_ok ? "✓ " + i18n("Default ready") : "✗ " + i18n("Not downloaded");
+                        return page.voiceEnvResult.tts_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
                     }
                     color: {
                         if (!page.voiceEnvResult)
@@ -956,7 +975,7 @@ QQC2.ScrollView {
                         if (hasPath)
                             return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
 
-                        return page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                        return page.voiceEnvResult.tts_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
                     }
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
@@ -999,7 +1018,7 @@ QQC2.ScrollView {
                 id: voiceSttModelCombo
 
                 Layout.fillWidth: true
-                model: ["large-v3-turbo", "large-v3", "medium", "small", "base", "tiny"]
+                model: ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"]
                 currentIndex: {
                     let m = page.cfg_voiceSttModel || "large-v3-turbo";
                     for (let i = 0; i < model.length; i++) if (model[i] === m) {
@@ -1013,10 +1032,24 @@ QQC2.ScrollView {
             QQC2.Button {
                 text: i18n("Download")
                 icon.name: "download"
-                onClicked: runInTerminal({
-                    "cmd": "download_stt",
-                    "model": page.cfg_voiceSttModel || "large-v3-turbo"
-                })
+                onClicked: {
+                    let modelName = page.cfg_voiceSttModel || "large-v3-turbo";
+                    let repo = "Systran/faster-whisper-" + modelName;
+                    let venvPy = getVenvPython();
+                    let venvBin = venvPy.substring(0, venvPy.lastIndexOf("/"));
+                    let hfCli = venvBin + "/huggingface-cli";
+                    let innerCmd = "echo '================================================================='; " +
+                                   "echo '  KDE AI Chat - Downloading STT Model: " + modelName + "'; " +
+                                   "echo '================================================================='; " +
+                                   "if [ -f " + Sec.quoteForShell(hfCli) + " ]; then " +
+                                   "  " + Sec.quoteForShell(hfCli) + " download " + Sec.quoteForShell(repo) + "; " +
+                                   "else " +
+                                   "  echo '❌ Error: huggingface-cli not found in venv. Please run setup first.'; " +
+                                   "fi; " +
+                                   "echo; read -n 1 -s -r -p 'Press any key to exit...' </dev/tty";
+                    let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-download-stt-" + Date.now();
+                    voicePageDs.connectSource(cmd);
+                }
             }
 
         }
@@ -1208,7 +1241,7 @@ QQC2.ScrollView {
                 id: voiceEspeakPathField
 
                 Layout.fillWidth: true
-                placeholderText: i18n("Auto-detected (leave blank if installed via system package manager)")
+                placeholderText: i18n("Don't write anything if installed from the install button")
             }
 
             QQC2.Button {
@@ -1238,7 +1271,7 @@ QQC2.ScrollView {
                         "else " +
                         "  echo 'Could not auto-detect package manager. Please install \"espeak-ng\" manually.'; " +
                         "fi; " +
-                        "echo; read -n 1 -s -r -p 'Press any key to exit...'";
+                        "echo; read -n 1 -s -r -p 'Press any key to exit...' </dev/tty";
                     let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; " +
                         "elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; fi #voice-install-espeak-" + Date.now();
                     voicePageDs.connectSource(cmd);
@@ -1262,10 +1295,23 @@ QQC2.ScrollView {
             QQC2.Button {
                 text: i18n("Download")
                 icon.name: "download"
-                onClicked: runInTerminal({
-                    "cmd": "download_tts",
-                    "voice": page.cfg_voiceTtsVoice || "af_heart"
-                })
+                onClicked: {
+                    let repo = "hexgrad/Kokoro-82M";
+                    let venvPy = getVenvPython();
+                    let venvBin = venvPy.substring(0, venvPy.lastIndexOf("/"));
+                    let hfCli = venvBin + "/huggingface-cli";
+                    let innerCmd = "echo '================================================================='; " +
+                                   "echo '  KDE AI Chat - Downloading TTS Model: kokoro-82m'; " +
+                                   "echo '================================================================='; " +
+                                   "if [ -f " + Sec.quoteForShell(hfCli) + " ]; then " +
+                                   "  " + Sec.quoteForShell(hfCli) + " download " + Sec.quoteForShell(repo) + "; " +
+                                   "else " +
+                                   "  echo '❌ Error: huggingface-cli not found in venv. Please run setup first.'; " +
+                                   "fi; " +
+                                   "echo; read -n 1 -s -r -p 'Press any key to exit...' </dev/tty";
+                    let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-download-tts-" + Date.now();
+                    voicePageDs.connectSource(cmd);
+                }
             }
 
         }

@@ -1,109 +1,88 @@
-# Advanced Voice Features — STT & TTS User Guide
+# Advanced Features & System Integration — User Guide
 
-KDE AI Chat includes advanced features for voice interaction, allowing you to speak to the AI (Speech-to-Text) and have the AI speak its responses back to you (Text-to-Speech). These features run entirely locally on your system using high-quality open-source AI models.
+KDE AI Chat provides advanced features designed for power users, developers, and those looking to enhance their widget experience with voice features, local background services, and resource monitoring.
 
----
-
-## Architecture Overview
-
-The voice features system consists of:
-1. **TTS Daemon (`kde-ai-tts.service`)**: A local background server powered by **Kokoro-82M** (a state-of-the-art 82-million parameter multilingual text-to-speech model).
-2. **STT Daemon (`kde-ai-stt.service`)**: A local background server powered by **Faster-Whisper** (highly optimized version of OpenAI's Whisper model).
-3. **Isolated Python Virtual Environment (venv)**: All Python package dependencies (such as `torch`, `sounddevice`, `soundfile`, `faster-whisper`, `kokoro`, etc.) are installed in a dedicated environment to prevent conflicts with your system packages.
+This guide covers:
+1. [Virtual Environment (Venv) Setup](#1-virtual-environment-venv-setup)
+2. [Speech Features: STT & TTS](#2-speech-features-stt--tts)
+3. [Memory Usage Tracking](#3-memory-usage-tracking)
+4. [Custom Chat Storage](#4-custom-chat-storage)
+5. [Secure Credential Storage (KWallet)](#5-secure-credential-storage-kwallet)
 
 ---
 
-## Dependencies & Requirements
+## 1. Virtual Environment (Venv) Setup
 
-To use the voice features, the following system package dependencies are required:
+To keep your system clean, KDE AI Chat manages its speech capabilities inside a Python Virtual Environment (`venv`). This virtual environment isolates dependencies such as PyTorch, Faster Whisper, and Kokoro.
 
-- **espeak-ng**: Used by the TTS system for phonemization.
-- **PortAudio**: Used by the `sounddevice` Python package to interface with the microphone and speakers.
-- **PulseAudio / ALSA utils** (`paplay` / `aplay`): Used to play synthesized speech audio back smoothly.
+### CPU Setup vs. GPU Setup
 
-### Auto-Installing espeak-ng & System Libraries
-You can install these dependencies directly from the **Advanced Features** settings section by clicking the **Install** button next to **espeak-ng path**, or manually using your package manager:
+You can set up the virtual environment in one of two modes from the **Advanced Settings** page:
 
-- **Debian / Ubuntu / Mint**:
-  ```bash
-  sudo apt-get update && sudo apt-get install -y espeak-ng libportaudio2 pulseaudio-utils alsa-utils
-  ```
-- **Fedora**:
-  ```bash
-  sudo dnf install -y espeak-ng portaudio pulseaudio-utils alsa-utils
-  ```
-- **Arch Linux**:
-  ```bash
-  sudo pacman -S --noconfirm espeak-ng portaudio pulseaudio-utils alsa-utils
-  ```
+*   **CPU Setup (Recommended for general use):**
+    *   Installs a light-weight CPU-only PyTorch build (~150MB instead of 2.2GB).
+    *   Extremely resource-friendly and runs on any CPU-compatible hardware.
+*   **GPU Setup (NVIDIA CUDA):**
+    *   Installs full GPU-accelerated PyTorch with CUDA 12 and cuDNN library bindings.
+    *   Requires a compatible NVIDIA graphics card with NVIDIA drivers installed on the host system.
+    *   Significantly speeds up speech-to-text (STT) transcription and text-to-speech (TTS) synthesis.
 
----
+### Running Setup
 
-## Virtual Environment Setup
-
-Because deep learning packages like PyTorch and Faster Whisper are large and require complex library bindings, KDE AI Chat installs them in an isolated virtual environment (`venv`). 
-
-### CPU vs. GPU Setup
-From the settings, you can choose to trigger one of two automated setup modes:
-
-1. **CPU Setup**:
-   - Best for systems without an NVIDIA GPU or with limited RAM.
-   - Installs PyTorch in CPU mode and Faster-Whisper/Kokoro.
-   - Run by clicking **Run CPU Setup**.
-
-2. **GPU Setup**:
-   - Best for systems with NVIDIA graphics cards.
-   - Installs PyTorch with CUDA acceleration to run models significantly faster.
-   - **Note**: Requires working NVIDIA CUDA drivers and libraries installed on your host system.
-   - Run by clicking **Run GPU Setup**.
-
-Both setups open a terminal window running the setup script. When the installation finishes, you will be prompted to **"Press any key to exit..."**.
-
-### Changing the Virtual Environment Path
-By default, the venv is created at:
-`~/.local/share/kdeaichat/venv`
-
-You can customize this path in the **Advanced Features** configuration settings under **Virtual Env Path**.
+1. Open the widget's settings page and select **Advanced Features**.
+2. Under the **Voice & Audio** section, toggle **Enable voice features** ON.
+3. Click either **Run CPU Setup** or **Run GPU Setup**. A terminal emulator (Konsole or similar) will launch to show live progress of pip installations.
+4. Once completed, press any key to exit the terminal.
+5. Click **Check Status** in the widget settings to verify that all packages show as `Installed`.
 
 ---
 
-## Models configuration
+## 2. Speech Features: STT & TTS
 
-To avoid redownloading models every time or if you are running in an offline environment, you can point the application to locally cached models:
+With the environment initialized, you can enable local high-quality Speech-to-Text and Text-to-Speech engines.
 
-### 1. Custom STT Model Path
-If left blank, Faster-Whisper will download the default `large-v3-turbo` model from Hugging Face on demand.
-If you have downloaded a Whisper model manually (containing `model.bin`, `config.json`, etc.), enter its folder path or browse to it.
+### Speech-to-Text (STT)
+Powered by **Faster Whisper**, which runs OpenAI's Whisper model locally.
+*   **Model Selection:** Choose from multiple sizes (`tiny`, `base`, `small`, `medium`, `large-v3-turbo`) in the dropdown depending on your RAM/VRAM capacity.
+*   **Download:** Click the **Download** button to pull the chosen model from Hugging Face via `huggingface-cli` (progress is shown in a terminal).
+*   **Custom Model Path:** If you already have a model downloaded, specify its directory path in the **Custom STT model path** field.
 
-### 2. Custom TTS Model Path
-If left blank, Kokoro will download `kokoro-82m` on demand.
-If you have downloaded the Kokoro model files (containing `kokoro-v0_19.pth` or similar and `config.json`), browse to the directory containing those files.
-
----
-
-## Testing Voice Features
-
-To verify your configuration, use the testing utilities in the settings panel:
-
-### Testing STT (Speech-to-Text)
-1. Click **Test STT**. The status will transition to `Recording...` (for 5 seconds).
-2. Speak clearly into your microphone.
-3. The status will transition to `Transcribing...` and display the recognized text in the settings view.
-4. (Optional) Click **Play Recorded Audio** to hear what was captured.
-
-### Testing TTS (Text-to-Speech)
-1. Enter any test text in the **Test TTS** input field.
-2. Click **Speak Test**. The system will synthesize the text and play it back.
-3. Click **Stop** at any time to interrupt the audio playback.
+### Text-to-Speech (TTS)
+Powered by the state-of-the-art local neural TTS model **Kokoro-82M**.
+*   **Phonemizer (`espeak-ng`):** Neural speech requires a phonemizer to translate words into sounds. Click **Install** next to the `espeak-ng path` label to automatically fetch this utility via your system's package manager (e.g., `apt`, `pacman`, `dnf`), or provide a custom directory path if installed manually.
+*   **Voices:** Choose from curated high-quality voices (e.g., `af_heart`, `am_fenrir`, `bf_bella`, `bm_george`, etc.) to read your messages aloud.
+*   **Speak Test:** Enter custom text in the **Test TTS** input box and click **Speak Test** to hear the synthesis immediately.
 
 ---
 
-## File and Service Locations
+## 3. Memory Usage Tracking
 
-| Path | Purpose |
-|------|---------|
-| `~/.local/share/kdeaichat/venv` | Isolated Python Virtual Environment |
-| `~/.config/systemd/user/kde-ai-tts.service` | systemd service unit for TTS daemon |
-| `~/.config/systemd/user/kde-ai-stt.service` | systemd service unit for STT daemon |
-| `/org.kde.plasma.kdeaichat/contents/ui/voice/voice_setup.sh` | Main shell script for CPU/GPU setups |
-| `/org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py` | Python server handling local speech inference |
+The **Memory Usage** section monitors the system impact of the background daemons.
+
+*   **Monitored Daemons:**
+    *   **Scheduler Daemon:** Automated prompt injector (`kde-ai-scheduler.py`).
+    *   **OpenCode Bridge:** Local code developer server (`opencode`).
+    *   **STT Daemon:** Background speech recognition server.
+    *   **TTS Daemon:** Background text-to-speech server.
+*   **How it works:** Reads `/proc/[pid]/status` directly to calculate precise RSS (Resident Set Size) RAM footprint.
+*   **Refresh:** Click **Refresh** to instantly query the system and calculate live total memory consumption.
+
+---
+
+## 4. Custom Chat Storage
+
+By default, chat history is saved to the standard user config directory (`~/.config/kdeaichat`). You can change this location to export, sync, or backup your data easily:
+
+1. Under the **Chat Storage** section, click **Browse...**.
+2. Select your desired directory.
+3. The widget will automatically sync all historical chat sessions to the new location.
+
+---
+
+## 5. Secure Credential Storage (KWallet)
+
+API Keys can be stored securely using standard desktop keyrings instead of plain-text configuration files.
+
+*   **Mode Settings:** Select **KWallet** or **File System (plaintext)**.
+*   **Automated Prompts:** Securely prompts for your wallet decryption password when retrieving credentials during start-up or prompt execution.
+*   **Attempt Limits:** The keyring interface handles password prompts gracefully, stopping after 3 unsuccessful attempts to prevent locking.

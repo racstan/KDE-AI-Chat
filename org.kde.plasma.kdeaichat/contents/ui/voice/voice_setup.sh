@@ -19,52 +19,89 @@ if [ -d "$VENV_DIR" ]; then
     if [ ! -f "$VENV_PY" ]; then
         VENV_PY="$VENV_DIR/bin/python"
     fi
-    if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub" 2>/dev/null; then
+    if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub, scipy, transformers, phonemizer" 2>/dev/null; then
         echo "  ✓ Virtual environment already exists at: $VENV_DIR"
         echo "  ✓ All required Python packages are already installed."
         echo "================================================================="
         echo ""
-        read -n 1 -s -r -p "Press any key to exit..."
+        read -n 1 -s -r -p "Press any key to exit..." </dev/tty
         echo ""
         exit 0
     fi
 fi
 
-echo "  Setting up virtual environment at: $VENV_DIR ($MODE mode)"
-echo "  This might take a few minutes..."
-echo "-----------------------------------------------------------------"
+cleanup_on_error() {
+    echo ""
+    echo "❌ ERROR: Setup failed during package installation!"
+    echo "  Virtual environment at: $VENV_DIR was kept."
+    echo "  You can run the setup again to resume installing the missing packages."
+    echo "================================================================="
+    echo ""
+    read -n 1 -s -r -p "Press any key to exit..." </dev/tty
+    echo ""
+    exit 1
+}
+trap cleanup_on_error ERR
 
+echo "  Preparing setup environment at: $VENV_DIR"
+if [ -d "$VENV_DIR" ]; then
+    VENV_PY="$VENV_DIR/bin/python3"
+    if [ ! -f "$VENV_PY" ]; then
+        VENV_PY="$VENV_DIR/bin/python"
+    fi
+    if [ ! -f "$VENV_PY" ]; then
+        echo "  Existing virtual environment seems broken (missing Python executable). Recreating..."
+        rm -rf "$VENV_DIR"
+    else
+        echo "  Using existing virtual environment to resume/update packages..."
+    fi
+fi
+
+echo "  Creating virtual environment ($MODE mode)..."
 echo '{"type":"setup_status","status":"creating_venv","path":"'"$VENV_DIR"'","mode":"'"$MODE"'"}'
 
 python3 -m venv "$VENV_DIR"
 
 echo '{"type":"setup_status","status":"installing_packages"}'
 
-"$VENV_DIR/bin/pip" install --quiet --upgrade pip
+echo "  Upgrading pip, setuptools, and wheel..."
+"$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel
 
 if [ "$MODE" = "gpu" ]; then
     echo "  Installing GPU (CUDA) enabled PyTorch and runtime libraries..."
     # Install standard torch (comes with CUDA by default on Linux) and nvidia runtime packages
-    "$VENV_DIR/bin/pip" install --quiet torch nvidia-cublas-cu12 nvidia-cudnn-cu12
+    "$VENV_DIR/bin/pip" install torch nvidia-cublas-cu12 nvidia-cudnn-cu12
 else
     echo "  Installing CPU-only PyTorch (efficient space-saving wheel)..."
     # Install cpu-only PyTorch to avoid massive ~2GB CUDA download
-    "$VENV_DIR/bin/pip" install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+    "$VENV_DIR/bin/pip" install torch --index-url https://download.pytorch.org/whl/cpu
 fi
 
-echo "  Installing remaining packages (faster-whisper, kokoro, sounddevice, etc.)..."
-"$VENV_DIR/bin/pip" install --quiet \
+echo "  Installing spacy>=3.8.0 (ensures pre-built wheels on Python 3.13)..."
+"$VENV_DIR/bin/pip" install "spacy>=3.8.0"
+
+echo "  Installing voice helper and core dependencies (faster-whisper, sounddevice, etc.)..."
+"$VENV_DIR/bin/pip" install \
     faster-whisper \
-    kokoro \
     sounddevice \
     numpy \
     soundfile \
-    huggingface_hub
+    huggingface_hub \
+    loguru \
+    scipy \
+    transformers \
+    num2words \
+    espeak-phonemizer \
+    phonemizer
+
+echo "  Installing speech models dependencies (kokoro, misaki)..."
+"$VENV_DIR/bin/pip" install --no-deps kokoro misaki
 
 echo '{"type":"setup_status","status":"done"}'
 echo "-----------------------------------------------------------------"
 echo "  ✓ Voice setup ($MODE) completed successfully!"
 echo "================================================================="
 echo ""
-read -n 1 -s -r -p "Press any key to exit..."
+read -n 1 -s -r -p "Press any key to exit..." </dev/tty
 echo ""
+

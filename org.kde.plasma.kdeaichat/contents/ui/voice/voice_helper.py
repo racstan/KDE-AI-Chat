@@ -83,6 +83,8 @@ class VoiceHelper:
             "numpy_ok": False,
             "stt_model_path_ok": False,
             "tts_model_path_ok": False,
+            "stt_model_downloaded": False,
+            "tts_model_downloaded": False,
         }
 
         # Check venv path existence
@@ -139,6 +141,29 @@ class VoiceHelper:
         except ImportError:
             pass
 
+        # Check if selected default models are downloaded in cache
+        stt_model = payload.get("stt_model", "large-v3-turbo")
+        stt_downloaded = False
+        hf_cache = os.path.expanduser("~/.cache/huggingface/hub")
+        if os.path.isdir(hf_cache):
+            entry = f"models--Systran--faster-whisper-{stt_model}"
+            repo_dir = os.path.join(hf_cache, entry)
+            if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                snapshots_dir = os.path.join(repo_dir, "snapshots")
+                if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                    stt_downloaded = True
+        result["stt_model_downloaded"] = stt_downloaded
+
+        tts_downloaded = False
+        if os.path.isdir(hf_cache):
+            entry = "models--hexgrad--Kokoro-82M"
+            repo_dir = os.path.join(hf_cache, entry)
+            if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                snapshots_dir = os.path.join(repo_dir, "snapshots")
+                if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                    tts_downloaded = True
+        result["tts_model_downloaded"] = tts_downloaded
+
         # Check custom model paths strictly
         if stt_model_path:
             stt_p = os.path.expanduser(stt_model_path)
@@ -159,53 +184,74 @@ class VoiceHelper:
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
         result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"]
-        result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and (result["stt_model_path_ok"] or not stt_model_path)
+        result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and (
+            result["stt_model_path_ok"] if stt_model_path else result["stt_model_downloaded"]
+        )
         result["tts_ready"] = result["kokoro_ok"] and result["espeak_available"] and (
             result["paplay_available"] or result["aplay_available"]
-        ) and (result["tts_model_path_ok"] or not tts_model_path)
-
+        ) and (
+            result["tts_model_path_ok"] if tts_model_path else result["tts_model_downloaded"]
+        )
 
         self.emit(result)
 
     def list_models(self, payload):
         """List available and downloaded models."""
-        cache_dir = os.path.expanduser("~/.cache/kdeaichat/models")
         result = {
             "type": "models_list",
             "stt_models": [],
             "tts_models": [],
         }
 
-        # Check STT models
-        stt_default = "large-v3-turbo"
+        stt_list = ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"]
+        sizes = {
+            "large-v3-turbo": "~1.5 GB",
+            "large-v3": "~3.0 GB",
+            "large-v2": "~3.0 GB",
+            "large-v1": "~3.0 GB",
+            "medium": "~1.5 GB",
+            "medium.en": "~1.5 GB",
+            "small": "~460 MB",
+            "small.en": "~460 MB",
+            "base": "~140 MB",
+            "base.en": "~140 MB",
+            "tiny": "~75 MB",
+            "tiny.en": "~75 MB"
+        }
         hf_cache = os.path.expanduser("~/.cache/huggingface/hub")
-        stt_downloaded = False
-        if os.path.isdir(hf_cache):
-            for entry in os.listdir(hf_cache):
-                if "faster-whisper" in entry and stt_default in entry:
-                    stt_downloaded = True
-                    break
+        for name in stt_list:
+            downloaded = False
+            if os.path.isdir(hf_cache):
+                entry = f"models--Systran--faster-whisper-{name}"
+                repo_dir = os.path.join(hf_cache, entry)
+                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                    snapshots_dir = os.path.join(repo_dir, "snapshots")
+                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                        downloaded = True
 
-        result["stt_models"].append({
-            "name": stt_default,
-            "downloaded": stt_downloaded,
-            "size": "~1.5 GB",
-        })
+            result["stt_models"].append({
+                "name": name,
+                "downloaded": downloaded,
+                "size": sizes.get(name, "~1.0 GB"),
+            })
 
         # Check TTS models
-        tts_default = "kokoro-82m"
-        tts_downloaded = False
-        try:
-            from kokoro import KPipeline
-            tts_downloaded = True
-        except Exception:
-            pass
+        tts_list = ["kokoro-82m"]
+        for name in tts_list:
+            downloaded = False
+            if os.path.isdir(hf_cache):
+                entry = "models--hexgrad--Kokoro-82M"
+                repo_dir = os.path.join(hf_cache, entry)
+                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                    snapshots_dir = os.path.join(repo_dir, "snapshots")
+                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                        downloaded = True
 
-        result["tts_models"].append({
-            "name": tts_default,
-            "downloaded": tts_downloaded,
-            "size": "~150 MB",
-        })
+            result["tts_models"].append({
+                "name": name,
+                "downloaded": downloaded,
+                "size": "~150 MB",
+            })
 
         self.emit(result)
 
@@ -565,13 +611,13 @@ class VoiceHelper:
 
                     if player == "paplay":
                         proc = subprocess.Popen(
-                            ["paplay", "--rate=24000", "--channels=1", "--format=s16le", tmp_path],
+                            ["paplay", tmp_path],
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
                         )
                     elif player == "aplay":
                         proc = subprocess.Popen(
-                            ["aplay", "-r", "24000", "-c", "1", "-f", "S16_LE", tmp_path],
+                            ["aplay", tmp_path],
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
                         )
