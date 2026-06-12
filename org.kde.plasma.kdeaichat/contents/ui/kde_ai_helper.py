@@ -272,6 +272,60 @@ def cmd_setup_scheduler_service(payload: Dict[str, Any]) -> None:
         print("AUTO_DISABLED")
 
 
+def cmd_setup_voice_services(payload: Dict[str, Any]) -> None:
+    """Install the voice services for STT and TTS systemd user units."""
+    venv_py = os.path.expanduser(payload.get("venvPy", "~/.local/share/kdeaichat/venv/bin/python3"))
+    if not os.path.exists(venv_py):
+        venv_py = shutil.which("python3") or "/usr/bin/python3"
+
+    helper_dir = os.path.dirname(os.path.abspath(__file__))
+    voice_helper = os.path.join(helper_dir, "voice", "voice_helper.py")
+
+    sdir = os.path.expanduser("~/.config/systemd/user")
+    os.makedirs(sdir, exist_ok=True)
+
+    # Write STT service
+    stt_file = os.path.join(sdir, "kde-ai-stt.service")
+    stt_content = f"""[Unit]
+Description=KDE AI Chat STT Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={venv_py} {voice_helper} --stt-server
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
+"""
+    with open(stt_file, "w") as f:
+        f.write(stt_content)
+
+    # Write TTS service
+    tts_file = os.path.join(sdir, "kde-ai-tts.service")
+    tts_content = f"""[Unit]
+Description=KDE AI Chat TTS Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={venv_py} {voice_helper} --tts-server
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
+"""
+    with open(tts_file, "w") as f:
+        f.write(tts_content)
+
+    os.system("systemctl --user daemon-reload")
+    print("VOICE_SERVICES_SETUP_OK")
+
+
 def cmd_save_all_schedules(payload: Dict[str, Any]) -> None:
     """Persist a full schedules payload (replaces the existing file)."""
     p = os.path.expanduser("~/.local/share/kdeaichat")
@@ -358,6 +412,7 @@ def main() -> None:
         "clear_config_keys": cmd_clear_config_keys,
         "load_config_keys": cmd_load_config_keys,
         "setup_scheduler_service": cmd_setup_scheduler_service,
+        "setup_voice_services": cmd_setup_voice_services,
         "save_all_schedules": cmd_save_all_schedules,
         "get_memory_usage": cmd_get_memory_usage,
         "export_chat": cmd_export_chat,

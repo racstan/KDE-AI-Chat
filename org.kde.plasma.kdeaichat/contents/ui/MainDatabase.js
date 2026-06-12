@@ -3262,6 +3262,31 @@ function getVoiceSetupPath() {
     return base;
 }
 
+function sendVoiceCommand(port, payload, fallbackSource) {
+    let xhr = new XMLHttpRequest();
+    xhr.open("POST", "http://127.0.0.1:" + port + "/command", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+                try {
+                    let resp = JSON.parse(xhr.responseText);
+                    handleVoiceResponse(resp, fallbackSource);
+                } catch (e) {
+                    root.voiceDs.connectSource(fallbackSource);
+                }
+            } else {
+                root.voiceDs.connectSource(fallbackSource);
+            }
+        }
+    };
+    try {
+        xhr.send(JSON.stringify(payload));
+    } catch (e) {
+        root.voiceDs.connectSource(fallbackSource);
+    }
+}
+
 function checkVoiceEnv() {
     let helperPath = getVoiceHelperPath();
     let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
@@ -3269,9 +3294,11 @@ function checkVoiceEnv() {
     let venvPy = venvPath + "/bin/python3";
     let sttPath = plasmoid.configuration.voiceSttModelPath || "";
     let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
-    let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-env-" + Date.now());
+    let payload = {cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath};
+    let payloadStr = JSON.stringify(payload);
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-env-" + Date.now();
+    sendVoiceCommand(9015, payload, sourceName);
 }
 
 function startVoiceRecording() {
@@ -3285,9 +3312,11 @@ function startVoiceRecording() {
     let lang = plasmoid.configuration.voiceLanguage || "en";
     let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
     let modelPath = plasmoid.configuration.voiceSttModelPath || "";
-    let payload = JSON.stringify({cmd: "start_stt", duration: 10, language: lang, model: model, model_path: modelPath});
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stt-" + Date.now());
+    let payload = {cmd: "start_stt", duration: 10, language: lang, model: model, model_path: modelPath};
+    let payloadStr = JSON.stringify(payload);
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stt-" + Date.now();
+    sendVoiceCommand(9015, payload, sourceName);
 }
 
 function stopVoiceRecording() {
@@ -3296,9 +3325,11 @@ function stopVoiceRecording() {
     let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
     venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
     let venvPy = venvPath + "/bin/python3";
-    let payload = JSON.stringify({cmd: "stop_stt"});
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stop-" + Date.now());
+    let payload = {cmd: "stop_stt"};
+    let payloadStr = JSON.stringify(payload);
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stop-" + Date.now();
+    sendVoiceCommand(9015, payload, sourceName);
 }
 
 function triggerTts(text) {
@@ -3308,9 +3339,11 @@ function triggerTts(text) {
     venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
     let venvPy = venvPath + "/bin/python3";
     let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
-    let payload = JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a"});
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-tts-" + Date.now());
+    let payload = {cmd: "tts", text: text, voice: voice, lang_code: "a"};
+    let payloadStr = JSON.stringify(payload);
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-tts-" + Date.now();
+    sendVoiceCommand(9016, payload, sourceName);
 }
 
 function stopTts() {
@@ -3318,9 +3351,11 @@ function stopTts() {
     let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
     venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
     let venvPy = venvPath + "/bin/python3";
-    let payload = JSON.stringify({cmd: "stop_tts"});
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    root.voiceDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stoptts-" + Date.now());
+    let payload = {cmd: "stop_tts"};
+    let payloadStr = JSON.stringify(payload);
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stoptts-" + Date.now();
+    sendVoiceCommand(9016, payload, sourceName);
 }
 
 function handleVoiceResponse(resp, sourceName) {

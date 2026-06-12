@@ -22,6 +22,10 @@ QQC2.ScrollView {
     property string recordedAudioPath: ""
     property string sttStatus: ""
     property string activeSttSource: ""
+    property bool sttServiceActive: false
+    property bool sttServiceEnabled: false
+    property bool ttsServiceActive: false
+    property bool ttsServiceEnabled: false
     // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult)
     property string statusText: {
         if (page.copiedText === "copied")
@@ -224,13 +228,81 @@ QQC2.ScrollView {
         voicePageDs.connectSource(cmd);
     }
 
-    function sendVoiceCommand(payload) {
+    function sendVoiceCommand(payloadStr) {
+        let payload = JSON.parse(payloadStr);
+        let cmd = payload.cmd || "";
+        let port = (cmd === "tts" || cmd === "stop_tts") ? 9016 : 9015;
+
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-        let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-cmd-" + Date.now();
-        voicePageDs.connectSource(cmd);
-        return cmd;
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+        let fallbackSource = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-cmd-" + Date.now();
+
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:" + port + "/command", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                    try {
+                        let resp = JSON.parse(xhr.responseText);
+                        handleVoicePageResponse(resp, fallbackSource);
+                    } catch (e) {
+                        voicePageDs.connectSource(fallbackSource);
+                    }
+                } else {
+                    voicePageDs.connectSource(fallbackSource);
+                }
+            }
+        };
+        try {
+            xhr.send(payloadStr);
+        } catch (e) {
+            voicePageDs.connectSource(fallbackSource);
+        }
+        return fallbackSource;
+    }
+
+    function setupVoiceServices() {
+        let venvPy = getVenvPython();
+        let payload = JSON.stringify({
+            "venvPy": venvPy
+        });
+        let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
+        voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-services");
+    }
+
+    function refreshServiceStatuses() {
+        if (!voiceEnabledToggle.checked) return;
+        voicePageDs.connectSource("systemctl --user is-active kde-ai-stt.service #check-stt-active");
+        voicePageDs.connectSource("systemctl --user is-enabled kde-ai-stt.service #check-stt-enabled");
+        voicePageDs.connectSource("systemctl --user is-active kde-ai-tts.service #check-tts-active");
+        voicePageDs.connectSource("systemctl --user is-enabled kde-ai-tts.service #check-tts-enabled");
+    }
+
+    function toggleSttService() {
+        let cmd = page.sttServiceActive ? "systemctl --user stop kde-ai-stt.service" : "systemctl --user start kde-ai-stt.service";
+        voicePageDs.connectSource(cmd + " #toggle-stt-service-" + Date.now());
+        Qt.callLater(refreshServiceStatuses);
+    }
+
+    function toggleSttBoot() {
+        let cmd = page.sttServiceEnabled ? "systemctl --user disable kde-ai-stt.service" : "systemctl --user enable kde-ai-stt.service";
+        voicePageDs.connectSource(cmd + " #toggle-stt-boot-" + Date.now());
+        Qt.callLater(refreshServiceStatuses);
+    }
+
+    function toggleTtsService() {
+        let cmd = page.ttsServiceActive ? "systemctl --user stop kde-ai-tts.service" : "systemctl --user start kde-ai-tts.service";
+        voicePageDs.connectSource(cmd + " #toggle-tts-service-" + Date.now());
+        Qt.callLater(refreshServiceStatuses);
+    }
+
+    function toggleTtsBoot() {
+        let cmd = page.ttsServiceEnabled ? "systemctl --user disable kde-ai-tts.service" : "systemctl --user enable kde-ai-tts.service";
+        voicePageDs.connectSource(cmd + " #toggle-tts-boot-" + Date.now());
+        Qt.callLater(refreshServiceStatuses);
     }
 
     contentWidth: availableWidth
@@ -244,6 +316,15 @@ QQC2.ScrollView {
 
         interval: 2000
         onTriggered: page.copiedText = ""
+    }
+
+    Timer {
+        id: serviceStatusTimer
+        interval: 3000
+        running: voiceEnabledToggle.checked
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: refreshServiceStatuses()
     }
 
     // Countdown timer: fires every second, stops stt at 0
@@ -275,35 +356,55 @@ QQC2.ScrollView {
             let stderr = (data["stderr"] || "").trim();
             let exitCode = data["exit code"];
             if (stdout !== "") {
-                let lines = stdout.split("\n");
-                for (let i = 0; i < lines.length; i++) {
-                    let line = lines[i].trim();
-                    if (!line)
-                        continue;
+                if (sourceName.indexOf("#check-stt-active") >= 0) {
+                    page.sttServiceActive = (stdout === "active");
+                } else if (sourceName.indexOf("#check-stt-enabled") >= 0) {
+                    page.sttServiceEnabled = (stdout === "enabled");
+                } else if (sourceName.indexOf("#check-tts-active") >= 0) {
+                    page.ttsServiceActive = (stdout === "active");
+                } else if (sourceName.indexOf("#check-tts-enabled") >= 0) {
+                    page.ttsServiceEnabled = (stdout === "enabled");
+                } else if (stdout.indexOf("VOICE_SERVICES_SETUP_OK") >= 0) {
+                    if (voiceEnabledToggle.checked) {
+                        voicePageDs.connectSource("systemctl --user start kde-ai-stt.service #start-stt-auto");
+                    }
+                    if (voiceTtsEnabledToggle.checked) {
+                        voicePageDs.connectSource("systemctl --user start kde-ai-tts.service #start-tts-auto");
+                    }
+                    Qt.callLater(refreshServiceStatuses);
+                } else {
+                    let lines = stdout.split("\n");
+                    for (let i = 0; i < lines.length; i++) {
+                        let line = lines[i].trim();
+                        if (!line)
+                            continue;
 
-                    try {
-                        let resp = JSON.parse(line);
-                        handleVoicePageResponse(resp, sourceName);
-                    } catch (e) {
+                        try {
+                            let resp = JSON.parse(line);
+                            handleVoicePageResponse(resp, sourceName);
+                        } catch (e) {
+                        }
                     }
                 }
             }
             if (exitCode !== undefined) {
                 if (exitCode !== 0) {
-                    if (page.sttTesting && sourceName === page.activeSttSource) {
-                        page.sttTesting = false;
-                        page.sttStatus = "";
-                        sttTimer.stop();
-                        page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr : "");
+                    if (sourceName.indexOf("#check-stt") < 0 && sourceName.indexOf("#check-tts") < 0) {
+                        if (page.sttTesting && sourceName === page.activeSttSource) {
+                            page.sttTesting = false;
+                            page.sttStatus = "";
+                            sttTimer.stop();
+                            page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr : "");
+                        }
+                        if (sourceName.indexOf("voice-env-") >= 0) {
+                            page.voiceEnvResult = {
+                                "type": "env_check",
+                                "error": stderr || i18n("Unknown error")
+                            };
+                            page.voiceEnvChecked = true;
+                        }
+                        page.ttsPlaying = false;
                     }
-                    if (sourceName.indexOf("voice-env-") >= 0) {
-                        page.voiceEnvResult = {
-                            "type": "env_check",
-                            "error": stderr || i18n("Unknown error")
-                        };
-                        page.voiceEnvChecked = true;
-                    }
-                    page.ttsPlaying = false;
                 }
                 disconnectSource(sourceName);
                 if (sourceName === page.activeSttSource)
@@ -530,6 +631,13 @@ QQC2.ScrollView {
             Layout.maximumWidth: formLayout.fieldMaxWidth
             checked: plasmoid.configuration.voiceEnabled || false
             text: checked ? i18n("Enabled — mic button appears in chat") : i18n("Disabled")
+            onToggled: {
+                if (checked) {
+                    setupVoiceServices();
+                } else {
+                    voicePageDs.connectSource("systemctl --user stop kde-ai-stt.service #stop-stt-auto");
+                }
+            }
         }
 
         // ── Status ──────────────────────────────────────────────────
@@ -888,6 +996,32 @@ QQC2.ScrollView {
             text: page.sttTestResult
         }
 
+        RowLayout {
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("STT Service:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Button {
+                text: page.sttServiceActive ? i18n("Stop STT") : i18n("Start STT")
+                icon.name: page.sttServiceActive ? "media-playback-stop" : "media-playback-start"
+                onClicked: toggleSttService()
+            }
+
+            QQC2.Button {
+                text: page.sttServiceEnabled ? i18n("Disable Autostart") : i18n("Enable Autostart")
+                icon.name: page.sttServiceEnabled ? "box-unlocked" : "box-locked"
+                onClicked: toggleSttBoot()
+            }
+
+            QQC2.Label {
+                text: page.sttServiceActive ? i18n("Active (Running)") : i18n("Inactive (Stopped)")
+                font.bold: true
+                color: page.sttServiceActive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+            }
+        }
+
         // ── TTS Settings ──────────────────────────────────────────────
         QQC2.CheckBox {
             id: voiceAutoSendToggle
@@ -907,6 +1041,13 @@ QQC2.ScrollView {
             Layout.maximumWidth: formLayout.fieldMaxWidth
             checked: plasmoid.configuration.voiceTtsEnabled || false
             text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
+            onToggled: {
+                if (checked) {
+                    setupVoiceServices();
+                } else {
+                    voicePageDs.connectSource("systemctl --user stop kde-ai-tts.service #stop-tts-auto");
+                }
+            }
         }
 
         RowLayout {
@@ -1007,6 +1148,32 @@ QQC2.ScrollView {
                 }))
             }
 
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Kirigami.FormData.label: i18n("TTS Service:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Button {
+                text: page.ttsServiceActive ? i18n("Stop TTS") : i18n("Start TTS")
+                icon.name: page.ttsServiceActive ? "media-playback-stop" : "media-playback-start"
+                onClicked: toggleTtsService()
+            }
+
+            QQC2.Button {
+                text: page.ttsServiceEnabled ? i18n("Disable Autostart") : i18n("Enable Autostart")
+                icon.name: page.ttsServiceEnabled ? "box-unlocked" : "box-locked"
+                onClicked: toggleTtsBoot()
+            }
+
+            QQC2.Label {
+                text: page.ttsServiceActive ? i18n("Active (Running)") : i18n("Inactive (Stopped)")
+                font.bold: true
+                color: page.ttsServiceActive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+            }
         }
 
         RowLayout {

@@ -29,10 +29,22 @@ class VoiceHelper:
         self.stop_tts = False
         self.stt_thread = None
         self.tts_thread = None
+        self.last_emitted = None
+        self.stt_result = None
+        self.tts_result = None
+        self.current_status = "idle"
+        self.current_countdown = 0
+        self.temp_audio_path = os.path.join(tempfile.gettempdir(), "kdeaichat_stt_test.wav")
 
     def emit(self, data):
-        """Write a JSON response to stdout."""
+        """Write a JSON response to stdout and track results for HTTP mode."""
         print(json.dumps(data), flush=True)
+        self.last_emitted = data
+        dtype = data.get("type", "")
+        if dtype in ("stt_result", "stt_error"):
+            self.stt_result = data
+        elif dtype in ("tts_done", "tts_error", "tts_stopped"):
+            self.tts_result = data
 
     def check_env(self, payload):
         """Check environment for voice capabilities."""
@@ -232,6 +244,7 @@ class VoiceHelper:
 
                 # Load model
                 if self.stt_model is None or self.stt_model_name != model_name:
+                    self.current_status = "loading_model"
                     self.emit({"type": "stt_status", "status": "loading_model"})
                     try:
                         from faster_whisper import WhisperModel
@@ -245,6 +258,7 @@ class VoiceHelper:
                         self.recording = False
                         return
 
+                self.current_status = "recording"
                 self.emit({"type": "stt_status", "status": "recording"})
 
                 # Record audio in chunks, checking stop_recording
@@ -254,6 +268,7 @@ class VoiceHelper:
                 total_recorded = 0.0
 
                 while total_recorded < duration and not self.stop_recording:
+                    self.current_countdown = int(duration - total_recorded)
                     chunk = sd.rec(
                         int(chunk_duration * sample_rate),
                         samplerate=sample_rate,
@@ -272,6 +287,7 @@ class VoiceHelper:
                     self.recording = False
                     return
 
+                self.current_status = "transcribing"
                 self.emit({"type": "stt_status", "status": "transcribing"})
 
                 # Concatenate and transcribe
@@ -280,7 +296,7 @@ class VoiceHelper:
 
                 # Save audio to temp file for playback
                 import soundfile as sf
-                audio_path = os.path.join(tempfile.gettempdir(), "kdeaichat_stt_test.wav")
+                audio_path = self.temp_audio_path
                 sf.write(audio_path, audio, sample_rate)
 
                 # Skip very short audio
@@ -309,6 +325,8 @@ class VoiceHelper:
                 self.emit({"type": "stt_error", "error": str(e)})
             finally:
                 self.recording = False
+                self.current_status = "idle"
+                self.current_countdown = 0
 
         self.stt_thread = threading.Thread(target=do_stt, daemon=True)
         self.stt_thread.start()
@@ -382,6 +400,7 @@ class VoiceHelper:
                     self.emit({"type": "tts_error", "error": "No audio player found. Install pulseaudio-utils or alsa-utils."})
                     return
 
+                self.current_status = "synthesizing"
                 self.emit({"type": "tts_status", "status": "synthesizing"})
 
                 # Load pipeline
@@ -395,6 +414,7 @@ class VoiceHelper:
                     else:
                         self.tts_pipeline = KPipeline(lang_code=lang_code)
 
+                self.current_status = "playing"
                 self.emit({"type": "tts_status", "status": "playing"})
 
                 # Synthesize and play in segments
@@ -450,6 +470,7 @@ class VoiceHelper:
                 self.emit({"type": "tts_error", "error": str(e)})
             finally:
                 self.tts_playing = False
+                self.current_status = "idle"
 
         self.tts_thread = threading.Thread(target=do_tts, daemon=True)
         self.tts_thread.start()
@@ -461,6 +482,121 @@ class VoiceHelper:
             self.emit({"type": "tts_status", "status": "stopping"})
         else:
             self.emit({"type": "tts_stopped"})
+
+    def process_server_command(self, cmd_data, mode):
+        """Process a command from the HTTP server and block until done if it is STT or TTS."""
+        cmd = cmd_data.get("cmd", "")
+        self.last_emitted = None
+        
+        try:
+            if cmd == "start_stt":
+                self.stt_result = None
+                self.start_stt(cmd_data)
+                while self.recording and self.stt_result is None:
+                    time.sleep(0.05)
+                timeout = time.time() + 2.0
+                while self.stt_result is None and time.time() < timeout:
+                    time.sleep(0.05)
+                return self.stt_result or {"type": "stt_error", "error": "STT finished with no result"}
+            elif cmd == "stop_stt":
+                self.stop_stt(cmd_data)
+                return {"type": "stt_status", "status": "stopping"}
+            elif cmd == "tts":
+                self.tts_result = None
+                self.tts(cmd_data)
+                while self.tts_playing and self.tts_result is None:
+                    time.sleep(0.05)
+                timeout = time.time() + 2.0
+                while self.tts_result is None and time.time() < timeout:
+                    time.sleep(0.05)
+                return self.tts_result or {"type": "tts_done"}
+            elif cmd == "stop_tts":
+                self.stop_tts_cmd(cmd_data)
+                return {"type": "tts_status", "status": "stopping"}
+            elif cmd == "check_env":
+                self.check_env(cmd_data)
+                return self.last_emitted
+            elif cmd == "list_models":
+                self.list_models(cmd_data)
+                return self.last_emitted
+            elif cmd == "play_audio":
+                self.play_audio(cmd_data)
+                return {"type": "play_started"}
+            else:
+                return {"type": "error", "error": f"Unsupported command in HTTP server: {cmd}"}
+        except Exception as e:
+            return {"type": "error", "error": f"Exception in server command processor: {str(e)}"}
+
+    def run_http_server(self, port, mode):
+        """Run a simple multithreaded HTTP server on localhost."""
+        import http.server
+        from http.server import HTTPServer
+        try:
+            from http.server import ThreadingHTTPServer as HTTPServerClass
+        except ImportError:
+            from socketserver import ThreadingMixIn
+            class ThreadingHTTPServerClass(ThreadingMixIn, HTTPServer):
+                pass
+            HTTPServerClass = ThreadingHTTPServerClass
+
+        helper_self = self
+
+        class CustomHandler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, format, *args):
+                pass
+
+            def do_OPTIONS(self):
+                self.send_response(204)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.end_headers()
+
+            def do_GET(self):
+                if self.path == "/status":
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    status_data = {
+                        "status": helper_self.current_status,
+                        "countdown": helper_self.current_countdown,
+                        "recorded_audio_path": helper_self.temp_audio_path if os.path.exists(helper_self.temp_audio_path) else ""
+                    }
+                    self.wfile.write(json.dumps(status_data).encode("utf-8"))
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+
+            def do_POST(self):
+                if self.path in ("/command", "/"):
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length)
+                    try:
+                        payload = json.loads(post_data.decode('utf-8'))
+                    except Exception:
+                        self.send_response(400)
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"error": "Invalid JSON"}).encode("utf-8"))
+                        return
+
+                    res = helper_self.process_server_command(payload, mode)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res).encode("utf-8"))
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+
+        server = HTTPServerClass(("127.0.0.1", port), CustomHandler)
+        print(f"Starting {mode} server on 127.0.0.1:{port}", flush=True)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
 
     def process_command(self, line):
         """Process a single JSON command from stdin."""
@@ -505,5 +641,19 @@ class VoiceHelper:
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--stt-server", action="store_true", help="Run STT HTTP server")
+    parser.add_argument("--tts-server", action="store_true", help="Run TTS HTTP server")
+    parser.add_argument("--port", type=int, default=None, help="HTTP server port")
+    args = parser.parse_args()
+
     helper = VoiceHelper()
-    helper.run()
+    if args.stt_server:
+        port = args.port or 9015
+        helper.run_http_server(port, mode="stt")
+    elif args.tts_server:
+        port = args.port or 9016
+        helper.run_http_server(port, mode="tts")
+    else:
+        helper.run()
