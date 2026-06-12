@@ -9,6 +9,112 @@ VENV_DIR="${1:-$HOME/.local/share/kdeaichat/venv}"
 VENV_DIR="${VENV_DIR/#\~/$HOME}"
 MODE="${2:-cpu}" # cpu or gpu
 
+wait_for_keypress() {
+    if [ -t 0 ]; then
+        read -n 1 -s -r -p "Press any key to exit..."
+    elif [ -c /dev/tty ]; then
+        read -n 1 -s -r -p "Press any key to exit..." </dev/tty
+    else
+        echo "Press any key to exit (waiting 3 seconds)..."
+        sleep 3
+    fi
+}
+
+if [ "$MODE" = "download_stt" ]; then
+    MODEL_NAME="${3:-large-v3-turbo}"
+    REPO="Systran/faster-whisper-$MODEL_NAME"
+    echo "================================================================="
+    echo "  KDE AI Chat - Downloading STT Model: $MODEL_NAME"
+    echo "================================================================="
+    VENV_PY="$VENV_DIR/bin/python3"
+    if [ ! -f "$VENV_PY" ]; then
+        VENV_PY="$VENV_DIR/bin/python"
+    fi
+    if [ ! -f "$VENV_PY" ]; then
+        echo "❌ Error: Virtual environment python not found at $VENV_DIR. Please run setup first."
+        wait_for_keypress
+        exit 1
+    fi
+    VENV_BIN="$(dirname "$VENV_PY")"
+    HF_CLI="$VENV_BIN/huggingface-cli"
+    if [ -f "$HF_CLI" ]; then
+        "$HF_CLI" download "$REPO"
+    else
+        echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
+        wait_for_keypress
+        exit 1
+    fi
+    echo "================================================================="
+    echo "  ✓ STT model downloaded successfully!"
+    echo "================================================================="
+    echo ""
+    wait_for_keypress
+    exit 0
+fi
+
+if [ "$MODE" = "download_tts" ]; then
+    REPO="hexgrad/Kokoro-82M"
+    echo "================================================================="
+    echo "  KDE AI Chat - Downloading TTS Model: kokoro-82m"
+    echo "================================================================="
+    VENV_PY="$VENV_DIR/bin/python3"
+    if [ ! -f "$VENV_PY" ]; then
+        VENV_PY="$VENV_DIR/bin/python"
+    fi
+    if [ ! -f "$VENV_PY" ]; then
+        echo "❌ Error: Virtual environment python not found at $VENV_DIR. Please run setup first."
+        wait_for_keypress
+        exit 1
+    fi
+    VENV_BIN="$(dirname "$VENV_PY")"
+    HF_CLI="$VENV_BIN/huggingface-cli"
+    if [ -f "$HF_CLI" ]; then
+        "$HF_CLI" download "$REPO"
+    else
+        echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
+        wait_for_keypress
+        exit 1
+    fi
+    echo "================================================================="
+    echo "  ✓ TTS model downloaded successfully!"
+    echo "================================================================="
+    echo ""
+    wait_for_keypress
+    exit 0
+fi
+
+if [ "$MODE" = "install_espeak" ]; then
+    echo "================================================================="
+    echo "  KDE AI Chat - Installing espeak-ng (Phonemizer)"
+    echo "================================================================="
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "  Detected Debian/Ubuntu/Mint (apt)..."
+        sudo apt-get update && sudo apt-get install -y espeak-ng
+    elif command -v dnf >/dev/null 2>&1; then
+        echo "  Detected Fedora/RHEL (dnf)..."
+        sudo dnf install -y espeak-ng
+    elif command -v pacman >/dev/null 2>&1; then
+        echo "  Detected Arch Linux (pacman)..."
+        sudo pacman -S --noconfirm espeak-ng
+    elif command -v zypper >/dev/null 2>&1; then
+        echo "  Detected openSUSE (zypper)..."
+        sudo zypper install -y espeak-ng
+    elif command -v emerge >/dev/null 2>&1; then
+        echo "  Detected Gentoo (emerge)..."
+        sudo emerge app-accessibility/espeak-ng
+    elif command -v apk >/dev/null 2>&1; then
+        echo "  Detected Alpine Linux (apk)..."
+        sudo apk add espeak-ng
+    else
+        echo "❌ Error: Could not auto-detect package manager."
+        echo "  Please install the 'espeak-ng' package manually using your distribution package manager."
+    fi
+    echo "================================================================="
+    echo ""
+    wait_for_keypress
+    exit 0
+fi
+
 echo "================================================================="
 echo "  KDE AI Chat - Virtual Environment setup for TTS and STT"
 echo "================================================================="
@@ -24,7 +130,7 @@ if [ -d "$VENV_DIR" ]; then
         echo "  ✓ All required Python packages are already installed."
         echo "================================================================="
         echo ""
-        read -n 1 -s -r -p "Press any key to exit..." </dev/tty
+        wait_for_keypress
         echo ""
         exit 0
     fi
@@ -37,7 +143,7 @@ cleanup_on_error() {
     echo "  You can run the setup again to resume installing the missing packages."
     echo "================================================================="
     echo ""
-    read -n 1 -s -r -p "Press any key to exit..." </dev/tty
+    wait_for_keypress
     echo ""
     exit 1
 }
@@ -102,6 +208,6 @@ echo "-----------------------------------------------------------------"
 echo "  ✓ Voice setup ($MODE) completed successfully!"
 echo "================================================================="
 echo ""
-read -n 1 -s -r -p "Press any key to exit..." </dev/tty
+wait_for_keypress
 echo ""
 

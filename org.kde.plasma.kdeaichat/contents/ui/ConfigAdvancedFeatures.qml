@@ -247,13 +247,13 @@ QQC2.ScrollView {
         });
     }
 
-    function runSetupInTerminal(mode) {
+    function runSetupInTerminal(mode, extraArg) {
         let setupPath = getSetupPath();
         let venvPath = getVenvPath();
         if (setupPath === "" || venvPath === "") return;
         let m = mode || "cpu";
-        let innerCmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath) + " " + Sec.quoteForShell(m);
-        let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-setup-term-" + Date.now();
+        let extra = extraArg ? (" " + Sec.quoteForShell(extraArg)) : "";
+        let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath) + " " + Sec.quoteForShell(m) + extra + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath) + " " + Sec.quoteForShell(m) + extra + "; fi #voice-setup-term-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
 
@@ -1034,21 +1034,7 @@ QQC2.ScrollView {
                 icon.name: "download"
                 onClicked: {
                     let modelName = page.cfg_voiceSttModel || "large-v3-turbo";
-                    let repo = "Systran/faster-whisper-" + modelName;
-                    let venvPy = getVenvPython();
-                    let venvBin = venvPy.substring(0, venvPy.lastIndexOf("/"));
-                    let hfCli = venvBin + "/huggingface-cli";
-                    let innerCmd = "echo '================================================================='; " +
-                                   "echo '  KDE AI Chat - Downloading STT Model: " + modelName + "'; " +
-                                   "echo '================================================================='; " +
-                                   "if [ -f " + Sec.quoteForShell(hfCli) + " ]; then " +
-                                   "  " + Sec.quoteForShell(hfCli) + " download " + Sec.quoteForShell(repo) + "; " +
-                                   "else " +
-                                   "  echo '❌ Error: huggingface-cli not found in venv. Please run setup first.'; " +
-                                   "fi; " +
-                                   "echo; read -n 1 -s -r -p 'Press any key to exit...' </dev/tty";
-                    let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-download-stt-" + Date.now();
-                    voicePageDs.connectSource(cmd);
+                    runSetupInTerminal("download_stt", modelName);
                 }
             }
 
@@ -1255,26 +1241,7 @@ QQC2.ScrollView {
                 icon.name: "download"
                 QQC2.ToolTip.text: i18n("Install espeak-ng using your system package manager")
                 onClicked: {
-                    let detectAndInstall = "echo '=== Installing espeak-ng (Phonemizer) ==='; " +
-                        "if command -v apt-get >/dev/null 2>&1; then " +
-                        "  echo 'Detected Debian/Ubuntu/Mint (apt)...'; sudo apt-get update && sudo apt-get install -y espeak-ng; " +
-                        "elif command -v dnf >/dev/null 2>&1; then " +
-                        "  echo 'Detected Fedora/RHEL (dnf)...'; sudo dnf install -y espeak-ng; " +
-                        "elif command -v pacman >/dev/null 2>&1; then " +
-                        "  echo 'Detected Arch Linux (pacman)...'; sudo pacman -S --noconfirm espeak-ng; " +
-                        "elif command -v zypper >/dev/null 2>&1; then " +
-                        "  echo 'Detected openSUSE (zypper)...'; sudo zypper install -y espeak-ng; " +
-                        "elif command -v emerge >/dev/null 2>&1; then " +
-                        "  echo 'Detected Gentoo (emerge)...'; sudo emerge app-accessibility/espeak-ng; " +
-                        "elif command -v apk >/dev/null 2>&1; then " +
-                        "  echo 'Detected Alpine Linux (apk)...'; sudo apk add espeak-ng; " +
-                        "else " +
-                        "  echo 'Could not auto-detect package manager. Please install \"espeak-ng\" manually.'; " +
-                        "fi; " +
-                        "echo; read -n 1 -s -r -p 'Press any key to exit...' </dev/tty";
-                    let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; " +
-                        "elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; fi #voice-install-espeak-" + Date.now();
-                    voicePageDs.connectSource(cmd);
+                    runSetupInTerminal("install_espeak");
                 }
             }
         }
@@ -1296,21 +1263,7 @@ QQC2.ScrollView {
                 text: i18n("Download")
                 icon.name: "download"
                 onClicked: {
-                    let repo = "hexgrad/Kokoro-82M";
-                    let venvPy = getVenvPython();
-                    let venvBin = venvPy.substring(0, venvPy.lastIndexOf("/"));
-                    let hfCli = venvBin + "/huggingface-cli";
-                    let innerCmd = "echo '================================================================='; " +
-                                   "echo '  KDE AI Chat - Downloading TTS Model: kokoro-82m'; " +
-                                   "echo '================================================================='; " +
-                                   "if [ -f " + Sec.quoteForShell(hfCli) + " ]; then " +
-                                   "  " + Sec.quoteForShell(hfCli) + " download " + Sec.quoteForShell(repo) + "; " +
-                                   "else " +
-                                   "  echo '❌ Error: huggingface-cli not found in venv. Please run setup first.'; " +
-                                   "fi; " +
-                                   "echo; read -n 1 -s -r -p 'Press any key to exit...' </dev/tty";
-                    let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-download-tts-" + Date.now();
-                    voicePageDs.connectSource(cmd);
+                    runSetupInTerminal("download_tts");
                 }
             }
 

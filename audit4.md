@@ -218,7 +218,7 @@
 10. **CI swallows QML/test failures** — `|| true` on qmllint, qmltestrunner, and markdownlint.
 
 ### Voice & Speech Regressions
-11. **Terminal read blocker** — `read -n 1` prompts in `voice_setup.sh` and QML terminal commands hung or exited instantly unless redirected via `</dev/tty`. (Resolved by adding `</dev/tty` redirection).
+11. **Terminal read blocker & blank setup screens** — `read -n 1` prompts in `voice_setup.sh` and QML terminal commands hung or exited instantly unless redirected via `</dev/tty`. Also, nested single quoting inside `konsole -e bash -c` caused blank terminal windows on newer terminal emulator packages. (Resolved by simplifying Konsole invocations to run script parameters directly, introducing a fallback `wait_for_keypress` routine that checks for interactive/character device TTYs, and consolidating model download/system installer tasks as sub-modes inside `voice_setup.sh`).
 12. **Local variable scope typo in voice_helper.py** — `custom_path` referenced instead of `custom_model_path` (causing UnboundLocalError during voice synthesis initialization). (Resolved by scoping variables locally).
 13. **Espeak placeholder clarity** — espeak-ng path input field placeholder was unclear, confusing users on whether manual path configuration was required when installed via system package manager. (Resolved by updating placeholder text).
 14. **Sound Playback Failure in systemd mode** — systemd user services running without standard XDG or Pulse/Pipewire session variables would silently fail to produce audio. (Resolved via fallback shell command executions).

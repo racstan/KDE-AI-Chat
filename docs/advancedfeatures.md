@@ -94,14 +94,17 @@ API Keys can be stored securely using standard desktop keyrings instead of plain
 Below is a record of recent updates, audit findings, and troubleshooting details for the advanced features section:
 
 ### What We Did (Session Overview)
-*   **Venv Terminal Interaction Redirection:** Updated setup scripts and download procedures (`voice_setup.sh`, Hugging Face model downloads, package installs) to redirect stdin prompts to `</dev/tty`. This fixes keyboard-based terminal interaction blockers (e.g. `Press any key to exit...`).
+*   **Terminal execution simplification:** Rewrote terminal launchers to pass direct command parameters (`konsole -e bash <script_path> <args>`) rather than complex nested quoted commands (`konsole -e bash -c '...'`).
+*   **Interactive prompt resilience:** Introduced a robust TTY checking helper (`wait_for_keypress`) in `voice_setup.sh` that detects if standard input is a terminal or character device, preventing execution termination on missing TTY devices.
+*   **Installation script consolidation:** Moved model downloading and distribution package manager installer command compositions out of QML and directly into central sub-modes of `voice_setup.sh` for unified terminal output, progress visualizers, and keypress handling.
 *   **Configurable CPU/GPU Setup:** Decoupled virtual environment setups into explicit GPU (with CUDA libraries) and CPU (lightweight/clean) setups.
 *   **Speech Decoupling:** Decoupled model files from the main python library dependencies. Added selection dropdowns to download model files separately or specify existing local paths.
 *   **Clarified Helper UI Elements:** Overhauled placeholder texts in speech input fields to prevent setup confusion.
 *   **Venv Uninstaller / Eraser:** Configured a complete file deletion routine to clean up the virtual environment directory and Hugging Face hub cache directory upon uninstallation.
 
 ### Problems Found & Fixed
-*   **Input Blocking in Konsole/terminal-emulators:** Interactive `read -n 1` prompts failed to capture keyboard input in sub-shells. Redirecting standard input via `</dev/tty` solved this.
+*   **Blank screens in terminal setups:** Fixed an issue where nested single quotes inside `konsole -e bash -c` caused newer version shells to exit instantly or render a blank window due to parsing errors.
+*   **Input Blocking & /dev/tty errors:** Replaced raw `read </dev/tty` commands with safe TTY device presence checks so setup doesn't fail silently or crash when spawned in environments without active character device streams.
 *   **Variable Scope Typos:** Resolved helper execution crashes caused by namespace collisions (e.g., `custom_path` variable vs. `custom_model_path`) during local voice synthesis initialization.
 *   **Package Manager Autodetect Failures:** Added fallback package management setups for a wider array of Linux distributions (Arch, Fedora, openSUSE, Debian) within the `espeak-ng` installer.
 *   **D-Bus & Audio System Connection:** Solved systemd audio playback failures in background daemons by routing commands directly to local user shells where PipeWire/PulseAudio session environment variables are populated.
