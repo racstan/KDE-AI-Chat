@@ -176,6 +176,17 @@
 | Image base64 | Working | |
 | Clipboard content | Working | |
 
+### Advanced Features (Voice / TTS / STT & Memory)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| CPU Venv Setup | Working | CPU-optimized PyTorch build (~150MB) |
+| GPU Venv Setup | Working | GPU-accelerated PyTorch with CUDA & cuDNN |
+| STT Engine (Whisper) | Working | Selectable Whisper sizes, downloaded on demand |
+| TTS Engine (Kokoro) | Working | Kokoro-82M model local synthesis |
+| espeak-ng Installer | Working | Auto-detects package manager to install |
+| Daemon Memory Tracking | Working | Live RSS memory read of scheduler, opencode, voice daemons |
+| TTS Speak Test | Working | Synthesis preview tool in settings |
+
 ### Testing
 | Module | Unit | Integration | Coverage |
 |--------|------|-------------|----------|
@@ -205,6 +216,12 @@
 8. **Flatpak manifest version mismatch** — References tag `1.3.0` but `metadata.json` says `1.3.1`.
 9. **Service file inconsistency** — `install.sh` has `RestartSec=30` + ExecReload; bundled `.service` has `RestartSec=5` and no ExecReload.
 10. **CI swallows QML/test failures** — `|| true` on qmllint, qmltestrunner, and markdownlint.
+
+### Voice & Speech Regressions
+11. **Terminal read blocker** — `read -n 1` prompts in `voice_setup.sh` and QML terminal commands hung or exited instantly unless redirected via `</dev/tty`. (Resolved by adding `</dev/tty` redirection).
+12. **Local variable scope typo in voice_helper.py** — `custom_path` referenced instead of `custom_model_path` (causing UnboundLocalError during voice synthesis initialization). (Resolved by scoping variables locally).
+13. **Espeak placeholder clarity** — espeak-ng path input field placeholder was unclear, confusing users on whether manual path configuration was required when installed via system package manager. (Resolved by updating placeholder text).
+14. **Sound Playback Failure in systemd mode** — systemd user services running without standard XDG or Pulse/Pipewire session variables would silently fail to produce audio. (Resolved via fallback shell command executions).
 
 ---
 
