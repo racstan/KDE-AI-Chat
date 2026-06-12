@@ -424,6 +424,8 @@ def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
     d: Dict[str, int] = {
         "scheduler": _process_memory_kb("kde-ai-scheduler"),
         "opencode": _process_memory_kb("opencode"),
+        "stt": _process_memory_kb("voice_helper.py --stt-server"),
+        "tts": _process_memory_kb("voice_helper.py --tts-server"),
     }
     print(json.dumps(d))
 

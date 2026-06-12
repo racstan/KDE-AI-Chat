@@ -39,7 +39,7 @@ QQC2.ScrollView {
     property bool ttsServiceEnabled: false
     // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult, voiceEnvChecking)
     property string statusText: {
-        if (page.copiedText === "copied")
+        if (page.copiedText === "copied_cpu" || page.copiedText === "copied_gpu")
             return i18n("Command copied");
 
         if (page.copiedText === "copying")
@@ -65,7 +65,7 @@ QQC2.ScrollView {
         return i18n("Needs setup — copy and run the setup command");
     }
     property color statusColor: {
-        if (page.copiedText === "copied")
+        if (page.copiedText === "copied_cpu" || page.copiedText === "copied_gpu")
             return Kirigami.Theme.positiveTextColor;
 
         if (page.copiedText === "copying")
@@ -213,17 +213,18 @@ QQC2.ScrollView {
         return base;
     }
 
-    function getSetupCommand() {
+    function getSetupCommand(mode) {
         let setupPath = getSetupPath();
         let venvPath = getVenvPath();
         if (setupPath === "")
             return i18n("Installation path not found — reinstall widget");
 
-        return "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath);
+        let m = mode || "cpu";
+        return "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath) + " " + Sec.quoteForShell(m);
     }
 
-    function commandCopied() {
-        let cmd = getSetupCommand();
+    function commandCopied(mode) {
+        let cmd = getSetupCommand(mode);
         if (!cmd || cmd.trim() === "") {
             copiedText = "error";
             copiedTimer.restart();
@@ -232,17 +233,18 @@ QQC2.ScrollView {
         copiedText = "copying";
         copiedTimer.stop();
         Qt.callLater(function() {
+            let targetStatus = (mode === "gpu") ? "copied_gpu" : "copied_cpu";
             try {
                 clipboardHelper.text = cmd;
                 clipboardHelper.selectAll();
                 clipboardHelper.copy();
-                copiedText = "copied";
+                copiedText = targetStatus;
             } catch (e) {
                 console.error("TextField clipboard copy failed:", e);
             }
             try {
                 MainDatabase.copyToClipboard(cmd);
-                copiedText = "copied";
+                copiedText = targetStatus;
             } catch (e2) {
                 console.error("MainDatabase clipboard copy failed:", e2);
             }
@@ -250,11 +252,12 @@ QQC2.ScrollView {
         });
     }
 
-    function runSetupInTerminal() {
+    function runSetupInTerminal(mode) {
         let setupPath = getSetupPath();
         let venvPath = getVenvPath();
         if (setupPath === "" || venvPath === "") return;
-        let innerCmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath);
+        let m = mode || "cpu";
+        let innerCmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath) + " " + Sec.quoteForShell(m);
         let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-setup-term-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
@@ -262,7 +265,7 @@ QQC2.ScrollView {
     function runInTerminal(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi; echo; read -p 'Press Enter to close...'";
+        let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi; echo; read -n 1 -s -r -p 'Press any key to exit...'";
         let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-term-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
@@ -749,15 +752,15 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
-                text: i18n("Run Setup")
+                text: i18n("Run CPU Setup")
                 icon.name: "utilities-terminal"
-                onClicked: page.runSetupInTerminal()
+                onClicked: page.runSetupInTerminal("cpu")
             }
 
             QQC2.Button {
-                text: copiedText === "copied" ? i18n("Command copied!") : i18n("Copy Setup Command")
-                icon.name: copiedText === "copied" ? "dialog-ok-apply" : "edit-copy"
-                onClicked: page.commandCopied()
+                text: copiedText === "copied_cpu" ? i18n("CPU Command Copied!") : i18n("Copy CPU Setup Command")
+                icon.name: copiedText === "copied_cpu" ? "dialog-ok-apply" : "edit-copy"
+                onClicked: page.commandCopied("cpu")
             }
 
             QQC2.Button {
@@ -765,13 +768,32 @@ QQC2.ScrollView {
                 icon.name: "edit-delete"
                 onClicked: confirmDeleteSetupDialog.open()
             }
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Button {
+                text: i18n("Run GPU Setup")
+                icon.name: "utilities-terminal"
+                onClicked: page.runSetupInTerminal("gpu")
+            }
+
+            QQC2.Button {
+                text: copiedText === "copied_gpu" ? i18n("GPU Command Copied!") : i18n("Copy GPU Setup Command")
+                icon.name: copiedText === "copied_gpu" ? "dialog-ok-apply" : "edit-copy"
+                onClicked: page.commandCopied("gpu")
+            }
 
             QQC2.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 font: Kirigami.Theme.smallFont
                 opacity: 0.6
-                text: i18n("Note: Setup is a one-time process only.")
+                text: i18n("Note: Requires NVIDIA CUDA drivers & library dependencies.")
             }
         }
 
@@ -1250,7 +1272,7 @@ QQC2.ScrollView {
                         "else " +
                         "  echo 'Could not auto-detect package manager. Please install \"espeak-ng\" manually.'; " +
                         "fi; " +
-                        "echo; read -p 'Press Enter to close...'";
+                        "echo; read -n 1 -s -r -p 'Press any key to exit...'";
                     let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; " +
                         "elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(detectAndInstall) + "; fi #voice-install-espeak-" + Date.now();
                     voicePageDs.connectSource(cmd);

@@ -186,6 +186,8 @@ QQC2.ScrollView {
     property int memPlasma: 0
     property int memScheduler: 0
     property int memOpenCode: 0
+    property int memStt: 0
+    property int memTts: 0
     // ── Scheduler ──────────────────────────────────────────────────────────
     property bool schedulerDaemonRunning: false
     property string schedulerDataDir: ""
@@ -1143,6 +1145,8 @@ QQC2.ScrollView {
                     page.memPlasma = memData.plasmashell || 0;
                     page.memScheduler = memData.scheduler || 0;
                     page.memOpenCode = memData.opencode || 0;
+                    page.memStt = memData.stt || 0;
+                    page.memTts = memData.tts || 0;
                 } catch(e) {
                     console.warn("Failed to parse memory data:", e);
                 }

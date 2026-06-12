@@ -298,6 +298,22 @@ class VoiceHelper:
                     self.current_status = "loading_model"
                     self.emit({"type": "stt_status", "status": "loading_model"})
                     try:
+                        # Pre-load CUDA/cuDNN libraries from venv if present
+                        try:
+                            import ctypes
+                            import glob
+                            import sys
+                            for p in sys.path:
+                                if os.path.isdir(p):
+                                    nvidia_libs = glob.glob(os.path.join(p, "nvidia", "*", "lib", "*.so*"))
+                                    for lib in sorted(nvidia_libs):
+                                        try:
+                                            ctypes.CDLL(lib)
+                                        except Exception:
+                                            pass
+                        except Exception:
+                            pass
+
                         from faster_whisper import WhisperModel
                         import torch
                         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -495,10 +511,11 @@ class VoiceHelper:
                 import numpy as np
                 import torch
 
+                resolved_custom_path = custom_path
                 if self.tts_pipeline is None:
-                    if custom_path:
-                        custom_path = os.path.expanduser(custom_path)
-                        custom_dir = os.path.dirname(custom_path) if os.path.isfile(custom_path) else custom_path
+                    if resolved_custom_path:
+                        resolved_custom_path = os.path.expanduser(resolved_custom_path)
+                        custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
                         # Find config.json and .pth file in custom_dir
                         config_file = os.path.join(custom_dir, "config.json")
                         model_file = None
@@ -513,17 +530,19 @@ class VoiceHelper:
                             kmodel = KModel(config=config_file, model=model_file).to(device).eval()
                             self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
                         else:
-                            self.tts_pipeline = KPipeline(lang_code=lang_code)
+                            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                            self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
                     else:
-                        self.tts_pipeline = KPipeline(lang_code=lang_code)
+                        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                        self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
 
                 self.current_status = "playing"
                 self.emit({"type": "tts_status", "status": "playing"})
 
                 # Resolve local voice file if custom path is set
                 resolved_voice = voice
-                if custom_path:
-                    custom_dir = os.path.dirname(custom_path) if os.path.isfile(custom_path) else custom_path
+                if resolved_custom_path:
+                    custom_dir = os.path.dirname(resolved_custom_path) if os.path.isfile(resolved_custom_path) else resolved_custom_path
                     custom_voice_path = os.path.join(custom_dir, f"{voice}.pt")
                     if os.path.exists(custom_voice_path):
                         resolved_voice = custom_voice_path
