@@ -7,17 +7,22 @@ import QtQuick.Layouts
 import "Security.js" as Sec
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
-import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 
 QQC2.ScrollView {
     id: page
 
-    KQuickControlsAddons.Clipboard {
+    QQC2.TextField {
         id: clipboardHelper
+        width: 0
+        height: 0
+        opacity: 0
+        activeFocusOnTab: false
     }
 
 
+
     property bool voiceEnvChecked: false
+    property bool voiceEnvChecking: false
     property var voiceEnvResult: null
     property bool ttsPlaying: false
     property bool sttTesting: false
@@ -32,7 +37,7 @@ QQC2.ScrollView {
     property bool sttServiceEnabled: false
     property bool ttsServiceActive: false
     property bool ttsServiceEnabled: false
-    // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult)
+    // Computed binding — QML tracks dependencies (copiedText, voiceEnvChecked, voiceEnvResult, voiceEnvChecking)
     property string statusText: {
         if (page.copiedText === "copied")
             return i18n("Command copied");
@@ -43,11 +48,17 @@ QQC2.ScrollView {
         if (page.copiedText === "error")
             return i18n("Copy failed — check system clipboard");
 
+        if (page.voiceEnvChecking)
+            return i18n("Checking environment status...");
+
         if (!page.voiceEnvChecked)
             return i18n("Not checked — click Check Status");
 
         var r = page.voiceEnvResult;
-        var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
+        if (r && r.error)
+            return i18n("Check failed: %1").arg(r.error);
+
+        var ok = r && r.venv_ready && r.numpy_ok && r.sounddevice_ok;
         if (ok)
             return i18n("Environment ready");
 
@@ -63,11 +74,17 @@ QQC2.ScrollView {
         if (page.copiedText === "error")
             return Kirigami.Theme.negativeTextColor;
 
+        if (page.voiceEnvChecking)
+            return Kirigami.Theme.neutralTextColor;
+
         if (!page.voiceEnvChecked)
             return Kirigami.Theme.textColor;
 
         var r = page.voiceEnvResult;
-        var ok = r && (r.stt_ready || r.faster_whisper_ok) && r.sounddevice_ok;
+        if (r && r.error)
+            return Kirigami.Theme.negativeTextColor;
+
+        var ok = r && r.venv_ready && r.numpy_ok && r.sounddevice_ok;
         if (ok)
             return Kirigami.Theme.positiveTextColor;
 
@@ -89,6 +106,7 @@ QQC2.ScrollView {
         if (resp.type === "env_check") {
             page.voiceEnvResult = resp;
             page.voiceEnvChecked = true;
+            page.voiceEnvChecking = false;
         } else if (resp.type === "copy_result") {
             page.copiedText = resp.ok ? "copied" : "error";
             copiedTimer.restart();
@@ -164,6 +182,21 @@ QQC2.ScrollView {
         return base;
     }
 
+    function getKdeAiHelperPath() {
+        let base = Qt.resolvedUrl("./kde_ai_helper.py").toString();
+        if (base === "")
+            return "";
+
+        if (base.indexOf("file://") === 0) {
+            base = base.substring(7);
+            try {
+                base = decodeURIComponent(base);
+            } catch (e) {
+            }
+        }
+        return base;
+    }
+
     function getSetupPath() {
         let base = Qt.resolvedUrl("./voice/voice_setup.sh").toString();
         if (base === "")
@@ -199,11 +232,21 @@ QQC2.ScrollView {
         copiedTimer.stop();
         Qt.callLater(function() {
             try {
-                clipboardHelper.content = cmd;
+                clipboardHelper.text = cmd;
+                clipboardHelper.selectAll();
+                clipboardHelper.copy();
                 copiedText = "copied";
             } catch (e) {
-                console.error("Clipboard copy failed:", e);
-                copiedText = "error";
+                console.error("TextField clipboard copy failed:", e);
+            }
+            try {
+                let safe = Sec.sanitizeForShell(cmd);
+                let q = Sec.quoteForShell(safe);
+                let copyCmd = "dbus-send --type=method_call --dest=org.kde.klipper /klipper org.kde.klipper.klipper.setClipboardContents string:" + q + " || { if command -v wl-copy >/dev/null 2>&1; then printf %s " + q + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + q + " | xclip -selection clipboard; fi } #copy-" + Date.now();
+                voicePageDs.connectSource(copyCmd);
+                copiedText = "copied";
+            } catch (e2) {
+                console.error("Shell DBus clipboard copy failed:", e2);
             }
             copiedTimer.restart();
         });
@@ -213,11 +256,13 @@ QQC2.ScrollView {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
         let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(JSON.stringify(payload)) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi; echo; read -p 'Press Enter to close...'";
-        let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.quoteForShell(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.quoteForShell(innerCmd) + "; fi #voice-term-" + Date.now();
+        let cmd = "if command -v konsole >/dev/null 2>&1; then konsole --hold -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash -c " + Sec.rawShellSnippetQuote(innerCmd) + "; fi #voice-term-" + Date.now();
         voicePageDs.connectSource(cmd);
     }
 
     function runEnvCheck() {
+        page.voiceEnvChecking = true;
+        page.voiceEnvChecked = false;
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
         let sttPath = page.cfg_voiceSttModelPath || "";
@@ -273,7 +318,7 @@ QQC2.ScrollView {
             "venvPy": venvPy
         });
         let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
-        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
+        let cmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
         voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-services");
     }
 
@@ -285,28 +330,35 @@ QQC2.ScrollView {
         voicePageDs.connectSource("systemctl --user is-enabled kde-ai-tts.service #check-tts-enabled");
     }
 
+    Timer {
+        id: refreshDelayTimer
+        interval: 800
+        repeat: false
+        onTriggered: refreshServiceStatuses()
+    }
+
     function toggleSttService() {
         let cmd = page.sttServiceActive ? "systemctl --user stop kde-ai-stt.service" : "systemctl --user start kde-ai-stt.service";
         voicePageDs.connectSource(cmd + " #toggle-stt-service-" + Date.now());
-        Qt.callLater(refreshServiceStatuses);
+        refreshDelayTimer.restart();
     }
 
     function toggleSttBoot() {
         let cmd = page.sttServiceEnabled ? "systemctl --user disable kde-ai-stt.service" : "systemctl --user enable kde-ai-stt.service";
         voicePageDs.connectSource(cmd + " #toggle-stt-boot-" + Date.now());
-        Qt.callLater(refreshServiceStatuses);
+        refreshDelayTimer.restart();
     }
 
     function toggleTtsService() {
         let cmd = page.ttsServiceActive ? "systemctl --user stop kde-ai-tts.service" : "systemctl --user start kde-ai-tts.service";
         voicePageDs.connectSource(cmd + " #toggle-tts-service-" + Date.now());
-        Qt.callLater(refreshServiceStatuses);
+        refreshDelayTimer.restart();
     }
 
     function toggleTtsBoot() {
         let cmd = page.ttsServiceEnabled ? "systemctl --user disable kde-ai-tts.service" : "systemctl --user enable kde-ai-tts.service";
         voicePageDs.connectSource(cmd + " #toggle-tts-boot-" + Date.now());
-        Qt.callLater(refreshServiceStatuses);
+        refreshDelayTimer.restart();
     }
 
     contentWidth: availableWidth
@@ -406,9 +458,13 @@ QQC2.ScrollView {
                                 "error": stderr || i18n("Unknown error")
                             };
                             page.voiceEnvChecked = true;
+                            page.voiceEnvChecking = false;
                         }
                         page.ttsPlaying = false;
                     }
+                }
+                if (sourceName.indexOf("voice-env-") >= 0) {
+                    page.voiceEnvChecking = false;
                 }
                 disconnectSource(sourceName);
                 if (sourceName === page.activeSttSource)
@@ -621,7 +677,7 @@ QQC2.ScrollView {
                     onLinkActivated: function(link) {
                         Qt.openUrlExternally(link);
                     }
-                    text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" + "Click <b>Copy Setup Command</b> and run it in your terminal to install dependencies.<br><br>" + "<b>How to use:</b><br>" + "1. <b>Enable</b> voice features below.<br>" + "2. <b>Copy</b> and run the setup command in your terminal.<br>" + "3. Click <b>Check Status</b> to verify installation.<br>" + "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" + "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" + "You can point to existing model directories instead of downloading.<br><br>" + "<b>System Requirements & Package Manager Links:</b><br>" + "• <b>espeak-ng</b>: Required for text phonemization. Without this, Kokoro TTS fails. (<a href='https://github.com/espeak-ng/espeak-ng'>GitHub</a>)<br>" + "• <b>Clipboard utilities</b>: <code>wl-clipboard</code> (for Wayland) or <code>xclip</code> (for X11).<br>" + "• <b>Audio playback</b>: <code>pulseaudio-utils</code> (for paplay) or <code>alsa-utils</code> (for aplay).<br><br>" + "<b>Quick Install Command:</b><br>" + "• Ubuntu/Debian: <code>sudo apt install espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Arch Linux: <code>sudo pacman -S espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Fedora: <code>sudo dnf install espeak-ng wl-clipboard xclip pulseaudio-utils</code>"
+                    text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" + "Click <b>Copy Setup Command</b> and run it in your terminal to install dependencies.<br><br>" + "<b>How to use:</b><br>" + "1. <b>Enable</b> voice features below.<br>" + "2. <b>Copy</b> and run the setup command in your terminal.<br>" + "3. Click <b>Check Status</b> to verify installation.<br>" + "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" + "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" + "You can point to existing model directories instead of downloading.<br><br>" + "<b>System Requirements & Package Manager Links:</b><br>" + "• <b>espeak-ng (Phonemizer)</b>: Required for text phonemization. Without this, Kokoro TTS fails. (<a href='https://github.com/espeak-ng/espeak-ng'>espeak-ng GitHub</a> | <a href='https://github.com/bootphon/phonemizer'>Phonemizer GitHub</a>)<br>" + "• <b>Clipboard utilities</b>: <code>wl-clipboard</code> (for Wayland) or <code>xclip</code> (for X11).<br>" + "• <b>Audio playback</b>: <code>pulseaudio-utils</code> (for paplay) or <code>alsa-utils</code> (for aplay).<br><br>" + "<b>Quick Install Command:</b><br>" + "• Ubuntu/Debian: <code>sudo apt install espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Arch Linux: <code>sudo pacman -S espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Fedora: <code>sudo dnf install espeak-ng wl-clipboard xclip pulseaudio-utils</code>"
                 }
 
             }
@@ -730,6 +786,18 @@ QQC2.ScrollView {
                 QQC2.Label {
                     text: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
                     color: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
+                QQC2.Label {
+                    text: i18n("Virtual environment (venv):")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
+                QQC2.Label {
+                    text: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? "✓ " + i18n("Ready") : "✗ " + i18n("Missing")
+                    color: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 

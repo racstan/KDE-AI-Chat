@@ -11,19 +11,15 @@ import "ProviderService.js" as ProviderService
 import "WalletService.js" as WalletService
 import "Security.js" as Sec
 import "ConfigGeneralLogic.js" as ConfigGeneralLogic
-import org.kde.kquickcontrolsaddons as KQuickControlsAddons
-
-// LINKAGE RELATIONSHIPS:
-// - ConfigGeneral.qml: The main settings page UI for the Plasmoid.
-// - Linked to ConfigGeneralLogic.js (imported as ConfigGeneralLogic):
-//   Holds all JavaScript configuration management, model building, and service handling logic to keep ConfigGeneral.qml modular.
-//   Functions in ConfigGeneralLogic.js accept a reference to the page instance to query component properties and execute state modifications.
-
 QQC2.ScrollView {
     id: page
 
-    KQuickControlsAddons.Clipboard {
+    QQC2.TextField {
         id: clipboardHelper
+        width: 0
+        height: 0
+        opacity: 0
+        activeFocusOnTab: false
     }
 
     contentWidth: availableWidth
@@ -526,7 +522,21 @@ QQC2.ScrollView {
     }
 
     function copyToClipboard(textValue) {
-        clipboardHelper.content = textValue;
+        try {
+            clipboardHelper.text = textValue;
+            clipboardHelper.selectAll();
+            clipboardHelper.copy();
+        } catch (e) {
+            console.error("TextField clipboard copy failed:", e);
+        }
+        try {
+            let safe = Sec.sanitizeForShell(textValue);
+            let q = Sec.quoteForShell(safe);
+            let copyCmd = "dbus-send --type=method_call --dest=org.kde.klipper /klipper org.kde.klipper.klipper.setClipboardContents string:" + q + " || { if command -v wl-copy >/dev/null 2>&1; then printf %s " + q + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + q + " | xclip -selection clipboard; fi } #copy-" + Date.now();
+            utilityDs.connectSource(copyCmd);
+        } catch (e2) {
+            console.error("Shell DBus clipboard copy failed:", e2);
+        }
     }
 
     function providerEnabled(providerId) {

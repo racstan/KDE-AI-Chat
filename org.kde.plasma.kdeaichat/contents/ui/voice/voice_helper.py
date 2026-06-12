@@ -109,11 +109,13 @@ class VoiceHelper:
             result["tts_model_path_ok"] = True
 
         # Overall readiness
-        result["venv_ready"] = result["sounddevice_ok"] and result["numpy_ok"]
+        is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
+        result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"]
         result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and (result["stt_model_path_ok"] or not stt_model_path)
         result["tts_ready"] = result["kokoro_ok"] and result["espeak_available"] and (
             result["paplay_available"] or result["aplay_available"]
         ) and (result["tts_model_path_ok"] or not tts_model_path)
+
 
         self.emit(result)
 

@@ -6,7 +6,6 @@ import "MainNetwork.js" as MainNetwork
 import "MainScheduler.js" as MainScheduler
 import "MainOpenCode.js" as MainOpenCode
 import "Security.js" as Sec
-import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 
 /*
  * MainDataSources.qml — KDE AI Chat DataSources & Timers Container
@@ -24,10 +23,6 @@ Item {
     id: dataSourcesContainer
 
     required property var root
-
-    KQuickControlsAddons.Clipboard {
-        id: clipboardHelper
-    }
 
     // Expose internal components to the parent via properties/aliases
     property alias soundDs: soundDs
@@ -70,7 +65,21 @@ Item {
     }
 
     function copyToClipboard(textValue) {
-        clipboardHelper.content = textValue;
+        try {
+            clipboardHelper.text = textValue;
+            clipboardHelper.selectAll();
+            clipboardHelper.copy();
+        } catch (e) {
+            console.error("TextEdit clipboard copy failed:", e);
+        }
+        try {
+            let safe = Sec.sanitizeForShell(textValue);
+            let q = Sec.quoteForShell(safe);
+            let copyCmd = "dbus-send --type=method_call --dest=org.kde.klipper /klipper org.kde.klipper.klipper.setClipboardContents string:" + q + " || { if command -v wl-copy >/dev/null 2>&1; then printf %s " + q + " | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf %s " + q + " | xclip -selection clipboard; fi } #copy-" + Date.now();
+            clipboardDs.connectSource(copyCmd);
+        } catch (e2) {
+            console.error("Shell DBus clipboard copy failed:", e2);
+        }
     }
 
     P5Support.DataSource {
@@ -515,8 +524,10 @@ Item {
     // Invisible text editor acting as helper to interact with OS text clipboard (copy / paste)
     TextEdit {
         id: clipboardHelper
-
-        visible: false
+        width: 0
+        height: 0
+        opacity: 0
+        activeFocusOnTab: false
     }
 
     P5Support.DataSource {
