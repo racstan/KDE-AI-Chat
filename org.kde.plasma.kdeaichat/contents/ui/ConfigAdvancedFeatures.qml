@@ -50,7 +50,7 @@ QQC2.ScrollView {
 
         var ok = r && r.venv_ready && r.numpy_ok && r.sounddevice_ok;
         if (!ok)
-            return i18n("Needs setup — run CPU Setup or GPU Setup");
+            return i18n("Needs setup — run CPU Venv Setup or GPU Venv Setup");
 
         var sttReady = r.stt_ready;
         var ttsReady = r.tts_ready;
@@ -718,7 +718,7 @@ QQC2.ScrollView {
                     onLinkActivated: function(link) {
                         Qt.openUrlExternally(link);
                     }
-                    text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" + "Click <b>Copy Setup Command</b> and run it in your terminal to install dependencies.<br><br>" + "<b>How to use:</b><br>" + "1. <b>Enable</b> voice features below.<br>" + "2. <b>Copy</b> and run the setup command in your terminal.<br>" + "3. Click <b>Check Status</b> to verify installation.<br>" + "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" + "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" + "You can point to existing model directories instead of downloading.<br><br>" + "<b>System Requirements & Package Manager Links:</b><br>" + "• <b>espeak-ng (Phonemizer)</b>: Required for text phonemization. Without this, Kokoro TTS fails. (<a href='https://github.com/espeak-ng/espeak-ng'>espeak-ng GitHub</a> | <a href='https://github.com/bootphon/phonemizer'>Phonemizer GitHub</a>)<br>" + "• <b>Clipboard utilities</b>: <code>wl-clipboard</code> (for Wayland) or <code>xclip</code> (for X11).<br>" + "• <b>Audio playback</b>: <code>pulseaudio-utils</code> (for paplay) or <code>alsa-utils</code> (for aplay).<br><br>" + "<b>Quick Install Command:</b><br>" + "• Ubuntu/Debian: <code>sudo apt install espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Arch Linux: <code>sudo pacman -S espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Fedora: <code>sudo dnf install espeak-ng wl-clipboard xclip pulseaudio-utils</code>"
+                    text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" + "Click <b>Run CPU Venv Setup</b> or <b>Run GPU Venv Setup</b> to configure the virtual environment and install dependencies.<br><br>" + "<b>How to use:</b><br>" + "1. <b>Enable</b> voice features below.<br>" + "2. Click <b>Run CPU Venv Setup</b> or <b>Run GPU Venv Setup</b> to install dependencies in a terminal.<br>" + "3. Click <b>Check Status</b> to verify installation.<br>" + "4. Click the <b>microphone</b> button in chat to record voice input.<br><br>" + "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" + "You can point to existing model directories instead of downloading.<br><br>" + "<b>System Requirements & Package Manager Links:</b><br>" + "• <b>espeak-ng (Phonemizer)</b>: Required for text phonemization. Without this, Kokoro TTS fails. (<a href='https://github.com/espeak-ng/espeak-ng'>espeak-ng GitHub</a> | <a href='https://github.com/bootphon/phonemizer'>Phonemizer GitHub</a>)<br>" + "• <b>Clipboard utilities</b>: <code>wl-clipboard</code> (for Wayland) or <code>xclip</code> (for X11).<br>" + "• <b>Audio playback</b>: <code>pulseaudio-utils</code> (for paplay) or <code>alsa-utils</code> (for aplay).<br><br>" + "<b>Quick Install Command:</b><br>" + "• Ubuntu/Debian: <code>sudo apt install espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Arch Linux: <code>sudo pacman -S espeak-ng wl-clipboard xclip pulseaudio-utils</code><br>" + "• Fedora: <code>sudo dnf install espeak-ng wl-clipboard xclip pulseaudio-utils</code>"
                 }
 
             }
@@ -749,19 +749,19 @@ QQC2.ScrollView {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
-                text: i18n("Run CPU Setup")
+                text: i18n("Run CPU Venv Setup")
                 icon.name: "utilities-terminal"
                 onClicked: page.runSetupInTerminal("cpu")
             }
 
             QQC2.Button {
-                text: i18n("Run GPU Setup")
+                text: i18n("Run GPU Venv Setup")
                 icon.name: "utilities-terminal"
                 onClicked: page.runSetupInTerminal("gpu")
             }
 
             QQC2.Button {
-                text: i18n("Delete Setup")
+                text: i18n("Delete Venv Setup")
                 icon.name: "edit-delete"
                 onClicked: confirmDeleteSetupDialog.open()
             }
@@ -778,7 +778,7 @@ QQC2.ScrollView {
                 wrapMode: Text.Wrap
                 font: Kirigami.Theme.smallFont
                 opacity: 0.6
-                text: i18n("Note: GPU Setup requires NVIDIA CUDA drivers & library dependencies.")
+                text: i18n("Note: GPU Venv Setup requires NVIDIA CUDA drivers & library dependencies.")
             }
         }
 
@@ -866,7 +866,7 @@ QQC2.ScrollView {
                     text: {
                         if (!page.voiceEnvResult) return i18n("Not checked");
                         if (page.voiceEnvResult.venv_ready) return "✓ " + i18n("Ready");
-                        if (page.voiceEnvResult.venv_exists) return "✗ " + i18n("Incomplete (run setup)");
+                        if (page.voiceEnvResult.venv_exists) return "✗ " + i18n("Incomplete (run venv setup)");
                         return "✗ " + i18n("Missing");
                     }
                     color: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
@@ -1689,7 +1689,7 @@ QQC2.ScrollView {
 
         modal: true
         standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
-        title: i18n("Confirm Delete Setup")
+        title: i18n("Confirm Delete Venv Setup")
         x: Math.round((parent.width - width) / 2)
         y: Math.round((parent.height - height) / 2)
         width: Kirigami.Units.gridUnit * 22
@@ -1700,7 +1700,7 @@ QQC2.ScrollView {
             QQC2.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                text: i18n("Are you sure you want to delete the voice setup? This will stop and disable the services, and remove the venv and downloaded models completely.")
+                text: i18n("Are you sure you want to delete the voice virtual environment? This will stop and disable the services, and remove the venv and downloaded models completely.")
             }
         }
         onAccepted: {

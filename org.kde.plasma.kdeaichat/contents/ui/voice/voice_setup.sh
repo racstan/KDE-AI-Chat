@@ -31,7 +31,7 @@ if [ "$MODE" = "download_stt" ]; then
         VENV_PY="$VENV_DIR/bin/python"
     fi
     if [ ! -f "$VENV_PY" ]; then
-        echo "❌ Error: Virtual environment python not found at $VENV_DIR. Please run setup first."
+        echo "❌ Error: Virtual environment python not found at $VENV_DIR. Please run venv setup first."
         wait_for_keypress
         exit 1
     fi
@@ -40,7 +40,7 @@ if [ "$MODE" = "download_stt" ]; then
     if [ -f "$HF_CLI" ]; then
         "$HF_CLI" download "$REPO"
     else
-        echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
+        echo "❌ Error: huggingface-cli not found in venv. Please run venv setup first."
         wait_for_keypress
         exit 1
     fi
@@ -138,9 +138,9 @@ fi
 
 cleanup_on_error() {
     echo ""
-    echo "❌ ERROR: Setup failed during package installation!"
+    echo "❌ ERROR: Venv setup failed during package installation!"
     echo "  Virtual environment at: $VENV_DIR was kept."
-    echo "  You can run the setup again to resume installing the missing packages."
+    echo "  You can run the venv setup again to resume installing the missing packages."
     echo "================================================================="
     echo ""
     wait_for_keypress
@@ -205,7 +205,7 @@ echo "  Installing speech models dependencies (kokoro, misaki)..."
 
 echo '{"type":"setup_status","status":"done"}'
 echo "-----------------------------------------------------------------"
-echo "  ✓ Voice setup ($MODE) completed successfully!"
+echo "  ✓ Virtual environment setup ($MODE) completed successfully!"
 echo "================================================================="
 echo ""
 wait_for_keypress
