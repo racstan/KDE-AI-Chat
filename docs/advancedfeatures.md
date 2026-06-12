@@ -86,3 +86,23 @@ API Keys can be stored securely using standard desktop keyrings instead of plain
 *   **Mode Settings:** Select **KWallet** or **File System (plaintext)**.
 *   **Automated Prompts:** Securely prompts for your wallet decryption password when retrieving credentials during start-up or prompt execution.
 *   **Attempt Limits:** The keyring interface handles password prompts gracefully, stopping after 3 unsuccessful attempts to prevent locking.
+
+---
+
+## 6. Development Log & Audit Summary
+
+Below is a record of recent updates, audit findings, and troubleshooting details for the advanced features section:
+
+### What We Did (Session Overview)
+*   **Venv Terminal Interaction Redirection:** Updated setup scripts and download procedures (`voice_setup.sh`, Hugging Face model downloads, package installs) to redirect stdin prompts to `</dev/tty`. This fixes keyboard-based terminal interaction blockers (e.g. `Press any key to exit...`).
+*   **Configurable CPU/GPU Setup:** Decoupled virtual environment setups into explicit GPU (with CUDA libraries) and CPU (lightweight/clean) setups.
+*   **Speech Decoupling:** Decoupled model files from the main python library dependencies. Added selection dropdowns to download model files separately or specify existing local paths.
+*   **Clarified Helper UI Elements:** Overhauled placeholder texts in speech input fields to prevent setup confusion.
+*   **Venv Uninstaller / Eraser:** Configured a complete file deletion routine to clean up the virtual environment directory and Hugging Face hub cache directory upon uninstallation.
+
+### Problems Found & Fixed
+*   **Input Blocking in Konsole/terminal-emulators:** Interactive `read -n 1` prompts failed to capture keyboard input in sub-shells. Redirecting standard input via `</dev/tty` solved this.
+*   **Variable Scope Typos:** Resolved helper execution crashes caused by namespace collisions (e.g., `custom_path` variable vs. `custom_model_path`) during local voice synthesis initialization.
+*   **Package Manager Autodetect Failures:** Added fallback package management setups for a wider array of Linux distributions (Arch, Fedora, openSUSE, Debian) within the `espeak-ng` installer.
+*   **D-Bus & Audio System Connection:** Solved systemd audio playback failures in background daemons by routing commands directly to local user shells where PipeWire/PulseAudio session environment variables are populated.
+
