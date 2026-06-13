@@ -3335,6 +3335,7 @@ function checkVoiceEnv() {
 function startVoiceRecording() {
     if (root.voiceRecording) return;
     root.voiceRecording = true;
+    root.voiceSttStatus = "loading_model";
     root.voicePendingText = "";
     let helperPath = getVoiceHelperPath();
     let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
@@ -3352,6 +3353,7 @@ function startVoiceRecording() {
 
 function stopVoiceRecording() {
     if (!root.voiceRecording) return;
+    root.voiceSttStatus = "stopping";
     let helperPath = getVoiceHelperPath();
     let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
     venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
@@ -3407,6 +3409,7 @@ function handleVoiceResponse(resp, sourceName) {
         root.voiceEnvChecked = true;
     } else if (respType === "stt_result") {
         root.voiceRecording = false;
+        root.voiceSttStatus = "";
         let text = (resp.text || "").trim();
         if (root.voiceSttTesting) {
             root.voiceSttTesting = false;
@@ -3422,10 +3425,11 @@ function handleVoiceResponse(resp, sourceName) {
     } else if (respType === "stt_error") {
         root.voiceRecording = false;
         root.voiceSttTesting = false;
+        root.voiceSttStatus = "";
         root.voiceSttTestResult = "Error: " + (resp.error || "Unknown error");
         pushErrorMessage("Voice error: " + (resp.error || "Unknown error"));
     } else if (respType === "stt_status") {
-        // Status updates (loading_model, recording, transcribing)
+        root.voiceSttStatus = resp.status;
     } else if (respType === "tts_done") {
         root.ttsPlaying = false;
     } else if (respType === "tts_error") {

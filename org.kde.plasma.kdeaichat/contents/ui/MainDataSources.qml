@@ -696,4 +696,42 @@ Item {
             }
         }
     }
+
+    Timer {
+        id: voiceStatusPollTimer
+        interval: 250
+        repeat: true
+        running: root.voiceRecording || root.ttsPlaying
+        onTriggered: {
+            let port = root.voiceRecording ? 9015 : 9016;
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", "http://127.0.0.1:" + port + "/status", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        try {
+                            let resp = JSON.parse(xhr.responseText);
+                            if (root.voiceRecording) {
+                                MainDatabase.handleVoiceResponse({
+                                    "type": "stt_status",
+                                    "status": resp.status,
+                                    "countdown": resp.countdown
+                                }, "");
+                            } else if (root.ttsPlaying) {
+                                MainDatabase.handleVoiceResponse({
+                                    "type": "tts_status",
+                                    "status": resp.status
+                                }, "");
+                            }
+                        } catch (e) {
+                        }
+                    }
+                }
+            };
+            try {
+                xhr.send();
+            } catch (e) {
+            }
+        }
+    }
 }

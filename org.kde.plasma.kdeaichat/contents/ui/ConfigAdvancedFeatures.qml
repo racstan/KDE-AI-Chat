@@ -127,12 +127,16 @@ QQC2.ScrollView {
             if (resp.status === "loading_model") {
                 page.sttTestResult = i18n("Loading model...");
             } else if (resp.status === "recording") {
-                page.sttCountdown = 5;
+                if (resp.countdown !== undefined) {
+                    page.sttCountdown = resp.countdown;
+                }
                 page.sttTestResult = i18n("Recording...");
-                sttTimer.restart();
-            } else if (resp.status === "transcribing") {
+                if (!sttTimer.running) {
+                    sttTimer.restart();
+                }
+            } else if (resp.status === "transcribing" || resp.status === "stopping") {
                 sttTimer.stop();
-                page.sttTestResult = i18n("Transcribing...");
+                page.sttTestResult = i18n("Processing...");
             }
         } else if (resp.type === "stt_result") {
             page.sttTesting = false;
@@ -527,6 +531,44 @@ QQC2.ScrollView {
                 sendVoiceCommand(JSON.stringify({
                     "cmd": "stop_stt"
                 }));
+            }
+        }
+    }
+
+    Timer {
+        id: voiceStatusPollTimer
+        interval: 250
+        repeat: true
+        running: page.sttTesting || page.ttsPlaying
+        onTriggered: {
+            let port = page.sttTesting ? 9015 : 9016;
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", "http://127.0.0.1:" + port + "/status", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        try {
+                            let resp = JSON.parse(xhr.responseText);
+                            if (page.sttTesting) {
+                                handleVoicePageResponse({
+                                    "type": "stt_status",
+                                    "status": resp.status,
+                                    "countdown": resp.countdown
+                                }, "");
+                            } else if (page.ttsPlaying) {
+                                handleVoicePageResponse({
+                                    "type": "tts_status",
+                                    "status": resp.status
+                                }, "");
+                            }
+                        } catch (e) {
+                        }
+                    }
+                }
+            };
+            try {
+                xhr.send();
+            } catch (e) {
             }
         }
     }
@@ -1316,25 +1358,34 @@ QQC2.ScrollView {
                                     if (page.sttStatus === "loading_model")
                                         return i18n("Loading model...");
                                     else if (page.sttStatus === "recording")
-                                        return i18n("Recording... (%1s)", page.sttCountdown);
-                                    else if (page.sttStatus === "transcribing")
-                                        return i18n("Transcribing...");
+                                        return i18n("Stop & Transcribe (%1s)", page.sttCountdown);
+                                    else if (page.sttStatus === "transcribing" || page.sttStatus === "stopping")
+                                        return i18n("Processing...");
                                     else
                                         return i18n("Initializing...");
                                 }
                                 return i18n("Record & Transcribe (5s)");
                             }
-                            icon.name: page.sttTesting ? "media-record" : "audio-input-microphone"
+                            icon.name: page.sttTesting ? "media-playback-stop" : "audio-input-microphone"
                             highlighted: page.sttTesting
                             onClicked: {
                                 if (page.sttTesting) {
-                                    sttTimer.stop();
-                                    page.sttTesting = false;
-                                    page.sttStatus = "";
-                                    page.sttCountdown = 0;
-                                    if (page.activeSttSource !== "") {
-                                        voicePageDs.disconnectSource(page.activeSttSource);
-                                        page.activeSttSource = "";
+                                    if (page.sttStatus === "recording") {
+                                        sttTimer.stop();
+                                        page.sttStatus = "stopping";
+                                        page.sttTestResult = i18n("Processing...");
+                                        sendVoiceCommand(JSON.stringify({
+                                            "cmd": "stop_stt"
+                                        }));
+                                    } else {
+                                        sttTimer.stop();
+                                        page.sttTesting = false;
+                                        page.sttStatus = "";
+                                        page.sttCountdown = 0;
+                                        if (page.activeSttSource !== "") {
+                                            voicePageDs.disconnectSource(page.activeSttSource);
+                                            page.activeSttSource = "";
+                                        }
                                     }
                                     return ;
                                 }

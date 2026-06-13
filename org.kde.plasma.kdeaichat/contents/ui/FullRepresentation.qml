@@ -1807,8 +1807,20 @@ import "Security.js" as Sec
 
                                     width: inputScrollView.width - 16
                                     wrapMode: Text.Wrap
-                                    enabled: true
-                                    placeholderText: root.translate("Type message (Enter sends, Shift+Enter newline)")
+                                    placeholderText: {
+                                        if (root.voiceRecording) {
+                                            if (root.voiceSttStatus === "loading_model") {
+                                                return root.translate("Voice input: Loading model...");
+                                            } else if (root.voiceSttStatus === "recording") {
+                                                return root.translate("Voice input: Listening...");
+                                            } else if (root.voiceSttStatus === "transcribing" || root.voiceSttStatus === "stopping") {
+                                                return root.translate("Voice input: Processing...");
+                                            } else {
+                                                return root.translate("Voice input: Listening...");
+                                            }
+                                        }
+                                        return root.translate("Type message (Enter sends, Shift+Enter newline)");
+                                    }
                                     focus: true
                                     Accessible.name: root.translate("Message input")
                                     Accessible.role: Accessible.EditableText
@@ -1912,11 +1924,12 @@ import "Security.js" as Sec
 
                             PC3.ToolButton {
                                 visible: root.voiceRecording
-                                icon.name: "media-playback-stop"
+                                icon.name: (root.voiceSttStatus === "transcribing" || root.voiceSttStatus === "stopping") ? "process-working" : "media-playback-stop"
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                                 Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                enabled: root.voiceSttStatus !== "transcribing" && root.voiceSttStatus !== "stopping"
                                 QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: root.translate("Stop recording")
+                                QQC2.ToolTip.text: (root.voiceSttStatus === "transcribing" || root.voiceSttStatus === "stopping") ? root.translate("Processing...") : root.translate("Stop recording")
                                 Accessible.name: root.translate("Stop recording")
                                 Accessible.role: Accessible.Button
                                 onClicked: MainDatabase.stopVoiceRecording()

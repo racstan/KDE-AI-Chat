@@ -133,6 +133,7 @@ PlasmoidItem {
     property bool schedPolling: false
     // Voice (STT/TTS) state
     property bool voiceRecording: false
+    property string voiceSttStatus: ""
     property bool ttsPlaying: false
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
