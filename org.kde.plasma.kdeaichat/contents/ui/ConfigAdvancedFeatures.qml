@@ -421,7 +421,7 @@ QQC2.ScrollView {
             let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user start kde-ai-stt.service";
-            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-stt-service-" + Date.now());
+            voicePageDs.connectSource(fullCmd + " #toggle-stt-service-" + Date.now());
         }
         refreshDelayTimer.restart();
     }
@@ -439,7 +439,7 @@ QQC2.ScrollView {
             let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user enable kde-ai-stt.service";
-            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-stt-boot-" + Date.now());
+            voicePageDs.connectSource(fullCmd + " #toggle-stt-boot-" + Date.now());
         }
         refreshDelayTimer.restart();
     }
@@ -457,7 +457,7 @@ QQC2.ScrollView {
             let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user start kde-ai-tts.service";
-            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-tts-service-" + Date.now());
+            voicePageDs.connectSource(fullCmd + " #toggle-tts-service-" + Date.now());
         }
         refreshDelayTimer.restart();
     }
@@ -475,7 +475,7 @@ QQC2.ScrollView {
             let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user enable kde-ai-tts.service";
-            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-tts-boot-" + Date.now());
+            voicePageDs.connectSource(fullCmd + " #toggle-tts-boot-" + Date.now());
         }
         refreshDelayTimer.restart();
     }
