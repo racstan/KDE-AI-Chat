@@ -20,7 +20,7 @@ QQC2.ScrollView {
     property string sttTestResult: ""
     property string ttsTestResult: ""
     property string storageExportStatus: ""
-    property string recordedAudioPath: ""
+
     property string sttStatus: ""
     property string activeSttSource: ""
     property bool sttServiceActive: false
@@ -133,8 +133,7 @@ QQC2.ScrollView {
             page.sttStatus = "";
             sttTimer.stop();
             page.sttTestResult = resp.text || i18n("(no speech detected)");
-            if (resp.audio_path)
-                page.recordedAudioPath = resp.audio_path;
+
 
         } else if (resp.type === "stt_error") {
             page.sttTesting = false;
@@ -403,26 +402,44 @@ QQC2.ScrollView {
     }
 
     function toggleSttService() {
-        let cmd = page.sttServiceActive ? "systemctl --user stop kde-ai-stt.service" : "systemctl --user start kde-ai-stt.service";
-        voicePageDs.connectSource(cmd + " #toggle-stt-service-" + Date.now());
+        if (page.sttServiceActive) {
+            voicePageDs.connectSource("systemctl --user stop kde-ai-stt.service #toggle-stt-service-" + Date.now());
+        } else {
+            // Ensure service files exist before starting
+            setupVoiceServices();
+            voicePageDs.connectSource("systemctl --user start kde-ai-stt.service #toggle-stt-service-" + Date.now());
+        }
         refreshDelayTimer.restart();
     }
 
     function toggleSttBoot() {
-        let cmd = page.sttServiceEnabled ? "systemctl --user disable kde-ai-stt.service" : "systemctl --user enable kde-ai-stt.service";
-        voicePageDs.connectSource(cmd + " #toggle-stt-boot-" + Date.now());
+        if (page.sttServiceEnabled) {
+            voicePageDs.connectSource("systemctl --user disable kde-ai-stt.service #toggle-stt-boot-" + Date.now());
+        } else {
+            // Ensure service files exist before enabling
+            setupVoiceServices();
+            voicePageDs.connectSource("systemctl --user enable kde-ai-stt.service #toggle-stt-boot-" + Date.now());
+        }
         refreshDelayTimer.restart();
     }
 
     function toggleTtsService() {
-        let cmd = page.ttsServiceActive ? "systemctl --user stop kde-ai-tts.service" : "systemctl --user start kde-ai-tts.service";
-        voicePageDs.connectSource(cmd + " #toggle-tts-service-" + Date.now());
+        if (page.ttsServiceActive) {
+            voicePageDs.connectSource("systemctl --user stop kde-ai-tts.service #toggle-tts-service-" + Date.now());
+        } else {
+            setupVoiceServices();
+            voicePageDs.connectSource("systemctl --user start kde-ai-tts.service #toggle-tts-service-" + Date.now());
+        }
         refreshDelayTimer.restart();
     }
 
     function toggleTtsBoot() {
-        let cmd = page.ttsServiceEnabled ? "systemctl --user disable kde-ai-tts.service" : "systemctl --user enable kde-ai-tts.service";
-        voicePageDs.connectSource(cmd + " #toggle-tts-boot-" + Date.now());
+        if (page.ttsServiceEnabled) {
+            voicePageDs.connectSource("systemctl --user disable kde-ai-tts.service #toggle-tts-boot-" + Date.now());
+        } else {
+            setupVoiceServices();
+            voicePageDs.connectSource("systemctl --user enable kde-ai-tts.service #toggle-tts-boot-" + Date.now());
+        }
         refreshDelayTimer.restart();
     }
 
@@ -436,7 +453,7 @@ QQC2.ScrollView {
     Timer {
         id: refreshDelayTimer
 
-        interval: 800
+        interval: 1500
         repeat: false
         onTriggered: refreshServiceStatuses()
     }
@@ -1063,31 +1080,7 @@ QQC2.ScrollView {
                             anchors.fill: parent
 
                             QQC2.Label {
-                                text: i18n("Microphone:")
-                                font.bold: true
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: page.voiceEnvResult && page.voiceEnvResult.mic_available ? "✓ " + i18n("Available") : "✗ " + i18n("Not found")
-                                color: page.voiceEnvResult && page.voiceEnvResult.mic_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: i18n("Audio player:")
-                                font.bold: true
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
-                                color: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: i18n("Virtual environment (venv):")
+                                text: i18n("STT:")
                                 font.bold: true
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
@@ -1096,68 +1089,22 @@ QQC2.ScrollView {
                                 text: {
                                     if (!page.voiceEnvResult)
                                         return i18n("Not checked");
-
-                                    if (page.voiceEnvResult.venv_ready)
+                                    if (page.voiceEnvResult.stt_ready)
                                         return "✓ " + i18n("Ready");
-
-                                    if (page.voiceEnvResult.venv_exists)
-                                        return "✗ " + i18n("Incomplete (run venv setup)");
-
-                                    return "✗ " + i18n("Missing");
+                                    if (!page.voiceEnvResult.venv_ready)
+                                        return "✗ " + i18n("Venv not ready — run setup");
+                                    if (!page.voiceEnvResult.faster_whisper_ok)
+                                        return "✗ " + i18n("faster-whisper not installed");
+                                    if (!page.voiceEnvResult.stt_model_path_ok)
+                                        return "✗ " + i18n("Model path missing or invalid");
+                                    return "✗ " + i18n("Not ready");
                                 }
-                                color: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                                color: page.voiceEnvResult && page.voiceEnvResult.stt_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
 
                             QQC2.Label {
-                                text: i18n("STT library (faster-whisper):")
-                                font.bold: true
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
-                                color: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: i18n("TTS library (kokoro):")
-                                font.bold: true
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
-                                color: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: i18n("Phonemizer (espeak-ng):")
-                                font.bold: true
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                                QQC2.ToolTip.delay: 400
-                                QQC2.ToolTip.visible: maEspeak.hovered
-                                QQC2.ToolTip.text: i18n("espeak-ng translates text into phonetic codes. Required for Kokoro text-to-speech.")
-
-                                MouseArea {
-                                    id: maEspeak
-
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                }
-
-                            }
-
-                            QQC2.Label {
-                                text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
-                                color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: i18n("STT model:")
+                                text: i18n("TTS:")
                                 font.bold: true
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
@@ -1165,50 +1112,33 @@ QQC2.ScrollView {
                             QQC2.Label {
                                 text: {
                                     if (!page.voiceEnvResult)
-                                        return "";
-                                    let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.trim().length > 0;
-                                    if (!hasPath)
-                                        return "✗ " + i18n("Model path/ID not set");
-                                    return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Model ready") : "✗ " + i18n("Model not found / invalid");
-                                }
-                                color: {
-                                    if (!page.voiceEnvResult)
-                                        return Kirigami.Theme.textColor;
-                                    let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.trim().length > 0;
-                                    if (!hasPath)
-                                        return Kirigami.Theme.neutralTextColor;
-                                    return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                                }
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: i18n("TTS model:")
-                                font.bold: true
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                            }
-
-                            QQC2.Label {
-                                text: {
-                                    if (!page.voiceEnvResult)
-                                        return "";
-                                    if (page.cfg_voiceTtsModel === "espeak-ng")
-                                        return "✓ " + i18n("Ready (No model file required)");
+                                        return i18n("Not checked");
+                                    if (page.voiceEnvResult.tts_ready)
+                                        return "✓ " + i18n("Ready");
+                                    if (page.cfg_voiceTtsModel === "espeak-ng" && page.voiceEnvResult.espeak_available)
+                                        return "✓ " + i18n("Ready (eSpeak-NG fallback)");
+                                    if (!page.voiceEnvResult.espeak_available && page.cfg_voiceTtsModel !== "piper")
+                                        return "✗ " + i18n("Phonemizer (espeak-ng) missing");
                                     let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.trim().length > 0;
-                                    if (!hasPath)
+                                    if (!hasPath && page.cfg_voiceTtsModel !== "espeak-ng")
                                         return "✗ " + i18n("Model path not set");
-                                    return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Model ready") : "✗ " + i18n("Model not found / invalid");
+                                    if (!page.voiceEnvResult.tts_model_path_ok)
+                                        return "✗ " + i18n("Model not found at path");
+                                    return "✗ " + i18n("Not ready");
                                 }
-                                color: {
-                                    if (!page.voiceEnvResult)
-                                        return Kirigami.Theme.textColor;
-                                    if (page.cfg_voiceTtsModel === "espeak-ng")
-                                        return Kirigami.Theme.positiveTextColor;
-                                    let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.trim().length > 0;
-                                    if (!hasPath)
-                                        return Kirigami.Theme.neutralTextColor;
-                                    return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                                }
+                                color: page.voiceEnvResult && page.voiceEnvResult.tts_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            }
+
+                            QQC2.Label {
+                                text: i18n("Phonemizer:")
+                                font.bold: true
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            }
+
+                            QQC2.Label {
+                                text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("espeak-ng available") : "✗ " + i18n("espeak-ng missing")
+                                color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
 
@@ -1220,7 +1150,6 @@ QQC2.ScrollView {
 
             }
 
-            // ── STT Configuration Panel ───────────────────────────────────
             // ── STT Configuration Panel ───────────────────────────────────
             Rectangle {
                 id: sttConfigPanel
@@ -1327,8 +1256,9 @@ QQC2.ScrollView {
                         Layout.fillWidth: true
                     }
 
-                    // Test STT
+                    // Test STT (only visible when STT service is running)
                     RowLayout {
+                        visible: page.sttServiceActive
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
@@ -1370,7 +1300,6 @@ QQC2.ScrollView {
                                 page.sttStatus = "loading_model";
                                 page.sttCountdown = 5;
                                 page.sttTestResult = "";
-                                page.recordedAudioPath = "";
                                 let lang = page.cfg_voiceLanguage || "en";
                                 let model = page.cfg_voiceSttModel || "large-v3-turbo";
                                 let modelPath = page.cfg_voiceSttModelPath || "";
@@ -1384,19 +1313,15 @@ QQC2.ScrollView {
                             }
                         }
 
-                        QQC2.Button {
-                            text: i18n("Play Recorded Audio")
-                            icon.name: "media-playback-start"
-                            visible: page.recordedAudioPath !== ""
-                            enabled: !page.sttTesting
-                            onClicked: {
-                                sendVoiceCommand(JSON.stringify({
-                                    "cmd": "play_audio",
-                                    "path": page.recordedAudioPath
-                                }));
-                            }
-                        }
+                    }
 
+                    QQC2.Label {
+                        visible: !page.sttServiceActive
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        font: Kirigami.Theme.smallFont
+                        opacity: 0.7
+                        text: i18n("Start the STT service to enable testing.")
                     }
 
                     // STT Result Text Box
@@ -1431,7 +1356,7 @@ QQC2.ScrollView {
                         QQC2.Label {
                             text: i18n("STT Service:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.Button {
@@ -1573,9 +1498,9 @@ QQC2.ScrollView {
 
                     }
 
-                    // Test TTS Row
+                    // Test TTS Row (only visible when TTS service is running)
                     RowLayout {
-                        visible: voiceTtsEnabledToggle.checked
+                        visible: voiceTtsEnabledToggle.checked && page.ttsServiceActive
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
@@ -1619,6 +1544,15 @@ QQC2.ScrollView {
                             }))
                         }
 
+                    }
+
+                    QQC2.Label {
+                        visible: voiceTtsEnabledToggle.checked && !page.ttsServiceActive
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        font: Kirigami.Theme.smallFont
+                        opacity: 0.7
+                        text: i18n("Start the TTS service to enable testing.")
                     }
 
                     // TTS Status Box
