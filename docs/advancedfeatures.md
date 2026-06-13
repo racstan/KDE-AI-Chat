@@ -39,19 +39,31 @@ You can set up the virtual environment in one of two modes from the **Advanced S
 
 ## 2. Speech Features: STT & TTS
 
-With the environment initialized, you can enable local high-quality Speech-to-Text and Text-to-Speech engines.
+With the environment initialized, you can enable local high-quality Speech-to-Text and Text-to-Speech engines. **Note:** KDE AI Chat relies on the user to download model files manually and provide their paths. Automated downloads have been removed to prevent setup failures and give users full control over model variants.
 
 ### Speech-to-Text (STT)
 Powered by **Faster Whisper**, which runs OpenAI's Whisper model locally.
-*   **Model Selection:** Choose from multiple sizes (`tiny`, `base`, `small`, `medium`, `large-v3-turbo`) in the dropdown depending on your RAM/VRAM capacity.
-*   **Download:** Click the **Download** button to pull the chosen model from Hugging Face via `huggingface-cli` (progress is shown in a terminal).
-*   **Custom Model Path:** If you already have a model downloaded, specify its directory path in the **Custom STT model path** field.
+*   **Download:** Click the **Download Models (Hugging Face)** button to open Hugging Face search for `faster-whisper` models.
+*   **Model Path:** Enter the directory path containing your manually downloaded Whisper model (containing files like `model.bin`, `config.json`, etc.) in the **STT model path** field.
 
 ### Text-to-Speech (TTS)
-Powered by the state-of-the-art local neural TTS model **Kokoro-82M**.
-*   **Phonemizer (`espeak-ng`):** Neural speech requires a phonemizer to translate words into sounds. Click **Install** next to the `espeak-ng path` label to automatically fetch this utility via your system's package manager (e.g., `apt`, `pacman`, `dnf`), or provide a custom directory path if installed manually.
-*   **Voices:** Choose from curated high-quality voices (e.g., `af_heart`, `am_fenrir`, `bf_bella`, `bm_george`, etc.) to read your messages aloud.
+Supports multiple neural TTS models including **Kokoro-82M**, **Piper**, **F5-TTS**, and **Coqui-TTS**, as well as a native system **eSpeak-NG** fallback.
+*   **Auto-Detection:** The widget automatically detects the TTS engine/provider based on the path you enter in the **TTS model path** field:
+    *   Paths containing `kokoro` will run using **Kokoro**.
+    *   Paths containing `piper` or ending with `.onnx` will run using **Piper**.
+    *   Paths containing `f5` will run using **F5-TTS**.
+    *   Paths containing `coqui` will run using **Coqui-TTS**.
+    *   If left empty, it falls back to native system **eSpeak-NG**.
+*   **Download:** Click the **Download Models (Hugging Face)** button to find models on Hugging Face.
+*   **Model Path:** Enter the folder or file path to your manually downloaded TTS model in the **TTS model path** field.
+*   **Voices:** Choose from curated voices to read your messages aloud.
 *   **Speak Test:** Enter custom text in the **Test TTS** input box and click **Speak Test** to hear the synthesis immediately.
+
+### eSpeak-NG Configuration
+Neural TTS engines require a phonemizer (like `espeak-ng`) to convert text into phoneme sounds.
+*   **Separate Category:** eSpeak-NG settings are grouped into a dedicated panel.
+*   **eSpeak Path:** Specify the path to your manual `espeak-ng` binary.
+*   **System Package Installer:** Click **Install via Package Manager** to automatically install `espeak-ng` via your system's package manager (e.g. `apt`, `dnf`, `pacman`, `zypper`).
 
 ---
 
@@ -94,9 +106,11 @@ API Keys can be stored securely using standard desktop keyrings instead of plain
 Below is a record of recent updates, audit findings, and troubleshooting details for the advanced features section:
 
 ### What We Did (Session Overview)
-*   **Famous Model Dropdowns and Custom Path Toggles:** Implemented toggle buttons for custom STT and TTS model paths. When unchecked (default), they display the dropdown of pre-configured famous models along with their download buttons; when checked, they hide the dropdowns and reveal file path inputs and browser buttons to specify custom local model folders.
+*   **Manual Model Paths and HF Search Links:** Completely removed the automatic download system. Downloading models is now the user's responsibility. The Download buttons open Hugging Face search queries directly.
+*   **TTS Provider Auto-Detection:** Removed the manual TTS provider dropdown selection. The active TTS provider is dynamically detected from the manual model path (detecting Kokoro, Piper, F5-TTS, Coqui, or falling back to espeak-ng).
+*   **Dedicated eSpeak-NG Panel:** Extracted the eSpeak-NG configuration into a dedicated category panel, cleanly separating it from STT and TTS configuration groups.
 *   **Selectable STT Result and TTS Status Fields:** Replaced the previous dynamic result label with read-only, copy-enabled `QQC2.TextField` input blocks for STT transcriptions and live TTS status messages (Synthesizing, Playing, Done, or Errors), providing detailed feedback on playback errors.
-*   **Terminal execution simplification:** Rewrote terminal launchers to pass direct command parameters (`konsole -e bash <script_path> <args>`) rather than complex nested quoted commands (`konsole -e bash -c '...'`).
+*   **Terminal execution simplification:** Rewrote terminal launchers to pass direct command parameters (`konsole -e bash <script_path> <args>`) rather than complex nested quoted commands.
 *   **Interactive prompt resilience:** Introduced a robust TTY checking helper (`wait_for_keypress`) in `voice_setup.sh` that detects if standard input is a terminal or character device, preventing execution termination on missing TTY devices.
 *   **Installation script consolidation:** Moved model downloading and distribution package manager installer command compositions out of QML and directly into central sub-modes of `voice_setup.sh` for unified terminal output, progress visualizers, and keypress handling.
 *   **Configurable CPU/GPU Setup:** Decoupled virtual environment setups into explicit GPU (with CUDA libraries) and CPU (lightweight/clean) setups.
