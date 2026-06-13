@@ -88,7 +88,21 @@ QQC2.ScrollView {
     property alias cfg_voiceVenvPath: voiceVenvPathField.text
     property alias cfg_voiceEspeakPath: voiceEspeakPathField.text
     property string cfg_voiceSttModel: plasmoid.configuration.voiceSttModel || "large-v3-turbo"
-    property string cfg_voiceTtsModel: plasmoid.configuration.voiceTtsModel || "kokoro-82m"
+    property string cfg_voiceTtsModel: {
+        let path = cfg_voiceTtsModelPath || "";
+        if (path.trim() === "")
+            return "espeak-ng";
+        let p = path.toLowerCase();
+        if (p.indexOf("kokoro") >= 0 || p.indexOf("voices.bin") >= 0)
+            return "kokoro-82m";
+        if (p.indexOf("piper") >= 0 || p.indexOf(".onnx") >= 0)
+            return "piper";
+        if (p.indexOf("f5") >= 0)
+            return "f5-tts";
+        if (p.indexOf("coqui") >= 0)
+            return "coqui-tts";
+        return "kokoro-82m";
+    }
     property string cfg_voiceLanguage: plasmoid.configuration.voiceLanguage || "en"
     property string cfg_voiceTtsVoice: plasmoid.configuration.voiceTtsVoice || "af_heart"
     property bool setupRunning: false
@@ -1207,6 +1221,7 @@ QQC2.ScrollView {
             }
 
             // ── STT Configuration Panel ───────────────────────────────────
+            // ── STT Configuration Panel ───────────────────────────────────
             Rectangle {
                 id: sttConfigPanel
 
@@ -1232,13 +1247,13 @@ QQC2.ScrollView {
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
                     }
 
-                    // STT Model Path / HF ID Row
+                    // STT Model Path Row
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
-                            text: i18n("STT Model Path / HF ID:")
+                            text: i18n("STT Model Path:")
                             font.bold: true
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
@@ -1247,7 +1262,7 @@ QQC2.ScrollView {
                             id: voiceSttModelPathField
 
                             Layout.fillWidth: true
-                            placeholderText: i18n("e.g. /path/to/model or Systran/faster-whisper-large-v3-turbo")
+                            placeholderText: i18n("e.g. /path/to/whisper/model/folder")
                         }
 
                         QQC2.Button {
@@ -1264,7 +1279,7 @@ QQC2.ScrollView {
                         wrapMode: Text.Wrap
                         font: Kirigami.Theme.smallFont
                         opacity: 0.8
-                        text: i18n("<b>Note:</b> You must provide a local model path or Hugging Face repository ID. Manual model downloads should be linked to Hugging Face.")
+                        text: i18n("<b>Note:</b> You must provide a local directory path containing the Whisper model files (such as <code>model.bin</code>).")
                     }
 
                     QQC2.Button {
@@ -1476,38 +1491,9 @@ QQC2.ScrollView {
                         Layout.fillWidth: true
                     }
 
-                    // TTS Model/Engine Selection
-                    RowLayout {
-                        visible: voiceTtsEnabledToggle.checked
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-
-                        QQC2.Label {
-                            text: i18n("TTS Provider:")
-                            font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
-                        }
-
-                        QQC2.ComboBox {
-                            id: voiceTtsModelCombo
-
-                            Layout.fillWidth: true
-                            model: ["kokoro-82m", "piper", "f5-tts", "espeak-ng", "coqui-tts"]
-                            currentIndex: {
-                                let m = page.cfg_voiceTtsModel || "kokoro-82m";
-                                for (let i = 0; i < model.length; i++) if (model[i] === m) {
-                                    return i;
-                                }
-                                return 0;
-                            }
-                            onActivated: page.cfg_voiceTtsModel = currentValue
-                        }
-
-                    }
-
                     // Model Path Row (TTS)
                     RowLayout {
-                        visible: voiceTtsEnabledToggle.checked && voiceTtsModelCombo.currentValue !== "espeak-ng"
+                        visible: voiceTtsEnabledToggle.checked
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
@@ -1521,7 +1507,7 @@ QQC2.ScrollView {
                             id: voiceTtsModelPathField
 
                             Layout.fillWidth: true
-                            placeholderText: i18n("Path to model file (.onnx / .pth) or folder...")
+                            placeholderText: i18n("Path to model directory or file...")
                         }
 
                         QQC2.Button {
@@ -1539,75 +1525,23 @@ QQC2.ScrollView {
                     }
 
                     QQC2.Label {
-                        visible: voiceTtsEnabledToggle.checked && voiceTtsModelCombo.currentValue !== "espeak-ng"
+                        visible: voiceTtsEnabledToggle.checked
                         Layout.fillWidth: true
                         textFormat: Text.RichText
                         wrapMode: Text.Wrap
                         font: Kirigami.Theme.smallFont
                         opacity: 0.8
-                        text: {
-                            if (voiceTtsModelCombo.currentValue === "kokoro-82m")
-                                return i18n("<b>Kokoro-82M Note:</b> Download <code>kokoro-v0_19.onnx</code> (or <code>.pth</code>) and <code>voices.bin</code> from hexgrad/Kokoro-82M Hugging Face.");
-                            if (voiceTtsModelCombo.currentValue === "piper")
-                                return i18n("<b>Piper Note:</b> Download <code>.onnx</code> and <code>.onnx.json</code> files from rhasspy/piper-voices Hugging Face.");
-                            if (voiceTtsModelCombo.currentValue === "f5-tts")
-                                return i18n("<b>F5-TTS Note:</b> Download from m-a-p/F5-TTS Hugging Face.");
-                            return i18n("Download model manually and select its path above.");
-                        }
+                        text: i18n("<b>Note:</b> Download the model files manually and select their path above. The engine automatically detects the provider (e.g. Kokoro, Piper, F5-TTS, Coqui) based on the path. Defaults to system eSpeak-NG if path is empty.")
                     }
 
                     QQC2.Button {
-                        visible: voiceTtsEnabledToggle.checked && voiceTtsModelCombo.currentValue !== "espeak-ng"
+                        visible: voiceTtsEnabledToggle.checked
                         text: i18n("Download Models (Hugging Face)")
                         icon.name: "internet-services"
                         Layout.alignment: Qt.AlignLeft
                         onClicked: {
-                            if (voiceTtsModelCombo.currentValue === "kokoro-82m") {
-                                Qt.openUrlExternally("https://huggingface.co/hexgrad/Kokoro-82M");
-                            } else if (voiceTtsModelCombo.currentValue === "piper") {
-                                Qt.openUrlExternally("https://huggingface.co/rhasspy/piper-voices");
-                            } else if (voiceTtsModelCombo.currentValue === "f5-tts") {
-                                Qt.openUrlExternally("https://huggingface.co/m-a-p/F5-TTS");
-                            } else {
-                                Qt.openUrlExternally("https://huggingface.co/models");
-                            }
+                            Qt.openUrlExternally("https://huggingface.co/models?search=tts");
                         }
-                    }
-
-                    // espeak-ng Path Row
-                    RowLayout {
-                        visible: voiceTtsEnabledToggle.checked
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-
-                        QQC2.Label {
-                            text: i18n("espeak-ng path:")
-                            font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
-                        }
-
-                        QQC2.TextField {
-                            id: voiceEspeakPathField
-
-                            Layout.fillWidth: true
-                            placeholderText: i18n("System default (recommended)")
-                        }
-
-                        QQC2.Button {
-                            icon.name: "folder-open"
-                            QQC2.ToolTip.text: i18n("Browse for espeak-ng executable")
-                            onClicked: espeakFileDialog.open()
-                        }
-
-                        QQC2.Button {
-                            text: i18n("Install")
-                            icon.name: "download"
-                            QQC2.ToolTip.text: i18n("Install espeak-ng using system package manager")
-                            onClicked: {
-                                runSetupInTerminal("install_espeak");
-                            }
-                        }
-
                     }
 
                     // TTS Voice Selector Row
@@ -1741,6 +1675,80 @@ QQC2.ScrollView {
                             color: page.ttsServiceActive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
                         }
 
+                    }
+
+                }
+
+            }
+
+            // ── eSpeak-NG Configuration Panel ─────────────────────────────
+            Rectangle {
+                id: espeakConfigPanel
+
+                visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                implicitHeight: espeakLayout.implicitHeight + Kirigami.Units.gridUnit * 1.5
+                radius: 5
+                color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.02)
+                border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+                border.width: 1
+
+                ColumnLayout {
+                    id: espeakLayout
+
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.gridUnit
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("eSpeak-NG Configuration")
+                        font.bold: true
+                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
+                    }
+
+                    // espeak-ng Path Row
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            text: i18n("eSpeak-NG Path:")
+                            font.bold: true
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
+                        }
+
+                        QQC2.TextField {
+                            id: voiceEspeakPathField
+
+                            Layout.fillWidth: true
+                            placeholderText: i18n("System default (recommended)")
+                        }
+
+                        QQC2.Button {
+                            icon.name: "folder-open"
+                            QQC2.ToolTip.text: i18n("Browse for espeak-ng executable")
+                            onClicked: espeakFileDialog.open()
+                        }
+
+                        QQC2.Button {
+                            text: i18n("Install")
+                            icon.name: "download"
+                            QQC2.ToolTip.text: i18n("Install espeak-ng using system package manager")
+                            onClicked: {
+                                runSetupInTerminal("install_espeak");
+                            }
+                        }
+
+                    }
+
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        textFormat: Text.RichText
+                        wrapMode: Text.Wrap
+                        font: Kirigami.Theme.smallFont
+                        opacity: 0.8
+                        text: i18n("eSpeak-NG is required for phoneme generation in Kokoro and other English TTS models, or as a standalone fallback synthesis provider.")
                     }
 
                 }

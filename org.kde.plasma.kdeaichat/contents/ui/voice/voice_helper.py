@@ -61,11 +61,43 @@ class VoiceHelper:
                 sys.stderr.write(f"\n>>> ERROR: Failed to download {data.get('target', '').upper()} model: {data.get('error', '')}\n")
                 sys.stderr.flush()
 
+    def _detect_tts_model_type(self, model_path):
+        if not model_path or not model_path.strip():
+            return "espeak-ng"
+        
+        mp_lower = model_path.lower()
+        if "kokoro" in mp_lower or "voices.bin" in mp_lower:
+            return "kokoro-82m"
+        if "piper" in mp_lower or mp_lower.endswith(".onnx") or mp_lower.endswith(".onnx.json"):
+            return "piper"
+        if "f5" in mp_lower:
+            return "f5-tts"
+        if "coqui" in mp_lower:
+            return "coqui-tts"
+        
+        p = os.path.expanduser(model_path.strip())
+        if os.path.isdir(p):
+            try:
+                files = os.listdir(p)
+                if any("voices.bin" in f or "kokoro" in f.lower() for f in files):
+                    return "kokoro-82m"
+                if any(f.endswith(".onnx") for f in files):
+                    return "piper"
+                if any("f5" in f.lower() for f in files):
+                    return "f5-tts"
+                if any("coqui" in f.lower() for f in files):
+                    return "coqui-tts"
+            except Exception:
+                pass
+            
+        return "kokoro-82m"
+
     def check_env(self, payload):
         """Check environment for voice capabilities."""
         stt_model_path = payload.get("stt_model_path", "")
         tts_model_path = payload.get("tts_model_path", "")
         venv_path = payload.get("venv_path", "")
+        espeak_path = payload.get("espeak_path", "")
 
         result = {
             "type": "env_check",
@@ -109,7 +141,7 @@ class VoiceHelper:
         result["paplay_available"] = shutil.which("paplay") is not None
         result["aplay_available"] = shutil.which("aplay") is not None
 
-        espeak_path = payload.get("espeak_path", "")
+        # Setup custom espeak path if provided
         if espeak_path:
             espeak_path = os.path.expanduser(espeak_path)
             if os.path.isdir(espeak_path):
@@ -141,44 +173,6 @@ class VoiceHelper:
         except ImportError:
             pass
 
-        # Check if selected default models are downloaded in cache
-        stt_model = payload.get("stt_model", "large-v3-turbo")
-        stt_downloaded = False
-        hf_cache = os.path.expanduser("~/.cache/huggingface/hub")
-        if os.path.isdir(hf_cache):
-            entry = f"models--Systran--faster-whisper-{stt_model}"
-            repo_dir = os.path.join(hf_cache, entry)
-            if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                snapshots_dir = os.path.join(repo_dir, "snapshots")
-                if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                    stt_downloaded = True
-        result["stt_model_downloaded"] = stt_downloaded
-
-        tts_model = payload.get("tts_model", "kokoro-82m")
-        tts_downloaded = False
-        if tts_model == "espeak-ng":
-            tts_downloaded = bool(shutil.which("espeak-ng") or shutil.which("espeak"))
-        elif tts_model == "piper":
-            piper_path = os.path.expanduser("~/.local/share/kdeaichat/models/piper/en_US-lessac-medium.onnx")
-            tts_downloaded = os.path.exists(piper_path)
-        elif tts_model == "f5-tts":
-            if os.path.isdir(hf_cache):
-                entry = "models--m-a-p--F5-TTS"
-                repo_dir = os.path.join(hf_cache, entry)
-                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                    snapshots_dir = os.path.join(repo_dir, "snapshots")
-                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                        tts_downloaded = True
-        else: # kokoro-82m
-            if os.path.isdir(hf_cache):
-                entry = "models--hexgrad--Kokoro-82M"
-                repo_dir = os.path.join(hf_cache, entry)
-                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                    snapshots_dir = os.path.join(repo_dir, "snapshots")
-                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                        tts_downloaded = True
-        result["tts_model_downloaded"] = tts_downloaded
-
         # Check custom model paths strictly
         if stt_model_path:
             stt_p = os.path.expanduser(stt_model_path)
@@ -186,8 +180,6 @@ class VoiceHelper:
             if os.path.isdir(stt_dir):
                 if os.path.exists(os.path.join(stt_dir, "model.bin")) or any(f.endswith(".bin") or f.endswith(".json") for f in os.listdir(stt_dir)):
                     result["stt_model_path_ok"] = True
-            elif stt_model_path in ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"] or "/" in stt_model_path:
-                result["stt_model_path_ok"] = True
 
         if tts_model_path:
             tts_p = os.path.expanduser(tts_model_path)
@@ -209,6 +201,8 @@ class VoiceHelper:
         result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and result["stt_model_path_ok"]
 
         has_player = result["paplay_available"] or result["aplay_available"]
+        
+        tts_model = self._detect_tts_model_type(tts_model_path)
         has_tts_model = result["tts_model_path_ok"] or tts_model == "espeak-ng"
 
         tts_ready = False
@@ -594,7 +588,7 @@ class VoiceHelper:
                 lang_code = payload.get("lang_code", "a")
                 custom_model_path = payload.get("model_path", "")
                 espeak_path = payload.get("espeak_path", "")
-                model = payload.get("model", "kokoro-82m")
+                model = self._detect_tts_model_type(custom_model_path)
 
                 # Setup custom espeak path if provided
                 if espeak_path:

@@ -3319,7 +3319,13 @@ function checkVoiceEnv() {
     let venvPy = venvPath + "/bin/python3";
     let sttPath = plasmoid.configuration.voiceSttModelPath || "";
     let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
-    let payload = {cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath};
+    let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
+    let payload = {
+        cmd: "check_env",
+        stt_model_path: sttPath,
+        tts_model_path: ttsPath,
+        espeak_path: espeakPath
+    };
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
     let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-env-" + Date.now();
