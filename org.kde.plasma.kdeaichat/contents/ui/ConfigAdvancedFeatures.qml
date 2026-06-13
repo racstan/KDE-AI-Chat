@@ -111,6 +111,12 @@ QQC2.ScrollView {
     property string setupLogs: ""
     property var activeSetupSource: null
 
+    Component.onCompleted: {
+        if (voiceEnabledToggle.checked) {
+            runEnvCheck();
+        }
+    }
+
     function handleVoicePageResponse(resp, sourceName) {
         if (resp.type === "env_check") {
             page.voiceEnvResult = resp;
@@ -405,9 +411,16 @@ QQC2.ScrollView {
         if (page.sttServiceActive) {
             voicePageDs.connectSource("systemctl --user stop kde-ai-stt.service #toggle-stt-service-" + Date.now());
         } else {
-            // Ensure service files exist before starting
-            setupVoiceServices();
-            voicePageDs.connectSource("systemctl --user start kde-ai-stt.service #toggle-stt-service-" + Date.now());
+            let venvPy = getVenvPython();
+            let espeakPath = page.cfg_voiceEspeakPath || "";
+            let payload = JSON.stringify({
+                "venvPy": venvPy,
+                "espeakPath": espeakPath
+            });
+            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
+            let fullCmd = setupCmd + " && systemctl --user start kde-ai-stt.service";
+            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-stt-service-" + Date.now());
         }
         refreshDelayTimer.restart();
     }
@@ -416,9 +429,16 @@ QQC2.ScrollView {
         if (page.sttServiceEnabled) {
             voicePageDs.connectSource("systemctl --user disable kde-ai-stt.service #toggle-stt-boot-" + Date.now());
         } else {
-            // Ensure service files exist before enabling
-            setupVoiceServices();
-            voicePageDs.connectSource("systemctl --user enable kde-ai-stt.service #toggle-stt-boot-" + Date.now());
+            let venvPy = getVenvPython();
+            let espeakPath = page.cfg_voiceEspeakPath || "";
+            let payload = JSON.stringify({
+                "venvPy": venvPy,
+                "espeakPath": espeakPath
+            });
+            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
+            let fullCmd = setupCmd + " && systemctl --user enable kde-ai-stt.service";
+            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-stt-boot-" + Date.now());
         }
         refreshDelayTimer.restart();
     }
@@ -427,8 +447,16 @@ QQC2.ScrollView {
         if (page.ttsServiceActive) {
             voicePageDs.connectSource("systemctl --user stop kde-ai-tts.service #toggle-tts-service-" + Date.now());
         } else {
-            setupVoiceServices();
-            voicePageDs.connectSource("systemctl --user start kde-ai-tts.service #toggle-tts-service-" + Date.now());
+            let venvPy = getVenvPython();
+            let espeakPath = page.cfg_voiceEspeakPath || "";
+            let payload = JSON.stringify({
+                "venvPy": venvPy,
+                "espeakPath": espeakPath
+            });
+            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
+            let fullCmd = setupCmd + " && systemctl --user start kde-ai-tts.service";
+            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-tts-service-" + Date.now());
         }
         refreshDelayTimer.restart();
     }
@@ -437,8 +465,16 @@ QQC2.ScrollView {
         if (page.ttsServiceEnabled) {
             voicePageDs.connectSource("systemctl --user disable kde-ai-tts.service #toggle-tts-boot-" + Date.now());
         } else {
-            setupVoiceServices();
-            voicePageDs.connectSource("systemctl --user enable kde-ai-tts.service #toggle-tts-boot-" + Date.now());
+            let venvPy = getVenvPython();
+            let espeakPath = page.cfg_voiceEspeakPath || "";
+            let payload = JSON.stringify({
+                "venvPy": venvPy,
+                "espeakPath": espeakPath
+            });
+            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
+            let fullCmd = setupCmd + " && systemctl --user enable kde-ai-tts.service";
+            voicePageDs.connectSource("sh -c " + Sec.quoteForShell(fullCmd) + " #toggle-tts-boot-" + Date.now());
         }
         refreshDelayTimer.restart();
     }

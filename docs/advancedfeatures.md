@@ -127,3 +127,9 @@ Below is a record of recent updates, audit findings, and troubleshooting details
 *   **Package Manager Autodetect Failures:** Added fallback package management setups for a wider array of Linux distributions (Arch, Fedora, openSUSE, Debian) within the `espeak-ng` installer.
 *   **D-Bus & Audio System Connection:** Solved systemd audio playback failures in background daemons by routing commands directly to local user shells where PipeWire/PulseAudio session environment variables are populated.
 
+### Audit Pass (Latest)
+*   **Simplified Verification Grid:** Replaced 8 hardcoded status rows (Microphone, Audio player, Venv, STT library, TTS library, Phonemizer, STT model, TTS model) with 3 dynamic summary entries: STT, TTS, and Phonemizer. Each entry shows the first actionable reason for failure instead of raw library status.
+*   **Service-Gated Testing:** Test STT and Test TTS controls are now only visible when their respective systemd services are running. A hint label tells the user to start the service first.
+*   **Autostart Fix:** The Enable Autostart buttons now call `setupVoiceServices()` to create the systemd service files before running `systemctl --user enable`, preventing "unit not found" failures.
+*   **Removed Play Recorded Audio:** Removed the dead "Play Recorded Audio" button and its associated `recordedAudioPath` property.
+*   **UI Consistency:** Fixed STT Service label width to match TTS Service label (12 grid units).
