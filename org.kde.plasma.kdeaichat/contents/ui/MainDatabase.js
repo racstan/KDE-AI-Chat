@@ -3287,6 +3287,18 @@ function getVenvSetupPath() {
     return base;
 }
 
+function resolveVenvPath() {
+    let path = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    if (path.charAt(0) === "~") {
+        let home = StandardPaths.writableLocation(StandardPaths.HomeLocation).toString();
+        if (home.indexOf("file://") === 0)
+            home = home.substring(7);
+        try { home = decodeURIComponent(home); } catch (e) {}
+        path = home + path.substring(1);
+    }
+    return path;
+}
+
 function sendVoiceCommand(port, payload, fallbackSource) {
     let xhr = new XMLHttpRequest();
     xhr.open("POST", "http://127.0.0.1:" + port + "/command", true);
@@ -3314,8 +3326,7 @@ function sendVoiceCommand(port, payload, fallbackSource) {
 
 function checkVoiceEnv() {
     let helperPath = getVoiceHelperPath();
-    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
     let sttPath = plasmoid.configuration.voiceSttModelPath || "";
     let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
@@ -3338,8 +3349,7 @@ function startVoiceRecording() {
     root.voiceSttStatus = "loading_model";
     root.voicePendingText = "";
     let helperPath = getVoiceHelperPath();
-    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
     let lang = plasmoid.configuration.voiceLanguage || "en";
     let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
@@ -3355,8 +3365,7 @@ function stopVoiceRecording() {
     if (!root.voiceRecording) return;
     root.voiceSttStatus = "stopping";
     let helperPath = getVoiceHelperPath();
-    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
     let payload = {cmd: "stop_stt"};
     let payloadStr = JSON.stringify(payload);
@@ -3368,8 +3377,7 @@ function stopVoiceRecording() {
 function triggerTts(text) {
     if (!text || !plasmoid.configuration.voiceTtsEnabled) return;
     let helperPath = getVoiceHelperPath();
-    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
     let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
     let ttsModel = plasmoid.configuration.voiceTtsModel || "kokoro-82m";
@@ -3392,8 +3400,7 @@ function triggerTts(text) {
 
 function stopTts() {
     let helperPath = getVoiceHelperPath();
-    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
     let payload = {cmd: "stop_tts"};
     let payloadStr = JSON.stringify(payload);
@@ -3404,8 +3411,7 @@ function stopTts() {
 
 function pauseTts() {
     let helperPath = getVoiceHelperPath();
-    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
     let payload = {cmd: "pause_tts"};
     let payloadStr = JSON.stringify(payload);
@@ -3416,8 +3422,7 @@ function pauseTts() {
 
 function resumeTts() {
     let helperPath = getVoiceHelperPath();
-    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
     let payload = {cmd: "resume_tts"};
     let payloadStr = JSON.stringify(payload);
@@ -3460,6 +3465,9 @@ function handleVoiceResponse(resp, sourceName) {
     } else if (respType === "tts_error") {
         root.ttsPlaying = false;
         root.ttsPaused = false;
+        pushErrorMessage("Voice Playback Error: " + (resp.error || "Unknown error"));
+    } else if (respType === "play_error") {
+        pushErrorMessage("Voice Playback Error: " + (resp.error || "Unknown error"));
     } else if (respType === "tts_status") {
         if (resp.status === "playing") {
             root.ttsPlaying = true;

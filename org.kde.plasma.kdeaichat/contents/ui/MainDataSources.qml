@@ -677,6 +677,7 @@ Item {
         connectedSources: []
         onNewData: function(sourceName, data) {
             let stdout = (data["stdout"] || "").trim();
+            let stderr = (data["stderr"] || "").trim();
             let exitCode = data["exit code"];
             if (stdout !== "") {
                 let lines = stdout.split("\n");
@@ -692,6 +693,10 @@ Item {
                 }
             }
             if (exitCode !== undefined) {
+                if (exitCode !== 0) {
+                    let errMsg = stderr || ("Process exited with code " + exitCode);
+                    root.pushErrorMessage("Voice helper execution failed: " + errMsg);
+                }
                 disconnectSource(sourceName);
             }
         }
