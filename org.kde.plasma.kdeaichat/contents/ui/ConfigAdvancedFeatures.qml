@@ -86,7 +86,7 @@ QQC2.ScrollView {
     property alias cfg_voiceSttModelPath: voiceSttModelPathField.text
     property alias cfg_voiceTtsModelPath: voiceTtsModelPathField.text
     property alias cfg_voiceVenvPath: voiceVenvPathField.text
-    property alias cfg_voiceEspeakPath: voiceEspeakPathField.text
+    property alias cfg_voiceEspeakPath: voicePhonemizerPathField.text
     property string cfg_voiceSttModel: plasmoid.configuration.voiceSttModel || "large-v3-turbo"
     property string cfg_voiceTtsModel: {
         let path = cfg_voiceTtsModelPath || "";
@@ -563,7 +563,7 @@ QQC2.ScrollView {
 
             }
             let stdoutTrim = stdout.trim();
-            if (stdoutTrim !== "" && sourceName.indexOf("#in-app-setup-") < 0) {
+            if (sourceName.indexOf("#in-app-setup-") < 0) {
                 if (sourceName.indexOf("#check-stt-active") >= 0) {
                     page.sttServiceActive = (stdoutTrim === "active");
                 } else if (sourceName.indexOf("#check-stt-enabled") >= 0) {
@@ -572,36 +572,41 @@ QQC2.ScrollView {
                     page.ttsServiceActive = (stdoutTrim === "active");
                 } else if (sourceName.indexOf("#check-tts-enabled") >= 0) {
                     page.ttsServiceEnabled = (stdoutTrim === "enabled");
-                } else if (stdoutTrim.indexOf("VOICE_SERVICES_SETUP_OK") >= 0) {
-                    if (voiceEnabledToggle.checked)
-                        voicePageDs.connectSource("systemctl --user start kde-ai-stt.service #start-stt-auto");
+                } else if (stdoutTrim !== "") {
+                    if (stdoutTrim.indexOf("VOICE_SERVICES_SETUP_OK") >= 0) {
+                        if (voiceEnabledToggle.checked)
+                            voicePageDs.connectSource("systemctl --user start kde-ai-stt.service #start-stt-auto");
 
-                    if (voiceTtsEnabledToggle.checked)
-                        voicePageDs.connectSource("systemctl --user start kde-ai-tts.service #start-tts-auto");
+                        if (voiceTtsEnabledToggle.checked)
+                            voicePageDs.connectSource("systemctl --user start kde-ai-tts.service #start-tts-auto");
 
-                    Qt.callLater(refreshServiceStatuses);
-                } else if (stdoutTrim.indexOf("DELETE_SETUP_OK") >= 0) {
-                    page.voiceEnvResult = null;
-                    page.voiceEnvChecked = false;
-                    page.voiceEnvChecking = false;
-                    Qt.callLater(runEnvCheck);
-                    Qt.callLater(refreshServiceStatuses);
-                } else {
-                    let lines = stdoutTrim.split("\n");
-                    for (let i = 0; i < lines.length; i++) {
-                        let line = lines[i].trim();
-                        if (!line)
-                            continue;
+                        Qt.callLater(refreshServiceStatuses);
+                    } else if (stdoutTrim.indexOf("DELETE_SETUP_OK") >= 0) {
+                        page.voiceEnvResult = null;
+                        page.voiceEnvChecked = false;
+                        page.voiceEnvChecking = false;
+                        Qt.callLater(runEnvCheck);
+                        Qt.callLater(refreshServiceStatuses);
+                    } else {
+                        let lines = stdoutTrim.split("\n");
+                        for (let i = 0; i < lines.length; i++) {
+                            let line = lines[i].trim();
+                            if (!line)
+                                continue;
 
-                        try {
-                            let resp = JSON.parse(line);
-                            handleVoicePageResponse(resp, sourceName);
-                        } catch (e) {
+                            try {
+                                let resp = JSON.parse(line);
+                                handleVoicePageResponse(resp, sourceName);
+                            } catch (e) {
+                            }
                         }
                     }
                 }
             }
             if (exitCode !== undefined) {
+                if (sourceName.indexOf("#toggle-") >= 0) {
+                    Qt.callLater(refreshServiceStatuses);
+                }
                 if (sourceName.indexOf("#in-app-setup-") >= 0) {
                     page.setupRunning = false;
                     if (exitCode !== 0) {
@@ -685,15 +690,15 @@ QQC2.ScrollView {
     }
 
     FileDialog {
-        id: espeakFileDialog
+        id: phonemizerFileDialog
 
-        title: i18n("Select espeak-ng/espeak executable")
+        title: i18n("Select phonemizer executable (e.g. espeak-ng)")
         onAccepted: {
             let path = selectedFile.toString();
             if (path.indexOf("file://") === 0)
                 path = decodeURIComponent(path.slice(7));
 
-            voiceEspeakPathField.text = path;
+            voicePhonemizerPathField.text = path;
         }
     }
 
@@ -1154,7 +1159,7 @@ QQC2.ScrollView {
                                     if (page.cfg_voiceTtsModel === "espeak-ng" && page.voiceEnvResult.espeak_available)
                                         return "✓ " + i18n("Ready (eSpeak-NG fallback)");
                                     if (!page.voiceEnvResult.espeak_available && page.cfg_voiceTtsModel !== "piper")
-                                        return "✗ " + i18n("Phonemizer (espeak-ng) missing");
+                                        return "✗ " + i18n("Phonemizer missing");
                                     let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.trim().length > 0;
                                     if (!hasPath && page.cfg_voiceTtsModel !== "espeak-ng")
                                         return "✗ " + i18n("Model path not set");
@@ -1173,7 +1178,7 @@ QQC2.ScrollView {
                             }
 
                             QQC2.Label {
-                                text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("espeak-ng available") : "✗ " + i18n("espeak-ng missing")
+                                text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("Phonemizer available") : "✗ " + i18n("Phonemizer missing")
                                 color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
@@ -1653,43 +1658,43 @@ QQC2.ScrollView {
 
             // ── eSpeak-NG Configuration Panel ─────────────────────────────
             Rectangle {
-                id: espeakConfigPanel
+                id: phonemizerConfigPanel
 
                 visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                implicitHeight: espeakLayout.implicitHeight + Kirigami.Units.gridUnit * 1.5
+                implicitHeight: phonemizerLayout.implicitHeight + Kirigami.Units.gridUnit * 1.5
                 radius: 5
                 color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.02)
                 border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
                 border.width: 1
 
                 ColumnLayout {
-                    id: espeakLayout
+                    id: phonemizerLayout
 
                     anchors.fill: parent
                     anchors.margins: Kirigami.Units.gridUnit
                     spacing: Kirigami.Units.smallSpacing
 
                     QQC2.Label {
-                        text: i18n("eSpeak-NG Configuration")
+                        text: i18n("Phonemizer Configuration")
                         font.bold: true
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
                     }
 
-                    // espeak-ng Path Row
+                    // Phonemizer Path Row
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
-                            text: i18n("eSpeak-NG Path:")
+                            text: i18n("Phonemizer Path:")
                             font.bold: true
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.TextField {
-                            id: voiceEspeakPathField
+                            id: voicePhonemizerPathField
 
                             Layout.fillWidth: true
                             placeholderText: i18n("System default (recommended)")
@@ -1697,14 +1702,14 @@ QQC2.ScrollView {
 
                         QQC2.Button {
                             icon.name: "folder-open"
-                            QQC2.ToolTip.text: i18n("Browse for espeak-ng executable")
-                            onClicked: espeakFileDialog.open()
+                            QQC2.ToolTip.text: i18n("Browse for phonemizer executable")
+                            onClicked: phonemizerFileDialog.open()
                         }
 
                         QQC2.Button {
                             text: i18n("Install")
                             icon.name: "download"
-                            QQC2.ToolTip.text: i18n("Install espeak-ng using system package manager")
+                            QQC2.ToolTip.text: i18n("Install phonemizer using system package manager")
                             onClicked: {
                                 runSetupInTerminal("install_espeak");
                             }
@@ -1718,7 +1723,7 @@ QQC2.ScrollView {
                         wrapMode: Text.Wrap
                         font: Kirigami.Theme.smallFont
                         opacity: 0.8
-                        text: i18n("eSpeak-NG is required for phoneme generation in Kokoro and other English TTS models, or as a standalone fallback synthesis provider.")
+                        text: i18n("A phonemizer (like eSpeak-NG) is required for phoneme generation in Kokoro and other English TTS models, or as a standalone fallback synthesis provider.")
                     }
 
                 }
