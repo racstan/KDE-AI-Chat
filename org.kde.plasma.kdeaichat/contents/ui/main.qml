@@ -719,6 +719,10 @@ PlasmoidItem {
         return MainDatabase.buildEffectiveSystemPrompt(sessionId);
     }
 
+    function injectMemoriesToUserMessage(contentVal, sessionId) {
+        return MainDatabase.injectMemoriesToUserMessage(contentVal, sessionId);
+    }
+
     // Returns a filtered, context-limited list of {role, content} pairs.
     // System-status bubbles (error, schedules_list, info …) are excluded.
     // Messages before the compacted boundary are excluded.

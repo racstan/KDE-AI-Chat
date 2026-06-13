@@ -335,6 +335,7 @@ failOpenCodeRequest("No user message found to send.");
 return ;
 }
 let userContent = lastMsg.content || "";
+userContent = injectMemoriesToUserMessage(userContent, root.currentSessionId);
 if (lastMsg.quote) {
 let sender = lastMsg.quote.role === "assistant" ? (lastMsg.quote.model || "Assistant") : "User";
 userContent = "[Replying to @" + sender + ": \"" + lastMsg.quote.content + "\"]\n\n" + userContent;
@@ -470,9 +471,10 @@ xhr.onerror = function() {
 failBackgroundOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
 };
 try {
+let finalContent = injectMemoriesToUserMessage(messageText, chatId);
 xhr.send(JSON.stringify({
 "role": "user",
-"content": messageText,
+"content": finalContent,
 "stream": false
 }));
 } catch (sendError) {

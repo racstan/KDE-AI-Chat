@@ -94,6 +94,8 @@ API Keys can be stored securely using standard desktop keyrings instead of plain
 Below is a record of recent updates, audit findings, and troubleshooting details for the advanced features section:
 
 ### What We Did (Session Overview)
+*   **Famous Model Dropdowns and Custom Path Toggles:** Implemented toggle buttons for custom STT and TTS model paths. When unchecked (default), they display the dropdown of pre-configured famous models along with their download buttons; when checked, they hide the dropdowns and reveal file path inputs and browser buttons to specify custom local model folders.
+*   **Selectable STT Result and TTS Status Fields:** Replaced the previous dynamic result label with read-only, copy-enabled `QQC2.TextField` input blocks for STT transcriptions and live TTS status messages (Synthesizing, Playing, Done, or Errors), providing detailed feedback on playback errors.
 *   **Terminal execution simplification:** Rewrote terminal launchers to pass direct command parameters (`konsole -e bash <script_path> <args>`) rather than complex nested quoted commands (`konsole -e bash -c '...'`).
 *   **Interactive prompt resilience:** Introduced a robust TTY checking helper (`wait_for_keypress`) in `voice_setup.sh` that detects if standard input is a terminal or character device, preventing execution termination on missing TTY devices.
 *   **Installation script consolidation:** Moved model downloading and distribution package manager installer command compositions out of QML and directly into central sub-modes of `voice_setup.sh` for unified terminal output, progress visualizers, and keypress handling.
@@ -103,6 +105,8 @@ Below is a record of recent updates, audit findings, and troubleshooting details
 *   **Venv Uninstaller / Eraser:** Configured a complete file deletion routine to clean up the virtual environment directory and Hugging Face hub cache directory upon uninstallation.
 
 ### Problems Found & Fixed
+*   **Silent TTS Playback Failures:** Addressed silent failures in TTS synthesis/playback by capturing the synthesis events, exposing errors in the status field, and handling errors gracefully.
+*   **Hardcoded Environment Checks:** Updated the environment verification schema to respect user selection of Kokoro-82m models dynamically.
 *   **Blank screens in terminal setups:** Fixed an issue where nested single quotes inside `konsole -e bash -c` caused newer version shells to exit instantly or render a blank window due to parsing errors.
 *   **Input Blocking & /dev/tty errors:** Replaced raw `read </dev/tty` commands with safe TTY device presence checks so setup doesn't fail silently or crash when spawned in environments without active character device streams.
 *   **Variable Scope Typos:** Resolved helper execution crashes caused by namespace collisions (e.g., `custom_path` variable vs. `custom_model_path`) during local voice synthesis initialization.

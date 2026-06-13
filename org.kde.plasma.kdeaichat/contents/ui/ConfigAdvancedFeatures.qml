@@ -28,6 +28,7 @@ QQC2.ScrollView {
     property bool sttTesting: false
     property int sttCountdown: 0
     property string sttTestResult: ""
+    property string ttsTestResult: ""
     property string storageExportStatus: ""
     property string recordedAudioPath: ""
     property string sttStatus: ""
@@ -88,6 +89,8 @@ QQC2.ScrollView {
 
         return Kirigami.Theme.neutralTextColor;
     }
+    property bool voiceSttUseCustom: (plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0)
+    property bool voiceTtsUseCustom: (plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0)
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
@@ -98,6 +101,7 @@ QQC2.ScrollView {
     property alias cfg_voiceVenvPath: voiceVenvPathField.text
     property alias cfg_voiceEspeakPath: voiceEspeakPathField.text
     property string cfg_voiceSttModel: plasmoid.configuration.voiceSttModel || "large-v3-turbo"
+    property string cfg_voiceTtsModel: plasmoid.configuration.voiceTtsModel || "kokoro-82m"
     property string cfg_voiceLanguage: plasmoid.configuration.voiceLanguage || "en"
     property string cfg_voiceTtsVoice: plasmoid.configuration.voiceTtsVoice || "af_heart"
 
@@ -133,12 +137,17 @@ QQC2.ScrollView {
             page.sttTestResult = i18n("Error: ") + (resp.error || i18n("Unknown"));
         } else if (resp.type === "tts_done") {
             page.ttsPlaying = false;
+            page.ttsTestResult = i18n("Done playing.");
         } else if (resp.type === "tts_error") {
             page.ttsPlaying = false;
+            page.ttsTestResult = i18n("Error: ") + (resp.error || i18n("Unknown"));
         } else if (resp.type === "tts_status") {
-            if (resp.status === "playing")
+            if (resp.status === "playing") {
                 page.ttsPlaying = true;
-
+                page.ttsTestResult = i18n("Playing...");
+            } else if (resp.status === "synthesizing") {
+                page.ttsTestResult = i18n("Synthesizing...");
+            }
         }
     }
 
@@ -280,7 +289,7 @@ QQC2.ScrollView {
             "espeak_path": espeakPath,
             "venv_path": getVenvPath(),
             "stt_model": page.cfg_voiceSttModel || "large-v3-turbo",
-            "tts_model": "kokoro-82m"
+            "tts_model": page.cfg_voiceTtsModel || "kokoro-82m"
         });
         let innerCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
         let cmd = "sh -c " + Sec.rawShellSnippetQuote(innerCmd) + " #voice-env-" + Date.now();
@@ -987,6 +996,27 @@ QQC2.ScrollView {
         // ── STT Settings ──────────────────────────────────────────────
         RowLayout {
             visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("STT Model Source:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+
+            QQC2.Button {
+                id: useCustomSttButton
+                text: checked ? i18n("Use Famous STT Models") : i18n("Use Custom STT Path")
+                icon.name: checked ? "go-previous" : "document-properties"
+                checkable: true
+                checked: page.voiceSttUseCustom
+                onToggled: {
+                    page.voiceSttUseCustom = checked;
+                    if (!checked) {
+                        voiceSttModelPathField.text = "";
+                    }
+                } 
+            }
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked && page.voiceSttUseCustom
             Kirigami.FormData.label: i18n("STT model path:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -1008,8 +1038,8 @@ QQC2.ScrollView {
         }
 
         RowLayout {
-            visible: voiceEnabledToggle.checked && !(page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0)
-            Kirigami.FormData.label: i18n("Default STT model:")
+            visible: voiceEnabledToggle.checked && !page.voiceSttUseCustom
+            Kirigami.FormData.label: i18n("Famous STT Model:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
@@ -1130,14 +1160,18 @@ QQC2.ScrollView {
 
         }
 
-        QQC2.Label {
+        RowLayout {
             visible: voiceEnabledToggle.checked && page.sttTestResult.length > 0
+            Kirigami.FormData.label: i18n("STT result:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            Kirigami.FormData.label: i18n("STT result:")
-            wrapMode: Text.Wrap
-            font: Kirigami.Theme.smallFont
-            text: page.sttTestResult
+
+            QQC2.TextField {
+                Layout.fillWidth: true
+                readOnly: true
+                text: page.sttTestResult
+                placeholderText: i18n("Transcribed text will appear here...")
+            }
         }
 
         RowLayout {
@@ -1196,6 +1230,27 @@ QQC2.ScrollView {
 
         RowLayout {
             visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Kirigami.FormData.label: i18n("TTS Model Source:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+
+            QQC2.Button {
+                id: useCustomTtsButton
+                text: checked ? i18n("Use Famous TTS Models") : i18n("Use Custom TTS Path")
+                icon.name: checked ? "go-previous" : "document-properties"
+                checkable: true
+                checked: page.voiceTtsUseCustom
+                onToggled: {
+                    page.voiceTtsUseCustom = checked;
+                    if (!checked) {
+                        voiceTtsModelPathField.text = "";
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && page.voiceTtsUseCustom
             Kirigami.FormData.label: i18n("TTS model path:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -1247,23 +1302,32 @@ QQC2.ScrollView {
         }
 
         RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && !(page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0)
-            Kirigami.FormData.label: i18n("Default TTS:")
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && !page.voiceTtsUseCustom
+            Kirigami.FormData.label: i18n("Famous TTS Model:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.ComboBox {
+                id: voiceTtsModelCombo
                 Layout.fillWidth: true
                 model: ["kokoro-82m"]
-                currentIndex: 0
+                currentIndex: {
+                    let m = page.cfg_voiceTtsModel || "kokoro-82m";
+                    for (let i = 0; i < model.length; i++) if (model[i] === m) {
+                        return i;
+                    }
+                    return 0;
+                }
+                onActivated: page.cfg_voiceTtsModel = currentValue
             }
 
             QQC2.Button {
                 text: i18n("Download")
                 icon.name: "download"
                 onClicked: {
-                    runSetupInTerminal("download_tts");
+                    let modelName = page.cfg_voiceTtsModel || "kokoro-82m";
+                    runSetupInTerminal("download_tts", modelName);
                 }
             }
 
@@ -1312,6 +1376,7 @@ QQC2.ScrollView {
                 icon.name: "audio-speakers"
                 onClicked: {
                     page.ttsPlaying = true;
+                    page.ttsTestResult = i18n("Initializing...");
                     sendVoiceCommand(JSON.stringify({
                         "cmd": "tts",
                         "text": voiceTtsTestInputField.text.trim() || i18n("Hello! This is a test of the text to speech system."),
@@ -1332,6 +1397,20 @@ QQC2.ScrollView {
                 }))
             }
 
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && page.ttsTestResult.length > 0
+            Kirigami.FormData.label: i18n("TTS status:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+
+            QQC2.TextField {
+                Layout.fillWidth: true
+                readOnly: true
+                text: page.ttsTestResult
+                placeholderText: i18n("TTS status details will appear here...")
+            }
         }
 
         RowLayout {
