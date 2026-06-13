@@ -245,7 +245,7 @@ QQC2.ScrollView {
     }
 
     function getSetupPath() {
-        let base = Qt.resolvedUrl("./voice/voice_setup.sh").toString();
+        let base = Qt.resolvedUrl("./voice/venv_setup.sh").toString();
         if (base === "")
             return "";
 
@@ -1698,7 +1698,7 @@ QQC2.ScrollView {
                             id: voicePhonemizerPathField
 
                             Layout.fillWidth: true
-                            placeholderText: i18n("System default (recommended)")
+                            placeholderText: i18n("e.g. /usr/bin/espeak-ng")
                         }
 
                         QQC2.Button {
@@ -1708,11 +1708,11 @@ QQC2.ScrollView {
                         }
 
                         QQC2.Button {
-                            text: i18n("Install")
-                            icon.name: "download"
-                            QQC2.ToolTip.text: i18n("Install phonemizer using system package manager")
+                            text: i18n("Download")
+                            icon.name: "help-about"
+                            QQC2.ToolTip.text: i18n("Open eSpeak-NG website to download the phonemizer")
                             onClicked: {
-                                runSetupInTerminal("install_espeak");
+                                Qt.openUrlExternally("https://github.com/espeak-ng/espeak-ng");
                             }
                         }
 

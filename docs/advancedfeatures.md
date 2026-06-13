@@ -81,7 +81,7 @@ KDE AI Chat relies on `espeak-ng` via the Python `phonemizer` package for engine
 
 *   **Separate Category:** eSpeak-NG settings are grouped into a dedicated panel.
 *   **eSpeak Path:** Specify the path to your manual `espeak-ng` binary.
-*   **System Package Installer:** Click **Install via Package Manager** to automatically install `espeak-ng` via your system's package manager (e.g. `apt`, `dnf`, `pacman`, `zypper`).
+*   **Download:** Click **Download** to open the eSpeak-NG website to follow the installation instructions for your Linux distribution.
 
 ---
 
@@ -129,8 +129,8 @@ Below is a record of recent updates, audit findings, and troubleshooting details
 *   **Dedicated eSpeak-NG Panel:** Extracted the eSpeak-NG configuration into a dedicated category panel, cleanly separating it from STT and TTS configuration groups.
 *   **Selectable STT Result and TTS Status Fields:** Replaced the previous dynamic result label with read-only, copy-enabled `QQC2.TextField` input blocks for STT transcriptions and live TTS status messages (Synthesizing, Playing, Done, or Errors), providing detailed feedback on playback errors.
 *   **Terminal execution simplification:** Rewrote terminal launchers to pass direct command parameters (`konsole -e bash <script_path> <args>`) rather than complex nested quoted commands.
-*   **Interactive prompt resilience:** Introduced a robust TTY checking helper (`wait_for_keypress`) in `voice_setup.sh` that detects if standard input is a terminal or character device, preventing execution termination on missing TTY devices.
-*   **Installation script consolidation:** Moved model downloading and distribution package manager installer command compositions out of QML and directly into central sub-modes of `voice_setup.sh` for unified terminal output, progress visualizers, and keypress handling.
+*   **Interactive prompt resilience:** Introduced a robust TTY checking helper (`wait_for_keypress`) in `venv_setup.sh` that detects if standard input is a terminal or character device, preventing execution termination on missing TTY devices.
+*   **Installation script consolidation:** Moved model downloading and virtual environment configuration command compositions out of QML and directly into central sub-modes of `venv_setup.sh` for unified terminal output, progress visualizers, and keypress handling.
 *   **Configurable CPU/GPU Setup:** Decoupled virtual environment setups into explicit GPU (with CUDA libraries) and CPU (lightweight/clean) setups.
 *   **Speech Decoupling:** Decoupled model files from the main python library dependencies. Added selection dropdowns to download model files separately or specify existing local paths.
 *   **Clarified Helper UI Elements:** Overhauled placeholder texts in speech input fields to prevent setup confusion.
