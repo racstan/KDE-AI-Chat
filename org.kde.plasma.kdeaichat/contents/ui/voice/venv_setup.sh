@@ -58,9 +58,9 @@ if [ "$MODE" = "download_stt" ]; then
 fi
 
 if [ "$MODE" = "download_tts" ]; then
-    REPO="hexgrad/Kokoro-82M"
+    MODEL_NAME="${3:-kokoro-82m}"
     echo "================================================================="
-    echo "  KDE AI Chat - Downloading TTS Model: kokoro-82m"
+    echo "  KDE AI Chat - Downloading TTS Model: $MODEL_NAME"
     echo "================================================================="
     echo '{"type":"setup_status","status":"downloading_model","percent":30}'
     VENV_PY="$VENV_DIR/bin/python3"
@@ -74,16 +74,35 @@ if [ "$MODE" = "download_tts" ]; then
     fi
     VENV_BIN="$(dirname "$VENV_PY")"
     HF_CLI="$VENV_BIN/huggingface-cli"
-    if [ -f "$HF_CLI" ]; then
-        "$HF_CLI" download "$REPO"
+
+    if [ "$MODEL_NAME" = "piper" ]; then
+        MODELS_DIR="$HOME/.local/share/kdeaichat/models/piper"
+        mkdir -p "$MODELS_DIR"
+        echo "  Downloading English medium voice model (lessac) for Piper..."
+        curl -L -o "$MODELS_DIR/en_US-lessac-medium.onnx" "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
+        curl -L -o "$MODELS_DIR/en_US-lessac-medium.onnx.json" "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"
+    elif [ "$MODEL_NAME" = "f5-tts" ]; then
+        if [ -f "$HF_CLI" ]; then
+            "$HF_CLI" download "m-a-p/F5-TTS"
+        else
+            echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
+            wait_for_keypress
+            exit 1
+        fi
     else
-        echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
-        wait_for_keypress
-        exit 1
+        # default: kokoro-82m
+        if [ -f "$HF_CLI" ]; then
+            "$HF_CLI" download "hexgrad/Kokoro-82M"
+        else
+            echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
+            wait_for_keypress
+            exit 1
+        fi
     fi
+
     echo '{"type":"setup_status","status":"done","percent":100}'
     echo "================================================================="
-    echo "  ✓ TTS model downloaded successfully!"
+    echo "  ✓ TTS model $MODEL_NAME downloaded successfully!"
     echo "================================================================="
     echo ""
     wait_for_keypress
@@ -211,7 +230,8 @@ echo "  Installing voice helper and core dependencies (faster-whisper, sounddevi
     transformers \
     num2words \
     espeak-phonemizer \
-    phonemizer
+    phonemizer \
+    piper-tts
 
 echo '{"type":"setup_status","status":"installing_kokoro","percent":90}'
 

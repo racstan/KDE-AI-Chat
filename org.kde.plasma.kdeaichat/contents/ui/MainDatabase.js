@@ -3364,6 +3364,7 @@ function triggerTts(text) {
     venvPath = venvPath.replace("~", Qt.resolvedUrl("~").substring(7));
     let venvPy = venvPath + "/bin/python3";
     let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
+    let ttsModel = plasmoid.configuration.voiceTtsModel || "kokoro-82m";
     let ttsModelPath = plasmoid.configuration.voiceTtsModelPath || "";
     let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
     let payload = {
@@ -3371,6 +3372,7 @@ function triggerTts(text) {
         text: text,
         voice: voice,
         lang_code: "a",
+        model: ttsModel,
         model_path: ttsModelPath,
         espeak_path: espeakPath
     };

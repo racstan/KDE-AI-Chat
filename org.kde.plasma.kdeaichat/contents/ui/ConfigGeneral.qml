@@ -1,35 +1,21 @@
-import QtQuick
+import "ConfigGeneralLogic.js" as ConfigGeneralLogic
+import "ProviderService.js" as ProviderService
 import QtCore
+import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
+import "Security.js" as Sec
+import "WalletService.js" as WalletService
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
 import "translations.js" as Translations
-import "ProviderService.js" as ProviderService
-import "WalletService.js" as WalletService
-import "Security.js" as Sec
-import "ConfigGeneralLogic.js" as ConfigGeneralLogic
+
 QQC2.ScrollView {
     id: page
 
-    QQC2.TextField {
-        id: clipboardHelper
-        width: 0
-        height: 0
-        opacity: 0
-        activeFocusOnTab: false
-    }
-
-    contentWidth: availableWidth
-    contentHeight: zoomHost.implicitHeight
-
     property bool debugMode: false
-    function debugLog() {
-        return ConfigGeneralLogic.debugLog();
-    }
-
     //* Ctrl+scroll zoom for the settings form (0.75–1.5).
     property real configZoom: 1
     property alias cfg_appDisplayName: advancedSection.appDisplayName
@@ -116,9 +102,6 @@ QQC2.ScrollView {
         return lang === "en";
     }
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
-    onCfg_showInteractiveGuidesChanged: {
-        plasmoid.configuration.showInteractiveGuides = cfg_showInteractiveGuides;
-    }
     property alias cfg_autoStartOpenCodeServer: openCodeSection.autoStartOpenCode
     property alias cfg_useOpenCode: generalSection.openCode
     property alias cfg_playNotificationSound: generalSection.playSound
@@ -163,7 +146,6 @@ QQC2.ScrollView {
     property string cfg_keyRefresh: ""
     property string cfg_keyCopyLastReply: ""
     property string keyringStatus: ""
-
     // ── Layout metrics exposed so section files can read them via `page` ──
     // These are computed once here and propagated down so all sub-FormLayouts
     // size their fields identically.
@@ -171,6 +153,7 @@ QQC2.ScrollView {
         let hostW = zoomHost ? zoomHost.width : 0;
         if (hostW <= 0)
             return Kirigami.Units.gridUnit * 28;
+
         return Math.min(hostW / page.configZoom, Kirigami.Units.gridUnit * 32);
     }
     readonly property real configFieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, configBoundedWidth)
@@ -209,26 +192,23 @@ QQC2.ScrollView {
     property bool keyringBusy: keyringDs.connectedSources.length > 0 || utilityDs.connectedSources.filter(function(sourceName) {
         return sourceName.indexOf("#kwallet-") >= 0;
     }).length > 0
-
     // Mirrors the plasmoid root kwalletPermanentlyFailed / kwalletFailReason state
     // so the settings UI can show the banner and the Refresh button can reset it.
     // We read directly from plasmoid here; main.qml is the authoritative store.
     readonly property bool kwalletSyncPermanentlyFailed: {
-        try { return plasmoid.self ? plasmoid.self.kwalletPermanentlyFailed : false; } catch(e) { return false; }
-    }
-    readonly property string kwalletSyncFailReason: {
-        try { return plasmoid.self ? plasmoid.self.kwalletFailReason : ""; } catch(e) { return ""; }
-    }
-    function resetKwalletFailState() {
         try {
-            if (plasmoid.self && typeof plasmoid.self.resetKwalletFailState === "function") {
-                plasmoid.self.resetKwalletFailState();
-            }
-        } catch(e) {
-            console.error("resetKwalletFailState error:", e);
+            return plasmoid.self ? plasmoid.self.kwalletPermanentlyFailed : false;
+        } catch (e) {
+            return false;
         }
     }
-
+    readonly property string kwalletSyncFailReason: {
+        try {
+            return plasmoid.self ? plasmoid.self.kwalletFailReason : "";
+        } catch (e) {
+            return "";
+        }
+    }
     property bool openCodeBusy: utilityDs.connectedSources.filter(function(sourceName) {
         return sourceName.indexOf("#opencode-") >= 0;
     }).length > 0
@@ -251,7 +231,6 @@ QQC2.ScrollView {
     readonly property alias keys2: keys2
     readonly property alias advancedSection: advancedSection
     readonly property alias scheduleDialog: scheduleDialog
-
     readonly property alias walletNameField: advancedSection.walletNameField
     readonly property alias providerBox: providersSection.providerBox
     readonly property alias openCodeProviderValueField: openCodeSection.openCodeProviderValueField
@@ -268,7 +247,6 @@ QQC2.ScrollView {
     readonly property alias playSoundToggle: generalSection.playSoundToggle
     readonly property alias storageModeCombo: advancedSection.storageModeCombo
     readonly property alias appearanceModeCombo: generalSection.appearanceModeCombo
-
     // DataSources
     readonly property alias utilityDs: utilityDs
     readonly property alias keyringDs: keyringDs
@@ -283,7 +261,6 @@ QQC2.ScrollView {
     readonly property alias schedulerMasterSwitch: advancedSection.schedulerMasterSwitch
     readonly property alias schedAutoStartToggle: advancedSection.schedAutoStartToggle
     readonly property alias executeMissedSchedulesToggle: advancedSection.executeMissedSchedulesToggle
-
     // Provider fields compatibility — keys1 and keys2 are now top-level siblings in zoomHost
     readonly property alias baseUrlField: keys1.baseUrlField
     readonly property alias apiKeyField: keys1.apiKeyField
@@ -352,19 +329,8 @@ QQC2.ScrollView {
     readonly property alias togetherImageBaseUrlField: keys2.togetherImageBaseUrlField
     readonly property alias togetherImageApiKeyField: keys2.togetherImageApiKeyField
     readonly property alias togetherImageModelField: keys2.togetherImageModelField
-
-
     readonly property string guideText: translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>• <b>Appearance:</b> Select a theme (Follow system, Light mode, or Dark mode) to customize the chat look.<br/>• <b>Language:</b> Select your preferred display language for the widget interface.<br/>• <b>Notification Sound:</b> Toggle sound alerts when the AI agent completes generating responses.<br/>• <b>Interactive Guides:</b> Enable or disable these detailed configuration cards at the top of the settings panel.")
-
-    readonly property string behaviorGuideText: translate("<b>Behavior &amp; Context Guide:</b><br/>" +
-        "• <b>System prompt:</b> Set a default instruction template for the AI (e.g., <i>\"Be extremely concise\"</i>).<br/>" +
-        "• <b>Global Memory:</b> Write facts the AI should remember across all conversations.<br/>" +
-        "• <b>Global Context:</b> Limit how many past messages the AI sees to control token usage (default limit is 1). Each chat has the ability to modify the context for that chat; if nothing is specified there, this global context config is used.<br/>" +
-        "• <b>Context Compacting:</b> Automatically summarize older messages in the background to save context window tokens. A confirmation prompt appears before compaction runs.<br/>" +
-        "• <b>Prompt Templates:</b> Save frequently used prompts below. Use <code>/template</code> in chat to apply them.<br/>" +
-        "• <b>Per-Chat Settings:</b> Click the gear icon in chat to set per-chat system prompt, memory, model, response length, and context overrides. These override global settings for that chat only.<br/>" +
-        "• <b>API Key Storage:</b> Configure how API keys are stored (Session, Plain Config, or KWallet) — see the API Key Storage section below Scheduler.")
-
+    readonly property string behaviorGuideText: translate("<b>Behavior &amp; Context Guide:</b><br/>" + "• <b>System prompt:</b> Set a default instruction template for the AI (e.g., <i>\"Be extremely concise\"</i>).<br/>" + "• <b>Global Memory:</b> Write facts the AI should remember across all conversations.<br/>" + "• <b>Global Context:</b> Limit how many past messages the AI sees to control token usage (default limit is 1). Each chat has the ability to modify the context for that chat; if nothing is specified there, this global context config is used.<br/>" + "• <b>Context Compacting:</b> Automatically summarize older messages in the background to save context window tokens. A confirmation prompt appears before compaction runs.<br/>" + "• <b>Prompt Templates:</b> Save frequently used prompts below. Use <code>/template</code> in chat to apply them.<br/>" + "• <b>Per-Chat Settings:</b> Click the gear icon in chat to set per-chat system prompt, memory, model, response length, and context overrides. These override global settings for that chat only.<br/>" + "• <b>API Key Storage:</b> Configure how API keys are stored (Session, Plain Config, or KWallet) — see the API Key Storage section below Scheduler.")
     readonly property string providerGuideText: {
         if (cfg_useOpenCode)
             return translate("<b>OpenCode Setup Guide:</b><br/>" + "1. Select <b>OpenCode Mode (Uses Opencode)</b> under Operating Mode.<br/>" + "2. Scroll down to the <b>OpenCode</b> section and enter the server URL (default: <code>http://127.0.0.1:4096</code>).<br/>" + "3. Click <b>Start Server</b> to launch the local OpenCode server in the background.<br/>" + "4. Click <b>Check Server</b> to verify it is online.<br/>" + "5. Once online, the available providers/models dropdowns will auto-populate.<br/>" + "6. (Optional) Enable <b>Auto-kill session</b> and set the inactivity delay to stop the OpenCode server to save memory when not in use. It will automatically restart when you type a message in the chat.<br/>" + "7. Click <b>Apply</b>/<b>OK</b> to save and start using local coding assistance.");
@@ -420,7 +386,6 @@ QQC2.ScrollView {
             return translate("<b>Together AI Image Generation Guide:</b><br/>" + "1. Get your API key at <b>api.together.xyz → API Keys</b>.<br/>" + "2. Paste it into the <b>Together Image key</b> field below.<br/>" + "3. Choose a model (e.g. <code>black-forest-labs/FLUX.1-schnell-Free</code> — free tier).<br/>" + "4. Type a description and the AI will generate an image.<br/>" + "5. Click <b>Apply</b>/<b>OK</b> to save.");
         return translate("<b>Provider Setup Guide:</b> Select a provider from the <b>Default provider</b> dropdown above to see setup instructions.");
     }
-
     readonly property string apiGuideText: {
         let storageIdx = cfg_keyStorageMode;
         if (storageIdx === 0)
@@ -431,40 +396,41 @@ QQC2.ScrollView {
             return translate("<b>API Key Storage Guide:</b><br/>" + "• Current mode: <b>🔑 KWallet</b> (encrypted).<br/>" + "• Click <b>Detect wallets</b> to find available KDE wallets.<br/>" + "• If none are found, click <b>Create wallet</b> — KWallet will prompt for a password to create one.<br/>" + "• Select your wallet from the <b>Wallet name</b> dropdown, enter your keys, then click <b>Sync to KWallet</b>.<br/>" + "• (Optional) Click <b>Launch KWalletManager</b> to inspect or manage your wallet via the system app.<br/>" + "• Security: Keys are fully encrypted. Best for shared or multi-user systems.");
         return "";
     }
-
     readonly property string otherSettingsGuideText: translate("<b>Other Settings Guide:</b><br/>• <b>Keyboard Shortcuts:</b> Customize keyboard shortcuts in the <b>Shortcuts</b> tab. Configure hotkeys for all common actions — search, new chat, export, regenerate, and more.<br/>• <b>App name:</b> Change the display name shown in the widget title bar. After clicking Apply/OK, restart the shell with the command shown to apply it.<br/>• <b>System prompt:</b> Set a default system instruction for every chat session (e.g. <i>\"You are a helpful Linux assistant.\"</i>). Leave blank to use the default.<br/>• <b>Chat storage path (beta):</b> Now in the <b>Advanced Features</b> tab. Choose a folder to save your chat history. History is saved as <code>kdeaichat_history.json</code> inside that folder. Default is <code>~/.config</code>.<br/>• <b>Reset to defaults:</b> Click <b>Reset to defaults</b> to restore all settings to their original values.")
-
     readonly property string schedulerGuideText: {
-        if (!cfg_schedulerEnabled) {
-            return translate("<b>Schedules Guide:</b><br/>" +
-                "The scheduler runs in the background. At the time you choose, it automatically sends a message into your chat and the AI replies.<br/><br/>" +
-                "• <b>Status: Stopped</b>.<br/>" +
-                "• <b>Action:</b> Toggle the <b>Scheduler switch</b> below to <b>ON</b> to boot the background daemon.");
-        }
+        if (!cfg_schedulerEnabled)
+            return translate("<b>Schedules Guide:</b><br/>" + "The scheduler runs in the background. At the time you choose, it automatically sends a message into your chat and the AI replies.<br/><br/>" + "• <b>Status: Stopped</b>.<br/>" + "• <b>Action:</b> Toggle the <b>Scheduler switch</b> below to <b>ON</b> to boot the background daemon.");
 
-        if (!schedulerDaemonRunning) {
-            return translate("<b>Schedules Guide:</b><br/>" +
-                "• <b>Status: Starting up...</b><br/>" +
-                "• The scheduler daemon is starting in the background. Once initialized, the status indicator will show <b>Active</b>.<br/>" +
-                "• (Optional) Make sure to toggle <b>Auto-start at login</b> to <b>ON</b> if you want automated schedules to trigger even when you don't open settings.");
-        }
+        if (!schedulerDaemonRunning)
+            return translate("<b>Schedules Guide:</b><br/>" + "• <b>Status: Starting up...</b><br/>" + "• The scheduler daemon is starting in the background. Once initialized, the status indicator will show <b>Active</b>.<br/>" + "• (Optional) Make sure to toggle <b>Auto-start at login</b> to <b>ON</b> if you want automated schedules to trigger even when you don't open settings.");
 
         let count = schedulerList.length;
-        if (count === 0) {
-            return translate("<b>Schedules Guide:</b><br/>" +
-                "• <b>Status: Active &amp; running!</b><br/>" +
-                "• The scheduler is connected and monitoring. But you have <b>0 schedules configured</b>.<br/>" +
-                "• <b>Action:</b> Click <b>Create Schedule</b> below to set up your first automated daily or one-time prompt!");
-        }
+        if (count === 0)
+            return translate("<b>Schedules Guide:</b><br/>" + "• <b>Status: Active &amp; running!</b><br/>" + "• The scheduler is connected and monitoring. But you have <b>0 schedules configured</b>.<br/>" + "• <b>Action:</b> Click <b>Create Schedule</b> below to set up your first automated daily or one-time prompt!");
 
         let enabledCount = 0;
         for (let i = 0; i < count; i++) {
-            if (schedulerList[i] && schedulerList[i].enabled) {
+            if (schedulerList[i] && schedulerList[i].enabled)
                 enabledCount++;
-            }
-        }
 
+        }
         return translate("<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• You have <b>%1 schedule(s) configured</b> (%2 enabled).<br/>• The background service will run automatically. Click <b>Manage Schedules</b> to edit or delete tasks, view executed run history logs, and customize history retention limits.<br/>• <i>Pro-Tip:</i> You can also schedule prompts directly from the chat box by typing <code>/schedule</code>!").arg(count).arg(enabledCount);
+    }
+    // ── Scheduler helpers ──────────────────────────────────────────────────────
+    property string _lastSchedSetupPayload: ""
+
+    function debugLog() {
+        return ConfigGeneralLogic.debugLog();
+    }
+
+    function resetKwalletFailState() {
+        try {
+            if (plasmoid.self && typeof plasmoid.self.resetKwalletFailState === "function")
+                plasmoid.self.resetKwalletFailState();
+
+        } catch (e) {
+            console.error("resetKwalletFailState error:", e);
+        }
     }
 
     function translate(text) {
@@ -741,8 +707,6 @@ QQC2.ScrollView {
         return ConfigGeneralLogic.resetToDefaults();
     }
 
-    // ── Scheduler helpers ──────────────────────────────────────────────────────
-    property string _lastSchedSetupPayload: ""
     function schedAutoSetup() {
         return ConfigGeneralLogic.schedAutoSetup();
     }
@@ -787,14 +751,19 @@ QQC2.ScrollView {
         return ConfigGeneralLogic.schedHumanCron(expr);
     }
 
+    clip: true
+    contentWidth: availableWidth
+    contentHeight: zoomHost.implicitHeight
+    onCfg_showInteractiveGuidesChanged: {
+        plasmoid.configuration.showInteractiveGuides = cfg_showInteractiveGuides;
+    }
     onVisibleChanged: {
         if (visible) {
-            if (!openCodeToggle.checked && plasmoid.configuration.keyStorageMode === 2) {
+            if (!openCodeToggle.checked && plasmoid.configuration.keyStorageMode === 2)
                 detectWallets();
-            }
+
         }
     }
-
     QQC2.ScrollBar.horizontal.policy: configZoom > 1.01 ? QQC2.ScrollBar.AsNeeded : QQC2.ScrollBar.AlwaysOff
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
@@ -813,7 +782,8 @@ QQC2.ScrollView {
             if (savedProvider) {
                 openCodeProviderCandidates = [savedProvider];
                 if (savedModel) {
-                    let mmap = {};
+                    let mmap = {
+                    };
                     mmap[savedProvider] = [savedModel];
                     openCodeProviderModelMap = mmap;
                     openCodeModelCandidates = [savedModel];
@@ -844,22 +814,22 @@ QQC2.ScrollView {
             pId = plasmoid.configuration["preselectedChatId"];
             pName = plasmoid.configuration["preselectedChatName"] || "Chat";
         }
-        if (pId !== "") {
+        if (pId !== "")
             openPrefilledScheduleDialog(pId, pName);
-        }
+
         // Auto-refresh models for the current provider on settings open
         if (!openCodeToggle.checked) {
             let isImg = false;
             try {
                 let pCfg = ProviderService.getProviderConfig(plasmoid.configuration.provider, plasmoid.configuration);
                 isImg = (pCfg && pCfg.type === "image-gen");
-            } catch(e) {}
-            if (!isImg) {
-                refreshCurrentProviderModels();
+            } catch (e) {
             }
+            if (!isImg)
+                refreshCurrentProviderModels();
+
         }
     }
-
     /*
     Connections {
         target: plasmoid.configuration
@@ -899,6 +869,7 @@ QQC2.ScrollView {
     // would resolve to undefined.
     ScheduleDialog {
         id: scheduleDialog
+
         page: page
     }
 
@@ -934,7 +905,12 @@ QQC2.ScrollView {
                     let loadedValue = stdout.slice("__KAI_SECRET__:".length);
                     page.applyLoadedKey(op.target, loadedValue);
                     page.keyringStatus = op.bulk ? "Refreshing API keys from KWallet..." : ("Loaded key for " + op.target + " from KWallet.");
-                    try { if (plasmoid.self) plasmoid.self.kwalletOpenAttempts = 0; } catch(e) {}
+                    try {
+                        if (plasmoid.self)
+                            plasmoid.self.kwalletOpenAttempts = 0;
+
+                    } catch (e) {
+                    }
                 } else if (!op.bulk) {
                     if (stdout === "__KAI_LOAD__:NO_WALLET") {
                         page.keyringStatus = "Configured wallet not found. Use Detect wallets or Create wallet.";
@@ -949,16 +925,16 @@ QQC2.ScrollView {
                                     plasmoid.self.kwalletFailReason = reason;
                                 }
                             }
-                        } catch(e) {}
-                    } else if (stdout === "__KAI_LOAD__:NO_FOLDER") {
+                        } catch (e) {
+                        }
+                    } else if (stdout === "__KAI_LOAD__:NO_FOLDER")
                         page.keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet. Click Create wallet first.";
-                    } else if (stdout === "__KAI_LOAD__:NO_ENTRY") {
+                    else if (stdout === "__KAI_LOAD__:NO_ENTRY")
                         page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
-                    } else if (stderr !== "") {
+                    else if (stderr !== "")
                         page.keyringStatus = "KWallet (" + op.target + "): " + stderr;
-                    } else {
+                    else
                         page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
-                    }
                 }
             } else if (op.mode === "bulk_store") {
                 if (stdout === "__KAI_BULK_STORE__:OPEN_FAILED") {
@@ -972,17 +948,30 @@ QQC2.ScrollView {
                                 plasmoid.self.kwalletFailReason = reason;
                             }
                         }
-                    } catch(e) {}
+                    } catch (e) {
+                    }
                 } else if (stdout === "__KAI_BULK_STORE__:NOT_UNLOCKED") {
                     page.keyringStatus = "KWallet is locked/closed. Manual sync required.";
                 } else if (stdout.indexOf("__KAI_BULK_STORE__:DONE") === 0) {
                     page.keyringStatus = "Synced all API keys to KWallet.";
-                    try { if (plasmoid.self) { plasmoid.self.kwalletOpenAttempts = 0; plasmoid.self.kwalletPermanentlyFailed = false; } } catch(e) {}
+                    try {
+                        if (plasmoid.self) {
+                            plasmoid.self.kwalletOpenAttempts = 0;
+                            plasmoid.self.kwalletPermanentlyFailed = false;
+                        }
+                    } catch (e) {
+                    }
                 } else if (stderr !== "") {
                     page.keyringStatus = "KWallet error: " + stderr;
                 } else {
                     page.keyringStatus = "Synced API keys to KWallet.";
-                    try { if (plasmoid.self) { plasmoid.self.kwalletOpenAttempts = 0; plasmoid.self.kwalletPermanentlyFailed = false; } } catch(e) {}
+                    try {
+                        if (plasmoid.self) {
+                            plasmoid.self.kwalletOpenAttempts = 0;
+                            plasmoid.self.kwalletPermanentlyFailed = false;
+                        }
+                    } catch (e) {
+                    }
                 }
             } else {
                 if (!op.bulk) {
@@ -997,15 +986,26 @@ QQC2.ScrollView {
                                     plasmoid.self.kwalletFailReason = reason;
                                 }
                             }
-                        } catch(e) {}
+                        } catch (e) {
+                        }
                     } else if (stdout.indexOf("__KAI_STORE__:") === 0) {
                         page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
-                        try { if (plasmoid.self) plasmoid.self.kwalletOpenAttempts = 0; } catch(e) {}
+                        try {
+                            if (plasmoid.self)
+                                plasmoid.self.kwalletOpenAttempts = 0;
+
+                        } catch (e) {
+                        }
                     } else if (stderr !== "") {
                         page.keyringStatus = "KWallet error: " + stderr;
                     } else {
                         page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
-                        try { if (plasmoid.self) plasmoid.self.kwalletOpenAttempts = 0; } catch(e) {}
+                        try {
+                            if (plasmoid.self)
+                                plasmoid.self.kwalletOpenAttempts = 0;
+
+                        } catch (e) {
+                        }
                     }
                 }
             }
@@ -1056,7 +1056,8 @@ QQC2.ScrollView {
                                 plasmoid.self.kwalletFailReason = reason;
                             }
                         }
-                    } catch(e) {}
+                    } catch (e) {
+                    }
                 } else if (out === "__KAI_BULK__:NOT_UNLOCKED") {
                     keyringStatus = "KWallet is locked/closed. Click 'Refresh from KWallet' to unlock.";
                 } else if (out === "__KAI_BULK__:NO_FOLDER") {
@@ -1068,7 +1069,8 @@ QQC2.ScrollView {
                             plasmoid.self.kwalletPermanentlyFailed = false;
                             plasmoid.self.kwalletFailReason = "";
                         }
-                    } catch(e) {}
+                    } catch (e) {
+                    }
                     let lines = out === "" ? [] : out.split(/\n+/);
                     let loaded = 0;
                     for (let i = 0; i < lines.length; i++) {
@@ -1128,6 +1130,7 @@ QQC2.ScrollView {
                 page.schedulerDaemonRunning = (out.trim() === "SCHED_RUNNING");
                 if (!page.schedulerDaemonRunning && page.schedulerStatus === "Restarting…")
                     page.schedulerStatus = "Stopped";
+
             } else if (sourceName.indexOf("sched-start") >= 0) {
                 page.schedulerStatus = ""; // badge shows state, no separate text needed
                 // Re-poll immediately to confirm daemon is up
@@ -1147,7 +1150,7 @@ QQC2.ScrollView {
                     page.memOpenCode = memData.opencode || 0;
                     page.memStt = memData.stt || 0;
                     page.memTts = memData.tts || 0;
-                } catch(e) {
+                } catch (e) {
                     console.warn("Failed to parse memory data:", e);
                 }
             } else if (sourceName.indexOf("sched-enable") >= 0) {
@@ -1166,20 +1169,19 @@ QQC2.ScrollView {
                         let archived = [];
                         for (let i = 0; i < allSchedules.length; i++) {
                             if (allSchedules[i]) {
-                                if (allSchedules[i].archived) {
+                                if (allSchedules[i].archived)
                                     archived.push(allSchedules[i]);
-                                } else {
+                                else
                                     active.push(allSchedules[i]);
-                                }
                             }
                         }
                         page.schedulerList = active;
                         page.schedulerArchivedList = archived;
                         let hist = parsed.history || [];
                         let limit = page.getHistoryLimitValue();
-                        if (hist.length > limit) {
+                        if (hist.length > limit)
                             hist = hist.slice(hist.length - limit);
-                        }
+
                         page.schedulerHistory = hist;
                     } catch (e) {
                         page.schedulerList = [];
@@ -1191,11 +1193,10 @@ QQC2.ScrollView {
                 page.schedSaving = false;
                 page.schedulerStatus = "Schedules saved.";
             } else if (sourceName.indexOf("#opencode-autostart") >= 0) {
-                if (err !== "" && err.indexOf("Warning:") < 0 && err.indexOf("nohup:") < 0) {
+                if (err !== "" && err.indexOf("Warning:") < 0 && err.indexOf("nohup:") < 0)
                     discoveryStatus = "Auto-start failed: " + err;
-                } else {
+                else
                     discoveryStatus = "OpenCode auto-start command launched. Checking server...";
-                }
             } else if (sourceName.indexOf("#opencode-start") >= 0) {
                 if (err !== "" && err.indexOf("Warning:") < 0 && err.indexOf("nohup:") < 0) {
                     discoveryStatus = "Start failed: " + err;
@@ -1223,19 +1224,21 @@ QQC2.ScrollView {
 
     Item {
         id: zoomHost
+
         width: page.availableWidth
         implicitWidth: page.availableWidth
-
         // Sum the heights of all six sibling section FormLayouts
-        implicitHeight: Math.ceil(
-            (generalSection.implicitHeight +
-             openCodeSection.implicitHeight +
-             providersSection.implicitHeight +
-             keys1.implicitHeight +
-             keys2.implicitHeight +
-             advancedSection.implicitHeight) * page.configZoom
-        )
+        implicitHeight: Math.ceil((generalSection.implicitHeight + openCodeSection.implicitHeight + providersSection.implicitHeight + keys1.implicitHeight + keys2.implicitHeight + advancedSection.implicitHeight) * page.configZoom)
         clip: true
+
+        QQC2.TextField {
+            id: clipboardHelper
+
+            width: 0
+            height: 0
+            opacity: 0
+            activeFocusOnTab: false
+        }
 
         // ── General Settings ─────────────────────────────────────────────────
         // LINKAGE: ConfigGeneralSection is the first Kirigami.FormLayout section.
@@ -1243,8 +1246,10 @@ QQC2.ScrollView {
         // all label columns are identically wide across the whole settings page.
         ConfigGeneralSection {
             id: generalSection
+
             page: page
-            x: 0; y: 0
+            x: 0
+            y: 0
             height: implicitHeight
             clip: true
             scale: page.configZoom
@@ -1257,6 +1262,7 @@ QQC2.ScrollView {
         // ── OpenCode Settings ─────────────────────────────────────────────────
         ConfigOpenCodeSection {
             id: openCodeSection
+
             page: page
             x: 0
             height: implicitHeight
@@ -1272,6 +1278,7 @@ QQC2.ScrollView {
         // ── Provider Selection ─────────────────────────────────────────────────
         ConfigProvidersSection {
             id: providersSection
+
             page: page
             x: 0
             height: implicitHeight
@@ -1289,6 +1296,7 @@ QQC2.ScrollView {
         // It is positioned directly below providersSection in the vertical stack.
         ConfigProvidersKeys1 {
             id: keys1
+
             page: page
             x: 0
             height: implicitHeight
@@ -1304,6 +1312,7 @@ QQC2.ScrollView {
         // ── Provider API Keys (Group 2: xAI → Maritaca) ─────────────────────
         ConfigProvidersKeys2 {
             id: keys2
+
             page: page
             x: 0
             height: implicitHeight
@@ -1319,6 +1328,7 @@ QQC2.ScrollView {
         // ── Advanced / Scheduler / Storage ────────────────────────────────────
         ConfigAdvancedSection {
             id: advancedSection
+
             page: page
             x: 0
             height: implicitHeight

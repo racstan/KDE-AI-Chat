@@ -154,14 +154,29 @@ class VoiceHelper:
                     stt_downloaded = True
         result["stt_model_downloaded"] = stt_downloaded
 
+        tts_model = payload.get("tts_model", "kokoro-82m")
         tts_downloaded = False
-        if os.path.isdir(hf_cache):
-            entry = "models--hexgrad--Kokoro-82M"
-            repo_dir = os.path.join(hf_cache, entry)
-            if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                snapshots_dir = os.path.join(repo_dir, "snapshots")
-                if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                    tts_downloaded = True
+        if tts_model == "espeak-ng":
+            tts_downloaded = bool(shutil.which("espeak-ng") or shutil.which("espeak"))
+        elif tts_model == "piper":
+            piper_path = os.path.expanduser("~/.local/share/kdeaichat/models/piper/en_US-lessac-medium.onnx")
+            tts_downloaded = os.path.exists(piper_path)
+        elif tts_model == "f5-tts":
+            if os.path.isdir(hf_cache):
+                entry = "models--m-a-p--F5-TTS"
+                repo_dir = os.path.join(hf_cache, entry)
+                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                    snapshots_dir = os.path.join(repo_dir, "snapshots")
+                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                        tts_downloaded = True
+        else: # kokoro-82m
+            if os.path.isdir(hf_cache):
+                entry = "models--hexgrad--Kokoro-82M"
+                repo_dir = os.path.join(hf_cache, entry)
+                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                    snapshots_dir = os.path.join(repo_dir, "snapshots")
+                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                        tts_downloaded = True
         result["tts_model_downloaded"] = tts_downloaded
 
         # Check custom model paths strictly
@@ -187,11 +202,42 @@ class VoiceHelper:
         result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and (
             result["stt_model_path_ok"] if stt_model_path else result["stt_model_downloaded"]
         )
-        result["tts_ready"] = result["kokoro_ok"] and result["espeak_available"] and (
-            result["paplay_available"] or result["aplay_available"]
-        ) and (
-            result["tts_model_path_ok"] if tts_model_path else result["tts_model_downloaded"]
-        )
+
+        has_player = result["paplay_available"] or result["aplay_available"]
+        has_tts_model = result["tts_model_path_ok"] if tts_model_path else result["tts_model_downloaded"]
+
+        tts_ready = False
+        if tts_model == "espeak-ng":
+            tts_ready = result["espeak_available"] and has_player
+        elif tts_model == "piper":
+            has_piper_bin = bool(shutil.which("piper"))
+            if not has_piper_bin:
+                venv_bin = os.path.dirname(sys.executable)
+                has_piper_bin = os.path.exists(os.path.join(venv_bin, "piper"))
+            try:
+                import piper
+                has_piper_pkg = True
+            except ImportError:
+                has_piper_pkg = False
+            tts_ready = (has_piper_bin or has_piper_pkg) and has_tts_model and has_player
+        elif tts_model == "f5-tts":
+            try:
+                import f5_tts
+                has_f5 = True
+            except ImportError:
+                has_f5 = False
+            tts_ready = has_f5 and has_tts_model and has_player
+        elif tts_model == "coqui-tts":
+            try:
+                import TTS
+                has_coqui = True
+            except ImportError:
+                has_coqui = False
+            tts_ready = has_coqui and has_tts_model and has_player
+        else: # kokoro-82m
+            tts_ready = result["kokoro_ok"] and result["espeak_available"] and has_tts_model and has_player
+
+        result["tts_ready"] = tts_ready
 
         self.emit(result)
 
@@ -236,21 +282,41 @@ class VoiceHelper:
             })
 
         # Check TTS models
-        tts_list = ["kokoro-82m"]
+        tts_list = ["kokoro-82m", "piper", "f5-tts", "espeak-ng"]
+        sizes = {
+            "kokoro-82m": "~150 MB",
+            "piper": "~15 MB",
+            "f5-tts": "~1.5 GB",
+            "espeak-ng": "N/A (System)"
+        }
         for name in tts_list:
             downloaded = False
-            if os.path.isdir(hf_cache):
-                entry = "models--hexgrad--Kokoro-82M"
-                repo_dir = os.path.join(hf_cache, entry)
-                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                    snapshots_dir = os.path.join(repo_dir, "snapshots")
-                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                        downloaded = True
+            if name == "espeak-ng":
+                downloaded = bool(shutil.which("espeak-ng") or shutil.which("espeak"))
+            elif name == "piper":
+                piper_path = os.path.expanduser("~/.local/share/kdeaichat/models/piper/en_US-lessac-medium.onnx")
+                downloaded = os.path.exists(piper_path)
+            elif name == "f5-tts":
+                if os.path.isdir(hf_cache):
+                    entry = "models--m-a-p--F5-TTS"
+                    repo_dir = os.path.join(hf_cache, entry)
+                    if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                        snapshots_dir = os.path.join(repo_dir, "snapshots")
+                        if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                            downloaded = True
+            else: # kokoro-82m
+                if os.path.isdir(hf_cache):
+                    entry = "models--hexgrad--Kokoro-82M"
+                    repo_dir = os.path.join(hf_cache, entry)
+                    if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
+                        snapshots_dir = os.path.join(repo_dir, "snapshots")
+                        if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
+                            downloaded = True
 
             result["tts_models"].append({
                 "name": name,
                 "downloaded": downloaded,
-                "size": "~150 MB",
+                "size": sizes.get(name, "Unknown"),
             })
 
         self.emit(result)
@@ -523,6 +589,7 @@ class VoiceHelper:
                 lang_code = payload.get("lang_code", "a")
                 custom_model_path = payload.get("model_path", "")
                 espeak_path = payload.get("espeak_path", "")
+                model = payload.get("model", "kokoro-82m")
 
                 # Setup custom espeak path if provided
                 if espeak_path:
@@ -531,11 +598,6 @@ class VoiceHelper:
                     if espeak_dir and espeak_dir not in os.environ.get("PATH", "").split(os.pathsep):
                         os.environ["PATH"] = espeak_dir + os.pathsep + os.environ.get("PATH", "")
                         os.environ["PHONEMIZER_ESPEAK_PATH"] = espeak_dir
-
-                # Check espeak-ng / espeak
-                if not (shutil.which("espeak-ng") or shutil.which("espeak")):
-                    self.emit({"type": "tts_error", "error": "espeak-ng/espeak not installed. Install with: sudo apt install espeak-ng"})
-                    return
 
                 # Check audio player
                 player = None
@@ -552,96 +614,259 @@ class VoiceHelper:
                 self.current_status = "synthesizing"
                 self.emit({"type": "tts_status", "status": "synthesizing"})
 
-                # Load pipeline
-                from kokoro import KPipeline
-                from kokoro.model import KModel
-                import soundfile as sf
-                import numpy as np
-                import torch
+                if model == "espeak-ng":
+                    if not (shutil.which("espeak-ng") or shutil.which("espeak")):
+                        self.emit({"type": "tts_error", "error": "espeak-ng/espeak not installed. Install with: sudo apt install espeak-ng"})
+                        return
 
-                if self.tts_pipeline is None:
-                    if custom_model_path:
-                        custom_model_path = os.path.expanduser(custom_model_path)
-                        custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                        # Find config.json and .pth file in custom_dir
-                        config_file = os.path.join(custom_dir, "config.json")
-                        model_file = None
-                        if os.path.exists(custom_dir):
-                            for f in os.listdir(custom_dir):
-                                if f.endswith(".pth"):
-                                    model_file = os.path.join(custom_dir, f)
-                                    break
-                        
-                        if os.path.exists(config_file) and model_file and os.path.exists(model_file):
-                            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-                            kmodel = KModel(config=config_file, model=model_file).to(device).eval()
-                            self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
-                        else:
-                            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-                            self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
-                    else:
-                        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-                        self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
-
-                self.current_status = "playing"
-                self.emit({"type": "tts_status", "status": "playing"})
-
-                # Resolve local voice file if custom path is set
-                resolved_voice = voice
-                if custom_model_path:
-                    custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                    custom_voice_path = os.path.join(custom_dir, f"{voice}.pt")
-                    if os.path.exists(custom_voice_path):
-                        resolved_voice = custom_voice_path
-
-                # Synthesize and play in segments
-                for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
-                    if self.stop_tts:
-                        break
-
-                    # Normalize audio
-                    audio = np.asarray(audio, dtype=np.float32)
-                    if audio.max() > 0:
-                        audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
-
-                    # Write to temp file and play
+                    espeak_voice = voice if voice and not voice.startswith("af_") and not voice.startswith("bf_") else "en-us"
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                         tmp_path = f.name
-                        sf.write(tmp_path, audio, 24000)
+
+                    cmd = ["espeak-ng"]
+                    if espeak_voice:
+                        cmd.extend(["-v", espeak_voice])
+                    cmd.extend(["-w", tmp_path, text])
+                    subprocess.run(cmd, check=True)
+
+                    self.current_status = "playing"
+                    self.emit({"type": "tts_status", "status": "playing"})
 
                     if player == "paplay":
-                        proc = subprocess.Popen(
-                            ["paplay", tmp_path],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
+                        proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     elif player == "aplay":
-                        proc = subprocess.Popen(
-                            ["aplay", tmp_path],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
+                        proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     else:
-                        proc = subprocess.Popen(
-                            ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
+                        proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-                    # Wait for playback to finish, checking stop_tts
                     while proc.poll() is None:
                         if self.stop_tts:
                             proc.terminate()
                             break
                         time.sleep(0.1)
 
-                    # Cleanup temp file
                     try:
                         os.unlink(tmp_path)
                     except OSError:
                         pass
+                    self.emit({"type": "tts_done"})
 
-                self.emit({"type": "tts_done"})
+                elif model == "piper":
+                    model_path = custom_model_path
+                    if not model_path:
+                        model_path = os.path.expanduser("~/.local/share/kdeaichat/models/piper/en_US-lessac-medium.onnx")
+
+                    if not os.path.exists(model_path):
+                        self.emit({"type": "tts_error", "error": f"Piper model not found. Please click Download or specify a custom path. Searched: {model_path}"})
+                        return
+
+                    config_path = model_path + ".json"
+                    if not os.path.exists(config_path) and model_path.endswith(".onnx"):
+                        config_path = model_path[:-5] + ".onnx.json"
+
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                        tmp_path = f.name
+
+                    piper_bin = shutil.which("piper")
+                    if not piper_bin:
+                        venv_bin = os.path.dirname(sys.executable)
+                        venv_piper = os.path.join(venv_bin, "piper")
+                        if os.path.exists(venv_piper):
+                            piper_bin = venv_piper
+
+                    if piper_bin:
+                        proc = subprocess.Popen(
+                            [piper_bin, "--model", model_path, "--output_file", tmp_path],
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                        proc.communicate(input=text.encode("utf-8"))
+                    else:
+                        try:
+                            from piper import PiperVoice
+                            import wave
+                            voice_obj = PiperVoice.load(model_path, config_path=config_path)
+                            with wave.open(tmp_path, "wb") as wav_file:
+                                voice_obj.synthesize(text, wav_file)
+                        except Exception as pe:
+                            self.emit({"type": "tts_error", "error": f"Failed to run Piper. piper-tts is not installed or configured: {str(pe)}"})
+                            return
+
+                    self.current_status = "playing"
+                    self.emit({"type": "tts_status", "status": "playing"})
+
+                    if player == "paplay":
+                        proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    elif player == "aplay":
+                        proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    else:
+                        proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                    while proc.poll() is None:
+                        if self.stop_tts:
+                            proc.terminate()
+                            break
+                        time.sleep(0.1)
+
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+                    self.emit({"type": "tts_done"})
+
+                elif model == "f5-tts":
+                    try:
+                        from f5_tts.api import F5TTS
+                        import soundfile as sf
+                    except ImportError:
+                        self.emit({"type": "tts_error", "error": "f5-tts is not installed in the virtual environment. Please run: pip install f5-tts"})
+                        return
+
+                    f5_instance = F5TTS()
+                    wav, sr, spect = f5_instance.infer(
+                        gen_text=text,
+                        file_wave=None,
+                        ref_text=""
+                    )
+
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                        tmp_path = f.name
+                        sf.write(tmp_path, wav, sr)
+
+                    self.current_status = "playing"
+                    self.emit({"type": "tts_status", "status": "playing"})
+
+                    if player == "paplay":
+                        proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    elif player == "aplay":
+                        proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    else:
+                        proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                    while proc.poll() is None:
+                        if self.stop_tts:
+                            proc.terminate()
+                            break
+                        time.sleep(0.1)
+
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+                    self.emit({"type": "tts_done"})
+
+                elif model == "coqui-tts":
+                    try:
+                        from TTS.api import TTS
+                    except ImportError:
+                        self.emit({"type": "tts_error", "error": "coqui-tts is not installed in the virtual environment. Please run: pip install TTS"})
+                        return
+
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                        tmp_path = f.name
+
+                    tts_voice = voice if voice and not voice.startswith("af_") and not voice.startswith("bf_") else "tts_models/en/ljspeech/glow-tts"
+                    tts_instance = TTS(model_name=tts_voice)
+                    tts_instance.tts_to_file(text=text, file_path=tmp_path)
+
+                    self.current_status = "playing"
+                    self.emit({"type": "tts_status", "status": "playing"})
+
+                    if player == "paplay":
+                        proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    elif player == "aplay":
+                        proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    else:
+                        proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                    while proc.poll() is None:
+                        if self.stop_tts:
+                            proc.terminate()
+                            break
+                        time.sleep(0.1)
+
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+                    self.emit({"type": "tts_done"})
+
+                else:
+                    # Default/kokoro-82m
+                    if not (shutil.which("espeak-ng") or shutil.which("espeak")):
+                        self.emit({"type": "tts_error", "error": "espeak-ng/espeak not installed. Install with: sudo apt install espeak-ng"})
+                        return
+
+                    from kokoro import KPipeline
+                    from kokoro.model import KModel
+                    import soundfile as sf
+                    import numpy as np
+                    import torch
+
+                    if self.tts_pipeline is None:
+                        if custom_model_path:
+                            custom_model_path = os.path.expanduser(custom_model_path)
+                            custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
+                            config_file = os.path.join(custom_dir, "config.json")
+                            model_file = None
+                            if os.path.exists(custom_dir):
+                                for f in os.listdir(custom_dir):
+                                    if f.endswith(".pth"):
+                                        model_file = os.path.join(custom_dir, f)
+                                        break
+
+                            if os.path.exists(config_file) and model_file and os.path.exists(model_file):
+                                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                                kmodel = KModel(config=config_file, model=model_file).to(device).eval()
+                                self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
+                            else:
+                                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                                self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
+                        else:
+                            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                            self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
+
+                    self.current_status = "playing"
+                    self.emit({"type": "tts_status", "status": "playing"})
+
+                    resolved_voice = voice
+                    if custom_model_path:
+                        custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
+                        custom_voice_path = os.path.join(custom_dir, f"{voice}.pt")
+                        if os.path.exists(custom_voice_path):
+                            resolved_voice = custom_voice_path
+
+                    for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
+                        if self.stop_tts:
+                            break
+
+                        audio = np.asarray(audio, dtype=np.float32)
+                        if audio.max() > 0:
+                            audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
+
+                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                            tmp_path = f.name
+                            sf.write(tmp_path, audio, 24000)
+
+                        if player == "paplay":
+                            proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        elif player == "aplay":
+                            proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        else:
+                            proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                        while proc.poll() is None:
+                            if self.stop_tts:
+                                proc.terminate()
+                                break
+                            time.sleep(0.1)
+
+                        try:
+                            os.unlink(tmp_path)
+                        except OSError:
+                            pass
+                    self.emit({"type": "tts_done"})
 
             except Exception as e:
                 self.emit({"type": "tts_error", "error": str(e)})

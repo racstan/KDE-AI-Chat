@@ -6,9 +6,6 @@ import org.kde.kirigami as Kirigami
 QQC2.ScrollView {
     id: page
 
-    contentWidth: availableWidth
-    contentHeight: formLayout.implicitHeight
-
     property alias cfg_keyToggleSearch: keyToggleSearchField.text
     property alias cfg_keyNewChat: keyNewChatField.text
     property alias cfg_keyToggleHistory: keyToggleHistoryField.text
@@ -22,17 +19,22 @@ QQC2.ScrollView {
     property alias cfg_keyCopyLastReply: keyCopyLastReplyField.text
 
     function translate(text) {
-        if (typeof plasmoid !== "undefined" && plasmoid.api !== undefined) {
+        if (typeof plasmoid !== "undefined" && plasmoid.api !== undefined)
             return plasmoid.api.translate(text);
-        }
+
         return text;
     }
 
+    clip: true
+    contentWidth: availableWidth
+    contentHeight: formLayout.implicitHeight
+
     Kirigami.FormLayout {
         id: formLayout
-        width: page.availableWidth
 
         readonly property int fieldMaxWidth: Kirigami.Units.gridUnit * 18
+
+        width: page.availableWidth
 
         QQC2.Label {
             Layout.fillWidth: true
@@ -46,66 +48,77 @@ QQC2.ScrollView {
 
         QQC2.TextField {
             id: keyToggleSearchField
+
             Kirigami.FormData.label: page.translate("Toggle search:")
             placeholderText: "Ctrl+F"
         }
 
         QQC2.TextField {
             id: keyNewChatField
+
             Kirigami.FormData.label: page.translate("New chat:")
             placeholderText: "Ctrl+N"
         }
 
         QQC2.TextField {
             id: keyToggleHistoryField
+
             Kirigami.FormData.label: page.translate("Toggle history sidebar:")
             placeholderText: "Ctrl+H"
         }
 
         QQC2.TextField {
             id: keySettingsField
+
             Kirigami.FormData.label: page.translate("Open settings:")
             placeholderText: "Ctrl+,"
         }
 
         QQC2.TextField {
             id: keyFocusInputField
+
             Kirigami.FormData.label: page.translate("Focus text input:")
             placeholderText: "Ctrl+I"
         }
 
         QQC2.TextField {
             id: keyClearInputField
+
             Kirigami.FormData.label: page.translate("Clear text input:")
             placeholderText: "Ctrl+L"
         }
 
         QQC2.TextField {
             id: keyToggleSearchSidebarField
+
             Kirigami.FormData.label: page.translate("Focus chat history search:")
             placeholderText: "Ctrl+Shift+K"
         }
 
         QQC2.TextField {
             id: keyNextSessionField
+
             Kirigami.FormData.label: page.translate("Next chat session:")
             placeholderText: "Ctrl+Shift+."
         }
 
         QQC2.TextField {
             id: keyPrevSessionField
+
             Kirigami.FormData.label: page.translate("Previous chat session:")
             placeholderText: "Ctrl+Shift+,"
         }
 
         QQC2.TextField {
             id: keyRefreshField
+
             Kirigami.FormData.label: page.translate("Refresh/reload sessions:")
             placeholderText: "Ctrl+R"
         }
 
         QQC2.TextField {
             id: keyCopyLastReplyField
+
             Kirigami.FormData.label: page.translate("Copy last reply:")
             placeholderText: "Ctrl+Shift+C"
         }
@@ -127,5 +140,7 @@ QQC2.ScrollView {
                 keyCopyLastReplyField.text = "Ctrl+Shift+C";
             }
         }
+
     }
+
 }
