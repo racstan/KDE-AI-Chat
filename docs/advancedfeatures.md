@@ -59,8 +59,26 @@ Supports multiple neural TTS models including **Kokoro-82M**, **Piper**, **F5-TT
 *   **Voices:** Choose from curated voices to read your messages aloud.
 *   **Speak Test:** Enter custom text in the **Test TTS** input box and click **Speak Test** to hear the synthesis immediately.
 
-### eSpeak-NG Configuration
-Neural TTS engines require a phonemizer (like `espeak-ng`) to convert text into phoneme sounds.
+### eSpeak-NG & Phonemizers
+
+#### Why do we need a Phonemizer?
+Neural text-to-speech (TTS) engines (like Kokoro-82M, Piper, or Coqui-TTS) do not process raw text characters directly because written language is highly irregular. For example, in English, the letter group "ough" sounds completely different in words like *cough*, *rough*, *through*, and *though*.
+
+To solve this, synthesis occurs in two stages:
+1. **Text-to-Phoneme Translation:** A **phonemizer** converts the raw text into a sequence of phonemes (the standardized phonetic sounds of human speech, often represented in the International Phonetic Alphabet (IPA) or ARPAbet).
+2. **Phoneme-to-Speech Generation:** The neural network maps the phonemes into acoustic features (like mel-spectrograms), which a vocoder then turns into playable audio waves.
+
+Without a phonemizer, a neural model would struggle to pronounce irregular words, numbers, punctuation, or names correctly.
+
+#### Is eSpeak-NG the only Phonemizer?
+No. While `espeak-ng` is the most common open-source tool because of its massive library of over 100 languages, there are several alternative phonemization frameworks:
+* **Gruut:** A clean, Python-based phonemizer designed specifically for Piper. It uses SQLite databases for lexicons and has no external system C/C++ dependencies.
+* **Festival / Festvox:** A venerable and highly customizable speech synthesis and text-processing framework.
+* **g2p-en:** A popular machine learning-based Grapheme-to-Phoneme converter for English.
+* **Epitran:** A library specifically designed for mapping orthographic text to IPA for a large number of under-resourced languages.
+
+KDE AI Chat relies on `espeak-ng` via the Python `phonemizer` package for engines like Kokoro because it offers the best balance of speed, low footprint, and multilingual support on Linux.
+
 *   **Separate Category:** eSpeak-NG settings are grouped into a dedicated panel.
 *   **eSpeak Path:** Specify the path to your manual `espeak-ng` binary.
 *   **System Package Installer:** Click **Install via Package Manager** to automatically install `espeak-ng` via your system's package manager (e.g. `apt`, `dnf`, `pacman`, `zypper`).
