@@ -186,6 +186,8 @@ class VoiceHelper:
             if os.path.isdir(stt_dir):
                 if os.path.exists(os.path.join(stt_dir, "model.bin")) or any(f.endswith(".bin") or f.endswith(".json") for f in os.listdir(stt_dir)):
                     result["stt_model_path_ok"] = True
+            elif stt_model_path in ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"] or "/" in stt_model_path:
+                result["stt_model_path_ok"] = True
 
         if tts_model_path:
             tts_p = os.path.expanduser(tts_model_path)
