@@ -16,6 +16,7 @@ import tempfile
 import threading
 import time
 import base64
+import signal
 
 
 class VoiceHelper:
@@ -27,6 +28,8 @@ class VoiceHelper:
         self.stop_recording = False
         self.tts_playing = False
         self.stop_tts = False
+        self.tts_paused = False
+        self.current_tts_proc = None
         self.stt_thread = None
         self.tts_thread = None
         self.last_emitted = None
@@ -638,11 +641,16 @@ class VoiceHelper:
                     else:
                         proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+                    self.current_tts_proc = proc
                     while proc.poll() is None:
                         if self.stop_tts:
                             proc.terminate()
                             break
+                        if self.tts_paused:
+                            time.sleep(0.1)
+                            continue
                         time.sleep(0.1)
+                    self.current_tts_proc = None
 
                     try:
                         os.unlink(tmp_path)
@@ -702,11 +710,16 @@ class VoiceHelper:
                     else:
                         proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+                    self.current_tts_proc = proc
                     while proc.poll() is None:
                         if self.stop_tts:
                             proc.terminate()
                             break
+                        if self.tts_paused:
+                            time.sleep(0.1)
+                            continue
                         time.sleep(0.1)
+                    self.current_tts_proc = None
 
                     try:
                         os.unlink(tmp_path)
@@ -743,11 +756,16 @@ class VoiceHelper:
                     else:
                         proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+                    self.current_tts_proc = proc
                     while proc.poll() is None:
                         if self.stop_tts:
                             proc.terminate()
                             break
+                        if self.tts_paused:
+                            time.sleep(0.1)
+                            continue
                         time.sleep(0.1)
+                    self.current_tts_proc = None
 
                     try:
                         os.unlink(tmp_path)
@@ -779,11 +797,16 @@ class VoiceHelper:
                     else:
                         proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+                    self.current_tts_proc = proc
                     while proc.poll() is None:
                         if self.stop_tts:
                             proc.terminate()
                             break
+                        if self.tts_paused:
+                            time.sleep(0.1)
+                            continue
                         time.sleep(0.1)
+                    self.current_tts_proc = None
 
                     try:
                         os.unlink(tmp_path)
@@ -839,6 +862,10 @@ class VoiceHelper:
                     for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
                         if self.stop_tts:
                             break
+                        while self.tts_paused and not self.stop_tts:
+                            time.sleep(0.1)
+                        if self.stop_tts:
+                            break
 
                         audio = np.asarray(audio, dtype=np.float32)
                         if audio.max() > 0:
@@ -855,11 +882,16 @@ class VoiceHelper:
                         else:
                             proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+                        self.current_tts_proc = proc
                         while proc.poll() is None:
                             if self.stop_tts:
                                 proc.terminate()
                                 break
+                            if self.tts_paused:
+                                time.sleep(0.1)
+                                continue
                             time.sleep(0.1)
+                        self.current_tts_proc = None
 
                         try:
                             os.unlink(tmp_path)
@@ -880,9 +912,38 @@ class VoiceHelper:
         """Stop TTS playback."""
         if self.tts_playing:
             self.stop_tts = True
+            self.tts_paused = False
+            if self.current_tts_proc:
+                try:
+                    self.current_tts_proc.send_signal(signal.SIGCONT)
+                    self.current_tts_proc.terminate()
+                except Exception:
+                    pass
             self.emit({"type": "tts_status", "status": "stopping"})
         else:
             self.emit({"type": "tts_stopped"})
+
+    def pause_tts_cmd(self, payload):
+        """Pause TTS playback."""
+        if self.tts_playing and not self.tts_paused:
+            self.tts_paused = True
+            if self.current_tts_proc:
+                try:
+                    self.current_tts_proc.send_signal(signal.SIGSTOP)
+                except Exception:
+                    pass
+            self.emit({"type": "tts_status", "status": "paused"})
+
+    def resume_tts_cmd(self, payload):
+        """Resume TTS playback."""
+        if self.tts_playing and self.tts_paused:
+            self.tts_paused = False
+            if self.current_tts_proc:
+                try:
+                    self.current_tts_proc.send_signal(signal.SIGCONT)
+                except Exception:
+                    pass
+            self.emit({"type": "tts_status", "status": "playing"})
 
     def process_server_command(self, cmd_data, mode):
         """Process a command from the HTTP server and block until done if it is STT or TTS."""
@@ -914,6 +975,12 @@ class VoiceHelper:
             elif cmd == "stop_tts":
                 self.stop_tts_cmd(cmd_data)
                 return {"type": "tts_status", "status": "stopping"}
+            elif cmd == "pause_tts":
+                self.pause_tts_cmd(cmd_data)
+                return {"type": "tts_status", "status": "paused"}
+            elif cmd == "resume_tts":
+                self.resume_tts_cmd(cmd_data)
+                return {"type": "tts_status", "status": "playing"}
             elif cmd == "check_env":
                 self.check_env(cmd_data)
                 return self.last_emitted
@@ -1018,6 +1085,8 @@ class VoiceHelper:
             "play_audio": self.play_audio,
             "tts": self.tts,
             "stop_tts": self.stop_tts_cmd,
+            "pause_tts": self.pause_tts_cmd,
+            "resume_tts": self.resume_tts_cmd,
         }
 
         handler = handlers.get(cmd)

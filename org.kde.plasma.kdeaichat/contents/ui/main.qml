@@ -135,6 +135,7 @@ PlasmoidItem {
     property bool voiceRecording: false
     property string voiceSttStatus: ""
     property bool ttsPlaying: false
+    property bool ttsPaused: false
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
     property string voicePendingText: ""

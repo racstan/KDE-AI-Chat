@@ -82,6 +82,7 @@ QQC2.ScrollView {
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
+    property alias cfg_voiceTtsAuto: voiceTtsAutoToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
     property alias cfg_voiceSttModelPath: voiceSttModelPathField.text
     property alias cfg_voiceTtsModelPath: voiceTtsModelPathField.text
@@ -1505,7 +1506,14 @@ QQC2.ScrollView {
                     QQC2.CheckBox {
                         id: voiceTtsEnabledToggle
 
-                        text: i18n("Read AI responses aloud")
+                        text: i18n("Enable Text-to-Speech (TTS)")
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.CheckBox {
+                        id: voiceTtsAutoToggle
+                        visible: voiceTtsEnabledToggle.checked
+                        text: i18n("Automatically read aloud incoming AI responses")
                         Layout.fillWidth: true
                     }
 

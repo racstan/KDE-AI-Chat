@@ -1444,6 +1444,17 @@ import "MainDatabase.js" as MainDatabase
                                                         }
 
                                                         PC3.ToolButton {
+                                                            visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error" && modelData.role !== "queued" && modelData.role !== "schedules_list"
+                                                            icon.name: "audio-volume-medium"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: "Read message aloud"
+                                                            onClicked: {
+                                                                MainDatabase.triggerTts(modelData.content || "");
+                                                            }
+                                                        }
+
+                                                        PC3.ToolButton {
                                                             visible: modelData.role === "user" && root.isLatestUserMessage(index)
                                                             icon.name: "view-refresh"
                                                             display: PC3.AbstractButton.IconOnly
@@ -1465,7 +1476,7 @@ import "MainDatabase.js" as MainDatabase
                                                             }
                                                         }
 
-                                                                                                                 PC3.ToolButton {
+                                                         PC3.ToolButton {
                                                              visible: modelData.role !== "error" && modelData.role !== "queued" && modelData.role !== "schedules_list"
                                                              icon.name: "mail-reply-sender"
                                                              display: PC3.AbstractButton.IconOnly
@@ -1911,6 +1922,20 @@ import "MainDatabase.js" as MainDatabase
                             }
 
                             PC3.ToolButton {
+                                visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled
+                                icon.name: plasmoid.configuration.voiceTtsAuto ? "audio-volume-high" : "audio-volume-muted"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: plasmoid.configuration.voiceTtsAuto ? root.translate("Auto Read Aloud: Enabled") : root.translate("Auto Read Aloud: Disabled")
+                                Accessible.name: root.translate("Toggle auto read aloud")
+                                Accessible.role: Accessible.Button
+                                onClicked: {
+                                    plasmoid.configuration.voiceTtsAuto = !plasmoid.configuration.voiceTtsAuto;
+                                }
+                            }
+
+                            PC3.ToolButton {
                                 visible: plasmoid.configuration.voiceEnabled && !root.voiceRecording && !root.ttsPlaying
                                 icon.name: "audio-input-microphone"
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
@@ -1953,6 +1978,24 @@ import "MainDatabase.js" as MainDatabase
                                 Accessible.name: root.translate("Stop TTS")
                                 Accessible.role: Accessible.Button
                                 onClicked: MainDatabase.stopTts()
+                            }
+
+                            PC3.ToolButton {
+                                visible: root.ttsPlaying
+                                icon.name: root.ttsPaused ? "media-playback-start" : "media-playback-pause"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: root.ttsPaused ? root.translate("Resume reading aloud") : root.translate("Pause reading aloud")
+                                Accessible.name: root.ttsPaused ? root.translate("Resume TTS") : root.translate("Pause TTS")
+                                Accessible.role: Accessible.Button
+                                onClicked: {
+                                    if (root.ttsPaused) {
+                                        MainDatabase.resumeTts();
+                                    } else {
+                                        MainDatabase.pauseTts();
+                                    }
+                                }
                             }
 
                             PC3.ToolButton {

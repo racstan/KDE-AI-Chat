@@ -27,18 +27,26 @@ return "";
 
 
 function finishOpenCodeRequest() {
-flushStreamingBuffer();
-root.loading = false;
-root.activeXhr = null;
-root.openCodeActiveSessionId = "";
-root.openCodeAssistantMessageIndex = -1;
-root.openCodeAssistantServerMessageId = "";
-root.openCodeErrorShownForRequest = false;
-root.streamingResponse = false;
-saveCurrentSessionState(true);
-triggerNotificationSound();
-resetOpenCodeIdleKillTimer();
-processNextQueuedMessage();
+    flushStreamingBuffer();
+    root.loading = false;
+    root.activeXhr = null;
+    root.openCodeActiveSessionId = "";
+    root.openCodeAssistantMessageIndex = -1;
+    root.openCodeAssistantServerMessageId = "";
+    root.openCodeErrorShownForRequest = false;
+    root.streamingResponse = false;
+    saveCurrentSessionState(true);
+    triggerNotificationSound();
+    
+    if (plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
+        let lastMsg = root.messages[root.messages.length - 1];
+        if (lastMsg && lastMsg.role === "assistant" && lastMsg.content) {
+            MainDatabase.triggerTts(lastMsg.content);
+        }
+    }
+
+    resetOpenCodeIdleKillTimer();
+    processNextQueuedMessage();
 }
 
 
@@ -190,11 +198,14 @@ msgObj.tokens = {
 "output": parsed.usage.completion_tokens || 0
 };
 appendMessageToSession(chatId, msgObj);
-if (chatId === root.currentSessionId) {
-if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
-}
-triggerNotificationSound();
+                if (chatId === root.currentSessionId) {
+                    if (!root.userScrolledUp)
+                        Qt.callLater(scrollToBottom);
+                    if (plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
+                        MainDatabase.triggerTts(finalText || "");
+                    }
+                }
+                triggerNotificationSound();
 if (notify) {
 let safeText = Sec.sanitizeForShell(finalText.substring(0, 150)) + (finalText.length > 150 ? "…" : "");
 let title = (schedName || "Scheduled message response ready");
@@ -282,7 +293,7 @@ if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);
 }
 triggerNotificationSound();
-if (chatId === root.currentSessionId && plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled) {
+if (chatId === root.currentSessionId && plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
 MainDatabase.triggerTts(text || "");
 }
 if (notify) {

@@ -3402,6 +3402,30 @@ function stopTts() {
     sendVoiceCommand(9016, payload, sourceName);
 }
 
+function pauseTts() {
+    let helperPath = getVoiceHelperPath();
+    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPy = venvPath + "/bin/python3";
+    let payload = {cmd: "pause_tts"};
+    let payloadStr = JSON.stringify(payload);
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-pausetts-" + Date.now();
+    sendVoiceCommand(9016, payload, sourceName);
+}
+
+function resumeTts() {
+    let helperPath = getVoiceHelperPath();
+    let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+    venvPath = venvPath.replace("~", String(Qt.resolvedUrl("~")).substring(7));
+    let venvPy = venvPath + "/bin/python3";
+    let payload = {cmd: "resume_tts"};
+    let payloadStr = JSON.stringify(payload);
+    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-resumetts-" + Date.now();
+    sendVoiceCommand(9016, payload, sourceName);
+}
+
 function handleVoiceResponse(resp, sourceName) {
     let respType = resp.type || "";
     if (respType === "env_check") {
@@ -3432,10 +3456,21 @@ function handleVoiceResponse(resp, sourceName) {
         root.voiceSttStatus = resp.status;
     } else if (respType === "tts_done") {
         root.ttsPlaying = false;
+        root.ttsPaused = false;
     } else if (respType === "tts_error") {
         root.ttsPlaying = false;
+        root.ttsPaused = false;
     } else if (respType === "tts_status") {
-        if (resp.status === "playing") root.ttsPlaying = true;
+        if (resp.status === "playing") {
+            root.ttsPlaying = true;
+            root.ttsPaused = false;
+        } else if (resp.status === "paused") {
+            root.ttsPlaying = true;
+            root.ttsPaused = true;
+        } else if (resp.status === "stopping") {
+            root.ttsPlaying = false;
+            root.ttsPaused = false;
+        }
     } else if (respType === "download_done") {
         // Model downloaded
     } else if (respType === "download_error") {
