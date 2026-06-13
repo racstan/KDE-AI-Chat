@@ -1463,11 +1463,16 @@ QQC2.ScrollView {
                     anchors.margins: Kirigami.Units.gridUnit
                     spacing: Kirigami.Units.smallSpacing
 
+                    QQC2.Label {
+                        text: i18n("Text-to-Speech (TTS)")
+                        font.bold: true
+                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
+                    }
+
                     QQC2.CheckBox {
                         id: voiceTtsEnabledToggle
 
-                        text: i18n("Read AI responses aloud (Text-to-Speech)")
-                        font.bold: true
+                        text: i18n("Read AI responses aloud")
                         Layout.fillWidth: true
                     }
 
