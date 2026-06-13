@@ -401,10 +401,11 @@ QQC2.ScrollView {
         if (!voiceEnabledToggle.checked)
             return ;
 
-        voicePageDs.connectSource("systemctl --user is-active kde-ai-stt.service #check-stt-active");
-        voicePageDs.connectSource("systemctl --user is-enabled kde-ai-stt.service #check-stt-enabled");
-        voicePageDs.connectSource("systemctl --user is-active kde-ai-tts.service #check-tts-active");
-        voicePageDs.connectSource("systemctl --user is-enabled kde-ai-tts.service #check-tts-enabled");
+        let now = Date.now();
+        voicePageDs.connectSource("systemctl --user is-active kde-ai-stt.service #check-stt-active-" + now);
+        voicePageDs.connectSource("systemctl --user is-enabled kde-ai-stt.service #check-stt-enabled-" + now);
+        voicePageDs.connectSource("systemctl --user is-active kde-ai-tts.service #check-tts-active-" + now);
+        voicePageDs.connectSource("systemctl --user is-enabled kde-ai-tts.service #check-tts-enabled-" + now);
     }
 
     function toggleSttService() {
@@ -564,13 +565,13 @@ QQC2.ScrollView {
             }
             let stdoutTrim = stdout.trim();
             if (sourceName.indexOf("#in-app-setup-") < 0) {
-                if (sourceName.indexOf("#check-stt-active") >= 0) {
+                if (sourceName.indexOf("#check-stt-active-") >= 0) {
                     page.sttServiceActive = (stdoutTrim === "active");
-                } else if (sourceName.indexOf("#check-stt-enabled") >= 0) {
+                } else if (sourceName.indexOf("#check-stt-enabled-") >= 0) {
                     page.sttServiceEnabled = (stdoutTrim === "enabled");
-                } else if (sourceName.indexOf("#check-tts-active") >= 0) {
+                } else if (sourceName.indexOf("#check-tts-active-") >= 0) {
                     page.ttsServiceActive = (stdoutTrim === "active");
-                } else if (sourceName.indexOf("#check-tts-enabled") >= 0) {
+                } else if (sourceName.indexOf("#check-tts-enabled-") >= 0) {
                     page.ttsServiceEnabled = (stdoutTrim === "enabled");
                 } else if (stdoutTrim !== "") {
                     if (stdoutTrim.indexOf("VOICE_SERVICES_SETUP_OK") >= 0) {
