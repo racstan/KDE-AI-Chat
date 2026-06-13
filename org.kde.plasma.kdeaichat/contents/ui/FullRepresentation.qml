@@ -15,6 +15,7 @@ import "WalletService.js" as WalletService
 import "RequestDeduplicator.js" as RequestDeduplicator
 import "LRUCache.js" as LRUCache
 import "Security.js" as Sec
+import "MainDatabase.js" as MainDatabase
 
     Item {
         id: fullRep
