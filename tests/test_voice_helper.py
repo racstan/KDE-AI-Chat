@@ -19,41 +19,44 @@ class TestVoiceHelper(unittest.TestCase):
         with patch('shutil.which', return_value="/usr/bin/espeak"), \
              patch('os.path.isdir', return_value=True), \
              patch('os.path.exists', return_value=True), \
+             patch('os.path.isfile', return_value=True), \
              patch('os.listdir', return_value=["snapshot_file"]):
             
             payload = {
-                "stt_model": "large-v3-turbo",
-                "tts_model": "kokoro-82m"
+                "stt_model_path": "/path/to/stt",
+                "tts_model_path": "/path/to/tts"
             }
             self.helper.check_env(payload)
             
             self.assertTrue(len(self.emitted_data) > 0)
             res = self.emitted_data[0]
-            self.assertEqual(res["tts_model_downloaded"], True)
+            self.assertEqual(res["tts_model_path_ok"], True)
+            self.assertEqual(res["stt_model_path_ok"], True)
 
     def test_check_env_piper(self):
         with patch('shutil.which', return_value="/usr/bin/piper"), \
+             patch('os.path.isfile', return_value=True), \
              patch('os.path.exists', return_value=True):
             
             payload = {
-                "tts_model": "piper"
+                "tts_model_path": "/path/to/tts.onnx"
             }
             self.helper.check_env(payload)
             
             self.assertTrue(len(self.emitted_data) > 0)
             res = self.emitted_data[0]
-            self.assertEqual(res["tts_model_downloaded"], True)
+            self.assertEqual(res["tts_model_path_ok"], True)
 
     def test_check_env_espeak_ng(self):
         with patch('shutil.which', return_value="/usr/bin/espeak-ng"):
             payload = {
-                "tts_model": "espeak-ng"
+                "tts_model_path": ""
             }
             self.helper.check_env(payload)
             
             self.assertTrue(len(self.emitted_data) > 0)
             res = self.emitted_data[0]
-            self.assertEqual(res["tts_model_downloaded"], True)
+            self.assertEqual(res["tts_model_path_ok"], False)
 
     @patch('subprocess.Popen')
     @patch('shutil.which')
