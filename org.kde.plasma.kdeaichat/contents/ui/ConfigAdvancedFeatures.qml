@@ -105,6 +105,12 @@ QQC2.ScrollView {
     property string cfg_voiceLanguage: plasmoid.configuration.voiceLanguage || "en"
     property string cfg_voiceTtsVoice: plasmoid.configuration.voiceTtsVoice || "af_heart"
 
+    property bool setupRunning: false
+    property int setupProgress: 0
+    property string setupStatusText: ""
+    property string setupLogs: ""
+    property var activeSetupSource: null
+
     function handleVoicePageResponse(resp, sourceName) {
         if (resp.type === "env_check") {
             page.voiceEnvResult = resp;
@@ -149,6 +155,36 @@ QQC2.ScrollView {
                 page.ttsTestResult = i18n("Synthesizing...");
             }
         }
+    }
+
+    function runSetupInApp(mode, extraArg) {
+        if (page.setupRunning) return;
+        page.setupRunning = true;
+        page.setupProgress = 0;
+        page.setupStatusText = i18n("Starting setup...");
+        page.setupLogs = "";
+
+        let setupPath = getSetupPath();
+        let venvPath = getVenvPath();
+        if (setupPath === "" || venvPath === "") {
+            page.setupRunning = false;
+            page.setupStatusText = i18n("Error: Setup path or virtual environment path is invalid.");
+            return;
+        }
+        let m = mode || "cpu";
+        let extra = extraArg ? (" " + Sec.quoteForShell(extraArg)) : "";
+        let cmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath) + " " + Sec.quoteForShell(m) + extra + " #in-app-setup-" + Date.now();
+        page.activeSetupSource = cmd;
+        voicePageDs.connectSource(cmd);
+    }
+
+    function cancelSetup() {
+        if (page.activeSetupSource) {
+            voicePageDs.disconnectSource(page.activeSetupSource);
+            page.activeSetupSource = null;
+        }
+        page.setupRunning = false;
+        page.setupStatusText = i18n("Setup cancelled.");
     }
 
     function getVenvPath() {
@@ -441,19 +477,45 @@ QQC2.ScrollView {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            let stdout = (data["stdout"] || "").trim();
-            let stderr = (data["stderr"] || "").trim();
+            let stdout = (data["stdout"] || "");
+            let stderr = (data["stderr"] || "");
             let exitCode = data["exit code"];
-            if (stdout !== "") {
+            
+            if (sourceName.indexOf("#in-app-setup-") >= 0) {
+                if (stdout !== "") {
+                    page.setupLogs += stdout;
+                    
+                    // Parse line-by-line for JSON status messages from venv_setup.sh
+                    let lines = stdout.split("\n");
+                    for (let i = 0; i < lines.length; i++) {
+                        let line = lines[i].trim();
+                        if (line.indexOf("{") === 0) {
+                            try {
+                                let resp = JSON.parse(line);
+                                if (resp.type === "setup_status") {
+                                    page.setupStatusText = resp.status;
+                                    page.setupProgress = resp.percent;
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                }
+                if (stderr !== "") {
+                    page.setupLogs += stderr;
+                }
+            }
+
+            let stdoutTrim = stdout.trim();
+            if (stdoutTrim !== "" && sourceName.indexOf("#in-app-setup-") < 0) {
                 if (sourceName.indexOf("#check-stt-active") >= 0) {
-                    page.sttServiceActive = (stdout === "active");
+                    page.sttServiceActive = (stdoutTrim === "active");
                 } else if (sourceName.indexOf("#check-stt-enabled") >= 0) {
-                    page.sttServiceEnabled = (stdout === "enabled");
+                    page.sttServiceEnabled = (stdoutTrim === "enabled");
                 } else if (sourceName.indexOf("#check-tts-active") >= 0) {
-                    page.ttsServiceActive = (stdout === "active");
+                    page.ttsServiceActive = (stdoutTrim === "active");
                 } else if (sourceName.indexOf("#check-tts-enabled") >= 0) {
-                    page.ttsServiceEnabled = (stdout === "enabled");
-                } else if (stdout.indexOf("VOICE_SERVICES_SETUP_OK") >= 0) {
+                    page.ttsServiceEnabled = (stdoutTrim === "enabled");
+                } else if (stdoutTrim.indexOf("VOICE_SERVICES_SETUP_OK") >= 0) {
                     if (voiceEnabledToggle.checked) {
                         voicePageDs.connectSource("systemctl --user start kde-ai-stt.service #start-stt-auto");
                     }
@@ -461,14 +523,14 @@ QQC2.ScrollView {
                         voicePageDs.connectSource("systemctl --user start kde-ai-tts.service #start-tts-auto");
                     }
                     Qt.callLater(refreshServiceStatuses);
-                } else if (stdout.indexOf("DELETE_SETUP_OK") >= 0) {
+                } else if (stdoutTrim.indexOf("DELETE_SETUP_OK") >= 0) {
                     page.voiceEnvResult = null;
                     page.voiceEnvChecked = false;
                     page.voiceEnvChecking = false;
                     Qt.callLater(runEnvCheck);
                     Qt.callLater(refreshServiceStatuses);
                 } else {
-                    let lines = stdout.split("\n");
+                    let lines = stdoutTrim.split("\n");
                     for (let i = 0; i < lines.length; i++) {
                         let line = lines[i].trim();
                         if (!line)
@@ -483,18 +545,30 @@ QQC2.ScrollView {
                 }
             }
             if (exitCode !== undefined) {
-                if (exitCode !== 0) {
+                if (sourceName.indexOf("#in-app-setup-") >= 0) {
+                    page.setupRunning = false;
+                    if (exitCode !== 0) {
+                        page.setupStatusText = i18n("Setup failed (exit %1). See logs above.").arg(exitCode);
+                    } else {
+                        page.setupStatusText = i18n("Setup completed successfully!");
+                        page.setupProgress = 100;
+                        setupVoiceServices();
+                        Qt.callLater(runEnvCheck);
+                        Qt.callLater(refreshServiceStatuses);
+                    }
+                    page.activeSetupSource = null;
+                } else if (exitCode !== 0) {
                     if (sourceName.indexOf("#check-stt") < 0 && sourceName.indexOf("#check-tts") < 0) {
                         if (page.sttTesting && sourceName === page.activeSttSource) {
                             page.sttTesting = false;
                             page.sttStatus = "";
                             sttTimer.stop();
-                            page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr : "");
+                            page.sttTestResult = i18n("Command failed (exit %1)").arg(exitCode) + (stderr ? "\n" + stderr.trim() : "");
                         }
                         if (sourceName.indexOf("voice-env-") >= 0) {
                             page.voiceEnvResult = {
                                 "type": "env_check",
-                                "error": stderr || i18n("Unknown error")
+                                "error": stderr.trim() || i18n("Unknown error")
                             };
                             page.voiceEnvChecked = true;
                             page.voiceEnvChecking = false;
@@ -750,715 +824,844 @@ QQC2.ScrollView {
             }
         }
 
-        // ── Setup Operations ──────────────────────────────────────
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Button {
-                text: i18n("Run CPU Venv Setup")
-                icon.name: "utilities-terminal"
-                onClicked: page.runSetupInTerminal("cpu")
-            }
-
-            QQC2.Button {
-                text: i18n("Run GPU Venv Setup")
-                icon.name: "utilities-terminal"
-                onClicked: page.runSetupInTerminal("gpu")
-            }
-
-            QQC2.Button {
-                text: i18n("Delete Venv Setup")
-                icon.name: "edit-delete"
-                onClicked: confirmDeleteSetupDialog.open()
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                font: Kirigami.Theme.smallFont
-                opacity: 0.6
-                text: i18n("Note: GPU Venv Setup requires NVIDIA CUDA drivers & library dependencies.")
-            }
-        }
-
-        // ── Status ──────────────────────────────────────────────────
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Status:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                font: Kirigami.Theme.smallFont
-                opacity: 0.8
-                text: page.statusText
-                color: page.statusColor
-            }
-
-            QQC2.Button {
-                text: i18n("Check Status")
-                icon.name: "view-refresh"
-                onClicked: runEnvCheck()
-            }
-
-        }
-
-        // ── Environment Status Grid ───────────────────────────────────
+        // ── Virtual Environment Setup (Venv) Panel ────────────────────
         Rectangle {
-            visible: voiceEnabledToggle.checked && voiceEnvChecked
+            id: venvSetupPanel
+            visible: voiceEnabledToggle.checked
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            implicitHeight: statusGrid.implicitHeight + Kirigami.Units.gridUnit
-            radius: 4
-            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
-            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+            implicitHeight: venvLayout.implicitHeight + Kirigami.Units.gridUnit * 1.5
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.02)
+            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
             border.width: 1
 
-            GridLayout {
-                id: statusGrid
-
-                anchors.margins: Kirigami.Units.gridUnit * 0.5
-                columns: 2
-                columnSpacing: Kirigami.Units.gridUnit
-                rowSpacing: Kirigami.Units.smallSpacing * 0.5
-
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    top: parent.top
-                }
+            ColumnLayout {
+                id: venvLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit
+                spacing: Kirigami.Units.smallSpacing
 
                 QQC2.Label {
-                    text: i18n("Microphone:")
+                    text: i18n("Virtual Environment (Venv) Setup")
                     font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
                 }
 
-                QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.mic_available ? "✓ " + i18n("Available") : "✗ " + i18n("Not found")
-                    color: page.voiceEnvResult && page.voiceEnvResult.mic_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
+                // Venv Path
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
 
-                QQC2.Label {
-                    text: i18n("Audio player:")
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
-                    color: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: i18n("Virtual environment (venv):")
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: {
-                        if (!page.voiceEnvResult) return i18n("Not checked");
-                        if (page.voiceEnvResult.venv_ready) return "✓ " + i18n("Ready");
-                        if (page.voiceEnvResult.venv_exists) return "✗ " + i18n("Incomplete (run venv setup)");
-                        return "✗ " + i18n("Missing");
+                    QQC2.Label {
+                        text: i18n("Venv path:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
                     }
-                    color: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+
+                    QQC2.TextField {
+                        id: voiceVenvPathField
+                        Layout.fillWidth: true
+                        placeholderText: i18n("Default (~/.local/share/kdeaichat/venv)")
+                    }
+
+                    QQC2.Button {
+                        icon.name: "folder-open"
+                        QQC2.ToolTip.text: i18n("Browse for Python virtual environment directory")
+                        onClicked: venvFolderDialog.open()
+                    }
+                }
+
+                // Setup Action Row (Normal Mode)
+                RowLayout {
+                    visible: !page.setupRunning
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Button {
+                        text: i18n("Run CPU Venv Setup")
+                        icon.name: "utilities-terminal"
+                        QQC2.ToolTip.text: i18n("Setup Voice Environment utilizing CPU")
+                        onClicked: page.runSetupInApp("cpu")
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Run GPU Venv Setup")
+                        icon.name: "utilities-terminal"
+                        QQC2.ToolTip.text: i18n("Setup Voice Environment utilizing NVIDIA CUDA GPU")
+                        onClicked: page.runSetupInApp("gpu")
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Delete Venv Setup")
+                        icon.name: "edit-delete"
+                        onClicked: confirmDeleteSetupDialog.open()
+                    }
+                }
+
+                // Setup Action Row (Running Mode)
+                RowLayout {
+                    visible: page.setupRunning
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.ProgressBar {
+                        id: setupProgressBar
+                        Layout.fillWidth: true
+                        value: page.setupProgress / 100.0
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Cancel Setup")
+                        icon.name: "dialog-cancel"
+                        onClicked: cancelSetup()
+                    }
                 }
 
                 QQC2.Label {
-                    text: i18n("STT library (faster-whisper):")
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    visible: page.setupRunning || page.setupStatusText.length > 0
+                    text: page.setupStatusText
+                    font.italic: true
+                    color: Kirigami.Theme.highlightColor
                 }
 
-                QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
-                    color: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                // Expandable Logs Terminal Box
+                QQC2.Button {
+                    id: showLogsButton
+                    visible: page.setupRunning || page.setupLogs.length > 0
+                    text: logsExpanded ? i18n("Hide Setup Logs") : i18n("Show Setup Logs")
+                    icon.name: logsExpanded ? "arrow-up" : "arrow-down"
+                    property bool logsExpanded: false
+                    onClicked: logsExpanded = !logsExpanded
                 }
 
-                QQC2.Label {
-                    text: i18n("TTS library (kokoro):")
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
+                Rectangle {
+                    visible: (page.setupRunning || page.setupLogs.length > 0) && showLogsButton.logsExpanded
+                    Layout.fillWidth: true
+                    implicitHeight: Kirigami.Units.gridUnit * 8
+                    radius: 4
+                    color: "#1e1e1e"
+                    border.color: "#3c3c3c"
+                    border.width: 1
 
-                QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
-                    color: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: i18n("Phonemizer (espeak-ng):")
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                    QQC2.ToolTip.delay: 400
-                    QQC2.ToolTip.visible: maEspeak.hovered
-                    QQC2.ToolTip.text: i18n("espeak-ng translates text into phonetic codes. Required for Kokoro text-to-speech.")
-
-                    MouseArea {
-                        id: maEspeak
-
+                    QQC2.ScrollView {
                         anchors.fill: parent
-                        hoverEnabled: true
-                    }
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        clip: true
 
-                }
-
-                QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
-                    color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: i18n("STT model:")
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: {
-                        if (!page.voiceEnvResult)
-                            return "";
-
-                        let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
-                        if (hasPath)
-                            return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
-
-                        return page.voiceEnvResult.stt_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
-                    }
-                    color: {
-                        if (!page.voiceEnvResult)
-                            return Kirigami.Theme.textColor;
-
-                        let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
-                        if (hasPath)
-                            return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-
-                        return page.voiceEnvResult.stt_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                    }
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: i18n("TTS model:")
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label {
-                    text: {
-                        if (!page.voiceEnvResult)
-                            return "";
-
-                        let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
-                        if (hasPath)
-                            return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
-
-                        return page.voiceEnvResult.tts_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
-                    }
-                    color: {
-                        if (!page.voiceEnvResult)
-                            return Kirigami.Theme.textColor;
-
-                        let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
-                        if (hasPath)
-                            return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-
-                        return page.voiceEnvResult.tts_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                    }
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-            }
-
-        }
-
-        // ── STT Settings ──────────────────────────────────────────────
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("STT Model Source:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-
-            QQC2.Button {
-                id: useCustomSttButton
-                text: checked ? i18n("Use Famous STT Models") : i18n("Use Custom STT Path")
-                icon.name: checked ? "go-previous" : "document-properties"
-                checkable: true
-                checked: page.voiceSttUseCustom
-                onToggled: {
-                    page.voiceSttUseCustom = checked;
-                    if (!checked) {
-                        voiceSttModelPathField.text = "";
-                    }
-                } 
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && page.voiceSttUseCustom
-            Kirigami.FormData.label: i18n("STT model path:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.TextField {
-                id: voiceSttModelPathField
-
-                Layout.fillWidth: true
-                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
-            }
-
-            QQC2.Button {
-                icon.name: "folder-open"
-                QQC2.ToolTip.text: i18n("Browse for STT model directory")
-                onClicked: sttFolderDialog.open()
-            }
-
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && !page.voiceSttUseCustom
-            Kirigami.FormData.label: i18n("Famous STT Model:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                id: voiceSttModelCombo
-
-                Layout.fillWidth: true
-                model: ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"]
-                currentIndex: {
-                    let m = page.cfg_voiceSttModel || "large-v3-turbo";
-                    for (let i = 0; i < model.length; i++) if (model[i] === m) {
-                        return i;
-                    }
-                    return 0;
-                }
-                onActivated: page.cfg_voiceSttModel = currentValue
-            }
-
-            QQC2.Button {
-                text: i18n("Download")
-                icon.name: "download"
-                onClicked: {
-                    let modelName = page.cfg_voiceSttModel || "large-v3-turbo";
-                    runSetupInTerminal("download_stt", modelName);
-                }
-            }
-
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("STT language:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                id: voiceLanguageCombo
-
-                Layout.fillWidth: true
-                model: ["en", "auto", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi"]
-                currentIndex: {
-                    let l = page.cfg_voiceLanguage || "en";
-                    for (let i = 0; i < model.length; i++) if (model[i] === l) {
-                        return i;
-                    }
-                    return 0;
-                }
-                onActivated: page.cfg_voiceLanguage = currentValue
-            }
-
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Test STT:")
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Button {
-                text: {
-                    if (page.sttTesting) {
-                        if (page.sttStatus === "loading_model")
-                            return i18n("Loading model...");
-                        else if (page.sttStatus === "recording")
-                            return i18n("Recording... (%1s)", page.sttCountdown);
-                        else if (page.sttStatus === "transcribing")
-                            return i18n("Transcribing...");
-                        else
-                            return i18n("Initializing...");
-                    }
-                    return i18n("Record & Transcribe (5s)");
-                }
-                icon.name: page.sttTesting ? "media-record" : "audio-input-microphone"
-                highlighted: page.sttTesting
-                onClicked: {
-                    if (page.sttTesting) {
-                        sttTimer.stop();
-                        page.sttTesting = false;
-                        page.sttStatus = "";
-                        page.sttCountdown = 0;
-                        if (page.activeSttSource !== "") {
-                            voicePageDs.disconnectSource(page.activeSttSource);
-                            page.activeSttSource = "";
+                        QQC2.TextArea {
+                            readOnly: true
+                            text: page.setupLogs
+                            font.family: "monospace"
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            color: "#00ff00"
+                            background: null
+                            wrapMode: Text.WrapAnywhere
+                            onTextChanged: {
+                                cursorPosition = text.length;
+                            }
                         }
-                        return ;
-                    }
-                    page.sttTesting = true;
-                    page.sttStatus = "loading_model";
-                    page.sttCountdown = 5;
-                    page.sttTestResult = "";
-                    page.recordedAudioPath = "";
-                    let lang = page.cfg_voiceLanguage || "en";
-                    let model = page.cfg_voiceSttModel || "large-v3-turbo";
-                    let modelPath = page.cfg_voiceSttModelPath || "";
-                    page.activeSttSource = sendVoiceCommand(JSON.stringify({
-                        "cmd": "start_stt",
-                        "duration": 5,
-                        "language": lang,
-                        "model": model,
-                        "model_path": modelPath
-                    }));
-                }
-            }
-
-            QQC2.Button {
-                text: i18n("Play Recorded Audio")
-                icon.name: "media-playback-start"
-                visible: page.recordedAudioPath !== ""
-                enabled: !page.sttTesting
-                onClicked: {
-                    sendVoiceCommand(JSON.stringify({
-                        "cmd": "play_audio",
-                        "path": page.recordedAudioPath
-                    }));
-                }
-            }
-
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && page.sttTestResult.length > 0
-            Kirigami.FormData.label: i18n("STT result:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-
-            QQC2.TextField {
-                Layout.fillWidth: true
-                readOnly: true
-                text: page.sttTestResult
-                placeholderText: i18n("Transcribed text will appear here...")
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("STT Service:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Button {
-                text: page.sttServiceActive ? i18n("Stop STT") : i18n("Start STT")
-                icon.name: page.sttServiceActive ? "media-playback-stop" : "media-playback-start"
-                onClicked: toggleSttService()
-            }
-
-            QQC2.Button {
-                text: page.sttServiceEnabled ? i18n("Disable Autostart") : i18n("Enable Autostart")
-                icon.name: page.sttServiceEnabled ? "box-unlocked" : "box-locked"
-                onClicked: toggleSttBoot()
-            }
-
-            QQC2.Label {
-                text: page.sttServiceActive ? i18n("Active (Running)") : i18n("Inactive (Stopped)")
-                font.bold: true
-                color: page.sttServiceActive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
-            }
-        }
-
-        // ── TTS Settings ──────────────────────────────────────────────
-        QQC2.CheckBox {
-            id: voiceAutoSendToggle
-
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Auto-send voice input:")
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
-            text: checked ? i18n("Enabled — transcribed text is sent automatically") : i18n("Disabled — transcribed text goes to input field")
-        }
-
-        QQC2.CheckBox {
-            id: voiceTtsEnabledToggle
-
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Read AI responses aloud (TTS):")
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            checked: plasmoid.configuration.voiceTtsEnabled || false
-            text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
-            onToggled: {
-                if (checked) {
-                    setupVoiceServices();
-                } else {
-                    voicePageDs.connectSource("systemctl --user stop kde-ai-tts.service #stop-tts-auto");
-                }
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("TTS Model Source:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-
-            QQC2.Button {
-                id: useCustomTtsButton
-                text: checked ? i18n("Use Famous TTS Models") : i18n("Use Custom TTS Path")
-                icon.name: checked ? "go-previous" : "document-properties"
-                checkable: true
-                checked: page.voiceTtsUseCustom
-                onToggled: {
-                    page.voiceTtsUseCustom = checked;
-                    if (!checked) {
-                        voiceTtsModelPathField.text = "";
                     }
                 }
-            }
-        }
 
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && page.voiceTtsUseCustom
-            Kirigami.FormData.label: i18n("TTS model path:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
+                RowLayout {
+                    visible: !page.setupRunning
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
 
-            QQC2.TextField {
-                id: voiceTtsModelPathField
-
-                Layout.fillWidth: true
-                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
-            }
-
-            QQC2.Button {
-                icon.name: "folder-open"
-                QQC2.ToolTip.text: i18n("Browse for TTS model directory")
-                onClicked: ttsFolderDialog.open()
-            }
-
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("espeak-ng path:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.TextField {
-                id: voiceEspeakPathField
-
-                Layout.fillWidth: true
-                placeholderText: i18n("Don't write anything if installed from the install button")
-            }
-
-            QQC2.Button {
-                icon.name: "folder-open"
-                QQC2.ToolTip.text: i18n("Browse for espeak-ng/espeak executable")
-                onClicked: espeakFileDialog.open()
-            }
-
-            QQC2.Button {
-                text: i18n("Install")
-                icon.name: "download"
-                QQC2.ToolTip.text: i18n("Install espeak-ng using your system package manager")
-                onClicked: {
-                    runSetupInTerminal("install_espeak");
-                }
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && !page.voiceTtsUseCustom
-            Kirigami.FormData.label: i18n("Famous TTS Model:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                id: voiceTtsModelCombo
-                Layout.fillWidth: true
-                model: ["kokoro-82m"]
-                currentIndex: {
-                    let m = page.cfg_voiceTtsModel || "kokoro-82m";
-                    for (let i = 0; i < model.length; i++) if (model[i] === m) {
-                        return i;
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        font: Kirigami.Theme.smallFont
+                        opacity: 0.6
+                        text: i18n("Note: GPU Venv Setup requires NVIDIA CUDA drivers & library dependencies.")
                     }
-                    return 0;
                 }
-                onActivated: page.cfg_voiceTtsModel = currentValue
-            }
 
-            QQC2.Button {
-                text: i18n("Download")
-                icon.name: "download"
-                onClicked: {
-                    let modelName = page.cfg_voiceTtsModel || "kokoro-82m";
-                    runSetupInTerminal("download_tts", modelName);
-                }
-            }
+                // Verification Grid Trigger Row
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
 
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("TTS voice:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                id: voiceTtsVoiceCombo
-
-                Layout.fillWidth: true
-                model: ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
-                currentIndex: {
-                    let v = page.cfg_voiceTtsVoice || "af_heart";
-                    for (let i = 0; i < model.length; i++) if (model[i] === v) {
-                        return i;
+                    QQC2.Label {
+                        text: i18n("Verification status:")
+                        font.bold: true
+                        Layout.fillWidth: true
                     }
-                    return 0;
+
+                    QQC2.Button {
+                        text: i18n("Check Status")
+                        icon.name: "view-refresh"
+                        onClicked: runEnvCheck()
+                    }
                 }
-                onActivated: page.cfg_voiceTtsVoice = currentValue
-            }
 
-        }
+                // Grid itself
+                Rectangle {
+                    visible: voiceEnvChecked
+                    Layout.fillWidth: true
+                    implicitHeight: statusGrid.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 4
+                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+                    border.width: 1
 
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Test TTS:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
+                    GridLayout {
+                        id: statusGrid
+                        anchors.margins: Kirigami.Units.gridUnit * 0.5
+                        columns: 2
+                        columnSpacing: Kirigami.Units.gridUnit
+                        rowSpacing: Kirigami.Units.smallSpacing * 0.5
+                        anchors.fill: parent
 
-            QQC2.TextField {
-                id: voiceTtsTestInputField
-                Layout.fillWidth: true
-                placeholderText: i18n("Enter text to speak...")
-                text: i18n("Hello! This is a test of the text to speech system.")
-            }
+                        QQC2.Label {
+                            text: i18n("Microphone:")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        QQC2.Label {
+                            text: page.voiceEnvResult && page.voiceEnvResult.mic_available ? "✓ " + i18n("Available") : "✗ " + i18n("Not found")
+                            color: page.voiceEnvResult && page.voiceEnvResult.mic_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
 
-            QQC2.Button {
-                text: i18n("Speak Test")
-                icon.name: "audio-speakers"
-                onClicked: {
-                    page.ttsPlaying = true;
-                    page.ttsTestResult = i18n("Initializing...");
-                    sendVoiceCommand(JSON.stringify({
-                        "cmd": "tts",
-                        "text": voiceTtsTestInputField.text.trim() || i18n("Hello! This is a test of the text to speech system."),
-                        "voice": page.cfg_voiceTtsVoice || "af_heart",
-                        "lang_code": "a",
-                        "model_path": page.cfg_voiceTtsModelPath || "",
-                        "espeak_path": page.cfg_voiceEspeakPath || ""
-                    }));
+                        QQC2.Label {
+                            text: i18n("Audio player:")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        QQC2.Label {
+                            text: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
+                            color: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+
+                        QQC2.Label {
+                            text: i18n("Virtual environment (venv):")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        QQC2.Label {
+                            text: {
+                                if (!page.voiceEnvResult) return i18n("Not checked");
+                                if (page.voiceEnvResult.venv_ready) return "✓ " + i18n("Ready");
+                                if (page.voiceEnvResult.venv_exists) return "✗ " + i18n("Incomplete (run venv setup)");
+                                return "✗ " + i18n("Missing");
+                            }
+                            color: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+
+                        QQC2.Label {
+                            text: i18n("STT library (faster-whisper):")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        QQC2.Label {
+                            text: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
+                            color: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+
+                        QQC2.Label {
+                            text: i18n("TTS library (kokoro):")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        QQC2.Label {
+                            text: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ " + i18n("Installed") : "✗ " + i18n("Not installed")
+                            color: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+
+                        QQC2.Label {
+                            text: i18n("Phonemizer (espeak-ng):")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            QQC2.ToolTip.delay: 400
+                            QQC2.ToolTip.visible: maEspeak.hovered
+                            QQC2.ToolTip.text: i18n("espeak-ng translates text into phonetic codes. Required for Kokoro text-to-speech.")
+                            MouseArea {
+                                id: maEspeak
+                                anchors.fill: parent
+                                hoverEnabled: true
+                            }
+                        }
+                        QQC2.Label {
+                            text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
+                            color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+
+                        QQC2.Label {
+                            text: i18n("STT model:")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        QQC2.Label {
+                            text: {
+                                if (!page.voiceEnvResult) return "";
+                                let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
+                                if (hasPath) return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
+                                return page.voiceEnvResult.stt_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
+                            }
+                            color: {
+                                if (!page.voiceEnvResult) return Kirigami.Theme.textColor;
+                                let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
+                                if (hasPath) return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                                return page.voiceEnvResult.stt_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                            }
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+
+                        QQC2.Label {
+                            text: i18n("TTS model:")
+                            font.bold: true
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                        QQC2.Label {
+                            text: {
+                                if (!page.voiceEnvResult) return "";
+                                let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
+                                if (hasPath) return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
+                                return page.voiceEnvResult.tts_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
+                            }
+                            color: {
+                                if (!page.voiceEnvResult) return Kirigami.Theme.textColor;
+                                let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
+                                if (hasPath) return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                                return page.voiceEnvResult.tts_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                            }
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        }
+                    }
                 }
             }
-
-            QQC2.Button {
-                text: i18n("Stop")
-                icon.name: "media-playback-stop"
-                visible: page.ttsPlaying
-                onClicked: sendVoiceCommand(JSON.stringify({
-                    "cmd": "stop_tts"
-                }))
-            }
-
         }
 
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && page.ttsTestResult.length > 0
-            Kirigami.FormData.label: i18n("TTS status:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-
-            QQC2.TextField {
-                Layout.fillWidth: true
-                readOnly: true
-                text: page.ttsTestResult
-                placeholderText: i18n("TTS status details will appear here...")
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("TTS Service:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Button {
-                text: page.ttsServiceActive ? i18n("Stop TTS") : i18n("Start TTS")
-                icon.name: page.ttsServiceActive ? "media-playback-stop" : "media-playback-start"
-                onClicked: toggleTtsService()
-            }
-
-            QQC2.Button {
-                text: page.ttsServiceEnabled ? i18n("Disable Autostart") : i18n("Enable Autostart")
-                icon.name: page.ttsServiceEnabled ? "box-unlocked" : "box-locked"
-                onClicked: toggleTtsBoot()
-            }
-
-            QQC2.Label {
-                text: page.ttsServiceActive ? i18n("Active (Running)") : i18n("Inactive (Stopped)")
-                font.bold: true
-                color: page.ttsServiceActive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
-            }
-        }
-
-        RowLayout {
+        // ── STT Configuration Panel ───────────────────────────────────
+        Rectangle {
+            id: sttConfigPanel
             visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Venv path:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
+            implicitHeight: sttLayout.implicitHeight + Kirigami.Units.gridUnit * 1.5
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.02)
+            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+            border.width: 1
 
-            QQC2.TextField {
-                id: voiceVenvPathField
+            ColumnLayout {
+                id: sttLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit
+                spacing: Kirigami.Units.smallSpacing
 
-                Layout.fillWidth: true
-                placeholderText: i18n("Either select the directory from the file explorer or enter here and press apply.")
+                QQC2.Label {
+                    text: i18n("Speech-to-Text (STT)")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
+                }
+
+                // Famous/Dropdown Source Row
+                RowLayout {
+                    visible: !page.voiceSttUseCustom
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("Select from dropdown:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.ComboBox {
+                        id: voiceSttModelCombo
+                        Layout.fillWidth: true
+                        model: ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"]
+                        currentIndex: {
+                            let m = page.cfg_voiceSttModel || "large-v3-turbo";
+                            for (let i = 0; i < model.length; i++) if (model[i] === m) {
+                                return i;
+                            }
+                            return 0;
+                        }
+                        onActivated: page.cfg_voiceSttModel = currentValue
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Download")
+                        icon.name: "download"
+                        onClicked: {
+                            let modelName = page.cfg_voiceSttModel || "large-v3-turbo";
+                            page.runSetupInApp("download_stt", modelName);
+                        }
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Use Custom Path")
+                        icon.name: "document-properties"
+                        onClicked: {
+                            page.voiceSttUseCustom = true;
+                        }
+                    }
+                }
+
+                // Custom Path Row
+                RowLayout {
+                    visible: page.voiceSttUseCustom
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("STT Model Path:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.TextField {
+                        id: voiceSttModelPathField
+                        Layout.fillWidth: true
+                        placeholderText: i18n("Path to custom model folder...")
+                    }
+
+                    QQC2.Button {
+                        icon.name: "folder-open"
+                        QQC2.ToolTip.text: i18n("Browse for STT model directory")
+                        onClicked: sttFolderDialog.open()
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Use Dropdown")
+                        icon.name: "go-previous"
+                        onClicked: {
+                            page.voiceSttUseCustom = false;
+                            voiceSttModelPathField.text = "";
+                        }
+                    }
+                }
+
+                // Language
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("STT Language:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.ComboBox {
+                        id: voiceLanguageCombo
+                        Layout.fillWidth: true
+                        model: ["en", "auto", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi"]
+                        currentIndex: {
+                            let l = page.cfg_voiceLanguage || "en";
+                            for (let i = 0; i < model.length; i++) if (model[i] === l) {
+                                return i;
+                            }
+                            return 0;
+                        }
+                        onActivated: page.cfg_voiceLanguage = currentValue
+                    }
+                }
+
+                // Auto-send Toggle
+                QQC2.CheckBox {
+                    id: voiceAutoSendToggle
+                    text: i18n("Auto-send voice input (sends automatically after speech finishes)")
+                    Layout.fillWidth: true
+                }
+
+                // Test STT
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("Test STT:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.Button {
+                        text: {
+                            if (page.sttTesting) {
+                                if (page.sttStatus === "loading_model")
+                                    return i18n("Loading model...");
+                                else if (page.sttStatus === "recording")
+                                    return i18n("Recording... (%1s)", page.sttCountdown);
+                                else if (page.sttStatus === "transcribing")
+                                    return i18n("Transcribing...");
+                                else
+                                    return i18n("Initializing...");
+                            }
+                            return i18n("Record & Transcribe (5s)");
+                        }
+                        icon.name: page.sttTesting ? "media-record" : "audio-input-microphone"
+                        highlighted: page.sttTesting
+                        onClicked: {
+                            if (page.sttTesting) {
+                                sttTimer.stop();
+                                page.sttTesting = false;
+                                page.sttStatus = "";
+                                page.sttCountdown = 0;
+                                if (page.activeSttSource !== "") {
+                                    voicePageDs.disconnectSource(page.activeSttSource);
+                                    page.activeSttSource = "";
+                                }
+                                return ;
+                            }
+                            page.sttTesting = true;
+                            page.sttStatus = "loading_model";
+                            page.sttCountdown = 5;
+                            page.sttTestResult = "";
+                            page.recordedAudioPath = "";
+                            let lang = page.cfg_voiceLanguage || "en";
+                            let model = page.cfg_voiceSttModel || "large-v3-turbo";
+                            let modelPath = page.cfg_voiceSttModelPath || "";
+                            page.activeSttSource = sendVoiceCommand(JSON.stringify({
+                                "cmd": "start_stt",
+                                "duration": 5,
+                                "language": lang,
+                                "model": model,
+                                "model_path": modelPath
+                            }));
+                        }
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Play Recorded Audio")
+                        icon.name: "media-playback-start"
+                        visible: page.recordedAudioPath !== ""
+                        enabled: !page.sttTesting
+                        onClicked: {
+                            sendVoiceCommand(JSON.stringify({
+                                "cmd": "play_audio",
+                                "path": page.recordedAudioPath
+                            }));
+                        }
+                    }
+                }
+
+                // STT Result Text Box
+                Rectangle {
+                    visible: page.sttTestResult.length > 0
+                    Layout.fillWidth: true
+                    implicitHeight: Math.max(Kirigami.Units.gridUnit * 2.5, testResultText.implicitHeight + Kirigami.Units.smallSpacing * 2)
+                    radius: 4
+                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
+                    border.width: 1
+
+                    QQC2.Label {
+                        id: testResultText
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        text: page.sttTestResult
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        font.italic: page.sttTestResult.indexOf("...") >= 0
+                        opacity: page.sttTestResult.indexOf("...") >= 0 ? 0.7 : 1.0
+                    }
+                }
+
+                // STT Service
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("STT Service:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.Button {
+                        text: page.sttServiceActive ? i18n("Stop Service") : i18n("Start Service")
+                        icon.name: page.sttServiceActive ? "media-playback-stop" : "media-playback-start"
+                        onClicked: toggleSttService()
+                    }
+
+                    QQC2.Button {
+                        text: page.sttServiceEnabled ? i18n("Disable Autostart") : i18n("Enable Autostart")
+                        icon.name: page.sttServiceEnabled ? "box-unlocked" : "box-locked"
+                        onClicked: toggleSttBoot()
+                    }
+
+                    QQC2.Label {
+                        text: page.sttServiceActive ? i18n("Active (Running)") : i18n("Inactive (Stopped)")
+                        font.bold: true
+                        color: page.sttServiceActive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                    }
+                }
             }
+        }
 
-            QQC2.Button {
-                icon.name: "folder-open"
-                QQC2.ToolTip.text: i18n("Browse for Python virtual environment directory")
-                onClicked: venvFolderDialog.open()
+        // ── TTS Configuration Panel ───────────────────────────────────
+        Rectangle {
+            id: ttsConfigPanel
+            visible: voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            implicitHeight: ttsLayout.implicitHeight + Kirigami.Units.gridUnit * 1.5
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.02)
+            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+            border.width: 1
+
+            ColumnLayout {
+                id: ttsLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.CheckBox {
+                    id: voiceTtsEnabledToggle
+                    text: i18n("Read AI responses aloud (Text-to-Speech)")
+                    font.bold: true
+                    Layout.fillWidth: true
+                }
+
+                // Famous/Dropdown Source Row (TTS)
+                RowLayout {
+                    visible: voiceTtsEnabledToggle.checked && !page.voiceTtsUseCustom
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("Select from dropdown:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.ComboBox {
+                        id: voiceTtsModelCombo
+                        Layout.fillWidth: true
+                        model: ["kokoro-82m"]
+                        currentIndex: {
+                            let m = page.cfg_voiceTtsModel || "kokoro-82m";
+                            for (let i = 0; i < model.length; i++) if (model[i] === m) {
+                                return i;
+                            }
+                            return 0;
+                        }
+                        onActivated: page.cfg_voiceTtsModel = currentValue
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Download")
+                        icon.name: "download"
+                        onClicked: {
+                            let modelName = page.cfg_voiceTtsModel || "kokoro-82m";
+                            page.runSetupInApp("download_tts", modelName);
+                        }
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Use Custom Path")
+                        icon.name: "document-properties"
+                        onClicked: {
+                            page.voiceTtsUseCustom = true;
+                        }
+                    }
+                }
+
+                // Custom Path Row (TTS)
+                RowLayout {
+                    visible: voiceTtsEnabledToggle.checked && page.voiceTtsUseCustom
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("TTS Model Path:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.TextField {
+                        id: voiceTtsModelPathField
+                        Layout.fillWidth: true
+                        placeholderText: i18n("Path to custom model folder...")
+                    }
+
+                    QQC2.Button {
+                        icon.name: "folder-open"
+                        QQC2.ToolTip.text: i18n("Browse for TTS model directory")
+                        onClicked: ttsFolderDialog.open()
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Use Dropdown")
+                        icon.name: "go-previous"
+                        onClicked: {
+                            page.voiceTtsUseCustom = false;
+                            voiceTtsModelPathField.text = "";
+                        }
+                    }
+                }
+
+                // espeak-ng Path Row
+                RowLayout {
+                    visible: voiceTtsEnabledToggle.checked
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("espeak-ng path:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.TextField {
+                        id: voiceEspeakPathField
+                        Layout.fillWidth: true
+                        placeholderText: i18n("System default (recommended)")
+                    }
+
+                    QQC2.Button {
+                        icon.name: "folder-open"
+                        QQC2.ToolTip.text: i18n("Browse for espeak-ng executable")
+                        onClicked: espeakFileDialog.open()
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Install")
+                        icon.name: "download"
+                        QQC2.ToolTip.text: i18n("Install espeak-ng using system package manager")
+                        onClicked: {
+                            runSetupInTerminal("install_espeak");
+                        }
+                    }
+                }
+
+                // TTS Voice Selector Row
+                RowLayout {
+                    visible: voiceTtsEnabledToggle.checked
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("TTS Voice:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.ComboBox {
+                        id: voiceTtsVoiceCombo
+                        Layout.fillWidth: true
+                        model: ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
+                        currentIndex: {
+                            let v = page.cfg_voiceTtsVoice || "af_heart";
+                            for (let i = 0; i < model.length; i++) if (model[i] === v) {
+                                return i;
+                            }
+                            return 0;
+                        }
+                        onActivated: page.cfg_voiceTtsVoice = currentValue
+                    }
+                }
+
+                // Test TTS Row
+                RowLayout {
+                    visible: voiceTtsEnabledToggle.checked
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("Test TTS:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.TextField {
+                        id: voiceTtsTestInputField
+                        Layout.fillWidth: true
+                        placeholderText: i18n("Enter text to speak...")
+                        text: i18n("Hello! This is a test of the text to speech system.")
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Speak Test")
+                        icon.name: "audio-speakers"
+                        onClicked: {
+                            page.ttsPlaying = true;
+                            page.ttsTestResult = i18n("Initializing...");
+                            sendVoiceCommand(JSON.stringify({
+                                "cmd": "tts",
+                                "text": voiceTtsTestInputField.text.trim() || i18n("Hello! This is a test of the text to speech system."),
+                                "voice": page.cfg_voiceTtsVoice || "af_heart",
+                                "lang_code": "a",
+                                "model_path": page.cfg_voiceTtsModelPath || "",
+                                "espeak_path": page.cfg_voiceEspeakPath || ""
+                            }));
+                        }
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Stop")
+                        icon.name: "media-playback-stop"
+                        visible: page.ttsPlaying
+                        onClicked: sendVoiceCommand(JSON.stringify({
+                            "cmd": "stop_tts"
+                        }))
+                    }
+                }
+
+                // TTS Status Box
+                Rectangle {
+                    visible: voiceTtsEnabledToggle.checked && page.ttsTestResult.length > 0
+                    Layout.fillWidth: true
+                    implicitHeight: Math.max(Kirigami.Units.gridUnit * 2.5, ttsTestResultText.implicitHeight + Kirigami.Units.smallSpacing * 2)
+                    radius: 4
+                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
+                    border.width: 1
+
+                    QQC2.Label {
+                        id: ttsTestResultText
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        text: page.ttsTestResult
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        font.italic: page.ttsTestResult.indexOf("...") >= 0
+                        opacity: page.ttsTestResult.indexOf("...") >= 0 ? 0.7 : 1.0
+                    }
+                }
+
+                // TTS Service
+                RowLayout {
+                    visible: voiceTtsEnabledToggle.checked
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: i18n("TTS Service:")
+                        font.bold: true
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                    }
+
+                    QQC2.Button {
+                        text: page.ttsServiceActive ? i18n("Stop Service") : i18n("Start Service")
+                        icon.name: page.ttsServiceActive ? "media-playback-stop" : "media-playback-start"
+                        onClicked: toggleTtsService()
+                    }
+
+                    QQC2.Button {
+                        text: page.ttsServiceEnabled ? i18n("Disable Autostart") : i18n("Enable Autostart")
+                        icon.name: page.ttsServiceEnabled ? "box-unlocked" : "box-locked"
+                        onClicked: toggleTtsBoot()
+                    }
+
+                    QQC2.Label {
+                        text: page.ttsServiceActive ? i18n("Active (Running)") : i18n("Inactive (Stopped)")
+                        font.bold: true
+                        color: page.ttsServiceActive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                    }
+                }
             }
-
         }
 
         // ── Chat Storage ─────────────────────────────────────────────────

@@ -272,7 +272,7 @@ def cmd_setup_scheduler_service(payload: Dict[str, Any]) -> None:
         print("AUTO_DISABLED")
 
 
-def cmd_setup_voice_services(payload: Dict[str, Any]) -> None:
+def cmd_setup_venv_services(payload: Dict[str, Any]) -> None:
     """Install the voice services for STT and TTS systemd user units."""
     venv_py = os.path.expanduser(payload.get("venvPy", "~/.local/share/kdeaichat/venv/bin/python3"))
     if not os.path.exists(venv_py):
@@ -337,7 +337,7 @@ WantedBy=default.target
     print("VOICE_SERVICES_SETUP_OK")
 
 
-def cmd_delete_voice_setup(payload: Dict[str, Any]) -> None:
+def cmd_delete_venv_setup(payload: Dict[str, Any]) -> None:
     """Disable/stop voice systemd services and delete the venv & downloaded models."""
     # Stop & disable services
     os.system("systemctl --user stop kde-ai-stt.service 2>/dev/null")
@@ -482,8 +482,8 @@ def main() -> None:
         "clear_config_keys": cmd_clear_config_keys,
         "load_config_keys": cmd_load_config_keys,
         "setup_scheduler_service": cmd_setup_scheduler_service,
-        "setup_voice_services": cmd_setup_voice_services,
-        "delete_voice_setup": cmd_delete_voice_setup,
+        "setup_venv_services": cmd_setup_venv_services,
+        "delete_venv_setup": cmd_delete_venv_setup,
         "save_all_schedules": cmd_save_all_schedules,
         "get_memory_usage": cmd_get_memory_usage,
         "export_chat": cmd_export_chat,

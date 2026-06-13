@@ -3280,8 +3280,8 @@ function getVoiceHelperPath() {
     return base;
 }
 
-function getVoiceSetupPath() {
-    let base = Qt.resolvedUrl("./voice/voice_setup.sh");
+function getVenvSetupPath() {
+    let base = Qt.resolvedUrl("./voice/venv_setup.sh");
     if (base.indexOf("file://") === 0)
         base = base.substring(7);
     return base;

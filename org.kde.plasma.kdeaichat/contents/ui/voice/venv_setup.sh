@@ -1,5 +1,5 @@
 #!/bin/bash
-# voice_setup.sh - One-time setup for KDE AI Chat voice features
+# venv_setup.sh - One-time setup for KDE AI Chat voice features
 # Creates a Python venv with STT/TTS dependencies
 
 set -e
@@ -10,6 +10,9 @@ VENV_DIR="${VENV_DIR/#\~/$HOME}"
 MODE="${2:-cpu}" # cpu or gpu
 
 wait_for_keypress() {
+    if [ "$NON_INTERACTIVE" = "1" ] || [ "$NONINTERACTIVE" = "1" ]; then
+        return 0
+    fi
     if [ -t 0 ]; then
         read -n 1 -s -r -p "Press any key to exit..."
     elif [ -c /dev/tty ]; then
@@ -26,6 +29,7 @@ if [ "$MODE" = "download_stt" ]; then
     echo "================================================================="
     echo "  KDE AI Chat - Downloading STT Model: $MODEL_NAME"
     echo "================================================================="
+    echo '{"type":"setup_status","status":"downloading_model","percent":30}'
     VENV_PY="$VENV_DIR/bin/python3"
     if [ ! -f "$VENV_PY" ]; then
         VENV_PY="$VENV_DIR/bin/python"
@@ -44,6 +48,7 @@ if [ "$MODE" = "download_stt" ]; then
         wait_for_keypress
         exit 1
     fi
+    echo '{"type":"setup_status","status":"done","percent":100}'
     echo "================================================================="
     echo "  ✓ STT model downloaded successfully!"
     echo "================================================================="
@@ -57,6 +62,7 @@ if [ "$MODE" = "download_tts" ]; then
     echo "================================================================="
     echo "  KDE AI Chat - Downloading TTS Model: kokoro-82m"
     echo "================================================================="
+    echo '{"type":"setup_status","status":"downloading_model","percent":30}'
     VENV_PY="$VENV_DIR/bin/python3"
     if [ ! -f "$VENV_PY" ]; then
         VENV_PY="$VENV_DIR/bin/python"
@@ -75,6 +81,7 @@ if [ "$MODE" = "download_tts" ]; then
         wait_for_keypress
         exit 1
     fi
+    echo '{"type":"setup_status","status":"done","percent":100}'
     echo "================================================================="
     echo "  ✓ TTS model downloaded successfully!"
     echo "================================================================="
@@ -164,14 +171,16 @@ if [ -d "$VENV_DIR" ]; then
 fi
 
 echo "  Creating virtual environment ($MODE mode)..."
-echo '{"type":"setup_status","status":"creating_venv","path":"'"$VENV_DIR"'","mode":"'"$MODE"'"}'
+echo '{"type":"setup_status","status":"creating_venv","percent":10}'
 
 python3 -m venv "$VENV_DIR"
 
-echo '{"type":"setup_status","status":"installing_packages"}'
+echo '{"type":"setup_status","status":"upgrading_pip","percent":20}'
 
 echo "  Upgrading pip, setuptools, and wheel..."
 "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel
+
+echo '{"type":"setup_status","status":"installing_pytorch","percent":35}'
 
 if [ "$MODE" = "gpu" ]; then
     echo "  Installing GPU (CUDA) enabled PyTorch and runtime libraries..."
@@ -183,8 +192,12 @@ else
     "$VENV_DIR/bin/pip" install torch --index-url https://download.pytorch.org/whl/cpu
 fi
 
+echo '{"type":"setup_status","status":"installing_spacy","percent":65}'
+
 echo "  Installing spacy>=3.8.0 (ensures pre-built wheels on Python 3.13)..."
 "$VENV_DIR/bin/pip" install "spacy>=3.8.0"
+
+echo '{"type":"setup_status","status":"installing_dependencies","percent":75}'
 
 echo "  Installing voice helper and core dependencies (faster-whisper, sounddevice, etc.)..."
 "$VENV_DIR/bin/pip" install \
@@ -200,10 +213,12 @@ echo "  Installing voice helper and core dependencies (faster-whisper, sounddevi
     espeak-phonemizer \
     phonemizer
 
+echo '{"type":"setup_status","status":"installing_kokoro","percent":90}'
+
 echo "  Installing speech models dependencies (kokoro, misaki)..."
 "$VENV_DIR/bin/pip" install --no-deps kokoro misaki
 
-echo '{"type":"setup_status","status":"done"}'
+echo '{"type":"setup_status","status":"done","percent":100}'
 echo "-----------------------------------------------------------------"
 echo "  ✓ Virtual environment setup ($MODE) completed successfully!"
 echo "================================================================="
