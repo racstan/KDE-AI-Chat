@@ -78,8 +78,6 @@ QQC2.ScrollView {
 
         return Kirigami.Theme.neutralTextColor;
     }
-    property bool voiceSttUseCustom: (plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0)
-    property bool voiceTtsUseCustom: (plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0)
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
@@ -598,6 +596,20 @@ QQC2.ScrollView {
         title: i18n("Select TTS Model Directory")
         onAccepted: {
             let path = selectedFolder.toString();
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+
+            voiceTtsModelPathField.text = path;
+        }
+    }
+
+    FileDialog {
+        id: ttsFileDialog
+
+        title: i18n("Select TTS Model File (.onnx / .pth)")
+        nameFilters: [ "Model files (*.onnx *.pth *.bin *.pt)", "All files (*)" ]
+        onAccepted: {
+            let path = selectedFile.toString();
             if (path.indexOf("file://") === 0)
                 path = decodeURIComponent(path.slice(7));
 
@@ -1140,22 +1152,18 @@ QQC2.ScrollView {
                                 text: {
                                     if (!page.voiceEnvResult)
                                         return "";
-
-                                    let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
-                                    if (hasPath)
-                                        return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
-
-                                    return page.voiceEnvResult.stt_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
+                                    let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.trim().length > 0;
+                                    if (!hasPath)
+                                        return "✗ " + i18n("Model path/ID not set");
+                                    return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Model ready") : "✗ " + i18n("Model not found / invalid");
                                 }
                                 color: {
                                     if (!page.voiceEnvResult)
                                         return Kirigami.Theme.textColor;
-
-                                    let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.length > 0;
-                                    if (hasPath)
-                                        return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-
-                                    return page.voiceEnvResult.stt_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                                    let hasPath = page.cfg_voiceSttModelPath && page.cfg_voiceSttModelPath.trim().length > 0;
+                                    if (!hasPath)
+                                        return Kirigami.Theme.neutralTextColor;
+                                    return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
                                 }
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
@@ -1170,22 +1178,22 @@ QQC2.ScrollView {
                                 text: {
                                     if (!page.voiceEnvResult)
                                         return "";
-
-                                    let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
-                                    if (hasPath)
-                                        return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
-
-                                    return page.voiceEnvResult.tts_model_downloaded ? "✓ " + i18n("Downloaded") : "✗ " + i18n("Not downloaded");
+                                    if (page.cfg_voiceTtsModel === "espeak-ng")
+                                        return "✓ " + i18n("Ready (No model file required)");
+                                    let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.trim().length > 0;
+                                    if (!hasPath)
+                                        return "✗ " + i18n("Model path not set");
+                                    return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Model ready") : "✗ " + i18n("Model not found / invalid");
                                 }
                                 color: {
                                     if (!page.voiceEnvResult)
                                         return Kirigami.Theme.textColor;
-
-                                    let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.length > 0;
-                                    if (hasPath)
-                                        return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-
-                                    return page.voiceEnvResult.tts_model_downloaded ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
+                                    if (page.cfg_voiceTtsModel === "espeak-ng")
+                                        return Kirigami.Theme.positiveTextColor;
+                                    let hasPath = page.cfg_voiceTtsModelPath && page.cfg_voiceTtsModelPath.trim().length > 0;
+                                    if (!hasPath)
+                                        return Kirigami.Theme.neutralTextColor;
+                                    return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
                                 }
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
@@ -1224,84 +1232,28 @@ QQC2.ScrollView {
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
                     }
 
-                    // Famous/Dropdown Source Row
+                    // STT Model Path / HF ID Row
                     RowLayout {
-                        visible: !page.voiceSttUseCustom
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
-                            text: i18n("Select from dropdown:")
+                            text: i18n("STT Model Path / HF ID:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
-                        }
-
-                        QQC2.ComboBox {
-                            id: voiceSttModelCombo
-
-                            Layout.fillWidth: true
-                            model: ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"]
-                            currentIndex: {
-                                let m = page.cfg_voiceSttModel || "large-v3-turbo";
-                                for (let i = 0; i < model.length; i++) if (model[i] === m) {
-                                    return i;
-                                }
-                                return 0;
-                            }
-                            onActivated: page.cfg_voiceSttModel = currentValue
-                        }
-
-                        QQC2.Button {
-                            text: i18n("Download")
-                            icon.name: "download"
-                            onClicked: {
-                                let modelName = page.cfg_voiceSttModel || "large-v3-turbo";
-                                page.runSetupInApp("download_stt", modelName);
-                            }
-                        }
-
-                        QQC2.Button {
-                            text: i18n("Use Custom Path")
-                            icon.name: "document-properties"
-                            onClicked: {
-                                page.voiceSttUseCustom = true;
-                            }
-                        }
-
-                    }
-
-                    // Custom Path Row
-                    RowLayout {
-                        visible: page.voiceSttUseCustom
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-
-                        QQC2.Label {
-                            text: i18n("STT Model Path:")
-                            font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.TextField {
                             id: voiceSttModelPathField
 
                             Layout.fillWidth: true
-                            placeholderText: i18n("Path to custom model folder...")
+                            placeholderText: i18n("e.g. /path/to/model or Systran/faster-whisper-large-v3-turbo")
                         }
 
                         QQC2.Button {
                             icon.name: "folder-open"
                             QQC2.ToolTip.text: i18n("Browse for STT model directory")
                             onClicked: sttFolderDialog.open()
-                        }
-
-                        QQC2.Button {
-                            text: i18n("Use Dropdown")
-                            icon.name: "go-previous"
-                            onClicked: {
-                                page.voiceSttUseCustom = false;
-                                voiceSttModelPathField.text = "";
-                            }
                         }
 
                     }
@@ -1312,9 +1264,15 @@ QQC2.ScrollView {
                         wrapMode: Text.Wrap
                         font: Kirigami.Theme.smallFont
                         opacity: 0.8
-                        text: i18n("<b>Note:</b> If the automatic download fails, you can download any Faster Whisper model manually from the <a href='https://huggingface.co/Systran'>Systran Org on Hugging Face</a> or <a href='https://huggingface.co/models?search=faster-whisper'>search faster-whisper on Hugging Face</a>. Place it in a folder, click <b>Use Custom Path</b>, and select that folder.")
-                        onLinkActivated: function(link) {
-                            Qt.openUrlExternally(link);
+                        text: i18n("<b>Note:</b> You must provide a local model path or Hugging Face repository ID. Manual model downloads should be linked to Hugging Face.")
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Download Models (Hugging Face)")
+                        icon.name: "internet-services"
+                        Layout.alignment: Qt.AlignLeft
+                        onClicked: {
+                            Qt.openUrlExternally("https://huggingface.co/models?search=faster-whisper");
                         }
                     }
 
@@ -1326,7 +1284,7 @@ QQC2.ScrollView {
                         QQC2.Label {
                             text: i18n("STT Language:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.ComboBox {
@@ -1362,7 +1320,7 @@ QQC2.ScrollView {
                         QQC2.Label {
                             text: i18n("Test STT:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.Button {
@@ -1513,16 +1471,16 @@ QQC2.ScrollView {
                         Layout.fillWidth: true
                     }
 
-                    // Famous/Dropdown Source Row (TTS)
+                    // TTS Model/Engine Selection
                     RowLayout {
-                        visible: voiceTtsEnabledToggle.checked && !page.voiceTtsUseCustom
+                        visible: voiceTtsEnabledToggle.checked
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
-                            text: i18n("Select from dropdown:")
+                            text: i18n("TTS Provider:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.ComboBox {
@@ -1540,42 +1498,31 @@ QQC2.ScrollView {
                             onActivated: page.cfg_voiceTtsModel = currentValue
                         }
 
-                        QQC2.Button {
-                            text: i18n("Download")
-                            icon.name: "download"
-                            onClicked: {
-                                let modelName = page.cfg_voiceTtsModel || "kokoro-82m";
-                                page.runSetupInApp("download_tts", modelName);
-                            }
-                        }
-
-                        QQC2.Button {
-                            text: i18n("Use Custom Path")
-                            icon.name: "document-properties"
-                            onClicked: {
-                                page.voiceTtsUseCustom = true;
-                            }
-                        }
-
                     }
 
-                    // Custom Path Row (TTS)
+                    // Model Path Row (TTS)
                     RowLayout {
-                        visible: voiceTtsEnabledToggle.checked && page.voiceTtsUseCustom
+                        visible: voiceTtsEnabledToggle.checked && voiceTtsModelCombo.currentValue !== "espeak-ng"
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.Label {
                             text: i18n("TTS Model Path:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.TextField {
                             id: voiceTtsModelPathField
 
                             Layout.fillWidth: true
-                            placeholderText: i18n("Path to custom model folder...")
+                            placeholderText: i18n("Path to model file (.onnx / .pth) or folder...")
+                        }
+
+                        QQC2.Button {
+                            icon.name: "document-properties"
+                            QQC2.ToolTip.text: i18n("Browse for TTS model file")
+                            onClicked: ttsFileDialog.open()
                         }
 
                         QQC2.Button {
@@ -1584,27 +1531,41 @@ QQC2.ScrollView {
                             onClicked: ttsFolderDialog.open()
                         }
 
-                        QQC2.Button {
-                            text: i18n("Use Dropdown")
-                            icon.name: "go-previous"
-                            onClicked: {
-                                page.voiceTtsUseCustom = false;
-                                voiceTtsModelPathField.text = "";
-                            }
-                        }
-
                     }
 
                     QQC2.Label {
-                        visible: voiceTtsEnabledToggle.checked
+                        visible: voiceTtsEnabledToggle.checked && voiceTtsModelCombo.currentValue !== "espeak-ng"
                         Layout.fillWidth: true
                         textFormat: Text.RichText
                         wrapMode: Text.Wrap
                         font: Kirigami.Theme.smallFont
                         opacity: 0.8
-                        text: i18n("<b>Note:</b> If the download fails, you can download models manually:<br>" + "• <b>Kokoro-82M</b>: Download <code>kokoro-v0_19.onnx</code> and <code>voices.bin</code> from <a href='https://huggingface.co/hexgrad/Kokoro-82M'>hexgrad/Kokoro-82M</a>.<br>" + "• <b>Piper</b>: Download <code>.onnx</code> and <code>.onnx.json</code> files from <a href='https://huggingface.co/rhasspy/piper-voices'>rhasspy/piper-voices</a>.<br>" + "• <b>F5-TTS</b>: Download from <a href='https://huggingface.co/m-a-p/F5-TTS'>m-a-p/F5-TTS</a>.<br>" + "Then click <b>Use Custom Path</b> and select the model folder/file.")
-                        onLinkActivated: function(link) {
-                            Qt.openUrlExternally(link);
+                        text: {
+                            if (voiceTtsModelCombo.currentValue === "kokoro-82m")
+                                return i18n("<b>Kokoro-82M Note:</b> Download <code>kokoro-v0_19.onnx</code> (or <code>.pth</code>) and <code>voices.bin</code> from hexgrad/Kokoro-82M Hugging Face.");
+                            if (voiceTtsModelCombo.currentValue === "piper")
+                                return i18n("<b>Piper Note:</b> Download <code>.onnx</code> and <code>.onnx.json</code> files from rhasspy/piper-voices Hugging Face.");
+                            if (voiceTtsModelCombo.currentValue === "f5-tts")
+                                return i18n("<b>F5-TTS Note:</b> Download from m-a-p/F5-TTS Hugging Face.");
+                            return i18n("Download model manually and select its path above.");
+                        }
+                    }
+
+                    QQC2.Button {
+                        visible: voiceTtsEnabledToggle.checked && voiceTtsModelCombo.currentValue !== "espeak-ng"
+                        text: i18n("Download Models (Hugging Face)")
+                        icon.name: "internet-services"
+                        Layout.alignment: Qt.AlignLeft
+                        onClicked: {
+                            if (voiceTtsModelCombo.currentValue === "kokoro-82m") {
+                                Qt.openUrlExternally("https://huggingface.co/hexgrad/Kokoro-82M");
+                            } else if (voiceTtsModelCombo.currentValue === "piper") {
+                                Qt.openUrlExternally("https://huggingface.co/rhasspy/piper-voices");
+                            } else if (voiceTtsModelCombo.currentValue === "f5-tts") {
+                                Qt.openUrlExternally("https://huggingface.co/m-a-p/F5-TTS");
+                            } else {
+                                Qt.openUrlExternally("https://huggingface.co/models");
+                            }
                         }
                     }
 
@@ -1617,7 +1578,7 @@ QQC2.ScrollView {
                         QQC2.Label {
                             text: i18n("espeak-ng path:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.TextField {
@@ -1653,7 +1614,7 @@ QQC2.ScrollView {
                         QQC2.Label {
                             text: i18n("TTS Voice:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.ComboBox {
@@ -1682,7 +1643,7 @@ QQC2.ScrollView {
                         QQC2.Label {
                             text: i18n("Test TTS:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.TextField {
@@ -1754,7 +1715,7 @@ QQC2.ScrollView {
                         QQC2.Label {
                             text: i18n("TTS Service:")
                             font.bold: true
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                         }
 
                         QQC2.Button {

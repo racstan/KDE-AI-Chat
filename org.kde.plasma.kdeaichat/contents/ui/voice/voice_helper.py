@@ -184,27 +184,30 @@ class VoiceHelper:
             stt_p = os.path.expanduser(stt_model_path)
             stt_dir = os.path.dirname(stt_p) if os.path.isfile(stt_p) else stt_p
             if os.path.isdir(stt_dir):
-                if os.path.exists(os.path.join(stt_dir, "model.bin")) and os.path.exists(os.path.join(stt_dir, "config.json")):
+                if os.path.exists(os.path.join(stt_dir, "model.bin")) or any(f.endswith(".bin") or f.endswith(".json") for f in os.listdir(stt_dir)):
                     result["stt_model_path_ok"] = True
 
         if tts_model_path:
             tts_p = os.path.expanduser(tts_model_path)
-            tts_dir = os.path.dirname(tts_p) if os.path.isfile(tts_p) else tts_p
-            if os.path.isdir(tts_dir):
-                config_file = os.path.join(tts_dir, "config.json")
-                has_pth = any(f.endswith(".pth") for f in os.listdir(tts_dir))
-                if os.path.exists(config_file) and has_pth:
-                    result["tts_model_path_ok"] = True
+            if os.path.isfile(tts_p):
+                result["tts_model_path_ok"] = True
+            else:
+                tts_dir = tts_p
+                if os.path.isdir(tts_dir):
+                    has_model_files = any(
+                        f.endswith(".pth") or f.endswith(".onnx") or f.endswith(".bin") or f.endswith(".pt") or f == "config.json"
+                        for f in os.listdir(tts_dir)
+                    )
+                    if has_model_files:
+                        result["tts_model_path_ok"] = True
 
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
         result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"]
-        result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and (
-            result["stt_model_path_ok"] if stt_model_path else result["stt_model_downloaded"]
-        )
+        result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and result["stt_model_path_ok"]
 
         has_player = result["paplay_available"] or result["aplay_available"]
-        has_tts_model = result["tts_model_path_ok"] if tts_model_path else result["tts_model_downloaded"]
+        has_tts_model = result["tts_model_path_ok"] or tts_model == "espeak-ng"
 
         tts_ready = False
         if tts_model == "espeak-ng":
