@@ -2621,7 +2621,12 @@ function buildEffectiveSystemPrompt(sessionId) {
 let sId = sessionId || root.currentSessionId;
 let globalPrompt = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
 let chatPrompt = getSessionProperty(sId, "chatSystemPrompt", "").trim();
-let base = chatPrompt !== "" ? chatPrompt : globalPrompt;
+// Always include the global system prompt, then append any chat-specific
+// instructions so per-chat settings extend rather than replace global behavior.
+let base = globalPrompt;
+if (chatPrompt !== "") {
+    base += "\n\n--- Chat-specific instructions ---\n" + chatPrompt + "\n--- End chat-specific instructions ---";
+}
 let responseLength = getSessionProperty(sId, "responseLength", plasmoid.configuration.responseLength || 0);
 let responseLengthInstructions = [
 "",

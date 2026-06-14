@@ -884,7 +884,7 @@ Kirigami.FormLayout {
         wrapMode: Text.Wrap
         opacity: 0.7
         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.88
-        text: "⚡ <b>Beta.</b> Shows live RAM (RSS) for each background component."
+        text: "⚡ <b>Beta.</b> Shows live RAM (RSS) for each background component. <b>OpenCode</b> counts every <code>opencode</code> process on this PC, not only the one started by this widget."
         textFormat: Text.RichText
     }
 

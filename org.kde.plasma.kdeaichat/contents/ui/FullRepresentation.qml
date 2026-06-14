@@ -2328,7 +2328,7 @@ import "MainDatabase.js" as MainDatabase
             }
 
             QQC2.Label {
-                text: root.translate("Override the global system prompt for this chat only. Leave blank to use the global default.")
+                text: root.translate("Add chat-specific instructions that are appended to the global system prompt. Leave blank to use only the global system prompt.")
                 wrapMode: Text.Wrap
                 font: Kirigami.Theme.smallFont
                 opacity: 0.7
@@ -2343,7 +2343,7 @@ import "MainDatabase.js" as MainDatabase
                 QQC2.TextArea {
                     id: chatSystemPromptArea
                     wrapMode: Text.Wrap
-                    placeholderText: root.translate("Leave blank to use global system prompt")
+                    placeholderText: root.translate("Leave blank to use only the global system prompt")
                 }
             }
 
@@ -2402,20 +2402,14 @@ import "MainDatabase.js" as MainDatabase
                         let models = [root.translate("(provider default)")];
                         let prov = plasmoid.configuration.provider || "openai";
                         let pm = root.getProviderConfig(prov).model || "";
-                        if (pm) models.push(pm);
+                        let chatModel = root.getSessionProperty(root.currentSessionId, "chatModel", "");
+                        if (chatModel && chatModel !== pm) models.push(chatModel);
+                        if (pm && pm !== chatModel) models.push(pm);
                         return models;
                     }
                     currentIndex: 0
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize
                     QQC2.ToolTip.text: root.translate("Switch model for this chat")
-                }
-
-                QQC2.Button {
-                    text: root.translate("Apply")
-                    onClicked: {
-                        let model = quickModelSwitch.currentIndex > 0 ? quickModelSwitch.currentText : "";
-                        setSessionProperty(root.currentSessionId, "chatModel", model);
-                    }
                 }
             }
 
@@ -2433,9 +2427,6 @@ import "MainDatabase.js" as MainDatabase
                 Layout.fillWidth: true
                 model: [root.translate("Default"), root.translate("Short"), root.translate("Medium"), root.translate("Long"), root.translate("Max")]
                 currentIndex: 0
-                onActivated: {
-                    setSessionProperty(root.currentSessionId, "responseLength", currentIndex);
-                }
             }
 
             QQC2.Label {
