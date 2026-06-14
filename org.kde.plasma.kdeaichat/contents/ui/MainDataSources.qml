@@ -165,12 +165,12 @@ Item {
 
     // Audit 5.1: batch streaming token updates to avoid full model
     // resets on every chunk. Tokens are buffered in `_pendingStreamingText`
-    // and flushed at ~30 Hz instead of per-token. `flushStreamingBuffer()`
+    // and flushed at ~8 Hz instead of per-token. `flushStreamingBuffer()`
     // forces an immediate flush (used on stream end, cancel, and
     // session switch).
     Timer {
         id: streamingBatchTimer
-        interval: 150
+        interval: 120
         repeat: false
         onTriggered: root.flushIntermediateStreaming()
     }
@@ -253,7 +253,10 @@ Item {
     Timer {
         id: schedulerPollTimer
 
-        interval: 3000
+        // Poll every 5 s (was 3 s). Each trigger spawns a Python subprocess;
+        // reducing frequency halves the background CPU cost while keeping
+        // schedule latency acceptably low.
+        interval: 5000
         repeat: true
         running: root.expanded
         triggeredOnStart: true

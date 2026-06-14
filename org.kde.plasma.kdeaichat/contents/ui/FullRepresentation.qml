@@ -578,25 +578,22 @@ import "MainDatabase.js" as MainDatabase
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 4000
+                                // Keep only a small cache — large cacheBuffer forces the engine to
+                                // instantiate hundreds of heavy delegates off-screen, which is the
+                                // primary source of scroll lag.
+                                cacheBuffer: 600
                                 Component.onCompleted: root.msgListViewRef = msgList
-                                // Track whether user manually scrolled away from bottom
+                                // Track whether user manually scrolled away from bottom.
+                                // onContentYChanged is intentionally omitted: it fires on every
+                                // pixel of movement and writing userScrolledUp each frame re-evaluates
+                                // bindings across the entire tree, causing visible scroll stuttering.
                                 onMovementStarted: {
                                     if (!msgList.atYEnd)
                                         root.userScrolledUp = true;
-
                                 }
                                 onAtYEndChanged: {
                                     if (msgList.atYEnd)
                                         root.userScrolledUp = false;
-
-                                }
-                                onContentYChanged: {
-                                    if (!msgList.atYEnd) {
-                                        if (msgList.moving || msgList.dragging || verticalScrollBar.pressed || verticalScrollBar.active)
-                                            root.userScrolledUp = true;
-
-                                    }
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
@@ -698,6 +695,24 @@ import "MainDatabase.js" as MainDatabase
                                     property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData.content && modelData.content.toLowerCase().indexOf(root.searchQuery.toLowerCase()) >= 0
                                     property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === index
 
+                                     // Cache expensive per-role lookups as readonly properties so they are
+                                    // only recomputed when the role changes, not on every frame repaint.
+                                    readonly property bool roleIsUser: modelData.role === "user"
+                                    readonly property bool roleIsQueued: modelData.role === "queued"
+                                    readonly property bool roleIsError: modelData.role === "error"
+                                    readonly property bool roleIsSpecial: modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request"
+                                    readonly property bool roleIsAssistant: modelData.role === "assistant"
+                                    readonly property string roleLabel: {
+                                        if (roleIsUser)    return "You";
+                                        if (roleIsQueued)  return "You (Queued)";
+                                        if (roleIsError)   return "Error";
+                                        if (modelData.role === "question_request")  return "OpenCode Interactive Question";
+                                        if (modelData.role === "permission_request") return "OpenCode Security Request";
+                                        if (modelData.role === "schedules_list")    return "Schedules Manager";
+                                        if (modelData.role === "compact_request")   return "Context Compaction Request";
+                                        return "AI";
+                                    }
+
                                     width: msgList.width
                                     implicitHeight: delegateCol.implicitHeight
                                     height: implicitHeight
@@ -745,27 +760,37 @@ import "MainDatabase.js" as MainDatabase
                                                 width: Math.min(msgList.width * 0.76, 560)
                                                 implicitHeight: bubbleCol.implicitHeight + Kirigami.Units.largeSpacing
                                                 radius: 10
+                                                // Use parent delegate's cached role booleans instead of
+                                                // re-evaluating string comparisons every repaint.
                                                 color: {
-                                                    if (isCurrentSearchMatch) {
+                                                    if (isCurrentSearchMatch)
                                                         return Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.25);
-                                                    }
-                                                    if (isSearchMatch) {
+                                                    if (isSearchMatch)
                                                         return Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.15);
-                                                    }
-                                                    return modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor;
+                                                    if (roleIsUser)
+                                                        return Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2);
+                                                    if (roleIsQueued)
+                                                        return Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18);
+                                                    if (roleIsError)
+                                                        return Kirigami.Theme.negativeBackgroundColor;
+                                                    if (roleIsSpecial)
+                                                        return Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12);
+                                                    return Kirigami.Theme.backgroundColor;
                                                 }
                                                 border.width: {
                                                     if (isCurrentSearchMatch) return 3;
                                                     if (isSearchMatch) return 2;
-                                                    return modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request" ? 2 : 1;
+                                                    return (roleIsError || roleIsSpecial) ? 2 : 1;
                                                 }
                                                 border.color: {
                                                     if (isCurrentSearchMatch) return Kirigami.Theme.focusColor;
                                                     if (isSearchMatch) return Kirigami.Theme.highlightColor;
-                                                    return modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16);
+                                                    if (roleIsError) return Kirigami.Theme.negativeTextColor;
+                                                    if (roleIsSpecial) return Kirigami.Theme.focusColor;
+                                                    return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16);
                                                 }
-                                                anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
-                                                anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request" ? parent.left : undefined
+                                                anchors.right: (roleIsUser || roleIsQueued) ? parent.right : undefined
+                                                anchors.left: (roleIsAssistant || roleIsError || roleIsSpecial) ? parent.left : undefined
 
                                                 Column {
                                                     // ── end message body ───────────────────────────────────────
@@ -782,7 +807,7 @@ import "MainDatabase.js" as MainDatabase
                                                         spacing: Kirigami.Units.smallSpacing
 
                                                         PC3.Label {
-                                                            text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? "OpenCode Interactive Question" : modelData.role === "permission_request" ? "OpenCode Security Request" : modelData.role === "schedules_list" ? "Schedules Manager" : modelData.role === "compact_request" ? "Context Compaction Request" : "AI"
+                                                            text: roleLabel
                                                             font.bold: true
                                                         }
 

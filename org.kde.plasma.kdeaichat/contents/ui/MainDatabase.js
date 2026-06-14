@@ -1524,8 +1524,8 @@ fail("OpenCode: failed to create session: " + sendError);
 
 
 function scrollToBottom() {
-if (root.msgListViewRef)
-root.msgListViewRef.positionViewAtEnd();
+if (root.msgListViewRef && !root.msgListViewRef.atYEnd)
+    root.msgListViewRef.positionViewAtEnd();
 }
 
 
