@@ -175,6 +175,13 @@ if (!arr[i].messages[j].at)
 arr[i].messages[j].at = arr[i].updatedAt || arr[i].createdAt || Date.now();
 if (!arr[i].messages[j].time)
 arr[i].messages[j].time = nowTime(arr[i].messages[j].at);
+// Pre-compute blocks so MessageContent.qml reads a cached array
+// instead of calling parseMessageBlocks() inside its model binding.
+// This stabilises delegate heights and stops the scrollbar thumb
+// from resizing while scrolling.
+if (!arr[i].messages[j].blocks && arr[i].messages[j].content) {
+    try { arr[i].messages[j].blocks = parseMessageBlocks(arr[i].messages[j].content); } catch(_) {}
+}
 }
 if (!arr[i].updatedAt)
 arr[i].updatedAt = arr[i].createdAt || Date.now();
@@ -2639,6 +2646,10 @@ function appendMessageToSession(chatId, msgObj) {
 let idx = sessionIndexById(chatId);
 if (idx < 0)
 return ;
+// Pre-compute blocks so MessageContent.qml reads a static cached array.
+if (!msgObj.blocks && msgObj.content) {
+    try { msgObj.blocks = parseMessageBlocks(msgObj.content); } catch(_) {}
+}
 let updated = root.sessions.slice();
 let s = Object.assign({
 }, updated[idx]);
@@ -3258,14 +3269,17 @@ root.streamingModel = "";
 root.streamingContextItems = [];
 root.streamingResponse = false;
 let ts = Date.now();
-root.messages = root.messages.concat([{
+let newMsg = {
 "role": "assistant",
 "content": text,
 "time": nowTime(ts),
 "at": ts,
 "model": label || "OpenCode",
 "contextItems": ctx
-}]);
+};
+// Pre-compute blocks so MessageContent.qml reads a static cached array.
+try { newMsg.blocks = parseMessageBlocks(text); } catch(_) {}
+root.messages = root.messages.concat([newMsg]);
 if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);
 }
