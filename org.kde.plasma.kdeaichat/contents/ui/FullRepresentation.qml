@@ -1650,13 +1650,20 @@ import "MainDatabase.js" as MainDatabase
                                         drag.minimumY: 0
                                         drag.maximumY: scrollTrack.height - scrollHandle.height
 
+                                        property real dragStartContentHeight: 0
+
+                                        onPressed: {
+                                            dragStartContentHeight = msgList.contentHeight;
+                                        }
+
                                         onPositionChanged: {
                                             if (drag.active) {
                                                 let progress = scrollHandle.y / (scrollTrack.height - scrollHandle.height);
+                                                let targetY = progress * (dragStartContentHeight - msgList.height);
+                                                // Clamp to current bounds so recycled-delegate
+                                                // height changes cannot invent blank space.
                                                 let maxY = msgList.contentHeight - msgList.height;
-                                                if (maxY > 0) {
-                                                    msgList.contentY = Math.max(0.0, Math.min(maxY, progress * maxY));
-                                                }
+                                                msgList.contentY = Math.max(0.0, Math.min(maxY, targetY));
                                             }
                                         }
                                     }
