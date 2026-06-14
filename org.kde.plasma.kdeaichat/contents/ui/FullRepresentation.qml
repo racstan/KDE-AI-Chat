@@ -828,9 +828,11 @@ import "MainDatabase.js" as MainDatabase
                                                     if (roleIsSpecial) return Kirigami.Theme.focusColor;
                                                     return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16);
                                                 }
-                                                anchors.right: (roleIsUser || roleIsQueued) ? parent.right : undefined
-                                                anchors.rightMargin: (roleIsUser || roleIsQueued) ? Kirigami.Units.largeSpacing + 4 : 0
-                                                anchors.left: (roleIsAssistant || roleIsError || roleIsSpecial) ? parent.left : undefined
+                                                // Use explicit x instead of left/right anchors so recycled
+                                                // delegates do not keep stale anchor state from a previous role.
+                                                x: (roleIsUser || roleIsQueued)
+                                                    ? (parent.width - width - (Kirigami.Units.largeSpacing + 4))
+                                                    : 0
 
                                                 Column {
                                                     // ── end message body ───────────────────────────────────────
@@ -1651,8 +1653,10 @@ import "MainDatabase.js" as MainDatabase
                                         onPositionChanged: {
                                             if (drag.active) {
                                                 let progress = scrollHandle.y / (scrollTrack.height - scrollHandle.height);
-                                                let ratio = msgList.visibleArea.heightRatio;
-                                                msgList.contentY = progress * (msgList.contentHeight - msgList.height);
+                                                let maxY = msgList.contentHeight - msgList.height;
+                                                if (maxY > 0) {
+                                                    msgList.contentY = Math.max(0.0, Math.min(maxY, progress * maxY));
+                                                }
                                             }
                                         }
                                     }
