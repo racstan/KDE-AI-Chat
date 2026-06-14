@@ -3376,6 +3376,35 @@ function stopVoiceRecording() {
 
 function triggerTts(text) {
     if (!text || !plasmoid.configuration.voiceTtsEnabled) return;
+    // Strip emojis (all Unicode emoji/symbol/pictograph ranges) and
+    // markdown formatting characters so TTS sounds natural.
+    let clean = text
+        // Emoji ranges: Emoticons, Misc Symbols and Pictographs, Transport, Supplemental
+        .replace(/[\u{1F600}-\u{1F64F}]/gu, "")   // Emoticons
+        .replace(/[\u{1F300}-\u{1F5FF}]/gu, "")   // Misc Symbols and Pictographs
+        .replace(/[\u{1F680}-\u{1F6FF}]/gu, "")   // Transport and Map
+        .replace(/[\u{1F700}-\u{1F77F}]/gu, "")   // Alchemical Symbols
+        .replace(/[\u{1F780}-\u{1F7FF}]/gu, "")   // Geometric Shapes Extended
+        .replace(/[\u{1F800}-\u{1F8FF}]/gu, "")   // Supplemental Arrows-C
+        .replace(/[\u{1F900}-\u{1F9FF}]/gu, "")   // Supplemental Symbols and Pictographs
+        .replace(/[\u{1FA00}-\u{1FA6F}]/gu, "")   // Chess symbols
+        .replace(/[\u{1FA70}-\u{1FAFF}]/gu, "")   // Symbols and Pictographs Extended-A
+        .replace(/[\u{2600}-\u{26FF}]/gu, "")     // Misc Symbols (☀️ ⭐ etc.)
+        .replace(/[\u{2700}-\u{27BF}]/gu, "")     // Dingbats
+        .replace(/[\u{FE00}-\u{FE0F}]/gu, "")     // Variation Selectors
+        .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, "")   // Flags
+        .replace(/\u200D/g, "")                   // Zero-width joiner
+        // Strip markdown syntax
+        .replace(/\*\*(.+?)\*\*/g, "$1")          // **bold**
+        .replace(/\*(.+?)\*/g, "$1")              // *italic*
+        .replace(/__(.+?)__/g, "$1")              // __bold__
+        .replace(/_(.+?)_/g, "$1")                // _italic_
+        .replace(/`{1,3}[^`]*`{1,3}/g, "")       // `code` and ```blocks```
+        .replace(/#+\s/g, "")                     // # Headings
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [links](url)
+        .replace(/^\s*[-*>]\s+/gm, "")           // bullet/quote lines
+        .trim();
+    if (!clean) return;
     let helperPath = getVoiceHelperPath();
     let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
@@ -3385,7 +3414,7 @@ function triggerTts(text) {
     let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
     let payload = {
         cmd: "tts",
-        text: text,
+        text: clean,
         voice: voice,
         lang_code: "a",
         model: ttsModel,

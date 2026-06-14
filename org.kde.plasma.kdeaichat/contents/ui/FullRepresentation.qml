@@ -640,13 +640,20 @@ import "MainDatabase.js" as MainDatabase
                                                 }
                                             }
 
-                                            MessageContent {
-                                                messageData: ({
-                                                    "role": "assistant",
-                                                    "content": root.streamingContent,
-                                                    "model": root.streamingModel
-                                                })
-                                                chatRoot: root
+                                            // Render streaming text as plain for performance —
+                                            // Markdown is applied only when the message is committed.
+                                            TextEdit {
+                                                width: parent.width
+                                                wrapMode: Text.Wrap
+                                                textFormat: Text.PlainText
+                                                text: root.streamingContent
+                                                color: Kirigami.Theme.textColor
+                                                readOnly: true
+                                                selectByMouse: true
+                                                selectByKeyboard: true
+                                                selectedTextColor: Kirigami.Theme.highlightedTextColor
+                                                selectionColor: Kirigami.Theme.highlightColor
+                                                font: Kirigami.Theme.defaultFont
                                             }
 
                                             // Context items (tool invocations) display in footer

@@ -119,7 +119,8 @@ def extract_single_file(file_path: str) -> Dict[str, Any]:
       2. PDF → pdftotext
       3. DOCX → pandoc / XML
       4. Text-like (mimetype or known extension) → UTF-8 (latin-1 fallback)
-      5. Anything else → try text, otherwise report unsupported.
+      5. Any other file → try UTF-8 text read; if that fails, base64-encode it.
+         The LLM decides whether it can interpret the content.
     """
     if not os.path.exists(file_path):
         return _build_error(f"File not found: {file_path}")
@@ -130,7 +131,7 @@ def extract_single_file(file_path: str) -> Dict[str, Any]:
     mime_type = _guess_mime(filename, ext)
 
     try:
-        if mime_type.startswith("image/") or ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]:
+        if mime_type.startswith("image/") or ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg", ".ico", ".tiff", ".tif", ".avif"]:
             with open(file_path, "rb") as f:
                 img_data = f.read()
                 base64_data = base64.b64encode(img_data).decode("utf-8")
@@ -145,23 +146,27 @@ def extract_single_file(file_path: str) -> Dict[str, Any]:
             text = extract_docx_text(file_path)
             return _build_success(filename, file_path, file_size, mime_type, text, "text")
 
-        if mime_type.startswith("text/") or ext in [".csv", ".txt", ".md", ".json", ".xml",
-                                                    ".yaml", ".yml", ".js", ".ts", ".py",
-                                                    ".sh", ".html", ".css"]:
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    text = f.read()
-            except UnicodeDecodeError:
-                with open(file_path, "r", encoding="latin-1") as f:
-                    text = f.read()
-            return _build_success(filename, file_path, file_size, mime_type or "text/plain", text, "text")
-
+        # Try to read as text (UTF-8, then latin-1)
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
-            return _build_success(filename, file_path, file_size, "text/plain", text, "text")
+            return _build_success(filename, file_path, file_size, mime_type or "text/plain", text, "text")
+        except UnicodeDecodeError:
+            pass
+
+        try:
+            with open(file_path, "r", encoding="latin-1") as f:
+                text = f.read()
+            return _build_success(filename, file_path, file_size, mime_type or "text/plain", text, "text")
         except Exception:
-            return _build_error(f"Unsupported file type: {mime_type}")
+            pass
+
+        # Binary file — base64-encode and pass it along. The model decides.
+        with open(file_path, "rb") as f:
+            raw = f.read()
+        b64 = base64.b64encode(raw).decode("utf-8")
+        return _build_success(filename, file_path, file_size, mime_type or "application/octet-stream", b64, "binary")
+
     except Exception as e:
         return _build_error(str(e))
 

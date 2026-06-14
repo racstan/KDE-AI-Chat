@@ -1028,30 +1028,34 @@ PlasmoidItem {
         }
         checkAndMarkCurrentSessionAsRead();
     }
+    // Track the highest index we have fully parsed so non-streaming updates
+    // only scan new messages rather than the full list every time.
+    property int _lastParsedMsgIdx: -1
+
     onMessagesChanged: {
+        // During active streaming, skip all heavy work — streamingContent
+        // drives the live preview. flushStreamingBuffer() sets streamingResponse=false
+        // before writing the final message, so that commit IS parsed.
+        if (root.streamingResponse)
+            return;
         if (root.messages) {
-            for (let i = 0; i < root.messages.length; i++) {
+            // Incremental parse: scan only from the last-known parsed index.
+            // Full re-scan only when the array shrank (session switch / delete).
+            let startIdx = (root._lastParsedMsgIdx >= 0 && root._lastParsedMsgIdx < root.messages.length)
+                ? root._lastParsedMsgIdx
+                : 0;
+            for (let i = startIdx; i < root.messages.length; i++) {
                 let m = root.messages[i];
                 if (m && m.content !== undefined && (m.blocks === undefined || m.lastParsedContent !== m.content)) {
                     m.blocks = root.parseMessageBlocks(m.content);
                     m.lastParsedContent = m.content;
                 }
             }
+            root._lastParsedMsgIdx = root.messages.length;
+        } else {
+            root._lastParsedMsgIdx = -1;
         }
-        // Only re-parse blocks and update read count when not actively streaming.
-        // During streaming, streamingContent drives rendering — no full message parse needed.
-        // flushStreamingBuffer() sets streamingResponse=false before writing, so the final
-        // message IS parsed. Individual streaming tokens (streamingResponse=true) are skipped.
-        if (!root.streamingResponse) {
-            for (let i = 0; i < root.messages.length; i++) {
-                let m = root.messages[i];
-                if (m && m.content !== undefined && (m.blocks === undefined || m.lastParsedContent !== m.content)) {
-                    m.blocks = root.parseMessageBlocks(m.content);
-                    m.lastParsedContent = m.content;
-                }
-            }
-            Qt.callLater(checkAndMarkCurrentSessionAsRead);
-        }
+        Qt.callLater(checkAndMarkCurrentSessionAsRead);
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom);
     }

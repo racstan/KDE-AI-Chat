@@ -498,7 +498,7 @@ Item {
 
         title: "Attach Files"
         fileMode: FileDialog.OpenFiles
-        nameFilters: ["All supported files (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", "Documents (*.pdf *.docx *.csv *.txt *.md *.json)", "All files (*)"]
+        nameFilters: ["All files (*)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.svg)", "Documents (*.pdf *.docx *.odt *.rtf *.csv *.txt *.md *.json *.xml *.yaml *.yml)", "Code (*.py *.js *.ts *.rs *.go *.cpp *.c *.h *.java *.kt *.swift *.sh *.bash *.zsh *.fish *.rb *.php *.html *.css *.scss *.sql *.toml *.ini *.conf)"]
         onAccepted: function() {
             for (var i = 0; i < selectedFiles.length; i++) {
                 root.attachFile(selectedFiles[i]);
