@@ -1052,6 +1052,10 @@ PlasmoidItem {
         if (expanded) {
             root.focusInput();
             checkAndMarkCurrentSessionAsRead();
+            if (root._idleMemorySaveActive) {
+                root._idleMemorySaveActive = false;
+                root.visibleMessagesCount = Math.max(5, Math.min(root.messages.length, root._visibleMessagesCountBeforeIdle));
+            }
         }
     }
     onHistoryOnlyModeChanged: {
@@ -1191,13 +1195,6 @@ PlasmoidItem {
                 if (m && m.contentHtmlCache)
                     m.contentHtmlCache = undefined;
             }
-        }
-    }
-
-    onExpandedChanged: {
-        if (root.expanded && root._idleMemorySaveActive) {
-            root._idleMemorySaveActive = false;
-            root.visibleMessagesCount = Math.max(5, Math.min(root.messages.length, root._visibleMessagesCountBeforeIdle));
         }
     }
 
