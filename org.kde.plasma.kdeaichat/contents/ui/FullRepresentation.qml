@@ -1828,7 +1828,9 @@ import "MainDatabase.js" as MainDatabase
                                     wrapMode: Text.Wrap
                                     placeholderText: {
                                         if (root.voiceRecording) {
-                                            if (root.voiceSttStatus === "loading_model") {
+                                            if (root.voiceSttStatus === "starting_daemon") {
+                                                return root.translate("Voice input: Starting voice daemon...");
+                                            } else if (root.voiceSttStatus === "loading_model") {
                                                 return root.translate("Voice input: Loading model...");
                                             } else if (root.voiceSttStatus === "recording") {
                                                 return root.translate("Voice input: Listening...");
@@ -1978,7 +1980,12 @@ import "MainDatabase.js" as MainDatabase
                             PC3.ToolButton {
                                 visible: root.ttsPlaying
                                 icon.name: "media-playback-stop"
-                                text: root.translate("Reading Aloud")
+                                text: {
+                                    if (root.voiceTtsStatus === "starting_daemon") {
+                                        return root.translate("Starting voice daemon...");
+                                    }
+                                    return root.translate("Reading Aloud");
+                                }
                                 display: PC3.AbstractButton.TextBesideIcon
                                 highlighted: !root.ttsPaused
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
@@ -1991,6 +1998,7 @@ import "MainDatabase.js" as MainDatabase
 
                             PC3.ToolButton {
                                 visible: root.ttsPlaying
+                                enabled: root.voiceTtsStatus !== "starting_daemon"
                                 icon.name: root.ttsPaused ? "media-playback-start" : "media-playback-pause"
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                                 Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5

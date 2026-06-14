@@ -15,12 +15,12 @@ echo "  KDE AI Chat — Installer"
 echo "═══════════════════════════════════════════════"
 
 # ── 0. Pull latest from git ───────────────────────────────────────────────────
-if [ -d ".git" ]; then
-    echo ""
-    echo "[0/4] Pulling latest changes from git..."
-    git pull
-    echo "      ✓ Git pull done."
-fi
+# if [ -d ".git" ]; then
+#     echo ""
+#     echo "[0/4] Pulling latest changes from git..."
+#     git pull
+#     echo "      ✓ Git pull done."
+# fi
 
 # ── 1. Install the Plasma widget ──────────────────────────────────────────────
 echo ""

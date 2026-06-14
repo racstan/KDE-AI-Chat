@@ -3299,7 +3299,49 @@ function resolveVenvPath() {
     return path;
 }
 
+function resetVoiceIdleTimer() {
+    if (typeof dataSources !== "undefined" && dataSources && dataSources.voiceIdleTimer) {
+        dataSources.voiceIdleTimer.restart();
+    }
+}
+
+function ensureVoiceDaemonRunning(port, onStarted) {
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", "http://127.0.0.1:" + port + "/status", true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+                onStarted(true);
+            } else {
+                startDaemonService(port, onStarted);
+            }
+        }
+    };
+    try {
+        xhr.send();
+    } catch (e) {
+        startDaemonService(port, onStarted);
+    }
+}
+
+function startDaemonService(port, onStarted) {
+    let serviceName = (port === 9015) ? "kde-ai-stt.service" : "kde-ai-tts.service";
+    let startCmd = "systemctl --user start " + serviceName;
+    root.voiceDs.connectSource(startCmd + " #start-daemon-on-demand-" + Date.now());
+    
+    if (typeof dataSources !== "undefined" && dataSources && dataSources.voiceDaemonStartTimer) {
+        dataSources.voiceDaemonStartTimer.port = port;
+        dataSources.voiceDaemonStartTimer.elapsed = 0;
+        dataSources.voiceDaemonStartTimer.callback = onStarted;
+        dataSources.voiceDaemonStartTimer.start();
+    } else {
+        // Fallback if timer is not ready
+        onStarted(false);
+    }
+}
+
 function sendVoiceCommand(port, payload, fallbackSource) {
+    resetVoiceIdleTimer();
     let xhr = new XMLHttpRequest();
     xhr.open("POST", "http://127.0.0.1:" + port + "/command", true);
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -3346,24 +3388,34 @@ function checkVoiceEnv() {
 function startVoiceRecording() {
     if (root.voiceRecording) return;
     root.voiceRecording = true;
-    root.voiceSttStatus = "loading_model";
+    root.voiceSttStatus = "starting_daemon";
     root.voicePendingText = "";
-    let helperPath = getVoiceHelperPath();
-    let venvPath = resolveVenvPath();
-    let venvPy = venvPath + "/bin/python3";
-    let lang = plasmoid.configuration.voiceLanguage || "en";
-    let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
-    let modelPath = plasmoid.configuration.voiceSttModelPath || "";
-    let payload = {cmd: "start_stt", duration: 10, language: lang, model: model, model_path: modelPath};
-    let payloadStr = JSON.stringify(payload);
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-stt-" + Date.now();
-    sendVoiceCommand(9015, payload, sourceName);
+    resetVoiceIdleTimer();
+
+    ensureVoiceDaemonRunning(9015, function(success) {
+        if (!root.voiceRecording) return; // User might have stopped/cancelled in the meantime
+        root.voiceSttStatus = "loading_model";
+        let helperPath = getVoiceHelperPath();
+        let venvPath = resolveVenvPath();
+        let venvPy = venvPath + "/bin/python3";
+        let lang = plasmoid.configuration.voiceLanguage || "en";
+        let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
+        let modelPath = plasmoid.configuration.voiceSttModelPath || "";
+        let payload = {cmd: "start_stt", duration: 300, language: lang, model: model, model_path: modelPath};
+        let payloadStr = JSON.stringify(payload);
+        let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+        let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-stt-" + Date.now();
+        sendVoiceCommand(9015, payload, sourceName);
+    });
 }
 
 function stopVoiceRecording() {
     if (!root.voiceRecording) return;
     root.voiceSttStatus = "stopping";
+    resetVoiceIdleTimer();
+    if (typeof dataSources !== "undefined" && dataSources && dataSources.voiceDaemonStartTimer) {
+        dataSources.voiceDaemonStartTimer.stop();
+    }
     let helperPath = getVoiceHelperPath();
     let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
@@ -3405,29 +3457,46 @@ function triggerTts(text) {
         .replace(/^\s*[-*>]\s+/gm, "")           // bullet/quote lines
         .trim();
     if (!clean) return;
-    let helperPath = getVoiceHelperPath();
-    let venvPath = resolveVenvPath();
-    let venvPy = venvPath + "/bin/python3";
-    let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
-    let ttsModel = plasmoid.configuration.voiceTtsModel || "kokoro-82m";
-    let ttsModelPath = plasmoid.configuration.voiceTtsModelPath || "";
-    let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
-    let payload = {
-        cmd: "tts",
-        text: clean,
-        voice: voice,
-        lang_code: "a",
-        model: ttsModel,
-        model_path: ttsModelPath,
-        espeak_path: espeakPath
-    };
-    let payloadStr = JSON.stringify(payload);
-    let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-tts-" + Date.now();
-    sendVoiceCommand(9016, payload, sourceName);
+
+    root.ttsPlaying = true;
+    root.ttsPaused = false;
+    root.voiceTtsStatus = "starting_daemon";
+    resetVoiceIdleTimer();
+
+    ensureVoiceDaemonRunning(9016, function(success) {
+        if (!root.ttsPlaying) return; // User might have cancelled in the meantime
+        root.voiceTtsStatus = "playing";
+        let helperPath = getVoiceHelperPath();
+        let venvPath = resolveVenvPath();
+        let venvPy = venvPath + "/bin/python3";
+        let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
+        let ttsModel = plasmoid.configuration.voiceTtsModel || "kokoro-82m";
+        let ttsModelPath = plasmoid.configuration.voiceTtsModelPath || "";
+        let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
+        let payload = {
+            cmd: "tts",
+            text: clean,
+            voice: voice,
+            lang_code: "a",
+            model: ttsModel,
+            model_path: ttsModelPath,
+            espeak_path: espeakPath
+        };
+        let payloadStr = JSON.stringify(payload);
+        let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
+        let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-tts-" + Date.now();
+        sendVoiceCommand(9016, payload, sourceName);
+    });
 }
 
 function stopTts() {
+    resetVoiceIdleTimer();
+    if (typeof dataSources !== "undefined" && dataSources && dataSources.voiceDaemonStartTimer) {
+        dataSources.voiceDaemonStartTimer.stop();
+    }
+    root.voiceTtsStatus = "";
+    root.ttsPlaying = false;
+    root.ttsPaused = false;
     let helperPath = getVoiceHelperPath();
     let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
@@ -3439,6 +3508,7 @@ function stopTts() {
 }
 
 function pauseTts() {
+    resetVoiceIdleTimer();
     let helperPath = getVoiceHelperPath();
     let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
@@ -3450,6 +3520,7 @@ function pauseTts() {
 }
 
 function resumeTts() {
+    resetVoiceIdleTimer();
     let helperPath = getVoiceHelperPath();
     let venvPath = resolveVenvPath();
     let venvPy = venvPath + "/bin/python3";
@@ -3462,6 +3533,7 @@ function resumeTts() {
 
 function handleVoiceResponse(resp, sourceName) {
     let respType = resp.type || "";
+    resetVoiceIdleTimer();
     if (respType === "env_check") {
         root.voiceEnvResult = resp;
         root.voiceEnvChecked = true;
@@ -3491,9 +3563,11 @@ function handleVoiceResponse(resp, sourceName) {
     } else if (respType === "tts_done") {
         root.ttsPlaying = false;
         root.ttsPaused = false;
+        root.voiceTtsStatus = "";
     } else if (respType === "tts_error") {
         root.ttsPlaying = false;
         root.ttsPaused = false;
+        root.voiceTtsStatus = "";
         pushErrorMessage("Voice Playback Error: " + (resp.error || "Unknown error"));
     } else if (respType === "play_error") {
         pushErrorMessage("Voice Playback Error: " + (resp.error || "Unknown error"));

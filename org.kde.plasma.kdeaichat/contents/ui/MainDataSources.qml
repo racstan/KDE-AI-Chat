@@ -739,4 +739,46 @@ Item {
             }
         }
     }
+
+    Timer {
+        id: voiceDaemonStartTimer
+        interval: 250
+        repeat: true
+        property int port: 9015
+        property int elapsed: 0
+        property var callback: null
+        onTriggered: {
+            elapsed += 250;
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", "http://127.0.0.1:" + port + "/status", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        voiceDaemonStartTimer.stop();
+                        if (callback) callback(true);
+                    }
+                }
+            };
+            try {
+                xhr.send();
+            } catch (e) {}
+
+            if (elapsed >= 4000) {
+                voiceDaemonStartTimer.stop();
+                if (callback) callback(false);
+            }
+        }
+    }
+
+    Timer {
+        id: voiceIdleTimer
+        interval: 300000 // 5 minutes (5 * 60 * 1000)
+        repeat: false
+        running: true
+        onTriggered: {
+            root.voiceDs.connectSource("systemctl --user stop kde-ai-stt.service #stop-stt-idle-" + Date.now());
+            root.voiceDs.connectSource("systemctl --user stop kde-ai-tts.service #stop-tts-idle-" + Date.now());
+            console.log("KDE AI Chat: Stopped voice daemons due to 5 minutes of inactivity to save system resources.");
+        }
+    }
 }

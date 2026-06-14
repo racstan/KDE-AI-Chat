@@ -468,26 +468,19 @@ class VoiceHelper:
                 self.current_status = "recording"
                 self.emit({"type": "stt_status", "status": "recording"})
 
-                # Record audio in chunks, checking stop_recording
+                # Record audio using a single continuous stream to prevent microphone icon flickering on the taskbar
                 sample_rate = 16000
-                chunk_duration = 1.0  # seconds per chunk
                 all_audio = []
                 total_recorded = 0.0
 
-                while total_recorded < duration and not self.stop_recording:
-                    self.current_countdown = int(duration - total_recorded)
-                    chunk = sd.rec(
-                        int(chunk_duration * sample_rate),
-                        samplerate=sample_rate,
-                        channels=1,
-                        dtype="float32",
-                    )
-                    sd.wait()
-                    if not self.stop_recording:
+                with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
+                    chunk_duration = 0.1  # Check stop_recording every 100ms
+                    chunk_frames = int(chunk_duration * sample_rate)
+                    while total_recorded < duration and not self.stop_recording:
+                        self.current_countdown = int(duration - total_recorded)
+                        chunk, overflowed = stream.read(chunk_frames)
                         all_audio.append(chunk.flatten())
                         total_recorded += chunk_duration
-                    else:
-                        break
 
                 if not all_audio:
                     self.emit({"type": "stt_result", "text": "", "duration": 0})
