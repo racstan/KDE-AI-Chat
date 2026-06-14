@@ -629,7 +629,7 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                                    policy: root.configPerformanceEnhancements ? QQC2.ScrollBar.AlwaysOff : QQC2.ScrollBar.AsNeeded
+                                    policy: QQC2.ScrollBar.AsNeeded
                                 }
 
                                 footer: Item {
@@ -1599,75 +1599,6 @@ import "MainDatabase.js" as MainDatabase
 
                                 }
 
-                            }
-
-                            // Custom Scrollbar Track
-                            Rectangle {
-                                id: scrollTrack
-                                anchors.top: msgList.top
-                                anchors.bottom: msgList.bottom
-                                anchors.right: parent.right
-                                anchors.rightMargin: 2
-                                width: 6
-                                color: "transparent"
-                                visible: root.configPerformanceEnhancements && msgList.contentHeight > msgList.height
-
-                                // Custom Scrollbar Handle
-                                Rectangle {
-                                    id: scrollHandle
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 6
-                                    height: 48 // Fixed scrollbar handle size
-                                    radius: 3
-                                    color: handleMouseArea.pressed
-                                        ? Kirigami.Theme.highlightColor
-                                        : (handleMouseArea.containsMouse
-                                            ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.5)
-                                            : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25))
-
-                                    Binding {
-                                        target: scrollHandle
-                                        property: "y"
-                                        when: !handleMouseArea.drag.active
-                                        value: {
-                                            // Use visibleArea instead of raw contentY/contentHeight.
-                                            // visibleArea is normalized by the ListView and stays stable
-                                            // even when off-screen delegate heights fluctuate.
-                                            let ratio = msgList.visibleArea.heightRatio;
-                                            if (ratio >= 1.0) return 0;
-                                            let progress = msgList.visibleArea.yPosition / (1.0 - ratio);
-                                            progress = Math.max(0.0, Math.min(1.0, progress));
-                                            return progress * (scrollTrack.height - scrollHandle.height);
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: handleMouseArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        drag.target: scrollHandle
-                                        drag.axis: Drag.YAxis
-                                        drag.minimumY: 0
-                                        drag.maximumY: scrollTrack.height - scrollHandle.height
-
-                                        property real dragStartContentHeight: 0
-
-                                        onPressed: {
-                                            dragStartContentHeight = msgList.contentHeight;
-                                        }
-
-                                        onPositionChanged: {
-                                            if (drag.active) {
-                                                let progress = scrollHandle.y / (scrollTrack.height - scrollHandle.height);
-                                                let targetY = progress * (dragStartContentHeight - msgList.height);
-                                                // Clamp to current bounds so recycled-delegate
-                                                // height changes cannot invent blank space.
-                                                let maxY = msgList.contentHeight - msgList.height;
-                                                msgList.contentY = Math.max(0.0, Math.min(maxY, targetY));
-                                            }
-                                        }
-                                    }
-                                }
                             }
 
                         }
