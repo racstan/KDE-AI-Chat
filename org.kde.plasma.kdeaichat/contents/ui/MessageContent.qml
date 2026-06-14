@@ -190,217 +190,225 @@ Column {
             ? (contentRoot.messageData.blocks || (contentRoot.chatRoot ? contentRoot.chatRoot.parseMessageBlocks(contentRoot.messageData.content || "") : []))
             : []
 
-        delegate: Item {
+        delegate: Loader {
+            id: blockLoader
             required property var modelData
 
             width: parent ? parent.width : 0
-            implicitHeight: modelData.type === "code" ? codeLoader.implicitHeight
-                : modelData.type === "table" ? tableBlock.implicitHeight
-                : htmlEdit.implicitHeight
+            height: item ? item.height : 0
 
-            TextEdit {
-                id: htmlEdit
-
-                visible: modelData.type === "text"
-                width: parent.width
-                wrapMode: Text.Wrap
-                textFormat: Text.RichText
-                text: {
-                    let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
-                    if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
-                        return modelData.contentHtmlCache[darkKey];
-                    }
-                    if (contentRoot.chatRoot) {
-                        let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
-                        if (!modelData.contentHtmlCache) {
-                            modelData.contentHtmlCache = {};
-                        }
-                        modelData.contentHtmlCache[darkKey] = html;
-                        return html;
-                    }
-                    return "";
-                }
-                color: Kirigami.Theme.textColor
-                readOnly: true
-                selectByMouse: true
-                selectByKeyboard: true
-                selectedTextColor: Kirigami.Theme.highlightedTextColor
-                selectionColor: Kirigami.Theme.highlightColor
-                font: Kirigami.Theme.defaultFont
-                onLinkActivated: function(link) {
-                    // Only open URLs with a safe scheme. Anything else
-                    // (javascript:, data:, file:, custom schemes) is
-                    // dropped here as well as in the markdown renderer.
-                    let safe = Sec.validateUrl(link);
-                    if (safe !== "")
-                        Qt.openUrlExternally(safe);
-                }
+            sourceComponent: {
+                if (modelData.type === "code") return codeComponent;
+                if (modelData.type === "table") return tableComponent;
+                return textComponent;
             }
+        }
+    }
 
-            Item {
-                id: codeLoader
+    Component {
+        id: textComponent
 
-                visible: modelData.type === "code"
+        TextEdit {
+            width: blockLoader.width
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            text: {
+                let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
+                if (blockLoader.modelData.contentHtmlCache && blockLoader.modelData.contentHtmlCache[darkKey] !== undefined) {
+                    return blockLoader.modelData.contentHtmlCache[darkKey];
+                }
+                if (contentRoot.chatRoot) {
+                    let html = contentRoot.chatRoot.convertMarkdownToHtml(blockLoader.modelData.content || "");
+                    if (!blockLoader.modelData.contentHtmlCache) {
+                        blockLoader.modelData.contentHtmlCache = {};
+                    }
+                    blockLoader.modelData.contentHtmlCache[darkKey] = html;
+                    return html;
+                }
+                return "";
+            }
+            color: Kirigami.Theme.textColor
+            readOnly: true
+            selectByMouse: true
+            selectByKeyboard: true
+            selectedTextColor: Kirigami.Theme.highlightedTextColor
+            selectionColor: Kirigami.Theme.highlightColor
+            font: Kirigami.Theme.defaultFont
+            onLinkActivated: function(link) {
+                // Only open URLs with a safe scheme. Anything else
+                // (javascript:, data:, file:, custom schemes) is
+                // dropped here as well as in the markdown renderer.
+                let safe = Sec.validateUrl(link);
+                if (safe !== "")
+                    Qt.openUrlExternally(safe);
+            }
+        }
+    }
+
+    Component {
+        id: codeComponent
+
+        Item {
+            width: blockLoader.width
+            height: codeContainer.implicitHeight + 2
+
+            Rectangle {
+                id: codeContainer
+
                 width: parent.width
-                implicitHeight: codeContainer.implicitHeight + 2
+                implicitHeight: codeLangRow.implicitHeight + codeBody.implicitHeight + Kirigami.Units.smallSpacing * 3
+                radius: 6
+                color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#2d3139" : "#f0f2f5"
+                border.width: 1
+                border.color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
+                clip: true
+
+                Row {
+                    id: codeLangRow
+
+                    width: parent.width
+                    height: Math.max(langLabel.implicitHeight + Kirigami.Units.smallSpacing, copyCodeBtn.implicitHeight + Kirigami.Units.smallSpacing)
+                    spacing: 0
+
+                    PC3.Label {
+                        id: langLabel
+
+                        anchors.verticalCenter: parent.verticalCenter
+                        leftPadding: Kirigami.Units.smallSpacing + 4
+                        text: blockLoader.modelData.lang || "code"
+                        font.pointSize: 8
+                        font.bold: true
+                        color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#5c6370" : "#a0a1a7"
+                        width: parent.width - copyCodeBtn.width - Kirigami.Units.smallSpacing
+                    }
+
+                    PC3.ToolButton {
+                        id: copyCodeBtn
+
+                        anchors.verticalCenter: parent.verticalCenter
+                        icon.name: "edit-copy"
+                        display: PC3.AbstractButton.IconOnly
+                        flat: true
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: "Copy code"
+                        onClicked: {
+                            if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
+                                contentRoot.chatRoot.clipboardHelper.text = blockLoader.modelData.content;
+                                contentRoot.chatRoot.clipboardHelper.selectAll();
+                                contentRoot.chatRoot.clipboardHelper.copy();
+                            }
+                        }
+                    }
+                }
 
                 Rectangle {
-                    id: codeContainer
-
+                    y: codeLangRow.height
                     width: parent.width
-                    implicitHeight: codeLangRow.implicitHeight + codeBody.implicitHeight + Kirigami.Units.smallSpacing * 3
-                    radius: 6
-                    color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#2d3139" : "#f0f2f5"
-                    border.width: 1
-                    border.color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
-                    clip: true
+                    height: 1
+                    color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
+                }
 
-                    Row {
-                        id: codeLangRow
+                TextEdit {
+                    id: codeBody
 
-                        width: parent.width
-                        height: Math.max(langLabel.implicitHeight + Kirigami.Units.smallSpacing, copyCodeBtn.implicitHeight + Kirigami.Units.smallSpacing)
-                        spacing: 0
-
-                        PC3.Label {
-                            id: langLabel
-
-                            anchors.verticalCenter: parent.verticalCenter
-                            leftPadding: Kirigami.Units.smallSpacing + 4
-                            text: modelData.lang || "code"
-                            font.pointSize: 8
-                            font.bold: true
-                            color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#5c6370" : "#a0a1a7"
-                            width: parent.width - copyCodeBtn.width - Kirigami.Units.smallSpacing
-                        }
-
-                        PC3.ToolButton {
-                            id: copyCodeBtn
-
-                            anchors.verticalCenter: parent.verticalCenter
-                            icon.name: "edit-copy"
-                            display: PC3.AbstractButton.IconOnly
-                            flat: true
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: "Copy code"
-                            onClicked: {
-                                if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
-                                    contentRoot.chatRoot.clipboardHelper.text = modelData.content;
-                                    contentRoot.chatRoot.clipboardHelper.selectAll();
-                                    contentRoot.chatRoot.clipboardHelper.copy();
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        y: codeLangRow.height
-                        width: parent.width
-                        height: 1
-                        color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
-                    }
-
-                    TextEdit {
-                        id: codeBody
-
-                        y: codeLangRow.height + 1
-                        width: parent.width
-                        leftPadding: Kirigami.Units.smallSpacing + 4
-                        rightPadding: Kirigami.Units.smallSpacing + 4
-                        topPadding: Kirigami.Units.smallSpacing
-                        bottomPadding: Kirigami.Units.smallSpacing
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        text: modelData.content
-                        color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#abb2bf" : "#383a42"
-                        font.family: "monospace"
-                        font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
-                        readOnly: true
-                        selectByMouse: true
-                        selectByKeyboard: true
-                        selectedTextColor: Kirigami.Theme.highlightedTextColor
-                        selectionColor: Kirigami.Theme.highlightColor
-                    }
+                    y: codeLangRow.height + 1
+                    width: parent.width
+                    leftPadding: Kirigami.Units.smallSpacing + 4
+                    rightPadding: Kirigami.Units.smallSpacing + 4
+                    topPadding: Kirigami.Units.smallSpacing
+                    bottomPadding: Kirigami.Units.smallSpacing
+                    wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
+                    text: blockLoader.modelData.content
+                    color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#abb2bf" : "#383a42"
+                    font.family: "monospace"
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
+                    readOnly: true
+                    selectByMouse: true
+                    selectByKeyboard: true
+                    selectedTextColor: Kirigami.Theme.highlightedTextColor
+                    selectionColor: Kirigami.Theme.highlightColor
                 }
             }
+        }
+    }
 
-            Item {
-                id: tableBlock
+    Component {
+        id: tableComponent
 
-                visible: modelData.type === "table"
+        Item {
+            width: blockLoader.width
+            height: tableOuterCol.implicitHeight
+
+            Column {
+                id: tableOuterCol
+
                 width: parent.width
-                implicitHeight: tableOuterCol.implicitHeight
+                spacing: 2
 
-                Column {
-                    id: tableOuterCol
-
+                Row {
                     width: parent.width
-                    spacing: 2
+                    layoutDirection: Qt.RightToLeft
 
-                    Row {
-                        width: parent.width
-                        layoutDirection: Qt.RightToLeft
-
-                        PC3.ToolButton {
-                            icon.name: "document-export"
-                            display: PC3.AbstractButton.IconOnly
-                            flat: true
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: "Export table as CSV"
-                            onClicked: {
-                                let csv = contentRoot.chatRoot ? contentRoot.chatRoot.tableMarkdownToCsv(modelData.content || "") : "";
-                                if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
-                                    contentRoot.chatRoot.clipboardHelper.text = csv;
-                                    contentRoot.chatRoot.clipboardHelper.selectAll();
-                                    contentRoot.chatRoot.clipboardHelper.copy();
-                                }
-                                if (contentRoot.chatRoot && contentRoot.chatRoot.customStorageDs) {
-                                    let ts = new Date().getTime();
-                                    // Use a sanitized timestamp inside a
-                                    // hard-coded prefix; the path is then
-                                    // routed through validateFilePath to
-                                    // reject any unexpected characters.
-                                    let path = "/tmp/kdeaichat-table-" + ts + ".csv";
-                                    let safePath = Sec.validateFilePath(path);
-                                    if (safePath === "")
-                                        return;
-                                    let safeCsv = Sec.sanitizeForShell(csv);
-                                    contentRoot.chatRoot.customStorageDs.connectSource("bash -c " + Sec.quoteForShell("printf '%s' " + safeCsv + " > " + safePath + " && xdg-open " + safePath) + " #csv-export-" + ts);
-                                }
+                    PC3.ToolButton {
+                        icon.name: "document-export"
+                        display: PC3.AbstractButton.IconOnly
+                        flat: true
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: "Export table as CSV"
+                        onClicked: {
+                            let csv = contentRoot.chatRoot ? contentRoot.chatRoot.tableMarkdownToCsv(blockLoader.modelData.content || "") : "";
+                            if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
+                                contentRoot.chatRoot.clipboardHelper.text = csv;
+                                contentRoot.chatRoot.clipboardHelper.selectAll();
+                                contentRoot.chatRoot.clipboardHelper.copy();
+                            }
+                            if (contentRoot.chatRoot && contentRoot.chatRoot.customStorageDs) {
+                                let ts = new Date().getTime();
+                                // Use a sanitized timestamp inside a
+                                // hard-coded prefix; the path is then
+                                // routed through validateFilePath to
+                                // reject any unexpected characters.
+                                let path = "/tmp/kdeaichat-table-" + ts + ".csv";
+                                let safePath = Sec.validateFilePath(path);
+                                if (safePath === "")
+                                    return;
+                                let safeCsv = Sec.sanitizeForShell(csv);
+                                contentRoot.chatRoot.customStorageDs.connectSource("bash -c " + Sec.quoteForShell("printf '%s' " + safeCsv + " > " + safePath + " && xdg-open " + safePath) + " #csv-export-" + ts);
                             }
                         }
                     }
+                }
 
-                    TextEdit {
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        textFormat: Text.RichText
-                        text: {
-                            let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
-                            if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
-                                return modelData.contentHtmlCache[darkKey];
-                            }
-                            if (contentRoot.chatRoot) {
-                                let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
-                                if (!modelData.contentHtmlCache) {
-                                    modelData.contentHtmlCache = {};
-                                }
-                                modelData.contentHtmlCache[darkKey] = html;
-                                return html;
-                            }
-                            return "";
+                TextEdit {
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    textFormat: Text.RichText
+                    text: {
+                        let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
+                        if (blockLoader.modelData.contentHtmlCache && blockLoader.modelData.contentHtmlCache[darkKey] !== undefined) {
+                            return blockLoader.modelData.contentHtmlCache[darkKey];
                         }
-                        color: Kirigami.Theme.textColor
-                        readOnly: true
-                        selectByMouse: true
-                        selectByKeyboard: true
-                        selectedTextColor: Kirigami.Theme.highlightedTextColor
-                        selectionColor: Kirigami.Theme.highlightColor
-                        onLinkActivated: function(link) {
-                            let safe = Sec.validateUrl(link);
-                            if (safe !== "")
-                                Qt.openUrlExternally(safe);
+                        if (contentRoot.chatRoot) {
+                            let html = contentRoot.chatRoot.convertMarkdownToHtml(blockLoader.modelData.content || "");
+                            if (!blockLoader.modelData.contentHtmlCache) {
+                                blockLoader.modelData.contentHtmlCache = {};
+                            }
+                            blockLoader.modelData.contentHtmlCache[darkKey] = html;
+                            return html;
                         }
+                        return "";
+                    }
+                    color: Kirigami.Theme.textColor
+                    readOnly: true
+                    selectByMouse: true
+                    selectByKeyboard: true
+                    selectedTextColor: Kirigami.Theme.highlightedTextColor
+                    selectionColor: Kirigami.Theme.highlightColor
+                    onLinkActivated: function(link) {
+                        let safe = Sec.validateUrl(link);
+                        if (safe !== "")
+                            Qt.openUrlExternally(safe);
                     }
                 }
             }

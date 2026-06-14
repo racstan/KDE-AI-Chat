@@ -581,7 +581,7 @@ import "MainDatabase.js" as MainDatabase
                                 // Keep only a small cache — large cacheBuffer forces the engine to
                                 // instantiate hundreds of heavy delegates off-screen, which is the
                                 // primary source of scroll lag.
-                                cacheBuffer: 8000
+                                cacheBuffer: 1500
                                 Component.onCompleted: root.msgListViewRef = msgList
                                 // Track whether user manually scrolled away from bottom.
                                 // onContentYChanged is intentionally omitted: it fires on every
@@ -808,6 +808,7 @@ import "MainDatabase.js" as MainDatabase
                                                     return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16);
                                                 }
                                                 anchors.right: (roleIsUser || roleIsQueued) ? parent.right : undefined
+                                                anchors.rightMargin: (roleIsUser || roleIsQueued) ? Kirigami.Units.largeSpacing + 4 : 0
                                                 anchors.left: (roleIsAssistant || roleIsError || roleIsSpecial) ? parent.left : undefined
 
                                                 Column {
