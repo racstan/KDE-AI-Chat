@@ -3339,7 +3339,7 @@ function checkVoiceEnv() {
     };
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-env-" + Date.now();
+    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-env-" + Date.now();
     sendVoiceCommand(9015, payload, sourceName);
 }
 
@@ -3357,7 +3357,7 @@ function startVoiceRecording() {
     let payload = {cmd: "start_stt", duration: 10, language: lang, model: model, model_path: modelPath};
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stt-" + Date.now();
+    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-stt-" + Date.now();
     sendVoiceCommand(9015, payload, sourceName);
 }
 
@@ -3370,7 +3370,7 @@ function stopVoiceRecording() {
     let payload = {cmd: "stop_stt"};
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stop-" + Date.now();
+    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-stop-" + Date.now();
     sendVoiceCommand(9015, payload, sourceName);
 }
 
@@ -3394,7 +3394,7 @@ function triggerTts(text) {
     };
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-tts-" + Date.now();
+    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-tts-" + Date.now();
     sendVoiceCommand(9016, payload, sourceName);
 }
 
@@ -3405,7 +3405,7 @@ function stopTts() {
     let payload = {cmd: "stop_tts"};
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-stoptts-" + Date.now();
+    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-stoptts-" + Date.now();
     sendVoiceCommand(9016, payload, sourceName);
 }
 
@@ -3416,7 +3416,7 @@ function pauseTts() {
     let payload = {cmd: "pause_tts"};
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-pausetts-" + Date.now();
+    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-pausetts-" + Date.now();
     sendVoiceCommand(9016, payload, sourceName);
 }
 
@@ -3427,7 +3427,7 @@ function resumeTts() {
     let payload = {cmd: "resume_tts"};
     let payloadStr = JSON.stringify(payload);
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-    let sourceName = "sh -c " + Sec.quoteForShell(fullCmd) + " #voice-resumetts-" + Date.now();
+    let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-resumetts-" + Date.now();
     sendVoiceCommand(9016, payload, sourceName);
 }
 

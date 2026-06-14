@@ -1971,8 +1971,10 @@ import "MainDatabase.js" as MainDatabase
                             PC3.ToolButton {
                                 visible: root.ttsPlaying
                                 icon.name: "media-playback-stop"
+                                text: root.translate("Reading Aloud")
+                                display: PC3.AbstractButton.TextBesideIcon
+                                highlighted: !root.ttsPaused
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                                 QQC2.ToolTip.visible: hovered
                                 QQC2.ToolTip.text: root.translate("Stop reading aloud")
                                 Accessible.name: root.translate("Stop TTS")
