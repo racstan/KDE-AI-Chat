@@ -502,7 +502,7 @@ import "MainDatabase.js" as MainDatabase
                                     root.searchQuery = text;
                                     if (root.searchMatches.length > 0) {
                                         root.currentSearchMatchIndex = 0;
-                                        msgList.positionViewAtIndex(root.searchMatches[0], ListView.Center);
+                                        root.positionListViewAtIndex(root.searchMatches[0], ListView.Center);
                                     } else {
                                         root.currentSearchMatchIndex = -1;
                                     }
@@ -573,11 +573,40 @@ import "MainDatabase.js" as MainDatabase
                             ListView {
                                 id: msgList
 
-                                anchors.fill: parent
-                                anchors.margins: Kirigami.Units.smallSpacing
-                                model: root.messages
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.leftMargin: Kirigami.Units.smallSpacing
+                                anchors.topMargin: Kirigami.Units.smallSpacing
+                                anchors.bottomMargin: Kirigami.Units.smallSpacing
+                                anchors.rightMargin: (msgList.contentHeight > msgList.height) ? Kirigami.Units.gridUnit : Kirigami.Units.smallSpacing
+                                model: root.visibleMessages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
+
+                                header: Item {
+                                    width: msgList.width
+                                    height: (root.messages.length > root.visibleMessagesCount) ? Kirigami.Units.gridUnit * 2.5 : 0
+                                    visible: root.messages.length > root.visibleMessagesCount
+                                    clip: true
+
+                                    PC3.Button {
+                                        anchors.centerIn: parent
+                                        text: root.translate("Load further chats")
+                                        icon.name: "view-refresh"
+                                        onClicked: {
+                                            let oldHeight = msgList.contentHeight;
+                                            root.visibleMessagesCount = Math.min(root.messages.length, root.visibleMessagesCount + 30);
+                                            Qt.callLater(function() {
+                                                let diff = msgList.contentHeight - oldHeight;
+                                                if (diff > 0) {
+                                                    msgList.contentY += diff;
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
                                 // Keep only a small cache — large cacheBuffer forces the engine to
                                 // instantiate hundreds of heavy delegates off-screen, which is the
                                 // primary source of scroll lag.
@@ -597,25 +626,7 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                                    id: verticalScrollBar
-                                    policy: QQC2.ScrollBar.AsNeeded
-
-                                    contentItem: Rectangle {
-                                        implicitWidth: 6
-                                        implicitHeight: 48 // Fixed scrollbar handle size
-                                        radius: 3
-                                        color: verticalScrollBar.pressed
-                                            ? Kirigami.Theme.highlightColor
-                                            : (verticalScrollBar.hovered
-                                                ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.5)
-                                                : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25))
-
-                                        y: {
-                                            let sizeLimit = verticalScrollBar.size;
-                                            if (sizeLimit >= 1.0 || verticalScrollBar.height <= height) return 0;
-                                            return (verticalScrollBar.visualPosition / (1.0 - sizeLimit)) * (verticalScrollBar.height - height);
-                                        }
-                                    }
+                                    policy: QQC2.ScrollBar.AlwaysOff
                                 }
 
                                 footer: Item {
@@ -709,9 +720,10 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 delegate: Item {
-                                    property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
+                                    readonly property int originalIndex: index + (root.messages.length - root.visibleMessages.length)
+                                    property bool showDayHeader: originalIndex === 0 || root.messageDayKeyAt(originalIndex) !== root.messageDayKeyAt(originalIndex - 1)
                                     property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData.content && modelData.content.toLowerCase().indexOf(root.searchQuery.toLowerCase()) >= 0
-                                    property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === index
+                                    property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === originalIndex
 
                                      // Cache expensive per-role lookups as readonly properties so they are
                                     // only recomputed when the role changes, not on every frame repaint.
@@ -761,7 +773,7 @@ import "MainDatabase.js" as MainDatabase
                                                     anchors.centerIn: parent
                                                     horizontalAlignment: Text.AlignHCenter
                                                     opacity: 0.78
-                                                    text: root.dayDividerLabelForIndex(index)
+                                                    text: root.dayDividerLabelForIndex(originalIndex)
                                                 }
 
                                             }
@@ -852,7 +864,7 @@ import "MainDatabase.js" as MainDatabase
                                                         }
 
                                                         PC3.Label {
-                                                            text: root.formatMessageTime(modelData, index)
+                                                            text: root.formatMessageTime(modelData, originalIndex)
                                                             opacity: 0.7
                                                             visible: text !== ""
                                                         }
@@ -866,7 +878,7 @@ import "MainDatabase.js" as MainDatabase
                                                     }
 
                                                     Loader {
-                                                        active: root.editingMessageIndex === index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                        active: root.editingMessageIndex === originalIndex && modelData.role !== "error" && modelData.role !== "assistant"
                                                         width: parent.width
 
                                                         sourceComponent: QQC2.TextArea {
@@ -881,7 +893,7 @@ import "MainDatabase.js" as MainDatabase
                                                     // ── Selectable / interactive message body ─────────────────
                                                     MessageContent {
                                                         messageData: modelData
-                                                        messageIndex: index
+                                                        messageIndex: originalIndex
                                                         chatRoot: root
                                                     }
 
@@ -1009,14 +1021,14 @@ import "MainDatabase.js" as MainDatabase
                                                             visible: modelData.status === "pending"
                                                             text: "Compact"
                                                             icon.name: "run-build"
-                                                            onClicked: root.respondToCompactRequest(index, true)
+                                                            onClicked: root.respondToCompactRequest(originalIndex, true)
                                                         }
 
                                                         PC3.Button {
                                                             visible: modelData.status === "pending"
                                                             text: "Cancel"
                                                             icon.name: "dialog-cancel"
-                                                            onClicked: root.respondToCompactRequest(index, false)
+                                                            onClicked: root.respondToCompactRequest(originalIndex, false)
                                                         }
 
                                                         PC3.Label {
@@ -1347,7 +1359,7 @@ import "MainDatabase.js" as MainDatabase
                                                     }
 
                                                     Rectangle {
-                                                        visible: root.editingMessageIndex === index && modelData.role !== "error"
+                                                        visible: root.editingMessageIndex === originalIndex && modelData.role !== "error"
                                                         width: parent.width
                                                         height: editWarn.implicitHeight + Kirigami.Units.smallSpacing * 2
                                                         radius: 6
@@ -1449,19 +1461,19 @@ import "MainDatabase.js" as MainDatabase
                                                         spacing: Kirigami.Units.smallSpacing
 
                                                         PC3.ToolButton {
-                                                            visible: root.editingMessageIndex !== index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                            visible: root.editingMessageIndex !== originalIndex && modelData.role !== "error" && modelData.role !== "assistant"
                                                             icon.name: "document-edit"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
                                                             QQC2.ToolTip.text: modelData.role === "queued" ? "Edit queued message" : "Edit message"
                                                             onClicked: {
-                                                                root.editingMessageIndex = index;
+                                                                root.editingMessageIndex = originalIndex;
                                                                 root.editingDraft = modelData.content;
                                                             }
                                                         }
 
                                                         PC3.ToolButton {
-                                                            visible: root.editingMessageIndex === index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                            visible: root.editingMessageIndex === originalIndex && modelData.role !== "error" && modelData.role !== "assistant"
                                                             icon.name: "dialog-ok-apply"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
@@ -1470,7 +1482,7 @@ import "MainDatabase.js" as MainDatabase
                                                         }
 
                                                         PC3.ToolButton {
-                                                            visible: root.editingMessageIndex === index && modelData.role !== "error" && modelData.role !== "assistant"
+                                                            visible: root.editingMessageIndex === originalIndex && modelData.role !== "error" && modelData.role !== "assistant"
                                                             icon.name: "dialog-cancel"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
@@ -1506,7 +1518,7 @@ import "MainDatabase.js" as MainDatabase
                                                         }
 
                                                         PC3.ToolButton {
-                                                            visible: modelData.role === "user" && root.isLatestUserMessage(index)
+                                                            visible: modelData.role === "user" && root.isLatestUserMessage(originalIndex)
                                                             icon.name: "view-refresh"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
@@ -1518,11 +1530,11 @@ import "MainDatabase.js" as MainDatabase
                                                                 y: parent.height
                                                                 QQC2.MenuItem {
                                                                     text: "Generate shorter reply"
-                                                                    onTriggered: root.regenerateReply(index, "shorter")
+                                                                    onTriggered: root.regenerateReply(originalIndex, "shorter")
                                                                 }
                                                                 QQC2.MenuItem {
                                                                     text: "Generate bigger reply"
-                                                                    onTriggered: root.regenerateReply(index, "longer")
+                                                                    onTriggered: root.regenerateReply(originalIndex, "longer")
                                                                 }
                                                             }
                                                         }
@@ -1547,7 +1559,7 @@ import "MainDatabase.js" as MainDatabase
                                                              display: PC3.AbstractButton.IconOnly
                                                              QQC2.ToolTip.visible: hovered
                                                              QQC2.ToolTip.text: "Fork chat from this message"
-                                                             onClicked: root.forkSession(index)
+                                                             onClicked: root.forkSession(originalIndex)
                                                          }
 
                                                         PC3.ToolButton {
@@ -1555,7 +1567,7 @@ import "MainDatabase.js" as MainDatabase
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
                                                             QQC2.ToolTip.text: modelData.role === "queued" ? "Delete queued message" : "Delete message"
-                                                            onClicked: root.deleteMessage(index)
+                                                            onClicked: root.deleteMessage(originalIndex)
                                                         }
 
                                                     }
@@ -1576,6 +1588,56 @@ import "MainDatabase.js" as MainDatabase
 
                                 }
 
+                            }
+
+                            // Custom Scrollbar Track
+                            Rectangle {
+                                id: scrollTrack
+                                anchors.top: msgList.top
+                                anchors.bottom: msgList.bottom
+                                anchors.right: parent.right
+                                anchors.rightMargin: 2
+                                width: 6
+                                color: "transparent"
+                                visible: msgList.contentHeight > msgList.height
+
+                                // Custom Scrollbar Handle
+                                Rectangle {
+                                    id: scrollHandle
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: 6
+                                    height: 48 // Fixed scrollbar handle size
+                                    radius: 3
+                                    color: handleMouseArea.pressed
+                                        ? Kirigami.Theme.highlightColor
+                                        : (handleMouseArea.containsMouse
+                                            ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.5)
+                                            : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25))
+
+                                    y: {
+                                        if (msgList.contentHeight <= msgList.height) return 0;
+                                        let progress = msgList.contentY / (msgList.contentHeight - msgList.height);
+                                        progress = Math.max(0.0, Math.min(1.0, progress));
+                                        return progress * (scrollTrack.height - height);
+                                    }
+
+                                    MouseArea {
+                                        id: handleMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        drag.target: scrollHandle
+                                        drag.axis: Drag.YAxis
+                                        drag.minimumY: 0
+                                        drag.maximumY: scrollTrack.height - scrollHandle.height
+
+                                        onPositionChanged: {
+                                            if (drag.active) {
+                                                let progress = scrollHandle.y / (scrollTrack.height - scrollHandle.height);
+                                                msgList.contentY = progress * (msgList.contentHeight - msgList.height);
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                         }

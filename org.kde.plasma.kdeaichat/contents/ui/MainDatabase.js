@@ -55,7 +55,7 @@ function searchNext() {
 if (root.searchMatches.length === 0) return;
 root.currentSearchMatchIndex = (root.currentSearchMatchIndex + 1) % root.searchMatches.length;
 if (root.msgListViewRef) {
-root.msgListViewRef.positionViewAtIndex(root.searchMatches[root.currentSearchMatchIndex], ListView.Center);
+root.positionListViewAtIndex(root.searchMatches[root.currentSearchMatchIndex], ListView.Center);
 }
 }
 
@@ -64,7 +64,7 @@ function searchPrev() {
 if (root.searchMatches.length === 0) return;
 root.currentSearchMatchIndex = (root.currentSearchMatchIndex - 1 + root.searchMatches.length) % root.searchMatches.length;
 if (root.msgListViewRef) {
-root.msgListViewRef.positionViewAtIndex(root.searchMatches[root.currentSearchMatchIndex], ListView.Center);
+root.positionListViewAtIndex(root.searchMatches[root.currentSearchMatchIndex], ListView.Center);
 }
 }
 
@@ -1540,9 +1540,10 @@ function scrollToMessageByTimestamp(timestamp) {
 if (!root.messages) return;
 for (let i = 0; i < root.messages.length; i++) {
 if (root.messages[i].at === timestamp) {
+root.positionListViewAtIndex(i, ListView.Center);
 if (root.msgListViewRef) {
-root.msgListViewRef.currentIndex = i;
-root.msgListViewRef.positionViewAtIndex(i, ListView.Center);
+let localIdx = i - (root.messages.length - root.visibleMessagesCount);
+root.msgListViewRef.currentIndex = localIdx;
 }
 break;
 }
@@ -1610,7 +1611,7 @@ if (!root.msgListViewRef || root.messages.length === 0)
 return ;
 let currentTop = -1;
 for (let offset = 15; offset <= 100; offset += 20) {
-currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset);
+currentTop = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
 if (currentTop >= 0)
 break;
 }
@@ -1626,7 +1627,7 @@ break;
 }
 if (target >= 0) {
 root.userScrolledUp = true;
-root.msgListViewRef.positionViewAtIndex(target, ListView.Beginning);
+root.positionListViewAtIndex(target, ListView.Beginning);
 } else {
 root.userScrolledUp = true;
 root.msgListViewRef.positionViewAtBeginning();
@@ -1639,7 +1640,7 @@ if (!root.msgListViewRef || root.messages.length === 0)
 return ;
 let currentTop = -1;
 for (let offset = 15; offset <= 100; offset += 20) {
-currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset);
+currentTop = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
 if (currentTop >= 0)
 break;
 }
@@ -1668,7 +1669,7 @@ root.scrollToBottom();
 }
 } else {
 root.userScrolledUp = true;
-root.msgListViewRef.positionViewAtIndex(target, ListView.Beginning);
+root.positionListViewAtIndex(target, ListView.Beginning);
 }
 } else {
 if (root.userScrolledUp) {
