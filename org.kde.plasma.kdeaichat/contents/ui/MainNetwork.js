@@ -1,6 +1,7 @@
-.import "Security.js" as Sec
-
 // MainNetwork.js - Extracted logic for Main
+// NOTE: Security.js is imported in main.qml as "Sec" and is accessible here
+// via the QML component scope. Do NOT use .import here — it is a QML-only
+// directive and causes a syntax error in plain JS files.
 
 function base64Encode(str) {
 try {
@@ -59,8 +60,14 @@ root.messages = root.messages.concat([{
 "at": ts,
 "model": ""
 }]);
-scrollToBottom();
-saveCurrentSessionState(true);
+if (!root.userScrolledUp)
+    Qt.callLater(scrollToBottom);
+// Debounce the session save to avoid blocking the main thread
+if (root.deferSaveStateTimer) {
+    root.deferSaveStateTimer.restart();
+} else {
+    Qt.callLater(function() { saveCurrentSessionState(true); });
+}
 // If the last user message was a schedule, show a desktop notification of the execution failure!
 let isSched = false;
 for (let i = root.messages.length - 1; i >= 0; i--) {

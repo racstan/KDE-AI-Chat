@@ -1038,10 +1038,22 @@ PlasmoidItem {
                 }
             }
         }
+        // Only re-parse blocks and update read count when not actively streaming.
+        // During streaming, streamingContent drives rendering — no full message parse needed.
+        // flushStreamingBuffer() sets streamingResponse=false before writing, so the final
+        // message IS parsed. Individual streaming tokens (streamingResponse=true) are skipped.
+        if (!root.streamingResponse) {
+            for (let i = 0; i < root.messages.length; i++) {
+                let m = root.messages[i];
+                if (m && m.content !== undefined && (m.blocks === undefined || m.lastParsedContent !== m.content)) {
+                    m.blocks = root.parseMessageBlocks(m.content);
+                    m.lastParsedContent = m.content;
+                }
+            }
+            Qt.callLater(checkAndMarkCurrentSessionAsRead);
+        }
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom);
-
-        Qt.callLater(checkAndMarkCurrentSessionAsRead);
     }
 
     MainDataSources {
