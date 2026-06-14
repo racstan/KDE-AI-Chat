@@ -303,6 +303,10 @@
       <default>true</default>
     </entry>
 
+    <entry name="enablePerformanceEnhancements" type="Bool">
+      <default>true</default>
+    </entry>
+
     <entry name="autoStartOpenCodeServer" type="Bool">
       <default>false</default>
     </entry>

@@ -132,6 +132,7 @@ QQC2.ScrollView {
     property alias cfg_schedulerEnabled: advancedSection.schedulerEnabled
     property alias cfg_schedulerAutoStart: advancedSection.schedulerAutoStart
     property alias cfg_executeMissedSchedules: advancedSection.executeMissedSchedules
+    property alias cfg_enablePerformanceEnhancements: advancedSection.enablePerformanceEnhancements
     property alias cfg_askClearChatConfirmation: advancedSection.askClearChatConfirmation
     property alias cfg_askDeleteChatConfirmation: advancedSection.askDeleteChatConfirmation
     property string cfg_preselectedChatId: ""

@@ -573,12 +573,51 @@ import "MainDatabase.js" as MainDatabase
                             ListView {
                                 id: msgList
 
-                                anchors.fill: parent
-                                anchors.margins: Kirigami.Units.smallSpacing
-                                model: root.messages
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.leftMargin: Kirigami.Units.smallSpacing
+                                anchors.topMargin: Kirigami.Units.smallSpacing
+                                anchors.bottomMargin: Kirigami.Units.smallSpacing
+                                anchors.rightMargin: Kirigami.Units.gridUnit
+                                model: root.configPerformanceEnhancements ? root.visibleMessages : root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 600
+
+                                header: Item {
+                                    width: msgList.width
+                                    height: root.configPerformanceEnhancements && (root.messages.length > root.visibleMessagesCount) ? Kirigami.Units.gridUnit * 2.5 : 0
+                                    visible: root.configPerformanceEnhancements && root.messages.length > root.visibleMessagesCount
+                                    clip: true
+
+                                    PC3.Button {
+                                        anchors.centerIn: parent
+                                        text: root.translate("Load further chats")
+                                        icon.name: "view-refresh"
+                                        onClicked: {
+                                            let oldHeight = msgList.contentHeight;
+                                            root.visibleMessagesCount = Math.min(root.messages.length, root.visibleMessagesCount + 30);
+                                            Qt.callLater(function() {
+                                                let diff = msgList.contentHeight - oldHeight;
+                                                if (diff > 0) {
+                                                    msgList.contentY += diff;
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                                // Keep several viewports of off-screen delegates alive so
+                                // scrolling does not constantly create/destroy heavy RichText
+                                // items (the main source of perceived page lag).
+                                cacheBuffer: root.configPerformanceEnhancements ? Math.max(msgList.height * 3, 4000) : 600
+                                // Recycle delegate instances instead of destroying/creating
+                                // them on every scroll; huge win for heavy RichText items.
+                                reuseItems: root.configPerformanceEnhancements
+                                // Cap flick speed so the CPU-heavy RichText renderer never
+                                // tries to keep up with an overly aggressive scroll velocity.
+                                maximumFlickVelocity: root.configPerformanceEnhancements ? 1600 : 2500
+                                flickDeceleration: root.configPerformanceEnhancements ? 1200 : 1500
                                 Component.onCompleted: root.msgListViewRef = msgList
                                 onMovementStarted: {
                                     if (!msgList.atYEnd)
@@ -590,8 +629,7 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                                    id: verticalScrollBar
-                                    policy: QQC2.ScrollBar.AsNeeded
+                                    policy: root.configPerformanceEnhancements ? QQC2.ScrollBar.AlwaysOff : QQC2.ScrollBar.AsNeeded
                                 }
 
                                 footer: Item {
@@ -685,9 +723,14 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 delegate: Item {
-                                    readonly property int originalIndex: index
-                                    readonly property bool showDayHeader: !!(modelData && modelData.showDayHeader)
+                                    readonly property int originalIndex: root.configPerformanceEnhancements ? index + (root.messages.length - root.visibleMessages.length) : index
+                                    readonly property bool showDayHeader: root.configPerformanceEnhancements ? (originalIndex === 0 || root.messageDayKeyAt(originalIndex) !== root.messageDayKeyAt(originalIndex - 1)) : !!(modelData && modelData.showDayHeader)
                                     readonly property string searchNeedle: root.searchQuery.trim().toLowerCase()
+
+                                    // Cache each delegate as a GPU texture so scrolling only
+                                    // moves textures instead of re-rendering RichText every frame.
+                                    layer.enabled: root.configPerformanceEnhancements
+                                    layer.smooth: false
                                     property bool isSearchMatch: root.searchBarActive && searchNeedle !== "" && modelData && modelData.searchText && modelData.searchText.indexOf(searchNeedle) >= 0
                                     property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === originalIndex
 
@@ -1554,6 +1597,66 @@ import "MainDatabase.js" as MainDatabase
 
                                 }
 
+                            }
+
+                            // Custom Scrollbar Track
+                            Rectangle {
+                                id: scrollTrack
+                                anchors.top: msgList.top
+                                anchors.bottom: msgList.bottom
+                                anchors.right: parent.right
+                                anchors.rightMargin: 2
+                                width: 6
+                                color: "transparent"
+                                visible: root.configPerformanceEnhancements && msgList.contentHeight > msgList.height
+
+                                // Custom Scrollbar Handle
+                                Rectangle {
+                                    id: scrollHandle
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: 6
+                                    height: 48 // Fixed scrollbar handle size
+                                    radius: 3
+                                    color: handleMouseArea.pressed
+                                        ? Kirigami.Theme.highlightColor
+                                        : (handleMouseArea.containsMouse
+                                            ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.5)
+                                            : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25))
+
+                                    Binding {
+                                        target: scrollHandle
+                                        property: "y"
+                                        when: !handleMouseArea.drag.active
+                                        value: {
+                                            // Use visibleArea instead of raw contentY/contentHeight.
+                                            // visibleArea is normalized by the ListView and stays stable
+                                            // even when off-screen delegate heights fluctuate.
+                                            let ratio = msgList.visibleArea.heightRatio;
+                                            if (ratio >= 1.0) return 0;
+                                            let progress = msgList.visibleArea.yPosition / (1.0 - ratio);
+                                            progress = Math.max(0.0, Math.min(1.0, progress));
+                                            return progress * (scrollTrack.height - scrollHandle.height);
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: handleMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        drag.target: scrollHandle
+                                        drag.axis: Drag.YAxis
+                                        drag.minimumY: 0
+                                        drag.maximumY: scrollTrack.height - scrollHandle.height
+
+                                        onPositionChanged: {
+                                            if (drag.active) {
+                                                let progress = scrollHandle.y / (scrollTrack.height - scrollHandle.height);
+                                                let ratio = msgList.visibleArea.heightRatio;
+                                                msgList.contentY = progress * (msgList.contentHeight - msgList.height);
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                         }
