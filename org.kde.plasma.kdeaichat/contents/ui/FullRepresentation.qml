@@ -581,7 +581,7 @@ import "MainDatabase.js" as MainDatabase
                                 // Keep only a small cache — large cacheBuffer forces the engine to
                                 // instantiate hundreds of heavy delegates off-screen, which is the
                                 // primary source of scroll lag.
-                                cacheBuffer: 600
+                                cacheBuffer: 8000
                                 Component.onCompleted: root.msgListViewRef = msgList
                                 // Track whether user manually scrolled away from bottom.
                                 // onContentYChanged is intentionally omitted: it fires on every

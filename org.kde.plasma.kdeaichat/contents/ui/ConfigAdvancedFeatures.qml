@@ -1786,6 +1786,14 @@ QQC2.ScrollView {
                                 }
 
                                 QQC2.MenuItem {
+                                    text: i18n("Hugging Face Phonemizer Models")
+                                    icon.name: "internet-services"
+                                    onTriggered: {
+                                        Qt.openUrlExternally("https://huggingface.co/models?search=phonemizer");
+                                    }
+                                }
+
+                                QQC2.MenuItem {
                                     text: i18n("Hugging Face Grapheme-to-Phoneme Models")
                                     icon.name: "internet-services"
                                     onTriggered: {

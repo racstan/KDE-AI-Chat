@@ -1,7 +1,4 @@
-// MainNetwork.js - Extracted logic for Main
-// NOTE: Security.js is imported in main.qml as "Sec" and is accessible here
-// via the QML component scope. Do NOT use .import here — it is a QML-only
-// directive and causes a syntax error in plain JS files.
+.import "Security.js" as Sec
 
 function base64Encode(str) {
 try {

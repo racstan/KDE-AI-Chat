@@ -578,8 +578,10 @@ class VoiceHelper:
 
         def do_tts():
             try:
-                # Fetch payload values locally to prevent enclosing scope assignment/UnboundLocalError
-                text = payload.get("text", "")
+                raw_text = payload.get("text", "")
+                import re
+                emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]")
+                text = emoji_pattern.sub("", raw_text)
                 voice = payload.get("voice", "af_heart")
                 lang_code = payload.get("lang_code", "a")
                 custom_model_path = payload.get("model_path", "")

@@ -205,7 +205,21 @@ Column {
                 width: parent.width
                 wrapMode: Text.Wrap
                 textFormat: Text.RichText
-                text: contentRoot.chatRoot ? contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "") : ""
+                text: {
+                    let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
+                    if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
+                        return modelData.contentHtmlCache[darkKey];
+                    }
+                    if (contentRoot.chatRoot) {
+                        let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
+                        if (!modelData.contentHtmlCache) {
+                            modelData.contentHtmlCache = {};
+                        }
+                        modelData.contentHtmlCache[darkKey] = html;
+                        return html;
+                    }
+                    return "";
+                }
                 color: Kirigami.Theme.textColor
                 readOnly: true
                 selectByMouse: true
@@ -361,7 +375,21 @@ Column {
                         width: parent.width
                         wrapMode: Text.Wrap
                         textFormat: Text.RichText
-                        text: contentRoot.chatRoot ? contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "") : ""
+                        text: {
+                            let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
+                            if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
+                                return modelData.contentHtmlCache[darkKey];
+                            }
+                            if (contentRoot.chatRoot) {
+                                let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
+                                if (!modelData.contentHtmlCache) {
+                                    modelData.contentHtmlCache = {};
+                                }
+                                modelData.contentHtmlCache[darkKey] = html;
+                                return html;
+                            }
+                            return "";
+                        }
                         color: Kirigami.Theme.textColor
                         readOnly: true
                         selectByMouse: true
