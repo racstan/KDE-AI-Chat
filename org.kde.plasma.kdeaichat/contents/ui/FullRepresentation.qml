@@ -598,6 +598,24 @@ import "MainDatabase.js" as MainDatabase
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
                                     id: verticalScrollBar
+                                    policy: QQC2.ScrollBar.AsNeeded
+
+                                    contentItem: Rectangle {
+                                        implicitWidth: 6
+                                        implicitHeight: 48 // Fixed scrollbar handle size
+                                        radius: 3
+                                        color: verticalScrollBar.pressed
+                                            ? Kirigami.Theme.highlightColor
+                                            : (verticalScrollBar.hovered
+                                                ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.5)
+                                                : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25))
+
+                                        y: {
+                                            let sizeLimit = verticalScrollBar.size;
+                                            if (sizeLimit >= 1.0 || verticalScrollBar.height <= height) return 0;
+                                            return (verticalScrollBar.visualPosition / (1.0 - sizeLimit)) * (verticalScrollBar.height - height);
+                                        }
+                                    }
                                 }
 
                                 footer: Item {
