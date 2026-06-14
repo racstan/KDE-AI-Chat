@@ -580,7 +580,7 @@ import "MainDatabase.js" as MainDatabase
                                 anchors.leftMargin: Kirigami.Units.smallSpacing
                                 anchors.topMargin: Kirigami.Units.smallSpacing
                                 anchors.bottomMargin: Kirigami.Units.smallSpacing
-                                anchors.rightMargin: (msgList.contentHeight > msgList.height) ? Kirigami.Units.gridUnit : Kirigami.Units.smallSpacing
+                                anchors.rightMargin: Kirigami.Units.gridUnit
                                 model: root.visibleMessages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
@@ -1614,11 +1614,16 @@ import "MainDatabase.js" as MainDatabase
                                             ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.5)
                                             : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25))
 
-                                    y: {
-                                        if (msgList.contentHeight <= msgList.height) return 0;
-                                        let progress = msgList.contentY / (msgList.contentHeight - msgList.height);
-                                        progress = Math.max(0.0, Math.min(1.0, progress));
-                                        return progress * (scrollTrack.height - height);
+                                    Binding {
+                                        target: scrollHandle
+                                        property: "y"
+                                        when: !handleMouseArea.drag.active
+                                        value: {
+                                            if (msgList.contentHeight <= msgList.height) return 0;
+                                            let progress = msgList.contentY / (msgList.contentHeight - msgList.height);
+                                            progress = Math.max(0.0, Math.min(1.0, progress));
+                                            return progress * (scrollTrack.height - scrollHandle.height);
+                                        }
                                     }
 
                                     MouseArea {

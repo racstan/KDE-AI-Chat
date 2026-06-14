@@ -689,7 +689,11 @@ Item {
                     if (!line) continue;
                     try {
                         let resp = JSON.parse(line);
-                        MainDatabase.handleVoiceResponse(resp, sourceName);
+                        try {
+                            MainDatabase.handleVoiceResponse(resp, sourceName);
+                        } catch (respErr) {
+                            console.error("voiceDs: handleVoiceResponse threw for line, skipping:", respErr, line);
+                        }
                     } catch (e) {
                         // skip non-JSON lines
                     }
@@ -707,38 +711,77 @@ Item {
 
     Timer {
         id: voiceStatusPollTimer
-        interval: 250
+        interval: 500
         repeat: true
+        property int _consecutivePollFailures: 0
+        readonly property int _pollFailureThreshold: 4
         running: root.voiceRecording || root.ttsPlaying
         onTriggered: {
             let port = root.voiceRecording ? 9015 : 9016;
             let xhr = new XMLHttpRequest();
             xhr.open("GET", "http://127.0.0.1:" + port + "/status", true);
             xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (xhr.status === 200) {
-                        try {
-                            let resp = JSON.parse(xhr.responseText);
-                            if (root.voiceRecording) {
-                                MainDatabase.handleVoiceResponse({
-                                    "type": "stt_status",
-                                    "status": resp.status,
-                                    "countdown": resp.countdown
-                                }, "");
-                            } else if (root.ttsPlaying) {
-                                MainDatabase.handleVoiceResponse({
-                                    "type": "tts_status",
-                                    "status": resp.status
-                                }, "");
-                            }
-                        } catch (e) {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                if (xhr.status === 200) {
+                    voiceStatusPollTimer._consecutivePollFailures = 0;
+                    try {
+                        let resp = JSON.parse(xhr.responseText);
+                        if (root.voiceRecording) {
+                            MainDatabase.handleVoiceResponse({
+                                "type": "stt_status",
+                                "status": resp.status,
+                                "countdown": resp.countdown
+                            }, "");
+                        } else if (root.ttsPlaying) {
+                            MainDatabase.handleVoiceResponse({
+                                "type": "tts_status",
+                                "status": resp.status
+                            }, "");
                         }
+                    } catch (e) {
+                    }
+                    return;
+                }
+                voiceStatusPollTimer._consecutivePollFailures++;
+                if (voiceStatusPollTimer._consecutivePollFailures
+                        >= voiceStatusPollTimer._pollFailureThreshold) {
+                    voiceStatusPollTimer._consecutivePollFailures = 0;
+                    if (root.ttsPlaying) {
+                        root.ttsPlaying = false;
+                        root.ttsPaused = false;
+                        root.voiceTtsStatus = "";
+                        root.pushErrorMessage("Voice playback daemon stopped responding. Resetting TTS state.");
+                    } else if (root.voiceRecording) {
+                        root.voiceRecording = false;
+                        root.voiceSttStatus = "";
+                        root.voiceSttTestResult = "Error: STT daemon stopped responding";
+                        root.pushErrorMessage("Voice recording daemon stopped responding. Resetting STT state.");
                     }
                 }
             };
+            xhr.onerror = function() {
+                voiceStatusPollTimer._consecutivePollFailures++;
+                if (voiceStatusPollTimer._consecutivePollFailures
+                        >= voiceStatusPollTimer._pollFailureThreshold) {
+                    voiceStatusPollTimer._consecutivePollFailures = 0;
+                    if (root.ttsPlaying) {
+                        root.ttsPlaying = false;
+                        root.ttsPaused = false;
+                        root.voiceTtsStatus = "";
+                        root.pushErrorMessage("Voice playback daemon unreachable. Resetting TTS state.");
+                    } else if (root.voiceRecording) {
+                        root.voiceRecording = false;
+                        root.voiceSttStatus = "";
+                        root.voiceSttTestResult = "Error: STT daemon unreachable";
+                        root.pushErrorMessage("Voice recording daemon unreachable. Resetting STT state.");
+                    }
+                }
+            };
+            xhr.ontimeout = xhr.onerror;
             try {
                 xhr.send();
             } catch (e) {
+                voiceStatusPollTimer._consecutivePollFailures++;
             }
         }
     }

@@ -180,7 +180,10 @@ arr[i].messages[j].time = nowTime(arr[i].messages[j].at);
 // This stabilises delegate heights and stops the scrollbar thumb
 // from resizing while scrolling.
 if (!arr[i].messages[j].blocks && arr[i].messages[j].content) {
-    try { arr[i].messages[j].blocks = parseMessageBlocks(arr[i].messages[j].content); } catch(_) {}
+try {
+arr[i].messages[j].blocks = parseMessageBlocks(arr[i].messages[j].content);
+arr[i].messages[j].lastParsedContent = arr[i].messages[j].content;
+} catch(_) {}
 }
 }
 if (!arr[i].updatedAt)
@@ -372,13 +375,31 @@ sortSessionsByUpdated();
 }
 
 
+let _saveStateDirty = false;
+let _saveStateTouch = false;
+
 function saveCurrentSessionState(touchUpdatedAt) {
+if (touchUpdatedAt !== false) _saveStateTouch = true;
+if (_saveStateDirty) {
+persistSessions();
+return;
+}
+_saveStateDirty = true;
+Qt.callLater(function() {
+_saveStateDirty = false;
+let doTouch = _saveStateTouch;
+_saveStateTouch = false;
+_saveCurrentSessionStateImpl(doTouch);
+});
+persistSessions();
+}
+
+function _saveCurrentSessionStateImpl(touchUpdatedAt) {
 let idx = sessionIndexById(root.currentSessionId);
 if (idx < 0)
 return ;
 let updated = root.sessions.slice();
-let s = Object.assign({
-}, updated[idx]);
+let s = Object.assign({}, updated[idx]);
 s.text = root.currentSessionTitle || "New Chat";
 s.messages = root.messages;
 if (root.expanded && !root.historyOnlyMode)
@@ -388,10 +409,16 @@ s.readCount = s.readCount !== undefined ? s.readCount : root.messages.length;
 if (touchUpdatedAt !== false)
 s.updatedAt = Date.now();
 updated[idx] = s;
+let prev = root.sessions[idx];
+if (prev && s.text === prev.text
+&& s.messages === prev.messages
+&& s.readCount === prev.readCount
+&& (touchUpdatedAt === false || s.updatedAt === prev.updatedAt)) {
+return;
+}
 root.sessions = updated;
 if (touchUpdatedAt !== false)
 sortSessionsByUpdated();
-persistSessions();
 }
 
 
@@ -2649,7 +2676,7 @@ if (idx < 0)
 return ;
 // Pre-compute blocks so MessageContent.qml reads a static cached array.
 if (!msgObj.blocks && msgObj.content) {
-    try { msgObj.blocks = parseMessageBlocks(msgObj.content); } catch(_) {}
+try { msgObj.blocks = parseMessageBlocks(msgObj.content); msgObj.lastParsedContent = msgObj.content; } catch(_) {}
 }
 let updated = root.sessions.slice();
 let s = Object.assign({
@@ -3279,7 +3306,7 @@ let newMsg = {
 "contextItems": ctx
 };
 // Pre-compute blocks so MessageContent.qml reads a static cached array.
-try { newMsg.blocks = parseMessageBlocks(text); } catch(_) {}
+try { newMsg.blocks = parseMessageBlocks(text); newMsg.lastParsedContent = text; } catch(_) {}
 root.messages = root.messages.concat([newMsg]);
 if (!root.userScrolledUp)
 Qt.callLater(scrollToBottom);

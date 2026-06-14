@@ -1,5 +1,3 @@
-.import "Security.js" as Sec
-
 function base64Encode(str) {
 try {
 return Qt.btoa(unescape(encodeURIComponent(str)));
@@ -25,26 +23,26 @@ return "";
 
 
 function finishOpenCodeRequest() {
-    flushStreamingBuffer();
-    root.loading = false;
-    root.activeXhr = null;
-    root.openCodeActiveSessionId = "";
-    root.openCodeAssistantMessageIndex = -1;
-    root.openCodeAssistantServerMessageId = "";
-    root.openCodeErrorShownForRequest = false;
-    root.streamingResponse = false;
-    saveCurrentSessionState(true);
-    triggerNotificationSound();
-    
-    if (plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
-        let lastMsg = root.messages[root.messages.length - 1];
-        if (lastMsg && lastMsg.role === "assistant" && lastMsg.content) {
-            MainDatabase.triggerTts(lastMsg.content);
-        }
-    }
-
-    resetOpenCodeIdleKillTimer();
-    processNextQueuedMessage();
+root.loading = false;
+root.activeXhr = null;
+root.openCodeActiveSessionId = "";
+root.openCodeAssistantMessageIndex = -1;
+root.openCodeAssistantServerMessageId = "";
+root.openCodeErrorShownForRequest = false;
+root.streamingResponse = false;
+try { flushStreamingBuffer(); } catch (e) { console.error("finishOpenCodeRequest: flushStreamingBuffer failed:", e); }
+try { saveCurrentSessionState(true); } catch (e) { console.error("finishOpenCodeRequest: saveCurrentSessionState failed:", e); }
+try { triggerNotificationSound(); } catch (e) { console.error("finishOpenCodeRequest: triggerNotificationSound failed:", e); }
+try {
+if (plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
+let lastMsg = root.messages[root.messages.length - 1];
+if (lastMsg && lastMsg.role === "assistant" && lastMsg.content) {
+try { MainDatabase.triggerTts(lastMsg.content); } catch (e) { console.error("finishOpenCodeRequest: triggerTts failed:", e); }
+}
+}
+} catch (e) { console.error("finishOpenCodeRequest: TTS gate check failed:", e); }
+try { resetOpenCodeIdleKillTimer(); } catch (e) { console.error("finishOpenCodeRequest: resetOpenCodeIdleKillTimer failed:", e); }
+try { processNextQueuedMessage(); } catch (e) { console.error("finishOpenCodeRequest: processNextQueuedMessage failed:", e); }
 }
 
 
@@ -480,11 +478,18 @@ return ;
 root.loading = true;
 root.activeXhr = xhr;
 beginAssistantStreaming(model || "");
+try {
 xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
 xhr.setRequestHeader("Content-Type", "application/json");
 xhr.setRequestHeader("x-api-key", apiKey);
 xhr.setRequestHeader("anthropic-version", "2023-06-01");
 xhr.timeout = 90000;
+} catch (setupError) {
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+pushErrorMessage("Failed to start Anthropic request: " + setupError);
+return ;
+}
 xhr.ontimeout = function() {
 if (errorHandled)
 return ;
@@ -539,6 +544,7 @@ root.reqDedupRelease(dedupKey);
 finishOpenCodeRequest();
 pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages.");
 };
+try {
 xhr.send(JSON.stringify({
 "model": model,
 "max_tokens": 1024,
@@ -546,5 +552,10 @@ xhr.send(JSON.stringify({
 "messages": buildAnthropicPayload(),
 "stream": true
 }));
+} catch (sendError) {
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+pushErrorMessage("Failed to send Anthropic request: " + sendError);
+}
 }
 

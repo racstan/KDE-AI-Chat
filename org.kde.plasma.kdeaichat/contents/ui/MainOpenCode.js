@@ -1,4 +1,3 @@
-.import "Security.js" as Sec
 // MainOpenCode.js - Extracted logic for Main
 
 function openCodeBaseUrl() {

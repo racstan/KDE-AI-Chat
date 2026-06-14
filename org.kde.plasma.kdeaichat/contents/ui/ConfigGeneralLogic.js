@@ -1,7 +1,3 @@
-.import "Security.js" as Sec
-.import "translations.js" as Translations
-.import "ProviderService.js" as ProviderService
-.import "WalletService.js" as WalletService
 // ConfigGeneralLogic.js - Extracted logic for ConfigGeneral
 //
 // LINKAGE RELATIONSHIPS:
