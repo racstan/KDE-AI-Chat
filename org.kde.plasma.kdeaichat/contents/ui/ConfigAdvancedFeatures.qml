@@ -1767,11 +1767,39 @@ QQC2.ScrollView {
                         }
 
                         QQC2.Button {
+                            id: downloadPhonemizerBtn
                             text: i18n("Download")
                             icon.name: "help-about"
-                            QQC2.ToolTip.text: i18n("Open eSpeak-NG website to download the phonemizer")
-                            onClicked: {
-                                Qt.openUrlExternally("https://github.com/espeak-ng/espeak-ng");
+                            QQC2.ToolTip.text: i18n("Choose a phonemizer source to download")
+                            onClicked: downloadMenu.open()
+
+                            QQC2.Menu {
+                                id: downloadMenu
+                                y: parent.height
+
+                                QQC2.MenuItem {
+                                    text: i18n("eSpeak-NG (Default GitHub)")
+                                    icon.name: "help-about"
+                                    onTriggered: {
+                                        Qt.openUrlExternally("https://github.com/espeak-ng/espeak-ng");
+                                    }
+                                }
+
+                                QQC2.MenuItem {
+                                    text: i18n("Hugging Face Grapheme-to-Phoneme Models")
+                                    icon.name: "internet-services"
+                                    onTriggered: {
+                                        Qt.openUrlExternally("https://huggingface.co/models?search=grapheme-to-phoneme");
+                                    }
+                                }
+
+                                QQC2.MenuItem {
+                                    text: i18n("Hugging Face Phoneme Recognition Models")
+                                    icon.name: "internet-services"
+                                    onTriggered: {
+                                        Qt.openUrlExternally("https://huggingface.co/models?search=phoneme-recognition");
+                                    }
+                                }
                             }
                         }
 
