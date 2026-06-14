@@ -253,12 +253,11 @@ Item {
     Timer {
         id: schedulerPollTimer
 
-        // Poll every 5 s (was 3 s). Each trigger spawns a Python subprocess;
-        // reducing frequency halves the background CPU cost while keeping
-        // schedule latency acceptably low.
-        interval: 5000
+        // Keep schedules functional while the popup is closed, but avoid
+        // spawning the helper at interactive frequency in the background.
+        interval: root.expanded ? 5000 : 15000
         repeat: true
-        running: root.expanded
+        running: plasmoid.configuration.schedulerEnabled
         triggeredOnStart: true
         onTriggered: {
             if (root.schedPolling)
@@ -711,11 +710,33 @@ Item {
 
     Timer {
         id: voiceStatusPollTimer
-        interval: 500
+        interval: (root.voiceSttStatus === "starting_daemon"
+            || root.voiceSttStatus === "loading_model"
+            || root.voiceSttStatus === "transcribing"
+            || root.voiceTtsStatus === "starting_daemon") ? 500 : 1500
         repeat: true
         property int _consecutivePollFailures: 0
         readonly property int _pollFailureThreshold: 4
         running: root.voiceRecording || root.ttsPlaying
+
+        function notePollFailure(message) {
+            voiceStatusPollTimer._consecutivePollFailures++;
+            if (voiceStatusPollTimer._consecutivePollFailures
+                    < voiceStatusPollTimer._pollFailureThreshold) {
+                return;
+            }
+            voiceStatusPollTimer._consecutivePollFailures = 0;
+            if (root.ttsPlaying) {
+                root.ttsPlaying = false;
+                root.ttsPaused = false;
+                root.voiceTtsStatus = message;
+            } else if (root.voiceRecording) {
+                root.voiceRecording = false;
+                root.voiceSttStatus = "";
+                root.voiceSttTestResult = "Error: " + message;
+            }
+        }
+
         onTriggered: {
             let port = root.voiceRecording ? 9015 : 9016;
             let xhr = new XMLHttpRequest();
@@ -742,46 +763,16 @@ Item {
                     }
                     return;
                 }
-                voiceStatusPollTimer._consecutivePollFailures++;
-                if (voiceStatusPollTimer._consecutivePollFailures
-                        >= voiceStatusPollTimer._pollFailureThreshold) {
-                    voiceStatusPollTimer._consecutivePollFailures = 0;
-                    if (root.ttsPlaying) {
-                        root.ttsPlaying = false;
-                        root.ttsPaused = false;
-                        root.voiceTtsStatus = "";
-                        root.pushErrorMessage("Voice playback daemon stopped responding. Resetting TTS state.");
-                    } else if (root.voiceRecording) {
-                        root.voiceRecording = false;
-                        root.voiceSttStatus = "";
-                        root.voiceSttTestResult = "Error: STT daemon stopped responding";
-                        root.pushErrorMessage("Voice recording daemon stopped responding. Resetting STT state.");
-                    }
-                }
+                voiceStatusPollTimer.notePollFailure("daemon stopped responding");
             };
             xhr.onerror = function() {
-                voiceStatusPollTimer._consecutivePollFailures++;
-                if (voiceStatusPollTimer._consecutivePollFailures
-                        >= voiceStatusPollTimer._pollFailureThreshold) {
-                    voiceStatusPollTimer._consecutivePollFailures = 0;
-                    if (root.ttsPlaying) {
-                        root.ttsPlaying = false;
-                        root.ttsPaused = false;
-                        root.voiceTtsStatus = "";
-                        root.pushErrorMessage("Voice playback daemon unreachable. Resetting TTS state.");
-                    } else if (root.voiceRecording) {
-                        root.voiceRecording = false;
-                        root.voiceSttStatus = "";
-                        root.voiceSttTestResult = "Error: STT daemon unreachable";
-                        root.pushErrorMessage("Voice recording daemon unreachable. Resetting STT state.");
-                    }
-                }
+                voiceStatusPollTimer.notePollFailure("daemon unreachable");
             };
             xhr.ontimeout = xhr.onerror;
             try {
                 xhr.send();
             } catch (e) {
-                voiceStatusPollTimer._consecutivePollFailures++;
+                voiceStatusPollTimer.notePollFailure("daemon command failed");
             }
         }
     }

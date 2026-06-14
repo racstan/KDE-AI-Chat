@@ -199,10 +199,18 @@ if (providerId === "maritaca")
 return (page.maritacaApiKeyField.text || "").trim() !== "";
 if (providerId === "openai")
 return (page.apiKeyField.text || "").trim() !== "";
+if (providerId === "openai-image")
+return (page.apiKeyField.text || "").trim() !== "";
+if (providerId === "google-image")
+return (page.googleApiKeyField.text || "").trim() !== "";
 if (providerId === "huggingface-image")
 return (page.huggingfaceImageApiKeyField.text || "").trim() !== "";
 if (providerId === "together-image")
 return (page.togetherImageApiKeyField.text || "").trim() !== "";
+if (providerId === "stability-image")
+return (page.stabilityApiKeyField.text || "").trim() !== "";
+if (providerId === "replicate-image")
+return (page.replicateApiKeyField.text || "").trim() !== "";
 return true;
 }
 
@@ -413,6 +421,38 @@ function currentProviderConfig() {
             "baseUrl": page.togetherImageBaseUrlField.text,
             "apiKey": page.togetherImageApiKeyField.text,
             "modelField": page.togetherImageModelField
+        };
+    if (p === "openai-image")
+        return {
+            "id": p,
+            "type": "image-gen",
+            "baseUrl": page.baseUrlField.text,
+            "apiKey": page.apiKeyField.text,
+            "modelField": page.openaiImageModelField
+        };
+    if (p === "google-image")
+        return {
+            "id": p,
+            "type": "image-gen",
+            "baseUrl": page.googleImageBaseUrlField.text,
+            "apiKey": page.googleApiKeyField.text,
+            "modelField": page.googleImageModelField
+        };
+    if (p === "stability-image")
+        return {
+            "id": p,
+            "type": "image-gen",
+            "baseUrl": page.stabilityImageBaseUrlField.text,
+            "apiKey": page.stabilityApiKeyField.text,
+            "modelField": page.stabilityImageModelField
+        };
+    if (p === "replicate-image")
+        return {
+            "id": p,
+            "type": "image-gen",
+            "baseUrl": page.replicateImageBaseUrlField.text,
+            "apiKey": page.replicateApiKeyField.text,
+            "modelField": page.replicateImageModelField
         };
     return {
         "id": "openai",
@@ -1102,7 +1142,9 @@ let keysPayload = {
 "mimoApiKey": page.mimoApiKeyField.text,
 "maritacaApiKey": page.maritacaApiKeyField.text,
 "huggingfaceImageApiKey": page.huggingfaceImageApiKeyField.text,
-"togetherImageApiKey": page.togetherImageApiKeyField.text
+"togetherImageApiKey": page.togetherImageApiKeyField.text,
+"stabilityApiKey": page.stabilityApiKeyField.text,
+"replicateApiKey": page.replicateApiKeyField.text
 };
 let payload = {
 "configPath": page.configFilePath,
@@ -1155,7 +1197,7 @@ page.utilityDs.connectSource(cmd + " #plainconfig-sync");
 function clearKeysFromDisk() {
 let payload = {
 "configPath": page.configFilePath,
-"keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey', 'huggingfaceImageApiKey', 'togetherImageApiKey']
+"keys": ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey', 'qwenApiKey', 'moonshotApiKey', 'mimoApiKey', 'maritacaApiKey', 'huggingfaceImageApiKey', 'togetherImageApiKey', 'stabilityApiKey', 'replicateApiKey']
 };
 let b64Payload = base64Encode(JSON.stringify(payload));
 let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " clear_config_keys " + Sec.quoteForShell(b64Payload);
@@ -1180,6 +1222,8 @@ plasmoid.configuration.mimoApiKey = "";
 plasmoid.configuration.maritacaApiKey = "";
 plasmoid.configuration.huggingfaceImageApiKey = "";
 plasmoid.configuration.togetherImageApiKey = "";
+plasmoid.configuration.stabilityApiKey = "";
+plasmoid.configuration.replicateApiKey = "";
 }
 
 
@@ -1241,6 +1285,15 @@ plasmoid.configuration.huggingfaceImageModel = page.huggingfaceImageModelField.t
 plasmoid.configuration.togetherImageBaseUrl = page.togetherImageBaseUrlField.text;
 plasmoid.configuration.togetherImageApiKey = page.togetherImageApiKeyField.text;
 plasmoid.configuration.togetherImageModel = page.togetherImageModelField.text;
+plasmoid.configuration.openaiImageModel = page.openaiImageModelField.text;
+plasmoid.configuration.googleImageBaseUrl = page.googleImageBaseUrlField.text;
+plasmoid.configuration.googleImageModel = page.googleImageModelField.text;
+plasmoid.configuration.stabilityImageBaseUrl = page.stabilityImageBaseUrlField.text;
+plasmoid.configuration.stabilityApiKey = page.stabilityApiKeyField.text;
+plasmoid.configuration.stabilityImageModel = page.stabilityImageModelField.text;
+plasmoid.configuration.replicateImageBaseUrl = page.replicateImageBaseUrlField.text;
+plasmoid.configuration.replicateApiKey = page.replicateApiKeyField.text;
+plasmoid.configuration.replicateImageModel = page.replicateImageModelField.text;
 plasmoid.configuration.language = page.cfg_language || "";
 plasmoid.configuration.showInteractiveGuides = page.showGuidesToggle.checked;
 plasmoid.configuration.autoStartOpenCodeServer = page.autoStartOpenCodeToggle.checked;
@@ -1550,4 +1603,3 @@ if (hr.startsWith && hr.startsWith("*/"))
 return "Every " + hr.slice(2) + " hours";
 return expr;
 }
-

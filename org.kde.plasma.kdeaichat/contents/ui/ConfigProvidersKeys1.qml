@@ -115,7 +115,7 @@ Kirigami.FormLayout {
     QQC2.TextField {
         id: baseUrlField
         Kirigami.FormData.label: page ? page.translate("OpenAI URL:") : "OpenAI URL:"
-        visible: page ? page.providerEnabled("openai") : false
+        visible: page ? (page.providerEnabled("openai") || page.providerEnabled("openai-image")) : false
         Layout.fillWidth: true
         Layout.maximumWidth: keys1.fieldMaxWidth
         placeholderText: "https://api.openai.com/v1"
@@ -123,7 +123,7 @@ Kirigami.FormLayout {
 
     RowLayout {
         Kirigami.FormData.label: page ? page.translate("OpenAI key:") : "OpenAI key:"
-        visible: page ? page.providerEnabled("openai") : false
+        visible: page ? (page.providerEnabled("openai") || page.providerEnabled("openai-image")) : false
         Layout.fillWidth: true
         Layout.maximumWidth: keys1.fieldMaxWidth
 
@@ -134,7 +134,7 @@ Kirigami.FormLayout {
             onEditingFinished: {
                 if (page) {
                     page.saveKey("openai", text);
-                    page.refreshIfActiveProvider("openai");
+                    page.refreshIfActiveProvider(page.providerBox.currentValue);
                 }
             }
         }
@@ -438,7 +438,7 @@ Kirigami.FormLayout {
 
     RowLayout {
         Kirigami.FormData.label: page ? page.translate("Google key:") : "Google key:"
-        visible: page ? page.providerEnabled("google") : false
+        visible: page ? (page.providerEnabled("google") || page.providerEnabled("google-image")) : false
         Layout.fillWidth: true
         Layout.maximumWidth: keys1.fieldMaxWidth
 
@@ -449,7 +449,7 @@ Kirigami.FormLayout {
             onEditingFinished: {
                 if (page) {
                     page.saveKey("google", text);
-                    page.refreshIfActiveProvider("google");
+                    page.refreshIfActiveProvider(page.providerBox.currentValue);
                 }
             }
         }

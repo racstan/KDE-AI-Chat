@@ -92,6 +92,15 @@ QQC2.ScrollView {
     property alias cfg_togetherImageBaseUrl: keys2.togetherImageBaseUrl
     property alias cfg_togetherImageApiKey: keys2.togetherImageApiKey
     property alias cfg_togetherImageModel: keys2.togetherImageModel
+    property alias cfg_openaiImageModel: keys2.openaiImageModel
+    property alias cfg_googleImageBaseUrl: keys2.googleImageBaseUrl
+    property alias cfg_googleImageModel: keys2.googleImageModel
+    property alias cfg_stabilityImageBaseUrl: keys2.stabilityImageBaseUrl
+    property alias cfg_stabilityApiKey: keys2.stabilityApiKey
+    property alias cfg_stabilityImageModel: keys2.stabilityImageModel
+    property alias cfg_replicateImageBaseUrl: keys2.replicateImageBaseUrl
+    property alias cfg_replicateApiKey: keys2.replicateApiKey
+    property alias cfg_replicateImageModel: keys2.replicateImageModel
     property string cfg_language: ""
     readonly property bool isLanguageEnglish: {
         let lang = cfg_language;
@@ -329,6 +338,15 @@ QQC2.ScrollView {
     readonly property alias togetherImageBaseUrlField: keys2.togetherImageBaseUrlField
     readonly property alias togetherImageApiKeyField: keys2.togetherImageApiKeyField
     readonly property alias togetherImageModelField: keys2.togetherImageModelField
+    readonly property alias openaiImageModelField: keys2.openaiImageModelField
+    readonly property alias googleImageBaseUrlField: keys2.googleImageBaseUrlField
+    readonly property alias googleImageModelField: keys2.googleImageModelField
+    readonly property alias stabilityImageBaseUrlField: keys2.stabilityImageBaseUrlField
+    readonly property alias stabilityApiKeyField: keys2.stabilityApiKeyField
+    readonly property alias stabilityImageModelField: keys2.stabilityImageModelField
+    readonly property alias replicateImageBaseUrlField: keys2.replicateImageBaseUrlField
+    readonly property alias replicateApiKeyField: keys2.replicateApiKeyField
+    readonly property alias replicateImageModelField: keys2.replicateImageModelField
     readonly property string guideText: translate("<b>Appearance, Language &amp; Notifications Guide:</b><br/>• <b>Appearance:</b> Select a theme (Follow system, Light mode, or Dark mode) to customize the chat look.<br/>• <b>Language:</b> Select your preferred display language for the widget interface.<br/>• <b>Notification Sound:</b> Toggle sound alerts when the AI agent completes generating responses.<br/>• <b>Interactive Guides:</b> Enable or disable these detailed configuration cards at the top of the settings panel.")
     readonly property string behaviorGuideText: translate("<b>Behavior &amp; Context Guide:</b><br/>" + "• <b>System prompt:</b> Set a default instruction template for the AI (e.g., <i>\"Be extremely concise\"</i>).<br/>" + "• <b>Global Memory:</b> Write facts the AI should remember across all conversations.<br/>" + "• <b>Global Context:</b> Limit how many past messages the AI sees to control token usage (default limit is 1). Each chat has the ability to modify the context for that chat; if nothing is specified there, this global context config is used.<br/>" + "• <b>Context Compacting:</b> Automatically summarize older messages in the background to save context window tokens. A confirmation prompt appears before compaction runs.<br/>" + "• <b>Prompt Templates:</b> Save frequently used prompts below. Use <code>/template</code> in chat to apply them.<br/>" + "• <b>Per-Chat Settings:</b> Click the gear icon in chat to set per-chat system prompt, memory, model, response length, and context overrides. These override global settings for that chat only.<br/>" + "• <b>API Key Storage:</b> Configure how API keys are stored (Session, Plain Config, or KWallet) — see the API Key Storage section below Scheduler.")
     readonly property string providerGuideText: {

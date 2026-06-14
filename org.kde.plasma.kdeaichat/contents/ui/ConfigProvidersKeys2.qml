@@ -71,6 +71,17 @@ Kirigami.FormLayout {
     property alias togetherImageApiKeyField: togetherImageApiKeyField
     property alias togetherImageModelField: togetherImageModelField
 
+    // Additional image provider aliases
+    property alias openaiImageModelField: openaiImageModelField
+    property alias googleImageBaseUrlField: googleImageBaseUrlField
+    property alias googleImageModelField: googleImageModelField
+    property alias stabilityImageBaseUrlField: stabilityImageBaseUrlField
+    property alias stabilityApiKeyField: stabilityApiKeyField
+    property alias stabilityImageModelField: stabilityImageModelField
+    property alias replicateImageBaseUrlField: replicateImageBaseUrlField
+    property alias replicateApiKeyField: replicateApiKeyField
+    property alias replicateImageModelField: replicateImageModelField
+
     // Value aliases for config bindings to avoid double-nested aliases in parent
     property alias xaiBaseUrl: xaiBaseUrlField.text
     property alias xaiApiKey: xaiApiKeyField.text
@@ -104,6 +115,15 @@ Kirigami.FormLayout {
     property alias togetherImageBaseUrl: togetherImageBaseUrlField.text
     property alias togetherImageApiKey: togetherImageApiKeyField.text
     property alias togetherImageModel: togetherImageModelField.text
+    property alias openaiImageModel: openaiImageModelField.text
+    property alias googleImageBaseUrl: googleImageBaseUrlField.text
+    property alias googleImageModel: googleImageModelField.text
+    property alias stabilityImageBaseUrl: stabilityImageBaseUrlField.text
+    property alias stabilityApiKey: stabilityApiKeyField.text
+    property alias stabilityImageModel: stabilityImageModelField.text
+    property alias replicateImageBaseUrl: replicateImageBaseUrlField.text
+    property alias replicateApiKey: replicateApiKeyField.text
+    property alias replicateImageModel: replicateImageModelField.text
 
 
     // ── xAI Grok ──────────────────────────────────────────────────────────
@@ -636,6 +656,100 @@ Kirigami.FormLayout {
         placeholderText: "black-forest-labs/FLUX.1-schnell-Free"
     }
 
+    // ── OpenAI / Google image model values ────────────────────────────────
+    QQC2.TextField {
+        id: openaiImageModelField
+        visible: false
+        placeholderText: "dall-e-3"
+    }
+
+    QQC2.TextField {
+        id: googleImageBaseUrlField
+        visible: false
+        placeholderText: "https://generativelanguage.googleapis.com/v1beta"
+    }
+
+    QQC2.TextField {
+        id: googleImageModelField
+        visible: false
+        placeholderText: "imagen-4"
+    }
+
+    // ── Stability AI Image ────────────────────────────────────────────────
+    QQC2.TextField {
+        id: stabilityImageBaseUrlField
+        visible: false
+        placeholderText: "https://api.stability.ai"
+    }
+
+    RowLayout {
+        Kirigami.FormData.label: page ? page.translate("Stability AI key:") : "Stability AI key:"
+        visible: page ? page.providerEnabled("stability-image") : false
+        Layout.fillWidth: true
+        Layout.maximumWidth: keys2.fieldMaxWidth
+
+        QQC2.TextField {
+            id: stabilityApiKeyField
+            Layout.fillWidth: true
+            echoMode: stabilityKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+            onEditingFinished: {
+                if (page) {
+                    page.saveKey("stability-image", text);
+                    page.refreshIfActiveProvider("stability-image");
+                }
+            }
+        }
+
+        QQC2.Button {
+            id: stabilityKeyShowHide
+            checkable: true
+            text: checked ? (page ? page.translate("Hide") : "Hide") : (page ? page.translate("Show") : "Show")
+        }
+    }
+
+    QQC2.TextField {
+        id: stabilityImageModelField
+        visible: false
+        placeholderText: "stable-diffusion-xl-1024-v1-0"
+    }
+
+    // ── Replicate Image ──────────────────────────────────────────────────
+    QQC2.TextField {
+        id: replicateImageBaseUrlField
+        visible: false
+        placeholderText: "https://api.replicate.com"
+    }
+
+    RowLayout {
+        Kirigami.FormData.label: page ? page.translate("Replicate key:") : "Replicate key:"
+        visible: page ? page.providerEnabled("replicate-image") : false
+        Layout.fillWidth: true
+        Layout.maximumWidth: keys2.fieldMaxWidth
+
+        QQC2.TextField {
+            id: replicateApiKeyField
+            Layout.fillWidth: true
+            echoMode: replicateKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+            onEditingFinished: {
+                if (page) {
+                    page.saveKey("replicate-image", text);
+                    page.refreshIfActiveProvider("replicate-image");
+                }
+            }
+        }
+
+        QQC2.Button {
+            id: replicateKeyShowHide
+            checkable: true
+            text: checked ? (page ? page.translate("Hide") : "Hide") : (page ? page.translate("Show") : "Show")
+        }
+    }
+
+    QQC2.TextField {
+        id: replicateImageModelField
+        visible: false
+        placeholderText: "black-forest-labs/flux-schnell"
+    }
+
     readonly property real fieldMaxWidth: page ? page.fieldMaxWidth : Kirigami.Units.gridUnit * 28
 }
-

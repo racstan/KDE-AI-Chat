@@ -43,6 +43,7 @@ let PROVIDER_CONFIGS = {
         type: "openai-compat",
         configKey: "",
         modelKey: "localModel",
+        baseUrlKey: "localBaseUrl",
         defaultBaseUrl: "http://localhost:11434/v1",
         defaultModel: "",
         allowEmptyKey: true
@@ -51,6 +52,7 @@ let PROVIDER_CONFIGS = {
         type: "openai-compat",
         configKey: "",
         modelKey: "ollamaModel",
+        baseUrlKey: "ollamaBaseUrl",
         defaultBaseUrl: "http://localhost:11434/v1",
         defaultModel: "",
         allowEmptyKey: true

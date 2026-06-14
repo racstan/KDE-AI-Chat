@@ -175,6 +175,7 @@ if (!arr[i].messages[j].at)
 arr[i].messages[j].at = arr[i].updatedAt || arr[i].createdAt || Date.now();
 if (!arr[i].messages[j].time)
 arr[i].messages[j].time = nowTime(arr[i].messages[j].at);
+ensureMessageMetadata(arr[i].messages[j]);
 // Pre-compute blocks so MessageContent.qml reads a cached array
 // instead of calling parseMessageBlocks() inside its model binding.
 // This stabilises delegate heights and stops the scrollbar thumb
@@ -684,7 +685,7 @@ let msgObj = {
 appendMessageToSession(chatId, msgObj);
 if (chatId === root.currentSessionId) {
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 }
 
@@ -1007,7 +1008,7 @@ root.streamingResponse = true;
 if (root.streamingBatchTimer)
     root.streamingBatchTimer.restart();
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 
 
@@ -1148,7 +1149,7 @@ if (idx >= 0) {
 root.messages = newMsgs;
 root.sessions[idx].messages = newMsgs;
 saveCurrentSessionState(true);
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 }
 }
@@ -1254,7 +1255,7 @@ let msg = {
 root.messages = root.messages.concat([msg]);
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 } else if (eventObj.type === "permission.replied") {
 let pr = props.permission || {
@@ -1378,7 +1379,7 @@ let msg = {
 root.messages = root.messages.concat([msg]);
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 }
 } else if (eventObj.type === "question.replied") {
@@ -1434,7 +1435,7 @@ let msgObj = {
 appendMessageToSession(chatId, msgObj);
 if (chatId === root.currentSessionId) {
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 return ts;
 }
@@ -1563,13 +1564,26 @@ if (root.msgListViewRef && !root.msgListViewRef.atYEnd)
 }
 
 
+function queueScrollToBottom() {
+if (root.scrollToBottomQueued)
+return ;
+root.scrollToBottomQueued = true;
+Qt.callLater(function() {
+root.scrollToBottomQueued = false;
+scrollToBottom();
+});
+}
+
+
 function scrollToMessageByTimestamp(timestamp) {
 if (!root.messages) return;
 for (let i = 0; i < root.messages.length; i++) {
 if (root.messages[i].at === timestamp) {
 root.positionListViewAtIndex(i, ListView.Center);
 if (root.msgListViewRef) {
-let localIdx = i - (root.messages.length - root.visibleMessagesCount);
+let localIdx = root.toLocalMessageIndex(i);
+if (localIdx < 0)
+return;
 root.msgListViewRef.currentIndex = localIdx;
 }
 break;
@@ -1590,6 +1604,51 @@ return m.at || Date.now();
 function messageDayKeyAt(index) {
 let d = new Date(messageTimestampAt(index));
 return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+}
+
+
+function dayKeyForTimestamp(ts) {
+let d = new Date(ts || Date.now());
+return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+}
+
+
+function ensureMessageMetadata(message) {
+if (!message)
+return;
+let content = message.content || "";
+if (message.searchTextSource !== content) {
+message.searchText = content.toLowerCase();
+message.searchTextSource = content;
+}
+let ts = message.at || Date.now();
+let key = dayKeyForTimestamp(ts);
+if (message.dayKey !== key) {
+message.dayKey = key;
+message.dayBucketLabel = dayBucketLabel(ts);
+}
+}
+
+
+function updateMessageMetadata() {
+let msgs = root.messages || [];
+let counts = {};
+for (let i = 0; i < msgs.length; i++) {
+let m = msgs[i];
+ensureMessageMetadata(m);
+if (!m)
+continue;
+counts[m.dayKey] = (counts[m.dayKey] || 0) + 1;
+}
+let previousKey = "";
+for (let j = 0; j < msgs.length; j++) {
+let msg = msgs[j];
+if (!msg)
+continue;
+msg.showDayHeader = j === 0 || msg.dayKey !== previousKey;
+msg.dayDividerLabel = (msg.dayBucketLabel || dayBucketLabel(msg.at || Date.now())) + " (" + (counts[msg.dayKey] || 0) + ")";
+previousKey = msg.dayKey;
+}
 }
 
 
@@ -1621,6 +1680,9 @@ return count;
 
 
 function dayDividerLabelForIndex(index) {
+let msg = root.messages && index >= 0 && index < root.messages.length ? root.messages[index] : null;
+if (msg && msg.dayDividerLabel)
+return msg.dayDividerLabel;
 let key = messageDayKeyAt(index);
 return dayBucketLabel(messageTimestampAt(index)) + " (" + countMessagesForDayKey(key) + ")";
 }
@@ -1796,7 +1858,7 @@ root.messages = root.messages.concat([{
 }]);
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 
 
@@ -1831,7 +1893,8 @@ function doImageGenerationRequest(text, providerId) {
     if (providerId === "pollinations") {
         let encoded = encodeURIComponent(text);
         let model = config.pollinationsModel || "flux";
-        let imageUrl = "https://image.pollinations.ai/prompt/" + encoded + "?width=1024&height=1024&model=" + model + "&nologo=true";
+        let baseUrl = (config.pollinationsBaseUrl || "https://image.pollinations.ai").trim().replace(/\/+$/, "");
+        let imageUrl = baseUrl + "/prompt/" + encoded + "?width=1024&height=1024&model=" + encodeURIComponent(model) + "&nologo=true";
         let xhr = new XMLHttpRequest();
         xhr.open("GET", imageUrl, true);
         xhr.responseType = "blob";
@@ -2367,9 +2430,6 @@ return "";
 function validateProviderConfig(providerId, cfg) {
 if (!cfg)
 return "Provider configuration missing.";
-let imgProviderIds = ["pollinations", "huggingface-image", "together-image"];
-if (imgProviderIds.indexOf(providerId) >= 0)
-    return "";
 let missing = [];
 let name = providerDisplayName(providerId);
 if (!providerId)
@@ -2451,7 +2511,7 @@ root.messages = root.messages.concat([{
 }]);
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 return;
 }
@@ -2503,7 +2563,11 @@ processNextQueuedMessage();
 
 
 function getProviderConfig(provider) {
-return ProviderService.getProviderConfig(provider, plasmoid.configuration);
+let cfg = ProviderService.getProviderConfig(provider, plasmoid.configuration);
+let sessionModel = getSessionProperty(root.currentSessionId, "chatModel", "").trim();
+if (sessionModel !== "")
+cfg.model = sessionModel;
+return cfg;
 }
 
 
@@ -2558,6 +2622,16 @@ let sId = sessionId || root.currentSessionId;
 let globalPrompt = plasmoid.configuration.systemPrompt || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
 let chatPrompt = getSessionProperty(sId, "chatSystemPrompt", "").trim();
 let base = chatPrompt !== "" ? chatPrompt : globalPrompt;
+let responseLength = getSessionProperty(sId, "responseLength", plasmoid.configuration.responseLength || 0);
+let responseLengthInstructions = [
+"",
+"Keep the response short and focused, around 256 output tokens unless the task requires more.",
+"Give a balanced response, around 1024 output tokens at most.",
+"Give a detailed response, around 4096 output tokens at most.",
+"Give a comprehensive response, up to roughly 8192 output tokens when useful."
+];
+if (responseLength > 0 && responseLength < responseLengthInstructions.length)
+base += "\n\nResponse length preference: " + responseLengthInstructions[responseLength];
 
 if (!isSessionScheduled(sId)) {
 let summary = getSessionProperty(sId, "compactedSummary", "");
@@ -2674,6 +2748,7 @@ function appendMessageToSession(chatId, msgObj) {
 let idx = sessionIndexById(chatId);
 if (idx < 0)
 return ;
+ensureMessageMetadata(msgObj);
 // Pre-compute blocks so MessageContent.qml reads a static cached array.
 if (!msgObj.blocks && msgObj.content) {
 try { msgObj.blocks = parseMessageBlocks(msgObj.content); msgObj.lastParsedContent = msgObj.content; } catch(_) {}
@@ -3309,7 +3384,7 @@ let newMsg = {
 try { newMsg.blocks = parseMessageBlocks(text); newMsg.lastParsedContent = text; } catch(_) {}
 root.messages = root.messages.concat([newMsg]);
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+queueScrollToBottom();
 }
 
 
@@ -3630,4 +3705,3 @@ function handleVoiceResponse(resp, sourceName) {
         pushErrorMessage("Voice model download error: " + (resp.error || "Unknown error"));
     }
 }
-

@@ -573,49 +573,13 @@ import "MainDatabase.js" as MainDatabase
                             ListView {
                                 id: msgList
 
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.leftMargin: Kirigami.Units.smallSpacing
-                                anchors.topMargin: Kirigami.Units.smallSpacing
-                                anchors.bottomMargin: Kirigami.Units.smallSpacing
-                                anchors.rightMargin: Kirigami.Units.gridUnit
-                                model: root.visibleMessages
+                                anchors.fill: parent
+                                anchors.margins: Kirigami.Units.smallSpacing
+                                model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-
-                                header: Item {
-                                    width: msgList.width
-                                    height: (root.messages.length > root.visibleMessagesCount) ? Kirigami.Units.gridUnit * 2.5 : 0
-                                    visible: root.messages.length > root.visibleMessagesCount
-                                    clip: true
-
-                                    PC3.Button {
-                                        anchors.centerIn: parent
-                                        text: root.translate("Load further chats")
-                                        icon.name: "view-refresh"
-                                        onClicked: {
-                                            let oldHeight = msgList.contentHeight;
-                                            root.visibleMessagesCount = Math.min(root.messages.length, root.visibleMessagesCount + 30);
-                                            Qt.callLater(function() {
-                                                let diff = msgList.contentHeight - oldHeight;
-                                                if (diff > 0) {
-                                                    msgList.contentY += diff;
-                                                }
-                                            });
-                                        }
-                                    }
-                                }
-                                // Keep only a small cache — large cacheBuffer forces the engine to
-                                // instantiate hundreds of heavy delegates off-screen, which is the
-                                // primary source of scroll lag.
-                                cacheBuffer: 1500
+                                cacheBuffer: 600
                                 Component.onCompleted: root.msgListViewRef = msgList
-                                // Track whether user manually scrolled away from bottom.
-                                // onContentYChanged is intentionally omitted: it fires on every
-                                // pixel of movement and writing userScrolledUp each frame re-evaluates
-                                // bindings across the entire tree, causing visible scroll stuttering.
                                 onMovementStarted: {
                                     if (!msgList.atYEnd)
                                         root.userScrolledUp = true;
@@ -626,7 +590,8 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                                    policy: QQC2.ScrollBar.AlwaysOff
+                                    id: verticalScrollBar
+                                    policy: QQC2.ScrollBar.AsNeeded
                                 }
 
                                 footer: Item {
@@ -720,9 +685,10 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 delegate: Item {
-                                    readonly property int originalIndex: index + (root.messages.length - root.visibleMessages.length)
-                                    property bool showDayHeader: originalIndex === 0 || root.messageDayKeyAt(originalIndex) !== root.messageDayKeyAt(originalIndex - 1)
-                                    property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData.content && modelData.content.toLowerCase().indexOf(root.searchQuery.toLowerCase()) >= 0
+                                    readonly property int originalIndex: index
+                                    readonly property bool showDayHeader: !!(modelData && modelData.showDayHeader)
+                                    readonly property string searchNeedle: root.searchQuery.trim().toLowerCase()
+                                    property bool isSearchMatch: root.searchBarActive && searchNeedle !== "" && modelData && modelData.searchText && modelData.searchText.indexOf(searchNeedle) >= 0
                                     property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === originalIndex
 
                                      // Cache expensive per-role lookups as readonly properties so they are
@@ -773,7 +739,7 @@ import "MainDatabase.js" as MainDatabase
                                                     anchors.centerIn: parent
                                                     horizontalAlignment: Text.AlignHCenter
                                                     opacity: 0.78
-                                                    text: root.dayDividerLabelForIndex(originalIndex)
+                                                    text: modelData.dayDividerLabel || root.dayDividerLabelForIndex(originalIndex)
                                                 }
 
                                             }
@@ -1590,61 +1556,6 @@ import "MainDatabase.js" as MainDatabase
 
                             }
 
-                            // Custom Scrollbar Track
-                            Rectangle {
-                                id: scrollTrack
-                                anchors.top: msgList.top
-                                anchors.bottom: msgList.bottom
-                                anchors.right: parent.right
-                                anchors.rightMargin: 2
-                                width: 6
-                                color: "transparent"
-                                visible: msgList.contentHeight > msgList.height
-
-                                // Custom Scrollbar Handle
-                                Rectangle {
-                                    id: scrollHandle
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 6
-                                    height: 48 // Fixed scrollbar handle size
-                                    radius: 3
-                                    color: handleMouseArea.pressed
-                                        ? Kirigami.Theme.highlightColor
-                                        : (handleMouseArea.containsMouse
-                                            ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.5)
-                                            : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.25))
-
-                                    Binding {
-                                        target: scrollHandle
-                                        property: "y"
-                                        when: !handleMouseArea.drag.active
-                                        value: {
-                                            if (msgList.contentHeight <= msgList.height) return 0;
-                                            let progress = msgList.contentY / (msgList.contentHeight - msgList.height);
-                                            progress = Math.max(0.0, Math.min(1.0, progress));
-                                            return progress * (scrollTrack.height - scrollHandle.height);
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: handleMouseArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        drag.target: scrollHandle
-                                        drag.axis: Drag.YAxis
-                                        drag.minimumY: 0
-                                        drag.maximumY: scrollTrack.height - scrollHandle.height
-
-                                        onPositionChanged: {
-                                            if (drag.active) {
-                                                let progress = scrollHandle.y / (scrollTrack.height - scrollHandle.height);
-                                                msgList.contentY = progress * (msgList.contentHeight - msgList.height);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
                         }
 
                         RowLayout {
@@ -2255,6 +2166,8 @@ import "MainDatabase.js" as MainDatabase
             let compactThresholdVal = getSessionProperty(sId, "contextCompactThreshold", plasmoid.configuration.globalContextCompactThreshold || 10);
             let chatSysPromptVal = getSessionProperty(sId, "chatSystemPrompt", "");
             let chatMemoryVal = getSessionProperty(sId, "chatMemory", "");
+            let chatModelVal = getSessionProperty(sId, "chatModel", "");
+            let responseLengthVal = getSessionProperty(sId, "responseLength", plasmoid.configuration.responseLength || 0);
 
             debugLog("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
 
@@ -2266,6 +2179,8 @@ import "MainDatabase.js" as MainDatabase
             compactThresholdSpin.value = compactThresholdVal;
             chatSystemPromptArea.text = chatSysPromptVal;
             chatMemoryArea.text = chatMemoryVal;
+            quickModelSwitch.currentIndex = chatModelVal === "" ? 0 : Math.max(0, quickModelSwitch.model.indexOf(chatModelVal));
+            responseLengthCombo.currentIndex = responseLengthVal;
         }
         onAccepted: {
             let sId = root.currentSessionId;
@@ -2276,6 +2191,8 @@ import "MainDatabase.js" as MainDatabase
             let compactThresholdVal = compactThresholdSpin.value;
             let chatSysPromptVal = chatSystemPromptArea.text;
             let chatMemoryVal = chatMemoryArea.text;
+            let chatModelVal = quickModelSwitch.currentIndex > 0 ? quickModelSwitch.currentText : "";
+            let responseLengthVal = responseLengthCombo.currentIndex;
 
             debugLog("[KDE AIChat] Saving settings for session ID: " + sId);
             debugLog("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
@@ -2287,6 +2204,8 @@ import "MainDatabase.js" as MainDatabase
             setSessionProperty(sId, "contextCompactThreshold", compactThresholdVal);
             setSessionProperty(sId, "chatSystemPrompt", chatSysPromptVal);
             setSessionProperty(sId, "chatMemory", chatMemoryVal);
+            setSessionProperty(sId, "chatModel", chatModelVal);
+            setSessionProperty(sId, "responseLength", responseLengthVal);
         }
 
         QQC2.ScrollView {
@@ -2377,11 +2296,11 @@ import "MainDatabase.js" as MainDatabase
                     id: quickModelSwitch
                     Layout.fillWidth: true
                     model: {
-                        let models = [];
+                        let models = [root.translate("(provider default)")];
                         let prov = plasmoid.configuration.provider || "openai";
-                        let pm = plasmoid.configuration[prov + "Model"] || "";
+                        let pm = root.getProviderConfig(prov).model || "";
                         if (pm) models.push(pm);
-                        return models.length > 0 ? models : ["(default)"];
+                        return models;
                     }
                     currentIndex: 0
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize
@@ -2391,11 +2310,8 @@ import "MainDatabase.js" as MainDatabase
                 QQC2.Button {
                     text: root.translate("Apply")
                     onClicked: {
-                        if (quickModelSwitch.currentIndex >= 0 && quickModelSwitch.model[quickModelSwitch.currentIndex]) {
-                            let prov = plasmoid.configuration.provider || "openai";
-                            let key = prov + "Model";
-                            plasmoid.configuration[key] = quickModelSwitch.model[quickModelSwitch.currentIndex];
-                        }
+                        let model = quickModelSwitch.currentIndex > 0 ? quickModelSwitch.currentText : "";
+                        setSessionProperty(root.currentSessionId, "chatModel", model);
                     }
                 }
             }
@@ -2413,9 +2329,9 @@ import "MainDatabase.js" as MainDatabase
                 visible: !plasmoid.configuration.useOpenCode
                 Layout.fillWidth: true
                 model: [root.translate("Default"), root.translate("Short"), root.translate("Medium"), root.translate("Long"), root.translate("Max")]
-                currentIndex: plasmoid.configuration.responseLength || 0
+                currentIndex: 0
                 onActivated: {
-                    plasmoid.configuration.responseLength = currentIndex;
+                    setSessionProperty(root.currentSessionId, "responseLength", currentIndex);
                 }
             }
 

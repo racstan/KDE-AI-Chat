@@ -93,8 +93,9 @@ PlasmoidItem {
         let q = searchQuery.toLowerCase();
         let list = [];
         for (let j = 0; j < messages.length; j++) {
-            let content = messages[j].content || "";
-            if (content.toLowerCase().indexOf(q) >= 0) {
+            let msg = messages[j] || {};
+            let content = msg.searchText || ((msg.content || "").toLowerCase());
+            if (content.indexOf(q) >= 0) {
                 list.push(j);
             }
         }
@@ -166,22 +167,9 @@ PlasmoidItem {
     property var msgInputRef: null
     property var sessionsSidebarRef: null
     property bool userScrolledUp: false
+    property bool scrollToBottomQueued: false
 
-    property int visibleMessagesCount: 30
-    property string _lastSessionIdForVisibleCount: ""
     property int _lastMessagesLength: 0
-
-
-
-    property var visibleMessages: {
-        if (!messages) {
-            return [];
-        }
-        if (messages.length <= visibleMessagesCount) {
-            return messages;
-        }
-        return messages.slice(messages.length - visibleMessagesCount);
-    }
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
@@ -444,7 +432,6 @@ PlasmoidItem {
     }
 
     function createSession(switchToNew) {
-        root.visibleMessagesCount = 30;
         return MainDatabase.createSession(switchToNew);
     }
 
@@ -465,7 +452,6 @@ PlasmoidItem {
     }
 
     function switchSession(sessionId) {
-        root.visibleMessagesCount = 30;
         return MainDatabase.switchSession(sessionId);
     }
 
@@ -473,17 +459,23 @@ PlasmoidItem {
         if (!msgListViewRef || !messages) return -1;
         let localIdx = msgListViewRef.indexAt(x, y);
         if (localIdx < 0) return -1;
-        return localIdx + (messages.length - visibleMessages.length);
+        return localIdx;
+    }
+
+    function toOriginalMessageIndex(localIdx) {
+        return localIdx;
+    }
+
+    function toLocalMessageIndex(originalIdx) {
+        if (!messages || originalIdx < 0 || originalIdx >= messages.length) return -1;
+        return originalIdx;
     }
 
     function positionListViewAtIndex(originalIdx, mode) {
         if (!msgListViewRef || !messages) return;
         if (originalIdx < 0 || originalIdx >= messages.length) return;
-        let startIdx = messages.length - visibleMessagesCount;
-        if (originalIdx < startIdx) {
-            visibleMessagesCount = messages.length - originalIdx;
-        }
-        let localIdx = originalIdx - (messages.length - visibleMessages.length);
+        let localIdx = toLocalMessageIndex(originalIdx);
+        if (localIdx < 0) return;
         msgListViewRef.currentIndex = localIdx;
         msgListViewRef.positionViewAtIndex(localIdx, mode);
     }
@@ -580,6 +572,10 @@ PlasmoidItem {
         return MainDatabase.updateAutocomplete();
     }
 
+    function updateMessageMetadata() {
+        return MainDatabase.updateMessageMetadata();
+    }
+
     function extractReadableError(prefix, errObj, fallbackText) {
         return MainDatabase.extractReadableError(prefix, errObj, fallbackText);
     }
@@ -653,6 +649,10 @@ PlasmoidItem {
 
     function scrollToBottom() {
         return MainDatabase.scrollToBottom();
+    }
+
+    function queueScrollToBottom() {
+        return MainDatabase.queueScrollToBottom();
     }
 
     function scrollToMessageByTimestamp(timestamp) {
@@ -1072,17 +1072,8 @@ PlasmoidItem {
 
     onMessagesChanged: {
         let newLen = messages ? messages.length : 0;
-        if (currentSessionId !== _lastSessionIdForVisibleCount) {
-            _lastSessionIdForVisibleCount = currentSessionId;
-            visibleMessagesCount = Math.min(newLen, 30);
-        } else {
-            if (newLen > _lastMessagesLength) {
-                visibleMessagesCount = visibleMessagesCount + (newLen - _lastMessagesLength);
-            } else if (newLen < _lastMessagesLength) {
-                visibleMessagesCount = Math.max(0, visibleMessagesCount - (_lastMessagesLength - newLen));
-            }
-        }
         _lastMessagesLength = newLen;
+        root.updateMessageMetadata();
 
         // During active streaming, skip all heavy work — streamingContent
         // drives the live preview. flushStreamingBuffer() sets streamingResponse=false
@@ -1108,7 +1099,7 @@ PlasmoidItem {
         }
         Qt.callLater(checkAndMarkCurrentSessionAsRead);
         if (!root.historyOnlyMode && !root.userScrolledUp)
-            Qt.callLater(scrollToBottom);
+            root.queueScrollToBottom();
     }
 
     MainDataSources {

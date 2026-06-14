@@ -56,7 +56,7 @@ root.messages = root.messages.concat([{
 "model": ""
 }]);
 if (!root.userScrolledUp)
-    Qt.callLater(scrollToBottom);
+    root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
 // Debounce the session save to avoid blocking the main thread
 if (root.deferSaveStateTimer) {
     root.deferSaveStateTimer.restart();
@@ -87,6 +87,17 @@ return validateOpenCodeConfig();
 let provider = plasmoid.configuration.provider || "openai";
 let providerCfg = getProviderConfig(provider);
 return validateProviderConfig(provider, providerCfg);
+}
+
+function responseMaxTokens(chatId, fallback) {
+let sessionId = chatId || root.currentSessionId;
+let preference = plasmoid.configuration.responseLength || 0;
+if (typeof getSessionProperty === "function")
+preference = getSessionProperty(sessionId, "responseLength", preference);
+else if (root && typeof root.getSessionProperty === "function")
+preference = root.getSessionProperty(sessionId, "responseLength", preference);
+let limits = [0, 256, 1024, 4096, 8192];
+return preference > 0 && preference < limits.length ? limits[preference] : fallback;
 }
 
 
@@ -202,7 +213,7 @@ msgObj.tokens = {
 appendMessageToSession(chatId, msgObj);
                 if (chatId === root.currentSessionId) {
                     if (!root.userScrolledUp)
-                        Qt.callLater(scrollToBottom);
+                        root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
                     if (plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
                         MainDatabase.triggerTts(finalText || "");
                     }
@@ -228,11 +239,15 @@ errorHandled = true;
 handleBackgroundError(chatId, "Could not reach " + url + ". Check network connectivity.", notify, schedId, schedName);
 };
 try {
-xhr.send(JSON.stringify({
+let payload = {
 "model": model,
 "messages": buildOpenAICompatPayloadForMessages(messagesList, chatId),
 "stream": false
-}));
+};
+let maxTokens = responseMaxTokens(chatId, 0);
+if (maxTokens > 0)
+payload.max_tokens = maxTokens;
+xhr.send(JSON.stringify(payload));
 } catch (sendError) {
 handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, schedId, schedName);
 }
@@ -292,7 +307,7 @@ msgObj.tokens = {
 appendMessageToSession(chatId, msgObj);
 if (chatId === root.currentSessionId) {
 if (!root.userScrolledUp)
-Qt.callLater(scrollToBottom);
+root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
 }
 triggerNotificationSound();
 if (chatId === root.currentSessionId && plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
@@ -338,7 +353,7 @@ handleBackgroundError(chatId, "Could not reach Anthropic API. Check network stat
 try {
 xhr.send(JSON.stringify({
 "model": model,
-"max_tokens": 1024,
+"max_tokens": responseMaxTokens(chatId, 1024),
 "system": buildEffectiveSystemPrompt(chatId),
 "messages": buildAnthropicPayloadForMessages(messagesList, chatId)
 }));
@@ -442,11 +457,15 @@ finishOpenCodeRequest();
 pushErrorMessage("Could not reach " + Sec.scrubSecrets(url));
 };
 try {
-xhr.send(JSON.stringify({
+let payload = {
 "model": model,
 "messages": buildOpenAICompatPayload(),
 "stream": true
-}));
+};
+let maxTokens = responseMaxTokens("", 0);
+if (maxTokens > 0)
+payload.max_tokens = maxTokens;
+xhr.send(JSON.stringify(payload));
 } catch (sendError) {
 root.reqDedupRelease(dedupKey);
 finishOpenCodeRequest();
@@ -547,7 +566,7 @@ pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages.");
 try {
 xhr.send(JSON.stringify({
 "model": model,
-"max_tokens": 1024,
+"max_tokens": responseMaxTokens("", 1024),
 "system": buildEffectiveSystemPrompt(),
 "messages": buildAnthropicPayload(),
 "stream": true
@@ -558,4 +577,3 @@ finishOpenCodeRequest();
 pushErrorMessage("Failed to send Anthropic request: " + sendError);
 }
 }
-
