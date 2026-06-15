@@ -581,7 +581,7 @@ import "MainDatabase.js" as MainDatabase
                                 anchors.topMargin: Kirigami.Units.smallSpacing
                                 anchors.bottomMargin: Kirigami.Units.smallSpacing
                                 anchors.rightMargin: Kirigami.Units.gridUnit
-                                verticalLayoutDirection: ListView.TopToBottom
+                                verticalLayoutDirection: ListView.BottomToTop
                                 model: root.messages.length
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
@@ -596,16 +596,16 @@ import "MainDatabase.js" as MainDatabase
                                 flickDeceleration: 1500
                                 Component.onCompleted: root.msgListViewRef = msgList
                                 onMovementStarted: {
-                                    if (!msgList.atYEnd)
+                                    if (!msgList.atYBeginning)
                                         root.userScrolledUp = true;
                                 }
-                                onAtYEndChanged: {
-                                    if (msgList.atYEnd)
+                                onAtYBeginningChanged: {
+                                    if (msgList.atYBeginning)
                                         root.userScrolledUp = false;
                                 }
                                 onContentHeightChanged: {
                                     if (!root.userScrolledUp && msgList.count > 0) {
-                                        msgList.positionViewAtEnd();
+                                        msgList.positionViewAtBeginning();
                                     }
                                 }
 
@@ -613,7 +613,7 @@ import "MainDatabase.js" as MainDatabase
                                     policy: QQC2.ScrollBar.AsNeeded
                                 }
 
-                                footer: Item {
+                                header: Item {
                                     width: msgList.width
                                     height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
                                     visible: root.streamingResponse && root.streamingContent !== ""
@@ -704,8 +704,9 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 delegate: Item {
-                                    property var modelData: root.messages[index]
-                                    readonly property int originalIndex: index
+                                    property int reversedIndex: root.messages.length - 1 - index
+                                    property var modelData: root.messages[reversedIndex]
+                                    readonly property int originalIndex: reversedIndex
                                     readonly property bool showDayHeader: originalIndex === 0 || root.messageDayKeyAt(originalIndex) !== root.messageDayKeyAt(originalIndex - 1)
                                     readonly property string searchNeedle: root.searchQuery.trim().toLowerCase()
 

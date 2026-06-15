@@ -192,8 +192,13 @@ Column {
 
         delegate: Item {
             required property var modelData
+            property string lastKnownContent: ""
             onModelDataChanged: {
-                if (htmlEdit) htmlEdit.htmlContent = "";
+                if (!modelData) return;
+                if (modelData.content !== lastKnownContent) {
+                    lastKnownContent = modelData.content;
+                    if (htmlEdit) htmlEdit.htmlContent = "";
+                }
             }
 
             width: parent ? parent.width : 0
