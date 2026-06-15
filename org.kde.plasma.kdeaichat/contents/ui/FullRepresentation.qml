@@ -582,15 +582,10 @@ import "MainDatabase.js" as MainDatabase
                                 anchors.bottomMargin: Kirigami.Units.smallSpacing
                                 anchors.rightMargin: Kirigami.Units.gridUnit
                                 verticalLayoutDirection: ListView.TopToBottom
-                                model: root.messages.length
+                                model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-
-
-
-                                // Recycle delegate instances instead of destroying/creating
-                                // them on every scroll; huge win for heavy RichText items.
-                                reuseItems: true
+                                cacheBuffer: 20000
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
