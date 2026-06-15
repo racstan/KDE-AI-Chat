@@ -143,6 +143,7 @@ root.openCodeMode = (s.source === "opencode");
 root.currentSessionId = s.value;
 root.currentSessionTitle = s.text;
 root.messages = forkedMessages;
+precomputeBlocksForMessages(root.messages);
 root.editingMessageIndex = -1;
 root.editingDraft = "";
 root.editingSessionId = "";
@@ -176,16 +177,7 @@ arr[i].messages[j].at = arr[i].updatedAt || arr[i].createdAt || Date.now();
 if (!arr[i].messages[j].time)
 arr[i].messages[j].time = nowTime(arr[i].messages[j].at);
 ensureMessageMetadata(arr[i].messages[j]);
-// Pre-compute blocks so MessageContent.qml reads a cached array
-// instead of calling parseMessageBlocks() inside its model binding.
-// This stabilises delegate heights and stops the scrollbar thumb
-// from resizing while scrolling.
-if (!arr[i].messages[j].blocks && arr[i].messages[j].content) {
-try {
-arr[i].messages[j].blocks = parseMessageBlocks(arr[i].messages[j].content);
-arr[i].messages[j].lastParsedContent = arr[i].messages[j].content;
-} catch(_) {}
-}
+// Block parsing is now done lazily per-session to prevent massive startup lag.
 }
 if (!arr[i].updatedAt)
 arr[i].updatedAt = arr[i].createdAt || Date.now();
@@ -242,7 +234,10 @@ let oldFullPath = getHistoryFilePath(oldPath);
 let newFullPath = getHistoryFilePath(newPath);
 // When switching TO a custom path, always export current in-memory sessions
 // to the new location, then fall back to copying the old file if it exists.
-let currentJson = JSON.stringify(root.sessions);
+let currentJson = JSON.stringify(root.sessions, function(key, value) {
+    if (key === "blocks" || key === "lastParsedContent") return undefined;
+    return value;
+});
 let b64Current = base64Encode(currentJson);
 let payload = {
 "oldFullPath": oldFullPath,
@@ -264,7 +259,10 @@ persistSessionsDebounce.restart();
 
 
 function flushPersistSessions() {
-let jsonStr = JSON.stringify(root.sessions);
+let jsonStr = JSON.stringify(root.sessions, function(key, value) {
+    if (key === "blocks" || key === "lastParsedContent") return undefined;
+    return value;
+});
 plasmoid.configuration.chatSessionsJson = jsonStr;
 plasmoid.configuration.lastSessionId = root.currentSessionId;
 let customDir = (plasmoid.configuration.customHistoryPath || "").trim();
@@ -346,6 +344,7 @@ root.openCodeMode = mode;
 root.currentSessionId = s.value;
 root.currentSessionTitle = s.text;
 root.messages = [];
+precomputeBlocksForMessages(root.messages);
 root.editingMessageIndex = -1;
 root.editingDraft = "";
 root.editingSessionId = "";
@@ -370,9 +369,22 @@ idx = 0;
 root.currentSessionId = root.sessions[idx].value;
 root.currentSessionTitle = root.sessions[idx].text;
 root.messages = root.sessions[idx].messages || [];
+precomputeBlocksForMessages(root.messages);
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 sortSessionsByUpdated();
+}
+
+function precomputeBlocksForMessages(msgs) {
+    if (!msgs) return;
+    for (let j = 0; j < msgs.length; j++) {
+        if (!msgs[j].blocks && msgs[j].content) {
+            try {
+                msgs[j].blocks = parseMessageBlocks(msgs[j].content);
+                msgs[j].lastParsedContent = msgs[j].content;
+            } catch(_) {}
+        }
+    }
 }
 
 
@@ -464,6 +476,7 @@ return ;
 root.currentSessionId = root.sessions[idx].value;
 root.currentSessionTitle = root.sessions[idx].text;
 root.messages = root.sessions[idx].messages || [];
+precomputeBlocksForMessages(root.messages);
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 root.editingMessageIndex = -1;
@@ -539,6 +552,7 @@ let next = root.sessions[0];
 root.currentSessionId = next.value;
 root.currentSessionTitle = next.text;
 root.messages = next.messages || [];
+precomputeBlocksForMessages(root.messages);
 }
 cancelSessionRename();
 persistSessions();
@@ -993,6 +1007,8 @@ root.streamingResponse = true;
 root.streamingContent = "";
 root.streamingModel = modelLabel || "";
 root.streamingContextItems = [];
+root.streamingTokens = null;
+root.streamingCost = 0;
 }
 
 
@@ -1276,33 +1292,14 @@ root.messages = permissionMsgs;
 saveCurrentSessionState(true);
 }
 } else if (eventObj.type === "session.next.step.ended") {
-let tokensMsgs = root.messages.slice();
-let updated = false;
-for (let idx = tokensMsgs.length - 1; idx >= 0; idx--) {
-if (tokensMsgs[idx].role === "assistant") {
-let item = Object.assign({
-}, tokensMsgs[idx]);
-let normalizedTokens = {
-};
-let rawTokens = props.tokens || {
-};
-normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
-normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
-if (rawTokens.reasoning !== undefined)
-normalizedTokens.reasoning = rawTokens.reasoning;
-if (rawTokens.cache !== undefined)
-normalizedTokens.cache = rawTokens.cache;
-item.tokens = normalizedTokens;
-item.cost = props.cost;
-tokensMsgs[idx] = item;
-updated = true;
-break;
-}
-}
-if (updated) {
-root.messages = tokensMsgs;
-saveCurrentSessionState(true);
-}
+let rawTokens = props.tokens || {};
+let normalizedTokens = root.streamingTokens || {};
+normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : normalizedTokens.input));
+normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : normalizedTokens.output));
+if (rawTokens.reasoning !== undefined) normalizedTokens.reasoning = rawTokens.reasoning;
+if (rawTokens.cache !== undefined) normalizedTokens.cache = rawTokens.cache;
+root.streamingTokens = normalizedTokens;
+if (props.cost) root.streamingCost = props.cost;
 } else if (eventObj.type === "question.asked") {
 let requestID = props.requestID || props.id || eventObj.id || "";
 if (requestID !== "") {
@@ -1559,8 +1556,8 @@ fail("OpenCode: failed to create session: " + sendError);
 
 
 function scrollToBottom() {
-if (root.msgListViewRef && !root.msgListViewRef.atYEnd)
-    root.msgListViewRef.positionViewAtEnd();
+if (root.msgListViewRef && !root.msgListViewRef.atYBeginning)
+    root.msgListViewRef.positionViewAtBeginning();
 }
 
 
@@ -1698,16 +1695,15 @@ return nowTime(messageTimestampAt(index));
 function jumpOneMessageAbove() {
 if (!root.msgListViewRef || root.messages.length === 0)
 return ;
-let currentTop = -1;
+let currentLocal = -1;
 for (let offset = 15; offset <= 100; offset += 20) {
-currentTop = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
-if (currentTop >= 0)
+currentLocal = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
+if (currentLocal >= 0)
 break;
 }
-if (currentTop < 0)
-currentTop = root.messages.length;
+let currentOriginal = currentLocal < 0 ? root.messages.length : root.toOriginalMessageIndex(currentLocal);
 let target = -1;
-for (let i = currentTop - 1; i >= 0; i--) {
+for (let i = currentOriginal - 1; i >= 0; i--) {
 let msg = root.messages[i];
 if (msg && msg.role === "user") {
 target = i;
@@ -1716,10 +1712,10 @@ break;
 }
 if (target >= 0) {
 root.userScrolledUp = true;
-root.positionListViewAtIndex(target, ListView.Beginning);
+root.positionListViewAtIndex(target, ListView.End);
 } else {
 root.userScrolledUp = true;
-root.msgListViewRef.positionViewAtBeginning();
+root.msgListViewRef.positionViewAtEnd();
 }
 }
 
@@ -1727,16 +1723,15 @@ root.msgListViewRef.positionViewAtBeginning();
 function jumpOneMessageBelow() {
 if (!root.msgListViewRef || root.messages.length === 0)
 return ;
-let currentTop = -1;
+let currentLocal = -1;
 for (let offset = 15; offset <= 100; offset += 20) {
-currentTop = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
-if (currentTop >= 0)
+currentLocal = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
+if (currentLocal >= 0)
 break;
 }
-if (currentTop < 0)
-currentTop = -1;
+let currentOriginal = currentLocal < 0 ? -1 : root.toOriginalMessageIndex(currentLocal);
 let target = -1;
-for (let i = currentTop + 1; i < root.messages.length; i++) {
+for (let i = currentOriginal + 1; i < root.messages.length; i++) {
 let msg = root.messages[i];
 if (msg && msg.role === "user") {
 target = i;
@@ -1758,7 +1753,7 @@ root.scrollToBottom();
 }
 } else {
 root.userScrolledUp = true;
-root.positionListViewAtIndex(target, ListView.Beginning);
+root.positionListViewAtIndex(target, ListView.End);
 }
 } else {
 if (root.userScrolledUp) {
@@ -3385,11 +3380,17 @@ let newMsg = {
 "model": label || "OpenCode",
 "contextItems": ctx
 };
+if (root.streamingTokens) newMsg.tokens = root.streamingTokens;
+if (root.streamingCost > 0) newMsg.cost = root.streamingCost;
+
 // Pre-compute blocks so MessageContent.qml reads a static cached array.
 try { newMsg.blocks = parseMessageBlocks(text); newMsg.lastParsedContent = text; } catch(_) {}
 root.messages = root.messages.concat([newMsg]);
 if (!root.userScrolledUp)
 queueScrollToBottom();
+
+root.streamingTokens = null;
+root.streamingCost = 0;
 }
 
 

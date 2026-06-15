@@ -192,6 +192,9 @@ Column {
 
         delegate: Item {
             required property var modelData
+            onModelDataChanged: {
+                if (htmlEdit) htmlEdit.htmlContent = "";
+            }
 
             width: parent ? parent.width : 0
             implicitHeight: modelData.type === "code" ? codeLoader.implicitHeight
@@ -205,20 +208,34 @@ Column {
                 width: parent.width
                 wrapMode: Text.Wrap
                 textFormat: Text.RichText
+                property string htmlContent: ""
                 text: {
                     let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
                     if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
                         return modelData.contentHtmlCache[darkKey];
                     }
-                    if (contentRoot.chatRoot) {
-                        let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
-                        if (!modelData.contentHtmlCache) {
-                            modelData.contentHtmlCache = {};
-                        }
-                        modelData.contentHtmlCache[darkKey] = html;
-                        return html;
+                    if (htmlContent !== "") {
+                        return htmlContent;
                     }
-                    return "";
+                    parseHtmlTimer.restart();
+                    return "<i>Loading...</i>";
+                }
+
+                Timer {
+                    id: parseHtmlTimer
+                    interval: 25
+                    running: false
+                    onTriggered: {
+                        let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
+                        if (contentRoot.chatRoot) {
+                            let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
+                            if (!modelData.contentHtmlCache) {
+                                modelData.contentHtmlCache = {};
+                            }
+                            modelData.contentHtmlCache[darkKey] = html;
+                            htmlEdit.htmlContent = html;
+                        }
+                    }
                 }
                 color: Kirigami.Theme.textColor
                 readOnly: true

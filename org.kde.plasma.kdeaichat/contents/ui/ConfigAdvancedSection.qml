@@ -28,7 +28,7 @@ Kirigami.FormLayout {
     property alias schedulerMasterSwitch: schedulerMasterSwitch
     property alias schedAutoStartToggle: schedAutoStartToggle
     property alias executeMissedSchedulesToggle: executeMissedSchedulesToggle
-    property alias performanceEnhancementsToggle: performanceEnhancementsToggle
+
     property alias appDisplayNameField: appDisplayNameField
     property alias storageModeCombo: storageModeCombo
     property alias walletNameField: walletNameField
@@ -50,7 +50,7 @@ Kirigami.FormLayout {
     property alias schedulerEnabled: schedulerMasterSwitch.checked
     property alias schedulerAutoStart: schedAutoStartToggle.checked
     property alias executeMissedSchedules: executeMissedSchedulesToggle.checked
-    property alias enablePerformanceEnhancements: performanceEnhancementsToggle.checked
+
     property alias appDisplayName: appDisplayNameField.text
     property alias askClearChatConfirmation: askClearChatConfirmationCheck.checked
     property alias askDeleteChatConfirmation: askDeleteChatConfirmationCheck.checked
@@ -140,22 +140,7 @@ Kirigami.FormLayout {
         text: "Sets a default instruction sent to the AI at the start of every conversation. Leave blank for the built-in default."
     }
 
-    QQC2.CheckBox {
-        id: performanceEnhancementsToggle
-        Kirigami.FormData.label: page ? page.translate("Performance enhancements:") : "Performance enhancements:"
-        Layout.maximumWidth: advancedSection.fieldMaxWidth
-        text: performanceEnhancementsToggle.checked ? (page ? page.translate("Enabled — smoother scrolling, more memory") : "Enabled — smoother scrolling, more memory") : (page ? page.translate("Disabled — lower memory, simpler rendering") : "Disabled — lower memory, simpler rendering")
-    }
 
-    QQC2.Label {
-        Kirigami.FormData.label: ""
-        Layout.fillWidth: true
-        Layout.maximumWidth: advancedSection.fieldMaxWidth
-        wrapMode: Text.Wrap
-        opacity: 0.72
-        font: Kirigami.Theme.smallFont
-        text: page ? page.translate("Turn off to reduce memory usage if you have long chats or a low-end GPU. Requires Apply/OK to take effect.") : "Turn off to reduce memory usage if you have long chats or a low-end GPU. Requires Apply/OK to take effect."
-    }
 
     QQC2.CheckBox {
         id: memoryEnabledToggle

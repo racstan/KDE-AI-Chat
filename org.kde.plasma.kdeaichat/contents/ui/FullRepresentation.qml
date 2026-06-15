@@ -202,7 +202,7 @@ import "MainDatabase.js" as MainDatabase
                     onClicked: {
                         if (root.msgListViewRef && root.msgListViewRef.count > 0) {
                             root.userScrolledUp = true;
-                            root.msgListViewRef.positionViewAtBeginning();
+                            root.msgListViewRef.positionViewAtEnd();
                         }
                     }
                 }
@@ -581,58 +581,39 @@ import "MainDatabase.js" as MainDatabase
                                 anchors.topMargin: Kirigami.Units.smallSpacing
                                 anchors.bottomMargin: Kirigami.Units.smallSpacing
                                 anchors.rightMargin: Kirigami.Units.gridUnit
-                                model: root.configPerformanceEnhancements ? root.visibleMessages : root.messages
+                                verticalLayoutDirection: ListView.BottomToTop
+                                model: root.messages.length
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
 
-                                header: Item {
-                                    width: msgList.width
-                                    height: root.configPerformanceEnhancements && (root.messages.length > root.visibleMessagesCount) ? Kirigami.Units.gridUnit * 2.5 : 0
-                                    visible: root.configPerformanceEnhancements && root.messages.length > root.visibleMessagesCount
-                                    clip: true
 
-                                    PC3.Button {
-                                        anchors.centerIn: parent
-                                        text: root.translate("Load further chats")
-                                        icon.name: "view-refresh"
-                                        onClicked: {
-                                            let oldHeight = msgList.contentHeight;
-                                            root.visibleMessagesCount = Math.min(root.messages.length, root.visibleMessagesCount + 30);
-                                            Qt.callLater(function() {
-                                                let diff = msgList.contentHeight - oldHeight;
-                                                if (diff > 0) {
-                                                    msgList.contentY += diff;
-                                                }
-                                            });
-                                        }
-                                    }
-                                }
-                                // Keep several viewports of off-screen delegates alive so
-                                // scrolling does not constantly create/destroy heavy RichText
-                                // items (the main source of perceived page lag).
-                                cacheBuffer: root.configPerformanceEnhancements ? Math.max(msgList.height * 3, 4000) : 600
+
                                 // Recycle delegate instances instead of destroying/creating
                                 // them on every scroll; huge win for heavy RichText items.
-                                reuseItems: root.configPerformanceEnhancements
-                                // Cap flick speed so the CPU-heavy RichText renderer never
-                                // tries to keep up with an overly aggressive scroll velocity.
-                                maximumFlickVelocity: root.configPerformanceEnhancements ? 1600 : 2500
-                                flickDeceleration: root.configPerformanceEnhancements ? 1200 : 1500
+                                reuseItems: true
+                                // Tweaked scroll velocities for smoother dragging
+                                maximumFlickVelocity: 2500
+                                flickDeceleration: 1500
                                 Component.onCompleted: root.msgListViewRef = msgList
                                 onMovementStarted: {
-                                    if (!msgList.atYEnd)
+                                    if (!msgList.atYBeginning)
                                         root.userScrolledUp = true;
                                 }
-                                onAtYEndChanged: {
-                                    if (msgList.atYEnd)
+                                onAtYBeginningChanged: {
+                                    if (msgList.atYBeginning)
                                         root.userScrolledUp = false;
+                                }
+                                onContentHeightChanged: {
+                                    if (!root.userScrolledUp && msgList.count > 0) {
+                                        msgList.positionViewAtBeginning();
+                                    }
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
                                     policy: QQC2.ScrollBar.AsNeeded
                                 }
 
-                                footer: Item {
+                                header: Item {
                                     width: msgList.width
                                     height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
                                     visible: root.streamingResponse && root.streamingContent !== ""
@@ -723,14 +704,16 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 delegate: Item {
-                                    readonly property int originalIndex: root.configPerformanceEnhancements ? index + (root.messages.length - root.visibleMessages.length) : index
-                                    readonly property bool showDayHeader: root.configPerformanceEnhancements ? (originalIndex === 0 || root.messageDayKeyAt(originalIndex) !== root.messageDayKeyAt(originalIndex - 1)) : !!(modelData && modelData.showDayHeader)
+                                    property int reversedIndex: root.messages.length - 1 - index
+                                    property var modelData: root.messages[reversedIndex]
+                                    readonly property int originalIndex: reversedIndex
+                                    readonly property bool showDayHeader: originalIndex === 0 || root.messageDayKeyAt(originalIndex) !== root.messageDayKeyAt(originalIndex - 1)
                                     readonly property string searchNeedle: root.searchQuery.trim().toLowerCase()
 
-                                    // Cache each delegate as a GPU texture so scrolling only
-                                    // moves textures instead of re-rendering RichText every frame.
-                                    layer.enabled: root.configPerformanceEnhancements
-                                    layer.smooth: false
+                                    // layer caching disabled as it attempts to create massive textures for large text blocks,
+                                    // causing severe GPU memory spikes and heavy lag on widget startup.
+
+                                    // layer.smooth: false
                                     property bool isSearchMatch: root.searchBarActive && searchNeedle !== "" && modelData && modelData.searchText && modelData.searchText.indexOf(searchNeedle) >= 0
                                     property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === originalIndex
 

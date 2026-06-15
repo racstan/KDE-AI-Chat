@@ -117,6 +117,8 @@ PlasmoidItem {
     property string streamingContent: ""
     property string streamingModel: ""
     property var streamingContextItems: []
+    property var streamingTokens: null
+    property real streamingCost: 0
     property bool autocompleteActive: false
     property int autocompleteSelectedIndex: 0
     property var filteredCommands: []
@@ -151,7 +153,7 @@ PlasmoidItem {
     property bool configOpenCodeAutoKill: !!plasmoid.configuration.openCodeAutoKill
     property int configOpenCodeAutoKillMinutes: plasmoid.configuration.openCodeAutoKillMinutes || 5
     property int configResponseLength: plasmoid.configuration.responseLength || 0
-    property bool configPerformanceEnhancements: plasmoid.configuration.enablePerformanceEnhancements !== undefined ? !!plasmoid.configuration.enablePerformanceEnhancements : true
+
     property bool kwalletKeysLoaded: false
     property int kwalletOpenAttempts: 0
     property bool kwalletLoading: false
@@ -170,28 +172,7 @@ PlasmoidItem {
     property bool userScrolledUp: false
     property bool scrollToBottomQueued: false
 
-    // Paginate the chat view so the ListView only renders a sliding window
-    // of messages. This keeps contentHeight stable, prevents the scrollbar
-    // thumb from resizing/glitching, and eliminates scroll lag in long chats.
-    property int visibleMessagesCount: 30
-    property string _lastSessionIdForVisibleCount: ""
-    property var visibleMessages: {
-        if (!messages) {
-            return [];
-        }
-        if (messages.length <= visibleMessagesCount) {
-            return messages;
-        }
-        return messages.slice(messages.length - visibleMessagesCount);
-    }
 
-    // Idle memory saving: when the widget is collapsed for a while we shrink
-    // the visible window and clear rendered HTML caches. These are restored
-    // when the widget is expanded again.
-    property int _visibleMessagesCountBeforeIdle: 30
-    property bool _idleMemorySaveActive: false
-
-    property int _lastMessagesLength: 0
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
@@ -454,7 +435,6 @@ PlasmoidItem {
     }
 
     function createSession(switchToNew) {
-        root.visibleMessagesCount = 30;
         return MainDatabase.createSession(switchToNew);
     }
 
@@ -475,38 +455,28 @@ PlasmoidItem {
     }
 
     function switchSession(sessionId) {
-        root.visibleMessagesCount = 30;
         return MainDatabase.switchSession(sessionId);
     }
 
     function listViewIndexAt(x, y) {
         if (!msgListViewRef || !messages) return -1;
-        let localIdx = msgListViewRef.indexAt(x, y);
-        if (localIdx < 0) return -1;
-        return localIdx + (messages.length - visibleMessages.length);
+        return msgListViewRef.indexAt(x, y);
     }
 
     function toOriginalMessageIndex(localIdx) {
-        if (!visibleMessages || localIdx < 0 || localIdx >= visibleMessages.length) return -1;
-        return localIdx + (messages.length - visibleMessages.length);
+        if (!messages) return localIdx;
+        return messages.length - 1 - localIdx;
     }
 
     function toLocalMessageIndex(originalIdx) {
-        if (!messages || originalIdx < 0 || originalIdx >= messages.length) return -1;
-        let localIdx = originalIdx - (messages.length - visibleMessages.length);
-        if (localIdx < 0 || localIdx >= visibleMessages.length) return -1;
-        return localIdx;
+        if (!messages) return originalIdx;
+        return messages.length - 1 - originalIdx;
     }
 
     function positionListViewAtIndex(originalIdx, mode) {
         if (!msgListViewRef || !messages) return;
         if (originalIdx < 0 || originalIdx >= messages.length) return;
-        let startIdx = messages.length - visibleMessagesCount;
-        if (originalIdx < startIdx) {
-            visibleMessagesCount = messages.length - originalIdx;
-        }
-        let localIdx = originalIdx - (messages.length - visibleMessages.length);
-        if (localIdx < 0) return;
+        let localIdx = toLocalMessageIndex(originalIdx);
         msgListViewRef.currentIndex = localIdx;
         msgListViewRef.positionViewAtIndex(localIdx, mode);
     }
@@ -1052,10 +1022,6 @@ PlasmoidItem {
         if (expanded) {
             root.focusInput();
             checkAndMarkCurrentSessionAsRead();
-            if (root._idleMemorySaveActive) {
-                root._idleMemorySaveActive = false;
-                root.visibleMessagesCount = Math.max(5, Math.min(root.messages.length, root._visibleMessagesCountBeforeIdle));
-            }
         }
     }
     onHistoryOnlyModeChanged: {
@@ -1106,18 +1072,6 @@ PlasmoidItem {
     property int _lastParsedMsgIdx: -1
 
     onMessagesChanged: {
-        let newLen = messages ? messages.length : 0;
-        if (currentSessionId !== _lastSessionIdForVisibleCount) {
-            _lastSessionIdForVisibleCount = currentSessionId;
-            visibleMessagesCount = Math.min(newLen, 30);
-        } else {
-            if (newLen > _lastMessagesLength) {
-                visibleMessagesCount = visibleMessagesCount + (newLen - _lastMessagesLength);
-            } else if (newLen < _lastMessagesLength) {
-                visibleMessagesCount = Math.max(0, visibleMessagesCount - (_lastMessagesLength - newLen));
-            }
-        }
-        _lastMessagesLength = newLen;
         root.updateMessageMetadata();
 
         // During active streaming, skip all heavy work — streamingContent
@@ -1174,29 +1128,6 @@ PlasmoidItem {
     property alias openCodePollTimer: dataSources.openCodePollTimer
     property alias voiceDs: dataSources.voiceDs
 
-    // When collapsed, trim the rendered chat window and clear HTML caches
-    // after a short delay to free memory. Restore the previous window size
-    // when the user opens the widget again.
-    Timer {
-        id: idleMemorySaver
-        interval: 30000
-        repeat: true
-        running: !root.expanded && root.configPerformanceEnhancements
-        onTriggered: {
-            if (root.expanded || !root.messages || root.messages.length <= 10)
-                return;
-            if (root._idleMemorySaveActive)
-                return;
-            root._visibleMessagesCountBeforeIdle = root.visibleMessagesCount;
-            root._idleMemorySaveActive = true;
-            root.visibleMessagesCount = Math.min(root.messages.length, 5);
-            for (let i = 0; i < root.messages.length; i++) {
-                let m = root.messages[i];
-                if (m && m.contentHtmlCache)
-                    m.contentHtmlCache = undefined;
-            }
-        }
-    }
 
         compactRepresentation: MouseArea {
         onClicked: root.expanded = !root.expanded
