@@ -217,6 +217,13 @@ Column {
                     if (htmlContent !== "") {
                         return htmlContent;
                     }
+                    let isLastMessage = contentRoot.chatRoot && contentRoot.chatRoot.messages && contentRoot.messageIndex === contentRoot.chatRoot.messages.length - 1;
+                    if (isLastMessage && contentRoot.chatRoot) {
+                        let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
+                        if (!modelData.contentHtmlCache) modelData.contentHtmlCache = {};
+                        modelData.contentHtmlCache[darkKey] = html;
+                        return html;
+                    }
                     parseHtmlTimer.restart();
                     return "<i>Loading...</i>";
                 }
