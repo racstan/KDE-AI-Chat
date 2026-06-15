@@ -606,7 +606,9 @@ import "MainDatabase.js" as MainDatabase
                                 onContentHeightChanged: {
                                     let diff = contentHeight - lastContentHeight;
                                     if (root.userScrolledUp && diff > 0 && lastContentHeight > 0) {
-                                        msgList.contentY += diff;
+                                        if (vbar && !vbar.pressed) {
+                                            msgList.contentY += diff;
+                                        }
                                     } else if (!root.userScrolledUp && msgList.count > 0) {
                                         msgList.positionViewAtEnd();
                                     }
@@ -614,6 +616,7 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+                                    id: vbar
                                     policy: QQC2.ScrollBar.AsNeeded
                                 }
 
