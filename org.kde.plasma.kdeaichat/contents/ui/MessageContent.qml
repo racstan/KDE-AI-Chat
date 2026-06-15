@@ -212,7 +212,7 @@ Column {
                 visible: modelData.type === "text"
                 width: parent.width
                 wrapMode: Text.Wrap
-                textFormat: Text.RichText
+                textFormat: Text.StyledText
                 property string htmlContent: ""
                 text: {
                     if (modelData.type !== "text") {
@@ -225,22 +225,15 @@ Column {
                     if (htmlContent !== "") {
                         return htmlContent;
                     }
-                    let isLastMessage = contentRoot.chatRoot && contentRoot.chatRoot.messages && contentRoot.messageIndex === contentRoot.chatRoot.messages.length - 1;
-                    if (isLastMessage && contentRoot.chatRoot) {
-                        let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
-                        if (!modelData.contentHtmlCache) modelData.contentHtmlCache = {};
-                        modelData.contentHtmlCache[darkKey] = html;
-                        return html;
-                    }
-                    // Defer non-last messages to avoid markdown conversion storms
-                    if (!parseHtmlTimer.running) parseHtmlTimer.restart();
+                    // Show raw content immediately — no conversion storm, no "Loading..."
                     return modelData.content || "";
                 }
 
                 Timer {
                     id: parseHtmlTimer
-                    interval: 500
+                    interval: 800
                     running: false
+                    repeat: false
                     onTriggered: {
                         if (modelData.type !== "text") return;
                         if (modelData.contentHtmlCache && Object.keys(modelData.contentHtmlCache).length > 0) return;
@@ -263,9 +256,6 @@ Column {
                 selectionColor: Kirigami.Theme.highlightColor
                 font: Kirigami.Theme.defaultFont
                 onLinkActivated: function(link) {
-                    // Only open URLs with a safe scheme. Anything else
-                    // (javascript:, data:, file:, custom schemes) is
-                    // dropped here as well as in the markdown renderer.
                     let safe = Sec.validateUrl(link);
                     if (safe !== "")
                         Qt.openUrlExternally(safe);

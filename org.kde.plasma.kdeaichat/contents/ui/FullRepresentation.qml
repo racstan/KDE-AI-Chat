@@ -585,7 +585,7 @@ import "MainDatabase.js" as MainDatabase
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 2000
+                                cacheBuffer: 200
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
@@ -599,10 +599,9 @@ import "MainDatabase.js" as MainDatabase
                                         root.userScrolledUp = false;
                                 }
                                 onContentYChanged: {
-                                    if (!msgList.atYEnd) {
-                                        if (msgList.moving || msgList.dragging || vbar.pressed || vbar.active) {
+                                    if (!msgList.atYEnd && (msgList.moving || msgList.dragging || vbar.pressed || vbar.active)) {
+                                        if (!root.userScrolledUp)
                                             root.userScrolledUp = true;
-                                        }
                                     }
                                 }
 
