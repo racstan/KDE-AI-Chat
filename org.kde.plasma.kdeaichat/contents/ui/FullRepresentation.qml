@@ -595,24 +595,20 @@ import "MainDatabase.js" as MainDatabase
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
                                 Component.onCompleted: root.msgListViewRef = msgList
-                                onContentYChanged: {
-                                    if (msgList.atYEnd) {
-                                        root.userScrolledUp = false;
-                                    } else {
+                                onMovementStarted: {
+                                    if (!msgList.atYEnd)
                                         root.userScrolledUp = true;
-                                    }
                                 }
-                                property real lastContentHeight: 0
-                                onContentHeightChanged: {
-                                    let diff = contentHeight - lastContentHeight;
-                                    if (root.userScrolledUp && diff > 0 && lastContentHeight > 0) {
-                                        if (vbar && !vbar.pressed) {
-                                            msgList.contentY += diff;
+                                onAtYEndChanged: {
+                                    if (msgList.atYEnd)
+                                        root.userScrolledUp = false;
+                                }
+                                onContentYChanged: {
+                                    if (!msgList.atYEnd) {
+                                        if (msgList.moving || msgList.dragging || vbar.pressed || vbar.active) {
+                                            root.userScrolledUp = true;
                                         }
-                                    } else if (!root.userScrolledUp && msgList.count > 0) {
-                                        msgList.positionViewAtEnd();
                                     }
-                                    lastContentHeight = contentHeight;
                                 }
 
                                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
@@ -621,9 +617,15 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 footer: Item {
+                                    id: footerItem
                                     width: msgList.width
                                     height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
                                     visible: root.streamingResponse && root.streamingContent !== ""
+                                    onHeightChanged: {
+                                        if (!root.userScrolledUp && msgList.count > 0) {
+                                            msgList.positionViewAtEnd();
+                                        }
+                                    }
 
                                     Rectangle {
                                         id: footerBubble
