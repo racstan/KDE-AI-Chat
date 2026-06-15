@@ -1556,8 +1556,8 @@ fail("OpenCode: failed to create session: " + sendError);
 
 
 function scrollToBottom() {
-if (root.msgListViewRef && !root.msgListViewRef.atYBeginning)
-    root.msgListViewRef.positionViewAtBeginning();
+if (root.msgListViewRef && !root.msgListViewRef.atYEnd)
+    root.msgListViewRef.positionViewAtEnd();
 }
 
 
@@ -1695,15 +1695,16 @@ return nowTime(messageTimestampAt(index));
 function jumpOneMessageAbove() {
 if (!root.msgListViewRef || root.messages.length === 0)
 return ;
-let currentLocal = -1;
+let currentTop = -1;
 for (let offset = 15; offset <= 100; offset += 20) {
-currentLocal = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
-if (currentLocal >= 0)
+currentTop = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
+if (currentTop >= 0)
 break;
 }
-let currentOriginal = currentLocal < 0 ? root.messages.length : root.toOriginalMessageIndex(currentLocal);
+if (currentTop < 0)
+currentTop = root.messages.length;
 let target = -1;
-for (let i = currentOriginal - 1; i >= 0; i--) {
+for (let i = currentTop - 1; i >= 0; i--) {
 let msg = root.messages[i];
 if (msg && msg.role === "user") {
 target = i;
@@ -1712,10 +1713,10 @@ break;
 }
 if (target >= 0) {
 root.userScrolledUp = true;
-root.positionListViewAtIndex(target, ListView.End);
+root.positionListViewAtIndex(target, ListView.Beginning);
 } else {
 root.userScrolledUp = true;
-root.msgListViewRef.positionViewAtEnd();
+root.msgListViewRef.positionViewAtBeginning();
 }
 }
 
@@ -1723,15 +1724,16 @@ root.msgListViewRef.positionViewAtEnd();
 function jumpOneMessageBelow() {
 if (!root.msgListViewRef || root.messages.length === 0)
 return ;
-let currentLocal = -1;
+let currentTop = -1;
 for (let offset = 15; offset <= 100; offset += 20) {
-currentLocal = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
-if (currentLocal >= 0)
+currentTop = root.listViewIndexAt(30, root.msgListViewRef.contentY + offset);
+if (currentTop >= 0)
 break;
 }
-let currentOriginal = currentLocal < 0 ? -1 : root.toOriginalMessageIndex(currentLocal);
+if (currentTop < 0)
+currentTop = -1;
 let target = -1;
-for (let i = currentOriginal + 1; i < root.messages.length; i++) {
+for (let i = currentTop + 1; i < root.messages.length; i++) {
 let msg = root.messages[i];
 if (msg && msg.role === "user") {
 target = i;
@@ -1753,7 +1755,7 @@ root.scrollToBottom();
 }
 } else {
 root.userScrolledUp = true;
-root.positionListViewAtIndex(target, ListView.End);
+root.positionListViewAtIndex(target, ListView.Beginning);
 }
 } else {
 if (root.userScrolledUp) {

@@ -464,13 +464,11 @@ PlasmoidItem {
     }
 
     function toOriginalMessageIndex(localIdx) {
-        if (!messages) return localIdx;
-        return messages.length - 1 - localIdx;
+        return localIdx;
     }
 
     function toLocalMessageIndex(originalIdx) {
-        if (!messages) return originalIdx;
-        return messages.length - 1 - originalIdx;
+        return originalIdx;
     }
 
     function positionListViewAtIndex(originalIdx, mode) {
