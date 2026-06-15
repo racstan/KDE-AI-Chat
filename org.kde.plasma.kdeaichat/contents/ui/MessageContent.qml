@@ -78,7 +78,7 @@ Column {
                 id: chatImage
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectFit
-                source: contentRoot.messageData.imageUrl || ""
+                source: (contentRoot.messageData && contentRoot.messageData.isImage === true) ? (contentRoot.messageData.imageUrl || "") : ""
                 asynchronous: true
                 cache: true
 

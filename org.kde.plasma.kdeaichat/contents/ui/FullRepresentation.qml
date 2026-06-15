@@ -585,7 +585,7 @@ import "MainDatabase.js" as MainDatabase
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 20000
+                                cacheBuffer: 2000
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
@@ -936,7 +936,7 @@ import "MainDatabase.js" as MainDatabase
                                                                         Image {
                                                                             anchors.fill: parent
                                                                             visible: modelData.type === "image"
-                                                                            source: (modelData.content && modelData.content !== "") ? ("data:" + (modelData.mimeType || "image/png") + ";base64," + modelData.content) : ("file://" + modelData.path)
+                                                                            source: modelData.type === "image" ? ((modelData.content && modelData.content !== "") ? ("data:" + (modelData.mimeType || "image/png") + ";base64," + modelData.content) : ("file://" + modelData.path)) : ""
                                                                             fillMode: Image.PreserveAspectCrop
                                                                             clip: true
                                                                         }
@@ -1657,7 +1657,7 @@ import "MainDatabase.js" as MainDatabase
                                                 Image {
                                                     anchors.fill: parent
                                                     visible: !modelData.loading && modelData.type === "image"
-                                                    source: (modelData.content && modelData.content !== "") ? ("data:" + (modelData.mimeType || "image/png") + ";base64," + modelData.content) : ("file://" + modelData.path)
+                                                    source: (!modelData.loading && modelData.type === "image") ? ((modelData.content && modelData.content !== "") ? ("data:" + (modelData.mimeType || "image/png") + ";base64," + modelData.content) : ("file://" + modelData.path)) : ""
                                                     fillMode: Image.PreserveAspectCrop
                                                     clip: true
                                                 }
