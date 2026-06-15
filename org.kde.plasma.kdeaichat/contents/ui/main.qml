@@ -1085,9 +1085,8 @@ PlasmoidItem {
                 : 0;
             for (let i = startIdx; i < root.messages.length; i++) {
                 let m = root.messages[i];
-                if (m && m.content !== undefined && (m.blocks === undefined || m.lastParsedContent !== m.content)) {
-                    m.blocks = root.parseMessageBlocks(m.content);
-                    m.lastParsedContent = m.content;
+                if (m) {
+                    MainDatabase.precomputeBlocksAndHtmlForMessage(m);
                 }
             }
             root._lastParsedMsgIdx = root.messages.length;

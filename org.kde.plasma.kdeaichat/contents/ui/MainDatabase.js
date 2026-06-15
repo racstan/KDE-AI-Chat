@@ -375,15 +375,40 @@ root.openCodeMode = (root.sessions[idx].source === "opencode");
 sortSessionsByUpdated();
 }
 
+function precomputeBlocksAndHtmlForMessage(msg) {
+    if (!msg) return;
+    if (msg.content === undefined || msg.content === null) return;
+    if (!msg.blocks || msg.lastParsedContent !== msg.content) {
+        try {
+            msg.blocks = parseMessageBlocks(msg.content);
+            msg.lastParsedContent = msg.content;
+        } catch (_) {
+            return;
+        }
+    }
+    if (msg.blocks) {
+        for (let i = 0; i < msg.blocks.length; i++) {
+            let block = msg.blocks[i];
+            if (block.type === "text") {
+                if (!block.contentHtmlCache) {
+                    block.contentHtmlCache = {};
+                }
+                if (block.contentHtmlCache["dark"] === undefined) {
+                    block.contentHtmlCache["dark"] = MarkdownRenderer.convertMarkdownToHtml(block.content || "", true);
+                }
+                if (block.contentHtmlCache["light"] === undefined) {
+                    block.contentHtmlCache["light"] = MarkdownRenderer.convertMarkdownToHtml(block.content || "", false);
+                }
+            }
+        }
+    }
+}
+
+
 function precomputeBlocksForMessages(msgs) {
     if (!msgs) return;
     for (let j = 0; j < msgs.length; j++) {
-        if (!msgs[j].blocks && msgs[j].content) {
-            try {
-                msgs[j].blocks = parseMessageBlocks(msgs[j].content);
-                msgs[j].lastParsedContent = msgs[j].content;
-            } catch(_) {}
-        }
+        precomputeBlocksAndHtmlForMessage(msgs[j]);
     }
 }
 
@@ -2752,20 +2777,7 @@ if (idx < 0)
 return ;
 ensureMessageMetadata(msgObj);
 // Pre-compute blocks and HTML so MessageContent.qml renders instantly without jitter.
-if (!msgObj.blocks && msgObj.content) {
-try { 
-    let parsedBlocks = parseMessageBlocks(msgObj.content);
-    let darkKey = root.popupIsDark ? "dark" : "light";
-    for (let i = 0; i < parsedBlocks.length; i++) {
-        if (parsedBlocks[i].type === "text") {
-            if (!parsedBlocks[i].contentHtmlCache) parsedBlocks[i].contentHtmlCache = {};
-            parsedBlocks[i].contentHtmlCache[darkKey] = MarkdownRenderer.convertMarkdownToHtml(parsedBlocks[i].content || "", root.popupIsDark);
-        }
-    }
-    msgObj.blocks = parsedBlocks;
-    msgObj.lastParsedContent = msgObj.content; 
-} catch(_) {}
-}
+precomputeBlocksAndHtmlForMessage(msgObj);
 let updated = root.sessions.slice();
 let s = Object.assign({
 }, updated[idx]);
@@ -3397,18 +3409,7 @@ if (root.streamingTokens) newMsg.tokens = root.streamingTokens;
 if (root.streamingCost > 0) newMsg.cost = root.streamingCost;
 
 // Pre-compute blocks and HTML so MessageContent.qml reads a static cached array.
-try { 
-    let parsedBlocks = parseMessageBlocks(text);
-    let darkKey = root.popupIsDark ? "dark" : "light";
-    for (let i = 0; i < parsedBlocks.length; i++) {
-        if (parsedBlocks[i].type === "text") {
-            if (!parsedBlocks[i].contentHtmlCache) parsedBlocks[i].contentHtmlCache = {};
-            parsedBlocks[i].contentHtmlCache[darkKey] = MarkdownRenderer.convertMarkdownToHtml(parsedBlocks[i].content || "", root.popupIsDark);
-        }
-    }
-    newMsg.blocks = parsedBlocks;
-    newMsg.lastParsedContent = text; 
-} catch(_) {}
+precomputeBlocksAndHtmlForMessage(newMsg);
 root.messages = root.messages.concat([newMsg]);
 if (!root.userScrolledUp)
 queueScrollToBottom();

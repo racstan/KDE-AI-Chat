@@ -181,6 +181,7 @@ class TestPreParseSetsLastParsedContent(unittest.TestCase):
                 ]
             }]);
             var arr = parseSessions(raw);
+            precomputeBlocksForMessages(arr[0].messages);
             var m0 = arr[0].messages[0];
             var m1 = arr[0].messages[1];
             console.log("m0_has_blocks=" + (m0.blocks !== undefined));

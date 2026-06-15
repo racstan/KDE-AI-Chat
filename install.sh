@@ -25,6 +25,11 @@ echo "════════════════════════�
 # ── 1. Install the Plasma widget ──────────────────────────────────────────────
 echo ""
 echo "[1/4] Installing Plasma widget..."
+PLASMOID_DEST="$HOME/.local/share/plasma/plasmoids/$WIDGET_ID"
+if [ -L "$PLASMOID_DEST" ]; then
+    echo "      ✓ Removing active development symlink from $PLASMOID_DEST"
+    rm "$PLASMOID_DEST"
+fi
 kpackagetool6 --type Plasma/Applet --remove "$WIDGET_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$WIDGET_DIR"
 echo "      ✓ Widget installed."
