@@ -46,6 +46,7 @@ Item {
     property alias opencodeTerminalDs: opencodeTerminalDs
     property alias openCodePollTimer: openCodePollTimer
     property alias voiceDs: voiceDs
+    property alias sendMessageDelayTimer: sendMessageDelayTimer
 
     P5Support.DataSource {
         id: soundDs
@@ -176,6 +177,18 @@ Item {
     }
 
     Timer {
+        id: sendMessageDelayTimer
+        interval: 50
+        repeat: false
+        property int messageIndex: -1
+        onTriggered: {
+            if (messageIndex >= 0) {
+                MainDatabase.sendMessageByIndex(messageIndex);
+            }
+        }
+    }
+
+    Timer {
         id: openCodeIdleKillTimer
 
         interval: 300000 // 5 minutes
@@ -277,7 +290,7 @@ Item {
         interval: 1500
         repeat: false
         onTriggered: {
-            let cmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
+            let cmd = MainOpenCode.sanitizeOpenCodeStartCommand(plasmoid.configuration.openCodeStartCommand);
             let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
             opencodeServerDs.connectSource("sh -c '" + envPrefix + cmd.replace(/'/g, "'\\''") + "' #autostart-opencode");
         }

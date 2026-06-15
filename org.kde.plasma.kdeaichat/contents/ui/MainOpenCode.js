@@ -39,6 +39,36 @@ setCurrentOpenCodeSessionId("");
 }
 
 
+function sanitizeOpenCodeStartCommand(cmd) {
+    let raw = (cmd || "").trim();
+    if (raw === "") {
+        return 'logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"; (nohup opencode serve --port 4096 --hostname 127.0.0.1 >"$logf" 2>&1 < /dev/null &) && echo ok';
+    }
+    if (raw.indexOf("opencode serve") >= 0 && raw.indexOf("< /dev/null") < 0) {
+        if (raw.indexOf("2>&1") >= 0) {
+            raw = raw.replace("2>&1", "2>&1 < /dev/null");
+        } else {
+            if (raw.endsWith("&")) {
+                raw = raw.slice(0, -1).trim() + " < /dev/null &";
+            } else {
+                raw = raw + " < /dev/null";
+            }
+        }
+    }
+    if (raw.indexOf("nohup") >= 0 && raw.indexOf("(nohup") < 0) {
+        let parts = raw.split(";");
+        for (let i = 0; i < parts.length; i++) {
+            let part = parts[i].trim();
+            if (part.indexOf("nohup") >= 0 && part.endsWith("&") && !part.startsWith("(")) {
+                parts[i] = "(" + part + ")";
+            }
+        }
+        raw = parts.join("; ");
+    }
+    return raw;
+}
+
+
 function ensureOpenCodeEventStream() {
 if (root.openCodeEventXhr)
 return ;
@@ -202,7 +232,7 @@ function handleNotRunning(err) {
 if (checkFinished) return;
 checkFinished = true;
 if (plasmoid.configuration.autoStartOpenCodeServer) {
-let startCmd = (plasmoid.configuration.openCodeStartCommand || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo ok").trim();
+let startCmd = sanitizeOpenCodeStartCommand(plasmoid.configuration.openCodeStartCommand);
 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
 opencodeServerDs.connectSource("sh -c '" + envPrefix + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
 if (chatId) {

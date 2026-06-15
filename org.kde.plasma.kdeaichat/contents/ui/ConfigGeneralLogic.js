@@ -657,6 +657,36 @@ page.openCodeProviderBox.currentIndex = pidx;
 }
 
 
+function sanitizeOpenCodeStartCommand(cmd) {
+    let raw = (cmd || "").trim();
+    if (raw === "") {
+        return 'logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"; (nohup opencode serve --port 4096 --hostname 127.0.0.1 >"$logf" 2>&1 < /dev/null &) && echo ok';
+    }
+    if (raw.indexOf("opencode serve") >= 0 && raw.indexOf("< /dev/null") < 0) {
+        if (raw.indexOf("2>&1") >= 0) {
+            raw = raw.replace("2>&1", "2>&1 < /dev/null");
+        } else {
+            if (raw.endsWith("&")) {
+                raw = raw.slice(0, -1).trim() + " < /dev/null &";
+            } else {
+                raw = raw + " < /dev/null";
+            }
+        }
+    }
+    if (raw.indexOf("nohup") >= 0 && raw.indexOf("(nohup") < 0) {
+        let parts = raw.split(";");
+        for (let i = 0; i < parts.length; i++) {
+            let part = parts[i].trim();
+            if (part.indexOf("nohup") >= 0 && part.endsWith("&") && !part.startsWith("(")) {
+                parts[i] = "(" + part + ")";
+            }
+        }
+        raw = parts.join("; ");
+    }
+    return raw;
+}
+
+
 function refreshOpenCodeDiscovery() {
 probeOpenCodeProviders((page ? page.cfg_openCodeUrl : ""));
 }
@@ -665,7 +695,7 @@ probeOpenCodeProviders((page ? page.cfg_openCodeUrl : ""));
 function startOpenCodeServer() {
 page.discoveryStatus = "Starting OpenCode server...";
 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
-let startCmd = page.openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
+let startCmd = sanitizeOpenCodeStartCommand(page.openCodeStartCommandField.text);
 let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + startCmd);
 page.utilityDs.connectSource(cmd + " #opencode-start-manual");
 openCodeAutoStartTimer.restart();
@@ -684,7 +714,7 @@ page.discoveryStatus = "OpenCode server stopped.";
 function startOpenCodeServerAutomatically() {
 page.discoveryStatus = "Starting OpenCode server automatically...";
 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
-let startCmd = page.openCodeStartCommandField.text || "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 &";
+let startCmd = sanitizeOpenCodeStartCommand(page.openCodeStartCommandField.text);
 let cmd = "sh -c " + Sec.rawShellSnippetQuote(envPrefix + startCmd);
 page.utilityDs.connectSource(cmd + " #opencode-autostart");
 // After a short delay, attempt discovery again
@@ -1399,7 +1429,7 @@ page.openCodeToggle.checked = false;
 if (page) page.cfg_openCodeUrl = "http://127.0.0.1:4096/v1";
 page.openCodeProviderValueField.text = "";
 if (page) page.cfg_openCodeModel = "";
-page.openCodeStartCommandField.text = "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 & echo OpenCode start command launched.";
+page.openCodeStartCommandField.text = "logf=\"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log\"; (nohup opencode serve --port 4096 --hostname 127.0.0.1 >\"$logf\" 2>&1 < /dev/null &) && echo OpenCode start command launched.";
 page.openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
 page.openCodeAutoKillToggle.checked = true;
 page.openCodeAutoKillMinutesSpin.value = 5;

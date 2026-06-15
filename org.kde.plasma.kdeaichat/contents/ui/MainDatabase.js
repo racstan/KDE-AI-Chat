@@ -678,10 +678,15 @@ root.editingDraft = "";
 clearCurrentOpenCodeSessionIfNeeded();
 saveCurrentSessionState(true);
 // Re-run from edited user prompt so assistant response reflects the new text.
-if (role === "user") {
-root.userScrolledUp = false;
-sendMessageByIndex(i);
-}
+    if (role === "user") {
+        root.userScrolledUp = false;
+        if (root.sendMessageDelayTimer) {
+            root.sendMessageDelayTimer.messageIndex = i;
+            root.sendMessageDelayTimer.start();
+        } else {
+            sendMessageByIndex(i);
+        }
+    }
 }
 
 
@@ -2574,7 +2579,12 @@ appendUserMessage(text, "queued", attachments);
 return ;
 }
 appendUserMessage(text, "user", attachments);
-Qt.callLater(function() { sendMessageByIndex(root.messages.length - 1); });
+if (root.sendMessageDelayTimer) {
+    root.sendMessageDelayTimer.messageIndex = root.messages.length - 1;
+    root.sendMessageDelayTimer.start();
+} else {
+    Qt.callLater(function() { sendMessageByIndex(root.messages.length - 1); });
+}
 } catch (err) {
 root.loading = false;
 root.activeXhr = null;

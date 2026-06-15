@@ -1124,6 +1124,7 @@ PlasmoidItem {
     property alias opencodeTerminalDs: dataSources.opencodeTerminalDs
     property alias openCodePollTimer: dataSources.openCodePollTimer
     property alias voiceDs: dataSources.voiceDs
+    property alias sendMessageDelayTimer: dataSources.sendMessageDelayTimer
 
 
         compactRepresentation: MouseArea {

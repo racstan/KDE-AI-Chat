@@ -322,7 +322,7 @@
       <default></default>
     </entry>
     <entry name="openCodeStartCommand" type="String">
-      <default>logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"; nohup opencode serve --port 4096 --hostname 127.0.0.1 &gt;"$logf" 2&gt;&amp;1 &amp; echo "OpenCode log: $logf"</default>
+      <default>logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"; (nohup opencode serve --port 4096 --hostname 127.0.0.1 &gt;"$logf" 2&gt;&amp;1 &lt; /dev/null &amp;) &amp;&amp; echo "OpenCode log: $logf"</default>
     </entry>
     <entry name="openCodeStopCommand" type="String">
       <default>pkill -f opencode &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo OpenCode stop command launched. || echo No OpenCode process matched.</default>
