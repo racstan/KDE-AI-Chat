@@ -598,7 +598,7 @@ import "MainDatabase.js" as MainDatabase
                                 onContentYChanged: {
                                     if (msgList.atYBeginning) {
                                         root.userScrolledUp = false;
-                                    } else if (msgList.movingVertically) {
+                                    } else {
                                         root.userScrolledUp = true;
                                     }
                                 }
