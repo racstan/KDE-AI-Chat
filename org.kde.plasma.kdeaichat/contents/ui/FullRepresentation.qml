@@ -595,13 +595,12 @@ import "MainDatabase.js" as MainDatabase
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
                                 Component.onCompleted: root.msgListViewRef = msgList
-                                onMovementStarted: {
-                                    if (!msgList.atYBeginning)
-                                        root.userScrolledUp = true;
-                                }
-                                onAtYBeginningChanged: {
-                                    if (msgList.atYBeginning)
+                                onContentYChanged: {
+                                    if (msgList.atYBeginning) {
                                         root.userScrolledUp = false;
+                                    } else if (msgList.movingVertically) {
+                                        root.userScrolledUp = true;
+                                    }
                                 }
                                 onContentHeightChanged: {
                                     if (!root.userScrolledUp && msgList.count > 0) {
