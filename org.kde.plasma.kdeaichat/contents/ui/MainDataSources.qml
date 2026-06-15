@@ -46,6 +46,7 @@ Item {
     property alias opencodeTerminalDs: opencodeTerminalDs
     property alias openCodePollTimer: openCodePollTimer
     property alias voiceDs: voiceDs
+    property alias _voiceForceStopTimer: voiceForceStopTimer
     property alias sendMessageDelayTimer: sendMessageDelayTimer
 
     P5Support.DataSource {
@@ -824,6 +825,18 @@ Item {
                 xhr.send();
             } catch (e) {
                 voiceStatusPollTimer.notePollFailure("daemon command failed");
+            }
+        }
+    }
+
+    Timer {
+        id: voiceForceStopTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            if (root.voiceRecording) {
+                root.voiceRecording = false;
+                root.voiceSttStatus = "";
             }
         }
     }

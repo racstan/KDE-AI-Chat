@@ -3593,6 +3593,13 @@ function stopVoiceRecording() {
     let fullCmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payloadStr) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payloadStr) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
     let sourceName = "sh -c " + Sec.rawShellSnippetQuote(fullCmd) + " #voice-stop-" + Date.now();
     sendVoiceCommand(9015, payload, sourceName);
+    // Force-stop after 3 seconds if the daemon doesn't respond
+    if (typeof dataSources !== "undefined" && dataSources && dataSources._voiceForceStopTimer) {
+        dataSources._voiceForceStopTimer.restart();
+    } else {
+        root.voiceRecording = false;
+        root.voiceSttStatus = "";
+    }
 }
 
 function triggerTts(text) {
@@ -3729,6 +3736,11 @@ function handleVoiceResponse(resp, sourceName) {
         pushErrorMessage("Voice error: " + (resp.error || "Unknown error"));
     } else if (respType === "stt_status") {
         root.voiceSttStatus = resp.status;
+        // If daemon reports idle/stopped while we think we're recording, clean up
+        if (root.voiceRecording && (resp.status === "idle" || resp.status === "stopped" || resp.status === "")) {
+            root.voiceRecording = false;
+            root.voiceSttStatus = "";
+        }
     } else if (respType === "tts_done") {
         root.ttsPlaying = false;
         root.ttsPaused = false;
