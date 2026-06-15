@@ -589,7 +589,12 @@ import "MainDatabase.js" as MainDatabase
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
-                                Component.onCompleted: root.msgListViewRef = msgList
+                                Component.onCompleted: {
+                                    root.msgListViewRef = msgList;
+                                    Qt.callLater(function() {
+                                        if (msgList.count > 0) msgList.positionViewAtEnd();
+                                    });
+                                }
                                 onMovementStarted: {
                                     if (!msgList.atYEnd)
                                         root.userScrolledUp = true;

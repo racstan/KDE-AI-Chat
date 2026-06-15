@@ -1019,7 +1019,12 @@ PlasmoidItem {
     onExpandedChanged: {
         if (expanded) {
             root.focusInput();
+            root.userScrolledUp = false;
             checkAndMarkCurrentSessionAsRead();
+            Qt.callLater(function() {
+                if (root.msgListViewRef && root.msgListViewRef.count > 0)
+                    root.msgListViewRef.positionViewAtEnd();
+            });
         }
     }
     onHistoryOnlyModeChanged: {
