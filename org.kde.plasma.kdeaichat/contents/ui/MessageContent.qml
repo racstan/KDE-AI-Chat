@@ -187,7 +187,7 @@ Column {
         visible: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
         width: parent.width
         model: contentRoot.messageData && contentRoot.messageData.isImage !== true && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
-            ? (contentRoot.messageData.blocks || (contentRoot.chatRoot ? contentRoot.chatRoot.parseMessageBlocks(contentRoot.messageData.content || "") : []))
+            ? (contentRoot.messageData.blocks || [])
             : []
 
         delegate: Item {
@@ -232,16 +232,18 @@ Column {
                         modelData.contentHtmlCache[darkKey] = html;
                         return html;
                     }
-                    parseHtmlTimer.restart();
-                    return "<i>Loading...</i>";
+                    // Defer non-last messages to avoid markdown conversion storms
+                    if (!parseHtmlTimer.running) parseHtmlTimer.restart();
+                    return modelData.content || "";
                 }
 
                 Timer {
                     id: parseHtmlTimer
-                    interval: 25
+                    interval: 500
                     running: false
                     onTriggered: {
                         if (modelData.type !== "text") return;
+                        if (modelData.contentHtmlCache && Object.keys(modelData.contentHtmlCache).length > 0) return;
                         let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
                         if (contentRoot.chatRoot) {
                             let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");

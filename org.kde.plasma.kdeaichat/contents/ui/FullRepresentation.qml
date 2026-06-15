@@ -585,7 +585,7 @@ import "MainDatabase.js" as MainDatabase
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 20000
+                                cacheBuffer: 2000
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
@@ -617,8 +617,13 @@ import "MainDatabase.js" as MainDatabase
                                     height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
                                     visible: root.streamingResponse && root.streamingContent !== ""
                                     onHeightChanged: {
-                                        if (!root.userScrolledUp && msgList.count > 0) {
-                                            msgList.positionViewAtEnd();
+                                        // Only scroll if user is already at the bottom AND not actively flicking.
+                                        // This prevents the list from jumping up/down as the footer grows.
+                                        if (!root.userScrolledUp && msgList.count > 0 && !msgList.moving && !msgList.dragging) {
+                                            Qt.callLater(function() {
+                                                if (!root.userScrolledUp && msgList.count > 0)
+                                                    msgList.positionViewAtEnd();
+                                            });
                                         }
                                     }
 

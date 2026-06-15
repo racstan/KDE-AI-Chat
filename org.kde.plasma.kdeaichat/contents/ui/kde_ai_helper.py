@@ -131,6 +131,19 @@ def cmd_write_history(payload: Dict[str, Any]) -> None:
     print("OK")
 
 
+def cmd_read_history(payload: Dict[str, Any]) -> None:
+    """Read a JSON file and print its contents to stdout."""
+    path = os.path.expanduser(payload.get("fullPath", ""))
+    if not path or not os.path.exists(path):
+        print("[]")
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            print(f.read())
+    except Exception:
+        print("[]")
+
+
 def cmd_delete_session_schedules(payload: Dict[str, Any]) -> None:
     """Remove every schedule whose ``chatId`` matches ``sessionId``."""
     sp = _schedules_path()
@@ -474,6 +487,7 @@ def main() -> None:
         "update_schedule_history_status": cmd_update_schedule_history_status,
         "migrate_history": cmd_migrate_history,
         "write_history": cmd_write_history,
+        "read_history": cmd_read_history,
         "delete_session_schedules": cmd_delete_session_schedules,
         "poll_pending_triggers": cmd_poll_pending_triggers,
         "delete_schedule": cmd_delete_schedule,

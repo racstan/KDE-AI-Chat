@@ -149,7 +149,7 @@ Item {
     // settings save, manual refresh).
     Timer {
         id: persistSessionsDebounce
-        interval: 1000
+        interval: 3000
         repeat: false
         onTriggered: root.flushPersistSessions()
     }
@@ -195,7 +195,19 @@ Item {
         repeat: false
         onTriggered: {
             if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
-                let stopCmd = (plasmoid.configuration.openCodeStopCommand || "pkill -f opencode >/dev/null 2>&1 && echo ok").trim();
+                let pidfile = '"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).pid"';
+                let userStop = (plasmoid.configuration.openCodeStopCommand || "").trim();
+                let stopCmd;
+                if (userStop !== "") {
+                    stopCmd = userStop + ' ; rm -f ' + pidfile;
+                } else {
+                    stopCmd = 'if [ -f ' + pidfile + ' ]; then '
+                        + 'pid=$(cat ' + pidfile + '); '
+                        + 'if kill -0 "$pid" 2>/dev/null; then kill "$pid" && echo ok; '
+                        + 'else echo "process already stopped"; fi; '
+                        + 'rm -f ' + pidfile + '; '
+                        + 'else echo "no pid file"; fi';
+                }
                 let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
                 opencodeServerDs.connectSource("sh -c '" + envPrefix + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
                 debugLog("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
@@ -210,7 +222,7 @@ Item {
         property var failureCb
         property int retriesLeft: 0
 
-        interval: 1000
+        interval: 600
         repeat: false
         onTriggered: {
             retriesLeft--;
@@ -501,6 +513,32 @@ Item {
                         }
                     } catch (e) {
                         console.error("Failed to parse migration output: " + e);
+                    }
+                }
+            } else if (sourceName.indexOf("#sessions-read-") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    try {
+                        let jsonStr = root.base64Decode(stdout.trim());
+                        let arr = JSON.parse(jsonStr);
+                        if (Array.isArray(arr) && arr.length > 0) {
+                            root.sessions = root.parseSessions(arr);
+                            if (root.sessions.length === 0) {
+                                root.createSession(true);
+                            }
+                            let preferred = plasmoid.configuration.lastSessionId || "";
+                            let idx = root.sessionIndexById(preferred);
+                            if (idx < 0) idx = 0;
+                            root.currentSessionId = root.sessions[idx].value;
+                            root.currentSessionTitle = root.sessions[idx].text;
+                            root.messages = root.sessions[idx].messages || [];
+                            root.precomputeBlocksForMessages(root.messages);
+                            if (root.sessions[idx])
+                                root.openCodeMode = (root.sessions[idx].source === "opencode");
+                            root.sortSessionsByUpdated();
+                            root.checkAndMarkCurrentSessionAsRead();
+                        }
+                    } catch (e) {
+                        console.warn("[KAI] Failed to parse sessions file: " + e);
                     }
                 }
             }

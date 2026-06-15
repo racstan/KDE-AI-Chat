@@ -994,8 +994,6 @@ PlasmoidItem {
         // Response length preference changed; applies on next send
     }
     onCurrentSessionIdChanged: {
-        // Switches are rare; flush any pending debounced write so the
-        // next session starts from a fully persisted baseline.
         if (persistSessionsDebounce.running) {
             persistSessionsDebounce.stop();
             root.flushPersistSessions();
@@ -1003,6 +1001,8 @@ PlasmoidItem {
         resetOpenCodeIdleKillTimer();
         root._markdownCache.clear();
         root._blocksCache.clear();
+        root._lastMetaIdx = -1;
+        root._lastParsedMsgIdx = -1;
     }
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
@@ -1068,18 +1068,13 @@ PlasmoidItem {
     // Track the highest index we have fully parsed so non-streaming updates
     // only scan new messages rather than the full list every time.
     property int _lastParsedMsgIdx: -1
+    property int _lastMetaIdx: -1
 
     onMessagesChanged: {
         root.updateMessageMetadata();
-
-        // During active streaming, skip all heavy work — streamingContent
-        // drives the live preview. flushStreamingBuffer() sets streamingResponse=false
-        // before writing the final message, so that commit IS parsed.
         if (root.streamingResponse)
             return;
         if (root.messages) {
-            // Incremental parse: scan only from the last-known parsed index.
-            // Full re-scan only when the array shrank (session switch / delete).
             let startIdx = (root._lastParsedMsgIdx >= 0 && root._lastParsedMsgIdx < root.messages.length)
                 ? root._lastParsedMsgIdx
                 : 0;

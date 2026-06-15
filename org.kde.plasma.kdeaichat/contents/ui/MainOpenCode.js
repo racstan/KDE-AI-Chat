@@ -42,7 +42,7 @@ setCurrentOpenCodeSessionId("");
 function sanitizeOpenCodeStartCommand(cmd) {
     let raw = (cmd || "").trim();
     if (raw === "") {
-        return 'logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"; (nohup opencode serve --port 4096 --hostname 127.0.0.1 >"$logf" 2>&1 < /dev/null &) && echo ok';
+        return 'pidfile="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).pid"; logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >"$logf" 2>&1 < /dev/null & echo $! >"$pidfile"; echo ok';
     }
     if (raw.indexOf("opencode serve") >= 0 && raw.indexOf("< /dev/null") < 0) {
         if (raw.indexOf("2>&1") >= 0) {
@@ -55,16 +55,18 @@ function sanitizeOpenCodeStartCommand(cmd) {
             }
         }
     }
-    if (raw.indexOf("nohup") >= 0 && raw.indexOf("(nohup") < 0) {
-        let parts = raw.split(";");
-        for (let i = 0; i < parts.length; i++) {
-            let part = parts[i].trim();
-            if (part.indexOf("nohup") >= 0 && part.endsWith("&") && !part.startsWith("(")) {
-                parts[i] = "(" + part + ")";
-            }
-        }
-        raw = parts.join("; ");
+    // Ensure nohup + backgrounding for proper detaching (no subshells, to preserve $! for PID capture)
+    if (raw.indexOf("nohup") < 0) {
+        raw = "nohup " + raw;
     }
+    if (!raw.endsWith("&")) {
+        raw = raw + " &";
+    }
+    if (raw.indexOf("< /dev/null") < 0) {
+        raw = raw.replace(/&$/, "< /dev/null &");
+    }
+    let pidfile = '"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).pid"';
+    raw = raw + " echo $! >" + pidfile + "; echo ok";
     return raw;
 }
 
@@ -249,7 +251,7 @@ resolveSuccess();
 openCodeStartPollTimer.failureCb = function(msg) {
 resolveFailure(msg);
 };
-openCodeStartPollTimer.retriesLeft = 8;
+openCodeStartPollTimer.retriesLeft = 6;
 openCodeStartPollTimer.start();
 } else {
 resolveFailure("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
@@ -258,7 +260,7 @@ resolveFailure("OpenCode server is not running. Please start it or enable \"Auto
 let checkUrl = openCodeBaseUrl() + "/config/providers";
 let xhr = new XMLHttpRequest();
 xhr.open("GET", checkUrl, true);
-xhr.timeout = 2000;
+xhr.timeout = 1500;
 xhr.onreadystatechange = function() {
 if (xhr.readyState !== XMLHttpRequest.DONE)
 return ;

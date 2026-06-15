@@ -263,19 +263,19 @@ let jsonStr = JSON.stringify(root.sessions, function(key, value) {
     if (key === "blocks" || key === "lastParsedContent") return undefined;
     return value;
 });
-plasmoid.configuration.chatSessionsJson = jsonStr;
-plasmoid.configuration.lastSessionId = root.currentSessionId;
+let b64 = base64Encode(jsonStr);
+let dataDir = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat";
+let sessionsFile = dataDir + "/sessions.json";
+let writeCmd = "mkdir -p " + Sec.quoteForShell(dataDir)
+    + " && echo " + Sec.quoteForShell(b64)
+    + " | base64 -d > " + Sec.quoteForShell(sessionsFile);
+customStorageDs.connectSource(writeCmd + " #sessions-write-" + Date.now());
 let customDir = (plasmoid.configuration.customHistoryPath || "").trim();
 if (customDir !== "") {
 let fullPath = getHistoryFilePath(customDir);
-let b64Str = base64Encode(jsonStr);
-let payload = {
-"fullPath": fullPath,
-"b64Str": b64Str
-};
-let b64Payload = base64Encode(JSON.stringify(payload));
-let writeCmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " write_history " + Sec.quoteForShell(b64Payload);
-customStorageDs.connectSource(writeCmd + " #custom-history-write-" + Date.now());
+let writeCmd2 = "echo " + Sec.quoteForShell(b64)
+    + " | base64 -d > " + Sec.quoteForShell(fullPath);
+customStorageDs.connectSource(writeCmd2 + " #custom-history-write-" + Date.now());
 }
 }
 
@@ -373,6 +373,14 @@ precomputeBlocksForMessages(root.messages);
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 sortSessionsByUpdated();
+let kcfgData = (plasmoid.configuration.chatSessionsJson || "").trim();
+if (kcfgData !== "" && kcfgData !== "[]") {
+return;
+}
+let dataDir = StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat";
+let sessionsFile = dataDir + "/sessions.json";
+let readCmd = "cat " + Sec.quoteForShell(sessionsFile) + " 2>/dev/null || echo '[]'";
+customStorageDs.connectSource(readCmd + " #sessions-read-" + Date.now());
 }
 
 function precomputeBlocksAndHtmlForMessage(msg) {
@@ -1659,23 +1667,27 @@ message.dayBucketLabel = dayBucketLabel(ts);
 
 function updateMessageMetadata() {
 let msgs = root.messages || [];
+if (msgs.length === 0) return;
+// Incremental: only process messages that haven't been metadata-processed yet.
+let startIdx = (root._lastMetaIdx >= 0 && root._lastMetaIdx <= msgs.length) ? root._lastMetaIdx : 0;
 let counts = {};
+// First pass: ensure metadata and count day keys for ALL messages (needed for correct counts)
 for (let i = 0; i < msgs.length; i++) {
 let m = msgs[i];
 ensureMessageMetadata(m);
-if (!m)
-continue;
+if (!m) continue;
 counts[m.dayKey] = (counts[m.dayKey] || 0) + 1;
 }
-let previousKey = "";
-for (let j = 0; j < msgs.length; j++) {
+// Second pass: only update day header flags for messages from startIdx onward
+let previousKey = startIdx > 0 && msgs[startIdx - 1] ? msgs[startIdx - 1].dayKey : "";
+for (let j = startIdx; j < msgs.length; j++) {
 let msg = msgs[j];
-if (!msg)
-continue;
+if (!msg) continue;
 msg.showDayHeader = j === 0 || msg.dayKey !== previousKey;
 msg.dayDividerLabel = (msg.dayBucketLabel || dayBucketLabel(msg.at || Date.now())) + " (" + (counts[msg.dayKey] || 0) + ")";
 previousKey = msg.dayKey;
 }
+root._lastMetaIdx = msgs.length;
 }
 
 
@@ -2491,7 +2503,6 @@ return "";
 
 
 function sendMessage() {
-// ──────────────────────────────────────────────────────────────
 try {
 let text = (root.chatInputText || "").trim();
 let attachments = root.attachedFiles || [];
