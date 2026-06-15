@@ -385,7 +385,7 @@ QQC2.ScrollView {
             "venvPy": venvPy,
             "espeakPath": espeakPath
         });
-        let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+        let b64Payload = Sec.base64Encode(payload);
         let cmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
         voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-services");
     }
@@ -397,7 +397,7 @@ QQC2.ScrollView {
         let payload = JSON.stringify({
             "venvPy": venvPy
         });
-        let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+        let b64Payload = Sec.base64Encode(payload);
         let cmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " delete_voice_setup " + Sec.quoteForShell(b64Payload);
         voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-delete-setup");
     }
@@ -423,7 +423,7 @@ QQC2.ScrollView {
                 "venvPy": venvPy,
                 "espeakPath": espeakPath
             });
-            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let b64Payload = Sec.base64Encode(payload);
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user start kde-ai-stt.service";
             voicePageDs.connectSource(fullCmd + " #toggle-stt-service-" + Date.now());
@@ -441,7 +441,7 @@ QQC2.ScrollView {
                 "venvPy": venvPy,
                 "espeakPath": espeakPath
             });
-            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let b64Payload = Sec.base64Encode(payload);
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user enable kde-ai-stt.service";
             voicePageDs.connectSource(fullCmd + " #toggle-stt-boot-" + Date.now());
@@ -459,7 +459,7 @@ QQC2.ScrollView {
                 "venvPy": venvPy,
                 "espeakPath": espeakPath
             });
-            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let b64Payload = Sec.base64Encode(payload);
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user start kde-ai-tts.service";
             voicePageDs.connectSource(fullCmd + " #toggle-tts-service-" + Date.now());
@@ -477,7 +477,7 @@ QQC2.ScrollView {
                 "venvPy": venvPy,
                 "espeakPath": espeakPath
             });
-            let b64Payload = Qt.btoa(unescape(encodeURIComponent(payload)));
+            let b64Payload = Sec.base64Encode(payload);
             let setupCmd = "python3 " + Sec.quoteForShell(getKdeAiHelperPath()) + " setup_voice_services " + Sec.quoteForShell(b64Payload);
             let fullCmd = setupCmd + " && systemctl --user enable kde-ai-tts.service";
             voicePageDs.connectSource(fullCmd + " #toggle-tts-boot-" + Date.now());
@@ -1926,7 +1926,7 @@ QQC2.ScrollView {
 
                         let file = dir.endsWith("/") ? dir + "kdeaichat_history.json" : dir + "/kdeaichat_history.json";
                         let jsonStr = plasmoid.configuration.chatSessionsJson || "[]";
-                        let b64 = Qt.btoa(unescape(encodeURIComponent(jsonStr)));
+                        let b64 = Sec.base64Encode(jsonStr);
                         let cmd = "python3 -c \"import base64, os; path=os.path.expanduser(" + Sec.quoteForShell(file) + "); os.makedirs(os.path.dirname(path), exist_ok=True); " + "open(path, 'w', encoding='utf-8').write(base64.b64decode(" + Sec.quoteForShell(b64) + ").decode('utf-8')); print('OK')\"";
                         storageDs.connectSource(cmd + " #storage-export-" + Date.now());
                         storageExportTimer.restart();

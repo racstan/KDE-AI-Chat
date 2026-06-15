@@ -237,3 +237,43 @@ function scrubSecrets(s) {
     out = out.replace(/\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/g, "sk-***");
     return out;
 }
+
+/**
+ * A safe, standard, pure-JavaScript implementation of Base64 encoding.
+ * Unlike Qt.btoa(string) in newer Qt versions, this does not emit deprecation
+ * warnings and behaves identically across all Qt 5 and Qt 6 versions.
+ *
+ * @param {string} str  The raw string to encode.
+ * @returns {string}    Base64 encoded string.
+ */
+function base64Encode(str) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let binStr = unescape(encodeURIComponent(str));
+    let out = '';
+    let i = 0;
+    const len = binStr.length;
+    while (i < len) {
+        const c1 = binStr.charCodeAt(i++) & 0xff;
+        if (i === len) {
+            out += chars.charAt(c1 >> 2);
+            out += chars.charAt((c1 & 0x3) << 4);
+            out += '==';
+            break;
+        }
+        const c2 = binStr.charCodeAt(i++);
+        if (i === len) {
+            out += chars.charAt(c1 >> 2);
+            out += chars.charAt(((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4));
+            out += chars.charAt((c2 & 0xf) << 2);
+            out += '=';
+            break;
+        }
+        const c3 = binStr.charCodeAt(i++);
+        out += chars.charAt(c1 >> 2);
+        out += chars.charAt(((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4));
+        out += chars.charAt(((c2 & 0xf) << 2) | ((c3 & 0xc0) >> 6));
+        out += chars.charAt(c3 & 0x3f);
+    }
+    return out;
+}
+
