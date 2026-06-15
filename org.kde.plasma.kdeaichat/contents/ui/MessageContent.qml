@@ -215,6 +215,9 @@ Column {
                 textFormat: Text.RichText
                 property string htmlContent: ""
                 text: {
+                    if (modelData.type !== "text") {
+                        return "";
+                    }
                     let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
                     if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
                         return modelData.contentHtmlCache[darkKey];
@@ -238,6 +241,7 @@ Column {
                     interval: 25
                     running: false
                     onTriggered: {
+                        if (modelData.type !== "text") return;
                         let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
                         if (contentRoot.chatRoot) {
                             let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
@@ -340,7 +344,7 @@ Column {
                         bottomPadding: Kirigami.Units.smallSpacing
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
-                        text: modelData.content
+                        text: modelData.type === "code" ? (modelData.content || "") : ""
                         color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#abb2bf" : "#383a42"
                         font.family: "monospace"
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
@@ -405,6 +409,9 @@ Column {
                         wrapMode: Text.Wrap
                         textFormat: Text.RichText
                         text: {
+                            if (modelData.type !== "table") {
+                                return "";
+                            }
                             let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
                             if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
                                 return modelData.contentHtmlCache[darkKey];
