@@ -623,17 +623,6 @@ import "MainDatabase.js" as MainDatabase
                                     height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
                                     visible: root.streamingResponse && root.streamingContent !== ""
 
-                                    Timer {
-                                        id: footerScrollTimer
-                                        interval: 300
-                                        repeat: true
-                                        running: root.streamingResponse && !root.userScrolledUp
-                                        onTriggered: {
-                                            if (msgList.count > 0)
-                                                msgList.positionViewAtEnd();
-                                        }
-                                    }
-
                                     Rectangle {
                                         id: footerBubble
                                         width: Math.min(msgList.width * 0.76, 560)
@@ -2084,19 +2073,6 @@ import "MainDatabase.js" as MainDatabase
                                 Accessible.role: Accessible.Button
                                 Accessible.description: root.translate("Stop generating the response")
                                 onClicked: root.stopStreaming()
-                            }
-
-                            PC3.Label {
-                                text: {
-                                    let chars = root.chatInputText.length;
-                                    let tokens = Math.ceil(chars / 4);
-                                    return chars + " " + root.translate("characters") + " | ~" + tokens + " " + root.translate("tokens");
-                                }
-                                font.pointSize: 8
-                                opacity: 0.5
-                                visible: root.chatInputText.length > 0
-                                Layout.alignment: Qt.AlignRight
-                                Layout.rightMargin: Kirigami.Units.gridUnit
                             }
 
                         }
