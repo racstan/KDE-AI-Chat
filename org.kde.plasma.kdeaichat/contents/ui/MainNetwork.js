@@ -36,10 +36,10 @@ function base64Encode(str) {
 
 
 function base64Decode(str) {
+if (!str || str.trim() === "") return "";
 try {
 return decodeURIComponent(escape(Qt.atob(str)));
 } catch (e) {
-console.error("base64Decode error:", e);
 try {
 return Qt.atob(str);
 } catch (err) {

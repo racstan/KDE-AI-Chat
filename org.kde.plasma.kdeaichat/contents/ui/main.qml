@@ -1016,7 +1016,7 @@ PlasmoidItem {
 
         }
     }
-    onExpandedChanged: {
+    onExpandedChanged: function() {
         if (expanded) {
             root.focusInput();
             root.userScrolledUp = false;

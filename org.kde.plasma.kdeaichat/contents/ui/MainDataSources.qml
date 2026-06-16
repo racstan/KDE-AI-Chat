@@ -481,7 +481,9 @@ Item {
             } else if (sourceName.indexOf("#migrate-history") !== -1) {
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
-                        let jsonRaw = root.base64Decode(stdout.trim());
+                        let decoded = root.base64Decode(stdout.trim());
+                        if (!decoded || decoded === "") { disconnectSource(sourceName); return; }
+                        let jsonRaw = decoded;
                         let res = JSON.parse(jsonRaw);
                         if (res.status === "ok") {
                             if (res.action === "load" && res.content) {
