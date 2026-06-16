@@ -1879,7 +1879,14 @@ msgObj.quote = {
 };
 root.quotedMessage = null;
 }
-root.messages = root.messages.concat([msgObj]);
+// Defer model update to next frame — concat is instant, QML model processing
+// takes 100-200ms which freezes the UI. By deferring, input clears instantly
+// and message bubble appears on next frame (16ms — imperceptible).
+let pendingMsg = msgObj;
+let pendingIdx = root.messages.length;
+Qt.callLater(function() {
+    root.messages = root.messages.concat([pendingMsg]);
+});
 saveCurrentSessionState(true);
 
 if ((role === "user" || role === "queued") && root.currentSessionTitle === "New Chat") {
@@ -2607,15 +2614,17 @@ appendUserMessage(text, "queued", attachments);
 return ;
 }
 appendUserMessage(text, "user", attachments);
+// Index is current length since appendUserMessage defers the concat
+let _msgIdx = root.messages.length;
 let _t1 = Date.now();
 if (root.sendMessageDelayTimer) {
-    root.sendMessageDelayTimer.messageIndex = root.messages.length - 1;
+    root.sendMessageDelayTimer.messageIndex = _msgIdx;
     root.sendMessageDelayTimer.start();
 } else {
-    Qt.callLater(function() { sendMessageByIndex(root.messages.length - 1); });
+    Qt.callLater(function() { sendMessageByIndex(_msgIdx); });
 }
 let _t2 = Date.now();
-console.log("[KAI-PERF] sendMessage: append=" + (_t1-_t0) + "ms queue=" + (_t2-_t1) + "ms total=" + (_t2-_t0) + "ms");
+console.log("[KAI-PERF] sendMessage: total=" + (_t2-_t0) + "ms");
 } catch (err) {
 root.loading = false;
 root.activeXhr = null;

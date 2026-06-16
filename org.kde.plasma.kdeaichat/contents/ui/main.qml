@@ -1078,6 +1078,7 @@ PlasmoidItem {
     // only scan new messages rather than the full list every time.
     property int _lastParsedMsgIdx: -1
     property int _lastMetaIdx: -1
+    property int _msgVersion: 0
 
     onMessagesChanged: {
         let _t0 = Date.now();
