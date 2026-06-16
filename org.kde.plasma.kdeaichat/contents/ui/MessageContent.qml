@@ -300,7 +300,7 @@ Column {
                         color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
                     }
 
-                    TextEdit {
+                    Text {
                         id: codeBody
 
                         y: codeLangRow.height + 1
@@ -315,11 +315,6 @@ Column {
                         color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#abb2bf" : "#383a42"
                         font.family: "monospace"
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
-                        readOnly: true
-                        selectByMouse: true
-                        selectByKeyboard: true
-                        selectedTextColor: Kirigami.Theme.highlightedTextColor
-                        selectionColor: Kirigami.Theme.highlightColor
                     }
                 }
             }
@@ -371,10 +366,10 @@ Column {
                         }
                     }
 
-                    TextEdit {
+                    Text {
                         width: parent.width
                         wrapMode: Text.Wrap
-                        textFormat: Text.RichText
+                        textFormat: Text.StyledText
                         text: {
                             if (modelData.type !== "table") {
                                 return "";
@@ -394,11 +389,6 @@ Column {
                             return "";
                         }
                         color: Kirigami.Theme.textColor
-                        readOnly: true
-                        selectByMouse: true
-                        selectByKeyboard: true
-                        selectedTextColor: Kirigami.Theme.highlightedTextColor
-                        selectionColor: Kirigami.Theme.highlightColor
                         onLinkActivated: function(link) {
                             let safe = Sec.validateUrl(link);
                             if (safe !== "")

@@ -1884,10 +1884,9 @@ import "MainDatabase.js" as MainDatabase
                                 QQC2.TextArea {
                                     id: msgInput
 
-                                    // Dual-stage focus mechanism for Plasma 6
                                     property alias focusTimerRef: focusTimer
 
-                                    width: inputScrollView.width - 16
+                                    implicitWidth: parent.width
                                     wrapMode: Text.Wrap
                                     placeholderText: {
                                         if (root.voiceRecording) {
