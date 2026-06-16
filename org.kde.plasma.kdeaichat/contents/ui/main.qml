@@ -1076,7 +1076,9 @@ PlasmoidItem {
     property int _lastMetaIdx: -1
 
     onMessagesChanged: {
+        let _t0 = Date.now();
         root.updateMessageMetadata();
+        let _t1 = Date.now();
         if (root.streamingResponse)
             return;
         if (root.messages) {
@@ -1093,9 +1095,13 @@ PlasmoidItem {
         } else {
             root._lastParsedMsgIdx = -1;
         }
+        let _t2 = Date.now();
         Qt.callLater(checkAndMarkCurrentSessionAsRead);
         if (!root.historyOnlyMode && !root.userScrolledUp)
             root.queueScrollToBottom();
+        let _t3 = Date.now();
+        if (_t2 - _t0 > 10 || _t3 - _t0 > 10)
+            console.log("[KAI-PERF] onMessagesChanged: meta=" + (_t1-_t0) + "ms blocks=" + (_t2-_t1) + "ms post=" + (_t3-_t2) + "ms msgs=" + (root.messages ? root.messages.length : 0));
     }
 
     MainDataSources {

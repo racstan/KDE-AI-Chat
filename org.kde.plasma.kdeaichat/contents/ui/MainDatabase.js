@@ -502,6 +502,7 @@ persistSessions();
 
 
 function switchSession(sessionId) {
+let _t0 = Date.now();
 if (!sessionId || sessionId === root.currentSessionId)
 return ;
 saveCurrentSessionState(false);
@@ -510,13 +511,11 @@ if (idx < 0)
 return ;
 root.currentSessionId = root.sessions[idx].value;
 root.currentSessionTitle = root.sessions[idx].text;
-// Reset parsing watermarks BEFORE setting messages so onMessagesChanged
-// processes from index 0 but skips already-computed blocks (content check).
 root._lastParsedMsgIdx = -1;
 root._lastMetaIdx = -1;
+let _t1 = Date.now();
 root.messages = root.sessions[idx].messages || [];
-// Note: onMessagesChanged calls updateMessageMetadata + precomputeBlocksAndHtmlForMessage.
-// Do NOT call precomputeBlocksForMessages here — it would double-process every message.
+let _t2 = Date.now();
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 root.editingMessageIndex = -1;
@@ -528,6 +527,8 @@ root.currentChatRenameDraft = "";
 checkAndMarkCurrentSessionAsRead();
 scrollToBottom();
 root.focusInput();
+let _t3 = Date.now();
+console.log("[KAI-PERF] switchSession: pre=" + (_t1-_t0) + "ms assign=" + (_t2-_t1) + "ms post=" + (_t3-_t2) + "ms msgs=" + (root.messages ? root.messages.length : 0));
 }
 
 
@@ -3714,8 +3715,9 @@ function resumeTts() {
 }
 
 function handleVoiceResponse(resp, sourceName) {
-    let respType = resp.type || "";
-    resetVoiceIdleTimer();
+let _t0 = Date.now();
+let respType = resp.type || "";
+resetVoiceIdleTimer();
     if (respType === "env_check") {
         root.voiceEnvResult = resp;
         root.voiceEnvChecked = true;
@@ -3774,4 +3776,7 @@ function handleVoiceResponse(resp, sourceName) {
     } else if (respType === "download_error") {
         pushErrorMessage("Voice model download error: " + (resp.error || "Unknown error"));
     }
+    let _t1 = Date.now();
+    if (_t1 - _t0 > 5)
+        console.log("[KAI-PERF] handleVoiceResponse: " + (_t1-_t0) + "ms type=" + respType);
 }

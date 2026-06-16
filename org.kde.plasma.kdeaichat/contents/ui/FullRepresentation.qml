@@ -594,19 +594,7 @@ import "MainDatabase.js" as MainDatabase
                                 Component.onCompleted: {
                                     root.msgListViewRef = msgList;
                                     Qt.callLater(function() {
-                                        if (msgList.count > 0) {
-                                            msgList.positionViewAtEnd();
-                                            // Pre-warm delegate cache: briefly shift contentY up
-                                            // then back to force-create all cached delegates.
-                                            let savedY = msgList.contentY;
-                                            msgList.contentY = Math.max(0, savedY - 500);
-                                            Qt.callLater(function() {
-                                                msgList.contentY = savedY;
-                                                Qt.callLater(function() {
-                                                    if (msgList.count > 0) msgList.positionViewAtEnd();
-                                                });
-                                            });
-                                        }
+                                        if (msgList.count > 0) msgList.positionViewAtEnd();
                                     });
                                 }
                                 onMovementStarted: {
