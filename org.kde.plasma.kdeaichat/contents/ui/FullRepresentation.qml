@@ -585,7 +585,7 @@ import "MainDatabase.js" as MainDatabase
                                 model: root.messages.length
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 8000
+                                cacheBuffer: 500
                                 reuseItems: true
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
@@ -622,16 +622,16 @@ import "MainDatabase.js" as MainDatabase
                                     width: msgList.width
                                     height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
                                     visible: root.streamingResponse && root.streamingContent !== ""
-                                    property bool _scrollScheduled: false
-                                    onHeightChanged: {
-                                        if (height <= 0 || root.userScrolledUp || msgList.moving || msgList.dragging) return;
-                                        if (_scrollScheduled) return;
-                                        _scrollScheduled = true;
-                                        Qt.callLater(function() {
-                                            _scrollScheduled = false;
-                                            if (!root.userScrolledUp && msgList.count > 0)
+
+                                    Timer {
+                                        id: footerScrollTimer
+                                        interval: 300
+                                        repeat: true
+                                        running: root.streamingResponse && !root.userScrolledUp
+                                        onTriggered: {
+                                            if (msgList.count > 0)
                                                 msgList.positionViewAtEnd();
-                                        });
+                                        }
                                     }
 
                                     Rectangle {

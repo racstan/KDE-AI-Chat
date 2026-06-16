@@ -502,7 +502,6 @@ persistSessions();
 
 
 function switchSession(sessionId) {
-let _t0 = Date.now();
 if (!sessionId || sessionId === root.currentSessionId)
 return ;
 saveCurrentSessionState(false);
@@ -514,7 +513,6 @@ root.currentSessionTitle = root.sessions[idx].text;
 root._lastParsedMsgIdx = -1;
 root._lastMetaIdx = -1;
 root.messages = root.sessions[idx].messages || [];
-let _t1 = Date.now();
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 root.editingMessageIndex = -1;
@@ -526,8 +524,6 @@ root.currentChatRenameDraft = "";
 checkAndMarkCurrentSessionAsRead();
 scrollToBottom();
 root.focusInput();
-let _t2 = Date.now();
-console.log("[KAI-PERF] switchSession: assign=" + (_t1-_t0) + "ms post=" + (_t2-_t1) + "ms msgs=" + (root.messages ? root.messages.length : 0));
 }
 
 
