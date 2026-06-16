@@ -634,15 +634,16 @@ import "MainDatabase.js" as MainDatabase
                                     width: msgList.width
                                     height: root.streamingResponse && root.streamingContent !== "" ? footerBubble.implicitHeight + Kirigami.Units.largeSpacing : 0
                                     visible: root.streamingResponse && root.streamingContent !== ""
+                                    property bool _scrollScheduled: false
                                     onHeightChanged: {
-                                        // Only scroll if user is already at the bottom AND not actively flicking.
-                                        // This prevents the list from jumping up/down as the footer grows.
-                                        if (!root.userScrolledUp && msgList.count > 0 && !msgList.moving && !msgList.dragging) {
-                                            Qt.callLater(function() {
-                                                if (!root.userScrolledUp && msgList.count > 0)
-                                                    msgList.positionViewAtEnd();
-                                            });
-                                        }
+                                        if (height <= 0 || root.userScrolledUp || msgList.moving || msgList.dragging) return;
+                                        if (_scrollScheduled) return;
+                                        _scrollScheduled = true;
+                                        Qt.callLater(function() {
+                                            _scrollScheduled = false;
+                                            if (!root.userScrolledUp && msgList.count > 0)
+                                                msgList.positionViewAtEnd();
+                                        });
                                     }
 
                                     Rectangle {

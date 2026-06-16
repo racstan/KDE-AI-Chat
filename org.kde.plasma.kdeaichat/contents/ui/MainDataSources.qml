@@ -838,6 +838,11 @@ Item {
                 root.voiceRecording = false;
                 root.voiceSttStatus = "";
             }
+            if (root.loading && root.streamingResponse && root.streamingContent === "") {
+                root.loading = false;
+                root.streamingResponse = false;
+                root.activeXhr = null;
+            }
         }
     }
 
