@@ -1,20 +1,3 @@
-/**
- * MessageContent — render the body of a single chat message.
- *
- * Takes a message object and renders its text/code/table blocks. Used
- * inside the chat list delegate of main.qml. Keeping this in its own
- * file reduces the size of main.qml and makes the per-block rendering
- * (markdown, code, table) easier to test in isolation.
- *
- * Required caller properties (read via the `root` reference):
- *   - `convertMarkdownToHtml(string)` -> string
- *   - `parseMessageBlocks(string)`    -> Array<{type, content, lang}>
- *   - `tableMarkdownToCsv(string)`    -> string
- *   - `popupIsDark` (property)        -> bool
- *   - `clipboardHelper` (TextEdit)    -> used for the copy-code button
- *   - `customStorageDs` (DataSource)  -> used for the CSV export action
- *   - `translate(string)` (optional)  -> localized strings
- */
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
@@ -51,7 +34,7 @@ Column {
 
         PC3.Label {
             text: {
-                let prov = contentRoot.messageData.imageProvider || "";
+                let prov = contentRoot.messageData ? (contentRoot.messageData.imageProvider || "") : "";
                 let names = {"pollinations": "Pollinations.ai", "huggingface-image": "HuggingFace", "together-image": "Together AI"};
                 return names[prov] || prov;
             }
@@ -87,7 +70,7 @@ Column {
                 QQC2.Label {
                     anchors.centerIn: parent
                     visible: chatImage.status === Image.Error
-                    text: root.translate("Failed to load image")
+                    text: contentRoot.chatRoot ? contentRoot.chatRoot.translate("Failed to load image") : "Failed to load image"
                     color: Kirigami.Theme.negativeTextColor
                 }
             }
@@ -97,8 +80,8 @@ Column {
             icon.name: "download"
             display: PC3.AbstractButton.TextBesideIcon
             flat: true
-            text: root.translate("Save image")
-            visible: contentRoot.messageData.imageUrl !== ""
+            text: contentRoot.chatRoot ? contentRoot.chatRoot.translate("Save image") : "Save image"
+            visible: contentRoot.messageData && contentRoot.messageData.imageUrl !== ""
             onClicked: {
                 if (contentRoot.chatRoot && contentRoot.chatRoot.msgListViewRef) {
                     let url = contentRoot.messageData.imageUrl || "";
@@ -178,263 +161,40 @@ Column {
         }
     }
 
+    // Main text content rendering as RichText
     Text {
-        id: singleTextEdit
+        id: mainTextEdit
 
         visible: contentRoot.messageData
                  && contentRoot.messageData.role !== "error"
                  && contentRoot.messageData.role !== "schedules_list"
                  && contentRoot.messageData.isImage !== true
-                 && contentRoot.messageData.blocks
-                 && contentRoot.messageData.blocks.length === 1
-                 && contentRoot.messageData.blocks[0].type === "text"
         width: parent.width
         wrapMode: Text.Wrap
-        textFormat: Text.StyledText
+        textFormat: Text.RichText
         text: {
             if (!visible) return "";
-            let block = contentRoot.messageData.blocks[0];
             let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
-            if (block.contentHtmlCache && block.contentHtmlCache[darkKey] !== undefined) {
-                return block.contentHtmlCache[darkKey];
+            if (contentRoot.messageData.contentHtmlCache && contentRoot.messageData.contentHtmlCache[darkKey] !== undefined) {
+                return contentRoot.messageData.contentHtmlCache[darkKey];
             }
             if (contentRoot.chatRoot) {
-                let html = contentRoot.chatRoot.convertMarkdownToHtml(block.content || "");
-                if (!block.contentHtmlCache) {
-                    block.contentHtmlCache = {};
+                let html = contentRoot.chatRoot.convertMarkdownToHtml(contentRoot.messageData.content || "");
+                if (!contentRoot.messageData.contentHtmlCache) {
+                    contentRoot.messageData.contentHtmlCache = {};
                 }
-                block.contentHtmlCache[darkKey] = html;
+                contentRoot.messageData.contentHtmlCache[darkKey] = html;
                 return html;
             }
-            return block.content || "";
+            return contentRoot.messageData.content || "";
         }
         color: Kirigami.Theme.textColor
         font: Kirigami.Theme.defaultFont
+        selectByMouse: true
         onLinkActivated: function(link) {
             let safe = Sec.validateUrl(link);
             if (safe !== "")
                 Qt.openUrlExternally(safe);
-        }
-    }
-
-    Repeater {
-        visible: contentRoot.messageData
-                 && contentRoot.messageData.role !== "error"
-                 && contentRoot.messageData.role !== "schedules_list"
-                 && contentRoot.messageData.isImage !== true
-                 && !(contentRoot.messageData.blocks
-                      && contentRoot.messageData.blocks.length === 1
-                      && contentRoot.messageData.blocks[0].type === "text")
-        width: parent.width
-        model: visible ? (contentRoot.messageData.blocks || []) : []
-
-        delegate: Item {
-            required property var modelData
-            property string lastKnownContent: ""
-            onModelDataChanged: {
-                if (!modelData) return;
-                if (modelData.content !== lastKnownContent) {
-                    lastKnownContent = modelData.content;
-                    if (htmlEdit) htmlEdit.htmlContent = "";
-                }
-            }
-
-            width: parent ? parent.width : 0
-            implicitHeight: modelData.type === "code" ? codeLoader.implicitHeight
-                : modelData.type === "table" ? tableBlock.implicitHeight
-                : htmlEdit.implicitHeight
-
-            Text {
-                id: htmlEdit
-
-                visible: modelData.type === "text"
-                width: parent.width
-                wrapMode: Text.Wrap
-                textFormat: Text.StyledText
-                property string htmlContent: ""
-                text: {
-                    if (modelData.type !== "text") {
-                        return "";
-                    }
-                    let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
-                    if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
-                        return modelData.contentHtmlCache[darkKey];
-                    }
-                    if (htmlContent !== "") {
-                        return htmlContent;
-                    }
-                    return modelData.content || "";
-                }
-
-                color: Kirigami.Theme.textColor
-                font: Kirigami.Theme.defaultFont
-                onLinkActivated: function(link) {
-                    let safe = Sec.validateUrl(link);
-                    if (safe !== "")
-                        Qt.openUrlExternally(safe);
-                }
-            }
-
-            Item {
-                id: codeLoader
-
-                visible: modelData.type === "code"
-                width: parent.width
-                implicitHeight: codeContainer.implicitHeight + 2
-
-                Rectangle {
-                    id: codeContainer
-
-                    width: parent.width
-                    implicitHeight: codeLangRow.implicitHeight + codeBody.implicitHeight + Kirigami.Units.smallSpacing * 3
-                    radius: 6
-                    color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#2d3139" : "#f0f2f5"
-                    border.width: 1
-                    border.color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
-                    clip: true
-
-                    Row {
-                        id: codeLangRow
-
-                        width: parent.width
-                        height: Math.max(langLabel.implicitHeight + Kirigami.Units.smallSpacing, copyCodeBtn.implicitHeight + Kirigami.Units.smallSpacing)
-                        spacing: 0
-
-                        PC3.Label {
-                            id: langLabel
-
-                            anchors.verticalCenter: parent.verticalCenter
-                            leftPadding: Kirigami.Units.smallSpacing + 4
-                            text: modelData.lang || "code"
-                            font.pointSize: 8
-                            font.bold: true
-                            color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#5c6370" : "#a0a1a7"
-                            width: parent.width - copyCodeBtn.width - Kirigami.Units.smallSpacing
-                        }
-
-                        PC3.ToolButton {
-                            id: copyCodeBtn
-
-                            anchors.verticalCenter: parent.verticalCenter
-                            icon.name: "edit-copy"
-                            display: PC3.AbstractButton.IconOnly
-                            flat: true
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: "Copy code"
-                            onClicked: {
-                                if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
-                                    contentRoot.chatRoot.clipboardHelper.text = modelData.content;
-                                    contentRoot.chatRoot.clipboardHelper.selectAll();
-                                    contentRoot.chatRoot.clipboardHelper.copy();
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        y: codeLangRow.height
-                        width: parent.width
-                        height: 1
-                        color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#3e4452" : "#d0d4dc"
-                    }
-
-                    Text {
-                        id: codeBody
-
-                        y: codeLangRow.height + 1
-                        width: parent.width
-                        leftPadding: Kirigami.Units.smallSpacing + 4
-                        rightPadding: Kirigami.Units.smallSpacing + 4
-                        topPadding: Kirigami.Units.smallSpacing
-                        bottomPadding: Kirigami.Units.smallSpacing
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        text: modelData.type === "code" ? (modelData.content || "") : ""
-                        color: contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "#abb2bf" : "#383a42"
-                        font.family: "monospace"
-                        font.pointSize: Kirigami.Theme.defaultFont.pointSize - 1
-                    }
-                }
-            }
-
-            Item {
-                id: tableBlock
-
-                visible: modelData.type === "table"
-                width: parent.width
-                implicitHeight: tableOuterCol.implicitHeight
-
-                Column {
-                    id: tableOuterCol
-
-                    width: parent.width
-                    spacing: 2
-
-                    Row {
-                        width: parent.width
-                        layoutDirection: Qt.RightToLeft
-
-                        PC3.ToolButton {
-                            icon.name: "document-export"
-                            display: PC3.AbstractButton.IconOnly
-                            flat: true
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: "Export table as CSV"
-                            onClicked: {
-                                let csv = contentRoot.chatRoot ? contentRoot.chatRoot.tableMarkdownToCsv(modelData.content || "") : "";
-                                if (contentRoot.chatRoot && contentRoot.chatRoot.clipboardHelper) {
-                                    contentRoot.chatRoot.clipboardHelper.text = csv;
-                                    contentRoot.chatRoot.clipboardHelper.selectAll();
-                                    contentRoot.chatRoot.clipboardHelper.copy();
-                                }
-                                if (contentRoot.chatRoot && contentRoot.chatRoot.customStorageDs) {
-                                    let ts = new Date().getTime();
-                                    // Use a sanitized timestamp inside a
-                                    // hard-coded prefix; the path is then
-                                    // routed through validateFilePath to
-                                    // reject any unexpected characters.
-                                    let path = "/tmp/kdeaichat-table-" + ts + ".csv";
-                                    let safePath = Sec.validateFilePath(path);
-                                    if (safePath === "")
-                                        return;
-                                    let safeCsv = Sec.sanitizeForShell(csv);
-                                    contentRoot.chatRoot.customStorageDs.connectSource("bash -c " + Sec.quoteForShell("printf '%s' " + safeCsv + " > " + safePath + " && xdg-open " + safePath) + " #csv-export-" + ts);
-                                }
-                            }
-                        }
-                    }
-
-                    Text {
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        textFormat: Text.StyledText
-                        text: {
-                            if (modelData.type !== "table") {
-                                return "";
-                            }
-                            let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
-                            if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
-                                return modelData.contentHtmlCache[darkKey];
-                            }
-                            if (contentRoot.chatRoot) {
-                                let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
-                                if (!modelData.contentHtmlCache) {
-                                    modelData.contentHtmlCache = {};
-                                }
-                                modelData.contentHtmlCache[darkKey] = html;
-                                return html;
-                            }
-                            return "";
-                        }
-                        color: Kirigami.Theme.textColor
-                        onLinkActivated: function(link) {
-                            let safe = Sec.validateUrl(link);
-                            if (safe !== "")
-                                Qt.openUrlExternally(safe);
-                        }
-                    }
-                }
-            }
         }
     }
 }

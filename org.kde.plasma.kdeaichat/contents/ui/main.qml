@@ -1116,36 +1116,801 @@ PlasmoidItem {
         if (!root.historyOnlyMode && !root.userScrolledUp) root.queueScrollToBottom();
     }
 
-    MainDataSources {
-        id: dataSources
-        root: root
+    P5Support.DataSource {
+        id: soundDs
+        engine: "executable"
+        connectedSources: []
     }
 
-    property alias soundDs: dataSources.soundDs
-    property alias clipboardDs: dataSources.clipboardDs
-    property alias schedulerDs: dataSources.schedulerDs
-    property alias openCodeReconnectTimer: dataSources.openCodeReconnectTimer
-    property alias persistSessionsDebounce: dataSources.persistSessionsDebounce
-    property alias deferSaveStateTimer: dataSources.deferSaveStateTimer
-    property alias streamingBatchTimer: dataSources.streamingBatchTimer
-    property alias openCodeIdleKillTimer: dataSources.openCodeIdleKillTimer
-    property alias openCodeStartPollTimer: dataSources.openCodeStartPollTimer
-    property alias schedulerPollTimer: dataSources.schedulerPollTimer
-    property alias autoStartOpenCodeTimer: dataSources.autoStartOpenCodeTimer
-    property alias opencodeServerDs: dataSources.opencodeServerDs
-    property alias fileReaderDs: dataSources.fileReaderDs
-    property alias customStorageDs: dataSources.customStorageDs
-    property alias fileDialog: dataSources.fileDialog
-    property alias exportFileDialog: dataSources.exportFileDialog
-    property alias clipboardHelper: dataSources.clipboardHelper
-    property alias kwalletStartupDs: dataSources.kwalletStartupDs
-    property alias opencodeTerminalDs: dataSources.opencodeTerminalDs
-    property alias openCodePollTimer: dataSources.openCodePollTimer
-    property alias voiceDs: dataSources.voiceDs
-    property alias sendMessageDelayTimer: dataSources.sendMessageDelayTimer
+    P5Support.DataSource {
+        id: clipboardDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            disconnectSource(sourceName);
+        }
+    }
 
+    P5Support.DataSource {
+        id: schedulerDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let stdout = (data["stdout"] || "").trim();
+            disconnectSource(sourceName);
+            if (sourceName.indexOf("#sched-poll") >= 0)
+                root.schedPolling = false;
 
-        compactRepresentation: MouseArea {
+            if (sourceName.indexOf("#sched-delete") >= 0 || sourceName.indexOf("#sched-save") >= 0 || sourceName.indexOf("#sched-toggle") >= 0)
+                schedulerPollTimer.triggered();
+
+            if (stdout !== "") {
+                try {
+                    let parsed = JSON.parse(stdout);
+                    if (parsed && Array.isArray(parsed.schedules))
+                        root.schedulesList = parsed.schedules;
+
+                    let triggers = (parsed && parsed.pending) || [];
+                    if (Array.isArray(triggers) && triggers.length > 0) {
+                        for (let i = 0; i < triggers.length; i++) {
+                            let t = triggers[i];
+                            if (t && t.message) {
+                                let cid = t.chatId || "";
+                                if (cid === "" || cid === "new") {
+                                    root.createSession(true);
+                                    cid = root.currentSessionId;
+                                }
+                                root.injectScheduledMessage(cid, t.message, t.notify, t.id, t.name);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    debugLog("[KAI-DEBUG] Failed to parse poll data:", e);
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: openCodeReconnectTimer
+        interval: 5000
+        repeat: false
+        onTriggered: {
+            if (root.openCodeMode)
+                root.ensureOpenCodeEventStream();
+        }
+    }
+
+    Timer {
+        id: persistSessionsDebounce
+        interval: 3000
+        repeat: false
+        onTriggered: root.flushPersistSessions()
+    }
+
+    Timer {
+        id: deferSaveStateTimer
+        interval: 300
+        repeat: false
+        onTriggered: {
+            root.clearCurrentOpenCodeSessionIfNeeded();
+            root.saveCurrentSessionState(true);
+        }
+    }
+
+    Timer {
+        id: streamingBatchTimer
+        interval: 120
+        repeat: false
+        onTriggered: root.flushIntermediateStreaming()
+    }
+
+    Timer {
+        id: sendMessageDelayTimer
+        interval: 50
+        repeat: false
+        property int messageIndex: -1
+        onTriggered: {
+            if (messageIndex >= 0) {
+                ChatEngine.sendMessageByIndex(messageIndex);
+            }
+        }
+    }
+
+    Timer {
+        id: openCodeIdleKillTimer
+        interval: 300000 // 5 minutes
+        repeat: false
+        onTriggered: {
+            if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
+                let pidfile = '"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).pid"';
+                let userStop = (plasmoid.configuration.openCodeStopCommand || "").trim();
+                let stopCmd;
+                if (userStop !== "") {
+                    stopCmd = userStop + ' ; rm -f ' + pidfile;
+                } else {
+                    stopCmd = 'if [ -f ' + pidfile + ' ]; then '
+                        + 'pid=$(cat ' + pidfile + '); '
+                        + 'if kill -0 "$pid" 2>/dev/null; then kill "$pid" && echo ok; '
+                        + 'else echo "process already stopped"; fi; '
+                        + 'rm -f ' + pidfile + '; '
+                        + 'else echo "no pid file"; fi';
+                }
+                let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
+                opencodeServerDs.connectSource("sh -c '" + envPrefix + stopCmd.replace(/'/g, "'\\''") + "' #autokill-opencode");
+                debugLog("[KAI-DEBUG] OpenCode server auto-killed due to idleness/chat switch.");
+            }
+        }
+    }
+
+    Timer {
+        id: openCodeStartPollTimer
+        property var successCb
+        property var failureCb
+        property int retriesLeft: 0
+        interval: 600
+        repeat: false
+        onTriggered: {
+            retriesLeft--;
+            let checkUrl = root.openCodeBaseUrl() + "/config/providers";
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", checkUrl, true);
+            xhr.timeout = 1000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE)
+                    return ;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    if (successCb)
+                        successCb();
+                } else {
+                    if (retriesLeft > 0) {
+                        openCodeStartPollTimer.start();
+                    } else {
+                        if (failureCb)
+                            failureCb("OpenCode server failed to start (HTTP " + xhr.status + ")");
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                if (retriesLeft > 0) {
+                    openCodeStartPollTimer.start();
+                } else {
+                    if (failureCb)
+                        failureCb("OpenCode server failed to start (Connection refused)");
+                }
+            };
+            xhr.ontimeout = function() {
+                if (retriesLeft > 0) {
+                    openCodeStartPollTimer.start();
+                } else {
+                    if (failureCb)
+                        failureCb("OpenCode server failed to start (Timeout)");
+                }
+            };
+            try {
+                xhr.send();
+            } catch (e) {
+                if (retriesLeft > 0) {
+                    openCodeStartPollTimer.start();
+                } else {
+                    if (failureCb)
+                        failureCb(e.toString());
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: schedulerPollTimer
+        interval: root.expanded ? 5000 : 15000
+        repeat: true
+        running: plasmoid.configuration.schedulerEnabled
+        triggeredOnStart: true
+        onTriggered: {
+            if (root.schedPolling)
+                return ;
+            root.schedPolling = true;
+            let cmd = "python3 " + Sec.quoteForShell(root.getHelperPath()) + " poll_pending_triggers";
+            schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-poll-" + Date.now());
+        }
+    }
+
+    Timer {
+        id: autoStartOpenCodeTimer
+        interval: 1500
+        repeat: false
+        onTriggered: {
+            let cmd = ChatEngine.sanitizeOpenCodeStartCommand(plasmoid.configuration.openCodeStartCommand);
+            let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
+            opencodeServerDs.connectSource("sh -c '" + envPrefix + cmd.replace(/'/g, "'\\''") + "' #autostart-opencode");
+        }
+    }
+
+    P5Support.DataSource {
+        id: opencodeServerDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            disconnectSource(sourceName);
+        }
+    }
+
+    P5Support.DataSource {
+        id: fileReaderDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let exitCode = data["exit code"];
+            let stdout = data["stdout"] || "";
+            let stderr = data["stderr"] || "";
+            if (sourceName.indexOf("--clipboard") !== -1) {
+                if (exitCode === 0 && stderr.trim() === "") {
+                    try {
+                        let res = JSON.parse(stdout);
+                        if (res.status === "success") {
+                            let currentFiles = root.attachedFiles.slice();
+                            if (res.mode === "files" && res.files) {
+                                for (let f = 0; f < res.files.length; f++) {
+                                    let fInfo = res.files[f];
+                                    let exists = false;
+                                    for (let idx = 0; idx < currentFiles.length; idx++) {
+                                        if (currentFiles[idx].path === fInfo.path) {
+                                            exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!exists) {
+                                        currentFiles.push({
+                                            "name": fInfo.filename || fInfo.name,
+                                            "path": fInfo.path,
+                                            "type": fInfo.type,
+                                            "content": fInfo.content,
+                                            "mimeType": fInfo.mimeType,
+                                            "size": fInfo.size,
+                                            "loading": false,
+                                            "error": ""
+                                        });
+                                    }
+                                }
+                            } else if (res.mode === "image" && res.file) {
+                                let fInfo = res.file;
+                                let exists = false;
+                                for (let idx = 0; idx < currentFiles.length; idx++) {
+                                    if (currentFiles[idx].path === fInfo.path) {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+                                if (!exists) {
+                                    currentFiles.push({
+                                        "name": fInfo.name,
+                                        "path": fInfo.path,
+                                        "type": fInfo.type,
+                                        "content": fInfo.content,
+                                        "mimeType": fInfo.mimeType,
+                                        "size": fInfo.size,
+                                        "loading": false,
+                                        "error": ""
+                                    });
+                                }
+                            }
+                            root.attachedFiles = currentFiles;
+                        }
+                    } catch (e) {
+                        root.reportParseFailure("Failed to parse clipboard data", e);
+                    }
+                }
+                disconnectSource(sourceName);
+                return ;
+            }
+            let matchedIndex = -1;
+            let files = root.attachedFiles.slice();
+            for (let i = 0; i < files.length; i++) {
+                let filePath = files[i].path;
+                if (sourceName.indexOf(filePath) !== -1) {
+                    matchedIndex = i;
+                    break;
+                }
+            }
+            if (matchedIndex === -1) {
+                disconnectSource(sourceName);
+                return ;
+            }
+            let fileObj = Object.assign({}, files[matchedIndex]);
+            fileObj.loading = false;
+            if (exitCode !== 0 || stderr.trim() !== "") {
+                fileObj.error = stderr.trim() || ("Command exited with code " + exitCode);
+            } else {
+                try {
+                    let res = JSON.parse(stdout);
+                    if (res.status === "success") {
+                        fileObj.type = res.type;
+                        fileObj.content = res.content;
+                        fileObj.mimeType = res.mimeType;
+                        fileObj.size = res.size;
+                    } else {
+                        fileObj.error = res.message || "Failed to extract file contents";
+                    }
+                } catch (e) {
+                    fileObj.error = "Failed to parse extractor output: " + e;
+                }
+            }
+            files[matchedIndex] = fileObj;
+            root.attachedFiles = files;
+            disconnectSource(sourceName);
+        }
+    }
+
+    P5Support.DataSource {
+        id: customStorageDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let exitCode = data["exit code"];
+            let stdout = data["stdout"] || "";
+            if (sourceName.indexOf("#custom-history-read-") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    try {
+                        let jsonStr = root.base64Decode(stdout.trim());
+                        let arr = JSON.parse(jsonStr);
+                        if (Array.isArray(arr)) {
+                            root.sessions = root.parseSessions(arr);
+                            if (root.sessions.length === 0)
+                                root.createSession(true);
+
+                            let preferred = plasmoid.configuration.lastSessionId || "";
+                            let idx = root.sessionIndexById(preferred);
+                            if (idx < 0)
+                                idx = 0;
+
+                            root.currentSessionId = root.sessions[idx].value;
+                            root.currentSessionTitle = root.sessions[idx].text;
+                            root.messages = root.sessions[idx].messages || [];
+                            if (root.sessions[idx])
+                                root.openCodeMode = (root.sessions[idx].source === "opencode");
+
+                            root.sortSessionsByUpdated();
+                            root.checkAndMarkCurrentSessionAsRead();
+                            disconnectSource(sourceName);
+                            return ;
+                        }
+                    } catch (e) {
+                        root.reportParseFailure("Failed to parse custom history", e);
+                    }
+                }
+                let oldJson = plasmoid.configuration.chatSessionsJson || "";
+                if (oldJson !== "" && oldJson !== "[]") {
+                    root.loadSessions();
+                    root.persistSessions();
+                } else {
+                    root.loadSessions();
+                }
+                root.checkAndMarkCurrentSessionAsRead();
+            } else if (sourceName.indexOf("#custom-history-write-") !== -1) {
+                disconnectSource(sourceName);
+                return;
+            } else if (sourceName.indexOf("#migrate-history") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    try {
+                        let decoded = root.base64Decode(stdout.trim());
+                        if (!decoded || decoded === "") { disconnectSource(sourceName); return; }
+                        let jsonRaw = decoded;
+                        let res = JSON.parse(jsonRaw);
+                        if (res.status === "ok") {
+                            if (res.action === "load" && res.content) {
+                                let arrVal = JSON.parse(root.base64Decode(res.content));
+                                if (Array.isArray(arrVal)) {
+                                    root.sessions = root.parseSessions(arrVal);
+                                    if (root.sessions.length === 0)
+                                        root.createSession(true);
+
+                                    let pref = plasmoid.configuration.lastSessionId || "";
+                                    let idxVal = root.sessionIndexById(pref);
+                                    if (idxVal < 0)
+                                        idxVal = 0;
+
+                                    root.currentSessionId = root.sessions[idxVal].value;
+                                    root.currentSessionTitle = root.sessions[idxVal].text;
+                                    root.messages = root.sessions[idxVal].messages || [];
+                                    if (root.sessions[idxVal])
+                                        root.openCodeMode = (root.sessions[idxVal].source === "opencode");
+
+                                    root.sortSessionsByUpdated();
+                                    root.checkAndMarkCurrentSessionAsRead();
+                                    root.persistSessions();
+                                }
+                            } else if (res.action === "write_current" || res.action === "copied" || res.action === "exported") {
+                                root.persistSessions();
+                            }
+                        } else {
+                            console.warn("Migration failed: " + res.message);
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse migration output: " + e);
+                    }
+                }
+            } else if (sourceName.indexOf("#sessions-read-") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    try {
+                        let jsonStr = root.base64Decode(stdout.trim());
+                        let arr = JSON.parse(jsonStr);
+                        if (Array.isArray(arr) && arr.length > 0) {
+                            root.sessions = root.parseSessions(arr);
+                            if (root.sessions.length === 0) {
+                                root.createSession(true);
+                            }
+                            let preferred = plasmoid.configuration.lastSessionId || "";
+                            let idx = root.sessionIndexById(preferred);
+                            if (idx < 0) idx = 0;
+                            root.currentSessionId = root.sessions[idx].value;
+                            root.currentSessionTitle = root.sessions[idx].text;
+                            root.messages = root.sessions[idx].messages || [];
+                            root.precomputeBlocksForMessages(root.messages);
+                            if (root.sessions[idx])
+                                root.openCodeMode = (root.sessions[idx].source === "opencode");
+                            root.sortSessionsByUpdated();
+                            root.checkAndMarkCurrentSessionAsRead();
+                        }
+                    } catch (e) {
+                        console.warn("[KAI] Failed to parse sessions file: " + e);
+                    }
+                }
+            }
+            disconnectSource(sourceName);
+        }
+    }
+
+    FileDialog {
+        id: kaiAttachFileDialog
+        title: "Attach Files"
+        fileMode: FileDialog.OpenFiles
+        nameFilters: ["All files (*)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.svg)", "Documents (*.pdf *.docx *.odt *.rtf *.csv *.txt *.md *.json *.xml *.yaml *.yml)", "Code (*.py *.js *.ts *.rs *.go *.cpp *.c *.h *.java *.kt *.swift *.sh *.bash *.zsh *.fish *.rb *.php *.html *.css *.scss *.sql *.toml *.ini *.conf)"]
+        onAccepted: function() {
+            for (var i = 0; i < selectedFiles.length; i++) {
+                root.attachFile(selectedFiles[i]);
+            }
+        }
+    }
+
+    FileDialog {
+        id: kaiExportChatFileDialog
+        title: "Export Chat Session"
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["Markdown files (*.md)", "Plain text files (*.txt)"]
+        onAccepted: function() {
+            var rawPath = selectedFile.toString();
+            if (rawPath.indexOf("file://") === 0)
+                rawPath = decodeURIComponent(rawPath.slice(7));
+            root.performExportChat(rawPath);
+        }
+    }
+
+    TextEdit {
+        id: clipboardHelper
+        width: 0
+        height: 0
+        opacity: 0
+        activeFocusOnTab: false
+    }
+
+    P5Support.DataSource {
+        id: kwalletStartupDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let stdout = data["stdout"] || "";
+            if (sourceName.indexOf("kwallet-startup-load") >= 0) {
+                let lines = stdout.split(/\r?\n/);
+                let openFailed = false;
+                let openFailedMsg = "KWallet open failed.";
+                let notUnlocked = false;
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (line.indexOf("__KAI_BULK__:OPEN_FAILED") === 0) {
+                        openFailed = true;
+                        openFailedMsg = "KWallet open failed.";
+                    } else if (line.indexOf("__KAI_BULK__:NO_WALLET") === 0) {
+                        openFailed = true;
+                        openFailedMsg = "Configured KWallet not found.";
+                    } else if (line.indexOf("__KAI_BULK__:NOT_UNLOCKED") === 0) {
+                        notUnlocked = true;
+                    } else if (line.indexOf("__KAI_SECRET__:") === 0) {
+                        let rest = line.slice("__KAI_SECRET__:".length);
+                        let sep = rest.indexOf(":");
+                        if (sep > 0) {
+                            let targetId = rest.slice(0, sep);
+                            let secretValue = rest.slice(sep + 1);
+                            root.applyKWalletKeyToMemory(targetId, secretValue);
+                        }
+                    }
+                }
+                if (notUnlocked) {
+                    root.kwalletKeysLoaded = false;
+                    root.kwalletLoading = false;
+                    root.triggerKWalletCallbacks(false, "KWallet is locked/closed. Click 'Refresh from KWallet' in settings to unlock.");
+                } else if (openFailed) {
+                    root.kwalletKeysLoaded = false;
+                    root.kwalletOpenAttempts++;
+                    debugLog("[KAI-DEBUG] KWallet open failed (attempt " + root.kwalletOpenAttempts + " of 3)");
+                    if (root.kwalletOpenAttempts >= 3) {
+                        let reason = "KWallet sync failed after 3 attempts — possibly wrong password or wallet locked. Click \"Refresh from KWallet\" in settings to retry.";
+                        root.kwalletPermanentlyFailed = true;
+                        root.kwalletFailReason = reason;
+                        root.kwalletLoading = false;
+                        root.triggerKWalletCallbacks(false, reason);
+                    } else {
+                        root.triggerKWalletCallbacks(false, openFailedMsg);
+                    }
+                } else {
+                    root.kwalletOpenAttempts = 0;
+                    root.kwalletPermanentlyFailed = false;
+                    root.kwalletFailReason = "";
+                    root.kwalletKeysLoaded = true;
+                    root.triggerKWalletCallbacks(true);
+                }
+            }
+            disconnectSource(sourceName);
+        }
+    }
+
+    P5Support.DataSource {
+        id: opencodeTerminalDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let stdout = data["stdout"] || "";
+            let stderr = data["stderr"] || "";
+            let exitCode = data["exit code"];
+            if (sourceName.indexOf("opencode-cli-") >= 0) {
+                let output = stdout || stderr;
+                if (exitCode !== undefined && (output.indexOf("not found") >= 0 || output.indexOf("No such file") >= 0 || output === "")) {
+                    root.loading = false;
+                    root.finishOpenCodeRequest();
+                    root.pushErrorMessage("**OpenCode is not installed or not in PATH.**\nInstall it with:\n```\nnpm install -g opencode-ai\n```\nor visit https://opencode.ai for instructions.");
+                    disconnectSource(sourceName);
+                    return ;
+                }
+                if (output !== "")
+                    root.updateAssistantStreamingContent(output, "OpenCode CLI");
+
+                if (exitCode !== undefined) {
+                    root.loading = false;
+                    root.finishOpenCodeRequest();
+                    disconnectSource(sourceName);
+                }
+            } else {
+                disconnectSource(sourceName);
+            }
+        }
+    }
+
+    Timer {
+        id: openCodePollTimer
+        property int retriesLeft: 0
+        function startPolling() {
+            retriesLeft = 15;
+            start();
+        }
+        function checkServerStatus() {
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", root.openCodeBaseUrl() + "/", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE)
+                    return ;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    openCodePollTimer.stop();
+                    root.pushInfoMessage("OpenCode server is online. Resuming thread...");
+                    root.removeLastErrorMessages();
+                    root.retryLastFailedMessage();
+                }
+            };
+            xhr.onerror = function() {
+            };
+            try {
+                xhr.send();
+            } catch (e) {
+            }
+        }
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            retriesLeft--;
+            if (retriesLeft <= 0) {
+                stop();
+                root.pushErrorMessage("OpenCode server failed to start in time. Check logs in ${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log");
+                return ;
+            }
+            checkServerStatus();
+        }
+    }
+
+    P5Support.DataSource {
+        id: voiceDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let stdout = (data["stdout"] || "").trim();
+            let stderr = (data["stderr"] || "").trim();
+            let exitCode = data["exit code"];
+            if (stdout !== "") {
+                let lines = stdout.split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (!line) continue;
+                    try {
+                        let resp = JSON.parse(line);
+                        try {
+                            ChatEngine.handleVoiceResponse(resp, sourceName);
+                        } catch (respErr) {
+                            console.error("voiceDs: handleVoiceResponse threw for line, skipping:", respErr, line);
+                        }
+                    } catch (e) {
+                    }
+                }
+            }
+            if (exitCode !== undefined) {
+                if (exitCode !== 0) {
+                    let errMsg = stderr || ("Process exited with code " + exitCode);
+                    root.pushErrorMessage("Voice helper execution failed: " + errMsg);
+                }
+                disconnectSource(sourceName);
+            }
+        }
+    }
+
+    Timer {
+        id: voiceStatusPollTimer
+        interval: (root.voiceSttStatus === "starting_daemon"
+            || root.voiceSttStatus === "loading_model"
+            || root.voiceSttStatus === "transcribing"
+            || root.voiceTtsStatus === "starting_daemon") ? 500 : 1500
+        repeat: true
+        property int _consecutivePollFailures: 0
+        readonly property int _pollFailureThreshold: 4
+        running: root.voiceRecording || root.ttsPlaying
+
+        function notePollFailure(message) {
+            voiceStatusPollTimer._consecutivePollFailures++;
+            if (voiceStatusPollTimer._consecutivePollFailures
+                    < voiceStatusPollTimer._pollFailureThreshold) {
+                return;
+            }
+            voiceStatusPollTimer._consecutivePollFailures = 0;
+            if (root.ttsPlaying) {
+                root.ttsPlaying = false;
+                root.ttsPaused = false;
+                root.voiceTtsStatus = message;
+            } else if (root.voiceRecording) {
+                root.voiceRecording = false;
+                root.voiceSttStatus = "";
+                root.voiceSttTestResult = "Error: " + message;
+            }
+        }
+
+        onTriggered: {
+            let port = root.voiceRecording ? 9015 : 9016;
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", "http://127.0.0.1:" + port + "/status", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                if (xhr.status === 200) {
+                    voiceStatusPollTimer._consecutivePollFailures = 0;
+                    try {
+                        let resp = JSON.parse(xhr.responseText);
+                        if (root.voiceRecording) {
+                            ChatEngine.handleVoiceResponse({
+                                "type": "stt_status",
+                                "status": resp.status,
+                                "countdown": resp.countdown
+                            }, "");
+                        } else if (root.ttsPlaying) {
+                            ChatEngine.handleVoiceResponse({
+                                "type": "tts_status",
+                                "status": resp.status
+                            }, "");
+                        }
+                    } catch (e) {
+                    }
+                    return;
+                }
+                voiceStatusPollTimer.notePollFailure("daemon stopped responding");
+            };
+            xhr.onerror = function() {
+                voiceStatusPollTimer.notePollFailure("daemon unreachable");
+            };
+            xhr.ontimeout = xhr.onerror;
+            try {
+                xhr.send();
+            } catch (e) {
+                voiceStatusPollTimer.notePollFailure("daemon command failed");
+            }
+        }
+    }
+
+    Timer {
+        id: voiceForceStopTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            if (root.voiceRecording) {
+                root.voiceRecording = false;
+                root.voiceSttStatus = "";
+            }
+            if (root.loading && root.streamingResponse && root.streamingContent === "") {
+                root.loading = false;
+                root.streamingResponse = false;
+                root.activeXhr = null;
+            }
+        }
+    }
+
+    Timer {
+        id: voiceDaemonStartTimer
+        interval: 250
+        repeat: true
+        property int port: 9015
+        property int elapsed: 0
+        property var callback: null
+        onTriggered: {
+            elapsed += 250;
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", "http://127.0.0.1:" + port + "/status", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        voiceDaemonStartTimer.stop();
+                        if (callback) callback(true);
+                    }
+                }
+            };
+            try {
+                xhr.send();
+            } catch (e) {}
+
+            if (elapsed >= 4000) {
+                voiceDaemonStartTimer.stop();
+                if (callback) callback(false);
+            }
+        }
+    }
+
+    Timer {
+        id: voiceIdleTimer
+        interval: 300000 // 5 minutes
+        repeat: false
+        running: true
+        onTriggered: {
+            root.voiceDs.connectSource("systemctl --user stop kde-ai-stt.service #stop-stt-idle-" + Date.now());
+            root.voiceDs.connectSource("systemctl --user stop kde-ai-tts.service #stop-tts-idle-" + Date.now());
+            console.log("KDE AI Chat: Stopped voice daemons due to 5 minutes of inactivity to save system resources.");
+        }
+    }
+
+    property alias soundDs: soundDs
+    property alias clipboardDs: clipboardDs
+    property alias schedulerDs: schedulerDs
+    property alias openCodeReconnectTimer: openCodeReconnectTimer
+    property alias persistSessionsDebounce: persistSessionsDebounce
+    property alias deferSaveStateTimer: deferSaveStateTimer
+    property alias streamingBatchTimer: streamingBatchTimer
+    property alias openCodeIdleKillTimer: openCodeIdleKillTimer
+    property alias openCodeStartPollTimer: openCodeStartPollTimer
+    property alias schedulerPollTimer: schedulerPollTimer
+    property alias autoStartOpenCodeTimer: autoStartOpenCodeTimer
+    property alias opencodeServerDs: opencodeServerDs
+    property alias fileReaderDs: fileReaderDs
+    property alias customStorageDs: customStorageDs
+    property alias fileDialog: kaiAttachFileDialog
+    property alias exportFileDialog: kaiExportChatFileDialog
+    property alias clipboardHelper: clipboardHelper
+    property alias kwalletStartupDs: kwalletStartupDs
+    property alias opencodeTerminalDs: opencodeTerminalDs
+    property alias openCodePollTimer: openCodePollTimer
+    property alias voiceDs: voiceDs
+    property alias sendMessageDelayTimer: sendMessageDelayTimer
+
+    compactRepresentation: MouseArea {
         onClicked: root.expanded = !root.expanded
 
         Kirigami.Icon {
@@ -1154,11 +1919,9 @@ PlasmoidItem {
             height: width
             source: "dialog-messages"
         }
-
     }
 
     fullRepresentation: FullRepresentation {
         id: fullRepresentation
     }
-
 }
