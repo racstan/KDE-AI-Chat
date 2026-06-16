@@ -718,16 +718,12 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 delegate: Item {
-                                    property var modelData: root.messages[index]
+                                    required property var modelData
+                                    required property int index
                                     readonly property int originalIndex: index
-                                    readonly property bool showDayHeader: originalIndex === 0 || root.messageDayKeyAt(originalIndex) !== root.messageDayKeyAt(originalIndex - 1)
-                                    readonly property string searchNeedle: root.searchQuery.trim().toLowerCase()
+                                    readonly property bool showDayHeader: modelData.showDayHeader || false
 
-                                    // layer caching disabled as it attempts to create massive textures for large text blocks,
-                                    // causing severe GPU memory spikes and heavy lag on widget startup.
-
-                                    // layer.smooth: false
-                                    property bool isSearchMatch: root.searchBarActive && searchNeedle !== "" && modelData && modelData.searchText && modelData.searchText.indexOf(searchNeedle) >= 0
+                                    property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData.searchText && modelData.searchText.indexOf(root.searchQuery.trim().toLowerCase()) >= 0
                                     property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === originalIndex
 
                                      // Cache expensive per-role lookups as readonly properties so they are
