@@ -590,6 +590,7 @@ import "MainDatabase.js" as MainDatabase
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500
+                                boundsBehavior: Flickable.StopAtBounds
                                 Component.onCompleted: {
                                     root.msgListViewRef = msgList;
                                     Qt.callLater(function() {

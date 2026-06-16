@@ -866,7 +866,7 @@ QQC2.ScrollView {
         // cfg_ aliases are auto-saved by KCM on OK/Apply — no async work needed here.
         // For KWallet mode, sync the current fields to KWallet before closing.
         // For Plain Config mode, persist keys to disk on close as well.
-        if (plasmoid.configuration.keyStorageMode === 2)
+        if (plasmoid.configuration.keyStorageMode === 2 && !plasmoid.configuration.useOpenCode)
             kwalletStoreAll();
         else if (plasmoid.configuration.keyStorageMode === 1)
             syncKeysToDisk();
