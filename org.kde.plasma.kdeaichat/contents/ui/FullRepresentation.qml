@@ -585,7 +585,7 @@ import "MainDatabase.js" as MainDatabase
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 4000
+                                cacheBuffer: 8000
                                 reuseItems: true
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
@@ -593,7 +593,19 @@ import "MainDatabase.js" as MainDatabase
                                 Component.onCompleted: {
                                     root.msgListViewRef = msgList;
                                     Qt.callLater(function() {
-                                        if (msgList.count > 0) msgList.positionViewAtEnd();
+                                        if (msgList.count > 0) {
+                                            msgList.positionViewAtEnd();
+                                            // Pre-warm delegate cache: briefly shift contentY up
+                                            // then back to force-create all cached delegates.
+                                            let savedY = msgList.contentY;
+                                            msgList.contentY = Math.max(0, savedY - 500);
+                                            Qt.callLater(function() {
+                                                msgList.contentY = savedY;
+                                                Qt.callLater(function() {
+                                                    if (msgList.count > 0) msgList.positionViewAtEnd();
+                                                });
+                                            });
+                                        }
                                     });
                                 }
                                 onMovementStarted: {
