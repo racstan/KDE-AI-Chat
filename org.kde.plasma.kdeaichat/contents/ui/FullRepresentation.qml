@@ -8,14 +8,7 @@ import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 import "translations.js" as Translations
-import "ProviderService.js" as ProviderService
-import "SessionManager.js" as SessionManager
-import "MarkdownRenderer.js" as MarkdownRenderer
-import "WalletService.js" as WalletService
-import "RequestDeduplicator.js" as RequestDeduplicator
-import "LRUCache.js" as LRUCache
 import "Security.js" as Sec
-import "MainDatabase.js" as MainDatabase
 
     Item {
         id: fullRep
@@ -185,9 +178,9 @@ import "MainDatabase.js" as MainDatabase
                     Accessible.role: Accessible.Button
                     Accessible.description: root.translate("Open settings dialog for the current chat session")
                     onClicked: {
-                        debugLog("[KDE AIChat] Gear button clicked! Opening chatSettingsDialog...");
+                        root.debugLog("[KDE AIChat] Gear button clicked! Opening chatSettingsDialog...");
                         chatSettingsDialog.open();
-                        debugLog("[KDE AIChat] chatSettingsDialog state: visible=" + chatSettingsDialog.visible + ", x=" + chatSettingsDialog.x + ", y=" + chatSettingsDialog.y + ", width=" + chatSettingsDialog.width + ", height=" + chatSettingsDialog.height + ", parent=" + chatSettingsDialog.parent);
+                        root.debugLog("[KDE AIChat] chatSettingsDialog state: visible=" + chatSettingsDialog.visible + ", x=" + chatSettingsDialog.x + ", y=" + chatSettingsDialog.y + ", width=" + chatSettingsDialog.width + ", height=" + chatSettingsDialog.height + ", parent=" + chatSettingsDialog.parent);
                     }
                 }
 
@@ -403,7 +396,7 @@ import "MainDatabase.js" as MainDatabase
                         RowLayout {
                             Layout.fillWidth: true
                             visible: {
-                                let idx = sessionIndexById(root.currentSessionId);
+                                let idx = root.sessionIndexById(root.currentSessionId);
                                 return idx >= 0 && root.sessions[idx].parentSessionId !== undefined && root.sessions[idx].parentSessionId !== "";
                             }
                             Layout.leftMargin: Kirigami.Units.smallSpacing
@@ -436,7 +429,7 @@ import "MainDatabase.js" as MainDatabase
 
                                         Layout.fillWidth: true
                                         text: {
-                                            let idx = sessionIndexById(root.currentSessionId);
+                                            let idx = root.sessionIndexById(root.currentSessionId);
                                             if (idx < 0)
                                                 return "";
 
@@ -445,7 +438,7 @@ import "MainDatabase.js" as MainDatabase
                                                 parentTitle = parentTitle.substring(5);
 
                                             let parentId = root.sessions[idx].parentSessionId;
-                                            let exists = parentId && sessionIndexById(parentId) >= 0;
+                                            let exists = parentId && root.sessionIndexById(parentId) >= 0;
                                             if (exists)
                                                 return root.translate("Forked from:") + " <b>" + root.translate(parentTitle) + "</b>";
                                             else
@@ -459,10 +452,10 @@ import "MainDatabase.js" as MainDatabase
                                         text: "Go to Original Chat"
                                         icon.name: "go-jump"
                                         onClicked: {
-                                            let idx = sessionIndexById(root.currentSessionId);
+                                            let idx = root.sessionIndexById(root.currentSessionId);
                                             if (idx >= 0) {
                                                 let parentId = root.sessions[idx].parentSessionId;
-                                                if (sessionIndexById(parentId) >= 0) {
+                                                if (root.sessionIndexById(parentId) >= 0) {
                                                     root.switchSession(parentId);
                                                     root.historyOnlyMode = false;
                                                 } else {
@@ -655,21 +648,16 @@ import "MainDatabase.js" as MainDatabase
                                                 }
                                             }
 
-                                            // Render streaming text as plain for performance —
-                                            // Markdown is applied only when the message is committed.
-                                            TextEdit {
-                                                width: parent.width
-                                                wrapMode: Text.Wrap
-                                                textFormat: Text.PlainText
-                                                text: root.streamingContent
-                                                color: Kirigami.Theme.textColor
-                                                readOnly: true
-                                                selectByMouse: true
-                                                selectByKeyboard: true
-                                                selectedTextColor: Kirigami.Theme.highlightedTextColor
-                                                selectionColor: Kirigami.Theme.highlightColor
-                                                font: Kirigami.Theme.defaultFont
-                                            }
+                                             // Render streaming text as plain for performance —
+                                             // Markdown is applied only when the message is committed.
+                                             Text {
+                                                 width: parent.width
+                                                 wrapMode: Text.Wrap
+                                                 textFormat: Text.PlainText
+                                                 text: root.streamingContent
+                                                 color: Kirigami.Theme.textColor
+                                                 font: Kirigami.Theme.defaultFont
+                                             }
 
                                             // Context items (tool invocations) display in footer
                                             Column {
@@ -1507,7 +1495,7 @@ import "MainDatabase.js" as MainDatabase
                                                             QQC2.ToolTip.visible: hovered
                                                             QQC2.ToolTip.text: "Read message aloud"
                                                             onClicked: {
-                                                                MainDatabase.triggerTts(modelData.content || "");
+                                                                root.triggerTts(modelData.content || "");
                                                             }
                                                         }
 
@@ -2003,7 +1991,7 @@ import "MainDatabase.js" as MainDatabase
                                 QQC2.ToolTip.text: root.translate("Start voice input")
                                 Accessible.name: root.translate("Voice input")
                                 Accessible.role: Accessible.Button
-                                onClicked: MainDatabase.startVoiceRecording()
+                                onClicked: root.startVoiceRecording()
                             }
 
                             PC3.ToolButton {
@@ -2016,7 +2004,7 @@ import "MainDatabase.js" as MainDatabase
                                 QQC2.ToolTip.text: (root.voiceSttStatus === "transcribing" || root.voiceSttStatus === "stopping") ? root.translate("Processing...") : root.translate("Stop recording")
                                 Accessible.name: root.translate("Stop recording")
                                 Accessible.role: Accessible.Button
-                                onClicked: MainDatabase.stopVoiceRecording()
+                                onClicked: root.stopVoiceRecording()
                                 PC3.BusyIndicator {
                                     anchors.centerIn: parent
                                     width: parent.width * 0.6
@@ -2042,7 +2030,7 @@ import "MainDatabase.js" as MainDatabase
                                 QQC2.ToolTip.text: root.translate("Stop reading aloud")
                                 Accessible.name: root.translate("Stop TTS")
                                 Accessible.role: Accessible.Button
-                                onClicked: MainDatabase.stopTts()
+                                onClicked: root.stopTts()
                             }
 
                             PC3.ToolButton {
@@ -2057,9 +2045,9 @@ import "MainDatabase.js" as MainDatabase
                                 Accessible.role: Accessible.Button
                                 onClicked: {
                                     if (root.ttsPaused) {
-                                        MainDatabase.resumeTts();
+                                        root.resumeTts();
                                     } else {
-                                        MainDatabase.pauseTts();
+                                        root.pauseTts();
                                     }
                                 }
                             }
@@ -2172,7 +2160,7 @@ import "MainDatabase.js" as MainDatabase
         standardButtons: QQC2.Dialog.NoButton
         onAboutToShow: {
             let sId = root.currentSessionId;
-            debugLog("[KDE AIChat] chatSettingsDialog about to show for session ID: " + sId);
+            root.debugLog("[KDE AIChat] chatSettingsDialog about to show for session ID: " + sId);
             let overrideVal = getSessionProperty(sId, "contextOverride", false);
             let enabledVal = getSessionProperty(sId, "contextEnabled", true);
             let limitVal = getSessionProperty(sId, "contextLimit", (plasmoid.configuration.globalContextLimit !== undefined && plasmoid.configuration.globalContextLimit !== null ? plasmoid.configuration.globalContextLimit : 1));
@@ -2183,7 +2171,7 @@ import "MainDatabase.js" as MainDatabase
             let chatModelVal = getSessionProperty(sId, "chatModel", "");
             let responseLengthVal = getSessionProperty(sId, "responseLength", plasmoid.configuration.responseLength || 0);
 
-            debugLog("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
+            root.debugLog("[KDE AIChat] Loaded settings: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
 
             // Sync controls imperatively to avoid QML binding breakage
             overrideToggle.checked = overrideVal;
@@ -2208,8 +2196,8 @@ import "MainDatabase.js" as MainDatabase
             let chatModelVal = quickModelSwitch.currentIndex > 0 ? quickModelSwitch.currentText : "";
             let responseLengthVal = responseLengthCombo.currentIndex;
 
-            debugLog("[KDE AIChat] Saving settings for session ID: " + sId);
-            debugLog("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
+            root.debugLog("[KDE AIChat] Saving settings for session ID: " + sId);
+            root.debugLog("[KDE AIChat] Saving values: override=" + overrideVal + ", enabled=" + enabledVal + ", limit=" + limitVal + ", autoCompact=" + autoCompactVal + ", compactThreshold=" + compactThresholdVal);
 
             setSessionProperty(sId, "contextOverride", overrideVal);
             setSessionProperty(sId, "contextEnabled", enabledVal);
@@ -2881,7 +2869,7 @@ import "MainDatabase.js" as MainDatabase
                         let hr2 = scheduleCommandDialog.humanText();
                         let msg = cmdMessage.text.trim();
                         let entry = {
-                            "id": SessionManager.makeScheduleEntryId(),
+                            "id": root.makeScheduleEntryId(),
                             "name": hr2,
                             "enabled": true,
                             "chatId": scheduleCommandDialog.chatId,

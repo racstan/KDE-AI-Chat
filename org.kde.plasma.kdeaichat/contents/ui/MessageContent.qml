@@ -178,12 +178,55 @@ Column {
         }
     }
 
-    Repeater {
-        visible: contentRoot.messageData && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
+    Text {
+        id: singleTextEdit
+
+        visible: contentRoot.messageData
+                 && contentRoot.messageData.role !== "error"
+                 && contentRoot.messageData.role !== "schedules_list"
+                 && contentRoot.messageData.isImage !== true
+                 && contentRoot.messageData.blocks
+                 && contentRoot.messageData.blocks.length === 1
+                 && contentRoot.messageData.blocks[0].type === "text"
         width: parent.width
-        model: contentRoot.messageData && contentRoot.messageData.isImage !== true && contentRoot.messageData.role !== "error" && contentRoot.messageData.role !== "schedules_list"
-            ? (contentRoot.messageData.blocks || [])
-            : []
+        wrapMode: Text.Wrap
+        textFormat: Text.StyledText
+        text: {
+            if (!visible) return "";
+            let block = contentRoot.messageData.blocks[0];
+            let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
+            if (block.contentHtmlCache && block.contentHtmlCache[darkKey] !== undefined) {
+                return block.contentHtmlCache[darkKey];
+            }
+            if (contentRoot.chatRoot) {
+                let html = contentRoot.chatRoot.convertMarkdownToHtml(block.content || "");
+                if (!block.contentHtmlCache) {
+                    block.contentHtmlCache = {};
+                }
+                block.contentHtmlCache[darkKey] = html;
+                return html;
+            }
+            return block.content || "";
+        }
+        color: Kirigami.Theme.textColor
+        font: Kirigami.Theme.defaultFont
+        onLinkActivated: function(link) {
+            let safe = Sec.validateUrl(link);
+            if (safe !== "")
+                Qt.openUrlExternally(safe);
+        }
+    }
+
+    Repeater {
+        visible: contentRoot.messageData
+                 && contentRoot.messageData.role !== "error"
+                 && contentRoot.messageData.role !== "schedules_list"
+                 && contentRoot.messageData.isImage !== true
+                 && !(contentRoot.messageData.blocks
+                      && contentRoot.messageData.blocks.length === 1
+                      && contentRoot.messageData.blocks[0].type === "text")
+        width: parent.width
+        model: visible ? (contentRoot.messageData.blocks || []) : []
 
         delegate: Item {
             required property var modelData

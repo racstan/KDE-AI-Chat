@@ -27,7 +27,7 @@ import unittest
 JS_PATH = os.path.join(
     os.path.dirname(__file__),
     "..", "org.kde.plasma.kdeaichat", "contents", "ui",
-    "MainNetwork.js",
+    "ChatEngine.js",
 )
 UI_DIR = os.path.join(
     os.path.dirname(__file__),

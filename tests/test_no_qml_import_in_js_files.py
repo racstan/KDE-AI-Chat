@@ -29,9 +29,7 @@ UI_DIR = os.path.join(
 # The set of JS files known to have been affected by the regression.
 # If a new file is added later, extend this list.
 WATCHED_FILES = (
-    "MainNetwork.js",
-    "MainOpenCode.js",
-    "MainScheduler.js",
+    "ChatEngine.js",
     "ConfigGeneralLogic.js",
 )
 

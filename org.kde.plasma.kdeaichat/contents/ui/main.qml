@@ -15,18 +15,15 @@ import "WalletService.js" as WalletService
 import "RequestDeduplicator.js" as RequestDeduplicator
 import "LRUCache.js" as LRUCache
 import "Security.js" as Sec
-import "MainDatabase.js" as MainDatabase
-import "MainNetwork.js" as MainNetwork
-import "MainOpenCode.js" as MainOpenCode
-import "MainScheduler.js" as MainScheduler
+import "ChatEngine.js" as ChatEngine
 
 // LINKAGE RELATIONSHIPS:
 // - main.qml: The root entrypoint PlasmoidItem.
 // - Linked to MainDataSources.qml (instantiated as 'dataSources' and exposed via property aliases):
 //   Holds all the external process command execution DataSources, Timers, and File Dialogs to keep main.qml under 1000 lines.
 //   It takes a reference to 'root' (this) to read config and update state.
-// - Linked to MainDatabase.js (imported as MainDatabase):
-//   Contains helper functions for managing session states, parsing, and database transactions.
+// - Linked to ChatEngine.js (imported as MainDatabase):
+//   Contains ALL application logic — session, network, streaming, schedule, and voice functions.
 
 PlasmoidItem {
     // No custom text and no way to read options from here,
@@ -40,7 +37,7 @@ PlasmoidItem {
     property color themeHighlightColor: Kirigami.Theme.highlightColor
     property bool debugMode: false
     function debugLog() {
-        return MainDatabase.debugLog();
+        return ChatEngine.debugLog();
     }
 
     property var sessions: []
@@ -322,39 +319,39 @@ PlasmoidItem {
     signal clearChatInput()
 
     function sessionHasSchedules(sessionId) {
-        return MainDatabase.sessionHasSchedules(sessionId);
+        return ChatEngine.sessionHasSchedules(sessionId);
     }
 
     function triggerConfigure() {
-        return MainDatabase.triggerConfigure();
+        return ChatEngine.triggerConfigure();
     }
 
     function focusInput() {
-        return MainDatabase.focusInput();
+        return ChatEngine.focusInput();
     }
 
     function searchNext() {
-        return MainDatabase.searchNext();
+        return ChatEngine.searchNext();
     }
 
     function searchPrev() {
-        return MainDatabase.searchPrev();
+        return ChatEngine.searchPrev();
     }
 
     function pad2(v) {
-        return MainDatabase.pad2(v);
+        return ChatEngine.pad2(v);
     }
 
     function nowTime(ts) {
-        return MainDatabase.nowTime(ts);
+        return ChatEngine.nowTime(ts);
     }
 
     function formatDateTime(ts) {
-        return MainDatabase.formatDateTime(ts);
+        return ChatEngine.formatDateTime(ts);
     }
 
     function makeSessionId() {
-        return MainDatabase.makeSessionId();
+        return ChatEngine.makeSessionId();
     }
 
     // Centralized helper for reporting a benign parse failure (e.g. an
@@ -362,100 +359,100 @@ PlasmoidItem {
     // Always logs to console for diagnostics and surfaces a non-blocking
     // notification to the user, so the failure is never silently dropped.
     function reportParseFailure(context, error) {
-        return MainDatabase.reportParseFailure(context, error);
+        return ChatEngine.reportParseFailure(context, error);
     }
 
     function makeForkSessionId() {
-        return MainDatabase.makeForkSessionId();
+        return ChatEngine.makeForkSessionId();
     }
 
     function forkSession(messageIndex) {
-        return MainDatabase.forkSession(messageIndex);
+        return ChatEngine.forkSession(messageIndex);
     }
 
     // ── /schedule command handler ──────────────────────────────────────────────
     function handleScheduleCommand(messageText) {
-        return MainScheduler.handleScheduleCommand(messageText);
+        return ChatEngine.handleScheduleCommand(messageText);
     }
 
     function toggleScheduleEnabled(schedId, newEnabled) {
-        return MainScheduler.toggleScheduleEnabled(schedId, newEnabled);
+        return ChatEngine.toggleScheduleEnabled(schedId, newEnabled);
     }
 
     function injectScheduledMessage(chatId, messageText, notify, schedId, schedName) {
-        return MainScheduler.injectScheduledMessage(chatId, messageText, notify, schedId, schedName);
+        return ChatEngine.injectScheduledMessage(chatId, messageText, notify, schedId, schedName);
     }
 
     function parseSessions(customRaw) {
-        return MainDatabase.parseSessions(customRaw);
+        return ChatEngine.parseSessions(customRaw);
     }
 
     function checkAndMarkCurrentSessionAsRead() {
-        return MainDatabase.checkAndMarkCurrentSessionAsRead();
+        return ChatEngine.checkAndMarkCurrentSessionAsRead();
     }
 
     function base64Encode(str) {
-        return MainNetwork.base64Encode(str);
+        return ChatEngine.base64Encode(str);
     }
 
     function base64Decode(str) {
-        return MainNetwork.base64Decode(str);
+        return ChatEngine.base64Decode(str);
     }
 
     function getHistoryFilePath(customDir) {
-        return MainDatabase.getHistoryFilePath(customDir);
+        return ChatEngine.getHistoryFilePath(customDir);
     }
 
     function migrateHistory(oldPath, newPath) {
-        return MainDatabase.migrateHistory(oldPath, newPath);
+        return ChatEngine.migrateHistory(oldPath, newPath);
     }
 
     function persistSessions() {
-        return MainDatabase.persistSessions();
+        return ChatEngine.persistSessions();
     }
 
     function flushPersistSessions() {
-        return MainDatabase.flushPersistSessions();
+        return ChatEngine.flushPersistSessions();
     }
 
     function sortSessionsByUpdated() {
-        return MainDatabase.sortSessionsByUpdated();
+        return ChatEngine.sortSessionsByUpdated();
     }
 
     function historySessionTint(sessionData) {
-        return MainDatabase.historySessionTint(sessionData);
+        return ChatEngine.historySessionTint(sessionData);
     }
 
     function sessionSubtitle(sessionData) {
-        return MainDatabase.sessionSubtitle(sessionData);
+        return ChatEngine.sessionSubtitle(sessionData);
     }
 
     function sessionIndexById(sessionId) {
-        return MainDatabase.sessionIndexById(sessionId);
+        return ChatEngine.sessionIndexById(sessionId);
     }
 
     function createSession(switchToNew) {
-        return MainDatabase.createSession(switchToNew);
+        return ChatEngine.createSession(switchToNew);
     }
 
     function loadSessions() {
-        return MainDatabase.loadSessions();
+        return ChatEngine.loadSessions();
     }
 
     function saveCurrentSessionState(touchUpdatedAt) {
-        return MainDatabase.saveCurrentSessionState(touchUpdatedAt);
+        return ChatEngine.saveCurrentSessionState(touchUpdatedAt);
     }
 
     function setCurrentSessionSource(source) {
-        return MainDatabase.setCurrentSessionSource(source);
+        return ChatEngine.setCurrentSessionSource(source);
     }
 
     function setSessionArchived(sessionId, archived) {
-        return MainDatabase.setSessionArchived(sessionId, archived);
+        return ChatEngine.setSessionArchived(sessionId, archived);
     }
 
     function switchSession(sessionId) {
-        return MainDatabase.switchSession(sessionId);
+        return ChatEngine.switchSession(sessionId);
     }
 
     function listViewIndexAt(x, y) {
@@ -480,115 +477,115 @@ PlasmoidItem {
     }
 
     function renameCurrentSession(newTitle) {
-        return MainDatabase.renameCurrentSession(newTitle);
+        return ChatEngine.renameCurrentSession(newTitle);
     }
 
     function startSessionRename(sessionId) {
-        return MainDatabase.startSessionRename(sessionId);
+        return ChatEngine.startSessionRename(sessionId);
     }
 
     function cancelSessionRename() {
-        return MainDatabase.cancelSessionRename();
+        return ChatEngine.cancelSessionRename();
     }
 
     function saveSessionRename(sessionId) {
-        return MainDatabase.saveSessionRename(sessionId);
+        return ChatEngine.saveSessionRename(sessionId);
     }
 
     function deleteSession(sessionId) {
-        return MainDatabase.deleteSession(sessionId);
+        return ChatEngine.deleteSession(sessionId);
     }
 
     function deleteMessage(index) {
-        return MainDatabase.deleteMessage(index);
+        return ChatEngine.deleteMessage(index);
     }
 
     function isLatestUserMessage(index) {
-        return MainDatabase.isLatestUserMessage(index);
+        return ChatEngine.isLatestUserMessage(index);
     }
 
     function hasSubsequentAssistantMessage(index) {
-        return MainDatabase.hasSubsequentAssistantMessage(index);
+        return ChatEngine.hasSubsequentAssistantMessage(index);
     }
 
     function regenerateReply(index, type) {
-        return MainDatabase.regenerateReply(index, type);
+        return ChatEngine.regenerateReply(index, type);
     }
 
     function saveEditedMessage() {
-        return MainDatabase.saveEditedMessage();
+        return ChatEngine.saveEditedMessage();
     }
 
     function openCodeBaseUrl() {
-        return MainOpenCode.openCodeBaseUrl();
+        return ChatEngine.openCodeBaseUrl();
     }
 
     function currentOpenCodeSessionId() {
-        return MainOpenCode.currentOpenCodeSessionId();
+        return ChatEngine.currentOpenCodeSessionId();
     }
 
     function setCurrentOpenCodeSessionId(remoteSessionId) {
-        return MainOpenCode.setCurrentOpenCodeSessionId(remoteSessionId);
+        return ChatEngine.setCurrentOpenCodeSessionId(remoteSessionId);
     }
 
     function clearCurrentOpenCodeSessionIfNeeded() {
-        return MainOpenCode.clearCurrentOpenCodeSessionIfNeeded();
+        return ChatEngine.clearCurrentOpenCodeSessionIfNeeded();
     }
 
     function getSessionProperty(sessionId, key, defaultValue) {
-        return MainDatabase.getSessionProperty(sessionId, key, defaultValue);
+        return ChatEngine.getSessionProperty(sessionId, key, defaultValue);
     }
 
     function setSessionProperty(sessionId, key, value) {
-        return MainDatabase.setSessionProperty(sessionId, key, value);
+        return ChatEngine.setSessionProperty(sessionId, key, value);
     }
 
     function appendCompactPromptMessage(chatId) {
-        return MainDatabase.appendCompactPromptMessage(chatId);
+        return ChatEngine.appendCompactPromptMessage(chatId);
     }
 
     function respondToCompactRequest(msgIndex, approved) {
-        return MainDatabase.respondToCompactRequest(msgIndex, approved);
+        return ChatEngine.respondToCompactRequest(msgIndex, approved);
     }
 
     function touchSessionsList(chatId) {
-        return MainDatabase.touchSessionsList(chatId);
+        return ChatEngine.touchSessionsList(chatId);
     }
 
     function checkAndAutoCompact(sessionId) {
-        return MainDatabase.checkAndAutoCompact(sessionId);
+        return ChatEngine.checkAndAutoCompact(sessionId);
     }
 
     function compactSessionContext(sessionId) {
-        return MainDatabase.compactSessionContext(sessionId);
+        return ChatEngine.compactSessionContext(sessionId);
     }
 
     function sendBackgroundSummarizationRequest(sId, promptText, count) {
-        return MainDatabase.sendBackgroundSummarizationRequest(sId, promptText, count);
+        return ChatEngine.sendBackgroundSummarizationRequest(sId, promptText, count);
     }
 
     function updateAutocomplete() {
-        return MainDatabase.updateAutocomplete();
+        return ChatEngine.updateAutocomplete();
     }
 
     function updateMessageMetadata() {
-        return MainDatabase.updateMessageMetadata();
+        return ChatEngine.updateMessageMetadata();
     }
 
     function extractReadableError(prefix, errObj, fallbackText) {
-        return MainDatabase.extractReadableError(prefix, errObj, fallbackText);
+        return ChatEngine.extractReadableError(prefix, errObj, fallbackText);
     }
 
     function beginAssistantStreaming(modelLabel) {
-        return MainDatabase.beginAssistantStreaming(modelLabel);
+        return ChatEngine.beginAssistantStreaming(modelLabel);
     }
 
     function updateAssistantStreamingContent(text, modelLabel) {
-        return MainDatabase.updateAssistantStreamingContent(text, modelLabel);
+        return ChatEngine.updateAssistantStreamingContent(text, modelLabel);
     }
 
     function finishOpenCodeRequest() {
-        return MainNetwork.finishOpenCodeRequest();
+        return ChatEngine.finishOpenCodeRequest();
     }
 
     // Handle slash commands in OpenCode mode.
@@ -599,167 +596,167 @@ PlasmoidItem {
     //  - /export                 → syncOpenCodeSessionHistory() (REST API)
     //  - TUI-only commands       → friendly explanation shown inline
     function runLocalOpenCodeCommand(cmdText) {
-        return MainDatabase.runLocalOpenCodeCommand(cmdText);
+        return ChatEngine.runLocalOpenCodeCommand(cmdText);
     }
 
     function syncOpenCodeSessionHistory() {
-        return MainDatabase.syncOpenCodeSessionHistory();
+        return ChatEngine.syncOpenCodeSessionHistory();
     }
 
     function ensureOpenCodeEventStream() {
-        return MainOpenCode.ensureOpenCodeEventStream();
+        return ChatEngine.ensureOpenCodeEventStream();
     }
 
     function handleOpenCodeEvent(eventObj) {
-        return MainDatabase.handleOpenCodeEvent(eventObj);
+        return ChatEngine.handleOpenCodeEvent(eventObj);
     }
 
     function appendSystemMessageToSession(chatId, text) {
-        return MainDatabase.appendSystemMessageToSession(chatId, text);
+        return ChatEngine.appendSystemMessageToSession(chatId, text);
     }
 
     function removeMessageFromSessionByTimestamp(chatId, timestamp) {
-        return MainDatabase.removeMessageFromSessionByTimestamp(chatId, timestamp);
+        return ChatEngine.removeMessageFromSessionByTimestamp(chatId, timestamp);
     }
 
     function scheduleMessageRemoval(chatId, timestamp, delayMs) {
-        return MainDatabase.scheduleMessageRemoval(chatId, timestamp, delayMs);
+        return ChatEngine.scheduleMessageRemoval(chatId, timestamp, delayMs);
     }
 
     function setOpenCodeSessionIdForChatId(chatId, remoteSessionId) {
-        return MainDatabase.setOpenCodeSessionIdForChatId(chatId, remoteSessionId);
+        return ChatEngine.setOpenCodeSessionIdForChatId(chatId, remoteSessionId);
     }
 
     function ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback) {
-        return MainDatabase.ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback);
+        return ChatEngine.ensureOpenCodeSessionForChatId(chatId, successCallback, failureCallback);
     }
 
     function ensureCurrentOpenCodeSession(successCallback, failureCallback) {
-        return MainOpenCode.ensureCurrentOpenCodeSession(successCallback, failureCallback);
+        return ChatEngine.ensureCurrentOpenCodeSession(successCallback, failureCallback);
     }
 
     function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
-        return MainOpenCode.ensureOpenCodeServerRunning(chatId, successCallback, failureCallback);
+        return ChatEngine.ensureOpenCodeServerRunning(chatId, successCallback, failureCallback);
     }
 
     function doOpenCodeRequest() {
-        return MainOpenCode.doOpenCodeRequest();
+        return ChatEngine.doOpenCodeRequest();
     }
 
     function scrollToBottom() {
-        return MainDatabase.scrollToBottom();
+        return ChatEngine.scrollToBottom();
     }
 
     function queueScrollToBottom() {
-        return MainDatabase.queueScrollToBottom();
+        return ChatEngine.queueScrollToBottom();
     }
 
     function scrollToMessageByTimestamp(timestamp) {
-        return MainDatabase.scrollToMessageByTimestamp(timestamp);
+        return ChatEngine.scrollToMessageByTimestamp(timestamp);
     }
 
     function messageTimestampAt(index) {
-        return MainDatabase.messageTimestampAt(index);
+        return ChatEngine.messageTimestampAt(index);
     }
 
     function messageDayKeyAt(index) {
-        return MainDatabase.messageDayKeyAt(index);
+        return ChatEngine.messageDayKeyAt(index);
     }
 
     function dayBucketLabel(ts) {
-        return MainDatabase.dayBucketLabel(ts);
+        return ChatEngine.dayBucketLabel(ts);
     }
 
     function countMessagesForDayKey(dayKey) {
-        return MainDatabase.countMessagesForDayKey(dayKey);
+        return ChatEngine.countMessagesForDayKey(dayKey);
     }
 
     function dayDividerLabelForIndex(index) {
-        return MainDatabase.dayDividerLabelForIndex(index);
+        return ChatEngine.dayDividerLabelForIndex(index);
     }
 
     function formatMessageTime(message, index) {
-        return MainDatabase.formatMessageTime(message, index);
+        return ChatEngine.formatMessageTime(message, index);
     }
 
     function jumpOneMessageAbove() {
-        return MainDatabase.jumpOneMessageAbove();
+        return ChatEngine.jumpOneMessageAbove();
     }
 
     function jumpOneMessageBelow() {
-        return MainDatabase.jumpOneMessageBelow();
+        return ChatEngine.jumpOneMessageBelow();
     }
 
     function formatTokensUsage(tokens, cost) {
-        return MainDatabase.formatTokensUsage(tokens, cost);
+        return ChatEngine.formatTokensUsage(tokens, cost);
     }
 
     function pushErrorMessage(text) {
-        return MainNetwork.pushErrorMessage(text);
+        return ChatEngine.pushErrorMessage(text);
     }
 
     function pushInfoMessage(text) {
-        return MainDatabase.pushInfoMessage(text);
+        return ChatEngine.pushInfoMessage(text);
     }
 
     function appendUserMessage(text, role, attachments, isScheduled) {
-        return MainDatabase.appendUserMessage(text, role, attachments, isScheduled);
+        return ChatEngine.appendUserMessage(text, role, attachments, isScheduled);
     }
 
     function appendSystemMessage(text) {
-        return MainDatabase.appendSystemMessage(text);
+        return ChatEngine.appendSystemMessage(text);
     }
 
     function getSchedulesForSession(sessionId) {
-        return MainDatabase.getSchedulesForSession(sessionId);
+        return ChatEngine.getSchedulesForSession(sessionId);
     }
 
     function validateCurrentSendTarget() {
-        return MainNetwork.validateCurrentSendTarget();
+        return ChatEngine.validateCurrentSendTarget();
     }
 
     function sendMessageByIndex(index) {
-        return MainDatabase.sendMessageByIndex(index);
+        return ChatEngine.sendMessageByIndex(index);
     }
 
     function processNextQueuedMessage() {
-        return MainDatabase.processNextQueuedMessage();
+        return ChatEngine.processNextQueuedMessage();
     }
 
     function providerDisplayName(providerId) {
-        return MainDatabase.providerDisplayName(providerId);
+        return ChatEngine.providerDisplayName(providerId);
     }
 
     function validateOpenCodeConfig() {
-        return MainDatabase.validateOpenCodeConfig();
+        return ChatEngine.validateOpenCodeConfig();
     }
 
     function validateProviderConfig(providerId, cfg) {
-        return MainDatabase.validateProviderConfig(providerId, cfg);
+        return ChatEngine.validateProviderConfig(providerId, cfg);
     }
 
     function sendMessage() {
-        return MainDatabase.sendMessage();
+        return ChatEngine.sendMessage();
     }
 
     function getProviderConfig(provider) {
-        return MainDatabase.getProviderConfig(provider);
+        return ChatEngine.getProviderConfig(provider);
     }
 
     function translate(text) {
-        return MainDatabase.translate(text);
+        return ChatEngine.translate(text);
     }
 
     function isSessionScheduled(sessionId, messagesList) {
-        return MainDatabase.isSessionScheduled(sessionId, messagesList);
+        return ChatEngine.isSessionScheduled(sessionId, messagesList);
     }
 
     function buildEffectiveSystemPrompt(sessionId) {
-        return MainDatabase.buildEffectiveSystemPrompt(sessionId);
+        return ChatEngine.buildEffectiveSystemPrompt(sessionId);
     }
 
     function injectMemoriesToUserMessage(contentVal, sessionId) {
-        return MainDatabase.injectMemoriesToUserMessage(contentVal, sessionId);
+        return ChatEngine.injectMemoriesToUserMessage(contentVal, sessionId);
     }
 
     // Returns a filtered, context-limited list of {role, content} pairs.
@@ -767,59 +764,59 @@ PlasmoidItem {
     // Messages before the compacted boundary are excluded.
     // Only the last N user/assistant messages are kept (N = per-session override OR global limit).
     function buildContextWindow(messagesList, sessionId) {
-        return MainDatabase.buildContextWindow(messagesList, sessionId);
+        return ChatEngine.buildContextWindow(messagesList, sessionId);
     }
 
     function buildOpenAICompatPayload() {
-        return MainDatabase.buildOpenAICompatPayload();
+        return ChatEngine.buildOpenAICompatPayload();
     }
 
     function buildAnthropicPayload() {
-        return MainDatabase.buildAnthropicPayload();
+        return ChatEngine.buildAnthropicPayload();
     }
 
     function buildOpenAICompatPayloadForMessages(messagesList, chatId) {
-        return MainDatabase.buildOpenAICompatPayloadForMessages(messagesList, chatId);
+        return ChatEngine.buildOpenAICompatPayloadForMessages(messagesList, chatId);
     }
 
     function buildAnthropicPayloadForMessages(messagesList, chatId) {
-        return MainNetwork.buildAnthropicPayloadForMessages(messagesList, chatId);
+        return ChatEngine.buildAnthropicPayloadForMessages(messagesList, chatId);
     }
 
     function _buildMessageArray(messagesList, chatId, format) {
-        return MainDatabase._buildMessageArray(messagesList, chatId, format);
+        return ChatEngine._buildMessageArray(messagesList, chatId, format);
     }
 
     function appendMessageToSession(chatId, msgObj) {
-        return MainDatabase.appendMessageToSession(chatId, msgObj);
+        return ChatEngine.appendMessageToSession(chatId, msgObj);
     }
 
     function handleBackgroundError(chatId, errorMsg, notify, schedId, schedName) {
-        return MainNetwork.handleBackgroundError(chatId, errorMsg, notify, schedId, schedName);
+        return ChatEngine.handleBackgroundError(chatId, errorMsg, notify, schedId, schedName);
     }
 
     function doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName) {
-        return MainOpenCode.doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
+        return ChatEngine.doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
     }
 
     function doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
-        return MainNetwork.doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName);
+        return ChatEngine.doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName);
     }
 
     function doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName) {
-        return MainNetwork.doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName);
+        return ChatEngine.doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName);
     }
 
     function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
-        return MainScheduler.executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
+        return ChatEngine.executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
     }
 
     function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
-        return MainNetwork.doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel);
+        return ChatEngine.doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel);
     }
 
     function doAnthropicRequest(apiKey, model) {
-        return MainNetwork.doAnthropicRequest(apiKey, model);
+        return ChatEngine.doAnthropicRequest(apiKey, model);
     }
 
     // RequestDeduplicator wrappers
@@ -836,102 +833,102 @@ PlasmoidItem {
     }
 
     function triggerNotificationSound() {
-        return MainDatabase.triggerNotificationSound();
+        return ChatEngine.triggerNotificationSound();
     }
 
     function respondToPermission(permissionId, approved) {
-        return MainDatabase.respondToPermission(permissionId, approved);
+        return ChatEngine.respondToPermission(permissionId, approved);
     }
 
     // Collect selected options from the question UI and submit the answer
     function submitQuestionAnswer(questionId, questions, customField) {
-        return MainDatabase.submitQuestionAnswer(questionId, questions, customField);
+        return ChatEngine.submitQuestionAnswer(questionId, questions, customField);
     }
 
     function respondToQuestion(questionId, answerValue, isReject) {
-        return MainDatabase.respondToQuestion(questionId, answerValue, isReject);
+        return ChatEngine.respondToQuestion(questionId, answerValue, isReject);
     }
 
     function stopStreaming() {
-        return MainDatabase.stopStreaming();
+        return ChatEngine.stopStreaming();
     }
 
     function flushStreamingBuffer() {
-        return MainDatabase.flushStreamingBuffer();
+        return ChatEngine.flushStreamingBuffer();
     }
 
     function flushIntermediateStreaming() {
-        return MainDatabase.flushIntermediateStreaming();
+        return ChatEngine.flushIntermediateStreaming();
     }
 
     function copyToClipboard(textValue) {
-        return MainDatabase.copyToClipboard(textValue);
+        return ChatEngine.copyToClipboard(textValue);
     }
 
     function convertMarkdownToHtml(markdown) {
-        return MainDatabase.convertMarkdownToHtml(markdown);
+        return ChatEngine.convertMarkdownToHtml(markdown);
     }
 
     function fileIconName(filename) {
-        return MainDatabase.fileIconName(filename);
+        return ChatEngine.fileIconName(filename);
     }
 
     function removeAttachedFile(index) {
-        return MainDatabase.removeAttachedFile(index);
+        return ChatEngine.removeAttachedFile(index);
     }
 
     function getDocExtractorPath() {
-        return MainDatabase.getDocExtractorPath();
+        return ChatEngine.getDocExtractorPath();
     }
 
     function getHelperPath() {
-        return MainDatabase.getHelperPath();
+        return ChatEngine.getHelperPath();
     }
 
     function getScriptsPath() {
-        return MainDatabase.getScriptsPath();
+        return ChatEngine.getScriptsPath();
     }
 
     function attachFile(fileUrl) {
-        return MainDatabase.attachFile(fileUrl);
+        return ChatEngine.attachFile(fileUrl);
     }
 
     // Split raw markdown into typed blocks: {type:"text"|"code"|"table", content, lang}
     function parseMessageBlocks(markdown) {
-        return MainDatabase.parseMessageBlocks(markdown);
+        return ChatEngine.parseMessageBlocks(markdown);
     }
 
     // Convert markdown table to CSV string
     function tableMarkdownToCsv(tableMarkdown) {
-        return MainDatabase.tableMarkdownToCsv(tableMarkdown);
+        return ChatEngine.tableMarkdownToCsv(tableMarkdown);
     }
 
     function buildMessageContent(text, attachments, apiType) {
-        return MainDatabase.buildMessageContent(text, attachments, apiType);
+        return ChatEngine.buildMessageContent(text, attachments, apiType);
     }
 
     function checkClipboardForAttachments() {
-        return MainDatabase.checkClipboardForAttachments();
+        return ChatEngine.checkClipboardForAttachments();
     }
 
     function readClipboardText() {
-        return MainDatabase.readClipboardText();
+        return ChatEngine.readClipboardText();
     }
 
     function applyKWalletKeyToMemory(targetId, secretValue) {
-        return MainScheduler.applyKWalletKeyToMemory(targetId, secretValue);
+        return ChatEngine.applyKWalletKeyToMemory(targetId, secretValue);
     }
 
     function walletBulkReadCommand(walletName) {
-        return MainDatabase.walletBulkReadCommand(walletName);
+        return ChatEngine.walletBulkReadCommand(walletName);
     }
 
     function triggerKWalletCallbacks(success, errorMsg) {
-        return MainScheduler.triggerKWalletCallbacks(success, errorMsg);
+        return ChatEngine.triggerKWalletCallbacks(success, errorMsg);
     }
 
     function loadKWalletKeysIfNeeded(onSuccess, onFailure) {
-        return MainScheduler.loadKWalletKeysIfNeeded(onSuccess, onFailure);
+        return ChatEngine.loadKWalletKeysIfNeeded(onSuccess, onFailure);
     }
 
     // Resets all KWallet failure state so that the next call to
@@ -946,19 +943,42 @@ PlasmoidItem {
     }
 
     function performExportChat(filePath) {
-        return MainDatabase.performExportChat(filePath);
+        return ChatEngine.performExportChat(filePath);
     }
 
     function removeLastErrorMessages() {
-        return MainDatabase.removeLastErrorMessages();
+        return ChatEngine.removeLastErrorMessages();
     }
 
     function retryLastFailedMessage() {
-        return MainDatabase.retryLastFailedMessage();
+        return ChatEngine.retryLastFailedMessage();
     }
 
     function resetOpenCodeIdleKillTimer() {
-        return MainDatabase.resetOpenCodeIdleKillTimer();
+        return ChatEngine.resetOpenCodeIdleKillTimer();
+    }
+
+    // Voice (TTS/STT) proxy functions — called by FullRepresentation.qml
+    function triggerTts(text) {
+        return ChatEngine.triggerTts(text);
+    }
+    function startVoiceRecording() {
+        return ChatEngine.startVoiceRecording();
+    }
+    function stopVoiceRecording() {
+        return ChatEngine.stopVoiceRecording();
+    }
+    function stopTts() {
+        return ChatEngine.stopTts();
+    }
+    function pauseTts() {
+        return ChatEngine.pauseTts();
+    }
+    function resumeTts() {
+        return ChatEngine.resumeTts();
+    }
+    function makeScheduleEntryId() {
+        return SessionManager.makeScheduleEntryId();
     }
 
     onConfigOpenCodeAutoKillChanged: {
@@ -994,19 +1014,13 @@ PlasmoidItem {
         // Response length preference changed; applies on next send
     }
     onCurrentSessionIdChanged: {
-        let _t0 = Date.now();
         if (persistSessionsDebounce.running) {
             persistSessionsDebounce.stop();
             root.flushPersistSessions();
         }
         resetOpenCodeIdleKillTimer();
-        root._markdownCache.clear();
-        root._blocksCache.clear();
         root._lastMetaIdx = -1;
         root._lastParsedMsgIdx = -1;
-        let _t1 = Date.now();
-        if (_t1 - _t0 > 5)
-            console.log("[KAI-PERF] onSessionIdChanged: " + (_t1-_t0) + "ms");
     }
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
@@ -1081,11 +1095,8 @@ PlasmoidItem {
     property int _msgVersion: 0
 
     onMessagesChanged: {
-        let _t0 = Date.now();
         root.updateMessageMetadata();
-        let _t1 = Date.now();
         if (root.streamingResponse) {
-            console.log("[KAI-PERF] onMsgChanged: streaming skip meta=" + (_t1-_t0) + "ms n=" + (root.messages ? root.messages.length : 0));
             return;
         }
         if (root.messages) {
@@ -1096,16 +1107,13 @@ PlasmoidItem {
             } else {
                 for (let i = startIdx; i < root.messages.length; i++) {
                     let m = root.messages[i];
-                    if (m) MainDatabase.precomputeBlocksAndHtmlForMessage(m);
+                    if (m) ChatEngine.precomputeBlocksAndHtmlForMessage(m);
                 }
                 root._lastParsedMsgIdx = root.messages.length;
             }
         } else { root._lastParsedMsgIdx = -1; }
-        let _t2 = Date.now();
         Qt.callLater(checkAndMarkCurrentSessionAsRead);
         if (!root.historyOnlyMode && !root.userScrolledUp) root.queueScrollToBottom();
-        let _t3 = Date.now();
-        console.log("[KAI-PERF] onMsgChanged: meta=" + (_t1-_t0) + "ms blocks=" + (_t2-_t1) + "ms post=" + (_t3-_t2) + "ms total=" + (_t3-_t0) + "ms n=" + (root.messages ? root.messages.length : 0));
     }
 
     MainDataSources {

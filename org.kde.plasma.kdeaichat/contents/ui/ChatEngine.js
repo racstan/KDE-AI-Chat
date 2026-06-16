@@ -1,4 +1,7 @@
-// MainDatabase.js - Extracted logic for Main
+// ChatEngine.js — Unified application logic for KDE AI Chat
+// Merged from: js, MainNetwork.js, MainOpenCode.js, MainScheduler.js
+
+// js - Extracted logic for Main
 var _pendingStreamingText = "";
 
 function debugLog() {
@@ -403,11 +406,10 @@ function precomputeBlocksAndHtmlForMessage(msg) {
                 if (!block.contentHtmlCache) {
                     block.contentHtmlCache = {};
                 }
-                if (block.contentHtmlCache["dark"] === undefined) {
-                    block.contentHtmlCache["dark"] = MarkdownRenderer.convertMarkdownToHtml(block.content || "", true);
-                }
-                if (block.contentHtmlCache["light"] === undefined) {
-                    block.contentHtmlCache["light"] = MarkdownRenderer.convertMarkdownToHtml(block.content || "", false);
+                // Only compute HTML for the active theme to halve parse cost.
+                let theme = root.popupIsDark ? "dark" : "light";
+                if (block.contentHtmlCache[theme] === undefined) {
+                    block.contentHtmlCache[theme] = MarkdownRenderer.convertMarkdownToHtml(block.content || "", root.popupIsDark);
                 }
             }
         }
@@ -2623,7 +2625,6 @@ if (root.sendMessageDelayTimer) {
 } else {
     Qt.callLater(function() { sendMessageByIndex(_msgIdx); });
 }
-let _t2 = Date.now();
 console.log("[KAI-PERF] sendMessage: total=" + (_t2-_t0) + "ms");
 } catch (err) {
 root.loading = false;
@@ -3805,3 +3806,1400 @@ resetVoiceIdleTimer();
     if (_t1 - _t0 > 5)
         console.log("[KAI-PERF] handleVoiceResponse: " + (_t1-_t0) + "ms type=" + respType);
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// Network / HTTP functions (formerly MainNetwork.js)
+// ══════════════════════════════════════════════════════════════
+
+function base64Encode(str) {
+    try {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        let binStr = unescape(encodeURIComponent(str));
+        let out = '';
+        let i = 0;
+        const len = binStr.length;
+        while (i < len) {
+            const c1 = binStr.charCodeAt(i++) & 0xff;
+            if (i === len) {
+                out += chars.charAt(c1 >> 2);
+                out += chars.charAt((c1 & 0x3) << 4);
+                out += '==';
+                break;
+            }
+            const c2 = binStr.charCodeAt(i++);
+            if (i === len) {
+                out += chars.charAt(c1 >> 2);
+                out += chars.charAt(((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4));
+                out += chars.charAt((c2 & 0xf) << 2);
+                out += '=';
+                break;
+            }
+            const c3 = binStr.charCodeAt(i++);
+            out += chars.charAt(c1 >> 2);
+            out += chars.charAt(((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4));
+            out += chars.charAt(((c2 & 0xf) << 2) | ((c3 & 0xc0) >> 6));
+            out += chars.charAt(c3 & 0x3f);
+        }
+        return out;
+    } catch (e) {
+        console.error("base64Encode error:", e);
+        return "";
+    }
+}
+
+
+function base64Decode(str) {
+if (!str || str.trim() === "") return "";
+try {
+return decodeURIComponent(escape(Qt.atob(str)));
+} catch (e) {
+try {
+return Qt.atob(str);
+} catch (err) {
+return "";
+}
+}
+}
+
+
+function finishOpenCodeRequest() {
+root.loading = false;
+root.activeXhr = null;
+root.openCodeActiveSessionId = "";
+root.openCodeAssistantMessageIndex = -1;
+root.openCodeAssistantServerMessageId = "";
+root.openCodeErrorShownForRequest = false;
+root.streamingResponse = false;
+try { flushStreamingBuffer(); } catch (e) { console.error("finishOpenCodeRequest: flushStreamingBuffer failed:", e); }
+try { saveCurrentSessionState(true); } catch (e) { console.error("finishOpenCodeRequest: saveCurrentSessionState failed:", e); }
+try { triggerNotificationSound(); } catch (e) { console.error("finishOpenCodeRequest: triggerNotificationSound failed:", e); }
+try {
+if (plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
+let lastMsg = root.messages[root.messages.length - 1];
+if (lastMsg && lastMsg.role === "assistant" && lastMsg.content) {
+try { triggerTts(lastMsg.content); } catch (e) { console.error("finishOpenCodeRequest: triggerTts failed:", e); }
+}
+}
+} catch (e) { console.error("finishOpenCodeRequest: TTS gate check failed:", e); }
+try { resetOpenCodeIdleKillTimer(); } catch (e) { console.error("finishOpenCodeRequest: resetOpenCodeIdleKillTimer failed:", e); }
+try { processNextQueuedMessage(); } catch (e) { console.error("finishOpenCodeRequest: processNextQueuedMessage failed:", e); }
+}
+
+
+function pushErrorMessage(text) {
+let ts = Date.now();
+let newMsg = {
+"role": "error",
+"content": text,
+"time": nowTime(ts),
+"at": ts,
+"model": ""
+};
+// Defer model update to avoid blocking the main thread.
+Qt.callLater(function() {
+root.messages = root.messages.concat([newMsg]);
+if (!root.userScrolledUp)
+    root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
+});
+// Debounce the session save to avoid blocking the main thread
+if (root.deferSaveStateTimer) {
+    root.deferSaveStateTimer.restart();
+} else {
+    Qt.callLater(function() { saveCurrentSessionState(true); });
+}
+// If the last user message was a schedule, show a desktop notification of the execution failure!
+let isSched = false;
+for (let i = root.messages.length - 1; i >= 0; i--) {
+if (root.messages[i].role === "user") {
+if (root.messages[i].sc)
+isSched = true;
+break;
+}
+}
+if (isSched) {
+let safeErr = Sec.sanitizeForShell(text);
+let errTitle = "Schedule Execution Failed";
+let safeErrTitle = Sec.sanitizeForShell(errTitle);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-execution-notify-err");
+}
+}
+
+
+function validateCurrentSendTarget() {
+if (root.openCodeMode)
+return validateOpenCodeConfig();
+let provider = plasmoid.configuration.provider || "openai";
+let providerCfg = getProviderConfig(provider);
+return validateProviderConfig(provider, providerCfg);
+}
+
+function responseMaxTokens(chatId, fallback) {
+let sessionId = chatId || root.currentSessionId;
+let preference = plasmoid.configuration.responseLength || 0;
+if (typeof getSessionProperty === "function")
+preference = getSessionProperty(sessionId, "responseLength", preference);
+else if (root && typeof root.getSessionProperty === "function")
+preference = root.getSessionProperty(sessionId, "responseLength", preference);
+let limits = [0, 256, 1024, 4096, 8192];
+return preference > 0 && preference < limits.length ? limits[preference] : fallback;
+}
+
+
+function buildAnthropicPayloadForMessages(messagesList, chatId) {
+return _buildMessageArray(messagesList, chatId, "anthropic");
+}
+
+
+function handleBackgroundError(chatId, errorMsg, notify, schedId, schedName) {
+let errTs = Date.now();
+let errMsgObj = {
+"role": "assistant",
+"content": "Warning: Schedule failed: " + errorMsg,
+"time": nowTime(errTs),
+"at": errTs,
+"model": ""
+};
+appendMessageToSession(chatId, errMsgObj);
+if (notify) {
+let safeErr = Sec.sanitizeForShell(errorMsg);
+let errTitle = "Schedule Failed: " + (schedName || "Chat");
+let safeErrTitle = Sec.sanitizeForShell(errTitle);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
+}
+if (schedId) {
+let payload = {
+"schedId": schedId,
+"status": errorMsg
+};
+let b64Payload = base64Encode(JSON.stringify(payload));
+let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64Payload);
+soundDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-history-err");
+}
+}
+
+
+function doBackgroundOpenAICompatRequest(chatId, baseUrl, apiKey, model, extraHeaders, modelLabel, messageText, notify, schedId, schedName) {
+let url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
+let xhr = new XMLHttpRequest();
+let errorHandled = false;
+let targetIdx = sessionIndexById(chatId);
+if (targetIdx < 0)
+return ;
+let targetSession = root.sessions[targetIdx];
+let messagesList = targetSession.messages || [];
+try {
+xhr.open("POST", url, true);
+xhr.setRequestHeader("Content-Type", "application/json");
+if (apiKey !== "")
+xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+if (extraHeaders) {
+for (let headerName in extraHeaders) {
+if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
+xhr.setRequestHeader(headerName, extraHeaders[headerName]);
+}
+}
+xhr.timeout = 60000;
+xhr.ontimeout = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+handleBackgroundError(chatId, "Request timed out after 60 seconds.", notify, schedId, schedName);
+};
+} catch (setupError) {
+handleBackgroundError(chatId, "Failed to start request: " + setupError, notify, schedId, schedName);
+return ;
+}
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+if (xhr.status < 200 || xhr.status >= 300) {
+if (errorHandled)
+return ;
+errorHandled = true;
+let err = "Request to " + url + " failed";
+if (xhr.status)
+err += " (HTTP " + xhr.status + ")";
+try {
+let eobj = JSON.parse(xhr.responseText);
+if (eobj.error) {
+if (typeof eobj.error === "string") {
+err += " | " + eobj.error;
+} else {
+if (eobj.error.message)
+err = "API Error (" + xhr.status + "): " + eobj.error.message;
+}
+} else if (eobj.detail)
+err += " | " + eobj.detail;
+else if (eobj.message)
+err += " | " + eobj.message;
+} catch (e2) {
+}
+handleBackgroundError(chatId, err, notify, schedId, schedName);
+return ;
+}
+try {
+let parsed = JSON.parse(xhr.responseText);
+let finalText = (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.content) || "";
+if (finalText !== "") {
+let doneTs = Date.now();
+let msgObj = {
+"role": "assistant",
+"content": finalText,
+"time": nowTime(doneTs),
+"at": doneTs,
+"model": modelLabel || model || ""
+};
+if (parsed.usage)
+msgObj.tokens = {
+"input": parsed.usage.prompt_tokens || 0,
+"output": parsed.usage.completion_tokens || 0
+};
+appendMessageToSession(chatId, msgObj);
+                if (chatId === root.currentSessionId) {
+                    if (!root.userScrolledUp)
+                        root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
+                    if (plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
+                        triggerTts(finalText || "");
+                    }
+                }
+                triggerNotificationSound();
+if (notify) {
+let safeText = Sec.sanitizeForShell(finalText.substring(0, 150)) + (finalText.length > 150 ? "…" : "");
+let title = (schedName || "Scheduled message response ready");
+let safeTitle = Sec.sanitizeForShell(title);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
+}
+} else {
+handleBackgroundError(chatId, "The model returned an empty response.", notify, schedId, schedName);
+}
+} catch (parseError) {
+handleBackgroundError(chatId, "Failed to parse response: " + parseError, notify, schedId, schedName);
+}
+};
+xhr.onerror = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+handleBackgroundError(chatId, "Could not reach " + url + ". Check network connectivity.", notify, schedId, schedName);
+};
+try {
+let payload = {
+"model": model,
+"messages": buildOpenAICompatPayloadForMessages(messagesList, chatId),
+"stream": false
+};
+let maxTokens = responseMaxTokens(chatId, 0);
+if (maxTokens > 0)
+payload.max_tokens = maxTokens;
+xhr.send(JSON.stringify(payload));
+} catch (sendError) {
+handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, schedId, schedName);
+}
+}
+
+
+function doBackgroundAnthropicRequest(chatId, apiKey, model, messageText, notify, schedId, schedName) {
+let xhr = new XMLHttpRequest();
+let errorHandled = false;
+let targetIdx = sessionIndexById(chatId);
+if (targetIdx < 0)
+return ;
+let targetSession = root.sessions[targetIdx];
+let messagesList = targetSession.messages || [];
+try {
+xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.setRequestHeader("x-api-key", apiKey);
+xhr.setRequestHeader("anthropic-version", "2023-06-01");
+xhr.timeout = 60000;
+xhr.ontimeout = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+handleBackgroundError(chatId, "Request timed out after 60 seconds.", notify, schedId, schedName);
+};
+} catch (setupError) {
+handleBackgroundError(chatId, "Failed to start request: " + setupError, notify, schedId, schedName);
+return ;
+}
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+if (xhr.status >= 200 && xhr.status < 300) {
+try {
+let obj = JSON.parse(xhr.responseText);
+let text = "";
+if (obj.content && obj.content.length) {
+for (let i = 0; i < obj.content.length; i++) {
+if (obj.content[i].type === "text")
+text += obj.content[i].text;
+}
+}
+let ts = Date.now();
+let msgObj = {
+"role": "assistant",
+"content": text || "(empty response)",
+"time": nowTime(ts),
+"at": ts,
+"model": model || ""
+};
+if (obj.usage)
+msgObj.tokens = {
+"input": obj.usage.input_tokens || 0,
+"output": obj.usage.output_tokens || 0
+};
+appendMessageToSession(chatId, msgObj);
+if (chatId === root.currentSessionId) {
+if (!root.userScrolledUp)
+root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
+}
+triggerNotificationSound();
+if (chatId === root.currentSessionId && plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && plasmoid.configuration.voiceTtsAuto) {
+triggerTts(text || "");
+}
+if (notify) {
+let safeText = Sec.sanitizeForShell((text || "").substring(0, 150)) + ((text || "").length > 150 ? "…" : "");
+let title = (schedName || "Scheduled message response ready");
+let safeTitle = Sec.sanitizeForShell(title);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
+}
+} catch (e) {
+handleBackgroundError(chatId, "Failed to parse Anthropic response", notify, schedId, schedName);
+}
+} else {
+if (errorHandled)
+return ;
+errorHandled = true;
+let err = "Anthropic HTTP " + xhr.status;
+try {
+let eobj = JSON.parse(xhr.responseText);
+if (eobj.error) {
+if (typeof eobj.error === "string") {
+err += " | " + eobj.error;
+} else {
+if (eobj.error.message)
+err = "Anthropic Error (" + xhr.status + "): " + eobj.error.message;
+if (eobj.error.type)
+err = "[" + eobj.error.type + "] " + err;
+}
+}
+} catch (e2) {
+}
+handleBackgroundError(chatId, err, notify, schedId, schedName);
+}
+};
+xhr.onerror = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+handleBackgroundError(chatId, "Could not reach Anthropic API. Check network status.", notify, schedId, schedName);
+};
+try {
+xhr.send(JSON.stringify({
+"model": model,
+"max_tokens": responseMaxTokens(chatId, 1024),
+"system": buildEffectiveSystemPrompt(chatId),
+"messages": buildAnthropicPayloadForMessages(messagesList, chatId)
+}));
+} catch (sendError) {
+handleBackgroundError(chatId, "Failed to send request: " + sendError, notify, schedId, schedName);
+}
+}
+
+
+function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel) {
+let url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
+let xhr = new XMLHttpRequest();
+let errorHandled = false;
+let lastUserText = "";
+for (let mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+if ((root.messages[mIdx].role || "") === "user") {
+lastUserText = root.messages[mIdx].content || "";
+break;
+}
+}
+let dedupKey = root.reqDedupKey(plasmoid.configuration.provider || "openai", model, lastUserText, root.currentSessionId);
+if (!root.reqDedupTryClaim(dedupKey)) {
+pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
+return ;
+}
+try {
+xhr.open("POST", url, true);
+xhr.setRequestHeader("Content-Type", "application/json");
+if (apiKey !== "")
+xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+if (extraHeaders) {
+for (let headerName in extraHeaders) {
+if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
+xhr.setRequestHeader(headerName, extraHeaders[headerName]);
+}
+}
+xhr.timeout = 90000;
+xhr.ontimeout = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+finishOpenCodeRequest();
+pushErrorMessage("Request timed out after 90 seconds.");
+};
+} catch (setupError) {
+root.reqDedupRelease(dedupKey);
+pushErrorMessage("Failed to start request: " + setupError);
+return ;
+}
+root.loading = true;
+root.activeXhr = xhr;
+beginAssistantStreaming(modelLabel || model || "");
+
+let offset = 0;
+let buffer = "";
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+let delta = xhr.responseText.slice(offset);
+offset = xhr.responseText.length;
+buffer += delta;
+let lines = buffer.split("\n");
+buffer = lines.pop();
+for (let i = 0; i < lines.length; i++) {
+let line = lines[i].trim();
+if (!line || line.indexOf("data:") !== 0)
+continue;
+let data = line.slice(5).trim();
+if (data === "[DONE]") {
+errorHandled = true;
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+return ;
+}
+try {
+let parsed = JSON.parse(data);
+let content = (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) || "";
+if (content) {
+updateAssistantStreamingContent(content, modelLabel || model);
+}
+} catch (e) {
+}
+}
+if (xhr.readyState === XMLHttpRequest.DONE) {
+root.reqDedupRelease(dedupKey);
+if (!errorHandled) {
+if (xhr.status < 200 || xhr.status >= 300) {
+let err = "Request to " + Sec.scrubSecrets(url) + " failed (HTTP " + xhr.status + ")";
+pushErrorMessage(err);
+}
+finishOpenCodeRequest();
+}
+}
+};
+xhr.onerror = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+pushErrorMessage("Could not reach " + Sec.scrubSecrets(url));
+};
+try {
+let payload = {
+"model": model,
+"messages": buildOpenAICompatPayload(),
+"stream": true
+};
+let maxTokens = responseMaxTokens("", 0);
+if (maxTokens > 0)
+payload.max_tokens = maxTokens;
+xhr.send(JSON.stringify(payload));
+} catch (sendError) {
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+pushErrorMessage("Failed to send request: " + sendError);
+}
+}
+
+
+function doAnthropicRequest(apiKey, model) {
+if (!apiKey) {
+pushErrorMessage("Anthropic API key missing in settings.");
+processNextQueuedMessage();
+return ;
+}
+let xhr = new XMLHttpRequest();
+let errorHandled = false;
+let lastUserText = "";
+for (let mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+if ((root.messages[mIdx].role || "") === "user") {
+lastUserText = root.messages[mIdx].content || "";
+break;
+}
+}
+let dedupKey = root.reqDedupKey("anthropic", model, lastUserText, root.currentSessionId);
+if (!root.reqDedupTryClaim(dedupKey)) {
+pushErrorMessage("Duplicate request ignored: a response to this message is already in flight.");
+return ;
+}
+root.loading = true;
+root.activeXhr = xhr;
+beginAssistantStreaming(model || "");
+try {
+xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.setRequestHeader("x-api-key", apiKey);
+xhr.setRequestHeader("anthropic-version", "2023-06-01");
+xhr.timeout = 90000;
+} catch (setupError) {
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+pushErrorMessage("Failed to start Anthropic request: " + setupError);
+return ;
+}
+xhr.ontimeout = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+finishOpenCodeRequest();
+root.reqDedupRelease(dedupKey);
+pushErrorMessage("Request timed out after 90 seconds.");
+};
+let offset = 0;
+let buffer = "";
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+let delta = xhr.responseText.slice(offset);
+offset = xhr.responseText.length;
+buffer += delta;
+let lines = buffer.split("\n");
+buffer = lines.pop();
+for (let i = 0; i < lines.length; i++) {
+let line = lines[i].trim();
+if (!line || line.indexOf("data:") !== 0)
+continue;
+let dataStr = line.slice(5).trim();
+try {
+let data = JSON.parse(dataStr);
+if (data.type === "content_block_delta" && data.delta && data.delta.text) {
+updateAssistantStreamingContent(data.delta.text, model);
+} else if (data.type === "message_stop") {
+errorHandled = true;
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+return ;
+}
+} catch (e) {
+}
+}
+if (xhr.readyState === XMLHttpRequest.DONE) {
+root.reqDedupRelease(dedupKey);
+if (!errorHandled) {
+if (xhr.status < 200 || xhr.status >= 300) {
+pushErrorMessage("Anthropic request failed (HTTP " + xhr.status + ")");
+}
+finishOpenCodeRequest();
+}
+}
+};
+xhr.onerror = function() {
+if (errorHandled)
+return ;
+errorHandled = true;
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages.");
+};
+try {
+xhr.send(JSON.stringify({
+"model": model,
+"max_tokens": responseMaxTokens("", 1024),
+"system": buildEffectiveSystemPrompt(),
+"messages": buildAnthropicPayload(),
+"stream": true
+}));
+} catch (sendError) {
+root.reqDedupRelease(dedupKey);
+finishOpenCodeRequest();
+pushErrorMessage("Failed to send Anthropic request: " + sendError);
+}
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// OpenCode server functions (formerly MainOpenCode.js)
+// ══════════════════════════════════════════════════════════════
+
+
+function openCodeBaseUrl() {
+return root.openCodeBaseUrlVal;
+}
+
+
+function currentOpenCodeSessionId() {
+let sId = root.currentSessionId;
+let override = getSessionProperty(sId, "contextOverride", false);
+let contextEnabled = override ? getSessionProperty(sId, "contextEnabled", true) : plasmoid.configuration.globalContextEnabled;
+if (!contextEnabled)
+return "";
+let idx = sessionIndexById(sId);
+if (idx < 0)
+return "";
+return root.sessions[idx].openCodeSessionId || "";
+}
+
+
+function setCurrentOpenCodeSessionId(remoteSessionId) {
+let idx = sessionIndexById(root.currentSessionId);
+if (idx < 0)
+return ;
+let updated = root.sessions.slice();
+let item = Object.assign({
+}, updated[idx]);
+item.openCodeSessionId = remoteSessionId || "";
+updated[idx] = item;
+root.sessions = updated;
+persistSessions();
+}
+
+
+function clearCurrentOpenCodeSessionIfNeeded() {
+if (!root.openCodeMode)
+return ;
+setCurrentOpenCodeSessionId("");
+}
+
+
+function sanitizeOpenCodeStartCommand(cmd) {
+    let raw = (cmd || "").trim();
+    if (raw === "") {
+        return 'pidfile="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).pid"; logf="${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).log"; nohup opencode serve --port 4096 --hostname 127.0.0.1 >"$logf" 2>&1 < /dev/null & echo $! >"$pidfile"; echo ok';
+    }
+    if (raw.indexOf("opencode serve") >= 0 && raw.indexOf("< /dev/null") < 0) {
+        if (raw.indexOf("2>&1") >= 0) {
+            raw = raw.replace("2>&1", "2>&1 < /dev/null");
+        } else {
+            if (raw.endsWith("&")) {
+                raw = raw.slice(0, -1).trim() + " < /dev/null &";
+            } else {
+                raw = raw + " < /dev/null";
+            }
+        }
+    }
+    // Ensure nohup + backgrounding for proper detaching (no subshells, to preserve $! for PID capture)
+    if (raw.indexOf("nohup") < 0) {
+        raw = "nohup " + raw;
+    }
+    if (!raw.endsWith("&")) {
+        raw = raw + " &";
+    }
+    if (raw.indexOf("< /dev/null") < 0) {
+        raw = raw.replace(/&$/, "< /dev/null &");
+    }
+    let pidfile = '"${XDG_RUNTIME_DIR:-/tmp}/kdeaichat-opencode-$(id -u).pid"';
+    raw = raw + " echo $! >" + pidfile + "; echo ok";
+    return raw;
+}
+
+
+function ensureOpenCodeEventStream() {
+if (root.openCodeEventXhr)
+return ;
+let xhr = new XMLHttpRequest();
+let buffer = "";
+let offset = 0;
+let url = openCodeBaseUrl() + "/event";
+root.openCodeEventXhr = xhr;
+xhr.open("GET", url, true);
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+let delta = xhr.responseText.slice(offset);
+offset = xhr.responseText.length;
+buffer += delta;
+while (true) {
+let split = buffer.indexOf("\n\n");
+if (split < 0)
+break;
+let block = buffer.slice(0, split);
+buffer = buffer.slice(split + 2);
+let lines = block.split("\n");
+for (let i = 0; i < lines.length; i++) {
+if (lines[i].indexOf("data:") !== 0)
+continue;
+try {
+let eventObj = JSON.parse(lines[i].slice(5).trim());
+handleOpenCodeEvent(eventObj);
+} catch (eventError) {
+}
+}
+}
+if (xhr.readyState === XMLHttpRequest.DONE) {
+root.openCodeEventXhr = null;
+if (root.openCodeMode)
+openCodeReconnectTimer.start();
+}
+};
+xhr.onerror = function() {
+root.openCodeEventXhr = null;
+if (root.openCodeMode)
+openCodeReconnectTimer.start();
+};
+try {
+xhr.send();
+} catch (streamError) {
+root.openCodeEventXhr = null;
+if (root.openCodeMode)
+openCodeReconnectTimer.start();
+}
+}
+
+
+function ensureCurrentOpenCodeSession(successCallback, failureCallback) {
+let existing = currentOpenCodeSessionId();
+if (existing !== "") {
+successCallback(existing);
+return ;
+}
+let fail = function fail(msg) {
+if (typeof failureCallback === "function")
+failureCallback(msg);
+else
+pushErrorMessage(msg);
+};
+let xhr = new XMLHttpRequest();
+xhr.open("POST", openCodeBaseUrl() + "/session", true);
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.timeout = 10000;
+xhr.ontimeout = function() {
+fail("OpenCode: session creation timed out. Check that the server is running at " + openCodeBaseUrl());
+};
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+if (xhr.status >= 200 && xhr.status < 300) {
+triggerNotificationSound();
+try {
+let obj = JSON.parse(xhr.responseText);
+let remoteId = obj.id || "";
+if (remoteId === "") {
+fail("OpenCode: server created a session without an id.");
+return ;
+}
+setCurrentOpenCodeSessionId(remoteId);
+successCallback(remoteId);
+} catch (parseError) {
+fail("OpenCode: could not parse session creation response.");
+}
+} else {
+fail("OpenCode: failed to create a server session (HTTP " + xhr.status + ").");
+}
+};
+xhr.onerror = function() {
+fail("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
+};
+try {
+xhr.send(JSON.stringify({
+"title": root.currentSessionTitle || "KDE AI Chat"
+}));
+} catch (sendError) {
+fail("OpenCode: failed to create session: " + sendError);
+}
+}
+
+
+function ensureOpenCodeServerRunning(chatId, successCallback, failureCallback) {
+if (root.openCodeStarting) {
+if (successCallback) {
+let sCbs = root.openCodeStartSuccessCallbacks.slice();
+sCbs.push(successCallback);
+root.openCodeStartSuccessCallbacks = sCbs;
+}
+if (failureCallback) {
+let fCbs = root.openCodeStartFailureCallbacks.slice();
+fCbs.push(failureCallback);
+root.openCodeStartFailureCallbacks = fCbs;
+}
+return;
+}
+root.openCodeStarting = true;
+root.openCodeStartSuccessCallbacks = successCallback ? [successCallback] : [];
+root.openCodeStartFailureCallbacks = failureCallback ? [failureCallback] : [];
+let checkFinished = false;
+let completed = false;
+let resolveSuccess = function() {
+if (completed) return;
+completed = true;
+root.openCodeStarting = false;
+let successCbs = root.openCodeStartSuccessCallbacks;
+root.openCodeStartSuccessCallbacks = [];
+root.openCodeStartFailureCallbacks = [];
+for (let i = 0; i < successCbs.length; i++) {
+successCbs[i]();
+}
+};
+let resolveFailure = function(msg) {
+if (completed) return;
+completed = true;
+root.openCodeStarting = false;
+let failureCbs = root.openCodeStartFailureCallbacks;
+root.openCodeStartSuccessCallbacks = [];
+root.openCodeStartFailureCallbacks = [];
+if (failureCbs.length > 0) {
+for (let i = 0; i < failureCbs.length; i++) {
+failureCbs[i](msg);
+}
+} else {
+if (chatId)
+appendSystemMessageToSession(chatId, "Warning: " + msg);
+else
+pushErrorMessage(msg);
+}
+};
+function handleSuccess() {
+if (checkFinished) return;
+checkFinished = true;
+resolveSuccess();
+}
+function handleNotRunning(err) {
+if (checkFinished) return;
+checkFinished = true;
+if (plasmoid.configuration.autoStartOpenCodeServer) {
+let startCmd = sanitizeOpenCodeStartCommand(plasmoid.configuration.openCodeStartCommand);
+let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
+opencodeServerDs.connectSource("sh -c '" + envPrefix + startCmd.replace(/'/g, "'\\''") + "' #ensure-opencode-startup-" + Date.now());
+if (chatId) {
+let ts1 = appendSystemMessageToSession(chatId, translate("Starting OpenCode server, please wait..."));
+scheduleMessageRemoval(chatId, ts1, 3000);
+}
+openCodeStartPollTimer.successCb = function() {
+if (chatId) {
+let ts2 = appendSystemMessageToSession(chatId, translate("Session restarted."));
+scheduleMessageRemoval(chatId, ts2, 3000);
+}
+resolveSuccess();
+};
+openCodeStartPollTimer.failureCb = function(msg) {
+resolveFailure(msg);
+};
+openCodeStartPollTimer.retriesLeft = 6;
+openCodeStartPollTimer.start();
+} else {
+resolveFailure("OpenCode server is not running. Please start it or enable \"Auto-start OpenCode server\" in General settings.");
+}
+}
+let checkUrl = openCodeBaseUrl() + "/config/providers";
+let xhr = new XMLHttpRequest();
+xhr.open("GET", checkUrl, true);
+xhr.timeout = 1500;
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+if (xhr.status >= 200 && xhr.status < 300)
+handleSuccess();
+else
+handleNotRunning("HTTP " + xhr.status);
+};
+xhr.onerror = function() {
+handleNotRunning("Transport error");
+};
+xhr.ontimeout = function() {
+handleNotRunning("Timeout");
+};
+try {
+xhr.send();
+} catch (e) {
+handleNotRunning(e.toString());
+}
+}
+
+
+function doOpenCodeRequest() {
+let requestFinalized = false;
+function failOpenCodeRequest(message) {
+if (requestFinalized)
+return ;
+requestFinalized = true;
+if (!root.openCodeErrorShownForRequest) {
+root.openCodeErrorShownForRequest = true;
+pushErrorMessage(message);
+}
+finishOpenCodeRequest();
+}
+ensureOpenCodeServerRunning(root.currentSessionId, function() {
+ensureOpenCodeEventStream();
+root.loading = true;
+root.streamingResponse = false;
+root.openCodeAssistantMessageIndex = -1;
+root.openCodeAssistantServerMessageId = "";
+root.openCodeErrorShownForRequest = false;
+ensureCurrentOpenCodeSession(function(remoteSessionId) {
+let xhr = new XMLHttpRequest();
+let modelId = (plasmoid.configuration.openCodeModel || "").trim();
+let providerId = (plasmoid.configuration.openCodeProvider || "").trim();
+root.activeXhr = xhr;
+root.openCodeActiveSessionId = remoteSessionId;
+xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.timeout = 15000;
+xhr.ontimeout = function() {
+failOpenCodeRequest("OpenCode: message request timed out at " + openCodeBaseUrl());
+};
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+if (requestFinalized)
+return ;
+if (xhr.status < 200 || xhr.status >= 300) {
+if (xhr.status === 404)
+setCurrentOpenCodeSessionId("");
+let suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
+failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
+return ;
+}
+try {
+let obj = JSON.parse(xhr.responseText);
+if (obj.info && obj.info.id)
+root.openCodeAssistantServerMessageId = obj.info.id;
+if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
+root.openCodeErrorShownForRequest = true;
+pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
+}
+if (obj.parts && obj.parts.length > 0) {
+let combined = "";
+for (let i = 0; i < obj.parts.length; i++) {
+if (obj.parts[i].type === "text")
+combined += obj.parts[i].text || obj.parts[i].content || "";
+}
+if (combined !== "")
+updateAssistantStreamingContent(combined, providerId + "/" + modelId);
+else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
+updateAssistantStreamingContent("(empty response)", providerId + "/" + modelId);
+}
+} catch (parseResponseError) {
+}
+requestFinalized = true;
+finishOpenCodeRequest();
+};
+xhr.onerror = function() {
+failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
+};
+try {
+let lastMsg = null;
+for (let mIdx = root.messages.length - 1; mIdx >= 0; mIdx--) {
+if (root.messages[mIdx].role === "user") {
+lastMsg = root.messages[mIdx];
+break;
+}
+}
+if (!lastMsg) {
+failOpenCodeRequest("No user message found to send.");
+return ;
+}
+let userContent = lastMsg.content || "";
+userContent = injectMemoriesToUserMessage(userContent, root.currentSessionId);
+if (lastMsg.quote) {
+let sender = lastMsg.quote.role === "assistant" ? (lastMsg.quote.model || "Assistant") : "User";
+userContent = "[Replying to @" + sender + ": \"" + lastMsg.quote.content + "\"]\n\n" + userContent;
+}
+let parts = [];
+if (lastMsg.attachments && lastMsg.attachments.length > 0) {
+let payload = buildMessageContent(userContent, lastMsg.attachments, "openai");
+if (typeof payload === "string") {
+parts.push({
+"type": "text",
+"text": payload
+});
+} else {
+for (let p = 0; p < payload.length; p++) {
+let item = payload[p];
+if (item.type === "text") {
+parts.push({
+"type": "text",
+"text": item.text
+});
+} else if (item.type === "image_url") {
+let mType = item.image_url.url.split(";")[0].split(":")[1];
+parts.push({
+"type": "file",
+"mime": mType,
+"url": item.image_url.url
+});
+}
+}
+}
+} else {
+parts.push({
+"type": "text",
+"text": userContent
+});
+}
+xhr.send(JSON.stringify({
+"model": {
+"providerID": providerId,
+"modelID": modelId
+},
+"system": buildEffectiveSystemPrompt(),
+"parts": parts
+}));
+} catch (sendError) {
+failOpenCodeRequest("OpenCode: failed to send request: " + sendError);
+}
+}, function(errorMessage) {
+if (!root.openCodeErrorShownForRequest) {
+root.openCodeErrorShownForRequest = true;
+pushErrorMessage(errorMessage);
+}
+finishOpenCodeRequest();
+});
+}, function(err) {
+failOpenCodeRequest(err);
+});
+}
+
+
+function doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName) {
+let requestFinalized = false;
+function failBackgroundOpenCodeRequest(message) {
+if (requestFinalized)
+return ;
+requestFinalized = true;
+handleBackgroundError(chatId, message, notify, schedId, schedName);
+}
+ensureOpenCodeServerRunning(chatId, function() {
+ensureOpenCodeSessionForChatId(chatId, function(remoteSessionId) {
+let xhr = new XMLHttpRequest();
+let modelId = (plasmoid.configuration.openCodeModel || "").trim();
+let providerId = (plasmoid.configuration.openCodeProvider || "").trim();
+xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.timeout = 60000;
+xhr.ontimeout = function() {
+failBackgroundOpenCodeRequest("OpenCode: message request timed out at " + openCodeBaseUrl());
+};
+xhr.onreadystatechange = function() {
+if (xhr.readyState !== XMLHttpRequest.DONE)
+return ;
+if (requestFinalized)
+return ;
+if (xhr.status < 200 || xhr.status >= 300) {
+if (xhr.status === 404)
+setOpenCodeSessionIdForChatId(chatId, "");
+let suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
+failBackgroundOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
+return ;
+}
+try {
+let obj = JSON.parse(xhr.responseText);
+let combined = "";
+if (obj.parts && obj.parts.length > 0) {
+for (let i = 0; i < obj.parts.length; i++) {
+if (obj.parts[i].type === "text")
+combined += obj.parts[i].text || obj.parts[i].content || "";
+}
+}
+if (obj.info && obj.info.error) {
+failBackgroundOpenCodeRequest(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
+return ;
+}
+if (combined !== "") {
+let doneTs = Date.now();
+let msgObj = {
+"role": "assistant",
+"content": combined,
+"time": nowTime(doneTs),
+"at": doneTs,
+"model": providerId + "/" + modelId,
+"queueId": 0,
+"attachments": []
+};
+appendMessageToSession(chatId, msgObj);
+triggerNotificationSound();
+if (notify) {
+let safeText = Sec.sanitizeForShell(combined.substring(0, 150)) + (combined.length > 150 ? "…" : "");
+let title = (schedName || "Scheduled message response ready");
+let safeTitle = Sec.sanitizeForShell(title);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify-resp");
+}
+} else {
+failBackgroundOpenCodeRequest("The model returned an empty response.");
+}
+} catch (parseResponseError) {
+failBackgroundOpenCodeRequest("Failed to parse response: " + parseResponseError);
+}
+requestFinalized = true;
+};
+xhr.onerror = function() {
+failBackgroundOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
+};
+try {
+let finalContent = injectMemoriesToUserMessage(messageText, chatId);
+xhr.send(JSON.stringify({
+"role": "user",
+"content": finalContent,
+"stream": false
+}));
+} catch (sendError) {
+failBackgroundOpenCodeRequest("Failed to send message: " + sendError);
+}
+}, function(sessionErr) {
+failBackgroundOpenCodeRequest(sessionErr);
+});
+}, function(serverErr) {
+failBackgroundOpenCodeRequest(serverErr);
+});
+}
+
+
+
+// ══════════════════════════════════════════════════════════════
+// Scheduler functions (formerly MainScheduler.js)
+// ══════════════════════════════════════════════════════════════
+
+
+function handleScheduleCommand(messageText) {
+scheduleCommandDialog.prefillMessage = messageText;
+scheduleCommandDialog.chatId = root.currentSessionId;
+scheduleCommandDialog.chatName = root.currentSessionTitle || "Current chat";
+scheduleCommandDialog.open();
+}
+
+
+function toggleScheduleEnabled(schedId, newEnabled) {
+let payload = {
+"schedId": schedId,
+"enabled": newEnabled
+};
+let b64Payload = base64Encode(JSON.stringify(payload));
+let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " toggle_schedule " + Sec.quoteForShell(b64Payload);
+schedulerDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-toggle-" + Date.now());
+// Update local schedulesList immediately
+let copy = root.schedulesList.slice();
+for (let i = 0; i < copy.length; i++) {
+if (copy[i].id === schedId) {
+let s = Object.assign({
+}, copy[i]);
+s.enabled = newEnabled;
+if (newEnabled)
+s.nextRunAt = "";
+copy[i] = s;
+}
+}
+root.schedulesList = copy;
+root.appendSystemMessage(newEnabled ? "Schedule resumed successfully." : "Schedule paused successfully.");
+}
+
+
+function injectScheduledMessage(chatId, messageText, notify, schedId, schedName) {
+if (!chatId || !messageText)
+return ;
+// Switch to the correct session
+let idx = sessionIndexById(chatId);
+if (idx < 0) {
+console.warn("injectScheduledMessage: Target session " + chatId + " not found, ignoring schedule execution.");
+return ;
+}
+if (chatId !== root.currentSessionId) {
+executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
+return ;
+}
+// If KWallet mode is active and keys are not loaded yet, load them first.
+if (!root.openCodeMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
+loadKWalletKeysIfNeeded(
+function onSuccess() {
+injectScheduledMessage(chatId, messageText, notify, schedId, schedName);
+},
+function onFailure(err) {
+let errMsg = "KWallet access failed: " + err;
+pushErrorMessage(errMsg);
+if (notify) {
+let safeErr = Sec.sanitizeForShell(errMsg);
+let errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
+let safeErrTitle = Sec.sanitizeForShell(errTitle);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
+}
+if (schedId) {
+let historyPayload = {
+"schedId": schedId,
+"status": errMsg
+};
+let b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
+let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64HistoryPayload);
+soundDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-history-err");
+}
+}
+);
+return ;
+}
+// Play the custom scheduled execution sound
+let soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
+soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
+// Validate provider/model configuration before executing
+let validationError = validateCurrentSendTarget();
+if (validationError !== "") {
+// Push validation error into chat window
+pushErrorMessage(validationError);
+// Display critical desktop notification popup of the configuration failure
+if (notify) {
+let safeErr = Sec.sanitizeForShell(validationError);
+let errTitle = "Schedule Failed: " + (schedName || root.currentSessionTitle || "Chat");
+let safeErrTitle = Sec.sanitizeForShell(errTitle);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dialog-warning " + Sec.quoteForShell(safeErrTitle) + " " + Sec.quoteForShell(safeErr) + " #sched-notify-err");
+}
+// Sync the detailed failure back to the scheduler's run history log
+if (schedId) {
+let historyPayload = {
+"schedId": schedId,
+"status": validationError
+};
+let b64HistoryPayload = base64Encode(JSON.stringify(historyPayload));
+let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " update_schedule_history_status " + Sec.quoteForShell(b64HistoryPayload);
+soundDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-history-err");
+}
+return ;
+}
+// Append user message
+appendUserMessage(messageText, "user", [], true);
+// Trigger LLM generation
+sendMessageByIndex(root.messages.length - 1);
+// Show a desktop notification
+if (notify) {
+let safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
+let title = "Scheduled: " + (root.currentSessionTitle || "Chat");
+let safeTitle = Sec.sanitizeForShell(title);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify");
+}
+}
+
+
+function executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName) {
+// If KWallet mode is active and keys are not loaded yet, load them first.
+if (!root.openCodeMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
+loadKWalletKeysIfNeeded(
+function onSuccess() {
+executeScheduledMessageInBackground(chatId, messageText, notify, schedId, schedName);
+},
+function onFailure(err) {
+handleBackgroundError(chatId, "KWallet access failed: " + err, notify, schedId, schedName);
+}
+);
+return ;
+}
+let soundCmd = "pw-play /usr/share/sounds/ocean/stereo/service-login.oga || " + "paplay /usr/share/sounds/ocean/stereo/service-login.oga || " + "pw-play /usr/share/sounds/ocean/stereo/window-attention.oga || " + "paplay /usr/share/sounds/ocean/stereo/window-attention.oga || " + "aplay /usr/share/sounds/freedesktop/stereo/bell.oga || " + "canberra-gtk-play -i service-login";
+soundDs.connectSource(soundCmd + " #sched-sound-" + Date.now());
+let validationError = validateCurrentSendTarget();
+if (validationError !== "") {
+handleBackgroundError(chatId, validationError, notify, schedId, schedName);
+return ;
+}
+let userTs = Date.now();
+let userMsgObj = {
+"role": "user",
+"content": messageText,
+"time": nowTime(userTs),
+"at": userTs,
+"model": "",
+"attachments": [],
+"sc": true
+};
+appendMessageToSession(chatId, userMsgObj);
+if (notify) {
+let safeText = Sec.sanitizeForShell(messageText.substring(0, 150)) + (messageText.length > 150 ? "…" : "");
+let sIdx = sessionIndexById(chatId);
+let sTitle = (sIdx >= 0 && root.sessions[sIdx].title) ? root.sessions[sIdx].title : "Chat";
+let title = "Scheduled: " + sTitle;
+let safeTitle = Sec.sanitizeForShell(title);
+soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -i dialog-information " + Sec.quoteForShell(safeTitle) + " " + Sec.quoteForShell(safeText) + " #sched-notify");
+}
+if (root.openCodeMode) {
+doBackgroundOpenCodeRequest(chatId, messageText, notify, schedId, schedName);
+return ;
+}
+let provider = plasmoid.configuration.provider || "openai";
+let providerCfg = getProviderConfig(provider);
+if (providerCfg.type === "anthropic")
+doBackgroundAnthropicRequest(chatId, providerCfg.apiKey, providerCfg.model, messageText, notify, schedId, schedName);
+else
+doBackgroundOpenAICompatRequest(chatId, providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model, providerCfg.headers, providerCfg.model, messageText, notify, schedId, schedName);
+}
+
+
+function applyKWalletKeyToMemory(targetId, secretValue) {
+let configKey = ProviderService.getApiKeyConfigKey(targetId);
+if (configKey) {
+plasmoid.configuration[configKey] = secretValue;
+}
+}
+
+
+function triggerKWalletCallbacks(success, errorMsg) {
+let successList = root.kwalletLoadSuccessCallbacks || [];
+let failureList = root.kwalletLoadFailureCallbacks || [];
+root.kwalletLoadSuccessCallbacks = [];
+root.kwalletLoadFailureCallbacks = [];
+root.kwalletLoading = false;
+if (success) {
+for (let i = 0; i < successList.length; i++) {
+try {
+successList[i]();
+} catch(e) {
+console.error("Error in KWallet success callback:", e);
+}
+}
+} else {
+for (let j = 0; j < failureList.length; j++) {
+try {
+failureList[j](errorMsg);
+} catch(e) {
+console.error("Error in KWallet failure callback:", e);
+}
+}
+}
+}
+
+
+function loadKWalletKeysIfNeeded(onSuccess, onFailure) {
+    if (root.openCodeMode) {
+        if (typeof onSuccess === "function")
+            onSuccess();
+        return ;
+    }
+    if (plasmoid.configuration.keyStorageMode !== 2) {
+if (typeof onSuccess === "function")
+onSuccess();
+return ;
+}
+if (root.kwalletKeysLoaded) {
+if (typeof onSuccess === "function")
+onSuccess();
+return ;
+}
+if (typeof onSuccess === "function") {
+root.kwalletLoadSuccessCallbacks.push(onSuccess);
+}
+if (typeof onFailure === "function") {
+root.kwalletLoadFailureCallbacks.push(onFailure);
+}
+if (root.kwalletLoading) {
+return ;
+}
+// kwalletPermanentlyFailed is set after 3 consecutive failures.
+// No further automatic prompts are shown until the user clicks
+// "Refresh from KWallet" which resets both this flag and kwalletOpenAttempts.
+if (root.kwalletPermanentlyFailed) {
+debugLog("[KAI-DEBUG] loadKWalletKeysIfNeeded: permanently failed, not retrying. User must click Refresh.");
+triggerKWalletCallbacks(false, root.kwalletFailReason || "KWallet sync failed");
+return ;
+}
+if (root.kwalletOpenAttempts >= 3) {
+let reason = "KWallet sync failed (3 attempts). Please click 'Refresh from KWallet' in settings.";
+debugLog("[KAI-DEBUG] loadKWalletKeysIfNeeded open attempts limit of 3 exceeded. Setting permanently failed.");
+root.kwalletPermanentlyFailed = true;
+root.kwalletFailReason = reason;
+root.kwalletLoading = false;
+triggerKWalletCallbacks(false, reason);
+return ;
+}
+root.kwalletLoading = true;
+let walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
+kwalletStartupDs.connectSource(walletBulkReadCommand(walletName, root.configKwalletAutoPrompt) + " #kwallet-startup-load");
+}
+

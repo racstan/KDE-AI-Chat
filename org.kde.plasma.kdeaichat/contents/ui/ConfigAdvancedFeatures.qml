@@ -1,4 +1,4 @@
-import "MainDatabase.js" as MainDatabase
+import "ChatEngine.js" as ChatEngine
 import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -294,7 +294,7 @@ QQC2.ScrollView {
                 console.error("TextField clipboard copy failed:", e);
             }
             try {
-                MainDatabase.copyToClipboard(cmd);
+                ChatEngine.copyToClipboard(cmd);
                 copiedText = targetStatus;
             } catch (e2) {
                 console.error("MainDatabase clipboard copy failed:", e2);

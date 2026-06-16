@@ -1,10 +1,7 @@
 import QtQuick
 import org.kde.plasma.plasma5support as P5Support
 import QtQuick.Dialogs
-import "MainDatabase.js" as MainDatabase
-import "MainNetwork.js" as MainNetwork
-import "MainScheduler.js" as MainScheduler
-import "MainOpenCode.js" as MainOpenCode
+import "ChatEngine.js" as ChatEngine
 import "Security.js" as Sec
 
 /*
@@ -14,7 +11,7 @@ import "Security.js" as Sec
  * 1. Instantiated in `main.qml` as a child component (id: dataSources).
  * 2. Objects declared here (such as soundDs, schedulerDs, customStorageDs) are exposed
  *    to the global QML/JS namespace via property aliases on the root element of `main.qml`.
- * 3. JavaScript logic files (MainDatabase.js, MainNetwork.js, MainScheduler.js, MainOpenCode.js)
+ * 3. JavaScript logic files (ChatEngine.js, ChatEngine.js, ChatEngine.js, ChatEngine.js)
  *    reference these DataSources and Timers by ID directly to execute commands, fetch
  *    data, and coordinate background work.
  * 4. Accepts a `root` property referencing the main app container for dynamic data updates.
@@ -184,7 +181,7 @@ Item {
         property int messageIndex: -1
         onTriggered: {
             if (messageIndex >= 0) {
-                MainDatabase.sendMessageByIndex(messageIndex);
+                ChatEngine.sendMessageByIndex(messageIndex);
             }
         }
     }
@@ -303,7 +300,7 @@ Item {
         interval: 1500
         repeat: false
         onTriggered: {
-            let cmd = MainOpenCode.sanitizeOpenCodeStartCommand(plasmoid.configuration.openCodeStartCommand);
+            let cmd = ChatEngine.sanitizeOpenCodeStartCommand(plasmoid.configuration.openCodeStartCommand);
             let envPrefix = "export PATH=\"$PATH:$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.opencode/bin\"; ";
             opencodeServerDs.connectSource("sh -c '" + envPrefix + cmd.replace(/'/g, "'\\''") + "' #autostart-opencode");
         }
@@ -743,7 +740,7 @@ Item {
                     try {
                         let resp = JSON.parse(line);
                         try {
-                            MainDatabase.handleVoiceResponse(resp, sourceName);
+                            ChatEngine.handleVoiceResponse(resp, sourceName);
                         } catch (respErr) {
                             console.error("voiceDs: handleVoiceResponse threw for line, skipping:", respErr, line);
                         }
@@ -802,13 +799,13 @@ Item {
                     try {
                         let resp = JSON.parse(xhr.responseText);
                         if (root.voiceRecording) {
-                            MainDatabase.handleVoiceResponse({
+                            ChatEngine.handleVoiceResponse({
                                 "type": "stt_status",
                                 "status": resp.status,
                                 "countdown": resp.countdown
                             }, "");
                         } else if (root.ttsPlaying) {
-                            MainDatabase.handleVoiceResponse({
+                            ChatEngine.handleVoiceResponse({
                                 "type": "tts_status",
                                 "status": resp.status
                             }, "");
