@@ -582,7 +582,7 @@ import "MainDatabase.js" as MainDatabase
                                 anchors.bottomMargin: Kirigami.Units.smallSpacing
                                 anchors.rightMargin: Kirigami.Units.gridUnit
                                 verticalLayoutDirection: ListView.TopToBottom
-                                model: root.messages
+                                model: root.messages.length
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
                                 cacheBuffer: 8000
@@ -720,8 +720,7 @@ import "MainDatabase.js" as MainDatabase
                                 }
 
                                 delegate: Item {
-                                    required property var modelData
-                                    required property int index
+                                    property var modelData: root.messages[index]
                                     readonly property int originalIndex: index
                                     readonly property bool showDayHeader: modelData.showDayHeader || false
 

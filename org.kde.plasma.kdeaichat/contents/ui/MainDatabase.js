@@ -502,24 +502,17 @@ persistSessions();
 
 
 function switchSession(sessionId) {
-let _t0 = Date.now();
 if (!sessionId || sessionId === root.currentSessionId)
 return ;
 saveCurrentSessionState(false);
 let idx = sessionIndexById(sessionId);
 if (idx < 0)
 return ;
-// Temporarily kill cacheBuffer so the model swap only creates visible delegates.
-let msgList = root.msgListViewRef;
-let savedCacheBuffer = msgList ? msgList.cacheBuffer : 0;
-if (msgList) msgList.cacheBuffer = 0;
 root.currentSessionId = root.sessions[idx].value;
 root.currentSessionTitle = root.sessions[idx].text;
 root._lastParsedMsgIdx = -1;
 root._lastMetaIdx = -1;
-let _t1 = Date.now();
 root.messages = root.sessions[idx].messages || [];
-let _t2 = Date.now();
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 root.editingMessageIndex = -1;
@@ -529,14 +522,8 @@ root.editingSessionDraft = "";
 root.renamingCurrentChat = false;
 root.currentChatRenameDraft = "";
 checkAndMarkCurrentSessionAsRead();
+scrollToBottom();
 root.focusInput();
-// Restore cacheBuffer after delegates are created, then scroll to bottom.
-Qt.callLater(function() {
-    if (msgList) msgList.cacheBuffer = savedCacheBuffer;
-    scrollToBottom();
-});
-let _t3 = Date.now();
-console.log("[KAI-PERF] switchSession: pre=" + (_t1-_t0) + "ms assign=" + (_t2-_t1) + "ms post=" + (_t3-_t2) + "ms msgs=" + (root.messages ? root.messages.length : 0));
 }
 
 
