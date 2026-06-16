@@ -33,18 +33,13 @@ Column {
     width: parent ? parent.width : 0
     spacing: 4
 
-    TextEdit {
+    Text {
         visible: contentRoot.messageData && contentRoot.messageData.role === "error"
         width: parent.width
         wrapMode: Text.Wrap
         textFormat: Text.PlainText
         text: contentRoot.messageData ? (contentRoot.messageData.content || "") : ""
         color: Kirigami.Theme.negativeTextColor
-        readOnly: true
-        selectByMouse: true
-        selectByKeyboard: true
-        selectedTextColor: Kirigami.Theme.highlightedTextColor
-        selectionColor: Kirigami.Theme.highlightColor
         font: Kirigami.Theme.defaultFont
     }
 
