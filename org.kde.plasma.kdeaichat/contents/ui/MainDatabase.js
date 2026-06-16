@@ -512,18 +512,24 @@ root.currentSessionId = root.sessions[idx].value;
 root.currentSessionTitle = root.sessions[idx].text;
 root._lastParsedMsgIdx = -1;
 root._lastMetaIdx = -1;
-root.messages = root.sessions[idx].messages || [];
-if (root.sessions[idx])
-root.openCodeMode = (root.sessions[idx].source === "opencode");
+// Show empty instantly — user sees immediate response.
+root.messages = [];
+root.openCodeMode = root.sessions[idx] ? (root.sessions[idx].source === "opencode") : false;
 root.editingMessageIndex = -1;
 root.editingDraft = "";
 root.editingSessionId = "";
 root.editingSessionDraft = "";
 root.renamingCurrentChat = false;
 root.currentChatRenameDraft = "";
-checkAndMarkCurrentSessionAsRead();
-scrollToBottom();
-root.focusInput();
+// Fill in the real messages during idle time — user can scroll the
+// empty state while heavy QML delegate creation happens in background.
+let targetMsgs = root.sessions[idx].messages || [];
+Qt.callLater(function() {
+    root.messages = targetMsgs;
+    checkAndMarkCurrentSessionAsRead();
+    scrollToBottom();
+    root.focusInput();
+});
 }
 
 
@@ -3444,15 +3450,13 @@ let newMsg = {
 if (root.streamingTokens) newMsg.tokens = root.streamingTokens;
 if (root.streamingCost > 0) newMsg.cost = root.streamingCost;
 
-let _t1 = Date.now();
 precomputeBlocksAndHtmlForMessage(newMsg);
-let _t2 = Date.now();
-root.messages = root.messages.concat([newMsg]);
-let _t3 = Date.now();
-if (!root.userScrolledUp)
-queueScrollToBottom();
-let _t4 = Date.now();
-console.log("[KAI-PERF] flushStream: precomp=" + (_t2-_t1) + "ms concat=" + (_t3-_t2) + "ms scroll=" + (_t4-_t3) + "ms total=" + (_t4-_t0) + "ms");
+// Defer model update to avoid blocking the main thread.
+Qt.callLater(function() {
+    root.messages = root.messages.concat([newMsg]);
+    if (!root.userScrolledUp)
+        queueScrollToBottom();
+});
 
 root.streamingTokens = null;
 root.streamingCost = 0;

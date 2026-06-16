@@ -74,19 +74,20 @@ try { processNextQueuedMessage(); } catch (e) { console.error("finishOpenCodeReq
 
 
 function pushErrorMessage(text) {
-let _t0 = Date.now();
 let ts = Date.now();
-root.messages = root.messages.concat([{
+let newMsg = {
 "role": "error",
 "content": text,
 "time": nowTime(ts),
 "at": ts,
 "model": ""
-}]);
-let _t1 = Date.now();
-console.log("[KAI-PERF] pushError: concat=" + (_t1-_t0) + "ms len=" + root.messages.length);
+};
+// Defer model update to avoid blocking the main thread.
+Qt.callLater(function() {
+root.messages = root.messages.concat([newMsg]);
 if (!root.userScrolledUp)
     root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
+});
 // Debounce the session save to avoid blocking the main thread
 if (root.deferSaveStateTimer) {
     root.deferSaveStateTimer.restart();
