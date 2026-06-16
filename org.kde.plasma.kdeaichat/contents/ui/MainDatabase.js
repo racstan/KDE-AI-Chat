@@ -368,8 +368,10 @@ if (idx < 0)
 idx = 0;
 root.currentSessionId = root.sessions[idx].value;
 root.currentSessionTitle = root.sessions[idx].text;
+root._lastParsedMsgIdx = -1;
+root._lastMetaIdx = -1;
 root.messages = root.sessions[idx].messages || [];
-precomputeBlocksForMessages(root.messages);
+// onMessagesChanged handles precomputation — no need for explicit call.
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 sortSessionsByUpdated();
@@ -508,8 +510,13 @@ if (idx < 0)
 return ;
 root.currentSessionId = root.sessions[idx].value;
 root.currentSessionTitle = root.sessions[idx].text;
+// Reset parsing watermarks BEFORE setting messages so onMessagesChanged
+// processes from index 0 but skips already-computed blocks (content check).
+root._lastParsedMsgIdx = -1;
+root._lastMetaIdx = -1;
 root.messages = root.sessions[idx].messages || [];
-precomputeBlocksForMessages(root.messages);
+// Note: onMessagesChanged calls updateMessageMetadata + precomputeBlocksAndHtmlForMessage.
+// Do NOT call precomputeBlocksForMessages here — it would double-process every message.
 if (root.sessions[idx])
 root.openCodeMode = (root.sessions[idx].source === "opencode");
 root.editingMessageIndex = -1;
@@ -519,7 +526,6 @@ root.editingSessionDraft = "";
 root.renamingCurrentChat = false;
 root.currentChatRenameDraft = "";
 checkAndMarkCurrentSessionAsRead();
-persistSessions();
 scrollToBottom();
 root.focusInput();
 }
