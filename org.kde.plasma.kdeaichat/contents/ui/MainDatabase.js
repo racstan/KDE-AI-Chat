@@ -1596,8 +1596,12 @@ fail("OpenCode: failed to create session: " + sendError);
 
 
 function scrollToBottom() {
+let _t0 = Date.now();
 if (root.msgListViewRef && !root.msgListViewRef.atYEnd)
     root.msgListViewRef.positionViewAtEnd();
+let _t1 = Date.now();
+if (_t1 - _t0 > 5)
+    console.log("[KAI-PERF] scrollToBottom: " + (_t1-_t0) + "ms");
 }
 
 
@@ -2504,6 +2508,7 @@ return "";
 
 
 function sendMessage() {
+let _t0 = Date.now();
 try {
 let text = (root.chatInputText || "").trim();
 let attachments = root.attachedFiles || [];
@@ -2591,12 +2596,15 @@ appendUserMessage(text, "queued", attachments);
 return ;
 }
 appendUserMessage(text, "user", attachments);
+let _t1 = Date.now();
 if (root.sendMessageDelayTimer) {
     root.sendMessageDelayTimer.messageIndex = root.messages.length - 1;
     root.sendMessageDelayTimer.start();
 } else {
     Qt.callLater(function() { sendMessageByIndex(root.messages.length - 1); });
 }
+let _t2 = Date.now();
+console.log("[KAI-PERF] sendMessage: append=" + (_t1-_t0) + "ms queue=" + (_t2-_t1) + "ms total=" + (_t2-_t0) + "ms");
 } catch (err) {
 root.loading = false;
 root.activeXhr = null;
@@ -3406,13 +3414,14 @@ clipboardDs.connectSource(cmd + " #clipboard-copy");
 
 
 function flushStreamingBuffer() {
+let _t0 = Date.now();
 flushIntermediateStreaming();
 let text = root.streamingContent;
 let label = root.streamingModel;
 let ctx = root.streamingContextItems;
 if (text === "" && ctx.length === 0) {
-root.streamingResponse = false;
-return ;
+    root.streamingResponse = false;
+    return ;
 }
 root.streamingContent = "";
 root.streamingModel = "";
@@ -3430,11 +3439,15 @@ let newMsg = {
 if (root.streamingTokens) newMsg.tokens = root.streamingTokens;
 if (root.streamingCost > 0) newMsg.cost = root.streamingCost;
 
-// Pre-compute blocks and HTML so MessageContent.qml reads a static cached array.
+let _t1 = Date.now();
 precomputeBlocksAndHtmlForMessage(newMsg);
+let _t2 = Date.now();
 root.messages = root.messages.concat([newMsg]);
+let _t3 = Date.now();
 if (!root.userScrolledUp)
 queueScrollToBottom();
+let _t4 = Date.now();
+console.log("[KAI-PERF] flushStream: precomp=" + (_t2-_t1) + "ms concat=" + (_t3-_t2) + "ms scroll=" + (_t4-_t3) + "ms total=" + (_t4-_t0) + "ms");
 
 root.streamingTokens = null;
 root.streamingCost = 0;

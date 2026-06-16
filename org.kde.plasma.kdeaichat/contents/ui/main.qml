@@ -994,6 +994,7 @@ PlasmoidItem {
         // Response length preference changed; applies on next send
     }
     onCurrentSessionIdChanged: {
+        let _t0 = Date.now();
         if (persistSessionsDebounce.running) {
             persistSessionsDebounce.stop();
             root.flushPersistSessions();
@@ -1003,6 +1004,9 @@ PlasmoidItem {
         root._blocksCache.clear();
         root._lastMetaIdx = -1;
         root._lastParsedMsgIdx = -1;
+        let _t1 = Date.now();
+        if (_t1 - _t0 > 5)
+            console.log("[KAI-PERF] onSessionIdChanged: " + (_t1-_t0) + "ms");
     }
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
     preferredRepresentation: compactRepresentation
@@ -1079,7 +1083,10 @@ PlasmoidItem {
         let _t0 = Date.now();
         root.updateMessageMetadata();
         let _t1 = Date.now();
-        if (root.streamingResponse) return;
+        if (root.streamingResponse) {
+            console.log("[KAI-PERF] onMsgChanged: streaming skip meta=" + (_t1-_t0) + "ms n=" + (root.messages ? root.messages.length : 0));
+            return;
+        }
         if (root.messages) {
             let startIdx = (root._lastParsedMsgIdx >= 0 && root._lastParsedMsgIdx < root.messages.length)
                 ? root._lastParsedMsgIdx : 0;
@@ -1097,8 +1104,7 @@ PlasmoidItem {
         Qt.callLater(checkAndMarkCurrentSessionAsRead);
         if (!root.historyOnlyMode && !root.userScrolledUp) root.queueScrollToBottom();
         let _t3 = Date.now();
-        if (_t3 - _t0 > 16)
-            console.log("[KAI-PERF] onMsgChanged: meta=" + (_t1-_t0) + "ms blocks=" + (_t2-_t1) + "ms total=" + (_t3-_t0) + "ms n=" + (root.messages ? root.messages.length : 0));
+        console.log("[KAI-PERF] onMsgChanged: meta=" + (_t1-_t0) + "ms blocks=" + (_t2-_t1) + "ms post=" + (_t3-_t2) + "ms total=" + (_t3-_t0) + "ms n=" + (root.messages ? root.messages.length : 0));
     }
 
     MainDataSources {

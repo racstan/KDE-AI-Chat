@@ -84,6 +84,7 @@ root.messages = root.messages.concat([{
 "model": ""
 }]);
 let _t1 = Date.now();
+console.log("[KAI-PERF] pushError: concat=" + (_t1-_t0) + "ms len=" + root.messages.length);
 if (!root.userScrolledUp)
     root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
 // Debounce the session save to avoid blocking the main thread
