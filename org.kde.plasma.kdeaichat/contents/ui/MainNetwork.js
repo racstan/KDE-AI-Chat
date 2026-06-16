@@ -74,6 +74,7 @@ try { processNextQueuedMessage(); } catch (e) { console.error("finishOpenCodeReq
 
 
 function pushErrorMessage(text) {
+let _t0 = Date.now();
 let ts = Date.now();
 root.messages = root.messages.concat([{
 "role": "error",
@@ -82,6 +83,7 @@ root.messages = root.messages.concat([{
 "at": ts,
 "model": ""
 }]);
+let _t1 = Date.now();
 if (!root.userScrolledUp)
     root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
 // Debounce the session save to avoid blocking the main thread
@@ -90,6 +92,9 @@ if (root.deferSaveStateTimer) {
 } else {
     Qt.callLater(function() { saveCurrentSessionState(true); });
 }
+let _t2 = Date.now();
+if (_t2 - _t0 > 5)
+    console.log("[KAI-PERF] pushErrorMessage: concat=" + (_t1-_t0) + "ms post=" + (_t2-_t1) + "ms");
 // If the last user message was a schedule, show a desktop notification of the execution failure!
 let isSched = false;
 for (let i = root.messages.length - 1; i >= 0; i--) {
