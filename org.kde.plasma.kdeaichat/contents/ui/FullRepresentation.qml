@@ -585,7 +585,8 @@ import "MainDatabase.js" as MainDatabase
                                 model: root.messages
                                 spacing: Kirigami.Units.largeSpacing
                                 clip: true
-                                cacheBuffer: 200
+                                cacheBuffer: 4000
+                                reuseItems: true
                                 // Tweaked scroll velocities for smoother dragging
                                 maximumFlickVelocity: 2500
                                 flickDeceleration: 1500

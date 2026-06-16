@@ -206,7 +206,7 @@ Column {
                 : modelData.type === "table" ? tableBlock.implicitHeight
                 : htmlEdit.implicitHeight
 
-            TextEdit {
+            Text {
                 id: htmlEdit
 
                 visible: modelData.type === "text"
@@ -225,35 +225,10 @@ Column {
                     if (htmlContent !== "") {
                         return htmlContent;
                     }
-                    // Show raw content immediately — no conversion storm, no "Loading..."
                     return modelData.content || "";
                 }
 
-                Timer {
-                    id: parseHtmlTimer
-                    interval: 800
-                    running: false
-                    repeat: false
-                    onTriggered: {
-                        if (modelData.type !== "text") return;
-                        if (modelData.contentHtmlCache && Object.keys(modelData.contentHtmlCache).length > 0) return;
-                        let darkKey = contentRoot.chatRoot && contentRoot.chatRoot.popupIsDark ? "dark" : "light";
-                        if (contentRoot.chatRoot) {
-                            let html = contentRoot.chatRoot.convertMarkdownToHtml(modelData.content || "");
-                            if (!modelData.contentHtmlCache) {
-                                modelData.contentHtmlCache = {};
-                            }
-                            modelData.contentHtmlCache[darkKey] = html;
-                            htmlEdit.htmlContent = html;
-                        }
-                    }
-                }
                 color: Kirigami.Theme.textColor
-                readOnly: true
-                selectByMouse: true
-                selectByKeyboard: true
-                selectedTextColor: Kirigami.Theme.highlightedTextColor
-                selectionColor: Kirigami.Theme.highlightColor
                 font: Kirigami.Theme.defaultFont
                 onLinkActivated: function(link) {
                     let safe = Sec.validateUrl(link);
