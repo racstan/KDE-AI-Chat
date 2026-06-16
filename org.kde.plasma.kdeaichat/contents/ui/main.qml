@@ -1076,32 +1076,32 @@ PlasmoidItem {
     property int _lastMetaIdx: -1
 
     onMessagesChanged: {
-        let _t0 = Date.now();
         root.updateMessageMetadata();
-        let _t1 = Date.now();
         if (root.streamingResponse)
             return;
         if (root.messages) {
             let startIdx = (root._lastParsedMsgIdx >= 0 && root._lastParsedMsgIdx < root.messages.length)
                 ? root._lastParsedMsgIdx
                 : 0;
-            for (let i = startIdx; i < root.messages.length; i++) {
-                let m = root.messages[i];
-                if (m) {
-                    MainDatabase.precomputeBlocksAndHtmlForMessage(m);
+            // If array shrank (session switch), re-scan from 0.
+            // But if messages already have blocks, skip heavy precomputation.
+            if (startIdx === 0 && root.messages.length > 0 && root.messages[0].blocks) {
+                root._lastParsedMsgIdx = root.messages.length;
+            } else {
+                for (let i = startIdx; i < root.messages.length; i++) {
+                    let m = root.messages[i];
+                    if (m) {
+                        MainDatabase.precomputeBlocksAndHtmlForMessage(m);
+                    }
                 }
+                root._lastParsedMsgIdx = root.messages.length;
             }
-            root._lastParsedMsgIdx = root.messages.length;
         } else {
             root._lastParsedMsgIdx = -1;
         }
-        let _t2 = Date.now();
         Qt.callLater(checkAndMarkCurrentSessionAsRead);
         if (!root.historyOnlyMode && !root.userScrolledUp)
             root.queueScrollToBottom();
-        let _t3 = Date.now();
-        if (_t2 - _t0 > 10 || _t3 - _t0 > 10)
-            console.log("[KAI-PERF] onMessagesChanged: meta=" + (_t1-_t0) + "ms blocks=" + (_t2-_t1) + "ms post=" + (_t3-_t2) + "ms msgs=" + (root.messages ? root.messages.length : 0));
     }
 
     MainDataSources {

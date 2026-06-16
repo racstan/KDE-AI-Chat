@@ -1674,19 +1674,18 @@ message.dayBucketLabel = dayBucketLabel(ts);
 function updateMessageMetadata() {
 let msgs = root.messages || [];
 if (msgs.length === 0) return;
-// Incremental: only process messages that haven't been metadata-processed yet.
-let startIdx = (root._lastMetaIdx >= 0 && root._lastMetaIdx <= msgs.length) ? root._lastMetaIdx : 0;
+// Skip entirely if messages already have metadata (e.g. session switch).
+// Only first message needs to be checked — if it has dayKey, all do.
+if (msgs[0] && msgs[0].dayKey !== undefined && msgs[0].showDayHeader !== undefined) return;
 let counts = {};
-// First pass: ensure metadata and count day keys for ALL messages (needed for correct counts)
 for (let i = 0; i < msgs.length; i++) {
 let m = msgs[i];
 ensureMessageMetadata(m);
 if (!m) continue;
 counts[m.dayKey] = (counts[m.dayKey] || 0) + 1;
 }
-// Second pass: only update day header flags for messages from startIdx onward
-let previousKey = startIdx > 0 && msgs[startIdx - 1] ? msgs[startIdx - 1].dayKey : "";
-for (let j = startIdx; j < msgs.length; j++) {
+let previousKey = "";
+for (let j = 0; j < msgs.length; j++) {
 let msg = msgs[j];
 if (!msg) continue;
 msg.showDayHeader = j === 0 || msg.dayKey !== previousKey;
