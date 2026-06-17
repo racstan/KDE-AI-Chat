@@ -2944,7 +2944,6 @@ PlasmoidItem {
                                                         }
                                                         color: Kirigami.Theme.textColor
                                                         font: Kirigami.Theme.defaultFont
-                                                        selectByMouse: true
                                                         onLinkActivated: function(link) {
                                                             let safe = Sec.validateUrl(link);
                                                             if (safe !== "")
@@ -4142,30 +4141,6 @@ PlasmoidItem {
                 }
 
             }
-
-             * SessionSidebar — list of chat sessions with rename / archive / delete actions.
-             *
-             * Renders the ListView used by the "History" view in main.qml. The
-             * component is decoupled from the rest of the UI by exposing all
-             * callbacks and read-only helpers through the `root` property.
-             *
-             * Required caller bindings (via `root`):
-             *   - root.sessions                 model array
-             *   - root.currentSessionId        string
-             *   - root.editingSessionId        string
-             *   - root.editingSessionDraft     string
-             *   - root.popupIsDark             bool
-             *   - root.sessionHasSchedules(id) -> bool
-             *   - root.sessionSubtitle(s)      -> string
-             *   - root.historySessionTint(s)   -> color
-             *   - root.translate(s)            -> string
-             *   - root.switchSession(id)
-             *   - root.startSessionRename(id)
-             *   - root.saveSessionRename(id)
-             *   - root.cancelSessionRename()
-             *   - root.setSessionArchived(id, bool)
-             *   - root.deleteSession(id)
-             */
             Rectangle {
                 id: inlinedSidebar
                 anchors.fill: parent
@@ -4178,14 +4153,14 @@ PlasmoidItem {
                 color: Kirigami.Theme.alternateBackgroundColor
 
                 function focusSearch() {
-                    searchInput.forceActiveFocus();
+                    sidebarSearchInput.forceActiveFocus();
                 }
 
                 function getFilteredSessions(isArchived) {
                     if (!root || !root.sessions) return [];
                     let rawList = root.sessions;
                     let filtered = [];
-                    let query = searchInput.text.trim().toLowerCase();
+                    let query = sidebarSearchInput.text.trim().toLowerCase();
                     for (let i = 0; i < rawList.length; i++) {
                         let s = rawList[i];
                         let isArch = s.archived || false;
@@ -4234,7 +4209,7 @@ PlasmoidItem {
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.TextField {
-                            id: searchInput
+                            id: sidebarSearchInput
                             Layout.fillWidth: true
                             placeholderText: root ? root.translate("Search chats...") : "Search chats..."
                             rightPadding: clearSearchButton.visible ? clearSearchButton.width : Kirigami.Units.smallSpacing
