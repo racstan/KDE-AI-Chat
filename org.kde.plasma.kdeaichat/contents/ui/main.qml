@@ -55,69 +55,6 @@ PlasmoidItem {
     property string currentSessionTitle: ""
     property var messages: []
 
-    ListModel {
-        id: messagesListModel
-    }
-
-    function syncMessagesModel() {
-        var jsArr = root.messages || [];
-        var lm = messagesListModel;
-        if (jsArr.length === 0 && lm.count === 0) return;
-        if (jsArr.length === 0) {
-            lm.clear();
-            return;
-        }
-        if (lm.count === 0) {
-            for (var i = 0; i < jsArr.length; i++) {
-                lm.append({ "msg": jsArr[i] });
-            }
-            return;
-        }
-        var isDifferent = false;
-        if (jsArr.length < lm.count) {
-            isDifferent = true;
-        } else {
-            var lmFirst = lm.get(0);
-            var jsFirst = jsArr[0];
-            if (lmFirst && jsFirst && lmFirst.msg) {
-                if (lmFirst.msg.at !== jsFirst.at || lmFirst.msg.role !== jsFirst.role) {
-                    isDifferent = true;
-                }
-            } else {
-                isDifferent = true;
-            }
-        }
-        if (isDifferent) {
-            lm.clear();
-            for (var i = 0; i < jsArr.length; i++) {
-                lm.append({ "msg": jsArr[i] });
-            }
-            return;
-        }
-        for (var i = 0; i < lm.count; i++) {
-            var lmItem = lm.get(i);
-            var jsItem = jsArr[i];
-            if (!lmItem || !lmItem.msg || !jsItem) continue;
-            var msgObj = lmItem.msg;
-            var hasChanged = (msgObj.content !== jsItem.content) ||
-                             (msgObj.role !== jsItem.role) ||
-                             (msgObj.status !== jsItem.status) ||
-                             (msgObj.model !== jsItem.model) ||
-                             (msgObj.isSystem !== jsItem.isSystem) ||
-                             (msgObj.sc !== jsItem.sc) ||
-                             (msgObj.contentHtmlCache !== jsItem.contentHtmlCache) ||
-                             (!!msgObj.tokens !== !!jsItem.tokens) ||
-                             (!!msgObj.attachments !== !!jsItem.attachments) ||
-                             (!!msgObj.quote !== !!jsItem.quote);
-            if (hasChanged) {
-                lm.set(i, { "msg": jsItem });
-            }
-        }
-        for (var i = lm.count; i < jsArr.length; i++) {
-            lm.append({ "msg": jsArr[i] });
-        }
-    }
-
     property var quotedMessage: null
     property bool searchBarActive: false
     property string searchQuery: ""
@@ -1158,7 +1095,6 @@ PlasmoidItem {
     property int _msgVersion: 0
 
     onMessagesChanged: {
-        root.syncMessagesModel();
         root.updateMessageMetadata();
         if (root.streamingResponse) {
             return;
@@ -2511,6 +2447,12 @@ PlasmoidItem {
                         Layout.fillHeight: true
                         radius: 8
                         color: Kirigami.Theme.alternateBackgroundColor
+                        // clip is required for the rounded corners to mask
+                        // the ListView's content. The previous "double clip"
+                        // concern (parent + ListView) only matters if the
+                        // inner delegate paints outside its bounds; in this
+                        // case all delegates are positioned via anchors and
+                        // do not overflow, so the cost is negligible.
                         clip: true
 
                         ListView {
@@ -2525,14 +2467,21 @@ PlasmoidItem {
                             anchors.bottomMargin: Kirigami.Units.smallSpacing
                             anchors.rightMargin: Kirigami.Units.gridUnit
                             verticalLayoutDirection: ListView.TopToBottom
-                            model: messagesListModel
+                            model: root.messages
                             spacing: Kirigami.Units.largeSpacing
                             clip: true
-                            cacheBuffer: 20000
+                            // cacheBuffer is in pixels. The previous 20000
+                            // value kept ~100+ heavy delegates alive at any
+                            // time (each ~1000 lines of QML with nested
+                            // Repeaters, RichText, Image, etc.). 2000 px is
+                            // enough for a smooth scroll while keeping
+                            // instantiation cost low.
+                            cacheBuffer: 2000
                             // Tweaked scroll velocities for smoother dragging
                             maximumFlickVelocity: 2500
                             flickDeceleration: 1500
                             boundsBehavior: Flickable.StopAtBounds
+                            reuseItems: true
                             Component.onCompleted: {
                                 root.msgListViewRef = msgList;
                                 Qt.callLater(function() {
@@ -2547,12 +2496,23 @@ PlasmoidItem {
                                 if (msgList.atYEnd)
                                     root.userScrolledUp = false;
                             }
-                            onContentYChanged: {
-                                if (!msgList.atYEnd && (msgList.moving || msgList.dragging || vbar.pressed || vbar.active)) {
-                                    if (!root.userScrolledUp)
-                                        root.userScrolledUp = true;
+                            // Throttle scroll-state updates to once per animation
+                            // frame. The previous handler ran on every pixel of
+                            // movement (60+ fps), allocating a JS property write
+                            // per frame and cascading through any binding that
+                            // touched userScrolledUp.
+                            Timer {
+                                id: scrollStateThrottle
+                                interval: 80
+                                repeat: false
+                                onTriggered: {
+                                    if (!msgList.atYEnd && (msgList.moving || msgList.dragging || vbar.pressed || vbar.active)) {
+                                        if (!root.userScrolledUp)
+                                            root.userScrolledUp = true;
+                                    }
                                 }
                             }
+                            onContentYChanged: scrollStateThrottle.restart()
 
                             QQC2.ScrollBar.vertical: QQC2.ScrollBar {
                                 id: vbar
@@ -2645,11 +2605,8 @@ PlasmoidItem {
                                 }
                             }
                             delegate: Item {
+                                required property var modelData
                                 required property int index
-                                property var modelData: {
-                                    var item = messagesListModel.get(index);
-                                    return item ? item.msg : null;
-                                }
                                 readonly property int originalIndex: index
                                 readonly property bool showDayHeader: modelData && modelData.showDayHeader || false
 
@@ -2876,6 +2833,12 @@ PlasmoidItem {
                                                                 source: (modelData && modelData.isImage === true) ? (modelData.imageUrl || "") : ""
                                                                 asynchronous: true
                                                                 cache: true
+                                                                // Cap the decoded bitmap size so an 8K image
+                                                                // does not pin tens of MB of GPU memory per
+                                                                // visible delegate. 1024 covers the bubble's
+                                                                // 512px display width on 2x DPI.
+                                                                sourceSize.width: 1024
+                                                                sourceSize.height: 1024
 
                                                                 QQC2.BusyIndicator {
                                                                     anchors.centerIn: parent
@@ -3321,6 +3284,28 @@ PlasmoidItem {
                                                     width: parent.width
                                                     spacing: Kirigami.Units.largeSpacing
 
+                                                    // Cached filtered schedule list. The previous code
+                                                    // called `root.getSchedulesForSession(...)` from
+                                                    // two separate binding sites (Repeater model +
+                                                    // "no schedules" label visible) and the function
+                                                    // did an O(S) walk over root.schedulesList on
+                                                    // every call. Recomputing it once per
+                                                    // schedulesList/chatId change keeps the cost
+                                                    // bounded.
+                                                    property var schedulesForSession: root.getSchedulesForSession(root.currentSessionId)
+                                                    onVisibleChanged: {
+                                                        if (visible) schedulesForSession = root.getSchedulesForSession(root.currentSessionId);
+                                                    }
+                                                    Connections {
+                                                        target: root
+                                                        function onSchedulesListChanged() {
+                                                            parent.schedulesForSession = root.getSchedulesForSession(root.currentSessionId);
+                                                        }
+                                                        function onCurrentSessionIdChanged() {
+                                                            parent.schedulesForSession = root.getSchedulesForSession(root.currentSessionId);
+                                                        }
+                                                    }
+
                                                     RowLayout {
                                                         Layout.fillWidth: true
 
@@ -3347,9 +3332,11 @@ PlasmoidItem {
                                                         width: parent.width
                                                         spacing: Kirigami.Units.smallSpacing
 
-                                                        // Repeater over schedules belonging to root.currentSessionId
+                                                        // Repeater over schedules belonging to root.currentSessionId.
+                                                        // Uses the cached list computed once per schedule list
+                                                        // change on the grandparent ColumnLayout.
                                                         Repeater {
-                                                            model: root.getSchedulesForSession(root.currentSessionId)
+                                                            model: parent.parent.schedulesForSession
 
                                                             delegate: Rectangle {
                                                                 width: parent.width
@@ -3438,7 +3425,7 @@ PlasmoidItem {
                                                         }
 
                                                         PC3.Label {
-                                                            visible: root.getSchedulesForSession(root.currentSessionId).length === 0
+                                                            visible: parent.parent.schedulesForSession.length === 0
                                                             text: "No active schedules for this chat."
                                                             font.italic: true
                                                             opacity: 0.7
@@ -4216,46 +4203,88 @@ PlasmoidItem {
                     sidebarSearchInput.forceActiveFocus();
                 }
 
+                // Memoized filter+sort results. Without this, the model:
+                // binding on the two Repeaters below re-evaluates on every
+                // `root.sessions` reassignment, every `sortBy` change, and
+                // every keystroke in the search box. During streaming, the
+                // sessions array is reassigned 1-3 times per response, each
+                // time walking the full list and allocating a new filtered
+                // array. The Repeaters then rebuild all their delegates.
+                // We split the work: one sorted-but-unfiltered
+                // `cachedSortedSessions` array is rebuilt on any of those
+                // three triggers, and the per-Repeat filter+archived split
+                // is a constant-time slice into that array.
+                property var cachedSortedSessions: []
+                property string cachedSortBy: ""
+                property int cachedSessionsLen: -1
+
+                function rebuildSortedSessions() {
+                    let rawList = (root && root.sessions) ? root.sessions : [];
+                    let curSort = sortBy;
+                    let copy = rawList.slice();
+                    let sortFn = function(a, b) {
+                        if (curSort === "date_desc") {
+                            return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
+                        } else if (curSort === "date_asc") {
+                            return (a.updatedAt || a.createdAt || 0) - (b.updatedAt || b.createdAt || 0);
+                        } else if (curSort === "name_asc") {
+                            return (a.text || "New Chat").toLowerCase()
+                                .localeCompare((b.text || "New Chat").toLowerCase());
+                        } else if (curSort === "name_desc") {
+                            return (b.text || "New Chat").toLowerCase()
+                                .localeCompare((a.text || "New Chat").toLowerCase());
+                        }
+                        return 0;
+                    };
+                    copy.sort(sortFn);
+                    cachedSortedSessions = copy;
+                    cachedSortBy = curSort;
+                    cachedSessionsLen = rawList.length;
+                }
+
+                // Rebuild on any of: root.sessions reassignment, sortBy change,
+                // or any session's updatedAt changing (during streaming, this
+                // tracks the bubble-up of the save state cascade).
+                property int sessionsFingerprint: {
+                    if (!root || !root.sessions) return 0;
+                    let sum = root.sessions.length;
+                    for (let i = 0; i < root.sessions.length; i++) {
+                        let s = root.sessions[i];
+                        if (s) sum += (s.updatedAt || 0) + (s.archived ? 1 : 0);
+                    }
+                    return sum;
+                }
+                onSessionsFingerprintChanged: rebuildSortedSessions()
+                onSortByChanged: rebuildSortedSessions()
+                Component.onCompleted: rebuildSortedSessions()
+
                 function getFilteredSessions(isArchived) {
                     if (!root || !root.sessions) return [];
-                    let rawList = root.sessions;
-                    let filtered = [];
+                    // Re-validate cache on read in case root.sessions was
+                    // reassigned in this event loop tick and the
+                    // sessionsFingerprint binding hasn't fired yet.
+                    if (cachedSessionsLen !== root.sessions.length
+                        || cachedSortBy !== sortBy
+                        || cachedSortedSessions.length !== root.sessions.length) {
+                        rebuildSortedSessions();
+                    }
                     let query = sidebarSearchInput.text.trim().toLowerCase();
-                    for (let i = 0; i < rawList.length; i++) {
-                        let s = rawList[i];
+                    let out = [];
+                    let sorted = cachedSortedSessions;
+                    for (let i = 0; i < sorted.length; i++) {
+                        let s = sorted[i];
                         let isArch = s.archived || false;
                         if (isArch !== isArchived) continue;
                         if (query !== "") {
                             let title = (s.text || "New Chat").toLowerCase();
-                            let subtitle = (root ? root.sessionSubtitle(s) : "").toLowerCase();
+                            let subtitle = root ? root.sessionSubtitle(s).toLowerCase() : "";
                             if (title.indexOf(query) === -1 && subtitle.indexOf(query) === -1) {
                                 continue;
                             }
                         }
-                        filtered.push(s);
+                        out.push(s);
                     }
-                    // Sort
-                    filtered.sort(function(a, b) {
-                        if (sortBy === "date_desc") {
-                            let tA = a.updatedAt || a.createdAt || 0;
-                            let tB = b.updatedAt || b.createdAt || 0;
-                            return tB - tA;
-                        } else if (sortBy === "date_asc") {
-                            let tA = a.updatedAt || a.createdAt || 0;
-                            let tB = b.updatedAt || b.createdAt || 0;
-                            return tA - tB;
-                        } else if (sortBy === "name_asc") {
-                            let nA = (a.text || "New Chat").toLowerCase();
-                            let nB = (b.text || "New Chat").toLowerCase();
-                            return nA.localeCompare(nB);
-                        } else if (sortBy === "name_desc") {
-                            let nA = (a.text || "New Chat").toLowerCase();
-                            let nB = (b.text || "New Chat").toLowerCase();
-                            return nB.localeCompare(nA);
-                        }
-                        return 0;
-                    });
-                    return filtered;
+                    return out;
                 }
 
                 ColumnLayout {

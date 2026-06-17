@@ -429,8 +429,10 @@ let _saveStateTouch = false;
 function saveCurrentSessionState(touchUpdatedAt) {
 if (touchUpdatedAt !== false) _saveStateTouch = true;
 if (_saveStateDirty) {
-persistSessions();
-return;
+// A deferred save is already scheduled and will run on the next tick.
+// Skip the redundant persistSessions() call so we don't restart the
+// debounce timer (each restart resets the 3-second window).
+return ;
 }
 _saveStateDirty = true;
 Qt.callLater(function() {
@@ -1684,27 +1686,34 @@ message.dayBucketLabel = dayBucketLabel(ts);
 
 
 function updateMessageMetadata() {
-let msgs = root.messages || [];
-if (msgs.length === 0) return;
-// Skip entirely if messages already have metadata (e.g. session switch).
-// Only first message needs to be checked — if it has dayKey, all do.
-if (msgs[0] && msgs[0].dayKey !== undefined && msgs[0].showDayHeader !== undefined) return;
-let counts = {};
-for (let i = 0; i < msgs.length; i++) {
-let m = msgs[i];
-ensureMessageMetadata(m);
-if (!m) continue;
-counts[m.dayKey] = (counts[m.dayKey] || 0) + 1;
-}
-let previousKey = "";
-for (let j = 0; j < msgs.length; j++) {
-let msg = msgs[j];
-if (!msg) continue;
-msg.showDayHeader = j === 0 || msg.dayKey !== previousKey;
-msg.dayDividerLabel = (msg.dayBucketLabel || dayBucketLabel(msg.at || Date.now())) + " (" + (counts[msg.dayKey] || 0) + ")";
-previousKey = msg.dayKey;
-}
-root._lastMetaIdx = msgs.length;
+    let msgs = root.messages || [];
+    if (msgs.length === 0) return;
+    // Fast path: if every message already has metadata, do nothing.
+    // This is the common case after append-only changes (user types a
+    // message, streaming response comes in token by token) where the
+    // existing first-message check above is already cheap, but we still
+    // walked the whole array and re-derived counts on every call.
+    if (root._lastMetaIdx === msgs.length
+        && msgs[0] && msgs[0].dayKey !== undefined && msgs[0].showDayHeader !== undefined
+        && msgs[msgs.length - 1] && msgs[msgs.length - 1].dayDividerLabel !== undefined) {
+        return;
+    }
+    let counts = {};
+    for (let i = 0; i < msgs.length; i++) {
+        let m = msgs[i];
+        ensureMessageMetadata(m);
+        if (!m) continue;
+        counts[m.dayKey] = (counts[m.dayKey] || 0) + 1;
+    }
+    let previousKey = "";
+    for (let j = 0; j < msgs.length; j++) {
+        let msg = msgs[j];
+        if (!msg) continue;
+        msg.showDayHeader = j === 0 || msg.dayKey !== previousKey;
+        msg.dayDividerLabel = (msg.dayBucketLabel || dayBucketLabel(msg.at || Date.now())) + " (" + (counts[msg.dayKey] || 0) + ")";
+        previousKey = msg.dayKey;
+    }
+    root._lastMetaIdx = msgs.length;
 }
 
 
@@ -3458,9 +3467,19 @@ let newMsg = {
 if (root.streamingTokens) newMsg.tokens = root.streamingTokens;
 if (root.streamingCost > 0) newMsg.cost = root.streamingCost;
 
-precomputeBlocksAndHtmlForMessage(newMsg);
-// Defer model update to avoid blocking the main thread.
+// Defer precompute + model update to the next event-loop tick. The
+// previous code path ran the regex-based precompute synchronously on
+// the main thread, which on long messages (multi-KB responses with
+// code blocks/tables) caused 50-150ms freezes at the end of every
+// stream. Doing the work in Qt.callLater lets the streaming footer
+// clear instantly and the bubble appear on the next frame.
 Qt.callLater(function() {
+    try {
+        precomputeBlocksAndHtmlForMessage(newMsg);
+    } catch (_) {
+        // Non-fatal: the delegate's own convertMarkdownToHtml binding
+        // will fall back to a plaintext render if blocks are missing.
+    }
     root.messages.push(newMsg);
     root.messagesChanged();
     if (!root.userScrolledUp)
