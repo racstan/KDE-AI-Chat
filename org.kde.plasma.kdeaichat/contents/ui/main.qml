@@ -4166,19 +4166,12 @@ PlasmoidItem {
              *   - root.setSessionArchived(id, bool)
              *   - root.deleteSession(id)
              */
-            import QtQuick
-            import QtQuick.Controls as QQC2
-            import QtQuick.Layouts
-            import org.kde.kirigami as Kirigami
-            import org.kde.plasma.components as PC3
-
             Rectangle {
                 id: inlinedSidebar
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing
                 Component.onCompleted: { root.sessionsSidebarRef = inlinedSidebar; }
 
-                property var chatRoot
                 property string sortBy: "date_desc"
 
                 radius: 8
