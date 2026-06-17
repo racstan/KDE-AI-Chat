@@ -1614,14 +1614,9 @@ if (root.msgListViewRef && !root.msgListViewRef.atYEnd)
 }
 
 
-let _lastScrollToBottomTime = 0;
 function queueScrollToBottom() {
 if (root.scrollToBottomQueued)
 return ;
-let now = Date.now();
-if (now - _lastScrollToBottomTime < 500)
-return;
-_lastScrollToBottomTime = now;
 root.scrollToBottomQueued = true;
 Qt.callLater(function() {
     root.scrollToBottomQueued = false;
