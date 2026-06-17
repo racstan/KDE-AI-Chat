@@ -4192,7 +4192,10 @@ PlasmoidItem {
                 id: inlinedSidebar
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing
-                Component.onCompleted: { root.sessionsSidebarRef = inlinedSidebar; }
+                Component.onCompleted: {
+                    root.sessionsSidebarRef = inlinedSidebar;
+                    rebuildSortedSessions();
+                }
 
                 property string sortBy: "date_desc"
 
@@ -4256,7 +4259,6 @@ PlasmoidItem {
                 }
                 onSessionsFingerprintChanged: rebuildSortedSessions()
                 onSortByChanged: rebuildSortedSessions()
-                Component.onCompleted: rebuildSortedSessions()
 
                 function getFilteredSessions(isArchived) {
                     if (!root || !root.sessions) return [];
