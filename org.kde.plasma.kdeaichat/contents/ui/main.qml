@@ -2468,7 +2468,6 @@ PlasmoidItem {
                             spacing: Kirigami.Units.largeSpacing
                             clip: true
                             cacheBuffer: 20000
-                            reuseItems: true
                             // Tweaked scroll velocities for smoother dragging
                             maximumFlickVelocity: 2500
                             flickDeceleration: 1500
@@ -2928,16 +2927,13 @@ PlasmoidItem {
                                                         textFormat: Text.RichText
                                                         text: {
                                                             if (!visible) return "";
-                                                            let darkKey = root && root.popupIsDark ? "dark" : "light";
-                                                            if (modelData.contentHtmlCache && modelData.contentHtmlCache[darkKey] !== undefined) {
-                                                                return modelData.contentHtmlCache[darkKey];
-                                                            }
+                                                            let themeKey = root ? root.themeTextColor.toString() : "x";
+                                                            if (modelData.contentHtmlCache === themeKey + "|cached")
+                                                                return modelData.contentHtmlResult || "";
                                                             if (root) {
                                                                 let html = root.convertMarkdownToHtml(modelData.content || "");
-                                                                if (!modelData.contentHtmlCache) {
-                                                                    modelData.contentHtmlCache = {};
-                                                                }
-                                                                modelData.contentHtmlCache[darkKey] = html;
+                                                                modelData.contentHtmlCache = themeKey + "|cached";
+                                                                modelData.contentHtmlResult = html;
                                                                 return html;
                                                             }
                                                             return modelData.content || "";

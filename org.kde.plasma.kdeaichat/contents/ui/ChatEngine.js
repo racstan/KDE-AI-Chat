@@ -403,13 +403,11 @@ function precomputeBlocksAndHtmlForMessage(msg) {
         for (let i = 0; i < msg.blocks.length; i++) {
             let block = msg.blocks[i];
             if (block.type === "text") {
-                if (!block.contentHtmlCache) {
-                    block.contentHtmlCache = {};
-                }
-                // Only compute HTML for the active theme to halve parse cost.
-                let theme = root.popupIsDark ? "dark" : "light";
-                if (block.contentHtmlCache[theme] === undefined) {
-                    block.contentHtmlCache[theme] = MarkdownRenderer.convertMarkdownToHtml(block.content || "", root.popupIsDark);
+                // Single-slot cache: keyed on themeTextColor hex for instant invalidation on theme change
+                let themeKey = root.themeTextColor ? root.themeTextColor.toString() : "x";
+                if (block.contentHtmlCache !== themeKey) {
+                    block.contentHtmlCache = themeKey;
+                    block.contentHtmlResult = MarkdownRenderer.convertMarkdownToHtml(block.content || "", root.popupIsDark);
                 }
             }
         }
@@ -1604,12 +1602,8 @@ fail("OpenCode: failed to create session: " + sendError);
 
 
 function scrollToBottom() {
-let _t0 = Date.now();
 if (root.msgListViewRef && !root.msgListViewRef.atYEnd)
     root.msgListViewRef.positionViewAtEnd();
-let _t1 = Date.now();
-if (_t1 - _t0 > 5)
-    console.log("[KAI-PERF] scrollToBottom: " + (_t1-_t0) + "ms");
 }
 
 
@@ -2528,7 +2522,6 @@ return "";
 
 
 function sendMessage() {
-let _t0 = Date.now();
 try {
 let text = (root.chatInputText || "").trim();
 let attachments = root.attachedFiles || [];
@@ -2618,14 +2611,12 @@ return ;
 appendUserMessage(text, "user", attachments);
 // Index is current length since appendUserMessage defers the concat
 let _msgIdx = root.messages.length;
-let _t1 = Date.now();
 if (root.sendMessageDelayTimer) {
     root.sendMessageDelayTimer.messageIndex = _msgIdx;
     root.sendMessageDelayTimer.start();
 } else {
     Qt.callLater(function() { sendMessageByIndex(_msgIdx); });
 }
-console.log("[KAI-PERF] sendMessage: total=" + (_t2-_t0) + "ms");
 } catch (err) {
 root.loading = false;
 root.activeXhr = null;
@@ -3077,7 +3068,7 @@ processNextQueuedMessage();
 function convertMarkdownToHtml(markdown) {
 if (!markdown)
 return "";
-let cacheKey = markdown + "_" + (root.popupIsDark ? "dark" : "light");
+let cacheKey = markdown + "_" + (root.themeTextColor ? root.themeTextColor.toString() : "x");
 let cached = root._markdownCache.get(cacheKey);
 if (cached !== undefined) {
 return cached;
@@ -3435,7 +3426,6 @@ clipboardDs.connectSource(cmd + " #clipboard-copy");
 
 
 function flushStreamingBuffer() {
-let _t0 = Date.now();
 flushIntermediateStreaming();
 let text = root.streamingContent;
 let label = root.streamingModel;
@@ -3741,7 +3731,6 @@ function resumeTts() {
 }
 
 function handleVoiceResponse(resp, sourceName) {
-let _t0 = Date.now();
 let respType = resp.type || "";
 resetVoiceIdleTimer();
     if (respType === "env_check") {
@@ -3802,9 +3791,6 @@ resetVoiceIdleTimer();
     } else if (respType === "download_error") {
         pushErrorMessage("Voice model download error: " + (resp.error || "Unknown error"));
     }
-    let _t1 = Date.now();
-    if (_t1 - _t0 > 5)
-        console.log("[KAI-PERF] handleVoiceResponse: " + (_t1-_t0) + "ms type=" + respType);
 }
 
 
