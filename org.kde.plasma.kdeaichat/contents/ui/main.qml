@@ -4238,26 +4238,26 @@ PlasmoidItem {
                                 QQC2.MenuItem {
                                     text: root ? root.translate("Newest first") : "Newest first"
                                     checkable: true
-                                    checked: sortBy === "date_desc"
-                                    onTriggered: sortBy = "date_desc"
+                                    checked: inlinedSidebar.sortBy === "date_desc"
+                                    onTriggered: inlinedSidebar.sortBy = "date_desc"
                                 }
                                 QQC2.MenuItem {
                                     text: root ? root.translate("Oldest first") : "Oldest first"
                                     checkable: true
-                                    checked: sortBy === "date_asc"
-                                    onTriggered: sortBy = "date_asc"
+                                    checked: inlinedSidebar.sortBy === "date_asc"
+                                    onTriggered: inlinedSidebar.sortBy = "date_asc"
                                 }
                                 QQC2.MenuItem {
                                     text: root ? root.translate("Name (A-Z)") : "Name (A-Z)"
                                     checkable: true
-                                    checked: sortBy === "name_asc"
-                                    onTriggered: sortBy = "name_asc"
+                                    checked: inlinedSidebar.sortBy === "name_asc"
+                                    onTriggered: inlinedSidebar.sortBy = "name_asc"
                                 }
                                 QQC2.MenuItem {
                                     text: root ? root.translate("Name (Z-A)") : "Name (Z-A)"
                                     checkable: true
-                                    checked: sortBy === "name_desc"
-                                    onTriggered: sortBy = "name_desc"
+                                    checked: inlinedSidebar.sortBy === "name_desc"
+                                    onTriggered: inlinedSidebar.sortBy = "name_desc"
                                 }
                             }
                         }
