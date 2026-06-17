@@ -72,6 +72,7 @@ var root = {
     _pendingStreamingText: "",
     reqDedupRelease: function() {},
     triggerTts: function() {},
+    messagesChanged: function() {},
 };
 var plasmoid = { configuration: { voiceEnabled: false } };
 var MainDatabase = { triggerTts: function() {} };

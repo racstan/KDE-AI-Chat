@@ -1067,10 +1067,11 @@ root.streamingModel = modelLabel;
 
 _pendingStreamingText += incoming;
 root.streamingResponse = true;
-if (root.streamingBatchTimer)
-    root.streamingBatchTimer.restart();
-if (!root.userScrolledUp)
-queueScrollToBottom();
+// Use start() not restart() — the repeating timer must not be reset on
+// every token or it will never fire during a rapid burst. Calling start()
+// on an already-running repeating timer is a no-op, which is what we want.
+if (root.streamingBatchTimer && !root.streamingBatchTimer.running)
+    root.streamingBatchTimer.start();
 }
 
 
@@ -1078,6 +1079,8 @@ function flushIntermediateStreaming() {
 if (_pendingStreamingText !== "") {
     root.streamingContent = (root.streamingContent || "") + _pendingStreamingText;
     _pendingStreamingText = "";
+    if (!root.userScrolledUp)
+        queueScrollToBottom();
 }
 }
 
@@ -1314,7 +1317,8 @@ let msg = {
 "status": "pending",
 "at": Date.now()
 };
-root.messages = root.messages.concat([msg]);
+root.messages.push(msg);
+root.messagesChanged();
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
 queueScrollToBottom();
@@ -1419,7 +1423,8 @@ let msg = {
 "status": "pending",
 "at": Date.now()
 };
-root.messages = root.messages.concat([msg]);
+root.messages.push(msg);
+root.messagesChanged();
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
 queueScrollToBottom();
@@ -1841,14 +1846,15 @@ return res;
 
 function pushInfoMessage(text) {
 let ts = Date.now();
-root.messages = root.messages.concat([{
+root.messages.push({
 "role": "assistant",
 "content": text,
 "time": nowTime(ts),
 "at": ts,
 "model": "OpenCode",
 "isSystem": true
-}]);
+});
+root.messagesChanged();
 scrollToBottom();
 saveCurrentSessionState(true);
 }
@@ -1881,7 +1887,8 @@ root.quotedMessage = null;
 let pendingMsg = msgObj;
 let pendingIdx = root.messages.length;
 Qt.callLater(function() {
-    root.messages = root.messages.concat([pendingMsg]);
+    root.messages.push(pendingMsg);
+    root.messagesChanged();
 });
 saveCurrentSessionState(true);
 
@@ -1904,7 +1911,7 @@ if ((role === "user" || role === "queued") && root.currentSessionTitle === "New 
 
 function appendSystemMessage(text) {
 let ts = Date.now();
-root.messages = root.messages.concat([{
+root.messages.push({
 "role": "assistant",
 "content": text,
 "time": nowTime(ts),
@@ -1913,7 +1920,8 @@ root.messages = root.messages.concat([{
 "queueId": 0,
 "attachments": [],
 "isSystem": true
-}]);
+});
+root.messagesChanged();
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
 queueScrollToBottom();
@@ -2557,7 +2565,7 @@ root.handleScheduleCommand(schedText);
 schedulerPollTimer.triggered();
 // Append interactive list inline!
 let ts = Date.now();
-root.messages = root.messages.concat([{
+root.messages.push({
 "role": "schedules_list",
 "content": "Interactive Schedules Manager",
 "time": nowTime(ts),
@@ -2565,7 +2573,8 @@ root.messages = root.messages.concat([{
 "model": "",
 "queueId": 0,
 "attachments": []
-}]);
+});
+root.messagesChanged();
 saveCurrentSessionState(true);
 if (!root.userScrolledUp)
 queueScrollToBottom();
@@ -2611,12 +2620,9 @@ return ;
 appendUserMessage(text, "user", attachments);
 // Index is current length since appendUserMessage defers the concat
 let _msgIdx = root.messages.length;
-if (root.sendMessageDelayTimer) {
-    root.sendMessageDelayTimer.messageIndex = _msgIdx;
-    root.sendMessageDelayTimer.start();
-} else {
-    Qt.callLater(function() { sendMessageByIndex(_msgIdx); });
-}
+// One Qt event-loop tick is enough to let the UI paint the cleared input
+// before we start the network request — no artificial 50ms delay needed.
+Qt.callLater(function() { sendMessageByIndex(_msgIdx); });
 } catch (err) {
 root.loading = false;
 root.activeXhr = null;
@@ -3402,6 +3408,8 @@ sendMessageByIndex(lastUserIdx);
 
 
 function resetOpenCodeIdleKillTimer() {
+if (typeof openCodeIdleKillTimer === "undefined")
+return;
 if (root.openCodeMode && plasmoid.configuration.autoStartOpenCodeServer && root.configOpenCodeAutoKill) {
 let mins = root.configOpenCodeAutoKillMinutes || 5;
 openCodeIdleKillTimer.interval = mins * 60000;
@@ -3453,7 +3461,8 @@ if (root.streamingCost > 0) newMsg.cost = root.streamingCost;
 precomputeBlocksAndHtmlForMessage(newMsg);
 // Defer model update to avoid blocking the main thread.
 Qt.callLater(function() {
-    root.messages = root.messages.concat([newMsg]);
+    root.messages.push(newMsg);
+    root.messagesChanged();
     if (!root.userScrolledUp)
         queueScrollToBottom();
 });
@@ -3884,7 +3893,8 @@ let newMsg = {
 };
 // Defer model update to avoid blocking the main thread.
 Qt.callLater(function() {
-root.messages = root.messages.concat([newMsg]);
+root.messages.push(newMsg);
+root.messagesChanged();
 if (!root.userScrolledUp)
     root.queueScrollToBottom ? root.queueScrollToBottom() : Qt.callLater(scrollToBottom);
 });

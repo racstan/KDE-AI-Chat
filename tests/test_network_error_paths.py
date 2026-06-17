@@ -120,6 +120,7 @@ var root = {
     buildEffectiveSystemPrompt: function() { return "system"; },
     buildAnthropicPayload: function() { return [{role:"user",content:"x"}]; },
     pushErrorMessage: function(t) { __xhrBehavior.lastError = t; },
+    messagesChanged: function() {},
 };
 var plasmoid = { configuration: { voiceEnabled: false } };
 var MainDatabase = { triggerTts: function() {} };

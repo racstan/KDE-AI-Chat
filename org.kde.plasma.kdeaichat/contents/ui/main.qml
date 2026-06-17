@@ -54,6 +54,70 @@ PlasmoidItem {
     property string activeHistoryPath: ""
     property string currentSessionTitle: ""
     property var messages: []
+
+    ListModel {
+        id: messagesListModel
+    }
+
+    function syncMessagesModel() {
+        var jsArr = root.messages || [];
+        var lm = messagesListModel;
+        if (jsArr.length === 0 && lm.count === 0) return;
+        if (jsArr.length === 0) {
+            lm.clear();
+            return;
+        }
+        if (lm.count === 0) {
+            for (var i = 0; i < jsArr.length; i++) {
+                lm.append({ "msg": jsArr[i] });
+            }
+            return;
+        }
+        var isDifferent = false;
+        if (jsArr.length < lm.count) {
+            isDifferent = true;
+        } else {
+            var lmFirst = lm.get(0);
+            var jsFirst = jsArr[0];
+            if (lmFirst && jsFirst && lmFirst.msg) {
+                if (lmFirst.msg.at !== jsFirst.at || lmFirst.msg.role !== jsFirst.role) {
+                    isDifferent = true;
+                }
+            } else {
+                isDifferent = true;
+            }
+        }
+        if (isDifferent) {
+            lm.clear();
+            for (var i = 0; i < jsArr.length; i++) {
+                lm.append({ "msg": jsArr[i] });
+            }
+            return;
+        }
+        for (var i = 0; i < lm.count; i++) {
+            var lmItem = lm.get(i);
+            var jsItem = jsArr[i];
+            if (!lmItem || !lmItem.msg || !jsItem) continue;
+            var msgObj = lmItem.msg;
+            var hasChanged = (msgObj.content !== jsItem.content) ||
+                             (msgObj.role !== jsItem.role) ||
+                             (msgObj.status !== jsItem.status) ||
+                             (msgObj.model !== jsItem.model) ||
+                             (msgObj.isSystem !== jsItem.isSystem) ||
+                             (msgObj.sc !== jsItem.sc) ||
+                             (msgObj.contentHtmlCache !== jsItem.contentHtmlCache) ||
+                             (!!msgObj.tokens !== !!jsItem.tokens) ||
+                             (!!msgObj.attachments !== !!jsItem.attachments) ||
+                             (!!msgObj.quote !== !!jsItem.quote);
+            if (hasChanged) {
+                lm.set(i, { "msg": jsItem });
+            }
+        }
+        for (var i = lm.count; i < jsArr.length; i++) {
+            lm.append({ "msg": jsArr[i] });
+        }
+    }
+
     property var quotedMessage: null
     property bool searchBarActive: false
     property string searchQuery: ""
@@ -1094,6 +1158,7 @@ PlasmoidItem {
     property int _msgVersion: 0
 
     onMessagesChanged: {
+        root.syncMessagesModel();
         root.updateMessageMetadata();
         if (root.streamingResponse) {
             return;
@@ -1197,22 +1262,18 @@ PlasmoidItem {
         }
     }
 
+    // Repeating flush timer (40ms = ~25fps) so the streaming display
+    // updates continuously during rapid token bursts instead of waiting
+    // for a 120ms quiet gap that may never come.
     Timer {
         id: streamingBatchTimer
-        interval: 120
-        repeat: false
-        onTriggered: root.flushIntermediateStreaming()
-    }
-
-    Timer {
-        id: sendMessageDelayTimer
-        interval: 50
-        repeat: false
-        property int messageIndex: -1
+        interval: 40
+        repeat: true
         onTriggered: {
-            if (messageIndex >= 0) {
-                ChatEngine.sendMessageByIndex(messageIndex);
-            }
+            if (root.streamingResponse)
+                root.flushIntermediateStreaming();
+            else
+                streamingBatchTimer.stop();
         }
     }
 
@@ -2464,7 +2525,7 @@ PlasmoidItem {
                             anchors.bottomMargin: Kirigami.Units.smallSpacing
                             anchors.rightMargin: Kirigami.Units.gridUnit
                             verticalLayoutDirection: ListView.TopToBottom
-                            model: root.messages
+                            model: messagesListModel
                             spacing: Kirigami.Units.largeSpacing
                             clip: true
                             cacheBuffer: 20000
@@ -2583,24 +2644,27 @@ PlasmoidItem {
                                     }
                                 }
                             }
-
                             delegate: Item {
-                                required property var modelData
                                 required property int index
+                                property var modelData: {
+                                    var item = messagesListModel.get(index);
+                                    return item ? item.msg : null;
+                                }
                                 readonly property int originalIndex: index
-                                readonly property bool showDayHeader: modelData.showDayHeader || false
+                                readonly property bool showDayHeader: modelData && modelData.showDayHeader || false
 
-                                property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData.searchText && modelData.searchText.indexOf(root.searchQuery.trim().toLowerCase()) >= 0
+                                property bool isSearchMatch: root.searchBarActive && root.searchQuery.trim() !== "" && modelData && modelData.searchText && modelData.searchText.indexOf(root.searchQuery.trim().toLowerCase()) >= 0
                                 property bool isCurrentSearchMatch: isSearchMatch && root.searchMatches[root.currentSearchMatchIndex] === originalIndex
 
                                  // Cache expensive per-role lookups as readonly properties so they are
                                 // only recomputed when the role changes, not on every frame repaint.
-                                readonly property bool roleIsUser: modelData.role === "user"
-                                readonly property bool roleIsQueued: modelData.role === "queued"
-                                readonly property bool roleIsError: modelData.role === "error"
-                                readonly property bool roleIsSpecial: modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request"
-                                readonly property bool roleIsAssistant: modelData.role === "assistant"
+                                readonly property bool roleIsUser: modelData && modelData.role === "user"
+                                readonly property bool roleIsQueued: modelData && modelData.role === "queued"
+                                readonly property bool roleIsError: modelData && modelData.role === "error"
+                                readonly property bool roleIsSpecial: modelData && (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "schedules_list" || modelData.role === "compact_request")
+                                readonly property bool roleIsAssistant: modelData && modelData.role === "assistant"
                                 readonly property string roleLabel: {
+                                    if (!modelData)    return "";
                                     if (roleIsUser)    return "You";
                                     if (roleIsQueued)  return "You (Queued)";
                                     if (roleIsError)   return "Error";

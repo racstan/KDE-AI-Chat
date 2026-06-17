@@ -85,6 +85,7 @@ var root = {
     configOpenCodeAutoKill: false,
     openCodeMode: false,
     _pendingStreamingText: "",
+    messagesChanged: function() {},
 };
 var StandardPaths = {
     writableLocation: function() { return "file:///tmp/"; }
