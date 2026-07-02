@@ -2318,10 +2318,12 @@ PlasmoidItem {
     }
 
     function scrollToBottom() {
-        if (root.msgListViewRef && root.msgListViewRef.count > 0) {
-            root.msgListViewRef.positionViewAtIndex(root.msgListViewRef.count - 1, ListView.End)
-            root.msgListViewRef.positionViewAtEnd()
-        }
+        Qt.callLater(function() {
+            if (root.msgListViewRef && root.msgListViewRef.count > 0) {
+                root.msgListViewRef.positionViewAtIndex(root.msgListViewRef.count - 1, ListView.End)
+                root.msgListViewRef.positionViewAtEnd()
+            }
+        })
     }
 
     function messageTimestampAt(index) {
