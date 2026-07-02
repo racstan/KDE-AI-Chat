@@ -2318,7 +2318,8 @@ PlasmoidItem {
     }
 
     function scrollToBottom() {
-        if (root.msgListViewRef) {
+        if (root.msgListViewRef && root.msgListViewRef.count > 0) {
+            root.msgListViewRef.positionViewAtIndex(root.msgListViewRef.count - 1, ListView.End)
             root.msgListViewRef.positionViewAtEnd()
         }
     }
