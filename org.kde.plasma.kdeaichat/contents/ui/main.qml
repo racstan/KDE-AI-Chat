@@ -955,6 +955,7 @@ PlasmoidItem {
                                                         }
 
                                                         PC3.ToolButton {
+                                                            visible: root.currentStreamIndex !== index
                                                             icon.name: "edit-copy"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
@@ -968,6 +969,7 @@ PlasmoidItem {
                                                         }
 
                                                         PC3.ToolButton {
+                                                            visible: root.currentStreamIndex !== index
                                                             icon.name: "edit-delete"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
