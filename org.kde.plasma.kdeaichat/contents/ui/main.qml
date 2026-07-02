@@ -2315,7 +2315,7 @@ PlasmoidItem {
                             providerID: providerId,
                             modelID: modelId
                         },
-                        system: plasmoid.configuration.systemPrompt
+                        system: compiledSystemPrompt
                                 || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
                         parts: parts
                     }))
@@ -2846,7 +2846,7 @@ PlasmoidItem {
     }
 
     function buildOpenAICompatPayload() {
-        var sys = plasmoid.configuration.systemPrompt
+        var sys = compiledSystemPrompt
                   || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
         var arr = [{ role: "system", content: sys }]
         for (var i = 0; i < root.messages.length; i++) {
@@ -3113,7 +3113,7 @@ PlasmoidItem {
         xhr.send(JSON.stringify({
             model: model,
             max_tokens: 1024,
-            system: plasmoid.configuration.systemPrompt
+            system: compiledSystemPrompt
                     || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
             messages: buildAnthropicPayload()
         }))
@@ -3796,5 +3796,96 @@ PlasmoidItem {
         var pythonCode = "import base64; f = open('" + filePath.replace(/'/g, "'\\''") + "', 'w', encoding='utf-8'); f.write(base64.b64decode('" + b64Str + "').decode('utf-8')); f.close()"
         var cmd = "python3 -c \"" + pythonCode + "\" && notify-send -i document-export 'KDE AI Chat' 'Chat session successfully exported to " + filePath.replace(/'/g, "'\\''") + "'"
         fileReaderDs.connectSource(cmd + " #export-chat-save")
+    }
+    function initSystemPrompt() {
+        compiledSystemPrompt = Api.buildSystemPrompt(sysInfo, plasmoid.configuration.systemPrompt, {
+            sysInfoDateTime: plasmoid.configuration.sysInfoDateTime
+        });
+    }
+
+    function regatherSysInfo() {
+        sysInfo = {};
+        var cmds = [];
+        if (plasmoid.configuration.sysInfoOS)       cmds.push("cat /etc/os-release");
+        if (plasmoid.configuration.sysInfoShell)    cmds.push("echo $SHELL");
+        if (plasmoid.configuration.sysInfoHostname) cmds.push("hostname");
+        if (plasmoid.configuration.sysInfoKernel)   cmds.push("uname -a");
+        if (plasmoid.configuration.sysInfoDesktop)  cmds.push("echo $XDG_CURRENT_DESKTOP");
+        if (plasmoid.configuration.sysInfoUser)     cmds.push("whoami");
+        if (plasmoid.configuration.sysInfoCPU)      cmds.push("lscpu");
+        if (plasmoid.configuration.sysInfoMemory)   cmds.push("free -h");
+        if (plasmoid.configuration.sysInfoGPU)      cmds.push("bash -c \"lspci -nn | grep -iE 'vga|3d|display'\"");
+        if (plasmoid.configuration.sysInfoDisk)     cmds.push("lsblk -o NAME,SIZE,TYPE,MOUNTPOINT");
+        if (plasmoid.configuration.sysInfoNetwork)  cmds.push("ip -br addr show");
+        if (plasmoid.configuration.sysInfoLocale)   cmds.push("echo $LANG");
+
+        if (cmds.length === 0) {
+            initSystemPrompt();
+            return;
+        }
+        sysInfoPending = cmds.length;
+        pendingSysInfoCommands = {};
+        for (var i = 0; i < cmds.length; i++) {
+            pendingSysInfoCommands[cmds[i]] = true;
+            sysInfoDs.connectSource(cmds[i]);
+        }
+    }
+
+    P5Support.DataSource {
+        id: sysInfoDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            var output = data["stdout"] ? data["stdout"].trim() : "";
+            if (pendingSysInfoCommands[source]) {
+                delete pendingSysInfoCommands[source];
+                
+                switch (source) {
+                    case "hostname": sysInfo.hostname = output; break;
+                    case "uname -a": sysInfo.kernel = output; break;
+                    case "whoami": sysInfo.user = output; break;
+                    case "echo $SHELL": sysInfo.shell = output; break;
+                    case "cat /etc/os-release":
+                        var lines = output.split("\n");
+                        for (var i = 0; i < lines.length; i++) {
+                            if (lines[i].indexOf("PRETTY_NAME=") === 0) {
+                                sysInfo.osRelease = lines[i].replace("PRETTY_NAME=", "").replace(/"/g, "");
+                                break;
+                            }
+                        }
+                        if (!sysInfo.osRelease) sysInfo.osRelease = output.substring(0, 100);
+                        break;
+                    case "echo $XDG_CURRENT_DESKTOP": sysInfo.desktop = output; break;
+                    case "lscpu":
+                        var cpuLines = output.split("\n");
+                        var cpuInfo = {};
+                        for (var j = 0; j < cpuLines.length; j++) {
+                            var parts = cpuLines[j].split(":");
+                            if (parts.length >= 2) {
+                                var key = parts[0].trim();
+                                var val = parts.slice(1).join(":").trim();
+                                if (["Model name", "CPU(s)", "Architecture", "Thread(s) per core", "Core(s) per socket"].indexOf(key) !== -1) {
+                                    cpuInfo[key] = val;
+                                }
+                            }
+                        }
+                        sysInfo.cpu = cpuInfo["Model name"] || "unknown";
+                        sysInfo.cpuCores = (cpuInfo["CPU(s)"] || "?") + " threads, " + (cpuInfo["Core(s) per socket"] || "?") + " cores";
+                        sysInfo.cpuArch = cpuInfo["Architecture"] || "";
+                        break;
+                    case "free -h": sysInfo.memory = output; break;
+                    case "lsblk -o NAME,SIZE,TYPE,MOUNTPOINT": sysInfo.disk = output; break;
+                    case "bash -c \"lspci -nn | grep -iE 'vga|3d|display'\"": sysInfo.gpu = output || "unknown"; break;
+                    case "ip -br addr show": sysInfo.network = output; break;
+                    case "echo $LANG": sysInfo.locale = output; break;
+                }
+
+                sysInfoPending--;
+                if (sysInfoPending === 0) {
+                    initSystemPrompt();
+                }
+                disconnectSource(source);
+            }
+        }
     }
 }

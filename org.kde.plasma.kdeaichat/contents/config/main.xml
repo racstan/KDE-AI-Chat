@@ -225,5 +225,19 @@
     <entry name="playNotificationSound" type="Bool">
       <default>true</default>
     </entry>
+
+    <entry name="sysInfoOS" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoShell" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoHostname" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoKernel" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoDesktop" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoUser" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoCPU" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoMemory" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoGPU" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoDisk" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoNetwork" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoLocale" type="Bool"><default>false</default></entry>
+    <entry name="sysInfoDateTime" type="Bool"><default>false</default></entry>
   </group>
 </kcfg>

@@ -988,7 +988,6 @@ KCM.SimpleKCM {
         plasmoid.configuration.openCodeStartCommand = openCodeStartCommandField.text;
         plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text;
         plasmoid.configuration.kwalletName = walletNameField.text;
-        plasmoid.configuration.systemPrompt = systemPromptArea.text;
     }
 
     function cancelKeyringOps() {
@@ -2458,14 +2457,9 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "Behavior"
             }
 
-            QQC2.TextArea {
-                id: systemPromptArea
-
-                Kirigami.FormData.label: "System prompt:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                wrapMode: Text.Wrap
-                placeholderText: "You are KDE AI Chat, a precise and helpful assistant."
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: "API Key Storage"
             }
 
 
@@ -2589,6 +2583,8 @@ KCM.SimpleKCM {
                 running: visible
                 Kirigami.FormData.label: "Working:"
             }
+
+
 
             QQC2.Label {
                 visible: keyringStatus !== ""
