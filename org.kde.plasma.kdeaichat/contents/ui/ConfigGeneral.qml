@@ -12,9 +12,7 @@ KCM.SimpleKCM {
     property real configZoom: 1
     property alias cfg_appDisplayName: appDisplayNameField.text
     property alias cfg_appearanceMode: appearanceModeCombo.currentIndex
-    property alias cfg_keyStorageMode: storageModeCombo.currentIndex
-    // Convenience computed for all KWallet-only visibility guards
-    readonly property bool kwalletModeActive: cfg_keyStorageMode === 2
+    readonly property bool kwalletModeActive: true
     property alias cfg_provider: providerBox.currentValue
     property alias cfg_baseUrl: baseUrlField.text
     property alias cfg_apiKey: apiKeyField.text
@@ -777,10 +775,7 @@ KCM.SimpleKCM {
 
     function saveKey(targetId, value) {
         var val = (value || "").trim();
-        if (cfg_keyStorageMode === 1)
-            syncKeysToDisk();
-        else if (cfg_keyStorageMode === 2)
-            kwalletStore(targetId, val, false);
+        kwalletStore(targetId, val, false);
     }
 
     function kwalletLoad(targetId, isBulk) {
@@ -945,96 +940,12 @@ KCM.SimpleKCM {
         litellmApiKeyField.text = "";
     }
 
-    function loadKeysFromPlainConfig() {
-        utilityDs.connectSource("python3 -c \"import configparser, json; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); print(json.dumps(dict(config['General']) if 'General' in config else {}))\" #plainconfig-load");
-    }
 
-    function applyPlainConfigKeys(keys) {
-        apiKeyField.text = keys["apiKey"] || "";
-        anthropicApiKeyField.text = keys["anthropicApiKey"] || "";
-        groqApiKeyField.text = keys["groqApiKey"] || "";
-        deepSeekApiKeyField.text = keys["deepSeekApiKey"] || "";
-        miniMaxApiKeyField.text = keys["miniMaxApiKey"] || "";
-        fireworksApiKeyField.text = keys["fireworksApiKey"] || "";
-        googleApiKeyField.text = keys["googleApiKey"] || "";
-        openRouterApiKeyField.text = keys["openRouterApiKey"] || "";
-        mistralApiKeyField.text = keys["mistralApiKey"] || "";
-        cloudflareApiKeyField.text = keys["cloudflareApiKey"] || "";
-        nvidiaApiKeyField.text = keys["nvidiaApiKey"] || "";
-        huggingFaceApiKeyField.text = keys["huggingFaceApiKey"] || "";
-        xaiApiKeyField.text = keys["xaiApiKey"] || "";
-        litellmApiKeyField.text = keys["litellmApiKey"] || "";
-    }
-
-    function writeKeysToDiskAndOpen() {
-        var payload = {
-            "apiKey": apiKeyField.text,
-            "anthropicApiKey": anthropicApiKeyField.text,
-            "groqApiKey": groqApiKeyField.text,
-            "deepSeekApiKey": deepSeekApiKeyField.text,
-            "miniMaxApiKey": miniMaxApiKeyField.text,
-            "fireworksApiKey": fireworksApiKeyField.text,
-            "googleApiKey": googleApiKeyField.text,
-            "openRouterApiKey": openRouterApiKeyField.text,
-            "mistralApiKey": mistralApiKeyField.text,
-            "cloudflareApiKey": cloudflareApiKeyField.text,
-            "nvidiaApiKey": nvidiaApiKeyField.text,
-            "huggingFaceApiKey": huggingFaceApiKeyField.text,
-            "xaiApiKey": xaiApiKeyField.text,
-            "litellmApiKey": litellmApiKeyField.text
-        };
-        var b64Str = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\" && xdg-open ~/.config/kdeaichatrc #open-config";
-        utilityDs.connectSource(cmd);
-    }
-
-    function syncKeysToDisk() {
-        // Write current key fields to ~/.config/kdeaichatrc (plain-config extra copy).
-        // cfg_ aliases handle saving to the Plasma config automatically on OK/Apply.
-        var payload = {
-            "apiKey": apiKeyField.text,
-            "anthropicApiKey": anthropicApiKeyField.text,
-            "groqApiKey": groqApiKeyField.text,
-            "deepSeekApiKey": deepSeekApiKeyField.text,
-            "miniMaxApiKey": miniMaxApiKeyField.text,
-            "fireworksApiKey": fireworksApiKeyField.text,
-            "googleApiKey": googleApiKeyField.text,
-            "openRouterApiKey": openRouterApiKeyField.text,
-            "mistralApiKey": mistralApiKeyField.text,
-            "cloudflareApiKey": cloudflareApiKeyField.text,
-            "nvidiaApiKey": nvidiaApiKeyField.text,
-            "huggingFaceApiKey": huggingFaceApiKeyField.text,
-            "xaiApiKey": xaiApiKeyField.text,
-            "litellmApiKey": litellmApiKeyField.text
-        };
-        var b64Str = Qt.btoa(JSON.stringify(payload));
-        var cmd = "python3 -c \"import configparser, json, base64; data = json.loads(base64.b64decode('" + b64Str + "').decode('utf-8')); config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); config['General'] = config['General'] if 'General' in config else {}; [config['General'].__setitem__(k, str(v)) for k, v in data.items()]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
-        utilityDs.connectSource(cmd + " #plainconfig-sync");
-    }
-
-    function clearKeysFromDisk() {
-        var cmd = "python3 -c \"import configparser; config = configparser.ConfigParser(); config.optionxform = str; config.read('/home/home/.config/kdeaichatrc'); if 'General' in config: [config['General'].pop(k, None) for k in ['apiKey', 'anthropicApiKey', 'groqApiKey', 'deepSeekApiKey', 'miniMaxApiKey', 'fireworksApiKey', 'googleApiKey', 'openRouterApiKey', 'mistralApiKey', 'cloudflareApiKey', 'nvidiaApiKey', 'huggingFaceApiKey', 'xaiApiKey', 'litellmApiKey']]; f=open('/home/home/.config/kdeaichatrc', 'w'); config.write(f); f.close()\"";
-        utilityDs.connectSource(cmd + " #plainconfig-clear");
-        plasmoid.configuration.apiKey = "";
-        plasmoid.configuration.anthropicApiKey = "";
-        plasmoid.configuration.groqApiKey = "";
-        plasmoid.configuration.deepSeekApiKey = "";
-        plasmoid.configuration.miniMaxApiKey = "";
-        plasmoid.configuration.fireworksApiKey = "";
-        plasmoid.configuration.googleApiKey = "";
-        plasmoid.configuration.openRouterApiKey = "";
-        plasmoid.configuration.mistralApiKey = "";
-        plasmoid.configuration.cloudflareApiKey = "";
-        plasmoid.configuration.nvidiaApiKey = "";
-        plasmoid.configuration.huggingFaceApiKey = "";
-        plasmoid.configuration.xaiApiKey = "";
-        plasmoid.configuration.litellmApiKey = "";
-    }
 
     function saveGeneralSettingsOnly() {
         plasmoid.configuration.appDisplayName = appDisplayNameField.text;
         plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex;
-        plasmoid.configuration.keyStorageMode = cfg_keyStorageMode;
+
         plasmoid.configuration.provider = providerBox.currentValue;
         plasmoid.configuration.baseUrl = baseUrlField.text;
         plasmoid.configuration.model = modelField.text;
@@ -1164,33 +1075,19 @@ KCM.SimpleKCM {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0;
 
-        // cfg_ aliases already load the Plasma-stored values automatically.
-        // For KWallet mode, trigger wallet detection to populate the fields.
-        // For session-only mode, wipe the fields so stale cfg values aren't used.
-        if (plasmoid.configuration.keyStorageMode === 2)
-            detectWallets();
-        else if (plasmoid.configuration.keyStorageMode === 0)
-            clearAllApiKeyFields();
+        // Force wallet detection to populate fields
+        detectWallets();
+
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery();
 
-        // Mark page as fully initialised — cfg_ aliases are now populated.
-        // Any storage-mode handler that fires before this point is a no-op
-        // for write operations so we don't flush empty fields to disk.
+        // Mark page as fully initialised
         pageReady = true;
     }
     Component.onDestruction: {
         saveGeneralSettingsOnly();
-        // cfg_ aliases are auto-saved by KCM on OK/Apply — no async work needed here.
-        // For KWallet mode, sync the current fields to KWallet before closing.
-        // For Plain Config mode, persist keys to disk on close as well.
-        if (plasmoid.configuration.keyStorageMode === 2) {
-            kwalletStoreAll();
-        } else if (plasmoid.configuration.keyStorageMode === 1) {
-            syncKeysToDisk();
-        } else if (plasmoid.configuration.keyStorageMode === 0) {
-            clearKeysFromDisk();
-        }
+        // Sync the current fields to KWallet before closing.
+        kwalletStoreAll();
     }
 
     WheelHandler {
@@ -1334,21 +1231,6 @@ KCM.SimpleKCM {
                     keyringStatus = "Wallet ready for KDE AI Chat.";
                 else
                     keyringStatus = out !== "" ? out : (err !== "" ? err : "Wallet check finished.");
-            } else if (sourceName.indexOf("plainconfig-load") >= 0) {
-                try {
-                    var keys = JSON.parse(out);
-                    applyPlainConfigKeys(keys);
-                    keyringStatus = "Keys successfully reloaded from the physical configuration file.";
-                } catch (e) {
-                    console.log("Error parsing plain config: " + e);
-                    keyringStatus = "Error parsing config file: " + e;
-                }
-            } else if (sourceName.indexOf("plainconfig-sync") >= 0) {
-                // Plain-config save completed. Update status only if there was
-                // a stderr error; otherwise the button handler already set a
-                // success message.
-                if (err !== "")
-                    keyringStatus = "Error saving to config file: " + err;
             } else {
                 discoveryStatus = out !== "" ? out : (err !== "" ? err : "Command finished.");
             }
@@ -2586,81 +2468,9 @@ KCM.SimpleKCM {
                 placeholderText: "You are KDE AI Chat, a precise and helpful assistant."
             }
 
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: "API Key Storage"
-            }
+
 
             QQC2.Label {
-                Kirigami.FormData.label: "Storage mode:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "Choose how your API keys are stored between sessions:"
-                wrapMode: Text.Wrap
-                opacity: 0.75
-            }
-
-            QQC2.ComboBox {
-                id: storageModeCombo
-
-                Kirigami.FormData.label: "Storage mode:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                model: ["🔒 Session only (forget keys on close)", "📄 Plain config (save to ~/.config/kdeaichatrc)", "🔑 KWallet (secure encrypted storage)"]
-                onCurrentIndexChanged: {
-                    // Guard: do not write anything during KCM initialisation;
-                    // cfg_ aliases may not be populated yet at that point.
-                    if (!page.pageReady)
-                        return;
-                    keyringStatus = "";
-                    if (currentIndex === 1) {
-                        page.syncKeysToDisk();
-                        keyringStatus = "Switched to Plain Config. Current keys synced to config file.";
-                    } else if (currentIndex === 2) {
-                        if (availableWalletNames.length === 0)
-                            detectWallets();
-
-                    }
-                }
-            }
-
-            QQC2.Label {
-                visible: storageModeCombo.currentIndex === 0
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "⚠️  Your keys are held in memory only and wiped from the config file on close. You will need to re-enter them every time you restart the widget."
-                wrapMode: Text.Wrap
-                opacity: 0.75
-            }
-
-            QQC2.Label {
-                visible: storageModeCombo.currentIndex === 1
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "Config file location: ~/.config/kdeaichatrc — Keys are stored in plain text. Suitable for single-user machines where disk access is trusted."
-                wrapMode: Text.Wrap
-                opacity: 0.75
-            }
-
-            RowLayout {
-                visible: storageModeCombo.currentIndex === 1
-                Kirigami.FormData.label: "Config actions:"
-                Layout.fillWidth: true
-
-                QQC2.Button {
-                    text: "Reload from config file"
-                    onClicked: loadKeysFromPlainConfig()
-                }
-
-                QQC2.Button {
-                    text: "Open config file"
-                    onClicked: writeKeysToDiskAndOpen()
-                }
-
-            }
-
-            QQC2.Label {
-                visible: storageModeCombo.currentIndex === 2
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Keys are encrypted and stored via DBus in your system KWallet. Recommended for shared or multi-user machines."

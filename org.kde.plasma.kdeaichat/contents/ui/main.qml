@@ -3709,10 +3709,8 @@ PlasmoidItem {
     }
 
     function loadKWalletKeysAtStartup() {
-        if (plasmoid.configuration.keyStorageMode === 2) {
-            var walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet"
-            kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load")
-        }
+        var walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet"
+        kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load")
     }
 
     function performExportChat(filePath) {

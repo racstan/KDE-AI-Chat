@@ -204,10 +204,7 @@
       <default>kdeaichatwallet</default>
     </entry>
 
-    <!-- keyStorageMode: 0 = session only (forget on restart), 1 = plain config file, 2 = KWallet -->
-    <entry name="keyStorageMode" type="Int">
-      <default>1</default>
-    </entry>
+
 
     <entry name="systemPrompt" type="String">
       <default>You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.</default>
