@@ -30,6 +30,8 @@ PlasmoidItem {
     property string openCodeAssistantModelLabel: "OpenCode"
     property bool openCodeErrorShownForRequest: false
     property bool streamingResponse: false
+    property string currentStreamText: ""
+    property int currentStreamIndex: -1
 
     property int editingMessageIndex: -1
     property string editingDraft: ""
@@ -542,8 +544,8 @@ PlasmoidItem {
                                                         visible: root.editingMessageIndex !== index || modelData.role === "error"
                                                         width: parent.width
                                                         wrapMode: Text.Wrap
-                                                        textFormat: modelData.role === "error" ? Text.PlainText : Text.RichText
-                                                        text: modelData.role === "error" ? modelData.content : root.convertMarkdownToHtml(modelData.content)
+                                                        textFormat: modelData.role === "error" ? Text.PlainText : Text.MarkdownText
+                                                        text: (root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content
                                                         color: modelData.role === "error"
                                                                ? Kirigami.Theme.negativeTextColor
                                                                : Kirigami.Theme.textColor
@@ -1778,41 +1780,49 @@ PlasmoidItem {
             var ts = Date.now()
             root.messages = root.messages.concat([{
                 role: "assistant",
-                content: incoming,
+                content: "",
                 time: nowTime(ts),
                 at: ts,
                 model: root.openCodeAssistantModelLabel || "OpenCode"
             }])
             root.openCodeAssistantMessageIndex = root.messages.length - 1
+            root.currentStreamIndex = root.openCodeAssistantMessageIndex
+            root.currentStreamText = incoming
             root.streamingResponse = true
             if (!root.userScrolledUp)
                 Qt.callLater(scrollToBottom)
             return
         }
 
-        var copy = root.messages.slice()
-        var item = Object.assign({}, copy[root.openCodeAssistantMessageIndex])
-        var existing = item.content || ""
+        var existing = root.currentStreamText || ""
+        var newText = ""
 
-        // OpenCode streams can be cumulative or token-delta; handle both.
         if (incoming.indexOf(existing) === 0)
-            item.content = incoming
+            newText = incoming
         else if (existing.indexOf(incoming) === 0)
-            item.content = existing
+            newText = existing
         else
-            item.content = existing + incoming
+            newText = existing + incoming
 
-        item.at = Date.now()
-        item.time = nowTime(item.at)
-        item.model = root.openCodeAssistantModelLabel || item.model || "OpenCode"
-        root.streamingResponse = (item.content || "") !== ""
-        copy[root.openCodeAssistantMessageIndex] = item
-        root.messages = copy
+        root.currentStreamText = newText
+        root.streamingResponse = newText !== ""
+        
         if (!root.userScrolledUp)
             Qt.callLater(scrollToBottom)
     }
 
     function finishOpenCodeRequest() {
+        if (root.openCodeAssistantMessageIndex >= 0 && root.currentStreamIndex === root.openCodeAssistantMessageIndex) {
+            root.messages[root.openCodeAssistantMessageIndex].content = root.currentStreamText
+            root.forceTextUpdate++
+            
+            root.currentStreamIndex = -1
+            root.currentStreamText = ""
+        }
+        
+        if (!root.userScrolledUp)
+            Qt.callLater(scrollToBottom)
+            
         root.loading = false
         root.activeXhr = null
         root.openCodeActiveSessionId = ""
@@ -2878,89 +2888,99 @@ PlasmoidItem {
         root.loading = true
         root.activeXhr = xhr
 
-        // Non-streaming: wait for the complete response, then display it at once.
-        // This is intentional — streaming caused the QML engine to re-render on every
-        // individual token, saturating the main thread and freezing the KDE desktop.
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE)
-                return
+        var buffer = ""
+        var offset = 0
+        var fullText = ""
 
-            root.loading = false
-            root.activeXhr = null
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
+                return
 
             if (xhr.status < 200 || xhr.status >= 300) {
-                if (errorHandled)
-                    return
-                errorHandled = true
-                var err = "Request to " + url + " failed"
-                if (xhr.status)
-                    err += " (HTTP " + xhr.status + ")"
-                try {
-                    var eobj = JSON.parse(xhr.responseText)
-                    if (eobj.error) {
-                        if (typeof eobj.error === "string") {
-                            err += " | " + eobj.error
-                        } else {
-                            if (eobj.error.message)
-                                err = "API Error (" + xhr.status + "): " + eobj.error.message
-                            if (eobj.error.metadata) {
-                                try {
-                                    err += " | " + JSON.stringify(eobj.error.metadata)
-                                } catch(ex) {
-                                    err += " | " + eobj.error.metadata
-                                }
-                            }
-                        }
-                    } else if (eobj.detail) {
-                        err += " | " + eobj.detail
-                    } else if (eobj.message) {
-                        err += " | " + eobj.message
-                    }
-                } catch (e2) {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    root.loading = false
+                    root.activeXhr = null
+                    if (errorHandled) return
+                    errorHandled = true
+                    var err = "Request to " + url + " failed (HTTP " + xhr.status + ")"
+                    try {
+                        var eobj = JSON.parse(xhr.responseText)
+                        if (eobj.error && eobj.error.message) err += ": " + eobj.error.message
+                        else if (eobj.error) err += ": " + JSON.stringify(eobj.error)
+                    } catch(e) {}
+                    pushErrorMessage(err)
+                    processNextQueuedMessage()
                 }
-                pushErrorMessage(err)
-                processNextQueuedMessage()
                 return
             }
 
-            try {
-                var parsed = JSON.parse(xhr.responseText)
-                var finalText = (parsed.choices && parsed.choices[0]
-                                 && parsed.choices[0].message
-                                 && parsed.choices[0].message.content) || ""
-                if (finalText !== "") {
-                    var doneTs = Date.now()
-                    var msgObj = {
-                        role: "assistant",
-                        content: finalText,
-                        time: nowTime(doneTs),
-                        at: doneTs,
-                        model: modelLabel || model || ""
-                    }
-                    if (parsed.usage) {
-                        msgObj.tokens = {
-                            input: parsed.usage.prompt_tokens || 0,
-                            output: parsed.usage.completion_tokens || 0
+            var delta = xhr.responseText.slice(offset)
+            offset = xhr.responseText.length
+            buffer += delta
+
+            while (true) {
+                var split = buffer.indexOf("\n")
+                if (split < 0) break
+
+                var line = buffer.slice(0, split).trim()
+                buffer = buffer.slice(split + 1)
+
+                if (line.indexOf("data: ") === 0) {
+                    var dataStr = line.slice(6)
+                    if (dataStr === "[DONE]") continue
+                    try {
+                        var obj = JSON.parse(dataStr)
+                        if (obj.choices && obj.choices.length > 0 && obj.choices[0].delta && obj.choices[0].delta.content) {
+                            fullText += obj.choices[0].delta.content
+                            
+                            if (root.currentStreamIndex < 0) {
+                                var ts = Date.now()
+                                root.messages = root.messages.concat([{
+                                    role: "assistant",
+                                    content: "",
+                                    time: nowTime(ts),
+                                    at: ts,
+                                    model: modelLabel || model || ""
+                                }])
+                                root.currentStreamIndex = root.messages.length - 1
+                                root.streamingResponse = true
+                            }
+                            
+                            root.currentStreamText = fullText
+                            
+                            if (!root.userScrolledUp)
+                                Qt.callLater(scrollToBottom)
                         }
-                    }
-                    root.messages = root.messages.concat([msgObj])
-                    if (!root.userScrolledUp)
-                        Qt.callLater(scrollToBottom)
-                } else {
-                    pushErrorMessage("The model returned an empty response.")
+                    } catch(e) {}
                 }
-            } catch (parseError) {
-                pushErrorMessage("Failed to parse response: " + parseError)
             }
 
-            triggerNotificationSound()
-            saveCurrentSessionState(true)
-            processNextQueuedMessage()
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                root.loading = false
+                root.activeXhr = null
+                
+                if (root.currentStreamIndex >= 0) {
+                    root.messages[root.currentStreamIndex].content = root.currentStreamText
+                    root.forceTextUpdate++
+                } else if (fullText === "" && xhr.status >= 200 && xhr.status < 300) {
+                    pushErrorMessage("The model returned an empty response.")
+                }
+                
+                root.currentStreamIndex = -1
+                root.currentStreamText = ""
+                root.streamingResponse = false
+                
+                if (!root.userScrolledUp)
+                    Qt.callLater(scrollToBottom)
+                
+                triggerNotificationSound()
+                saveCurrentSessionState(true)
+                processNextQueuedMessage()
+            }
         }
 
         xhr.onerror = function() {
-            if (errorHandled)
-                return
+            if (errorHandled) return
             errorHandled = true
             root.loading = false
             root.activeXhr = null
@@ -2972,7 +2992,7 @@ PlasmoidItem {
             xhr.send(JSON.stringify({
                 model: model,
                 messages: buildOpenAICompatPayload(),
-                stream: false
+                stream: true
             }))
         } catch (sendError) {
             root.loading = false
