@@ -209,8 +209,8 @@ PlasmoidItem {
                 PC3.ToolButton {
                     icon.name: "window-pin"
                     checkable: true
-                    checked: !plasmoid.hideOnWindowDeactivate
-                    onToggled: plasmoid.hideOnWindowDeactivate = !checked
+                    checked: !root.hideOnWindowDeactivate
+                    onToggled: root.hideOnWindowDeactivate = !checked
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: checked ? "Unpin (close when clicking away)" : "Pin (keep open)"
                 }
@@ -219,7 +219,7 @@ PlasmoidItem {
                     icon.name: "configure"
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: "Open Settings"
-                    onClicked: plasmoid.action("configure").trigger()
+                    onClicked: Plasmoid.internalAction("configure").trigger()
                 }
 
                 Item { Layout.fillWidth: true }
