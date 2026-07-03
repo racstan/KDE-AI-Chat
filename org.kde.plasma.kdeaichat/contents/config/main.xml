@@ -238,6 +238,7 @@
     
     <entry name="enableMemory" type="Bool"><default>false</default></entry>
     <entry name="userMemory" type="String"><default></default></entry>
+    <entry name="gatheredSysInfo" type="String"><default></default></entry>
 
     <entry name="schedulerEnabled" type="Bool"><default>false</default></entry>
     <entry name="schedulerAutoStart" type="Bool"><default>false</default></entry>

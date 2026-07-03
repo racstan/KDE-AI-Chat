@@ -49,9 +49,10 @@ KCM.SimpleKCM {
         if (urlStr.indexOf("file://") === 0)
             urlStr = urlStr.substring(7);
         let path = decodeURIComponent(urlStr);
-        if (path.indexOf("/contents/ui/") === -1)
-            return "";
-        return path;
+        if (path.indexOf("/") === 0 && path.indexOf("/contents/ui/") !== -1)
+            return path;
+        let localShare = StandardPaths.writableLocation(StandardPaths.GenericDataLocation);
+        return localShare + "/plasma/plasmoids/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py";
     }
 
     function schedAutoSetup() {

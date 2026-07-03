@@ -15,6 +15,10 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Python
+__pycache__/
+*.pyc
+
 # Local developer documents
 audit.md
 ailogo.webp

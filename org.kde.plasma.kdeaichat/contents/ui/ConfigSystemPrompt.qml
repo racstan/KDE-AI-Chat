@@ -174,23 +174,28 @@ KCM.SimpleKCM {
         }
 
         QQC2.ScrollView {
+            id: customPromptScroll
             Kirigami.FormData.label: "Custom Instructions:"
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
-            implicitHeight: Kirigami.Units.gridUnit * 6
+            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
+            clip: true
 
             QQC2.TextArea {
                 id: customPromptArea
                 placeholderText: "Additional instructions for the LLM…"
                 wrapMode: Text.Wrap
+                width: customPromptScroll.width
             }
         }
 
         QQC2.ScrollView {
+            id: previewScroll
             Kirigami.FormData.label: "Preview:"
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 10
-            implicitHeight: Kirigami.Units.gridUnit * 10
+            Layout.maximumHeight: Kirigami.Units.gridUnit * 10
+            clip: true
 
             QQC2.TextArea {
                 readOnly: true
@@ -198,6 +203,7 @@ KCM.SimpleKCM {
                 font.family: "monospace"
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                 text: configPage.buildPreview()
+                width: previewScroll.width
             }
         }
 
@@ -213,16 +219,19 @@ KCM.SimpleKCM {
         }
 
         QQC2.ScrollView {
+            id: userMemoryScroll
             visible: enableMemoryCheck.checked
             Kirigami.FormData.label: "Memory Content:"
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
-            implicitHeight: Kirigami.Units.gridUnit * 6
+            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
+            clip: true
 
             QQC2.TextArea {
                 id: userMemoryArea
                 placeholderText: "Facts or preferences you want the assistant to remember across all chats..."
                 wrapMode: Text.Wrap
+                width: userMemoryScroll.width
             }
         }
     }

@@ -103,8 +103,38 @@ PlasmoidItem {
     Component.onCompleted: {
         ensureWalletLoaded()
         loadSessions()
-        regatherSysInfo()
+        if (plasmoid.configuration.gatheredSysInfo) {
+            try {
+                sysInfo = JSON.parse(plasmoid.configuration.gatheredSysInfo)
+                initSystemPrompt()
+            } catch (e) {
+                regatherSysInfo()
+            }
+        } else {
+            regatherSysInfo()
+        }
     }
+
+    Connections {
+        target: plasmoid.configuration
+        function onSysInfoOSChanged()       { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoShellChanged()    { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoHostnameChanged() { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoKernelChanged()   { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoDesktopChanged()  { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoUserChanged()     { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoCPUChanged()      { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoMemoryChanged()   { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoGPUChanged()      { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoDiskChanged()     { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoNetworkChanged()  { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoLocaleChanged()   { plasmoid.configuration.gatheredSysInfo = ""; regatherSysInfo(); }
+        function onSysInfoDateTimeChanged() { initSystemPrompt(); }
+        function onSystemPromptChanged()    { initSystemPrompt(); }
+        function onEnableMemoryChanged()    { initSystemPrompt(); }
+        function onUserMemoryChanged()      { initSystemPrompt(); }
+    }
+
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp)
             Qt.callLater(scrollToBottom)
@@ -3683,20 +3713,21 @@ PlasmoidItem {
     }
 
     function applyKWalletKeyToMemory(targetId, secretValue) {
-        if (targetId === "openai") plasmoid.configuration.apiKey = secretValue
-        else if (targetId === "anthropic") plasmoid.configuration.anthropicApiKey = secretValue
-        else if (targetId === "groq") plasmoid.configuration.groqApiKey = secretValue
-        else if (targetId === "deepseek") plasmoid.configuration.deepSeekApiKey = secretValue
-        else if (targetId === "minimax") plasmoid.configuration.miniMaxApiKey = secretValue
-        else if (targetId === "fireworks") plasmoid.configuration.fireworksApiKey = secretValue
-        else if (targetId === "google") plasmoid.configuration.googleApiKey = secretValue
-        else if (targetId === "openrouter") plasmoid.configuration.openRouterApiKey = secretValue
-        else if (targetId === "mistral") plasmoid.configuration.mistralApiKey = secretValue
-        else if (targetId === "cloudflare") plasmoid.configuration.cloudflareApiKey = secretValue
-        else if (targetId === "nvidia") plasmoid.configuration.nvidiaApiKey = secretValue
-        else if (targetId === "huggingface") plasmoid.configuration.huggingFaceApiKey = secretValue
-        else if (targetId === "xai") plasmoid.configuration.xaiApiKey = secretValue
-        else if (targetId === "litellm") plasmoid.configuration.litellmApiKey = secretValue
+        var strVal = String(secretValue || "");
+        if (targetId === "openai") plasmoid.configuration.apiKey = strVal
+        else if (targetId === "anthropic") plasmoid.configuration.anthropicApiKey = strVal
+        else if (targetId === "groq") plasmoid.configuration.groqApiKey = strVal
+        else if (targetId === "deepseek") plasmoid.configuration.deepSeekApiKey = strVal
+        else if (targetId === "minimax") plasmoid.configuration.miniMaxApiKey = strVal
+        else if (targetId === "fireworks") plasmoid.configuration.fireworksApiKey = strVal
+        else if (targetId === "google") plasmoid.configuration.googleApiKey = strVal
+        else if (targetId === "openrouter") plasmoid.configuration.openRouterApiKey = strVal
+        else if (targetId === "mistral") plasmoid.configuration.mistralApiKey = strVal
+        else if (targetId === "cloudflare") plasmoid.configuration.cloudflareApiKey = strVal
+        else if (targetId === "nvidia") plasmoid.configuration.nvidiaApiKey = strVal
+        else if (targetId === "huggingface") plasmoid.configuration.huggingFaceApiKey = strVal
+        else if (targetId === "xai") plasmoid.configuration.xaiApiKey = strVal
+        else if (targetId === "litellm") plasmoid.configuration.litellmApiKey = strVal
     }
 
     function loadKWalletKeysAtStartup() {
@@ -3899,6 +3930,7 @@ PlasmoidItem {
 
                 sysInfoPending--;
                 if (sysInfoPending === 0) {
+                    plasmoid.configuration.gatheredSysInfo = JSON.stringify(sysInfo);
                     initSystemPrompt();
                 }
                 disconnectSource(source);
