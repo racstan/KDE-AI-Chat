@@ -8,8 +8,8 @@ ConfigModel {
         source: "ConfigGeneral.qml"
     }
     ConfigCategory {
-        name: i18n("System Prompt")
-        icon: "dialog-scripts"
+        name: i18n("Behavior")
+        icon: "preferences-system-behavior"
         source: "ConfigSystemPrompt.qml"
     }
 }

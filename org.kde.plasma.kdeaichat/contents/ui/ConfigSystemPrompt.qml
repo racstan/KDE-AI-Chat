@@ -24,6 +24,9 @@ KCM.SimpleKCM {
     property alias cfg_sysInfoLocale: sysInfoLocaleCheck.checked
     property alias cfg_sysInfoDateTime: sysInfoDateTimeCheck.checked
     property alias cfg_systemPrompt: customPromptArea.text
+    property alias cfg_enableMemory: enableMemoryCheck.checked
+    property alias cfg_userMemory: userMemoryArea.text
+
 
     
     property var sysInfo: ({})
@@ -76,7 +79,9 @@ KCM.SimpleKCM {
 
     function buildPreview() {
         return Api.buildSystemPrompt(sysInfo, cfg_systemPrompt, {
-            sysInfoDateTime: cfg_sysInfoDateTime
+            sysInfoDateTime: cfg_sysInfoDateTime,
+            enableMemory: cfg_enableMemory,
+            userMemory: cfg_userMemory
         });
     }
 
@@ -169,6 +174,22 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Layout.minimumHeight: Kirigami.Units.gridUnit * 6
             placeholderText: "Additional instructions for the LLM…"
+            wrapMode: Text.Wrap
+        }
+
+        QQC2.CheckBox {
+            id: enableMemoryCheck
+            Kirigami.FormData.label: "Memory:"
+            text: "Enable user memory"
+        }
+
+        QQC2.TextArea {
+            id: userMemoryArea
+            visible: enableMemoryCheck.checked
+            Kirigami.FormData.label: "Memory Content:"
+            Layout.fillWidth: true
+            Layout.minimumHeight: Kirigami.Units.gridUnit * 6
+            placeholderText: "Facts or preferences you want the assistant to remember across all chats..."
             wrapMode: Text.Wrap
         }
 

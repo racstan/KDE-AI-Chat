@@ -37,6 +37,12 @@ function buildSystemPrompt(sysInfo, customAdditions, options) {
     prompt += "\nThe below instructions are given by the user and take the utmost precedence over the instructions above.\n";
     prompt += "\n" + (customAdditions || "").trim() + "\n";
 
+    if (options && options.enableMemory && options.userMemory && options.userMemory.trim() !== "") {
+        prompt += "\n## User Memory\n";
+        prompt += "The following are important facts or preferences the user wants you to remember:\n";
+        prompt += options.userMemory.trim() + "\n";
+    }
+
     prompt += "\nEND OF SYSTEM PROMPT\n";
 
     return prompt;

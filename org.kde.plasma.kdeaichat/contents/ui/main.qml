@@ -46,6 +46,10 @@ PlasmoidItem {
 
     property bool openCodeMode: plasmoid.configuration.useOpenCode
 
+    property string compiledSystemPrompt: ""
+    property var sysInfo: ({})
+    property var pendingSysInfoCommands: ({})
+    property int sysInfoPending: 0
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
     property string chatInputText: ""
     signal clearChatInput()
@@ -3819,7 +3823,9 @@ PlasmoidItem {
     }
     function initSystemPrompt() {
         compiledSystemPrompt = Api.buildSystemPrompt(sysInfo, plasmoid.configuration.systemPrompt, {
-            sysInfoDateTime: plasmoid.configuration.sysInfoDateTime
+            sysInfoDateTime: plasmoid.configuration.sysInfoDateTime,
+            enableMemory: plasmoid.configuration.enableMemory,
+            userMemory: plasmoid.configuration.userMemory
         });
     }
 

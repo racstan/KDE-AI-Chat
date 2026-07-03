@@ -1627,11 +1627,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("openai", apiKeyField.text);
                         page.refreshIfActiveProvider("openai");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -1683,11 +1693,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("anthropic", anthropicApiKeyField.text);
                         page.refreshIfActiveProvider("anthropic");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -1747,11 +1767,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("groq", groqApiKeyField.text);
                         page.refreshIfActiveProvider("groq");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -1811,11 +1841,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("deepseek", deepseekApiKeyField.text);
                         page.refreshIfActiveProvider("deepseek");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -1875,11 +1915,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("minimax", minimaxApiKeyField.text);
                         page.refreshIfActiveProvider("minimax");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -1939,11 +1989,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("fireworks", fireworksApiKeyField.text);
                         page.refreshIfActiveProvider("fireworks");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -2003,11 +2063,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("google", googleApiKeyField.text);
                         page.refreshIfActiveProvider("google");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -2067,11 +2137,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("openrouter", openrouterApiKeyField.text);
                         page.refreshIfActiveProvider("openrouter");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -2131,11 +2211,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("mistral", mistralApiKeyField.text);
                         page.refreshIfActiveProvider("mistral");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -2195,11 +2285,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("cloudflare", cloudflareApiKeyField.text);
                         page.refreshIfActiveProvider("cloudflare");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -2259,11 +2359,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("nvidia", nvidiaApiKeyField.text);
                         page.refreshIfActiveProvider("nvidia");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -2379,11 +2489,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("xai", xaiApiKeyField.text);
                         page.refreshIfActiveProvider("xai");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
@@ -2503,11 +2623,21 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Save"
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    Timer {
+                        id: resetTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                    onClicked: {
                     onClicked: {
                         page.saveKey("litellm", litellmApiKeyField.text);
                         page.refreshIfActiveProvider("litellm");
-                    }
+                    
+                        saved = true;
+                        resetTimer.start();}
                 }
 
                 QQC2.Button {
