@@ -176,8 +176,8 @@ KCM.SimpleKCM {
         QQC2.ScrollView {
             Kirigami.FormData.label: "Custom Instructions:"
             Layout.fillWidth: true
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 6
-            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+            implicitHeight: Kirigami.Units.gridUnit * 6
 
             QQC2.TextArea {
                 id: customPromptArea
@@ -189,8 +189,8 @@ KCM.SimpleKCM {
         QQC2.ScrollView {
             Kirigami.FormData.label: "Preview:"
             Layout.fillWidth: true
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 10
-            Layout.maximumHeight: Kirigami.Units.gridUnit * 10
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 10
+            implicitHeight: Kirigami.Units.gridUnit * 10
 
             QQC2.TextArea {
                 readOnly: true
@@ -216,8 +216,8 @@ KCM.SimpleKCM {
             visible: enableMemoryCheck.checked
             Kirigami.FormData.label: "Memory Content:"
             Layout.fillWidth: true
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 6
-            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+            implicitHeight: Kirigami.Units.gridUnit * 6
 
             QQC2.TextArea {
                 id: userMemoryArea

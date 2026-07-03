@@ -121,15 +121,12 @@ PlasmoidItem {
     }
 
     fullRepresentation: Item {
-        // Plasma popup sizing follows implicit size more reliably than Layout hints here.
         implicitWidth: root.popupPreferredWidth
         implicitHeight: root.popupPreferredHeight
-        width: implicitWidth
-        height: implicitHeight
         Layout.minimumWidth: 500
         Layout.minimumHeight: 620
-        Layout.preferredWidth: implicitWidth
-        Layout.preferredHeight: implicitHeight
+        Layout.preferredWidth: root.popupPreferredWidth
+        Layout.preferredHeight: root.popupPreferredHeight
 
         Component.onCompleted: {
             root.focusInput()
