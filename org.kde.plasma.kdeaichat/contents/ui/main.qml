@@ -1131,36 +1131,7 @@ PlasmoidItem {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
-
-                            PC3.ToolButton {
-                                icon.name: "mail-attachment"
-                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                                enabled: !root.loading
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: "Attach files (Images, PDF, CSV, Word documents)"
-                                onClicked: fileDialog.open()
-                            }
-
-                            PC3.ToolButton {
-                                icon.name: "edit-paste"
-                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                                enabled: !root.loading
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: "Paste file or text from clipboard"
-                                onClicked: {
-                                    root.checkClipboardForAttachments()
-                                    var txt = root.readClipboardText()
-                                    if (txt && txt.trim() !== "") {
-                                        var curPos = msgInput.cursorPosition
-                                        msgInput.insert(curPos, txt)
-                                    }
-                                }
-                            }
-
-                            QQC2.TextArea {
+                            spacing: Kirigami.Units.smallSpacing                            QQC2.TextArea {
                                 id: msgInput
                                 Layout.fillWidth: true
                                 Layout.minimumHeight: Kirigami.Units.gridUnit * 3
@@ -1217,6 +1188,34 @@ PlasmoidItem {
                                 Component.onCompleted: {
                                     if (root.expanded) {
                                         focusTimer.start()
+                                    }
+                                }
+                            }
+
+
+                            PC3.ToolButton {
+                                icon.name: "mail-attachment"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                enabled: !root.loading
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: "Attach files (Images, PDF, CSV, Word documents)"
+                                onClicked: fileDialog.open()
+                            }
+
+                            PC3.ToolButton {
+                                icon.name: "edit-paste"
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                enabled: !root.loading
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: "Paste file or text from clipboard"
+                                onClicked: {
+                                    root.checkClipboardForAttachments()
+                                    var txt = root.readClipboardText()
+                                    if (txt && txt.trim() !== "") {
+                                        var curPos = msgInput.cursorPosition
+                                        msgInput.insert(curPos, txt)
                                     }
                                 }
                             }
