@@ -69,7 +69,6 @@ KCM.SimpleKCM {
     property alias cfg_openCodeStartCommand: openCodeStartCommandField.text
     property alias cfg_openCodeStopCommand: openCodeStopCommandField.text
     property alias cfg_kwalletName: walletNameField.text
-    property alias cfg_systemPrompt: systemPromptArea.text
     property string keyringStatus: ""
     property string discoveryStatus: ""
     property var pendingOps: ({

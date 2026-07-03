@@ -9,7 +9,7 @@ ConfigModel {
     }
     ConfigCategory {
         name: i18n("System Prompt")
-        icon: "dialog-text-and-font"
+        icon: "dialog-scripts"
         source: "ConfigSystemPrompt.qml"
     }
 }
