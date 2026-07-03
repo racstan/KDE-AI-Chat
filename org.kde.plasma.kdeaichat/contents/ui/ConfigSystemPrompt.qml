@@ -189,32 +189,35 @@ KCM.SimpleKCM {
             }
         }
 
-        QQC2.ScrollView {
-            id: previewScroll
+        // Preview: wrap in a fixed-height container to prevent overflow
+        Item {
             Kirigami.FormData.label: "Preview:"
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 10
             Layout.maximumHeight: Kirigami.Units.gridUnit * 10
             clip: true
 
-            QQC2.TextArea {
-                readOnly: true
-                wrapMode: Text.Wrap
-                font.family: "monospace"
-                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                text: configPage.buildPreview()
-                width: previewScroll.width
+            QQC2.ScrollView {
+                anchors.fill: parent
+                QQC2.TextArea {
+                    readOnly: true
+                    wrapMode: Text.Wrap
+                    font.family: "monospace"
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    text: configPage.buildPreview()
+                    width: parent.width
+                }
             }
         }
 
         Kirigami.Heading {
             Kirigami.FormData.isSection: true
             text: "Memory"
+            Layout.topMargin: Kirigami.Units.largeSpacing
         }
 
         QQC2.CheckBox {
             id: enableMemoryCheck
-            Kirigami.FormData.label: "Enable:"
             text: "Enable user memory"
         }
 

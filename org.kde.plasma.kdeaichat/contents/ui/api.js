@@ -60,11 +60,17 @@ function buildMemoryBlock(options) {
 }
 
 function buildFullSystemPrompt(sysInfo, customAdditions, options) {
-    // Convenience for the settings-page preview: combines the static
-    // prompt and the memory block into one readable string.
+    // Settings-page preview only. The actual API payload uses
+    // buildSystemPrompt() and buildMemoryBlock() separately, so the
+    // static prompt can be cached and the memory is re-sent per turn.
+    // We render both blocks with clear visual dividers so the user can
+    // see what will be sent as two distinct system messages.
     var prompt = buildSystemPrompt(sysInfo, customAdditions, options);
     var mem = buildMemoryBlock(options);
-    if (mem !== "")
-        prompt += "\n\n" + mem + "\n";
-    return prompt;
+    if (mem === "")
+        return prompt;
+    return "═════ System Prompt (sent every request, provider-cached) ═════\n" +
+           prompt + "\n" +
+           "═════ User Memory (sent every turn, fresh each request) ═════\n" +
+           mem + "\n";
 }
