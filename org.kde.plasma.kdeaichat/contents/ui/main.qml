@@ -3703,7 +3703,7 @@ PlasmoidItem {
                 if (handle < 0) return;
                 walletCall("hasFolder", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(hasFolder) {
                     if (!hasFolder) {
-                        walletCall("close", [new DBus.int32(handle), false, "org.kde.plasma.kdeaichat"]);
+                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
                         return;
                     }
                     var targets = ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm"];
@@ -3711,7 +3711,7 @@ PlasmoidItem {
                     var idx = 0;
                     function readNext() {
                         if (idx >= targets.length) {
-                            walletCall("close", [new DBus.int32(handle), false, "org.kde.plasma.kdeaichat"]);
+                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
                             return;
                         }
                         var targetId = targets[idx++];

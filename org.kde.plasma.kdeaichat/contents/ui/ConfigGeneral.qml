@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.workspace.dbus as DBus
 
 KCM.SimpleKCM {
     id: page
@@ -77,9 +78,7 @@ KCM.SimpleKCM {
     // Guard to prevent premature writes during KCM initialization (cfg_ aliases
     // are populated after the combo's onCurrentIndexChanged fires).
     property bool pageReady: false
-    property bool keyringBusy: keyringDs.connectedSources.length > 0 || utilityDs.connectedSources.filter(function(sourceName) {
-        return sourceName.indexOf("#kwallet-") >= 0;
-    }).length > 0
+    property bool keyringBusy: false
     property bool openCodeBusy: utilityDs.connectedSources.filter(function(sourceName) {
         return sourceName.indexOf("#opencode-") >= 0;
     }).length > 0
@@ -154,7 +153,30 @@ KCM.SimpleKCM {
     }
 
     function detectWallets() {
-        utilityDs.connectSource("sh -lc \"if ! command -v qdbus6 >/dev/null 2>&1 && ! command -v qdbus >/dev/null 2>&1; then echo '__NO_QDBUS__'; else qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null || qdbus org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null; fi\" #kwallet-wallet-list");
+        walletCall("wallets", [], function(wallets) {
+            availableWalletNames = wallets;
+            maybeAdoptDetectedWalletName();
+        });
+    }
+
+    function walletCall(member, args, resolve, reject) {
+        var reply = DBus.SessionBus.asyncCall({
+            service: "org.kde.kwalletd6",
+            path: "/modules/kwalletd6",
+            iface: "org.kde.KWallet",
+            member: member,
+            arguments: args
+        });
+        reply.finished.connect(function() {
+            if (reply.isError) {
+                if (reject) reject(reply.error);
+                else console.warn("KDE AI Chat: wallet DBus error:", member, reply.error);
+            } else {
+                var val = reply.value;
+                if (val !== null && val !== undefined && typeof val === 'object' && val.hasOwnProperty("value")) val = val.value;
+                if (resolve) resolve(val);
+            }
+        });
     }
 
     function setActiveProviderModelValue(value) {
@@ -165,43 +187,7 @@ KCM.SimpleKCM {
         return currentProviderConfig().modelField.text || "";
     }
 
-    function walletReadCommand(walletName, keyName) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedKey = shellEscape(keyName);
-        var escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_LOAD__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_LOAD__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_FOLDER\"; exit 0; fi; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_LOAD__:NO_ENTRY\"; exit 0; fi; " + "secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_SECRET__:%s\" \"$secret\"'";
-    }
-
-    function walletWriteCommand(walletName, keyName, value) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedKey = shellEscape(keyName);
-        var escapedValue = shellEscape(value);
-        var escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "key='\''" + escapedKey + "'\''; " + "value='\''" + escapedValue + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STORE__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" >/dev/null 2>&1; fi; " + "result=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.writePassword \"$handle\" \"$folder\" \"$key\" \"$value\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_STORE__:%s\" \"$result\"'";
-    }
-
-    function walletInitCommand(walletName) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_INIT__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_INIT__:READY\"; else created=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.createFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); if [ \"$created\" = true ]; then printf \"__KAI_INIT__:CREATED\"; else printf \"__KAI_INIT__:CREATE_FAILED\"; fi; fi; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1'";
-    }
-
-    function walletStatusCommand(walletName) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_STATUS__:NO_WALLET:%s\" \"$wallets\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_STATUS__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "if [ \"$hasFolder\" = true ]; then printf \"__KAI_STATUS__:READY\"; else printf \"__KAI_STATUS__:NO_FOLDER\"; fi'";
-    }
-
-    function walletBulkReadCommand(walletName) {
-        var escapedWallet = shellEscape(walletName);
-        var escapedFolder = shellEscape(walletFolderName);
-        var escapedAppId = shellEscape(walletAppId);
-        return "sh -lc '" + "wallet='\''" + escapedWallet + "'\''; " + "folder='\''" + escapedFolder + "'\''; " + "appid='\''" + escapedAppId + "'\''; " + "qdbus_cmd=\"qdbus6\"; if ! command -v qdbus6 >/dev/null 2>&1; then qdbus_cmd=\"qdbus\"; fi; " + "wallets=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); " + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; " + "handle=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); " + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; " + "hasFolder=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasFolder\" != true ]; then $qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; " + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm; do " + "key=\"kai-chat-${target}-api-key\"; " + "hasEntry=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); " + "if [ \"$hasEntry\" = true ]; then secret=$($qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; " + "done; " + "$qdbus_cmd org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; " + "printf \"__KAI_BULK__:DONE\"'";
-    }
+    // Shell script builders removed in favor of native DBus calls.
 
     function shellEscape(s) {
         return (s || "").replace(/'/g, "'\\''");
@@ -754,22 +740,35 @@ KCM.SimpleKCM {
 
     function kwalletStore(targetId, value, isBulk) {
         if (!value || value.trim() === "")
-            return ;
-
-        if (!isBulk)
-            cancelKeyringOps();
+            return;
 
         var walletName = effectiveWalletName();
         var keyName = "kai-chat-" + targetId + "-api-key";
-        var cmd = walletWriteCommand(walletName, keyName, value);
-        var ops = page.pendingOps;
-        ops[cmd] = {
-            "mode": "store",
-            "target": targetId,
-            "bulk": !!isBulk
-        };
-        page.pendingOps = ops;
-        keyringDs.connectSource(cmd);
+        keyringBusy = true;
+        
+        walletCall("wallets", [], function(wallets) {
+            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
+            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
+                if (handle < 0) { keyringBusy = false; return; }
+                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
+                    if (!hasFolder) {
+                        walletCall("createFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function() {
+                            walletCall("writePassword", [new DBus.int32(handle), walletFolderName, keyName, value, walletAppId], function() {
+                                walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                                keyringBusy = false;
+                                if (!isBulk) keyringStatus = "Saved key for " + targetId + " to KWallet.";
+                            });
+                        });
+                    } else {
+                        walletCall("writePassword", [new DBus.int32(handle), walletFolderName, keyName, value, walletAppId], function() {
+                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                            keyringBusy = false;
+                            if (!isBulk) keyringStatus = "Saved key for " + targetId + " to KWallet.";
+                        });
+                    }
+                });
+            });
+        });
     }
 
     function saveKey(targetId, value) {
@@ -778,38 +777,43 @@ KCM.SimpleKCM {
     }
 
     function kwalletLoad(targetId, isBulk) {
-        if (!isBulk)
-            cancelKeyringOps();
-
         var walletName = effectiveWalletName();
         var keyName = "kai-chat-" + targetId + "-api-key";
-        var cmd = walletReadCommand(walletName, keyName);
-        var ops = page.pendingOps;
-        ops[cmd] = {
-            "mode": "load",
-            "target": targetId,
-            "bulk": !!isBulk
-        };
-        page.pendingOps = ops;
-        keyringDs.connectSource(cmd);
+        keyringBusy = true;
+        
+        walletCall("wallets", [], function(wallets) {
+            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
+            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
+                if (handle < 0) { keyringBusy = false; return; }
+                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
+                    if (!hasFolder) {
+                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                        keyringBusy = false;
+                        return;
+                    }
+                    walletCall("hasEntry", [new DBus.int32(handle), walletFolderName, keyName, walletAppId], function(hasEntry) {
+                        if (hasEntry) {
+                            walletCall("readPassword", [new DBus.int32(handle), walletFolderName, keyName, walletAppId], function(secret) {
+                                applyLoadedKey(targetId, secret);
+                                walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                                keyringBusy = false;
+                                if (!isBulk) keyringStatus = "Loaded key for " + targetId + " from KWallet.";
+                            });
+                        } else {
+                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                            keyringBusy = false;
+                            if (!isBulk) keyringStatus = "No saved key for " + targetId + " in KWallet.";
+                        }
+                    });
+                });
+            });
+        });
     }
 
     function applyLoadedKey(targetId, secretValue) {
         var normalized = (secretValue || "").trim();
         var lower = normalized.toLowerCase();
         if (normalized === "" || normalized.indexOf("__KAI_") === 0)
-            return ;
-
-        if (lower.indexOf("not found") >= 0)
-            return ;
-
-        if (lower.indexOf("does not exist") >= 0)
-            return ;
-
-        if (lower.indexOf("could not open") >= 0)
-            return ;
-
-        if (lower.indexOf("wallet") >= 0)
             return ;
 
         var before = apiKeyForTarget(targetId);
@@ -898,28 +902,95 @@ KCM.SimpleKCM {
     }
 
     function kwalletLoadAll() {
-        cancelKeyringOps();
         var walletName = effectiveWalletName();
-        console.log("[KAI-DEBUG] kwalletLoadAll walletName:", walletName);
-        var cmd = walletBulkReadCommand(walletName) + " #kwallet-refresh-all";
-        console.log("[KAI-DEBUG] kwalletLoadAll command:", cmd);
         keyringStatus = "Refreshing API keys from KWallet...";
-        utilityDs.connectSource(cmd);
+        keyringBusy = true;
+        
+        walletCall("wallets", [], function(wallets) {
+            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
+            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
+                if (handle < 0) { keyringBusy = false; return; }
+                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
+                    if (!hasFolder) {
+                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                        keyringBusy = false;
+                        keyringStatus = "KWallet storage not initialized yet.";
+                        return;
+                    }
+                    var targets = keyTargetIds();
+                    var idx = 0;
+                    function readNext() {
+                        if (idx >= targets.length) {
+                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                            keyringBusy = false;
+                            keyringStatus = "Loaded API keys from KWallet.";
+                            return;
+                        }
+                        var targetId = targets[idx++];
+                        var key = "kai-chat-" + targetId + "-api-key";
+                        walletCall("hasEntry", [new DBus.int32(handle), walletFolderName, key, walletAppId], function(hasEntry) {
+                            if (hasEntry) {
+                                walletCall("readPassword", [new DBus.int32(handle), walletFolderName, key, walletAppId], function(secret) {
+                                    applyLoadedKey(targetId, secret);
+                                    readNext();
+                                });
+                            } else {
+                                readNext();
+                            }
+                        });
+                    }
+                    readNext();
+                });
+            });
+        });
     }
 
     function kwalletStoreAll() {
-        cancelKeyringOps();
+        var walletName = effectiveWalletName();
+        var targetsToSave = [];
         var ids = keyTargetIds();
-        var count = 0;
         for (var i = 0; i < ids.length; i++) {
             var value = (apiKeyForTarget(ids[i]) || "").trim();
-            if (value === "")
-                continue;
-
-            kwalletStore(ids[i], value, true);
-            count++;
+            if (value !== "") targetsToSave.push({id: ids[i], val: value});
         }
-        keyringStatus = count > 0 ? ("Synced the above key as well as other keys (" + count + " total).") : "No API keys to sync.";
+        
+        if (targetsToSave.length === 0) {
+            keyringStatus = "No API keys to sync.";
+            return;
+        }
+
+        keyringBusy = true;
+        walletCall("wallets", [], function(wallets) {
+            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
+            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
+                if (handle < 0) { keyringBusy = false; return; }
+                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
+                    var proceedToSave = function() {
+                        var idx = 0;
+                        function saveNext() {
+                            if (idx >= targetsToSave.length) {
+                                walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
+                                keyringBusy = false;
+                                keyringStatus = "Synced " + targetsToSave.length + " API keys to KWallet.";
+                                return;
+                            }
+                            var t = targetsToSave[idx++];
+                            var key = "kai-chat-" + t.id + "-api-key";
+                            walletCall("writePassword", [new DBus.int32(handle), walletFolderName, key, t.val, walletAppId], function() {
+                                saveNext();
+                            });
+                        }
+                        saveNext();
+                    };
+
+                    if (!hasFolder) {
+                        walletCall("createFolder", [new DBus.int32(handle), walletFolderName, walletAppId], proceedToSave);
+                    } else {
+                        proceedToSave();
+                    }
+                });
+            });
+        });
     }
 
     function clearAllApiKeyFields() {
@@ -1098,56 +1169,7 @@ KCM.SimpleKCM {
     }
 
     P5Support.DataSource {
-        id: keyringDs
-
-        engine: "executable"
-        connectedSources: []
-        onNewData: function(sourceName, data) {
-            var stdout = (data["stdout"] || "").trim();
-            var stderr = (data["stderr"] || "").trim();
-            var op = page.pendingOps[sourceName];
-            if (op) {
-                var copy = page.pendingOps;
-                delete copy[sourceName];
-                page.pendingOps = copy;
-            }
-            if (!op) {
-                disconnectSource(sourceName);
-                return ;
-            }
-            if (op.mode === "load") {
-                if (stdout.indexOf("__KAI_SECRET__:") === 0) {
-                    var loadedValue = stdout.slice("__KAI_SECRET__:".length);
-                    page.applyLoadedKey(op.target, loadedValue);
-                    page.keyringStatus = op.bulk ? "Refreshing API keys from KWallet..." : ("Loaded key for " + op.target + " from KWallet.");
-                } else if (!op.bulk) {
-                    if (stdout === "__KAI_LOAD__:NO_WALLET")
-                        page.keyringStatus = "Configured wallet not found. Use Detect wallets or Create wallet.";
-                    else if (stdout === "__KAI_LOAD__:OPEN_FAILED")
-                        page.keyringStatus = "KWallet did not open the selected wallet.";
-                    else if (stdout === "__KAI_LOAD__:NO_FOLDER")
-                        page.keyringStatus = "Wallet opened, but KDE AI Chat storage is not initialized yet. Click Create wallet first.";
-                    else if (stdout === "__KAI_LOAD__:NO_ENTRY")
-                        page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
-                    else if (stderr !== "")
-                        page.keyringStatus = "KWallet (" + op.target + "): " + stderr;
-                    else
-                        page.keyringStatus = "No saved key for " + op.target + " in KWallet.";
-                }
-            } else {
-                if (!op.bulk) {
-                    if (stdout === "__KAI_STORE__:OPEN_FAILED")
-                        page.keyringStatus = "KWallet did not open the selected wallet.";
-                    else if (stdout.indexOf("__KAI_STORE__:") === 0)
-                        page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
-                    else if (stderr !== "")
-                        page.keyringStatus = "KWallet error: " + stderr;
-                    else
-                        page.keyringStatus = "Saved key for " + (op.target || "provider") + " to KWallet.";
-                }
-            }
-            disconnectSource(sourceName);
-        }
+    // keyringDs removed in favor of native DBus calls.
     }
 
     P5Support.DataSource {
