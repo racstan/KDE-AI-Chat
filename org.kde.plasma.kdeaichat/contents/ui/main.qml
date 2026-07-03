@@ -90,6 +90,7 @@ PlasmoidItem {
     onExpandedChanged: {
         if (expanded) {
             root.focusInput()
+            Qt.callLater(root.scrollToBottom)
         }
     }
 
@@ -135,6 +136,7 @@ PlasmoidItem {
         onVisibleChanged: {
             if (visible) {
                 root.focusInput()
+                Qt.callLater(root.scrollToBottom)
             }
         }
 
