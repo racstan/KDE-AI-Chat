@@ -61,7 +61,17 @@ PlasmoidItem {
     }
 
 
+    property bool keysLoaded: false
+
+    function ensureWalletLoaded() {
+        if (!keysLoaded) {
+            keysLoaded = true
+            loadKWalletKeysAtStartup()
+        }
+    }
+
     function focusInput() {
+        ensureWalletLoaded()
         Qt.callLater(function() {
             if (typeof msgInput !== "undefined" && msgInput) {
                 msgInput.forceActiveFocus()
@@ -86,7 +96,7 @@ PlasmoidItem {
 
     Component.onCompleted: {
         loadSessions()
-        loadKWalletKeysAtStartup()
+        regatherSysInfo()
     }
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp)
@@ -1158,6 +1168,9 @@ PlasmoidItem {
                                 enabled: !root.loading
                                 placeholderText: "Type message (Enter sends, Shift+Enter newline)"
                                 focus: true
+                                onActiveFocusChanged: {
+                                    if (activeFocus) root.ensureWalletLoaded()
+                                }
 
                                 // Sync to root property so root-scope functions can read/clear it
                                 onTextChanged: root.chatInputText = text
@@ -2645,6 +2658,7 @@ PlasmoidItem {
     }
 
     function sendMessage() {
+        ensureWalletLoaded()
         try {
             var text = (root.chatInputText || "").trim()
             var attachments = root.attachedFiles || []
