@@ -77,7 +77,6 @@ PlasmoidItem {
     }
 
     function focusInput() {
-        ensureWalletLoaded()
         Qt.callLater(function() {
             if (typeof msgInput !== "undefined" && msgInput) {
                 msgInput.forceActiveFocus()
@@ -101,6 +100,7 @@ PlasmoidItem {
     }
 
     Component.onCompleted: {
+        ensureWalletLoaded()
         loadSessions()
         regatherSysInfo()
     }
@@ -3710,28 +3710,19 @@ PlasmoidItem {
                         walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
                         return;
                     }
-                    var targets = ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm"];
-                    
-                    var idx = 0;
-                    function readNext() {
-                        if (idx >= targets.length) {
-                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
-                            return;
-                        }
-                        var targetId = targets[idx++];
-                        var key = "kai-chat-" + targetId + "-api-key";
-                        walletCall("hasEntry", [new DBus.int32(handle), "KaiChat", key, "org.kde.plasma.kdeaichat"], function(hasEntry) {
-                            if (hasEntry) {
-                                walletCall("readPassword", [new DBus.int32(handle), "KaiChat", key, "org.kde.plasma.kdeaichat"], function(secret) {
-                                    applyKWalletKeyToMemory(targetId, secret);
-                                    readNext();
-                                });
-                            } else {
-                                readNext();
+                    walletCall("passwordList", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(passwordsMap) {
+                        if (passwordsMap) {
+                            var targets = ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm"];
+                            for (var i = 0; i < targets.length; i++) {
+                                var targetId = targets[i];
+                                var key = "kai-chat-" + targetId + "-api-key";
+                                if (passwordsMap[key]) {
+                                    applyKWalletKeyToMemory(targetId, passwordsMap[key]);
+                                }
                             }
-                        });
-                    }
-                    readNext();
+                        }
+                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
+                    });
                 });
             });
         });
