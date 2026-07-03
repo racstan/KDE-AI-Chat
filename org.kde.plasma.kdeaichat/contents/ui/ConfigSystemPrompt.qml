@@ -147,6 +147,11 @@ KCM.SimpleKCM {
 
 
     Kirigami.FormLayout {
+        Kirigami.Heading {
+            Kirigami.FormData.isSection: true
+            text: "System Prompt"
+        }
+
         GridLayout {
             Kirigami.FormData.label: "System Info:"
             columns: 2
@@ -168,40 +173,58 @@ KCM.SimpleKCM {
             QQC2.CheckBox { id: sysInfoDateTimeCheck; text: "Date/Time" }
         }
 
-        QQC2.TextArea {
-            id: customPromptArea
+        QQC2.ScrollView {
             Kirigami.FormData.label: "Custom Instructions:"
             Layout.fillWidth: true
             Layout.minimumHeight: Kirigami.Units.gridUnit * 6
-            placeholderText: "Additional instructions for the LLM…"
-            wrapMode: Text.Wrap
+            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
+
+            QQC2.TextArea {
+                id: customPromptArea
+                placeholderText: "Additional instructions for the LLM…"
+                wrapMode: Text.Wrap
+            }
+        }
+
+        QQC2.ScrollView {
+            Kirigami.FormData.label: "Preview:"
+            Layout.fillWidth: true
+            Layout.minimumHeight: Kirigami.Units.gridUnit * 10
+            Layout.maximumHeight: Kirigami.Units.gridUnit * 10
+
+            QQC2.TextArea {
+                readOnly: true
+                wrapMode: Text.Wrap
+                font.family: "monospace"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                text: configPage.buildPreview()
+            }
+        }
+
+        Kirigami.Heading {
+            Kirigami.FormData.isSection: true
+            text: "Memory"
         }
 
         QQC2.CheckBox {
             id: enableMemoryCheck
-            Kirigami.FormData.label: "Memory:"
+            Kirigami.FormData.label: "Enable:"
             text: "Enable user memory"
         }
 
-        QQC2.TextArea {
-            id: userMemoryArea
+        QQC2.ScrollView {
             visible: enableMemoryCheck.checked
             Kirigami.FormData.label: "Memory Content:"
             Layout.fillWidth: true
             Layout.minimumHeight: Kirigami.Units.gridUnit * 6
-            placeholderText: "Facts or preferences you want the assistant to remember across all chats..."
-            wrapMode: Text.Wrap
-        }
+            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
 
-        QQC2.TextArea {
-            Kirigami.FormData.label: "Preview:"
-            Layout.fillWidth: true
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 14
-            readOnly: true
-            wrapMode: Text.Wrap
-            font.family: "monospace"
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
-            text: configPage.buildPreview()
+            QQC2.TextArea {
+                id: userMemoryArea
+                placeholderText: "Facts or preferences you want the assistant to remember across all chats..."
+                wrapMode: Text.Wrap
+            }
         }
     }
 }
+
