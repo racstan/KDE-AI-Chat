@@ -6,6 +6,8 @@ import org.kde.plasma.components as PC3
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import QtQuick.Dialogs
+import org.kde.plasma.workspace.dbus as DBus
+import "api.js" as Api
 
 PlasmoidItem {
     id: root
@@ -3657,29 +3659,23 @@ PlasmoidItem {
         return clipboardHelper.text
     }
 
-    P5Support.DataSource {
-        id: kwalletStartupDs
-        engine: "executable"
-        connectedSources: []
-        onNewData: function(sourceName, data) {
-            var stdout = data["stdout"] || ""
-            if (sourceName.indexOf("kwallet-startup-load") >= 0) {
-                var lines = stdout.split(/\r?\n/)
-                for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i].trim()
-                    if (line.indexOf("__KAI_SECRET__:") === 0) {
-                        var rest = line.slice("__KAI_SECRET__:".length)
-                        var sep = rest.indexOf(":")
-                        if (sep > 0) {
-                            var targetId = rest.slice(0, sep)
-                            var secretValue = rest.slice(sep + 1)
-                            applyKWalletKeyToMemory(targetId, secretValue)
-                        }
-                    }
-                }
+    function walletCall(member, args, resolve, reject) {
+        var reply = DBus.SessionBus.asyncCall({
+            service: "org.kde.kwalletd6",
+            path: "/modules/kwalletd6",
+            iface: "org.kde.KWallet",
+            member: member,
+            arguments: args
+        });
+        reply.finished.connect(function() {
+            if (reply.isError) {
+                if (reject) reject(reply.error);
+            } else {
+                var val = reply.value;
+                if (val !== null && val !== undefined && val.hasOwnProperty("value")) val = val.value;
+                if (resolve) resolve(val);
             }
-            disconnectSource(sourceName)
-        }
+        });
     }
 
     function applyKWalletKeyToMemory(targetId, secretValue) {
@@ -3699,32 +3695,42 @@ PlasmoidItem {
         else if (targetId === "litellm") plasmoid.configuration.litellmApiKey = secretValue
     }
 
-    function walletBulkReadCommand(walletName) {
-        var escapedWallet = (walletName || "").replace(/'/g, "'\\''")
-        var escapedFolder = "KaiChat"
-        var escapedAppId = "org.kde.plasma.kdeaichat"
-        return "sh -lc '"
-            + "wallet='\''" + escapedWallet + "'\''; "
-            + "folder='\''" + escapedFolder + "'\''; "
-            + "appid='\''" + escapedAppId + "'\''; "
-            + "wallets=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets 2>/dev/null); "
-            + "if ! printf %s \"$wallets\" | grep -Fxq \"$wallet\"; then printf \"__KAI_BULK__:NO_WALLET\"; exit 0; fi; "
-            + "handle=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.open \"$wallet\" 0 \"$appid\" 2>/dev/null | tail -n 1); "
-            + "if [ -z \"$handle\" ] || [ \"$handle\" -lt 0 ] 2>/dev/null; then printf \"__KAI_BULK__:OPEN_FAILED\"; exit 0; fi; "
-            + "hasFolder=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasFolder \"$handle\" \"$folder\" \"$appid\" 2>/dev/null | tail -n 1); "
-            + "if [ \"$hasFolder\" != true ]; then qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; printf \"__KAI_BULK__:NO_FOLDER\"; exit 0; fi; "
-            + "for target in openai anthropic groq deepseek minimax fireworks google openrouter mistral cloudflare nvidia huggingface xai litellm; do "
-            + "key=\"kai-chat-${target}-api-key\"; "
-            + "hasEntry=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.hasEntry \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null | tail -n 1); "
-            + "if [ \"$hasEntry\" = true ]; then secret=$(qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.readPassword \"$handle\" \"$folder\" \"$key\" \"$appid\" 2>/dev/null); printf \"__KAI_SECRET__:%s:%s\\n\" \"$target\" \"$secret\"; fi; "
-            + "done; "
-            + "qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.close \"$handle\" false \"$appid\" >/dev/null 2>&1; "
-            + "printf \"__KAI_BULK__:DONE\"'"
-    }
-
     function loadKWalletKeysAtStartup() {
         var walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet"
-        kwalletStartupDs.connectSource(walletBulkReadCommand(walletName) + " #kwallet-startup-load")
+        walletCall("wallets", [], function(wallets) {
+            if (wallets.indexOf(walletName) === -1) return;
+            walletCall("open", [walletName, new DBus.int64(0), "org.kde.plasma.kdeaichat"], function(handle) {
+                if (handle < 0) return;
+                walletCall("hasFolder", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(hasFolder) {
+                    if (!hasFolder) {
+                        walletCall("close", [new DBus.int32(handle), false, "org.kde.plasma.kdeaichat"]);
+                        return;
+                    }
+                    var targets = ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm"];
+                    
+                    var idx = 0;
+                    function readNext() {
+                        if (idx >= targets.length) {
+                            walletCall("close", [new DBus.int32(handle), false, "org.kde.plasma.kdeaichat"]);
+                            return;
+                        }
+                        var targetId = targets[idx++];
+                        var key = "kai-chat-" + targetId + "-api-key";
+                        walletCall("hasEntry", [new DBus.int32(handle), "KaiChat", key, "org.kde.plasma.kdeaichat"], function(hasEntry) {
+                            if (hasEntry) {
+                                walletCall("readPassword", [new DBus.int32(handle), "KaiChat", key, "org.kde.plasma.kdeaichat"], function(secret) {
+                                    applyKWalletKeyToMemory(targetId, secret);
+                                    readNext();
+                                });
+                            } else {
+                                readNext();
+                            }
+                        });
+                    }
+                    readNext();
+                });
+            });
+        });
     }
 
     function performExportChat(filePath) {
