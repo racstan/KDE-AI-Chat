@@ -1,31 +1,13 @@
-import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls as QQC2
-import org.kde.kirigami as Kirigami
-import org.kde.kcmutils as KCM
-import org.kde.plasma.plasma5support 2.0 as P5Support
+import re
 
-import "api.js" as Api
+with open("org.kde.plasma.kdeaichat/contents/ui/ConfigSystemPrompt.qml", "r") as f:
+    content = f.read()
 
-KCM.SimpleKCM {
-    id: configPage
+# Add import
+content = content.replace("import org.kde.kcmutils as KCM\n", "import org.kde.kcmutils as KCM\nimport org.kde.plasma.plasma5support 2.0 as P5Support\n")
 
-    property alias cfg_sysInfoOS: sysInfoOSCheck.checked
-    property alias cfg_sysInfoShell: sysInfoShellCheck.checked
-    property alias cfg_sysInfoHostname: sysInfoHostnameCheck.checked
-    property alias cfg_sysInfoKernel: sysInfoKernelCheck.checked
-    property alias cfg_sysInfoDesktop: sysInfoDesktopCheck.checked
-    property alias cfg_sysInfoUser: sysInfoUserCheck.checked
-    property alias cfg_sysInfoCPU: sysInfoCPUCheck.checked
-    property alias cfg_sysInfoMemory: sysInfoMemoryCheck.checked
-    property alias cfg_sysInfoGPU: sysInfoGPUCheck.checked
-    property alias cfg_sysInfoDisk: sysInfoDiskCheck.checked
-    property alias cfg_sysInfoNetwork: sysInfoNetworkCheck.checked
-    property alias cfg_sysInfoLocale: sysInfoLocaleCheck.checked
-    property alias cfg_sysInfoDateTime: sysInfoDateTimeCheck.checked
-    property alias cfg_systemPrompt: customPromptArea.text
-
-    
+# Replace buildPreview
+new_build_preview = """
     property var sysInfo: ({})
     property int sysInfoPending: 0
     property var pendingSysInfoCommands: ({})
@@ -40,7 +22,7 @@ KCM.SimpleKCM {
         if (cfg_sysInfoUser)     cmds.push("whoami");
         if (cfg_sysInfoCPU)      cmds.push("lscpu");
         if (cfg_sysInfoMemory)   cmds.push("free -h");
-        if (cfg_sysInfoGPU)      cmds.push("bash -c \"lspci -nn | grep -iE 'vga|3d|display'\"");
+        if (cfg_sysInfoGPU)      cmds.push("bash -c \\\"lspci -nn | grep -iE 'vga|3d|display'\\\"");
         if (cfg_sysInfoDisk)     cmds.push("lsblk -o NAME,SIZE,TYPE,MOUNTPOINT");
         if (cfg_sysInfoNetwork)  cmds.push("ip -br addr show");
         if (cfg_sysInfoLocale)   cmds.push("echo $LANG");
@@ -128,7 +110,7 @@ KCM.SimpleKCM {
                         break;
                     case "free -h": info.memory = output; break;
                     case "lsblk -o NAME,SIZE,TYPE,MOUNTPOINT": info.disk = output; break;
-                    case "bash -c \"lspci -nn | grep -iE 'vga|3d|display'\"": info.gpu = output || "unknown"; break;
+                    case "bash -c \\\"lspci -nn | grep -iE 'vga|3d|display'\\\"": info.gpu = output || "unknown"; break;
                     case "ip -br addr show": info.network = output; break;
                     case "echo $LANG": info.locale = output; break;
                 }
@@ -139,48 +121,9 @@ KCM.SimpleKCM {
             }
         }
     }
+"""
 
+content = re.sub(r'function buildPreview\(\) \{.*?\n    \}', new_build_preview, content, flags=re.DOTALL)
 
-    Kirigami.FormLayout {
-        GridLayout {
-            Kirigami.FormData.label: "System Info:"
-            columns: 2
-            columnSpacing: Kirigami.Units.largeSpacing
-            rowSpacing: 0
-
-            QQC2.CheckBox { id: sysInfoOSCheck; text: "OS" }
-            QQC2.CheckBox { id: sysInfoShellCheck; text: "Shell" }
-            QQC2.CheckBox { id: sysInfoHostnameCheck; text: "Hostname" }
-            QQC2.CheckBox { id: sysInfoKernelCheck; text: "Kernel" }
-            QQC2.CheckBox { id: sysInfoDesktopCheck; text: "Desktop" }
-            QQC2.CheckBox { id: sysInfoUserCheck; text: "User" }
-            QQC2.CheckBox { id: sysInfoCPUCheck; text: "CPU" }
-            QQC2.CheckBox { id: sysInfoMemoryCheck; text: "Memory" }
-            QQC2.CheckBox { id: sysInfoGPUCheck; text: "GPU" }
-            QQC2.CheckBox { id: sysInfoDiskCheck; text: "Block Devices" }
-            QQC2.CheckBox { id: sysInfoNetworkCheck; text: "Network" }
-            QQC2.CheckBox { id: sysInfoLocaleCheck; text: "Locale" }
-            QQC2.CheckBox { id: sysInfoDateTimeCheck; text: "Date/Time" }
-        }
-
-        QQC2.TextArea {
-            id: customPromptArea
-            Kirigami.FormData.label: "Custom Instructions:"
-            Layout.fillWidth: true
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 6
-            placeholderText: "Additional instructions for the LLM…"
-            wrapMode: Text.Wrap
-        }
-
-        QQC2.TextArea {
-            Kirigami.FormData.label: "Preview:"
-            Layout.fillWidth: true
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 14
-            readOnly: true
-            wrapMode: Text.Wrap
-            font.family: "monospace"
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
-            text: configPage.buildPreview()
-        }
-    }
-}
+with open("org.kde.plasma.kdeaichat/contents/ui/ConfigSystemPrompt.qml", "w") as f:
+    f.write(content)

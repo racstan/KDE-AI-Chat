@@ -1627,6 +1627,14 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("openai", apiKeyField.text);
+                        page.refreshIfActiveProvider("openai");
+                    }
+                }
+
+                QQC2.Button {
                     id: apiKeyShowHide
 
                     checkable: true
@@ -1670,6 +1678,14 @@ KCM.SimpleKCM {
                     echoMode: anthropicKeyShowHide.checked ? TextInput.Normal : TextInput.Password
                     onEditingFinished: {
                         page.saveKey("anthropic", text);
+                        page.refreshIfActiveProvider("anthropic");
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("anthropic", anthropicApiKeyField.text);
                         page.refreshIfActiveProvider("anthropic");
                     }
                 }
@@ -1731,6 +1747,14 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("groq", groqApiKeyField.text);
+                        page.refreshIfActiveProvider("groq");
+                    }
+                }
+
+                QQC2.Button {
                     id: groqKeyShowHide
 
                     checkable: true
@@ -1782,6 +1806,14 @@ KCM.SimpleKCM {
                     echoMode: deepSeekKeyShowHide.checked ? TextInput.Normal : TextInput.Password
                     onEditingFinished: {
                         page.saveKey("deepseek", text);
+                        page.refreshIfActiveProvider("deepseek");
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("deepseek", deepseekApiKeyField.text);
                         page.refreshIfActiveProvider("deepseek");
                     }
                 }
@@ -1843,6 +1875,14 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("minimax", minimaxApiKeyField.text);
+                        page.refreshIfActiveProvider("minimax");
+                    }
+                }
+
+                QQC2.Button {
                     id: miniMaxKeyShowHide
 
                     checkable: true
@@ -1894,6 +1934,14 @@ KCM.SimpleKCM {
                     echoMode: fireworksKeyShowHide.checked ? TextInput.Normal : TextInput.Password
                     onEditingFinished: {
                         page.saveKey("fireworks", text);
+                        page.refreshIfActiveProvider("fireworks");
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("fireworks", fireworksApiKeyField.text);
                         page.refreshIfActiveProvider("fireworks");
                     }
                 }
@@ -1955,6 +2003,14 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("google", googleApiKeyField.text);
+                        page.refreshIfActiveProvider("google");
+                    }
+                }
+
+                QQC2.Button {
                     id: googleKeyShowHide
 
                     checkable: true
@@ -2006,6 +2062,14 @@ KCM.SimpleKCM {
                     echoMode: openRouterKeyShowHide.checked ? TextInput.Normal : TextInput.Password
                     onEditingFinished: {
                         page.saveKey("openrouter", text);
+                        page.refreshIfActiveProvider("openrouter");
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("openrouter", openrouterApiKeyField.text);
                         page.refreshIfActiveProvider("openrouter");
                     }
                 }
@@ -2067,6 +2131,14 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("mistral", mistralApiKeyField.text);
+                        page.refreshIfActiveProvider("mistral");
+                    }
+                }
+
+                QQC2.Button {
                     id: mistralKeyShowHide
 
                     checkable: true
@@ -2123,6 +2195,14 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("cloudflare", cloudflareApiKeyField.text);
+                        page.refreshIfActiveProvider("cloudflare");
+                    }
+                }
+
+                QQC2.Button {
                     id: cloudflareKeyShowHide
 
                     checkable: true
@@ -2174,6 +2254,14 @@ KCM.SimpleKCM {
                     echoMode: nvidiaKeyShowHide.checked ? TextInput.Normal : TextInput.Password
                     onEditingFinished: {
                         page.saveKey("nvidia", text);
+                        page.refreshIfActiveProvider("nvidia");
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("nvidia", nvidiaApiKeyField.text);
                         page.refreshIfActiveProvider("nvidia");
                     }
                 }
@@ -2291,6 +2379,14 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("xai", xaiApiKeyField.text);
+                        page.refreshIfActiveProvider("xai");
+                    }
+                }
+
+                QQC2.Button {
                     id: xaiKeyShowHide
 
                     checkable: true
@@ -2402,6 +2498,14 @@ KCM.SimpleKCM {
                     echoMode: litellmKeyShowHide.checked ? TextInput.Normal : TextInput.Password
                     onEditingFinished: {
                         page.saveKey("litellm", text);
+                        page.refreshIfActiveProvider("litellm");
+                    }
+                }
+
+                QQC2.Button {
+                    text: "Save"
+                    onClicked: {
+                        page.saveKey("litellm", litellmApiKeyField.text);
                         page.refreshIfActiveProvider("litellm");
                     }
                 }
