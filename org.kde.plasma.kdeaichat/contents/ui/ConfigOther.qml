@@ -187,6 +187,7 @@ KCM.SimpleKCM {
     }
 
     readonly property alias scheduleDialog: scheduleDialogObj
+    readonly property alias utilityDs: utilityDs
 
     P5Support.DataSource {
         id: utilityDs
