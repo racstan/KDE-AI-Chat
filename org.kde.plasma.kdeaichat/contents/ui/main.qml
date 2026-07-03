@@ -47,6 +47,7 @@ PlasmoidItem {
     property bool openCodeMode: plasmoid.configuration.useOpenCode
 
     property string compiledSystemPrompt: ""
+    property string compiledMemoryBlock: ""
     property var sysInfo: ({})
     property var pendingSysInfoCommands: ({})
     property int sysInfoPending: 0
@@ -2359,13 +2360,27 @@ PlasmoidItem {
                         parts.push({ type: "text", text: lastMsg.content || "" })
                     }
 
+                    var fallback = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
+                    var sysValue
+                    if (compiledMemoryBlock && compiledMemoryBlock.length > 0) {
+                        // OpenCode's API accepts system as a string OR an array
+                        // of {type:"text", text:"..."} blocks. The array form
+                        // lets providers (Anthropic via OpenCode) apply
+                        // per-block cache_control; for providers that don't,
+                        // OpenCode joins the blocks server-side.
+                        sysValue = [
+                            { type: "text", text: compiledSystemPrompt || fallback },
+                            { type: "text", text: compiledMemoryBlock }
+                        ]
+                    } else {
+                        sysValue = compiledSystemPrompt || fallback
+                    }
                     xhr.send(JSON.stringify({
                         model: {
                             providerID: providerId,
                             modelID: modelId
                         },
-                        system: compiledSystemPrompt
-                                || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
+                        system: sysValue,
                         parts: parts
                     }))
                 } catch (sendError) {
@@ -2896,9 +2911,10 @@ PlasmoidItem {
     }
 
     function buildOpenAICompatPayload() {
-        var sys = compiledSystemPrompt
-                  || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
-        var arr = [{ role: "system", content: sys }]
+        var fallback = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
+        var arr = [{ role: "system", content: compiledSystemPrompt || fallback }]
+        if (compiledMemoryBlock && compiledMemoryBlock.length > 0)
+            arr.push({ role: "system", content: compiledMemoryBlock })
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i]
             if (m.role === "user" || m.role === "assistant") {
@@ -3163,8 +3179,14 @@ PlasmoidItem {
         xhr.send(JSON.stringify({
             model: model,
             max_tokens: 1024,
-            system: compiledSystemPrompt
-                    || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.",
+            // Anthropic's API only accepts a single system string, so we
+            // concatenate the static prompt with the per-turn memory block.
+            // (Anthropic's prompt caching would key on the whole string.)
+            system: (compiledSystemPrompt
+                    || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.")
+                    + (compiledMemoryBlock && compiledMemoryBlock.length > 0
+                       ? ("\n\n" + compiledMemoryBlock)
+                       : ""),
             messages: buildAnthropicPayload()
         }))
     }
@@ -3844,11 +3866,13 @@ PlasmoidItem {
         fileReaderDs.connectSource(cmd + " #export-chat-save")
     }
     function initSystemPrompt() {
-        compiledSystemPrompt = Api.buildSystemPrompt(sysInfo, plasmoid.configuration.systemPrompt, {
+        var options = {
             sysInfoDateTime: plasmoid.configuration.sysInfoDateTime,
             enableMemory: plasmoid.configuration.enableMemory,
             userMemory: plasmoid.configuration.userMemory
-        });
+        };
+        compiledSystemPrompt = Api.buildSystemPrompt(sysInfo, plasmoid.configuration.systemPrompt, options);
+        compiledMemoryBlock = Api.buildMemoryBlock(options);
     }
 
     function regatherSysInfo() {

@@ -10,6 +10,9 @@ function localISODateTime() {
 }
 
 function buildSystemPrompt(sysInfo, customAdditions, options) {
+    // Static system prompt: identity + sysinfo + custom instructions.
+    // Memory is intentionally NOT included here so it can be sent as a
+    // separate (per-turn, non-cached) system block in the API payload.
     var prompt = "You are a helpful assistant embedded in the user's Linux desktop.\n\n" +
         "## System\n";
 
@@ -36,14 +39,32 @@ function buildSystemPrompt(sysInfo, customAdditions, options) {
 
     prompt += "\nThe below instructions are given by the user and take the utmost precedence over the instructions above.\n";
     prompt += "\n" + (customAdditions || "").trim() + "\n";
-
-    if (options && options.enableMemory && options.userMemory && options.userMemory.trim() !== "") {
-        prompt += "\n## User Memory\n";
-        prompt += "The following are important facts or preferences the user wants you to remember:\n";
-        prompt += options.userMemory.trim() + "\n";
-    }
-
     prompt += "\nEND OF SYSTEM PROMPT\n";
 
+    return prompt;
+}
+
+function buildMemoryBlock(options) {
+    // Returns the per-turn memory block as a string, or "" when memory
+    // is disabled / empty. Callers add this as a separate system message
+    // (or system array entry) so providers with prompt caching can cache
+    // the static prompt and re-send only the memory.
+    if (!options || !options.enableMemory)
+        return "";
+    var mem = (options.userMemory || "").trim();
+    if (mem === "")
+        return "";
+    return "## User Memory\n" +
+           "The following are important facts or preferences the user wants you to remember:\n" +
+           mem;
+}
+
+function buildFullSystemPrompt(sysInfo, customAdditions, options) {
+    // Convenience for the settings-page preview: combines the static
+    // prompt and the memory block into one readable string.
+    var prompt = buildSystemPrompt(sysInfo, customAdditions, options);
+    var mem = buildMemoryBlock(options);
+    if (mem !== "")
+        prompt += "\n\n" + mem + "\n";
     return prompt;
 }

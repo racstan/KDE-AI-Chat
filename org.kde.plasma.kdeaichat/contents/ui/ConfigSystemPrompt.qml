@@ -78,7 +78,7 @@ KCM.SimpleKCM {
     Component.onCompleted: triggerPreviewUpdate()
 
     function buildPreview() {
-        return Api.buildSystemPrompt(sysInfo, cfg_systemPrompt, {
+        return Api.buildFullSystemPrompt(sysInfo, cfg_systemPrompt, {
             sysInfoDateTime: cfg_sysInfoDateTime,
             enableMemory: cfg_enableMemory,
             userMemory: cfg_userMemory
