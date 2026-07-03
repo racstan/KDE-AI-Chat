@@ -3696,7 +3696,7 @@ PlasmoidItem {
     }
 
     function loadKWalletKeysAtStartup() {
-        var walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet"
+        var walletName = "kdewallet";
         walletCall("wallets", [], function(wallets) {
             if (wallets.indexOf(walletName) === -1) return;
             walletCall("open", [walletName, new DBus.int64(0), "org.kde.plasma.kdeaichat"], function(handle) {

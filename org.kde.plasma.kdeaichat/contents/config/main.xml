@@ -200,10 +200,6 @@
       <default>pkill -f opencode &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo OpenCode stop command launched. || echo No OpenCode process matched.</default>
     </entry>
 
-    <entry name="kwalletName" type="String">
-      <default>kdeaichatwallet</default>
-    </entry>
-
 
 
     <entry name="systemPrompt" type="String">

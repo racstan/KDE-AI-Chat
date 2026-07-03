@@ -69,12 +69,9 @@ KCM.SimpleKCM {
     property alias cfg_openCodeProvider: openCodeProviderValueField.text
     property alias cfg_openCodeStartCommand: openCodeStartCommandField.text
     property alias cfg_openCodeStopCommand: openCodeStopCommandField.text
-    property alias cfg_kwalletName: walletNameField.text
-    property string keyringStatus: ""
     property string discoveryStatus: ""
     property var pendingOps: ({
     })
-    property var availableWalletNames: []
     // Guard to prevent premature writes during KCM initialization (cfg_ aliases
     // are populated after the combo's onCurrentIndexChanged fires).
     property bool pageReady: false
@@ -125,38 +122,7 @@ KCM.SimpleKCM {
     }
 
     function effectiveWalletName() {
-        var configuredName = (walletNameField.text || "").trim();
-        if (configuredName !== "")
-            return configuredName;
-
-        if (availableWalletNames.length > 0)
-            return availableWalletNames[0];
-
         return "kdewallet";
-    }
-
-    function maybeAdoptDetectedWalletName() {
-        if (availableWalletNames.length === 0)
-            return ;
-
-        var configured = (walletNameField.text || "").trim();
-        if (configured === "") {
-            walletNameField.text = availableWalletNames[0];
-            return ;
-        }
-        for (var i = 0; i < availableWalletNames.length; i++) {
-            if (availableWalletNames[i].toLowerCase() === configured.toLowerCase()) {
-                walletNameField.text = availableWalletNames[i];
-                return ;
-            }
-        }
-    }
-
-    function detectWallets() {
-        walletCall("wallets", [], function(wallets) {
-            availableWalletNames = wallets;
-            maybeAdoptDetectedWalletName();
-        });
     }
 
     function walletCall(member, args, resolve, reject) {
@@ -1129,7 +1095,6 @@ KCM.SimpleKCM {
         openCodeModelValueField.text = "";
         openCodeStartCommandField.text = "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
-        walletNameField.text = availableWalletNames.length > 0 ? availableWalletNames[0] : "kdewallet";
         systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
@@ -1143,9 +1108,6 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         if (plasmoid.configuration.appearanceMode === 3 || plasmoid.configuration.appearanceMode > 2)
             plasmoid.configuration.appearanceMode = 0;
-
-        // Force wallet detection to populate fields
-        detectWallets();
 
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery();
@@ -2476,145 +2438,6 @@ KCM.SimpleKCM {
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "Behavior"
-            }
-
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: "API Key Storage"
-            }
-
-
-
-            QQC2.Label {
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "Keys are encrypted and stored via DBus in your system KWallet. Recommended for shared or multi-user machines."
-                wrapMode: Text.Wrap
-                opacity: 0.75
-            }
-
-            QQC2.ComboBox {
-                visible: kwalletModeActive && availableWalletNames.length > 0
-                Kirigami.FormData.label: "Wallet name:"
-                Layout.fillWidth: true
-                model: availableWalletNames
-                currentIndex: availableWalletNames.indexOf(walletNameField.text)
-                onActivated: {
-                    if (currentIndex >= 0)
-                        walletNameField.text = currentText;
-
-                }
-            }
-
-            QQC2.TextField {
-                visible: kwalletModeActive && availableWalletNames.length === 0
-                Kirigami.FormData.label: "Wallet name:"
-                Layout.fillWidth: true
-                text: walletNameField.text
-                placeholderText: "kdewallet"
-                onTextChanged: walletNameField.text = text
-            }
-
-            QQC2.Label {
-                visible: kwalletModeActive && availableWalletNames.length > 0
-                Kirigami.FormData.label: "Detected wallets:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: availableWalletNames.join(", ")
-                wrapMode: Text.Wrap
-                opacity: 0.8
-            }
-
-            QQC2.Label {
-                visible: kwalletModeActive
-                Kirigami.FormData.label: "Wallet info:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: "KWallet controls wallet creation and password policy. A new wallet name may trigger KDE to create or unlock that wallet, depending on your system wallet settings."
-                wrapMode: Text.Wrap
-                opacity: 0.8
-            }
-
-            RowLayout {
-                visible: kwalletModeActive
-                Kirigami.FormData.label: "Wallet actions:"
-                Layout.fillWidth: true
-
-                QQC2.Button {
-                    text: "Detect wallets"
-                    enabled: !keyringBusy
-                    onClicked: detectWallets()
-                }
-
-                QQC2.Button {
-                    text: "Launch KWalletManager"
-                    onClicked: {
-                        utilityDs.connectSource("kwalletmanager6 || kwalletmanager5 || kwalletmanager #launch-kwallet");
-                    }
-                }
-
-                QQC2.Button {
-                    text: "Create wallet"
-                    visible: availableWalletNames.length === 0
-                    enabled: !keyringBusy
-                    onClicked: {
-                        cancelKeyringOps();
-                        var walletName = effectiveWalletName();
-                        keyringStatus = "Requesting wallet creation/open: " + walletName + "...";
-                        utilityDs.connectSource(walletInitCommand(walletName) + " #kwallet-create");
-                    }
-                }
-
-            }
-
-            QQC2.Button {
-                visible: kwalletModeActive
-                Kirigami.FormData.label: "Wallet status:"
-                text: "Check wallet status"
-                enabled: !keyringBusy
-                onClicked: {
-                    cancelKeyringOps();
-                    keyringStatus = "Checking wallet status...";
-                    utilityDs.connectSource(walletStatusCommand(effectiveWalletName()) + " #kwallet-status-check");
-                }
-            }
-
-            RowLayout {
-                visible: kwalletModeActive
-                Kirigami.FormData.label: "KWallet sync:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.Button {
-                    text: "Refresh from KWallet"
-                    enabled: !keyringBusy
-                    onClicked: page.kwalletLoadAll()
-                }
-
-                QQC2.Button {
-                    text: "Sync to KWallet"
-                    enabled: !keyringBusy
-                    onClicked: page.kwalletStoreAll()
-                }
-
-            }
-
-            QQC2.BusyIndicator {
-                visible: kwalletModeActive && keyringBusy
-                running: visible
-                Kirigami.FormData.label: "Working:"
-            }
-
-
-
-            QQC2.Label {
-                visible: keyringStatus !== ""
-                Kirigami.FormData.label: "Status:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                text: keyringStatus
-                wrapMode: Text.Wrap
-                opacity: 0.8
             }
 
             Kirigami.Separator {
