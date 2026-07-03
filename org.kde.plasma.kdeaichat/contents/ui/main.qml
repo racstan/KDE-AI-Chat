@@ -1131,7 +1131,9 @@ PlasmoidItem {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing                            QQC2.TextArea {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.TextArea {
                                 id: msgInput
                                 Layout.fillWidth: true
                                 Layout.minimumHeight: Kirigami.Units.gridUnit * 3
