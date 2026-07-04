@@ -10,6 +10,22 @@ function localISODateTime() {
 }
 
 function buildSystemPrompt(sysInfo, customAdditions, options) {
+    // If no custom instructions are set, and no system info checkboxes are checked,
+    // we should return an empty string rather than injecting a default prompt.
+    var hasSysInfo = false;
+    if (options && options.sysInfoDateTime) {
+        hasSysInfo = true;
+    }
+    if (sysInfo && Object.keys(sysInfo).length > 0) {
+        hasSysInfo = true;
+    }
+
+    var custom = (customAdditions || "").trim();
+
+    if (!hasSysInfo && custom === "") {
+        return "";
+    }
+
     // Static system prompt: identity + sysinfo + custom instructions.
     // Memory is intentionally NOT included here so it can be sent as a
     // separate (per-turn, non-cached) system block in the API payload.
@@ -37,8 +53,11 @@ function buildSystemPrompt(sysInfo, customAdditions, options) {
         if (sysInfo.network)   prompt += "- Network Interfaces:\n" + sysInfo.network + "\n";
     }
 
-    prompt += "\nThe below instructions are given by the user and take the utmost precedence over the instructions above.\n";
-    prompt += "\n" + (customAdditions || "").trim() + "\n";
+    if (custom !== "") {
+        prompt += "\nThe below instructions are given by the user and take the utmost precedence over the instructions above.\n";
+        prompt += "\n" + custom + "\n";
+    }
+
     prompt += "\nEND OF SYSTEM PROMPT\n";
 
     return prompt;
@@ -67,8 +86,13 @@ function buildFullSystemPrompt(sysInfo, customAdditions, options) {
     // see what will be sent as two distinct system messages.
     var prompt = buildSystemPrompt(sysInfo, customAdditions, options);
     var mem = buildMemoryBlock(options);
-    if (mem === "")
+    if (mem === "") {
         return prompt;
+    }
+    if (prompt === "") {
+        return "═════ User Memory (sent every turn, fresh each request) ═════\n" +
+               mem + "\n";
+    }
     return "═════ System Prompt (sent every request, provider-cached) ═════\n" +
            prompt + "\n" +
            "═════ User Memory (sent every turn, fresh each request) ═════\n" +

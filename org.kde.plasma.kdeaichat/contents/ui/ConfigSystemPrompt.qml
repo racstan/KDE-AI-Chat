@@ -177,8 +177,8 @@ KCM.SimpleKCM {
             id: customPromptScroll
             Kirigami.FormData.label: "Custom Instructions:"
             Layout.fillWidth: true
+            implicitHeight: Kirigami.Units.gridUnit * 6
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
-            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
             clip: true
 
             QQC2.TextArea {
@@ -189,24 +189,21 @@ KCM.SimpleKCM {
             }
         }
 
-        // Preview: wrap in a fixed-height container to prevent overflow
-        Item {
+        QQC2.ScrollView {
+            id: previewScroll
             Kirigami.FormData.label: "Preview:"
             Layout.fillWidth: true
+            implicitHeight: Kirigami.Units.gridUnit * 10
             Layout.preferredHeight: Kirigami.Units.gridUnit * 10
-            Layout.maximumHeight: Kirigami.Units.gridUnit * 10
             clip: true
 
-            QQC2.ScrollView {
-                anchors.fill: parent
-                QQC2.TextArea {
-                    readOnly: true
-                    wrapMode: Text.Wrap
-                    font.family: "monospace"
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                    text: configPage.buildPreview()
-                    width: parent.width
-                }
+            QQC2.TextArea {
+                readOnly: true
+                wrapMode: Text.Wrap
+                font.family: "monospace"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                text: configPage.buildPreview()
+                width: previewScroll.width
             }
         }
 
@@ -226,8 +223,8 @@ KCM.SimpleKCM {
             visible: enableMemoryCheck.checked
             Kirigami.FormData.label: "Memory Content:"
             Layout.fillWidth: true
+            implicitHeight: Kirigami.Units.gridUnit * 6
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
-            Layout.maximumHeight: Kirigami.Units.gridUnit * 6
             clip: true
 
             QQC2.TextArea {

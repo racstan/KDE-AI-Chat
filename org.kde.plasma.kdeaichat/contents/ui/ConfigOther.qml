@@ -198,6 +198,10 @@ KCM.SimpleKCM {
             let out = data["stdout"] ? data["stdout"] : "";
             let err = data["stderr"] ? data["stderr"] : "";
 
+            if (out.trim() === "" && err.trim() === "") {
+                return;
+            }
+
             if (sourceName.indexOf("sched-poll-") >= 0) {
                 configPage.schedulerDaemonRunning = (out.trim() === "SCHED_RUNNING");
                 if (!configPage.schedulerDaemonRunning && configPage.schedulerStatus === "Restarting…")

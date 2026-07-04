@@ -22,7 +22,23 @@ PlasmoidItem {
     property var messages: []
     property var attachedFiles: []
 
+    property int currentViewIndex: 0
     property bool historyOnlyMode: false
+    onHistoryOnlyModeChanged: {
+        if (historyOnlyMode && currentViewIndex !== 1) {
+            currentViewIndex = 1
+        } else if (!historyOnlyMode && currentViewIndex === 1) {
+            currentViewIndex = 0
+        }
+    }
+    onCurrentViewIndexChanged: {
+        historyOnlyMode = (currentViewIndex === 1)
+        if (currentViewIndex === 0) {
+            root.focusInput()
+            Qt.callLater(root.scrollToBottom)
+        }
+    }
+
     property bool loading: false
     property var activeXhr: null
     property var openCodeEventXhr: null
@@ -88,32 +104,37 @@ PlasmoidItem {
         })
     }
 
-    onExpandedChanged: {
-        if (expanded) {
-            root.focusInput()
-            Qt.callLater(root.scrollToBottom)
+    Timer {
+        id: deferredScrollTimer
+        interval: 100
+        repeat: false
+        onTriggered: {
+            root.scrollToBottom()
         }
     }
 
-    onHistoryOnlyModeChanged: {
-        if (!historyOnlyMode) {
+    onExpandedChanged: {
+        if (expanded) {
             root.focusInput()
+            deferredScrollTimer.restart()
         }
     }
 
     Component.onCompleted: {
-        ensureWalletLoaded()
-        loadSessions()
-        if (plasmoid.configuration.gatheredSysInfo) {
-            try {
-                sysInfo = JSON.parse(plasmoid.configuration.gatheredSysInfo)
-                initSystemPrompt()
-            } catch (e) {
+        Qt.callLater(function() {
+            ensureWalletLoaded()
+            loadSessions()
+            if (plasmoid.configuration.gatheredSysInfo) {
+                try {
+                    sysInfo = JSON.parse(plasmoid.configuration.gatheredSysInfo)
+                    initSystemPrompt()
+                } catch (e) {
+                    regatherSysInfo()
+                }
+            } else {
                 regatherSysInfo()
             }
-        } else {
-            regatherSysInfo()
-        }
+        })
     }
 
     Connections {
@@ -237,20 +258,123 @@ PlasmoidItem {
             }
         }
 
-        ColumnLayout {
+        RowLayout {
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
+            spacing: 0
 
-            RowLayout {
-                Layout.fillWidth: true
+            // Sleek Left Sidebar
+            Rectangle {
+                id: sidebar
+                Layout.fillHeight: true
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 3.5
+                color: Kirigami.Theme.alternateBackgroundColor
 
-                PC3.ToolButton {
-                    icon.name: root.historyOnlyMode ? "go-previous-symbolic" : "view-list-icons"
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: root.historyOnlyMode ? "Back to chat" : "Expand history"
-                    onClicked: root.historyOnlyMode = !root.historyOnlyMode
+                // Border/Separator
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 1
+                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
                 }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.topMargin: Kirigami.Units.gridUnit
+                    anchors.bottomMargin: Kirigami.Units.gridUnit
+                    spacing: Kirigami.Units.smallSpacing
+
+                    // Chat Tab
+                    PC3.ToolButton {
+                        Layout.alignment: Qt.AlignHCenter
+                        icon.name: "dialog-messages"
+                        icon.width: Kirigami.Units.gridUnit * 1.5
+                        icon.height: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2.8
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.8
+                        checkable: true
+                        checked: root.currentViewIndex === 0
+                        onClicked: root.currentViewIndex = 0
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: "Chat"
+
+                        background: Rectangle {
+                            color: parent.checked ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.12) : "transparent"
+                            radius: 6
+                            border.color: parent.checked ? Kirigami.Theme.highlightColor : "transparent"
+                            border.width: 1
+                        }
+                    }
+
+                    // History Tab
+                    PC3.ToolButton {
+                        Layout.alignment: Qt.AlignHCenter
+                        icon.name: "view-history"
+                        icon.width: Kirigami.Units.gridUnit * 1.5
+                        icon.height: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2.8
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.8
+                        checkable: true
+                        checked: root.currentViewIndex === 1
+                        onClicked: root.currentViewIndex = 1
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: "Chat History"
+
+                        background: Rectangle {
+                            color: parent.checked ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.12) : "transparent"
+                            radius: 6
+                            border.color: parent.checked ? Kirigami.Theme.highlightColor : "transparent"
+                            border.width: 1
+                        }
+                    }
+
+                    // Settings Tab
+                    PC3.ToolButton {
+                        Layout.alignment: Qt.AlignHCenter
+                        icon.name: "configure"
+                        icon.width: Kirigami.Units.gridUnit * 1.5
+                        icon.height: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2.8
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.8
+                        checkable: true
+                        checked: root.currentViewIndex === 2
+                        onClicked: root.currentViewIndex = 2
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: "Settings & Schedules"
+
+                        background: Rectangle {
+                            color: parent.checked ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.12) : "transparent"
+                            radius: 6
+                            border.color: parent.checked ? Kirigami.Theme.highlightColor : "transparent"
+                            border.width: 1
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.margins: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.smallSpacing
+
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    PC3.ToolButton {
+                        icon.name: root.currentViewIndex !== 0 ? "go-previous-symbolic" : "view-list-icons"
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: root.currentViewIndex !== 0 ? "Back to chat" : "Expand history"
+                        onClicked: {
+                            if (root.currentViewIndex !== 0) {
+                                root.currentViewIndex = 0
+                            } else {
+                                root.currentViewIndex = 1
+                            }
+                        }
+                    }
 
                 PC3.ToolButton {
                     icon.name: "window-pin"
@@ -426,7 +550,7 @@ PlasmoidItem {
             StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: root.historyOnlyMode ? 1 : 0
+                currentIndex: root.currentViewIndex
 
                 Item {
                     ColumnLayout {
@@ -1394,12 +1518,17 @@ PlasmoidItem {
                                 }
                             }
                         }
-                    }
-                }
+            }
+
+            SettingsPanel {
+                id: settingsPanel
+                Layout.fillWidth: true
+                Layout.fillHeight: true
             }
         }
+    }
 
-        MouseArea {
+    MouseArea {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             width: Kirigami.Units.gridUnit
@@ -2360,29 +2489,21 @@ PlasmoidItem {
                         parts.push({ type: "text", text: lastMsg.content || "" })
                     }
 
-                    var fallback = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
-                    var sysValue
+                    var sysValue = ""
                     if (compiledMemoryBlock && compiledMemoryBlock.length > 0) {
-                        // OpenCode's API accepts system as a string OR an array
-                        // of {type:"text", text:"..."} blocks. The array form
-                        // lets providers (Anthropic via OpenCode) apply
-                        // per-block cache_control; for providers that don't,
-                        // OpenCode joins the blocks server-side.
-                        sysValue = [
-                            { type: "text", text: compiledSystemPrompt || fallback },
-                            { type: "text", text: compiledMemoryBlock }
-                        ]
-                    } else {
-                        sysValue = compiledSystemPrompt || fallback
+                        sysValue = compiledMemoryBlock
                     }
-                    xhr.send(JSON.stringify({
+                    var reqPayload = {
                         model: {
                             providerID: providerId,
                             modelID: modelId
                         },
-                        system: sysValue,
                         parts: parts
-                    }))
+                    }
+                    if (sysValue && sysValue.length > 0) {
+                        reqPayload.system = sysValue
+                    }
+                    xhr.send(JSON.stringify(reqPayload))
                 } catch (sendError) {
                     failOpenCodeRequest("OpenCode: failed to send request: " + sendError)
                 }
@@ -2911,10 +3032,13 @@ PlasmoidItem {
     }
 
     function buildOpenAICompatPayload() {
-        var fallback = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts."
-        var arr = [{ role: "system", content: compiledSystemPrompt || fallback }]
-        if (compiledMemoryBlock && compiledMemoryBlock.length > 0)
+        var arr = []
+        if (compiledSystemPrompt && compiledSystemPrompt.length > 0) {
+            arr.push({ role: "system", content: compiledSystemPrompt })
+        }
+        if (compiledMemoryBlock && compiledMemoryBlock.length > 0) {
             arr.push({ role: "system", content: compiledMemoryBlock })
+        }
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i]
             if (m.role === "user" || m.role === "assistant") {
@@ -3176,19 +3300,22 @@ PlasmoidItem {
             processNextQueuedMessage()
         }
 
-        xhr.send(JSON.stringify({
+        var anthropicReqBody = {
             model: model,
             max_tokens: 1024,
-            // Anthropic's API only accepts a single system string, so we
-            // concatenate the static prompt with the per-turn memory block.
-            // (Anthropic's prompt caching would key on the whole string.)
-            system: (compiledSystemPrompt
-                    || "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.")
-                    + (compiledMemoryBlock && compiledMemoryBlock.length > 0
-                       ? ("\n\n" + compiledMemoryBlock)
-                       : ""),
             messages: buildAnthropicPayload()
-        }))
+        }
+        var systemPromptParts = []
+        if (compiledSystemPrompt && compiledSystemPrompt.length > 0) {
+            systemPromptParts.push(compiledSystemPrompt)
+        }
+        if (compiledMemoryBlock && compiledMemoryBlock.length > 0) {
+            systemPromptParts.push(compiledMemoryBlock)
+        }
+        if (systemPromptParts.length > 0) {
+            anthropicReqBody.system = systemPromptParts.join("\n\n")
+        }
+        xhr.send(JSON.stringify(anthropicReqBody))
     }
 
     P5Support.DataSource {
