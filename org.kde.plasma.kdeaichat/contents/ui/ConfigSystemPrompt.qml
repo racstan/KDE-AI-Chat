@@ -77,13 +77,7 @@ KCM.SimpleKCM {
 
     Component.onCompleted: triggerPreviewUpdate()
 
-    function buildPreview() {
-        return Api.buildFullSystemPrompt(sysInfo, cfg_systemPrompt, {
-            sysInfoDateTime: cfg_sysInfoDateTime,
-            enableMemory: cfg_enableMemory,
-            userMemory: cfg_userMemory
-        });
-    }
+
 
     P5Support.DataSource {
         id: sysInfoDs
@@ -191,10 +185,10 @@ KCM.SimpleKCM {
 
         QQC2.ScrollView {
             id: previewScroll
-            Kirigami.FormData.label: "Preview:"
+            Kirigami.FormData.label: "System Prompt Preview:"
             Layout.fillWidth: true
-            implicitHeight: Kirigami.Units.gridUnit * 10
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 10
+            implicitHeight: Kirigami.Units.gridUnit * 6
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 6
             clip: true
 
             QQC2.TextArea {
@@ -202,7 +196,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 font.family: "monospace"
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                text: configPage.buildPreview()
+                text: Api.buildSystemPrompt(configPage.sysInfo, configPage.cfg_systemPrompt, { sysInfoDateTime: configPage.cfg_sysInfoDateTime })
                 width: previewScroll.width
             }
         }
@@ -232,6 +226,25 @@ KCM.SimpleKCM {
                 placeholderText: "Facts or preferences you want the assistant to remember across all chats..."
                 wrapMode: Text.Wrap
                 width: userMemoryScroll.width
+            }
+        }
+
+        QQC2.ScrollView {
+            id: memoryPreviewScroll
+            visible: enableMemoryCheck.checked
+            Kirigami.FormData.label: "Memory Preview:"
+            Layout.fillWidth: true
+            implicitHeight: Kirigami.Units.gridUnit * 4
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+            clip: true
+
+            QQC2.TextArea {
+                readOnly: true
+                wrapMode: Text.Wrap
+                font.family: "monospace"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                text: Api.buildMemoryBlock({ enableMemory: configPage.cfg_enableMemory, userMemory: configPage.cfg_userMemory })
+                width: memoryPreviewScroll.width
             }
         }
     }

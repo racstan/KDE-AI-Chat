@@ -22,18 +22,9 @@ PlasmoidItem {
     property var messages: []
     property var attachedFiles: []
 
-    property int currentViewIndex: 0
     property bool historyOnlyMode: false
     onHistoryOnlyModeChanged: {
-        if (historyOnlyMode && currentViewIndex !== 1) {
-            currentViewIndex = 1
-        } else if (!historyOnlyMode && currentViewIndex === 1) {
-            currentViewIndex = 0
-        }
-    }
-    onCurrentViewIndexChanged: {
-        historyOnlyMode = (currentViewIndex === 1)
-        if (currentViewIndex === 0) {
+        if (!historyOnlyMode) {
             root.focusInput()
             Qt.callLater(root.scrollToBottom)
         }
@@ -299,122 +290,19 @@ PlasmoidItem {
             }
         }
 
-        RowLayout {
+        ColumnLayout {
             anchors.fill: parent
-            spacing: 0
-
-            // Sleek Left Sidebar
-            Rectangle {
-                id: sidebar
-                Layout.fillHeight: true
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 3.5
-                color: Kirigami.Theme.alternateBackgroundColor
-
-                // Border/Separator
-                Rectangle {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: 1
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
-                }
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.topMargin: Kirigami.Units.gridUnit
-                    anchors.bottomMargin: Kirigami.Units.gridUnit
-                    spacing: Kirigami.Units.smallSpacing
-
-                    // Chat Tab
-                    PC3.ToolButton {
-                        Layout.alignment: Qt.AlignHCenter
-                        icon.name: "dialog-messages"
-                        icon.width: Kirigami.Units.gridUnit * 1.5
-                        icon.height: Kirigami.Units.gridUnit * 1.5
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2.8
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.8
-                        checkable: true
-                        checked: root.currentViewIndex === 0
-                        onClicked: root.currentViewIndex = 0
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: "Chat"
-
-                        background: Rectangle {
-                            color: parent.checked ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.12) : "transparent"
-                            radius: 6
-                            border.color: parent.checked ? Kirigami.Theme.highlightColor : "transparent"
-                            border.width: 1
-                        }
-                    }
-
-                    // History Tab
-                    PC3.ToolButton {
-                        Layout.alignment: Qt.AlignHCenter
-                        icon.name: "view-history"
-                        icon.width: Kirigami.Units.gridUnit * 1.5
-                        icon.height: Kirigami.Units.gridUnit * 1.5
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2.8
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.8
-                        checkable: true
-                        checked: root.currentViewIndex === 1
-                        onClicked: root.currentViewIndex = 1
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: "Chat History"
-
-                        background: Rectangle {
-                            color: parent.checked ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.12) : "transparent"
-                            radius: 6
-                            border.color: parent.checked ? Kirigami.Theme.highlightColor : "transparent"
-                            border.width: 1
-                        }
-                    }
-
-                    // Settings Tab
-                    PC3.ToolButton {
-                        Layout.alignment: Qt.AlignHCenter
-                        icon.name: "configure"
-                        icon.width: Kirigami.Units.gridUnit * 1.5
-                        icon.height: Kirigami.Units.gridUnit * 1.5
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2.8
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.8
-                        checkable: true
-                        checked: root.currentViewIndex === 2
-                        onClicked: root.currentViewIndex = 2
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: "Settings & Schedules"
-
-                        background: Rectangle {
-                            color: parent.checked ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.12) : "transparent"
-                            radius: 6
-                            border.color: parent.checked ? Kirigami.Theme.highlightColor : "transparent"
-                            border.width: 1
-                        }
-                    }
-
-                    Item { Layout.fillHeight: true }
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.margins: Kirigami.Units.smallSpacing
-                spacing: Kirigami.Units.smallSpacing
+            anchors.margins: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.smallSpacing
 
                 RowLayout {
                     Layout.fillWidth: true
 
                     PC3.ToolButton {
-                        icon.name: root.currentViewIndex !== 0 ? "go-previous-symbolic" : "view-list-icons"
+                        icon.name: root.historyOnlyMode ? "go-previous-symbolic" : "view-list-icons"
                         QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: root.currentViewIndex !== 0 ? "Back to chat" : "Expand history"
-                        onClicked: {
-                            if (root.currentViewIndex !== 0) {
-                                root.currentViewIndex = 0
-                            } else {
-                                root.currentViewIndex = 1
-                            }
-                        }
+                        QQC2.ToolTip.text: root.historyOnlyMode ? "Back to chat" : "Expand history"
+                        onClicked: root.historyOnlyMode = !root.historyOnlyMode
                     }
 
                 PC3.ToolButton {
@@ -591,7 +479,7 @@ PlasmoidItem {
             StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: root.currentViewIndex
+                currentIndex: root.historyOnlyMode ? 1 : 0
 
                 Item {
                     ColumnLayout {
@@ -1438,138 +1326,140 @@ PlasmoidItem {
                     }
                 }
 
-                Rectangle {
-                    radius: 8
-                    color: Kirigami.Theme.alternateBackgroundColor
-
-                    ListView {
-                        id: historyList
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing
-                        model: root.sessions
-                        spacing: Kirigami.Units.smallSpacing
-                        clip: true
-                        cacheBuffer: 5000
-                        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
-
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: historyList.width
-                            height: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+                Loader {
+                    id: historyLoader
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: root.historyOnlyMode
+                    visible: status === Loader.Ready
+                    sourceComponent: Component {
+                        Rectangle {
                             radius: 8
-                            opacity: modelData.archived ? 0.72 : 1.0
-                            color: root.historySessionTint(modelData)
+                            color: Kirigami.Theme.alternateBackgroundColor
 
-                            Column {
-                                id: historyCol
+                            ListView {
+                                id: historyList
                                 anchors.fill: parent
                                 anchors.margins: Kirigami.Units.smallSpacing
-                                spacing: Kirigami.Units.smallSpacing / 2
+                                model: root.sessions
+                                spacing: Kirigami.Units.smallSpacing
+                                clip: true
+                                cacheBuffer: 5000
+                                QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
 
-                                Row {
-                                    width: parent.width
-                                    spacing: Kirigami.Units.smallSpacing / 2
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: historyList.width
+                                    height: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                    radius: 8
+                                    opacity: modelData.archived ? 0.72 : 1.0
+                                    color: root.historySessionTint(modelData)
 
-                                    Rectangle {
-                                        id: modeBadge
-                                        visible: modelData.source === "opencode"
-                                        width: modeBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                                        height: modeBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                                        radius: 999
-                                        color: Qt.rgba(0.20, 0.48, 0.92, 0.18)
+                                    Column {
+                                        id: historyCol
+                                        anchors.fill: parent
+                                        anchors.margins: Kirigami.Units.smallSpacing
+                                        spacing: Kirigami.Units.smallSpacing / 2
 
-                                        PC3.Label {
-                                            id: modeBadgeText
-                                            anchors.centerIn: parent
-                                            text: "OC"
-                                            font.bold: true
-                                            color: Qt.rgba(0.12, 0.35, 0.78, 1.0)
-                                        }
-                                    }
+                                        Row {
+                                            width: parent.width
+                                            spacing: Kirigami.Units.smallSpacing / 2
 
-                                    QQC2.TextField {
-                                        visible: root.editingSessionId === modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
-                                        text: root.editingSessionDraft
-                                        onTextChanged: root.editingSessionDraft = text
-                                        onAccepted: root.saveSessionRename(modelData.value)
-                                    }
+                                            Rectangle {
+                                                id: modeBadge
+                                                visible: modelData.source === "opencode"
+                                                width: modeBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
+                                                height: modeBadgeText.implicitHeight + Kirigami.Units.smallSpacing
+                                                radius: 999
+                                                color: Qt.rgba(0.20, 0.48, 0.92, 0.18)
 
-                                    PC3.Label {
-                                        visible: root.editingSessionId !== modelData.value
-                                        width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
-                                        text: modelData.text || "New Chat"
-                                        font.bold: modelData.value === root.currentSessionId
-                                        color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
+                                                PC3.Label {
+                                                    id: modeBadgeText
+                                                    anchors.centerIn: parent
+                                                    text: "OC"
+                                                    font.bold: true
+                                                    color: Qt.rgba(0.12, 0.35, 0.78, 1.0)
+                                                }
+                                            }
 
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                root.switchSession(modelData.value)
-                                                root.historyOnlyMode = false
+                                            QQC2.TextField {
+                                                visible: root.editingSessionId === modelData.value
+                                                width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
+                                                text: root.editingSessionDraft
+                                                onTextChanged: root.editingSessionDraft = text
+                                                onAccepted: root.saveSessionRename(modelData.value)
+                                            }
+
+                                            PC3.Label {
+                                                visible: root.editingSessionId !== modelData.value
+                                                width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
+                                                text: modelData.text || "New Chat"
+                                                font.bold: modelData.value === root.currentSessionId
+                                                color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                                                elide: Text.ElideRight
+                                                verticalAlignment: Text.AlignVCenter
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        root.switchSession(modelData.value)
+                                                        root.historyOnlyMode = false
+                                                    }
+                                                }
+                                            }
+
+                                            PC3.ToolButton {
+                                                id: saveRename
+                                                icon.name: root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
+                                                display: PC3.AbstractButton.IconOnly
+                                                QQC2.ToolTip.visible: hovered
+                                                QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
+                                                onClicked: {
+                                                    if (root.editingSessionId === modelData.value)
+                                                        root.saveSessionRename(modelData.value)
+                                                    else
+                                                        root.startSessionRename(modelData.value)
+                                                }
+                                            }
+
+                                            PC3.ToolButton {
+                                                id: archiveChat
+                                                icon.name: modelData.archived ? "archive-remove" : "archive-insert"
+                                                display: PC3.AbstractButton.IconOnly
+                                                QQC2.ToolTip.visible: hovered
+                                                QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
+                                                onClicked: root.setSessionArchived(modelData.value, !modelData.archived)
+                                            }
+
+                                            PC3.ToolButton {
+                                                id: removeChat
+                                                icon.name: root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
+                                                display: PC3.AbstractButton.IconOnly
+                                                QQC2.ToolTip.visible: hovered
+                                                QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
+                                                onClicked: {
+                                                    if (root.editingSessionId === modelData.value)
+                                                        root.cancelSessionRename()
+                                                    else
+                                                        root.deleteSession(modelData.value)
+                                                }
                                             }
                                         }
-                                    }
 
-                                    PC3.ToolButton {
-                                        id: saveRename
-                                        icon.name: root.editingSessionId === modelData.value ? "dialog-ok-apply" : "document-edit"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Save title" : "Rename chat"
-                                        onClicked: {
-                                            if (root.editingSessionId === modelData.value)
-                                                root.saveSessionRename(modelData.value)
-                                            else
-                                                root.startSessionRename(modelData.value)
+                                        PC3.Label {
+                                            opacity: root.popupIsDark ? 1.0 : 0.7
+                                            color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                                            text: root.sessionSubtitle(modelData)
                                         }
                                     }
-
-                                    PC3.ToolButton {
-                                        id: archiveChat
-                                        icon.name: modelData.archived ? "archive-remove" : "archive-insert"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: modelData.archived ? "Unarchive chat" : "Archive chat"
-                                        onClicked: root.setSessionArchived(modelData.value, !modelData.archived)
-                                    }
-
-                                    PC3.ToolButton {
-                                        id: removeChat
-                                        icon.name: root.editingSessionId === modelData.value ? "dialog-cancel" : "edit-delete"
-                                        display: PC3.AbstractButton.IconOnly
-                                        QQC2.ToolTip.visible: hovered
-                                        QQC2.ToolTip.text: root.editingSessionId === modelData.value ? "Cancel rename" : "Delete chat"
-                                        onClicked: {
-                                            if (root.editingSessionId === modelData.value)
-                                                root.cancelSessionRename()
-                                            else
-                                                root.deleteSession(modelData.value)
-                                        }
-                                    }
-                                }
-
-                                PC3.Label {
-                                    opacity: root.popupIsDark ? 1.0 : 0.7
-                                    color: root.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
-                                    text: root.sessionSubtitle(modelData)
                                 }
                             }
                         }
                     }
                 }
-
-                SettingsPanel {
-                    id: settingsPanel
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                }
             }
         }
-    }
 
     MouseArea {
             anchors.right: parent.right
