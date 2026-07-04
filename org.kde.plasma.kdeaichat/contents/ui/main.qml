@@ -113,28 +113,69 @@ PlasmoidItem {
         }
     }
 
+    property bool _initialLoadDone: false
+
+    function triggerInitialLoad() {
+        if (_initialLoadDone) return;
+        _initialLoadDone = true;
+
+        startupTimer.stop(); // Stop background timer if we triggered early
+
+        // Load sessions immediately so UI has chat list / current chat ready
+        loadSessions()
+
+        // Defer wallet and sys info slightly so initial layout/rendering is unblocked
+        lazyWalletTimer.start()
+        lazySysInfoTimer.start()
+    }
+
+    Timer {
+        id: startupTimer
+        interval: 1000
+        running: true
+        repeat: false
+        onTriggered: {
+            root.triggerInitialLoad()
+        }
+    }
+
+    Timer {
+        id: lazyWalletTimer
+        interval: 150
+        repeat: false
+        onTriggered: {
+            root.ensureWalletLoaded()
+        }
+    }
+
+    Timer {
+        id: lazySysInfoTimer
+        interval: 300
+        repeat: false
+        onTriggered: {
+            if (plasmoid.configuration.gatheredSysInfo) {
+                try {
+                    root.sysInfo = JSON.parse(plasmoid.configuration.gatheredSysInfo)
+                    root.initSystemPrompt()
+                } catch (e) {
+                    root.regatherSysInfo()
+                }
+            } else {
+                root.regatherSysInfo()
+            }
+        }
+    }
+
     onExpandedChanged: {
         if (expanded) {
+            root.triggerInitialLoad()
             root.focusInput()
             deferredScrollTimer.restart()
         }
     }
 
     Component.onCompleted: {
-        Qt.callLater(function() {
-            ensureWalletLoaded()
-            loadSessions()
-            if (plasmoid.configuration.gatheredSysInfo) {
-                try {
-                    sysInfo = JSON.parse(plasmoid.configuration.gatheredSysInfo)
-                    initSystemPrompt()
-                } catch (e) {
-                    regatherSysInfo()
-                }
-            } else {
-                regatherSysInfo()
-            }
-        })
+        // Handled lazily by startupTimer / expanded triggers
     }
 
     Connections {
@@ -1518,12 +1559,14 @@ PlasmoidItem {
                                 }
                             }
                         }
-            }
+                    }
+                }
 
-            SettingsPanel {
-                id: settingsPanel
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+                SettingsPanel {
+                    id: settingsPanel
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
             }
         }
     }
