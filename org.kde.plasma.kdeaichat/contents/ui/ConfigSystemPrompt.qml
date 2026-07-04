@@ -24,8 +24,13 @@ KCM.SimpleKCM {
     property alias cfg_sysInfoLocale: sysInfoLocaleCheck.checked
     property alias cfg_sysInfoDateTime: sysInfoDateTimeCheck.checked
     property alias cfg_systemPrompt: customPromptArea.text
+    property alias cfg_enableSystemPrompt: enableSystemPromptCheck.checked
     property alias cfg_enableMemory: enableMemoryCheck.checked
     property alias cfg_userMemory: userMemoryArea.text
+    
+    property alias cfg_contextMessageLimit: contextMessageLimitField.value
+    property alias cfg_enableCompactingContext: enableCompactingContextCheck.checked
+    property alias cfg_compactContextAfter: compactContextAfterField.value
 
 
     
@@ -146,6 +151,11 @@ KCM.SimpleKCM {
             text: "System Prompt"
         }
 
+        QQC2.CheckBox {
+            id: enableSystemPromptCheck
+            text: "Enable System Prompt"
+        }
+
         GridLayout {
             Kirigami.FormData.label: "System Info:"
             columns: 2
@@ -196,7 +206,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 font.family: "monospace"
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                text: Api.buildSystemPrompt(configPage.sysInfo, configPage.cfg_systemPrompt, { sysInfoDateTime: configPage.cfg_sysInfoDateTime })
+                text: enableSystemPromptCheck.checked ? Api.buildSystemPrompt(configPage.sysInfo, configPage.cfg_systemPrompt, { sysInfoDateTime: configPage.cfg_sysInfoDateTime }) : "System prompt is disabled."
                 width: previewScroll.width
             }
         }
@@ -245,6 +255,42 @@ KCM.SimpleKCM {
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                 text: Api.buildMemoryBlock({ enableMemory: configPage.cfg_enableMemory, userMemory: configPage.cfg_userMemory })
                 width: memoryPreviewScroll.width
+            }
+        }
+
+        Kirigami.Heading {
+            Kirigami.FormData.isSection: true
+            text: "Context"
+            Layout.topMargin: Kirigami.Units.largeSpacing
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: "Context Limit:"
+            QQC2.SpinBox {
+                id: contextMessageLimitField
+                from: -1
+                to: 9999
+            }
+            QQC2.Label {
+                text: "messages (-1 = unlimited)"
+            }
+        }
+
+        QQC2.CheckBox {
+            id: enableCompactingContextCheck
+            text: "Enable compacting context"
+        }
+
+        RowLayout {
+            visible: enableCompactingContextCheck.checked
+            Kirigami.FormData.label: "Auto-compact after:"
+            QQC2.SpinBox {
+                id: compactContextAfterField
+                from: 1
+                to: 9999
+            }
+            QQC2.Label {
+                text: "messages"
             }
         }
     }

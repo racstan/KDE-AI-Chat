@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import QtCore
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
@@ -84,6 +85,10 @@ KCM.SimpleKCM {
     property var openCodeModelCandidates: []
     property var openCodeProviderModelMap: ({
     })
+    property bool memRefreshing: false
+    property int memOpenCode: 0
+    property int memStt: 0
+    property int memTts: 0
     property string providerModelSearch: ""
     property string openCodeModelSearch: ""
     property var filteredProviderModels: []
@@ -157,6 +162,21 @@ KCM.SimpleKCM {
 
     function shellEscape(s) {
         return (s || "").replace(/'/g, "'\\''");
+    }
+
+    function quoteForShell(s) {
+        return "'" + shellEscape(s) + "'";
+    }
+
+    function getHelperPath() {
+        var urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
+        if (urlStr.indexOf("file://") === 0)
+            urlStr = urlStr.substring(7);
+        var path = decodeURIComponent(urlStr);
+        if (path.indexOf("/") === 0 && path.indexOf("/contents/ui/") !== -1)
+            return path;
+        var localShare = StandardPaths.writableLocation(StandardPaths.GenericDataLocation);
+        return localShare + "/plasma/plasmoids/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py";
     }
 
     function copyToClipboard(textValue) {
@@ -1112,6 +1132,10 @@ KCM.SimpleKCM {
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery();
 
+        // Refresh memory usage
+        var cmd = "python3 " + quoteForShell(getHelperPath()) + " get_memory_usage";
+        utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
+
         // Mark page as fully initialised
         pageReady = true;
     }
@@ -1213,6 +1237,18 @@ KCM.SimpleKCM {
                     keyringStatus = "Wallet ready for KDE AI Chat.";
                 else
                     keyringStatus = out !== "" ? out : (err !== "" ? err : "Wallet check finished.");
+            } else if (sourceName.indexOf("mem-usage-") >= 0) {
+                page.memRefreshing = false;
+                if (out !== "") {
+                    try {
+                        var memData = JSON.parse(out);
+                        page.memOpenCode = memData.opencode || 0;
+                        page.memStt = memData.stt || 0;
+                        page.memTts = memData.tts || 0;
+                    } catch (e) {
+                        console.warn("Failed to parse memory data:", e);
+                    }
+                }
             } else {
                 discoveryStatus = out !== "" ? out : (err !== "" ? err : "Command finished.");
             }
@@ -2733,6 +2769,81 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 text: "Settings are persisted automatically by KDE when you press Apply or OK."
                 opacity: 0.8
+            }
+
+            Kirigami.Heading {
+                Kirigami.FormData.isSection: true
+                text: i18n("Resource & Memory Usage")
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.smallSpacing
+                Kirigami.FormData.label: i18n("Memory Usage:")
+
+                QQC2.Button {
+                    text: page.memRefreshing ? i18n("Refreshing…") : i18n("Refresh")
+                    icon.name: "view-refresh"
+                    enabled: !page.memRefreshing
+                    onClicked: {
+                        page.memRefreshing = true;
+                        var cmd = "python3 " + quoteForShell(getHelperPath()) + " get_memory_usage";
+                        page.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                implicitHeight: memGrid.implicitHeight + Kirigami.Units.gridUnit
+                radius: 6
+                color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
+                border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
+                border.width: 1
+
+                GridLayout {
+                    id: memGrid
+                    anchors { left: parent.left; right: parent.right; top: parent.top }
+                    anchors.margins: Kirigami.Units.gridUnit * 0.6
+                    columns: 2
+                    columnSpacing: Kirigami.Units.gridUnit
+                    rowSpacing: Kirigami.Units.smallSpacing
+
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon { source: "utilities-terminal"; implicitWidth: 16; implicitHeight: 16 }
+                        QQC2.Label { text: i18n("OpenCode") }
+                    }
+                    QQC2.Label {
+                        text: page.memOpenCode > 0 ? (page.memOpenCode / 1024).toFixed(1) + " MB" : i18n("Not running")
+                        color: page.memOpenCode > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                        font.bold: page.memOpenCode > 0
+                    }
+
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon { source: "audio-input-microphone"; implicitWidth: 16; implicitHeight: 16 }
+                        QQC2.Label { text: i18n("STT Server") }
+                    }
+                    QQC2.Label {
+                        text: page.memStt > 0 ? (page.memStt / 1024).toFixed(1) + " MB" : i18n("Not running")
+                        color: page.memStt > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                        font.bold: page.memStt > 0
+                    }
+
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+                        Kirigami.Icon { source: "audio-speakers"; implicitWidth: 16; implicitHeight: 16 }
+                        QQC2.Label { text: i18n("TTS Server") }
+                    }
+                    QQC2.Label {
+                        text: page.memTts > 0 ? (page.memTts / 1024).toFixed(1) + " MB" : i18n("Not running")
+                        color: page.memTts > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                        font.bold: page.memTts > 0
+                    }
+                }
             }
 
             QQC2.Button {

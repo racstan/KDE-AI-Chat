@@ -202,8 +202,21 @@
 
 
 
+    <entry name="enableSystemPrompt" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="systemPrompt" type="String">
       <default>You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.</default>
+    </entry>
+
+    <entry name="contextMessageLimit" type="Int">
+      <default>-1</default>
+    </entry>
+    <entry name="enableCompactingContext" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="compactContextAfter" type="Int">
+      <default>10</default>
     </entry>
 
     <entry name="chatSessionsJson" type="String">
