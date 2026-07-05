@@ -186,7 +186,7 @@ KCM.SimpleKCM {
                           "<b>System Info</b> automatically appends live system details.<br><br>" +
                           "<b>How to use:</b><br>" +
                           "1. <b>Enable</b> the system prompt below.<br>" +
-                          "2. Write <b>custom instructions</b> (e.g. "You are a helpful Linux assistant").<br>" +
+                          "2. Write <b>custom instructions</b> (e.g. &quot;You are a helpful Linux assistant&quot;).<br>" +
                           "3. Toggle <b>System Info</b> fields to include live OS/CPU/memory data.<br>" +
                           "4. Check the <b>preview</b> to see the final prompt sent to the AI."
                 }
