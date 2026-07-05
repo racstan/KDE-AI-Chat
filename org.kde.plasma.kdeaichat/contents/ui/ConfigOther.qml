@@ -35,6 +35,8 @@ KCM.SimpleKCM {
 
     property string _lastSchedSetupPayload: ""
 
+    readonly property bool showGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
+
     // Paths
     readonly property string dataDirPath: StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat"
     readonly property string schedulesFilePath: dataDirPath + "/schedules.json"
@@ -372,15 +374,19 @@ KCM.SimpleKCM {
     }
 
     Kirigami.FormLayout {
+        id: formLayout
         wideMode: false
-        Kirigami.Heading {
+        property int fieldMaxWidth: Kirigami.Units.gridUnit * 35
+
+        // ── Prompt Templates ──────────────────────────────────────────
+        Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            text: i18n("Prompt Templates")
+            Kirigami.FormData.label: i18n("Prompt Templates")
         }
 
         QQC2.Label {
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             wrapMode: Text.Wrap
             opacity: 0.72
             font: Kirigami.Theme.smallFont
@@ -389,7 +395,7 @@ KCM.SimpleKCM {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.TextField {
@@ -422,14 +428,16 @@ KCM.SimpleKCM {
             }
         }
 
-        Kirigami.Heading {
+        // ── Scheduler Daemon ──────────────────────────────────────────
+        Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            text: i18n("Scheduler Daemon")
+            Kirigami.FormData.label: i18n("Scheduler Daemon")
         }
 
         RowLayout {
+            visible: configPage.showGuides
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.gridUnit
             Kirigami.FormData.label: i18n("Schedules Guide:")
 
@@ -521,7 +529,7 @@ KCM.SimpleKCM {
         QQC2.Label {
             visible: schedulerMasterSwitch.checked
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             textFormat: Text.RichText
             text: i18n("When the PC is turned off and then it restarts, if any schedule was missed in that period, should it execute one after another? <font color=\"#ff4444\"><b>(Highly not recommended)</b></font>")
             wrapMode: Text.Wrap
@@ -532,7 +540,7 @@ KCM.SimpleKCM {
         RowLayout {
             visible: schedulerMasterSwitch.checked
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             Kirigami.FormData.label: i18n("Status:")
             spacing: Kirigami.Units.smallSpacing
 
@@ -568,7 +576,7 @@ KCM.SimpleKCM {
         RowLayout {
             visible: schedulerMasterSwitch.checked
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             Kirigami.FormData.label: i18n("Schedules:")
             spacing: Kirigami.Units.smallSpacing
 
@@ -639,7 +647,7 @@ KCM.SimpleKCM {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
             Kirigami.FormData.label: i18n("Memory Usage:")
 
@@ -657,7 +665,7 @@ KCM.SimpleKCM {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 35
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: memGrid.implicitHeight + Kirigami.Units.gridUnit
             radius: 6
             color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)

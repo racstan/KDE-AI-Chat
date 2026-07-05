@@ -27,13 +27,13 @@ KCM.SimpleKCM {
     property alias cfg_enableSystemPrompt: enableSystemPromptCheck.checked
     property alias cfg_enableMemory: enableMemoryCheck.checked
     property alias cfg_userMemory: userMemoryArea.text
-    
+
     property alias cfg_contextMessageLimit: contextMessageLimitField.value
     property alias cfg_enableCompactingContext: enableCompactingContextCheck.checked
     property alias cfg_compactContextAfter: compactContextAfterField.value
 
+    readonly property bool showGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
 
-    
     property var sysInfo: ({})
     property int sysInfoPending: 0
     property var pendingSysInfoCommands: ({})
@@ -82,8 +82,6 @@ KCM.SimpleKCM {
 
     Component.onCompleted: triggerPreviewUpdate()
 
-
-
     P5Support.DataSource {
         id: sysInfoDs
         engine: "executable"
@@ -94,9 +92,9 @@ KCM.SimpleKCM {
                 var pending = pendingSysInfoCommands;
                 delete pending[source];
                 pendingSysInfoCommands = pending;
-                
+
                 var info = Object.assign({}, sysInfo);
-                
+
                 switch (source) {
                     case "hostname": info.hostname = output; break;
                     case "uname -a": info.kernel = output; break;
@@ -136,7 +134,7 @@ KCM.SimpleKCM {
                     case "ip -br addr show": info.network = output; break;
                     case "echo $LANG": info.locale = output; break;
                 }
-                
+
                 sysInfo = info;
                 sysInfoPending--;
                 disconnectSource(source);
@@ -144,51 +142,99 @@ KCM.SimpleKCM {
         }
     }
 
-
     Kirigami.FormLayout {
+        id: formLayout
         wideMode: false
-        Kirigami.Heading {
+        property int fieldMaxWidth: Kirigami.Units.gridUnit * 35
+
+        // ── System Prompt ─────────────────────────────────────────────
+        Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            text: "System Prompt"
+            Kirigami.FormData.label: i18n("System Prompt")
+        }
+
+        // Interactive guide
+        Rectangle {
+            visible: configPage.showGuides
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            implicitHeight: sysPromptGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+            border.width: 1
+
+            RowLayout {
+                id: sysPromptGuideLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit * 0.6
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Icon {
+                    source: "help-hint"
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                    Layout.alignment: Qt.AlignTop
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    textFormat: Text.RichText
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                    color: Kirigami.Theme.textColor
+                    text: "<b>System Prompt</b> is injected before every conversation.<br>" +
+                          "<b>System Info</b> automatically appends live system details.<br><br>" +
+                          "<b>How to use:</b><br>" +
+                          "1. <b>Enable</b> the system prompt below.<br>" +
+                          "2. Write <b>custom instructions</b> (e.g. "You are a helpful Linux assistant").<br>" +
+                          "3. Toggle <b>System Info</b> fields to include live OS/CPU/memory data.<br>" +
+                          "4. Check the <b>preview</b> to see the final prompt sent to the AI."
+                }
+            }
         }
 
         QQC2.CheckBox {
             id: enableSystemPromptCheck
-            text: "Enable System Prompt"
+            Kirigami.FormData.label: i18n("Enable system prompt:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: checked ? i18n("Enabled — instructions sent before every chat") : i18n("Disabled")
         }
 
         GridLayout {
-            Kirigami.FormData.label: "System Info:"
+            visible: enableSystemPromptCheck.checked
+            Kirigami.FormData.label: i18n("System Info:")
             columns: 2
             columnSpacing: Kirigami.Units.largeSpacing
             rowSpacing: 0
 
-            QQC2.CheckBox { id: sysInfoOSCheck; text: "OS" }
-            QQC2.CheckBox { id: sysInfoShellCheck; text: "Shell" }
-            QQC2.CheckBox { id: sysInfoHostnameCheck; text: "Hostname" }
-            QQC2.CheckBox { id: sysInfoKernelCheck; text: "Kernel" }
-            QQC2.CheckBox { id: sysInfoDesktopCheck; text: "Desktop" }
-            QQC2.CheckBox { id: sysInfoUserCheck; text: "User" }
-            QQC2.CheckBox { id: sysInfoCPUCheck; text: "CPU" }
-            QQC2.CheckBox { id: sysInfoMemoryCheck; text: "Memory" }
-            QQC2.CheckBox { id: sysInfoGPUCheck; text: "GPU" }
-            QQC2.CheckBox { id: sysInfoDiskCheck; text: "Block Devices" }
-            QQC2.CheckBox { id: sysInfoNetworkCheck; text: "Network" }
-            QQC2.CheckBox { id: sysInfoLocaleCheck; text: "Locale" }
-            QQC2.CheckBox { id: sysInfoDateTimeCheck; text: "Date/Time" }
+            QQC2.CheckBox { id: sysInfoOSCheck;        text: i18n("OS") }
+            QQC2.CheckBox { id: sysInfoShellCheck;     text: i18n("Shell") }
+            QQC2.CheckBox { id: sysInfoHostnameCheck;  text: i18n("Hostname") }
+            QQC2.CheckBox { id: sysInfoKernelCheck;    text: i18n("Kernel") }
+            QQC2.CheckBox { id: sysInfoDesktopCheck;   text: i18n("Desktop") }
+            QQC2.CheckBox { id: sysInfoUserCheck;      text: i18n("User") }
+            QQC2.CheckBox { id: sysInfoCPUCheck;       text: i18n("CPU") }
+            QQC2.CheckBox { id: sysInfoMemoryCheck;    text: i18n("Memory") }
+            QQC2.CheckBox { id: sysInfoGPUCheck;       text: i18n("GPU") }
+            QQC2.CheckBox { id: sysInfoDiskCheck;      text: i18n("Block Devices") }
+            QQC2.CheckBox { id: sysInfoNetworkCheck;   text: i18n("Network") }
+            QQC2.CheckBox { id: sysInfoLocaleCheck;    text: i18n("Locale") }
+            QQC2.CheckBox { id: sysInfoDateTimeCheck;  text: i18n("Date/Time") }
         }
 
         QQC2.ScrollView {
             id: customPromptScroll
-            Kirigami.FormData.label: "Custom Instructions:"
+            visible: enableSystemPromptCheck.checked
+            Kirigami.FormData.label: i18n("Custom Instructions:")
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: Kirigami.Units.gridUnit * 6
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
             clip: true
 
             QQC2.TextArea {
                 id: customPromptArea
-                placeholderText: "Additional instructions for the LLM…"
+                placeholderText: i18n("Additional instructions for the LLM…")
                 wrapMode: Text.Wrap
                 width: customPromptScroll.width
             }
@@ -196,8 +242,9 @@ KCM.SimpleKCM {
 
         QQC2.ScrollView {
             id: previewScroll
-            Kirigami.FormData.label: "System Prompt Preview:"
+            Kirigami.FormData.label: i18n("System Prompt Preview:")
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: Kirigami.Units.gridUnit * 6
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
             clip: true
@@ -207,34 +254,37 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 font.family: "monospace"
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                text: enableSystemPromptCheck.checked ? Api.buildSystemPrompt(configPage.sysInfo, configPage.cfg_systemPrompt, { sysInfoDateTime: configPage.cfg_sysInfoDateTime }) : "System prompt is disabled."
+                text: enableSystemPromptCheck.checked ? Api.buildSystemPrompt(configPage.sysInfo, configPage.cfg_systemPrompt, { sysInfoDateTime: configPage.cfg_sysInfoDateTime }) : i18n("System prompt is disabled.")
                 width: previewScroll.width
             }
         }
 
-        Kirigami.Heading {
+        // ── Memory ───────────────────────────────────────────────────
+        Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            text: "Memory"
-            Layout.topMargin: Kirigami.Units.largeSpacing
+            Kirigami.FormData.label: i18n("Memory")
         }
 
         QQC2.CheckBox {
             id: enableMemoryCheck
-            text: "Enable user memory"
+            Kirigami.FormData.label: i18n("Enable memory:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: checked ? i18n("Enabled — facts remembered across chats") : i18n("Disabled")
         }
 
         QQC2.ScrollView {
             id: userMemoryScroll
             visible: enableMemoryCheck.checked
-            Kirigami.FormData.label: "Memory Content:"
+            Kirigami.FormData.label: i18n("Memory Content:")
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: Kirigami.Units.gridUnit * 6
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
             clip: true
 
             QQC2.TextArea {
                 id: userMemoryArea
-                placeholderText: "Facts or preferences you want the assistant to remember across all chats..."
+                placeholderText: i18n("Facts or preferences you want the assistant to remember across all chats...")
                 wrapMode: Text.Wrap
                 width: userMemoryScroll.width
             }
@@ -243,8 +293,9 @@ KCM.SimpleKCM {
         QQC2.ScrollView {
             id: memoryPreviewScroll
             visible: enableMemoryCheck.checked
-            Kirigami.FormData.label: "Memory Preview:"
+            Kirigami.FormData.label: i18n("Memory Preview:")
             Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: Kirigami.Units.gridUnit * 4
             Layout.preferredHeight: Kirigami.Units.gridUnit * 4
             clip: true
@@ -259,41 +310,48 @@ KCM.SimpleKCM {
             }
         }
 
-        Kirigami.Heading {
+        // ── Context ──────────────────────────────────────────────────
+        Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            text: "Context"
-            Layout.topMargin: Kirigami.Units.largeSpacing
+            Kirigami.FormData.label: i18n("Context")
         }
 
         RowLayout {
-            Kirigami.FormData.label: "Context Limit:"
+            Kirigami.FormData.label: i18n("Context limit:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.SpinBox {
                 id: contextMessageLimitField
                 from: -1
                 to: 9999
             }
             QQC2.Label {
-                text: "messages (-1 = unlimited)"
+                text: i18n("messages (-1 = unlimited)")
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
             }
         }
 
         QQC2.CheckBox {
             id: enableCompactingContextCheck
-            text: "Enable compacting context"
+            Kirigami.FormData.label: i18n("Auto-compact context:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            text: checked ? i18n("Enabled — old messages summarised automatically") : i18n("Disabled")
         }
 
         RowLayout {
             visible: enableCompactingContextCheck.checked
-            Kirigami.FormData.label: "Auto-compact after:"
+            Kirigami.FormData.label: i18n("Compact after:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             QQC2.SpinBox {
                 id: compactContextAfterField
                 from: 1
                 to: 9999
             }
             QQC2.Label {
-                text: "messages"
+                text: i18n("messages")
+                opacity: 0.72
+                font: Kirigami.Theme.smallFont
             }
         }
     }
 }
-
