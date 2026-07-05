@@ -259,5 +259,42 @@
     <entry name="preselectedChatId" type="String"><default></default></entry>
     <entry name="preselectedChatName" type="String"><default></default></entry>
       <entry name="promptTemplates" type="String"><default>[]</default></entry>
+      <!-- Voice & Audio -->
+<entry name="voiceEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+<entry name="voiceTtsEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+<entry name="voiceTtsAuto" type="Bool">
+      <default>false</default>
+    </entry>
+<entry name="voiceSttModel" type="String">
+      <default>large-v3-turbo</default>
+    </entry>
+<entry name="voiceTtsModel" type="String">
+      <default>kokoro-82m</default>
+    </entry>
+<entry name="voiceSttModelPath" type="String">
+      <default></default>
+    </entry>
+<entry name="voiceTtsModelPath" type="String">
+      <default></default>
+    </entry>
+<entry name="voiceLanguage" type="String">
+      <default>en</default>
+    </entry>
+<entry name="voiceTtsVoice" type="String">
+      <default>af_heart</default>
+    </entry>
+<entry name="voiceAutoSend" type="Bool">
+      <default>true</default>
+    </entry>
+<entry name="voiceVenvPath" type="String">
+      <default>~/.local/share/kdeaichat/venv</default>
+    </entry>
+<entry name="voiceEspeakPath" type="String">
+      <default></default>
+    </entry>
   </group>
 </kcfg>

@@ -13,6 +13,11 @@ ConfigModel {
         source: "ConfigSystemPrompt.qml"
     }
     ConfigCategory {
+        name: i18n("Voice Tools")
+        icon: "audio-speakers"
+        source: "ConfigVoice.qml"
+    }
+    ConfigCategory {
         name: i18n("Other")
         icon: "preferences-other"
         source: "ConfigOther.qml"
