@@ -20,7 +20,7 @@ KCM.SimpleKCM {
     property string storageExportStatus: ""
 
     property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
-    property alias cfg_showInteractiveGuides: showGuidesToggle.checked
+    property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
