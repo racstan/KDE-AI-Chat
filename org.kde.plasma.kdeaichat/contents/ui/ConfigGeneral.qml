@@ -1318,6 +1318,18 @@ KCM.SimpleKCM {
             }
 
             QQC2.CheckBox {
+                id: showInteractiveGuidesToggle
+
+                Kirigami.FormData.label: i18n("Interactive Guides:")
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                checked: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
+                text: checked ? i18n("Guides visible — showing setup instructions") : i18n("Guides hidden")
+                onToggled: {
+                    plasmoid.configuration.showInteractiveGuides = checked;
+                }
+            }
+
+            QQC2.CheckBox {
                 id: openCodeToggle
 
                 Kirigami.FormData.label: "OpenCode mode:"

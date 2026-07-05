@@ -88,6 +88,10 @@ PlasmoidItem {
         }
     }
 
+    // Expose voiceManager as a root property so dynamically loaded children
+    // (e.g. FullRepresentationContent via Loader) can access it via root.voiceManager
+    property var voiceManagerRef: voiceManager
+
     function ensureWalletLoaded() {
         if (!keysLoaded) {
             keysLoaded = true;
@@ -1967,13 +1971,13 @@ PlasmoidItem {
             soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
         }
 
-        if (root.voiceManager && root.voiceManager.enabled && root.voiceManager.ttsAuto) {
+        if (voiceManager && voiceManager.enabled && voiceManager.ttsAuto) {
             // Find the last assistant message
             for (var i = root.messages.length - 1; i >= 0; i--) {
                 if (root.messages[i].role === "assistant") {
                     var text = (root.messages[i].content || "").trim();
                     if (text) {
-                        root.voiceManager.playTTS(text);
+                        voiceManager.playTTS(text);
                     }
                     break;
                 }

@@ -296,5 +296,8 @@
 <entry name="voiceEspeakPath" type="String">
       <default></default>
     </entry>
+    <entry name="showInteractiveGuides" type="Bool">
+      <default>true</default>
+    </entry>
   </group>
 </kcfg>

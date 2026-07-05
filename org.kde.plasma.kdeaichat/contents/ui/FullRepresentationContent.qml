@@ -1037,17 +1037,19 @@ Item {
 
 
                         PC3.ToolButton {
-                            visible: root.voiceManager.enabled
-                            icon.name: root.voiceManager.isRecording ? "media-playback-stop" : "audio-input-microphone"
+                            visible: plasmoid.configuration.voiceEnabled
+                            icon.name: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "media-playback-stop" : "audio-input-microphone"
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: root.voiceManager.isRecording ? "Stop Recording" : "Record Voice"
+                            QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "Stop Recording" : "Record Voice (STT)"
                             onClicked: {
-                                if (root.voiceManager.isRecording) {
-                                    root.voiceManager.stopRecording();
-                                } else {
-                                    root.voiceManager.startRecording();
+                                if (root.voiceManagerRef) {
+                                    if (root.voiceManagerRef.isRecording) {
+                                        root.voiceManagerRef.stopRecording();
+                                    } else {
+                                        root.voiceManagerRef.startRecording();
+                                    }
                                 }
                             }
                         }
