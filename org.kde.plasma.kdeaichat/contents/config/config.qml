@@ -12,4 +12,9 @@ ConfigModel {
         icon: "preferences-system-behavior"
         source: "ConfigSystemPrompt.qml"
     }
+    ConfigCategory {
+        name: i18n("Other")
+        icon: "preferences-other"
+        source: "ConfigOther.qml"
+    }
 }
