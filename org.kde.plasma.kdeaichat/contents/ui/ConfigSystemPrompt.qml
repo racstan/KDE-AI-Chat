@@ -146,6 +146,7 @@ KCM.SimpleKCM {
 
 
     Kirigami.FormLayout {
+        wideMode: false
         Kirigami.Heading {
             Kirigami.FormData.isSection: true
             text: "System Prompt"

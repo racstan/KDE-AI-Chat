@@ -23,6 +23,7 @@ KCM.SimpleKCM {
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
+    property alias cfg_voiceTtsAuto: voiceTtsAutoToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
 
     P5Support.DataSource {
@@ -161,6 +162,7 @@ KCM.SimpleKCM {
     Kirigami.FormLayout {
         id: formLayout
         width: page.width || 500
+        wideMode: false
         property int fieldMaxWidth: Kirigami.Units.gridUnit * 35
 
         // ── Voice & Audio ─────────────────────────────────────────────
@@ -467,6 +469,15 @@ KCM.SimpleKCM {
             id: voiceTtsEnabledToggle
             checked: plasmoid.configuration.voiceTtsEnabled || false
             text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
+        }
+
+        QQC2.CheckBox {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Auto read responses:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            id: voiceTtsAutoToggle
+            checked: plasmoid.configuration.voiceTtsAuto || false
+            text: checked ? i18n("Enabled — automatically read incoming messages") : i18n("Disabled")
         }
 
         RowLayout {

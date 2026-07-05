@@ -1034,29 +1034,11 @@ Item {
 
                         }
 
-                        PC3.ToolButton {
-                            visible: root.voiceManager.enabled && root.voiceManager.ttsAuto
-                            icon.name: "audio-volume-high"
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: "Auto Read Aloud (TTS) Enabled - Click to disable"
-                            onClicked: root.voiceManager.ttsAuto = false
-                        }
 
-                        PC3.ToolButton {
-                            visible: root.voiceManager.enabled && !root.voiceManager.ttsAuto
-                            icon.name: "audio-volume-muted"
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: "Auto Read Aloud (TTS) Disabled - Click to enable"
-                            onClicked: root.voiceManager.ttsAuto = true
-                        }
 
                         PC3.ToolButton {
                             visible: root.voiceManager.enabled
-                            icon.name: root.voiceManager.isRecording ? "media-playback-stop" : "audio-input-microphone"
+                            icon.name: root.voiceManager.isRecording ? "media-playback-stop" : "microphone"
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                             QQC2.ToolTip.visible: hovered

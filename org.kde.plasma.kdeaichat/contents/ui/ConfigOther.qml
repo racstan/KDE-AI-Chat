@@ -372,6 +372,7 @@ KCM.SimpleKCM {
     }
 
     Kirigami.FormLayout {
+        wideMode: false
         Kirigami.Heading {
             Kirigami.FormData.isSection: true
             text: i18n("Prompt Templates")
