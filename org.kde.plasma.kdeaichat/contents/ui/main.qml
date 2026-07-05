@@ -45,6 +45,7 @@ PlasmoidItem {
     property var pendingSysInfoCommands: ({
     })
     property int sysInfoPending: 0
+    property bool compactingContext: false
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
     property string chatInputText: ""
     property var msgListViewRef: null
@@ -66,6 +67,26 @@ PlasmoidItem {
     property bool _initialLoadDone: false
 
     signal clearChatInput()
+
+    VoiceManager {
+        id: voiceManager
+
+        onTextRecognized: function(text) {
+            if (voiceManager.autoSend) {
+                root.chatInputText = text;
+                root.sendMessage();
+            } else {
+                root.chatInputText += (root.chatInputText ? " " : "") + text;
+            }
+        }
+
+        onErrorOccurred: function(errorText) {
+            console.error("Voice Error: " + errorText);
+            // Optionally show a notification
+            let esc = errorText.replace(/'/g, "'\\''");
+            root.fileReaderDs.connectSource("notify-send -i dialog-error 'Voice Error' '" + esc + "' #voice-error");
+        }
+    }
 
     function ensureWalletLoaded() {
         if (!keysLoaded) {
@@ -1622,11 +1643,23 @@ PlasmoidItem {
             });
 
         var messageRoles = [];
+        var latestCompactedContent = "";
+        
         for (var i = 0; i < root.messages.length; i++) {
             var m = root.messages[i];
-            if (m.role === "user" || m.role === "assistant") {
+            if (m.role === "system_compacted") {
+                latestCompactedContent = m.content;
+                messageRoles = []; // clear earlier messages!
+            } else if (m.role === "user" || m.role === "assistant") {
                 messageRoles.push(m);
             }
+        }
+        
+        if (latestCompactedContent) {
+            arr.push({
+                "role": "system",
+                "content": "Previous conversation summary: " + latestCompactedContent
+            });
         }
         
         var limit = plasmoid.configuration.contextMessageLimit !== undefined ? plasmoid.configuration.contextMessageLimit : -1;
@@ -1930,10 +1963,103 @@ PlasmoidItem {
     }
 
     function triggerNotificationSound() {
-        if (!plasmoid.configuration.playNotificationSound)
-            return ;
+        if (plasmoid.configuration.playNotificationSound) {
+            soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
+        }
 
-        soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
+        if (root.voiceManager && root.voiceManager.enabled && root.voiceManager.ttsAuto) {
+            // Find the last assistant message
+            for (var i = root.messages.length - 1; i >= 0; i--) {
+                if (root.messages[i].role === "assistant") {
+                    var text = (root.messages[i].content || "").trim();
+                    if (text) {
+                        root.voiceManager.playTTS(text);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        Qt.callLater(checkAndTriggerCompaction);
+    }
+
+    function checkAndTriggerCompaction() {
+        if (!plasmoid.configuration.compactContextEnabled || root.compactingContext) return;
+        var limit = plasmoid.configuration.compactContextAfter || 0;
+        if (limit <= 0) return;
+        
+        var count = 0;
+        var lastCompactedIdx = -1;
+        for (var i = root.messages.length - 1; i >= 0; i--) {
+            if (root.messages[i].role === "system_compacted") {
+                lastCompactedIdx = i;
+                break;
+            }
+            if (root.messages[i].role === "user" || root.messages[i].role === "assistant") {
+                count++;
+            }
+        }
+        
+        if (count > limit) {
+            runContextCompaction(lastCompactedIdx + 1, root.messages.length);
+        }
+    }
+
+    function runContextCompaction(startIdx, endIdx) {
+        root.compactingContext = true;
+        
+        var textToSummarize = "";
+        for (var i = startIdx; i < endIdx; i++) {
+            var m = root.messages[i];
+            if (m.role === "user" || m.role === "assistant") {
+                textToSummarize += m.role.toUpperCase() + ": " + m.content + "\n\n";
+            }
+        }
+        
+        var prompt = "Please summarize the following conversation concisely to serve as context for future turns. Only return the summary, nothing else.\n\n" + textToSummarize;
+        
+        var provider = plasmoid.configuration.provider || "openai";
+        
+        if (provider === "openai" || provider === "openrouter" || provider === "deepseek" || provider === "grok" || provider === "lmstudio") {
+            var payload = buildOpenAICompatPayload();
+            // Replace messages with just our summary request
+            payload = Object.assign({}, payload); // shallow copy
+            var headers = {};
+            var apiKey = (plasmoid.configuration.apiKey || "").trim();
+            if (apiKey) headers["Authorization"] = "Bearer " + apiKey;
+            if (provider === "openrouter") {
+                headers["HTTP-Referer"] = "https://github.com/racstan/KDE-AI-Chat";
+                headers["X-Title"] = "KDE AI Chat";
+            }
+            var msgs = [{"role": "user", "content": prompt}];
+            var xhr = new XMLHttpRequest();
+            var url = payload.baseUrl;
+            if (url && !url.endsWith("/chat/completions")) url += "/chat/completions";
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            for (var key in headers) {
+                xhr.setRequestHeader(key, headers[key]);
+            }
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    root.compactingContext = false;
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var resp = JSON.parse(xhr.responseText);
+                            var summary = resp.choices[0].message.content;
+                            var msgsCopy = root.messages.slice();
+                            msgsCopy.push({"role": "system_compacted", "content": summary, "date": new Date()});
+                            root.messages = msgsCopy;
+                            saveCurrentSessionState(true);
+                        } catch (e) {}
+                    }
+                }
+            };
+            xhr.send(JSON.stringify({"model": payload.model, "messages": msgs}));
+        } else {
+            // Unhandled providers for compaction for now
+            root.compactingContext = false;
+        }
     }
 
     function respondToPermission(permissionId, approved) {

@@ -358,11 +358,12 @@ Item {
                                             width: Math.min(msgList.width * 0.76, 560)
                                             implicitHeight: bubbleCol.implicitHeight + Kirigami.Units.largeSpacing
                                             radius: 10
-                                            color: modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor
-                                            border.width: modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" ? 2 : 1
-                                            border.color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
+                                            color: modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "system_compacted") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor
+                                            border.width: modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "system_compacted" ? 2 : 1
+                                            border.color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "system_compacted") ? Kirigami.Theme.focusColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
                                             anchors.right: modelData.role === "user" || modelData.role === "queued" ? parent.right : undefined
-                                            anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" ? parent.left : undefined
+                                            anchors.left: modelData.role === "assistant" || modelData.role === "error" || modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "system_compacted" ? parent.left : undefined
+                                            anchors.margins: Kirigami.Units.largeSpacing
 
                                             Column {
                                                 id: bubbleCol
@@ -377,7 +378,7 @@ Item {
                                                     spacing: Kirigami.Units.smallSpacing
 
                                                     PC3.Label {
-                                                        text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? "OpenCode Interactive Question" : modelData.role === "permission_request" ? "OpenCode Security Request" : "AI"
+                                                        text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? "OpenCode Interactive Question" : modelData.role === "permission_request" ? "OpenCode Security Request" : modelData.role === "system_compacted" ? "Context Compacted" : "AI"
                                                         font.bold: true
                                                     }
 
@@ -1031,6 +1032,42 @@ Item {
                                 target: root
                             }
 
+                        }
+
+                        PC3.ToolButton {
+                            visible: root.voiceManager.enabled && root.voiceManager.ttsAuto
+                            icon.name: "audio-volume-high"
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: "Auto Read Aloud (TTS) Enabled - Click to disable"
+                            onClicked: root.voiceManager.ttsAuto = false
+                        }
+
+                        PC3.ToolButton {
+                            visible: root.voiceManager.enabled && !root.voiceManager.ttsAuto
+                            icon.name: "audio-volume-muted"
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: "Auto Read Aloud (TTS) Disabled - Click to enable"
+                            onClicked: root.voiceManager.ttsAuto = true
+                        }
+
+                        PC3.ToolButton {
+                            visible: root.voiceManager.enabled
+                            icon.name: root.voiceManager.isRecording ? "media-playback-stop" : "audio-input-microphone"
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: root.voiceManager.isRecording ? "Stop Recording" : "Record Voice"
+                            onClicked: {
+                                if (root.voiceManager.isRecording) {
+                                    root.voiceManager.stopRecording();
+                                } else {
+                                    root.voiceManager.startRecording();
+                                }
+                            }
                         }
 
                         PC3.ToolButton {
