@@ -1038,7 +1038,7 @@ Item {
 
                         PC3.ToolButton {
                             visible: root.voiceManager.enabled
-                            icon.name: root.voiceManager.isRecording ? "media-playback-stop" : "mic-on"
+                            icon.name: root.voiceManager.isRecording ? "media-playback-stop" : "media-record"
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
                             QQC2.ToolTip.visible: hovered
