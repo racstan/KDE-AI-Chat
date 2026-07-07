@@ -317,6 +317,40 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Context")
         }
 
+        Rectangle {
+            visible: configPage.showGuides
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            implicitHeight: contextGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+            border.width: 1
+
+            RowLayout {
+                id: contextGuideLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit * 0.6
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Icon {
+                    source: "help-hint"
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                    Layout.alignment: Qt.AlignTop
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    textFormat: Text.RichText
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                    color: Kirigami.Theme.textColor
+                    text: "<b>Context limits</b> dictate how many past messages the AI is allowed to read.<br><br>" +
+                          "<b>Auto-compact context:</b> When enabled, older messages will be summarized into a single dense summary block, saving token costs and keeping the AI focused."
+                }
+            }
+        }
+
         RowLayout {
             Kirigami.FormData.label: i18n("Context limit:")
             Layout.maximumWidth: formLayout.fieldMaxWidth

@@ -386,13 +386,41 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Prompt Templates")
         }
 
-        QQC2.Label {
+        Rectangle {
+            visible: configPage.showGuides
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            wrapMode: Text.Wrap
-            opacity: 0.72
-            font: Kirigami.Theme.smallFont
-            text: i18n("Template names become /commands in chat. Type /name to apply a template.")
+            implicitHeight: templatesGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+            border.width: 1
+
+            RowLayout {
+                id: templatesGuideLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit * 0.6
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Icon {
+                    source: "help-hint"
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                    Layout.alignment: Qt.AlignTop
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    textFormat: Text.RichText
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                    color: Kirigami.Theme.textColor
+                    text: "<b>Prompt Templates</b> are reusable snippets or instructions.<br><br>" +
+                          "<b>How to use:</b><br>" +
+                          "1. Create a template name (e.g. <i>review</i>) and a prompt.<br>" +
+                          "2. In the chat interface, simply type <b>/review</b> to inject that prompt automatically.<br>" +
+                          "3. Click <b>View</b> to manage your existing templates."
+                }
+            }
         }
 
         RowLayout {

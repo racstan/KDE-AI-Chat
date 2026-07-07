@@ -1298,13 +1298,40 @@ KCM.SimpleKCM {
                     model: ["Follow system", "Light mode", "Dark mode"]
                 }
 
-                QQC2.Label {
+                Rectangle {
+                    visible: showInteractiveGuidesToggle.checked
                     Layout.fillWidth: true
                     Layout.maximumWidth: formLayout.fieldMaxWidth
-                    wrapMode: Text.Wrap
-                    opacity: 0.72
-                    font: Kirigami.Theme.smallFont
-                    text: "Light mode and Dark mode pin the widget to bright UI with dark text or dark UI with light text. Follow system uses your Plasma colors and updates with the desktop theme. Note: These appearance themes apply only to the chat widget popup; they do not apply to this settings page itself, which is styled by the system host settings."
+                    implicitHeight: appearanceGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+                    radius: 5
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+                    border.width: 1
+
+                    RowLayout {
+                        id: appearanceGuideLayout
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.gridUnit * 0.6
+                        spacing: Kirigami.Units.smallSpacing
+
+                        Kirigami.Icon {
+                            source: "help-hint"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                            Layout.alignment: Qt.AlignTop
+                        }
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            textFormat: Text.RichText
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                            color: Kirigami.Theme.textColor
+                            text: "<b>Appearance Modes:</b><br>" +
+                                  "Light mode and Dark mode pin the widget to a bright or dark UI.<br>" +
+                                  "<b>Follow system</b> uses your Plasma colors and updates with the desktop theme.<br><br>" +
+                                  "<i>Note: These themes apply only to the chat widget popup, not this settings page.</i>"
+                        }
+                    }
                 }
 
             }
@@ -1358,11 +1385,10 @@ KCM.SimpleKCM {
                         textFormat: Text.RichText
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                         color: Kirigami.Theme.textColor
-                        text: "<b>General setup</b><br>" +
-                              "1. Pick a provider, then enter its API key only if that provider needs one.<br>" +
-                              "2. Press <b>Save</b> beside the key field, then refresh or choose a model.<br>" +
-                              "3. Local providers such as Ollama and LM Studio work without API keys when their local server is running.<br>" +
-                              "4. Use OpenCode mode only when you want the widget to connect to your local OpenCode server."
+                        text: "<b>General Setup Guide</b><br><br>" +
+                              "<b>Cloud Providers:</b> Select a provider (like OpenAI or Anthropic), enter your API key, and press <b>Save</b>. Then click <b>Refresh</b> to load available models.<br><br>" +
+                              "<b>Local Providers:</b> Services like Ollama or LM Studio operate completely offline and do not require API keys.<br><br>" +
+                              "<b>OpenCode Mode:</b> Use this only when you are connecting to your personal OpenCode local server."
                     }
                 }
             }
