@@ -215,9 +215,6 @@ KCM.SimpleKCM {
 
     function repairNeeded() {
         if (!voiceEnvChecked || !voiceEnvResult) return false;
-        let sttFolderSelected = (sttPathField.text || "").trim().length > 0;
-        let ttsFolderSelected = !voiceTtsEnabledToggle.checked || (ttsPathField.text || "").trim().length > 0;
-        if (!sttFolderSelected || !ttsFolderSelected) return false;
         if (!voiceEnvResult.venv_ready || !voiceEnvResult.faster_whisper_ok || !voiceEnvResult.sounddevice_ok) return true;
         if (voiceTtsEnabledToggle.checked && !voiceEnvResult.tts_ready) return true;
         return false;
@@ -384,8 +381,19 @@ KCM.SimpleKCM {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     textFormat: Text.RichText
-                    text: i18n("<b>First-time Setup Guide:</b><br>1. Enable Voice and click <b>Setup Voice Engine</b> to install dependencies.<br>2. To automatically download the default models, simply leave the STT and TTS folder paths empty.<br>3. If you already have models (Faster Whisper, Kokoro, Piper), you can browse and select their folders.<br>4. Click <b>Check &amp; Test</b> to verify everything works.")
+                    text: i18n("<b>First-time Setup Guide:</b><br>1. Click the 'Readme Guide' button below for full instructions.<br>2. Click <b>Repair Engine</b> to install dependencies.<br>3. To automatically download the default models, simply leave the STT and TTS folder paths empty.<br>4. If you already have models (Faster Whisper, Kokoro, Piper), you can browse and select their folders.<br>5. Click <b>Check &amp; Test</b> to verify everything works.")
                 }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+
+            QQC2.Button {
+                text: i18n("Readme Guide")
+                icon.name: "help-contextual"
+                onClicked: Qt.openUrlExternally("https://github.com/racstan/KDE-AI-Chat/blob/main/VOICE_SETUP.md")
             }
         }
 
@@ -395,7 +403,7 @@ KCM.SimpleKCM {
             Layout.maximumWidth: formLayout.fieldMaxWidth
             checked: plasmoid.configuration.voiceEnabled || false
             text: checked ? i18n("Enabled") : i18n("Disabled")
-            onCheckedChanged: {
+            onToggled: {
                 plasmoid.configuration.voiceEnabled = checked;
                 if (checked) runEnvCheck();
             }
