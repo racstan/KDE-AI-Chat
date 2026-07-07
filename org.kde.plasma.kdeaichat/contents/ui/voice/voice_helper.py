@@ -182,11 +182,17 @@ class VoiceHelper:
 
         # Check custom model paths strictly
         if stt_model_path:
-            stt_p = os.path.expanduser(stt_model_path)
-            stt_dir = os.path.dirname(stt_p) if os.path.isfile(stt_p) else stt_p
-            if os.path.isdir(stt_dir):
-                if os.path.exists(os.path.join(stt_dir, "model.bin")) or any(f.endswith(".bin") or f.endswith(".json") for f in os.listdir(stt_dir)):
-                    result["stt_model_path_ok"] = True
+            if stt_model_path.lower() in ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large"]:
+                result["stt_model_path_ok"] = True
+            else:
+                stt_p = os.path.expanduser(stt_model_path)
+                stt_dir = os.path.dirname(stt_p) if os.path.isfile(stt_p) else stt_p
+                if os.path.isdir(stt_dir):
+                    if os.path.exists(os.path.join(stt_dir, "model.bin")) or any(f.endswith(".bin") or f.endswith(".json") for f in os.listdir(stt_dir)):
+                        result["stt_model_path_ok"] = True
+        else:
+            # Empty path relies on faster_whisper auto-download
+            result["stt_model_path_ok"] = True
 
         if tts_model_path:
             tts_p = os.path.expanduser(tts_model_path)
@@ -201,6 +207,9 @@ class VoiceHelper:
                     )
                     if has_model_files:
                         result["tts_model_path_ok"] = True
+        else:
+            # Empty path relies on kokoro auto-download
+            result["tts_model_path_ok"] = True
 
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))

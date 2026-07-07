@@ -384,7 +384,7 @@ KCM.SimpleKCM {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     textFormat: Text.RichText
-                    text: i18n("<b>Simple voice setup:</b><br>1. Turn voice on.<br>2. Select your STT model folder.<br>3. Select your TTS model folder if you want read-aloud.<br>4. Press Check &amp; Test.")
+                    text: i18n("<b>First-time Setup Guide:</b><br>1. Enable Voice and click <b>Setup Voice Engine</b> to install dependencies.<br>2. To automatically download the default models, simply leave the STT and TTS folder paths empty.<br>3. If you already have models (Faster Whisper, Kokoro, Piper), you can browse and select their folders.<br>4. Click <b>Check &amp; Test</b> to verify everything works.")
                 }
             }
         }

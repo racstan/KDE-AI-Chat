@@ -32,6 +32,7 @@ KCM.SimpleKCM {
     property bool memRefreshing: false
     property int memScheduler: 0
     property int memOpenCode: 0
+    property int memStt: 0
 
     property string _lastSchedSetupPayload: ""
 
@@ -315,6 +316,7 @@ KCM.SimpleKCM {
                     let memData = JSON.parse(out.trim());
                     configPage.memScheduler = memData.scheduler || 0;
                     configPage.memOpenCode = memData.opencode || 0;
+                    configPage.memStt = memData.stt || 0;
                 } catch (e) {
                     console.warn("Failed to parse memory data:", e);
                 }
@@ -664,6 +666,43 @@ KCM.SimpleKCM {
         }
 
         Rectangle {
+            visible: configPage.showGuides
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            implicitHeight: memGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+            border.width: 1
+
+            RowLayout {
+                id: memGuideLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit * 0.6
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Icon {
+                    source: "help-hint"
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                    Layout.alignment: Qt.AlignTop
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    textFormat: Text.RichText
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                    color: Kirigami.Theme.textColor
+                    text: "<b>Resource &amp; Memory Usage</b> displays the current RAM consumption of background processes.<br><br>" +
+                          "<b>Voice Tools:</b> Aggregates STT (Speech-to-Text) and TTS (Text-to-Speech) engines.<br>" +
+                          "<b>OpenCode:</b> Local AI endpoint process.<br>" +
+                          "<b>Scheduler:</b> Background daemon that runs automated prompts.<br>" +
+                          "<i>Click Refresh to update these metrics manually.</i>"
+                }
+            }
+        }
+
+        Rectangle {
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             implicitHeight: memGrid.implicitHeight + Kirigami.Units.gridUnit
@@ -702,9 +741,20 @@ KCM.SimpleKCM {
                     font.bold: configPage.memOpenCode > 0
                 }
 
+                RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+                    Kirigami.Icon { source: "audio-speakers"; implicitWidth: 16; implicitHeight: 16 }
+                    QQC2.Label { text: i18n("Voice Tools") }
+                }
+                QQC2.Label {
+                    text: configPage.memStt > 0 ? (configPage.memStt / 1024).toFixed(1) + " MB" : i18n("Not running")
+                    color: configPage.memStt > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                    font.bold: configPage.memStt > 0
+                }
+
                 QQC2.Label { text: i18n("Total"); font.bold: true }
                 QQC2.Label {
-                    text: (configPage.memScheduler + configPage.memOpenCode) > 0 ? ((configPage.memScheduler + configPage.memOpenCode) / 1024).toFixed(1) + " MB" : "—"
+                    text: (configPage.memScheduler + configPage.memOpenCode + configPage.memStt) > 0 ? ((configPage.memScheduler + configPage.memOpenCode + configPage.memStt) / 1024).toFixed(1) + " MB" : "—"
                     font.bold: true
                     color: Kirigami.Theme.highlightColor
                 }

@@ -436,8 +436,7 @@ def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
     """Return RSS totals (KiB) for the opencode, stt, and tts processes."""
     d: Dict[str, int] = {
         "opencode": _process_memory_kb("opencode"),
-        "stt": _process_memory_kb("voice_helper.py --stt-server"),
-        "tts": _process_memory_kb("voice_helper.py --tts-server"),
+        "stt": _process_memory_kb("voice_helper.py"),
     }
     print(json.dumps(d))
 
