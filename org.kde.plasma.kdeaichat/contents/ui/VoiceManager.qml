@@ -7,8 +7,10 @@ Item {
 
     property bool isRecording: false
     property bool isPlaying: false
+    property string playingText: ""
     property string statusText: ""
     property string lastRecognizedText: ""
+    readonly property string defaultSttModel: "small"
     
     // Config aliases for convenience
     property bool enabled: plasmoid.configuration.voiceEnabled || false
@@ -73,7 +75,7 @@ Item {
     }
 
     function getHelperPath() {
-        let base = Qt.resolvedUrl("./voice/voice_helper.py");
+        let base = String(Qt.resolvedUrl("./voice/voice_helper.py"));
         if (base.indexOf("file://") === 0) base = base.substring(7);
         return base;
     }
@@ -81,21 +83,22 @@ Item {
     function sendCommand(payload) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-        voiceDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-cmd-" + Date.now());
+        let safeVenvPy = venvPy.startsWith("~/") ? '"$HOME"' + Sec.quoteForShell(venvPy.substring(1)) : Sec.quoteForShell(venvPy);
+        let cmd = "if [ -f " + safeVenvPy + " ]; then " + safeVenvPy + " " + Sec.quoteForShell(helperPath) + " --command-json " + Sec.quoteForShell(payload) + "; else python3 " + Sec.quoteForShell(helperPath) + " --command-json " + Sec.quoteForShell(payload) + "; fi";
+        voiceDs.connectSource("timeout 90s sh -c " + Sec.rawShellSnippetQuote(cmd) + " #voice-cmd-" + Date.now());
     }
 
     function checkEnv() {
         let sttPath = plasmoid.configuration.voiceSttModelPath || "";
         let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
-        sendCommand(JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath}));
+        sendCommand(JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath, venv_path: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv", espeak_path: plasmoid.configuration.voiceEspeakPath || ""}));
     }
 
     function runSetup() {
-        let base = Qt.resolvedUrl("./voice/voice_setup.sh");
+        let base = String(Qt.resolvedUrl("./voice/venv_setup.sh"));
         if (base.indexOf("file://") === 0) base = base.substring(7);
         let venvPath = plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
-        let cmd = "bash " + Sec.quoteForShell(base) + " " + Sec.quoteForShell(venvPath);
+        let cmd = "NON_INTERACTIVE=1 bash " + Sec.quoteForShell(base) + " " + Sec.quoteForShell(venvPath);
         voiceDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-" + Date.now());
     }
 
@@ -103,7 +106,7 @@ Item {
         root.isRecording = true;
         root.statusText = "Recording...";
         let lang = plasmoid.configuration.voiceLanguage || "en";
-        let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
+        let model = plasmoid.configuration.voiceSttModel || root.defaultSttModel;
         let modelPath = plasmoid.configuration.voiceSttModelPath || "";
         sendCommand(JSON.stringify({cmd: "start_stt", duration: 0, language: lang, model: model, model_path: modelPath}));
     }
@@ -115,12 +118,16 @@ Item {
 
     function playTTS(text) {
         root.isPlaying = true;
-        let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
-        sendCommand(JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a"}));
+        root.playingText = text;
+        let voice = plasmoid.configuration.voiceTtsVoice || "";
+        let modelPath = plasmoid.configuration.voiceTtsModelPath || "";
+        let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
+        sendCommand(JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a", model_path: modelPath, espeak_path: espeakPath}));
     }
 
     function stopTTS() {
         sendCommand(JSON.stringify({cmd: "stop_tts"}));
         root.isPlaying = false;
+        root.playingText = "";
     }
 }

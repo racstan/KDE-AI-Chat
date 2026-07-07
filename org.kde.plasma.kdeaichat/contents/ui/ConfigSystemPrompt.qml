@@ -242,6 +242,7 @@ KCM.SimpleKCM {
 
         QQC2.ScrollView {
             id: previewScroll
+            visible: enableSystemPromptCheck.checked
             Kirigami.FormData.label: i18n("System Prompt Preview:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -254,7 +255,7 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 font.family: "monospace"
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                text: enableSystemPromptCheck.checked ? Api.buildSystemPrompt(configPage.sysInfo, configPage.cfg_systemPrompt, { sysInfoDateTime: configPage.cfg_sysInfoDateTime }) : i18n("System prompt is disabled.")
+                text: Api.buildSystemPrompt(configPage.sysInfo, configPage.cfg_systemPrompt, { sysInfoDateTime: configPage.cfg_sysInfoDateTime })
                 width: previewScroll.width
             }
         }

@@ -1329,6 +1329,44 @@ KCM.SimpleKCM {
                 }
             }
 
+            Rectangle {
+                visible: showInteractiveGuidesToggle.checked
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                implicitHeight: generalGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+                radius: 5
+                color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+                border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+                border.width: 1
+
+                RowLayout {
+                    id: generalGuideLayout
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.gridUnit * 0.6
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Icon {
+                        source: "help-hint"
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                        Layout.alignment: Qt.AlignTop
+                    }
+
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        textFormat: Text.RichText
+                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                        color: Kirigami.Theme.textColor
+                        text: "<b>General setup</b><br>" +
+                              "1. Pick a provider, then enter its API key only if that provider needs one.<br>" +
+                              "2. Press <b>Save</b> beside the key field, then refresh or choose a model.<br>" +
+                              "3. Local providers such as Ollama and LM Studio work without API keys when their local server is running.<br>" +
+                              "4. Use OpenCode mode only when you want the widget to connect to your local OpenCode server."
+                    }
+                }
+            }
+
             QQC2.CheckBox {
                 id: openCodeToggle
 
@@ -2781,81 +2819,6 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 text: "Settings are persisted automatically by KDE when you press Apply or OK."
                 opacity: 0.8
-            }
-
-            Kirigami.Heading {
-                Kirigami.FormData.isSection: true
-                text: i18n("Resource & Memory Usage")
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                spacing: Kirigami.Units.smallSpacing
-                Kirigami.FormData.label: i18n("Memory Usage:")
-
-                QQC2.Button {
-                    text: page.memRefreshing ? i18n("Refreshing…") : i18n("Refresh")
-                    icon.name: "view-refresh"
-                    enabled: !page.memRefreshing
-                    onClicked: {
-                        page.memRefreshing = true;
-                        var cmd = "python3 " + quoteForShell(getHelperPath()) + " get_memory_usage";
-                        page.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
-                    }
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-                implicitHeight: memGrid.implicitHeight + Kirigami.Units.gridUnit
-                radius: 6
-                color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
-                border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
-                border.width: 1
-
-                GridLayout {
-                    id: memGrid
-                    anchors { left: parent.left; right: parent.right; top: parent.top }
-                    anchors.margins: Kirigami.Units.gridUnit * 0.6
-                    columns: 2
-                    columnSpacing: Kirigami.Units.gridUnit
-                    rowSpacing: Kirigami.Units.smallSpacing
-
-                    RowLayout {
-                        spacing: Kirigami.Units.smallSpacing
-                        Kirigami.Icon { source: "utilities-terminal"; implicitWidth: 16; implicitHeight: 16 }
-                        QQC2.Label { text: i18n("OpenCode") }
-                    }
-                    QQC2.Label {
-                        text: page.memOpenCode > 0 ? (page.memOpenCode / 1024).toFixed(1) + " MB" : i18n("Not running")
-                        color: page.memOpenCode > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
-                        font.bold: page.memOpenCode > 0
-                    }
-
-                    RowLayout {
-                        spacing: Kirigami.Units.smallSpacing
-                        Kirigami.Icon { source: "audio-input-microphone"; implicitWidth: 16; implicitHeight: 16 }
-                        QQC2.Label { text: i18n("STT Server") }
-                    }
-                    QQC2.Label {
-                        text: page.memStt > 0 ? (page.memStt / 1024).toFixed(1) + " MB" : i18n("Not running")
-                        color: page.memStt > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
-                        font.bold: page.memStt > 0
-                    }
-
-                    RowLayout {
-                        spacing: Kirigami.Units.smallSpacing
-                        Kirigami.Icon { source: "audio-speakers"; implicitWidth: 16; implicitHeight: 16 }
-                        QQC2.Label { text: i18n("TTS Server") }
-                    }
-                    QQC2.Label {
-                        text: page.memTts > 0 ? (page.memTts / 1024).toFixed(1) + " MB" : i18n("Not running")
-                        color: page.memTts > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
-                        font.bold: page.memTts > 0
-                    }
-                }
             }
 
             QQC2.Button {

@@ -310,6 +310,7 @@ Item {
 
                             delegate: Item {
                                 property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
+                                property bool reasoningExpanded: false
 
                                 width: msgList.width
                                 implicitHeight: delegateCol.implicitHeight
@@ -394,6 +395,62 @@ Item {
                                                         visible: text !== ""
                                                     }
 
+                                                }
+
+                                                Rectangle {
+                                                    id: reasoningBlock
+
+                                                    property string reasoningText: (root.currentStreamIndex === index && root.currentStreamReasoning !== "") ? root.currentStreamReasoning : (modelData.reasoning || "")
+
+                                                    visible: modelData.role === "assistant" && reasoningText.length > 0 && root.editingMessageIndex !== index
+                                                    width: parent.width
+                                                    implicitHeight: reasoningCol.implicitHeight + Kirigami.Units.smallSpacing
+                                                    radius: 6
+                                                    color: Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.08)
+                                                    border.width: 1
+                                                    border.color: Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.22)
+
+                                                    ColumnLayout {
+                                                        id: reasoningCol
+                                                        anchors.left: parent.left
+                                                        anchors.right: parent.right
+                                                        anchors.top: parent.top
+                                                        anchors.margins: Kirigami.Units.smallSpacing
+                                                        spacing: Kirigami.Units.smallSpacing
+
+                                                        RowLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: Kirigami.Units.smallSpacing
+
+                                                            Kirigami.Icon {
+                                                                source: "help-about"
+                                                                Layout.preferredWidth: Kirigami.Units.gridUnit
+                                                                Layout.preferredHeight: Kirigami.Units.gridUnit
+                                                            }
+
+                                                            PC3.Label {
+                                                                Layout.fillWidth: true
+                                                                text: "Thinking"
+                                                                font.bold: true
+                                                                opacity: 0.85
+                                                            }
+
+                                                            QQC2.ToolButton {
+                                                                text: reasoningExpanded ? "Hide" : "Show"
+                                                                icon.name: reasoningExpanded ? "go-up" : "go-down"
+                                                                onClicked: reasoningExpanded = !reasoningExpanded
+                                                            }
+                                                        }
+
+                                                        PC3.Label {
+                                                            visible: reasoningExpanded
+                                                            Layout.fillWidth: true
+                                                            wrapMode: Text.Wrap
+                                                            textFormat: Text.PlainText
+                                                            text: reasoningBlock.reasoningText
+                                                            opacity: 0.82
+                                                        }
+                                                    }
                                                 }
 
                                                 Loader {
@@ -813,6 +870,23 @@ Item {
                                                         onClicked: {
                                                             root.editingMessageIndex = -1;
                                                             root.editingDraft = "";
+                                                        }
+                                                    }
+
+                                                    PC3.ToolButton {
+                                                        visible: root.currentStreamIndex !== index && plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
+                                                        icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content) ? "media-playback-stop" : "audio-speakers"
+                                                        display: PC3.AbstractButton.IconOnly
+                                                        QQC2.ToolTip.visible: hovered
+                                                        QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content) ? "Stop speaking" : "Read aloud"
+                                                        onClicked: {
+                                                            if (root.voiceManagerRef) {
+                                                                if (root.voiceManagerRef.isPlaying) {
+                                                                    root.voiceManagerRef.stopTTS();
+                                                                } else {
+                                                                    root.voiceManagerRef.playTTS(modelData.content);
+                                                                }
+                                                            }
                                                         }
                                                     }
 

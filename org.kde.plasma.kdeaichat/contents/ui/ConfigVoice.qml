@@ -12,71 +12,139 @@ KCM.SimpleKCM {
 
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
-    property bool ttsPlaying: false
-    property bool sttTesting: false
-    property string sttTestResult: ""
     property bool voiceSetupRunning: false
+    property bool sttTesting: false
+    property bool ttsPlaying: false
     property string voiceSetupStatus: ""
-    property string storageExportStatus: ""
+    property string sttTestResult: ""
+    property string ttsTestResult: ""
+    property string activeSttSource: ""
+    property string activeTtsSource: ""
+    property string activeCheckSource: ""
 
-    property string cfg_promptTemplates: plasmoid.configuration.promptTemplates || "[]"
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceTtsAuto: voiceTtsAutoToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
+    property alias cfg_voiceSttModelPath: sttPathField.text
+    property alias cfg_voiceTtsModelPath: ttsPathField.text
+    property alias cfg_voiceLanguage: sttLanguageBox.currentValue
+    property alias cfg_voiceTtsVoice: ttsVoiceField.text
+    property alias cfg_voiceVenvPath: enginePathField.text
 
     P5Support.DataSource {
         id: voicePageDs
         engine: "executable"
         connectedSources: []
+
         onNewData: function(sourceName, data) {
             let stdout = (data["stdout"] || "").trim();
+            let stderr = (data["stderr"] || "").trim();
             disconnectSource(sourceName);
-            if (stdout === "") return;
+            clearWatchdogForSource(sourceName);
+
+            if (stdout === "") {
+                if (stderr !== "") {
+                    voiceSetupRunning = false;
+                    sttTesting = false;
+                    ttsPlaying = false;
+                    voiceSetupStatus = stderr.split("\n").slice(-3).join("\n");
+                } else if (sourceName === activeCheckSource) {
+                    activeCheckSource = "";
+                    voiceSetupRunning = false;
+                    voiceSetupStatus = i18n("Status check returned no data. Repair the engine, then check again.");
+                } else if (sourceName === activeSttSource) {
+                    activeSttSource = "";
+                    sttTesting = false;
+                    sttTestResult = i18n("STT returned no data. Check the selected STT folder and engine status.");
+                } else if (sourceName === activeTtsSource) {
+                    activeTtsSource = "";
+                    ttsPlaying = false;
+                    ttsTestResult = i18n("TTS returned no data. Check the selected TTS folder, voice name, and engine status.");
+                }
+                return;
+            }
+
             let lines = stdout.split("\n");
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 if (!line) continue;
                 try {
-                    let resp = JSON.parse(line);
-                    handleVoicePageResponse(resp, sourceName);
-                } catch (e) {}
+                    handleVoicePageResponse(JSON.parse(line), sourceName);
+                } catch (e) {
+                }
             }
         }
     }
 
     function handleVoicePageResponse(resp, sourceName) {
+        if (!resp.type) {
+            if (sourceName === activeCheckSource) {
+                activeCheckSource = "";
+                voiceSetupRunning = false;
+                voiceSetupStatus = i18n("Status check did not start the voice helper. Repair the engine, then check again.");
+            } else if (sourceName === activeSttSource) {
+                activeSttSource = "";
+                sttTesting = false;
+                sttTestResult = i18n("STT helper did not start. Repair the engine, then test again.");
+            } else if (sourceName === activeTtsSource) {
+                activeTtsSource = "";
+                ttsPlaying = false;
+                ttsTestResult = i18n("TTS helper did not start. Repair the engine, then test again.");
+            }
+            return;
+        }
+        if (sourceName === activeCheckSource && resp.type === "env_check") activeCheckSource = "";
+        if (sourceName === activeSttSource && (resp.type === "stt_result" || resp.type === "stt_error")) activeSttSource = "";
+        if (sourceName === activeTtsSource && (resp.type === "tts_done" || resp.type === "tts_error")) activeTtsSource = "";
         if (resp.type === "env_check") {
             voiceEnvResult = resp;
             voiceEnvChecked = true;
             voiceSetupRunning = false;
-            if (resp.stt_ready || resp.tts_ready) {
-                voiceSetupStatus = i18n("Environment ready");
-            } else {
-                voiceSetupStatus = i18n("Some components missing — see status below");
-            }
+            voiceSetupStatus = voiceReady() ? i18n("Ready. Voice input and read-aloud can use the selected folders.") : explainEnvProblem(resp);
         } else if (resp.type === "setup_status") {
             if (resp.status === "creating_venv") {
-                voiceSetupStatus = i18n("Creating virtual environment...");
-            } else if (resp.status === "installing_packages") {
-                voiceSetupStatus = i18n("Installing packages (this may take a few minutes)...");
+                voiceSetupStatus = i18n("Creating voice engine...");
+            } else if (resp.status === "upgrading_pip") {
+                voiceSetupStatus = i18n("Preparing Python packages...");
+            } else if (resp.status === "installing_pytorch") {
+                voiceSetupStatus = i18n("Installing speech runtime...");
+            } else if (resp.status === "installing_dependencies") {
+                voiceSetupStatus = i18n("Installing STT/TTS support packages...");
+            } else if (resp.status === "installing_kokoro") {
+                voiceSetupStatus = i18n("Installing text-to-speech support...");
             } else if (resp.status === "done") {
-                voiceSetupStatus = i18n("Setup complete — checking environment...");
+                voiceSetupStatus = i18n("Engine ready. Rechecking folders...");
                 runEnvCheck();
             }
+        } else if (resp.type === "setup_error" || resp.type === "error") {
+            voiceSetupRunning = false;
+            sttTesting = false;
+            ttsPlaying = false;
+            voiceSetupStatus = resp.error || i18n("Voice engine setup failed.");
+        } else if (resp.type === "stt_status") {
+            if (resp.status === "loading_model") sttTestResult = i18n("Loading STT model...");
+            else if (resp.status === "recording") sttTestResult = i18n("Recording. Speak now...");
+            else if (resp.status === "transcribing") sttTestResult = i18n("Transcribing...");
         } else if (resp.type === "stt_result") {
             sttTesting = false;
-            sttTestResult = resp.text || i18n("(no speech detected)");
+            sttTestResult = resp.text && resp.text.length > 0 ? resp.text : i18n("No speech detected.");
         } else if (resp.type === "stt_error") {
             sttTesting = false;
-            sttTestResult = i18n("Error: ") + (resp.error || i18n("Unknown"));
+            sttTestResult = i18n("STT error: ") + (resp.error || i18n("Unknown error"));
+        } else if (resp.type === "tts_status") {
+            if (resp.status === "synthesizing") ttsTestResult = i18n("Creating speech...");
+            else if (resp.status === "playing") {
+                ttsPlaying = true;
+                ttsTestResult = i18n("Playing test audio...");
+            }
         } else if (resp.type === "tts_done") {
             ttsPlaying = false;
+            ttsTestResult = i18n("TTS test finished.");
         } else if (resp.type === "tts_error") {
             ttsPlaying = false;
-        } else if (resp.type === "tts_status") {
-            if (resp.status === "playing") ttsPlaying = true;
+            ttsTestResult = i18n("TTS error: ") + (resp.error || i18n("Unknown error"));
         }
     }
 
@@ -85,112 +153,230 @@ KCM.SimpleKCM {
     }
 
     function getVenvPython() {
-        let venvPath = getVenvPath();
-        return venvPath + "/bin/python3";
+        return getVenvPath() + "/bin/python3";
     }
 
     function getHelperPath() {
-        let base = Qt.resolvedUrl("./voice/voice_helper.py");
+        let base = String(Qt.resolvedUrl("./voice/voice_helper.py"));
         if (base.indexOf("file://") === 0) base = base.substring(7);
         return base;
     }
 
     function getSetupPath() {
-        let base = Qt.resolvedUrl("./voice/voice_setup.sh");
+        let base = String(Qt.resolvedUrl("./voice/venv_setup.sh"));
         if (base.indexOf("file://") === 0) base = base.substring(7);
         return base;
     }
 
-    function runEnvCheck() {
+    function sendVoiceCommand(payload, tag) {
         let helperPath = getHelperPath();
         let venvPy = getVenvPython();
-        let sttPath = plasmoid.configuration.voiceSttModelPath || "";
-        let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
-        let payload = JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath});
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-        voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-env-" + Date.now());
+        let safeVenvPy = venvPy.startsWith("~/") ? '"$HOME"' + Sec.quoteForShell(venvPy.substring(1)) : Sec.quoteForShell(venvPy);
+        let timeoutSeconds = tag === "check" ? 25 : (tag === "stt-test" ? 75 : 90);
+        let cmd = "if [ -f " + safeVenvPy + " ]; then " + safeVenvPy + " " + Sec.quoteForShell(helperPath) + " --command-json " + Sec.quoteForShell(payload) + "; else python3 " + Sec.quoteForShell(helperPath) + " --command-json " + Sec.quoteForShell(payload) + "; fi";
+        let source = "timeout " + timeoutSeconds + "s sh -c " + Sec.rawShellSnippetQuote(cmd) + " #voice-" + (tag || "cmd") + "-" + Date.now();
+        voicePageDs.connectSource(source);
+        return source;
+    }
+
+    function runEnvCheck() {
+        voiceSetupRunning = true;
+        voiceEnvChecked = false;
+        voiceSetupStatus = firstSetupHint();
+        let payload = JSON.stringify({
+            cmd: "check_env",
+            stt_model_path: sttPathField.text || "",
+            tts_model_path: ttsPathField.text || "",
+            venv_path: getVenvPath(),
+            espeak_path: plasmoid.configuration.voiceEspeakPath || ""
+        });
+        activeCheckSource = sendVoiceCommand(payload, "check");
+        checkWatchdog.restart();
     }
 
     function runVoiceSetup() {
         voiceSetupRunning = true;
-        voiceSetupStatus = i18n("Starting setup...");
-        let setupPath = getSetupPath();
-        let venvPath = getVenvPath();
-        let cmd = "bash " + Sec.quoteForShell(setupPath) + " " + Sec.quoteForShell(venvPath);
+        voiceSetupStatus = i18n("Preparing voice engine. This installs code support only; it does not download models.");
+        let cmd = "NON_INTERACTIVE=1 bash " + Sec.quoteForShell(getSetupPath()) + " " + Sec.quoteForShell(getVenvPath());
         voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-" + Date.now());
     }
 
-    function sendVoiceCommand(payload) {
-        let helperPath = getHelperPath();
-        let venvPy = getVenvPython();
-        let cmd = "if [ -f " + Sec.quoteForShell(venvPy) + " ]; then echo " + Sec.quoteForShell(payload) + " | " + Sec.quoteForShell(venvPy) + " " + Sec.quoteForShell(helperPath) + "; else echo " + Sec.quoteForShell(payload) + " | python3 " + Sec.quoteForShell(helperPath) + "; fi";
-        voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-cmd-" + Date.now());
+    function sttReady() {
+        return voiceEnvResult && voiceEnvResult.stt_ready;
     }
 
+    function ttsReady() {
+        return voiceEnvResult && voiceEnvResult.tts_ready;
+    }
+
+    function voiceReady() {
+        return sttReady() && (!voiceTtsEnabledToggle.checked || ttsReady());
+    }
+
+    function repairNeeded() {
+        if (!voiceEnvChecked || !voiceEnvResult) return false;
+        let sttFolderSelected = (sttPathField.text || "").trim().length > 0;
+        let ttsFolderSelected = !voiceTtsEnabledToggle.checked || (ttsPathField.text || "").trim().length > 0;
+        if (!sttFolderSelected || !ttsFolderSelected) return false;
+        if (!voiceEnvResult.venv_ready || !voiceEnvResult.faster_whisper_ok || !voiceEnvResult.sounddevice_ok) return true;
+        if (voiceTtsEnabledToggle.checked && !voiceEnvResult.tts_ready) return true;
+        return false;
+    }
+
+    function cancelSttTest() {
+        if (activeSttSource !== "") {
+            voicePageDs.disconnectSource(activeSttSource);
+            activeSttSource = "";
+        }
+        sttTesting = false;
+        sttTestResult = i18n("Recording stopped.");
+    }
+
+    function cancelTtsTest() {
+        if (activeTtsSource !== "") {
+            voicePageDs.disconnectSource(activeTtsSource);
+            activeTtsSource = "";
+        }
+        ttsPlaying = false;
+        ttsTestResult = i18n("Speech stopped.");
+    }
+
+    function clearWatchdogForSource(sourceName) {
+        if (sourceName === activeCheckSource) checkWatchdog.stop();
+        if (sourceName === activeSttSource) sttWatchdog.stop();
+        if (sourceName === activeTtsSource) ttsWatchdog.stop();
+    }
+
+    function firstSetupHint() {
+        if ((sttPathField.text || "").trim().length === 0)
+            return i18n("Please select your STT model folder.");
+        if (voiceTtsEnabledToggle.checked && (ttsPathField.text || "").trim().length === 0)
+            return i18n("Please select your TTS model folder, or turn Read aloud off.");
+        return i18n("Checking folders, microphone, audio output, and engine packages. This should finish in under 30 seconds.");
+    }
+
+    function explainEnvProblem(resp) {
+        if (!resp.stt_model_path_ok)
+            return i18n("Not ready: STT folder is empty or does not contain recognizable model files.");
+        if (!resp.venv_exists)
+            return i18n("Not ready: voice engine folder is missing. Press Repair Engine.");
+        if (!resp.sounddevice_ok || !resp.numpy_ok || !resp.faster_whisper_ok)
+            return i18n("Not ready: speech engine packages are missing or broken. Press Repair Engine.");
+        if (!resp.mic_available)
+            return i18n("Not ready: no microphone was detected.");
+        if (voiceTtsEnabledToggle.checked && !resp.tts_model_path_ok)
+            return i18n("Not ready: TTS folder is empty or does not contain recognizable model files.");
+        if (voiceTtsEnabledToggle.checked && !(resp.paplay_available || resp.aplay_available))
+            return i18n("Not ready: no audio output player was found.");
+        if (voiceTtsEnabledToggle.checked && !resp.tts_ready) {
+            if (!resp.espeak_available && (resp.tts_model_type === "kokoro-82m" || resp.tts_model_type === "espeak-ng"))
+                return i18n("Not ready: The selected TTS model requires 'espeak-ng' to be installed on your system.");
+            return i18n("Not ready: selected TTS folder needs engine support. Press Repair Engine or choose a compatible folder.");
+        }
+        return i18n("Not ready. Check the rows below.");
+    }
+
+    Timer {
+        id: checkWatchdog
+        interval: 30000
+        repeat: false
+        onTriggered: {
+            if (page.activeCheckSource !== "") {
+                voicePageDs.disconnectSource(page.activeCheckSource);
+                page.activeCheckSource = "";
+                page.voiceSetupRunning = false;
+                page.voiceSetupStatus = i18n("Status check timed out. The helper did not answer within 30 seconds. Repair the engine or select a smaller/local model folder.");
+            }
+        }
+    }
+
+    Timer {
+        id: sttWatchdog
+        interval: 80000
+        repeat: false
+        onTriggered: {
+            if (page.activeSttSource !== "") {
+                voicePageDs.disconnectSource(page.activeSttSource);
+                page.activeSttSource = "";
+                page.sttTesting = false;
+                page.sttTestResult = i18n("STT test timed out. Check microphone permission, selected STT folder, and engine status.");
+            }
+        }
+    }
+
+    Timer {
+        id: ttsWatchdog
+        interval: 95000
+        repeat: false
+        onTriggered: {
+            if (page.activeTtsSource !== "") {
+                voicePageDs.disconnectSource(page.activeTtsSource);
+                page.activeTtsSource = "";
+                page.ttsPlaying = false;
+                page.ttsTestResult = i18n("TTS test timed out. Check the selected TTS folder, voice name, audio output, and engine status.");
+            }
+        }
+    }
+
+    function statusText(ok, goodText, badText) {
+        return ok ? "✓ " + goodText : "✗ " + badText;
+    }
 
     FolderDialog {
         id: sttFolderDialog
-        title: i18n("Select STT Model Directory")
+        title: i18n("Select STT Model Folder")
         onAccepted: {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
+            sttPathField.text = path;
             plasmoid.configuration.voiceSttModelPath = path;
+            runEnvCheck();
         }
     }
 
     FolderDialog {
         id: ttsFolderDialog
-        title: i18n("Select TTS Model Directory")
+        title: i18n("Select TTS Model Folder")
         onAccepted: {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
+            ttsPathField.text = path;
             plasmoid.configuration.voiceTtsModelPath = path;
+            runEnvCheck();
         }
     }
-
-
-    Timer {
-        id: autoSetupTimer
-        interval: 500
-        repeat: false
-        onTriggered: {
-            runVoiceSetup();
-        }
-    }
-
 
     Kirigami.FormLayout {
         id: formLayout
         width: page.width || 500
         wideMode: false
-        property int fieldMaxWidth: Kirigami.Units.gridUnit * 35
+        property int fieldMaxWidth: Kirigami.Units.gridUnit * 36
 
-        // ── Voice & Audio ─────────────────────────────────────────────
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Voice & Audio (Experimental)")
+            Kirigami.FormData.label: i18n("Voice")
         }
 
         Rectangle {
             visible: page.cfg_showInteractiveGuides
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            implicitHeight: voiceGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+            implicitHeight: introGuide.implicitHeight + Kirigami.Units.gridUnit
             radius: 5
             color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
             border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
             border.width: 1
 
             RowLayout {
-                id: voiceGuideLayout
+                id: introGuide
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.gridUnit * 0.6
                 spacing: Kirigami.Units.smallSpacing
 
                 Kirigami.Icon {
                     source: "help-hint"
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.4
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.4
                     Layout.alignment: Qt.AlignTop
                 }
 
@@ -198,37 +384,248 @@ KCM.SimpleKCM {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     textFormat: Text.RichText
-                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
-                    color: Kirigami.Theme.textColor
-                    text: "<b>Voice features</b> let you speak to the AI and hear responses read aloud.<br>" +
-                          "The Python environment is <b>set up automatically</b> when you enable this feature.<br><br>" +
-                          "<b>How to use:</b><br>" +
-                          "1. <b>Enable</b> voice features below — dependencies install automatically.<br>" +
-                          "2. <b>Point to your model</b> directory or download default models.<br>" +
-                          "3. Click the <b>microphone</b> button in chat to record voice input.<br>" +
-                          "4. Enable <b>read-aloud</b> to hear AI responses spoken back.<br><br>" +
-                          "<b>Models:</b> Uses <b>Faster Whisper</b> (STT) and <b>Kokoro</b> (TTS).<br>" +
-                          "You can point to existing model directories instead of downloading."
+                    text: i18n("<b>Simple voice setup:</b><br>1. Turn voice on.<br>2. Select your STT model folder.<br>3. Select your TTS model folder if you want read-aloud.<br>4. Press Check &amp; Test.")
                 }
             }
         }
 
         QQC2.CheckBox {
             id: voiceEnabledToggle
-            Kirigami.FormData.label: i18n("Enable voice features:")
+            Kirigami.FormData.label: i18n("Voice:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
             checked: plasmoid.configuration.voiceEnabled || false
-            text: checked ? i18n("Enabled — mic button appears in chat") : i18n("Disabled")
+            text: checked ? i18n("Enabled") : i18n("Disabled")
             onCheckedChanged: {
-                if (checked && !voiceEnvChecked && !voiceSetupRunning) {
-                    autoSetupTimer.restart();
-                }
+                plasmoid.configuration.voiceEnabled = checked;
+                if (checked) runEnvCheck();
             }
         }
 
-        // ── Setup Status ──────────────────────────────────────────────
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Voice:</b> Enables the microphone button in chat. It does not download or choose models for you.")
+        }
+
         RowLayout {
             visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("STT folder:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                id: sttPathField
+                Layout.fillWidth: true
+                text: plasmoid.configuration.voiceSttModelPath || ""
+                placeholderText: i18n("Select an STT model folder")
+                onEditingFinished: {
+                    plasmoid.configuration.voiceSttModelPath = text;
+                    runEnvCheck();
+                }
+            }
+
+            QQC2.Button {
+                icon.name: "folder-open"
+                text: i18n("Browse")
+                onClicked: sttFolderDialog.open()
+            }
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>STT folder:</b> Pick the folder that contains your speech-to-text model files.")
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Language:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+
+            QQC2.ComboBox {
+                id: sttLanguageBox
+                Layout.fillWidth: true
+                textRole: "text"
+                valueRole: "value"
+                model: [
+                    { text: i18n("Auto detect"), value: "auto" },
+                    { text: i18n("English"), value: "en" },
+                    { text: i18n("Hindi"), value: "hi" },
+                    { text: i18n("Spanish"), value: "es" },
+                    { text: i18n("French"), value: "fr" },
+                    { text: i18n("German"), value: "de" },
+                    { text: i18n("Japanese"), value: "ja" },
+                    { text: i18n("Korean"), value: "ko" },
+                    { text: i18n("Chinese"), value: "zh" }
+                ]
+                Component.onCompleted: {
+                    let current = plasmoid.configuration.voiceLanguage || "auto";
+                    for (let i = 0; i < model.length; i++) {
+                        if (model[i].value === current) {
+                            currentIndex = i;
+                            return;
+                        }
+                    }
+                    currentIndex = 0;
+                }
+                onActivated: plasmoid.configuration.voiceLanguage = currentValue
+            }
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Language:</b> Use Auto for multilingual models. Use English for English-only models.")
+        }
+
+        QQC2.CheckBox {
+            id: voiceTtsEnabledToggle
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Read aloud:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            checked: plasmoid.configuration.voiceTtsEnabled || false
+            text: checked ? i18n("Enabled") : i18n("Disabled")
+            onCheckedChanged: {
+                plasmoid.configuration.voiceTtsEnabled = checked;
+                if (voiceEnabledToggle.checked) runEnvCheck();
+            }
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Read aloud:</b> Enables text-to-speech. Leave it off if you only want microphone input.")
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Kirigami.FormData.label: i18n("TTS folder:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                id: ttsPathField
+                Layout.fillWidth: true
+                text: plasmoid.configuration.voiceTtsModelPath || ""
+                placeholderText: i18n("Select a TTS model folder")
+                onEditingFinished: {
+                    plasmoid.configuration.voiceTtsModelPath = text;
+                    runEnvCheck();
+                }
+            }
+
+            QQC2.Button {
+                icon.name: "folder-open"
+                text: i18n("Browse")
+                onClicked: ttsFolderDialog.open()
+            }
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>TTS folder:</b> Pick the folder that contains your text-to-speech model files.")
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Voice name:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+
+            QQC2.TextField {
+                id: ttsVoiceField
+                Layout.fillWidth: true
+                text: plasmoid.configuration.voiceTtsVoice || ""
+                placeholderText: i18n("Voice id or name")
+                onEditingFinished: plasmoid.configuration.voiceTtsVoice = text
+            }
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Voice name:</b> Use the voice id expected by the selected TTS model. If the model has voice files, use the file name without its extension.")
+        }
+
+        QQC2.CheckBox {
+            id: voiceTtsAutoToggle
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Auto read:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            checked: plasmoid.configuration.voiceTtsAuto || false
+            text: checked ? i18n("Speak every AI reply") : i18n("Manual only")
+            onCheckedChanged: plasmoid.configuration.voiceTtsAuto = checked
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Auto read:</b> Turn this on only if every AI response should be spoken automatically.")
+        }
+
+        QQC2.CheckBox {
+            id: voiceAutoSendToggle
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Auto-send:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
+            text: checked ? i18n("Send transcript immediately") : i18n("Put transcript in the input box")
+            onCheckedChanged: plasmoid.configuration.voiceAutoSend = checked
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Auto-send:</b> Keep on for hands-free chat. Turn off if you want to edit the transcript before sending.")
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Status:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
@@ -243,41 +640,36 @@ KCM.SimpleKCM {
             QQC2.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                font: Kirigami.Theme.smallFont
-                opacity: 0.8
-                text: {
-                    if (voiceSetupRunning) return voiceSetupStatus;
-                    if (voiceEnvChecked && voiceEnvResult) {
-                        let ok = (voiceEnvResult.stt_ready || voiceEnvResult.faster_whisper_ok) && voiceEnvResult.sounddevice_ok;
-                        return ok ? i18n("Environment ready") : i18n("Environment needs setup — click Check Status");
-                    }
-                    return i18n("Checking environment...");
-                }
-                color: {
-                    if (voiceSetupRunning) return Kirigami.Theme.neutralTextColor;
-                    if (voiceEnvChecked && voiceEnvResult) {
-                        let ok = (voiceEnvResult.stt_ready || voiceEnvResult.faster_whisper_ok) && voiceEnvResult.sounddevice_ok;
-                        return ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                    }
-                    return Kirigami.Theme.textColor;
-                }
+                text: voiceSetupStatus || i18n("Select folders, then check status.")
+                color: voiceReady() ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
             }
 
             QQC2.Button {
-                text: i18n("Check Status")
+                text: i18n("Check")
                 icon.name: "view-refresh"
                 onClicked: runEnvCheck()
             }
 
             QQC2.Button {
-                text: i18n("Reinstall")
+                text: i18n("Repair Engine")
                 icon.name: "tools-wizard"
-                visible: voiceEnvChecked && voiceEnvResult && !voiceEnvResult.stt_ready
+                visible: repairNeeded()
+                enabled: !voiceSetupRunning
                 onClicked: runVoiceSetup()
             }
         }
 
-        // ── Environment Status Grid ───────────────────────────────────
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("Check validates folders, microphone, audio output, and required packages. Repair Engine appears only when package support is missing or broken.")
+        }
+
         Rectangle {
             visible: voiceEnabledToggle.checked && voiceEnvChecked
             Layout.fillWidth: true
@@ -296,292 +688,203 @@ KCM.SimpleKCM {
                 columnSpacing: Kirigami.Units.gridUnit
                 rowSpacing: Kirigami.Units.smallSpacing * 0.5
 
-                QQC2.Label { text: i18n("Microphone:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label { text: i18n("STT folder:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.mic_available ? "✓ " + i18n("Available") : "✗ " + i18n("Not found")
-                    color: page.voiceEnvResult && page.voiceEnvResult.mic_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                }
-
-                QQC2.Label { text: i18n("Audio player:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
-                QQC2.Label {
-                    text: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
-                    color: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    text: statusText(page.voiceEnvResult && page.voiceEnvResult.stt_model_path_ok, i18n("Valid"), i18n("Invalid or empty"))
+                    color: page.voiceEnvResult && page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
                 QQC2.Label { text: i18n("STT engine:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? "✓ faster-whisper" : "✗ " + i18n("Not installed")
-                    color: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    text: statusText(page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok && page.voiceEnvResult.sounddevice_ok, i18n("Ready"), i18n("Repair engine"))
+                    color: page.voiceEnvResult && page.voiceEnvResult.faster_whisper_ok && page.voiceEnvResult.sounddevice_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+
+                QQC2.Label { text: i18n("TTS folder:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: voiceTtsEnabledToggle.checked ? statusText(page.voiceEnvResult && page.voiceEnvResult.tts_model_path_ok, i18n("Valid"), i18n("Invalid or empty")) : i18n("Disabled")
+                    color: !voiceTtsEnabledToggle.checked || (page.voiceEnvResult && page.voiceEnvResult.tts_model_path_ok) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
                 QQC2.Label { text: i18n("TTS engine:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? "✓ Kokoro" : "✗ " + i18n("Not installed")
-                    color: page.voiceEnvResult && page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    text: voiceTtsEnabledToggle.checked ? statusText(page.voiceEnvResult && page.voiceEnvResult.tts_ready, i18n("Ready"), (page.voiceEnvResult && !page.voiceEnvResult.espeak_available && (page.voiceEnvResult.tts_model_type === "kokoro-82m" || page.voiceEnvResult.tts_model_type === "espeak-ng") ? i18n("espeak-ng missing") : i18n("Repair engine"))) : i18n("Disabled")
+                    color: !voiceTtsEnabledToggle.checked || (page.voiceEnvResult && page.voiceEnvResult.tts_ready) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("espeak-ng:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? "✓ " + i18n("Available") : "✗ " + i18n("Missing")
-                    color: page.voiceEnvResult && page.voiceEnvResult.espeak_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    visible: voiceTtsEnabledToggle.checked && page.voiceEnvResult && !page.voiceEnvResult.tts_ready && !page.voiceEnvResult.espeak_available && (page.voiceEnvResult.tts_model_type === "kokoro-82m" || page.voiceEnvResult.tts_model_type === "espeak-ng")
+                    text: i18n("Install espeak-ng:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+                RowLayout {
+                    visible: voiceTtsEnabledToggle.checked && page.voiceEnvResult && !page.voiceEnvResult.tts_ready && !page.voiceEnvResult.espeak_available && (page.voiceEnvResult.tts_model_type === "kokoro-82m" || page.voiceEnvResult.tts_model_type === "espeak-ng")
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+                    QQC2.TextField {
+                        id: espeakInstallCommand
+                        text: "sudo apt install espeak-ng"
+                        readOnly: true
+                        Layout.fillWidth: true
+                        
+                        P5Support.DataSource {
+                            engine: "executable"
+                            connectedSources: ["command -v dnf >/dev/null && echo 'dnf' || (command -v pacman >/dev/null && echo 'pacman' || echo 'apt')"]
+                            onNewData: function(sourceName, data) {
+                                let pm = (data["stdout"] || "").trim();
+                                if (pm === "dnf") espeakInstallCommand.text = "sudo dnf install espeak-ng";
+                                else if (pm === "pacman") espeakInstallCommand.text = "sudo pacman -S espeak-ng";
+                                disconnectSource(sourceName);
+                            }
+                        }
+                    }
                 }
 
-                QQC2.Label { text: i18n("STT model:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label { text: i18n("Microphone:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: {
-                        if (!page.voiceEnvResult) return "";
-                        let hasPath = plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.stt_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
-                        return page.voiceEnvResult.faster_whisper_ok ? "✓ " + i18n("Default ready") : "✗ " + i18n("Not downloaded");
-                    }
-                    color: {
-                        if (!page.voiceEnvResult) return Kirigami.Theme.textColor;
-                        let hasPath = plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.stt_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                        return page.voiceEnvResult.faster_whisper_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                    }
+                    text: statusText(page.voiceEnvResult && page.voiceEnvResult.mic_available, i18n("Available"), i18n("Not found"))
+                    color: page.voiceEnvResult && page.voiceEnvResult.mic_available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
-                QQC2.Label { text: i18n("TTS model:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label { text: i18n("Audio output:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: {
-                        if (!page.voiceEnvResult) return "";
-                        let hasPath = plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.tts_model_path_ok ? "✓ " + i18n("Custom path OK") : "✗ " + i18n("Path not found");
-                        return page.voiceEnvResult.kokoro_ok ? "✓ " + i18n("Default ready") : "✗ " + i18n("Not downloaded");
-                    }
-                    color: {
-                        if (!page.voiceEnvResult) return Kirigami.Theme.textColor;
-                        let hasPath = plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0;
-                        if (hasPath) return page.voiceEnvResult.tts_model_path_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                        return page.voiceEnvResult.kokoro_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor;
-                    }
+                    text: statusText(page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available), i18n("Available"), i18n("Not found"))
+                    color: page.voiceEnvResult && (page.voiceEnvResult.paplay_available || page.voiceEnvResult.aplay_available) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
-            }
-        }
-
-        // ── STT Settings ──────────────────────────────────────────────
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("STT model path:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.TextField {
-                Layout.fillWidth: true
-                placeholderText: i18n("Leave empty to use default model")
-                text: plasmoid.configuration.voiceSttModelPath || ""
-                onEditingFinished: plasmoid.configuration.voiceSttModelPath = text
-            }
-            QQC2.Button {
-                icon.name: "folder-open"
-                QQC2.ToolTip.text: i18n("Browse for STT model directory")
-                onClicked: sttFolderDialog.open()
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && !(plasmoid.configuration.voiceSttModelPath && plasmoid.configuration.voiceSttModelPath.length > 0)
-            Kirigami.FormData.label: i18n("Default STT model:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                Layout.fillWidth: true
-                model: ["large-v3-turbo", "large-v3", "medium", "small", "base", "tiny"]
-                currentIndex: {
-                    let m = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
-                    for (let i = 0; i < model.length; i++) if (model[i] === m) return i;
-                    return 0;
-                }
-                onActivated: plasmoid.configuration.voiceSttModel = currentValue
-            }
-            QQC2.Button {
-                text: i18n("Download")
-                icon.name: "download"
-                onClicked: sendVoiceCommand(JSON.stringify({cmd: "download_stt", model: plasmoid.configuration.voiceSttModel || "large-v3-turbo"}))
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("STT language:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                Layout.fillWidth: true
-                model: ["en", "auto", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi"]
-                currentIndex: {
-                    let l = plasmoid.configuration.voiceLanguage || "en";
-                    for (let i = 0; i < model.length; i++) if (model[i] === l) return i;
-                    return 0;
-                }
-                onActivated: plasmoid.configuration.voiceLanguage = currentValue
             }
         }
 
         RowLayout {
             visible: voiceEnabledToggle.checked
             Kirigami.FormData.label: i18n("Test STT:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
-                text: page.sttTesting ? i18n("Recording...") : i18n("Record & Transcribe")
-                icon.name: page.sttTesting ? "media-record" : "audio-input-microphone"
-                enabled: !page.sttTesting
+                text: page.sttTesting ? i18n("Stop") : i18n("Record 5 sec")
+                icon.name: page.sttTesting ? "media-playback-stop" : "audio-input-microphone"
+                enabled: page.sttTesting || !page.ttsPlaying
                 onClicked: {
+                    if (page.sttTesting) {
+                        page.cancelSttTest();
+                        return;
+                    }
                     page.sttTesting = true;
-                    page.sttTestResult = "";
-                    let lang = plasmoid.configuration.voiceLanguage || "en";
-                    let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
-                    let modelPath = plasmoid.configuration.voiceSttModelPath || "";
-                    sendVoiceCommand(JSON.stringify({cmd: "start_stt", duration: 5, language: lang, model: model, model_path: modelPath}));
+                    page.sttTestResult = i18n("Loading STT model...");
+                    page.activeSttSource = sendVoiceCommand(JSON.stringify({
+                        cmd: "start_stt",
+                        duration: 5,
+                        language: sttLanguageBox.currentValue || "auto",
+                        model_path: sttPathField.text || ""
+                    }), "stt-test");
+                    sttWatchdog.restart();
                 }
             }
         }
 
         QQC2.Label {
-            visible: voiceEnabledToggle.checked && page.sttTestResult.length > 0
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            Kirigami.FormData.label: i18n("STT result:")
             wrapMode: Text.Wrap
+            textFormat: Text.RichText
             font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Test STT:</b> Records five seconds, transcribes it, and shows the text below.")
+        }
+
+        QQC2.Label {
+            visible: voiceEnabledToggle.checked && page.sttTestResult.length > 0
+            Kirigami.FormData.label: i18n("Transcript:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
             text: page.sttTestResult
-        }
-
-        // ── TTS Settings ──────────────────────────────────────────────
-        QQC2.CheckBox {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Read AI responses aloud:")
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            id: voiceTtsEnabledToggle
-            checked: plasmoid.configuration.voiceTtsEnabled || false
-            text: checked ? i18n("Enabled — AI responses will be spoken") : i18n("Disabled")
-        }
-
-        QQC2.CheckBox {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Auto read responses:")
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            id: voiceTtsAutoToggle
-            checked: plasmoid.configuration.voiceTtsAuto || false
-            text: checked ? i18n("Enabled — automatically read incoming messages") : i18n("Disabled")
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("TTS model path:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.TextField {
-                Layout.fillWidth: true
-                placeholderText: i18n("Leave empty to use default model")
-                text: plasmoid.configuration.voiceTtsModelPath || ""
-                onEditingFinished: plasmoid.configuration.voiceTtsModelPath = text
-            }
-            QQC2.Button {
-                icon.name: "folder-open"
-                QQC2.ToolTip.text: i18n("Browse for TTS model directory")
-                onClicked: ttsFolderDialog.open()
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && !(plasmoid.configuration.voiceTtsModelPath && plasmoid.configuration.voiceTtsModelPath.length > 0)
-            Kirigami.FormData.label: i18n("Default TTS:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                Layout.fillWidth: true
-                model: ["kokoro-82m"]
-                currentIndex: 0
-            }
-            QQC2.Button {
-                text: i18n("Download")
-                icon.name: "download"
-                onClicked: sendVoiceCommand(JSON.stringify({cmd: "download_tts", voice: plasmoid.configuration.voiceTtsVoice || "af_heart"}))
-            }
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
-            Kirigami.FormData.label: i18n("TTS voice:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.ComboBox {
-                Layout.fillWidth: true
-                model: ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
-                currentIndex: {
-                    let v = plasmoid.configuration.voiceTtsVoice || "af_heart";
-                    for (let i = 0; i < model.length; i++) if (model[i] === v) return i;
-                    return 0;
-                }
-                onActivated: plasmoid.configuration.voiceTtsVoice = currentValue
-            }
         }
 
         RowLayout {
             visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
             Kirigami.FormData.label: i18n("Test TTS:")
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Button {
-                text: i18n("Speak Test")
-                icon.name: "audio-speakers"
-                onClicked: {
-                    page.ttsPlaying = true;
-                    sendVoiceCommand(JSON.stringify({cmd: "tts", text: i18n("Hello! This is a test of the text to speech system."), voice: plasmoid.configuration.voiceTtsVoice || "af_heart", lang_code: "a"}));
-                }
-            }
-            QQC2.Button {
-                text: i18n("Stop")
-                icon.name: "media-playback-stop"
-                visible: page.ttsPlaying
-                onClicked: sendVoiceCommand(JSON.stringify({cmd: "stop_tts"}))
-            }
-        }
-
-        QQC2.CheckBox {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Auto-send voice input:")
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            id: voiceAutoSendToggle
-            checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
-            text: checked ? i18n("Enabled — transcribed text is sent automatically") : i18n("Disabled — transcribed text goes to input field")
-        }
-
-        RowLayout {
-            visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("Venv path:")
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
-            QQC2.TextField {
-                Layout.fillWidth: true
-                text: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv"
-                onEditingFinished: plasmoid.configuration.voiceVenvPath = text
+            QQC2.Button {
+                text: page.ttsPlaying ? i18n("Stop") : i18n("Speak")
+                icon.name: page.ttsPlaying ? "media-playback-stop" : "audio-speakers"
+                enabled: page.ttsPlaying || !page.sttTesting
+                onClicked: {
+                    if (page.ttsPlaying) {
+                        page.cancelTtsTest();
+                        return;
+                    }
+                    page.ttsPlaying = true;
+                    page.ttsTestResult = i18n("Creating speech...");
+                    page.activeTtsSource = sendVoiceCommand(JSON.stringify({
+                        cmd: "tts",
+                        text: i18n("Voice setup is ready."),
+                        voice: ttsVoiceField.text || "",
+                        lang_code: "a",
+                        model_path: ttsPathField.text || "",
+                        espeak_path: plasmoid.configuration.voiceEspeakPath || ""
+                    }), "tts-test");
+                    ttsWatchdog.restart();
+                }
             }
         }
 
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Test TTS:</b> Speaks a short sentence with the selected TTS folder and voice name.")
+        }
 
+        QQC2.Label {
+            visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked && page.ttsTestResult.length > 0
+            Kirigami.FormData.label: i18n("TTS result:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            text: page.ttsTestResult
+        }
+
+        RowLayout {
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Engine folder:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+
+            QQC2.TextField {
+                id: enginePathField
+                Layout.fillWidth: true
+                text: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv"
+                onEditingFinished: {
+                    plasmoid.configuration.voiceVenvPath = text;
+                    runEnvCheck();
+                }
+            }
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Engine folder:</b> Stores the small Python environment used to run your selected models. This is not a model folder.")
+        }
     }
 }

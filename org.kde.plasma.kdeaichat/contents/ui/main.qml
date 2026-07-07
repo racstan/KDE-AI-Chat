@@ -30,6 +30,7 @@ PlasmoidItem {
     property bool openCodeErrorShownForRequest: false
     property bool streamingResponse: false
     property string currentStreamText: ""
+    property string currentStreamReasoning: ""
     property int currentStreamIndex: -1
     property int editingMessageIndex: -1
     property string editingDraft: ""
@@ -252,6 +253,7 @@ PlasmoidItem {
             root.messages = [];
             root.currentStreamIndex = -1;
             root.currentStreamText = "";
+            root.currentStreamReasoning = "";
             root.streamingResponse = false;
             root.editingMessageIndex = -1;
             root.editingDraft = "";
@@ -347,6 +349,7 @@ PlasmoidItem {
         root.messages = root.sessions[idx].messages || [];
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
+        root.currentStreamReasoning = "";
         root.streamingResponse = false;
         root.editingMessageIndex = -1;
         root.editingDraft = "";
@@ -541,6 +544,7 @@ PlasmoidItem {
             root.messages = root.messages.concat([{
                 "role": "assistant",
                 "content": "",
+                "reasoning": "",
                 "time": nowTime(ts),
                 "at": ts,
                 "model": root.openCodeAssistantModelLabel || "OpenCode"
@@ -569,13 +573,39 @@ PlasmoidItem {
 
     }
 
+    function appendAssistantReasoning(text) {
+        var incoming = text || "";
+        if (incoming === "")
+            return;
+
+        if (root.openCodeAssistantMessageIndex < 0 && root.currentStreamIndex < 0) {
+            var ts = Date.now();
+            root.messages = root.messages.concat([{
+                "role": "assistant",
+                "content": "",
+                "reasoning": "",
+                "time": nowTime(ts),
+                "at": ts,
+                "model": root.openCodeAssistantModelLabel || ""
+            }]);
+            root.openCodeAssistantMessageIndex = root.messages.length - 1;
+            root.currentStreamIndex = root.openCodeAssistantMessageIndex;
+            root.streamingResponse = true;
+        }
+        root.currentStreamReasoning += incoming;
+        if (!root.userScrolledUp)
+            Qt.callLater(scrollToBottom);
+    }
+
     function finishOpenCodeRequest() {
         if (root.openCodeAssistantMessageIndex >= 0 && root.currentStreamIndex === root.openCodeAssistantMessageIndex) {
             var msgs = root.messages.slice();
             msgs[root.openCodeAssistantMessageIndex].content = root.currentStreamText;
+            msgs[root.openCodeAssistantMessageIndex].reasoning = root.currentStreamReasoning;
             root.messages = msgs;
             root.currentStreamIndex = -1;
             root.currentStreamText = "";
+            root.currentStreamReasoning = "";
         }
         if (!root.userScrolledUp)
             Qt.callLater(scrollToBottom);
@@ -668,6 +698,9 @@ PlasmoidItem {
             };
             if (part.type === "text" && root.openCodeAssistantServerMessageId !== "" && part.messageID === root.openCodeAssistantServerMessageId)
                 updateAssistantStreamingContent(part.text || "", "OpenCode");
+
+            if ((part.type === "reasoning" || part.type === "thinking" || part.type === "step-start" || part.type === "step") && root.openCodeAssistantServerMessageId !== "" && part.messageID === root.openCodeAssistantServerMessageId)
+                appendAssistantReasoning(part.text || part.content || part.summary || part.title || "");
 
             // Track tool invocations as context items on the assistant message
             if (part.type === "tool-invocation" && root.openCodeAssistantMessageIndex >= 0) {
@@ -998,11 +1031,16 @@ PlasmoidItem {
                     }
                     if (obj.parts && obj.parts.length > 0) {
                         var combined = "";
+                        var combinedReasoning = "";
                         for (var i = 0; i < obj.parts.length; i++) {
                             if (obj.parts[i].type === "text")
                                 combined += obj.parts[i].text || obj.parts[i].content || "";
+                            else if (obj.parts[i].type === "reasoning" || obj.parts[i].type === "thinking" || obj.parts[i].type === "step")
+                                combinedReasoning += obj.parts[i].text || obj.parts[i].content || obj.parts[i].summary || "";
 
                         }
+                        if (combinedReasoning !== "")
+                            appendAssistantReasoning(combinedReasoning);
                         if (combined !== "")
                             updateAssistantStreamingContent(combined, providerId + "/" + modelId);
                         else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
@@ -1285,6 +1323,7 @@ PlasmoidItem {
     function sendMessageByIndex(index) {
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
+        root.currentStreamReasoning = "";
         root.streamingResponse = false;
 
         var source = root.messages[index] || {
@@ -1797,13 +1836,22 @@ PlasmoidItem {
 
                     try {
                         var obj = JSON.parse(dataStr);
-                        if (obj.choices && obj.choices.length > 0 && obj.choices[0].delta && obj.choices[0].delta.content) {
-                            fullText += obj.choices[0].delta.content;
+                        if (obj.choices && obj.choices.length > 0 && obj.choices[0].delta) {
+                            var streamDelta = obj.choices[0].delta;
+                            var reasoningDelta = streamDelta.reasoning || streamDelta.reasoning_content || streamDelta.thinking || "";
+                            if (reasoningDelta !== "")
+                                root.currentStreamReasoning += reasoningDelta;
+
+                            if (streamDelta.content) {
+                                fullText += streamDelta.content;
+                            }
+                            if (streamDelta.content || reasoningDelta !== "") {
                             if (root.currentStreamIndex < 0) {
                                 var ts = Date.now();
                                 root.messages = root.messages.concat([{
                                     "role": "assistant",
                                     "content": "",
+                                    "reasoning": "",
                                     "time": nowTime(ts),
                                     "at": ts,
                                     "model": modelLabel || model || ""
@@ -1815,6 +1863,7 @@ PlasmoidItem {
                             if (!root.userScrolledUp)
                                 Qt.callLater(scrollToBottom);
 
+                            }
                         }
                     } catch (e) {
                     }
@@ -1826,12 +1875,14 @@ PlasmoidItem {
                 if (root.currentStreamIndex >= 0) {
                     var msgs = root.messages.slice();
                     msgs[root.currentStreamIndex].content = root.currentStreamText;
+                    msgs[root.currentStreamIndex].reasoning = root.currentStreamReasoning;
                     root.messages = msgs;
                 } else if (fullText === "" && xhr.status >= 200 && xhr.status < 300) {
                     pushErrorMessage("The model returned an empty response.");
                 }
                 root.currentStreamIndex = -1;
                 root.currentStreamText = "";
+                root.currentStreamReasoning = "";
                 root.streamingResponse = false;
                 if (!root.userScrolledUp)
                     Qt.callLater(scrollToBottom);
@@ -1889,10 +1940,13 @@ PlasmoidItem {
                 try {
                     var obj = JSON.parse(xhr.responseText);
                     var text = "";
+                    var reasoningText = "";
                     if (obj.content && obj.content.length) {
                         for (var i = 0; i < obj.content.length; i++) {
                             if (obj.content[i].type === "text")
                                 text += obj.content[i].text;
+                            else if (obj.content[i].type === "thinking" || obj.content[i].type === "reasoning")
+                                reasoningText += obj.content[i].thinking || obj.content[i].text || "";
 
                         }
                     }
@@ -1904,6 +1958,8 @@ PlasmoidItem {
                         "at": ts,
                         "model": model || ""
                     };
+                    if (reasoningText !== "")
+                        msgObj.reasoning = reasoningText;
                     if (obj.usage)
                         msgObj.tokens = {
                             "input": obj.usage.input_tokens || 0,
@@ -2286,6 +2342,7 @@ PlasmoidItem {
         }
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
+        root.currentStreamReasoning = "";
         root.streamingResponse = false;
         root.loading = false;
         saveCurrentSessionState(true);

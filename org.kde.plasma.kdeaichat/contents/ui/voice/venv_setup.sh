@@ -23,92 +23,6 @@ wait_for_keypress() {
     fi
 }
 
-if [ "$MODE" = "download_stt" ]; then
-    MODEL_NAME="${3:-large-v3-turbo}"
-    REPO="Systran/faster-whisper-$MODEL_NAME"
-    echo "================================================================="
-    echo "  KDE AI Chat - Downloading STT Model: $MODEL_NAME"
-    echo "================================================================="
-    echo '{"type":"setup_status","status":"downloading_model","percent":30}'
-    VENV_PY="$VENV_DIR/bin/python3"
-    if [ ! -f "$VENV_PY" ]; then
-        VENV_PY="$VENV_DIR/bin/python"
-    fi
-    if [ ! -f "$VENV_PY" ]; then
-        echo "❌ Error: Virtual environment python not found at $VENV_DIR. Please run venv setup first."
-        wait_for_keypress
-        exit 1
-    fi
-    VENV_BIN="$(dirname "$VENV_PY")"
-    HF_CLI="$VENV_BIN/huggingface-cli"
-    if [ -f "$HF_CLI" ]; then
-        "$HF_CLI" download "$REPO"
-    else
-        echo "❌ Error: huggingface-cli not found in venv. Please run venv setup first."
-        wait_for_keypress
-        exit 1
-    fi
-    echo '{"type":"setup_status","status":"done","percent":100}'
-    echo "================================================================="
-    echo "  ✓ STT model downloaded successfully!"
-    echo "================================================================="
-    echo ""
-    wait_for_keypress
-    exit 0
-fi
-
-if [ "$MODE" = "download_tts" ]; then
-    MODEL_NAME="${3:-kokoro-82m}"
-    echo "================================================================="
-    echo "  KDE AI Chat - Downloading TTS Model: $MODEL_NAME"
-    echo "================================================================="
-    echo '{"type":"setup_status","status":"downloading_model","percent":30}'
-    VENV_PY="$VENV_DIR/bin/python3"
-    if [ ! -f "$VENV_PY" ]; then
-        VENV_PY="$VENV_DIR/bin/python"
-    fi
-    if [ ! -f "$VENV_PY" ]; then
-        echo "❌ Error: Virtual environment python not found at $VENV_DIR. Please run setup first."
-        wait_for_keypress
-        exit 1
-    fi
-    VENV_BIN="$(dirname "$VENV_PY")"
-    HF_CLI="$VENV_BIN/huggingface-cli"
-
-    if [ "$MODEL_NAME" = "piper" ]; then
-        MODELS_DIR="$HOME/.local/share/kdeaichat/models/piper"
-        mkdir -p "$MODELS_DIR"
-        echo "  Downloading English medium voice model (lessac) for Piper..."
-        curl -L -o "$MODELS_DIR/en_US-lessac-medium.onnx" "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
-        curl -L -o "$MODELS_DIR/en_US-lessac-medium.onnx.json" "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"
-    elif [ "$MODEL_NAME" = "f5-tts" ]; then
-        if [ -f "$HF_CLI" ]; then
-            "$HF_CLI" download "m-a-p/F5-TTS"
-        else
-            echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
-            wait_for_keypress
-            exit 1
-        fi
-    else
-        # default: kokoro-82m
-        if [ -f "$HF_CLI" ]; then
-            "$HF_CLI" download "hexgrad/Kokoro-82M"
-        else
-            echo "❌ Error: huggingface-cli not found in venv. Please run setup first."
-            wait_for_keypress
-            exit 1
-        fi
-    fi
-
-    echo '{"type":"setup_status","status":"done","percent":100}'
-    echo "================================================================="
-    echo "  ✓ TTS model $MODEL_NAME downloaded successfully!"
-    echo "================================================================="
-    echo ""
-    wait_for_keypress
-    exit 0
-fi
-
 if [ "$MODE" = "install_espeak" ]; then
     echo "================================================================="
     echo "  KDE AI Chat - Installing espeak-ng (Phonemizer)"
@@ -154,6 +68,7 @@ if [ -d "$VENV_DIR" ]; then
     if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub, scipy, transformers, phonemizer" 2>/dev/null; then
         echo "  ✓ Virtual environment already exists at: $VENV_DIR"
         echo "  ✓ All required Python packages are already installed."
+        echo '{"type":"setup_status","status":"done","percent":100}'
         echo "================================================================="
         echo ""
         wait_for_keypress
@@ -163,6 +78,7 @@ if [ -d "$VENV_DIR" ]; then
 fi
 
 cleanup_on_error() {
+    echo "{\"type\":\"setup_error\",\"error\":\"Voice setup failed while installing dependencies. Check your internet connection and Python/pip output, then press Reinstall.\"}"
     echo ""
     echo "❌ ERROR: Venv setup failed during package installation!"
     echo "  Virtual environment at: $VENV_DIR was kept."
@@ -245,4 +161,3 @@ echo "================================================================="
 echo ""
 wait_for_keypress
 echo ""
-

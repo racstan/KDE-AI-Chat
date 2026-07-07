@@ -66,7 +66,7 @@ class VoiceHelper:
 
     def _detect_tts_model_type(self, model_path):
         if not model_path or not model_path.strip():
-            return "espeak-ng"
+            return "unknown"
         
         mp_lower = model_path.lower()
         if "kokoro" in mp_lower or "voices.bin" in mp_lower:
@@ -120,6 +120,7 @@ class VoiceHelper:
             "tts_model_path_ok": False,
             "stt_model_downloaded": False,
             "tts_model_downloaded": False,
+            "tts_model_type": "unknown",
         }
 
         # Check venv path existence
@@ -133,10 +134,13 @@ class VoiceHelper:
         # Check microphone (via sounddevice)
         try:
             import sounddevice as sd
-            devices = sd.query_devices()
-            input_devices = [d for d in devices if d.get("max_input_channels", 0) > 0]
-            result["mic_available"] = len(input_devices) > 0
             result["sounddevice_ok"] = True
+            try:
+                devices = sd.query_devices()
+                input_devices = [d for d in devices if d.get("max_input_channels", 0) > 0]
+                result["mic_available"] = len(input_devices) > 0
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -161,19 +165,19 @@ class VoiceHelper:
         try:
             import numpy
             result["numpy_ok"] = True
-        except ImportError:
+        except Exception:
             pass
 
         try:
             from faster_whisper import WhisperModel
             result["faster_whisper_ok"] = True
-        except ImportError:
+        except Exception:
             pass
 
         try:
             from kokoro import KPipeline
             result["kokoro_ok"] = True
-        except ImportError:
+        except Exception:
             pass
 
         # Check custom model paths strictly
@@ -201,16 +205,24 @@ class VoiceHelper:
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
         result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"]
-        result["stt_ready"] = result["venv_ready"] and result["faster_whisper_ok"] and result["stt_model_path_ok"]
+        result["stt_ready"] = (
+            result["venv_ready"]
+            and result["faster_whisper_ok"]
+            and result["stt_model_path_ok"]
+            and result["mic_available"]
+        )
 
         has_player = result["paplay_available"] or result["aplay_available"]
         
         tts_model = self._detect_tts_model_type(tts_model_path)
-        has_tts_model = result["tts_model_path_ok"] or tts_model == "espeak-ng"
+        result["tts_model_type"] = tts_model
+        has_tts_model = result["tts_model_path_ok"]
 
         tts_ready = False
-        if tts_model == "espeak-ng":
-            tts_ready = result["espeak_available"] and has_player
+        if tts_model == "unknown":
+            tts_ready = False
+        elif tts_model == "espeak-ng":
+            tts_ready = result["espeak_available"] and has_tts_model and has_player
         elif tts_model == "piper":
             has_piper_bin = bool(shutil.which("piper"))
             if not has_piper_bin:
@@ -237,137 +249,11 @@ class VoiceHelper:
                 has_coqui = False
             tts_ready = has_coqui and has_tts_model and has_player
         else: # kokoro-82m
-            tts_ready = result["kokoro_ok"] and result["espeak_available"] and has_tts_model and has_player
+            tts_ready = result.get("kokoro_ok", False) and result.get("espeak_available", False) and has_tts_model and has_player
 
         result["tts_ready"] = tts_ready
 
         self.emit(result)
-
-    def list_models(self, payload):
-        """List available and downloaded models."""
-        result = {
-            "type": "models_list",
-            "stt_models": [],
-            "tts_models": [],
-        }
-
-        stt_list = ["large-v3-turbo", "large-v3", "large-v2", "large-v1", "medium", "medium.en", "small", "small.en", "base", "base.en", "tiny", "tiny.en"]
-        sizes = {
-            "large-v3-turbo": "~1.5 GB",
-            "large-v3": "~3.0 GB",
-            "large-v2": "~3.0 GB",
-            "large-v1": "~3.0 GB",
-            "medium": "~1.5 GB",
-            "medium.en": "~1.5 GB",
-            "small": "~460 MB",
-            "small.en": "~460 MB",
-            "base": "~140 MB",
-            "base.en": "~140 MB",
-            "tiny": "~75 MB",
-            "tiny.en": "~75 MB"
-        }
-        hf_cache = os.path.expanduser("~/.cache/huggingface/hub")
-        for name in stt_list:
-            downloaded = False
-            if os.path.isdir(hf_cache):
-                entry = f"models--Systran--faster-whisper-{name}"
-                repo_dir = os.path.join(hf_cache, entry)
-                if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                    snapshots_dir = os.path.join(repo_dir, "snapshots")
-                    if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                        downloaded = True
-
-            result["stt_models"].append({
-                "name": name,
-                "downloaded": downloaded,
-                "size": sizes.get(name, "~1.0 GB"),
-            })
-
-        # Check TTS models
-        tts_list = ["kokoro-82m", "piper", "f5-tts", "espeak-ng"]
-        sizes = {
-            "kokoro-82m": "~150 MB",
-            "piper": "~15 MB",
-            "f5-tts": "~1.5 GB",
-            "espeak-ng": "N/A (System)"
-        }
-        for name in tts_list:
-            downloaded = False
-            if name == "espeak-ng":
-                downloaded = bool(shutil.which("espeak-ng") or shutil.which("espeak"))
-            elif name == "piper":
-                piper_path = os.path.expanduser("~/.local/share/kdeaichat/models/piper/en_US-lessac-medium.onnx")
-                downloaded = os.path.exists(piper_path)
-            elif name == "f5-tts":
-                if os.path.isdir(hf_cache):
-                    entry = "models--m-a-p--F5-TTS"
-                    repo_dir = os.path.join(hf_cache, entry)
-                    if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                        snapshots_dir = os.path.join(repo_dir, "snapshots")
-                        if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                            downloaded = True
-            else: # kokoro-82m
-                if os.path.isdir(hf_cache):
-                    entry = "models--hexgrad--Kokoro-82M"
-                    repo_dir = os.path.join(hf_cache, entry)
-                    if os.path.isdir(repo_dir) and os.path.exists(os.path.join(repo_dir, "snapshots")):
-                        snapshots_dir = os.path.join(repo_dir, "snapshots")
-                        if os.path.exists(snapshots_dir) and os.listdir(snapshots_dir):
-                            downloaded = True
-
-            result["tts_models"].append({
-                "name": name,
-                "downloaded": downloaded,
-                "size": sizes.get(name, "Unknown"),
-            })
-
-        self.emit(result)
-
-    def download_stt(self, payload):
-        """Download the STT model."""
-        model_name = payload.get("model", "large-v3-turbo")
-        progress_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stt_download.json")
-
-        def do_download():
-            try:
-                self.emit({"type": "download_progress", "target": "stt", "model": model_name, "pct": 0})
-                from faster_whisper import WhisperModel
-                self.emit({"type": "download_progress", "target": "stt", "model": model_name, "pct": 10})
-                # This triggers the download
-                model = WhisperModel(model_name, device="cpu", compute_type="int8")
-                self.emit({"type": "download_progress", "target": "stt", "model": model_name, "pct": 100})
-                self.emit({"type": "download_done", "target": "stt", "model": model_name})
-                del model
-            except Exception as e:
-                self.emit({"type": "download_error", "target": "stt", "error": str(e)})
-
-        thread = threading.Thread(target=do_download, daemon=True)
-        thread.start()
-        self.download_thread = thread
-        self.emit({"type": "download_started", "target": "stt", "model": model_name})
-
-    def download_tts(self, payload):
-        """Download the TTS model."""
-        voice = payload.get("voice", "af_heart")
-        progress_file = os.path.join(tempfile.gettempdir(), "kdeaichat_tts_download.json")
-
-        def do_download():
-            try:
-                self.emit({"type": "download_progress", "target": "tts", "model": "kokoro-82m", "pct": 0})
-                from kokoro import KPipeline
-                self.emit({"type": "download_progress", "target": "tts", "model": "kokoro-82m", "pct": 50})
-                # Initialize pipeline triggers download
-                pipeline = KPipeline(lang_code="a")
-                self.emit({"type": "download_progress", "target": "tts", "model": "kokoro-82m", "pct": 100})
-                self.emit({"type": "download_done", "target": "tts", "model": "kokoro-82m"})
-                del pipeline
-            except Exception as e:
-                self.emit({"type": "download_error", "target": "tts", "error": str(e)})
-
-        thread = threading.Thread(target=do_download, daemon=True)
-        thread.start()
-        self.download_thread = thread
-        self.emit({"type": "download_started", "target": "tts", "model": "kokoro-82m"})
 
     def start_stt(self, payload):
         """Speech-to-text recording and transcription."""
@@ -383,8 +269,12 @@ class VoiceHelper:
                 # Fetch payload values locally to prevent enclosing scope assignment/UnboundLocalError
                 duration = payload.get("duration", 10)
                 language = payload.get("language", "en")
-                model_name = payload.get("model", "large-v3-turbo")
+                model_name = payload.get("model", "small")
                 custom_model_path = payload.get("model_path", "")
+                if not custom_model_path:
+                    self.emit({"type": "stt_error", "error": "Select an STT model folder first."})
+                    self.recording = False
+                    return
 
                 # Check microphone
                 try:
@@ -409,7 +299,8 @@ class VoiceHelper:
                     return
 
                 # Load model
-                if self.stt_model is None or self.stt_model_name != model_name:
+                model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
+                if self.stt_model is None or self.stt_model_name != model_identity:
                     self.current_status = "loading_model"
                     self.emit({"type": "stt_status", "status": "loading_model"})
                     try:
@@ -459,7 +350,7 @@ class VoiceHelper:
                             else:
                                 raise
 
-                        self.stt_model_name = model_name
+                        self.stt_model_name = model_identity
                     except Exception as e:
                         self.emit({"type": "stt_error", "error": "Failed to load STT model: " + str(e)})
                         self.recording = False
@@ -473,11 +364,19 @@ class VoiceHelper:
                 all_audio = []
                 total_recorded = 0.0
 
+                stop_stt_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_stt")
+                if os.path.exists(stop_stt_file):
+                    try: os.remove(stop_stt_file)
+                    except OSError: pass
+
                 with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
                     chunk_duration = 0.1  # Check stop_recording every 100ms
                     chunk_frames = int(chunk_duration * sample_rate)
-                    while total_recorded < duration and not self.stop_recording:
-                        self.current_countdown = int(duration - total_recorded)
+                    while (duration <= 0 or total_recorded < duration) and not self.stop_recording:
+                        if os.path.exists(stop_stt_file):
+                            self.stop_recording = True
+                            break
+                        self.current_countdown = int(duration - total_recorded) if duration > 0 else 0
                         chunk, overflowed = stream.read(chunk_frames)
                         all_audio.append(chunk.flatten())
                         total_recorded += chunk_duration
@@ -537,6 +436,7 @@ class VoiceHelper:
             self.stop_recording = True
             self.emit({"type": "stt_status", "status": "stopping"})
         else:
+            open(os.path.join(tempfile.gettempdir(), "kdeaichat_stop_stt"), "w").close()
             self.emit({"type": "stt_stopped"})
 
     def play_audio(self, payload):
@@ -582,10 +482,13 @@ class VoiceHelper:
                 import re
                 emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]")
                 text = emoji_pattern.sub("", raw_text)
-                voice = payload.get("voice", "af_heart")
+                voice = payload.get("voice", "")
                 lang_code = payload.get("lang_code", "a")
                 custom_model_path = payload.get("model_path", "")
                 espeak_path = payload.get("espeak_path", "")
+                if not custom_model_path:
+                    self.emit({"type": "tts_error", "error": "Select a TTS model folder first."})
+                    return
                 model = self._detect_tts_model_type(custom_model_path)
 
                 # Setup custom espeak path if provided
@@ -638,7 +541,7 @@ class VoiceHelper:
 
                     self.current_tts_proc = proc
                     while proc.poll() is None:
-                        if self.stop_tts:
+                        if self.stop_tts or os.path.exists(stop_tts_file):
                             proc.terminate()
                             break
                         if self.tts_paused:
@@ -653,13 +556,24 @@ class VoiceHelper:
                         pass
                     self.emit({"type": "tts_done"})
 
-                elif model == "piper":
+                stop_tts_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_tts")
+                if os.path.exists(stop_tts_file):
+                    try: os.remove(stop_tts_file)
+                    except OSError: pass
+
+                if model == "piper":
                     model_path = custom_model_path
-                    if not model_path:
-                        model_path = os.path.expanduser("~/.local/share/kdeaichat/models/piper/en_US-lessac-medium.onnx")
+                    model_path = os.path.expanduser(model_path)
+                    if os.path.isdir(model_path):
+                        candidates = [
+                            os.path.join(model_path, f)
+                            for f in os.listdir(model_path)
+                            if f.endswith(".onnx")
+                        ]
+                        model_path = candidates[0] if candidates else model_path
 
                     if not os.path.exists(model_path):
-                        self.emit({"type": "tts_error", "error": f"Piper model not found. Please click Download or specify a custom path. Searched: {model_path}"})
+                        self.emit({"type": "tts_error", "error": f"TTS model file not found in selected folder. Searched: {model_path}"})
                         return
 
                     config_path = model_path + ".json"
@@ -692,7 +606,7 @@ class VoiceHelper:
                             with wave.open(tmp_path, "wb") as wav_file:
                                 voice_obj.synthesize(text, wav_file)
                         except Exception as pe:
-                            self.emit({"type": "tts_error", "error": f"Failed to run Piper. piper-tts is not installed or configured: {str(pe)}"})
+                            self.emit({"type": "tts_error", "error": f"Failed to run selected TTS model. Required engine support may be missing: {str(pe)}"})
                             return
 
                     self.current_status = "playing"
@@ -707,7 +621,7 @@ class VoiceHelper:
 
                     self.current_tts_proc = proc
                     while proc.poll() is None:
-                        if self.stop_tts:
+                        if self.stop_tts or os.path.exists(stop_tts_file):
                             proc.terminate()
                             break
                         if self.tts_paused:
@@ -753,7 +667,7 @@ class VoiceHelper:
 
                     self.current_tts_proc = proc
                     while proc.poll() is None:
-                        if self.stop_tts:
+                        if self.stop_tts or os.path.exists(stop_tts_file):
                             proc.terminate()
                             break
                         if self.tts_paused:
@@ -794,7 +708,7 @@ class VoiceHelper:
 
                     self.current_tts_proc = proc
                     while proc.poll() is None:
-                        if self.stop_tts:
+                        if self.stop_tts or os.path.exists(stop_tts_file):
                             proc.terminate()
                             break
                         if self.tts_paused:
@@ -850,16 +764,24 @@ class VoiceHelper:
                     resolved_voice = voice
                     if custom_model_path:
                         custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                        custom_voice_path = os.path.join(custom_dir, f"{voice}.pt")
-                        if os.path.exists(custom_voice_path):
-                            resolved_voice = custom_voice_path
+                        if voice:
+                            custom_voice_path = os.path.join(custom_dir, f"{voice}.pt")
+                            if os.path.exists(custom_voice_path):
+                                resolved_voice = custom_voice_path
+                        else:
+                            try:
+                                voice_files = sorted([f for f in os.listdir(custom_dir) if f.endswith(".pt")])
+                                if voice_files:
+                                    resolved_voice = os.path.join(custom_dir, voice_files[0])
+                            except Exception:
+                                pass
 
                     for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
-                        if self.stop_tts:
+                        if self.stop_tts or os.path.exists(stop_tts_file):
                             break
                         while self.tts_paused and not self.stop_tts:
                             time.sleep(0.1)
-                        if self.stop_tts:
+                        if self.stop_tts or os.path.exists(stop_tts_file):
                             break
 
                         audio = np.asarray(audio, dtype=np.float32)
@@ -879,7 +801,7 @@ class VoiceHelper:
 
                         self.current_tts_proc = proc
                         while proc.poll() is None:
-                            if self.stop_tts:
+                            if self.stop_tts or os.path.exists(stop_tts_file):
                                 proc.terminate()
                                 break
                             if self.tts_paused:
@@ -916,6 +838,13 @@ class VoiceHelper:
                     pass
             self.emit({"type": "tts_status", "status": "stopping"})
         else:
+            open(os.path.join(tempfile.gettempdir(), "kdeaichat_stop_tts"), "w").close()
+            # Also terminate any background paplay processes spawned by our script
+            try:
+                subprocess.run(["pkill", "-f", "paplay.*kdeaichat"], stderr=subprocess.DEVNULL)
+                subprocess.run(["pkill", "-f", "aplay.*kdeaichat"], stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
             self.emit({"type": "tts_stopped"})
 
     def pause_tts_cmd(self, payload):
@@ -978,9 +907,6 @@ class VoiceHelper:
                 return {"type": "tts_status", "status": "playing"}
             elif cmd == "check_env":
                 self.check_env(cmd_data)
-                return self.last_emitted
-            elif cmd == "list_models":
-                self.list_models(cmd_data)
                 return self.last_emitted
             elif cmd == "play_audio":
                 self.play_audio(cmd_data)
@@ -1072,9 +998,6 @@ class VoiceHelper:
         cmd = cmd_data.get("cmd", "")
         handlers = {
             "check_env": self.check_env,
-            "list_models": self.list_models,
-            "download_stt": self.download_stt,
-            "download_tts": self.download_tts,
             "start_stt": self.start_stt,
             "stop_stt": self.stop_stt,
             "play_audio": self.play_audio,
@@ -1092,31 +1015,53 @@ class VoiceHelper:
 
     def run(self):
         """Main loop: read commands from stdin."""
-        self.emit({"type": "ready"})
         for line in sys.stdin:
             line = line.strip()
             if not line:
                 continue
             self.process_command(line)
+        self.wait_for_background_work()
+
+    def wait_for_background_work(self):
+        """Wait for one-shot command threads and emit a timeout instead of hanging."""
         # Wait for any running threads before exiting
         if self.stt_thread and self.stt_thread.is_alive():
-            self.stt_thread.join(timeout=120)
+            self.stt_thread.join(timeout=45)
+            if self.stt_thread.is_alive():
+                self.recording = False
+                self.emit({"type": "stt_error", "error": "STT test timed out while loading or transcribing. Try a smaller model or check that the selected folder matches the STT engine."})
         if self.tts_thread and self.tts_thread.is_alive():
-            self.tts_thread.join(timeout=120)
+            self.tts_thread.join(timeout=60)
+            if self.tts_thread.is_alive():
+                self.tts_playing = False
+                self.emit({"type": "tts_error", "error": "TTS test timed out while loading or creating speech. Try a smaller model or check that the selected folder and voice name match the TTS engine."})
         if hasattr(self, 'download_thread') and self.download_thread and self.download_thread.is_alive():
             self.download_thread.join(timeout=300)
 
 
 if __name__ == "__main__":
     import argparse
+    import base64
     parser = argparse.ArgumentParser()
     parser.add_argument("--stt-server", action="store_true", help="Run STT HTTP server")
     parser.add_argument("--tts-server", action="store_true", help="Run TTS HTTP server")
     parser.add_argument("--port", type=int, default=None, help="HTTP server port")
+    parser.add_argument("--command-json", default="", help="Run one JSON command and exit")
+    parser.add_argument("--command-b64", default="", help="Run one base64-encoded JSON command and exit")
     args = parser.parse_args()
 
     helper = VoiceHelper()
-    if args.stt_server:
+    if args.command_b64:
+        try:
+            command_json = base64.b64decode(args.command_b64.encode("ascii")).decode("utf-8")
+            helper.process_command(command_json)
+            helper.wait_for_background_work()
+        except Exception as e:
+            helper.emit({"type": "error", "error": "Invalid encoded voice command: " + str(e)})
+    elif args.command_json:
+        helper.process_command(args.command_json)
+        helper.wait_for_background_work()
+    elif args.stt_server:
         port = args.port or 9015
         helper.run_http_server(port, mode="stt")
     elif args.tts_server:
