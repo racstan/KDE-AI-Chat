@@ -11,6 +11,7 @@ import "Security.js" as Sec
 KCM.SimpleKCM {
     id: configPage
 
+    property alias cfg_appDisplayName: appDisplayNameField.text
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
     property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked

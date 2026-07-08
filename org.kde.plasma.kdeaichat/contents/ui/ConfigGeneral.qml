@@ -12,7 +12,6 @@ KCM.SimpleKCM {
 
     //* Ctrl+scroll zoom for the settings form (0.75–1.5).
     property real configZoom: 1
-    property alias cfg_appDisplayName: appDisplayNameField.text
     property alias cfg_appearanceMode: appearanceModeCombo.currentIndex
     readonly property bool kwalletModeActive: true
     property alias cfg_provider: providerBox.currentValue
@@ -999,7 +998,7 @@ KCM.SimpleKCM {
 
 
     function saveGeneralSettingsOnly() {
-        plasmoid.configuration.appDisplayName = appDisplayNameField.text;
+        // App name saved via ConfigOther.qml
         plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex;
 
         plasmoid.configuration.provider = providerBox.currentValue;
@@ -1060,7 +1059,7 @@ KCM.SimpleKCM {
     }
 
     function resetToDefaults() {
-        appDisplayNameField.text = "KDE AI Chat";
+        // App name reset handled in reset helper
         providerBox.currentIndex = 0;
         baseUrlField.text = "https://api.openai.com/v1";
         apiKeyField.text = "";
