@@ -393,7 +393,7 @@ KCM.SimpleKCM {
             QQC2.Button {
                 text: i18n("Readme Guide")
                 icon.name: "help-contextual"
-                onClicked: Qt.openUrlExternally("https://github.com/racstan/KDE-AI-Chat/blob/main/VOICE_SETUP.md")
+                onClicked: Qt.openUrlExternally("https://github.com/racstan/KDE-AI-Chat/blob/master/VOICE_SETUP.md")
             }
         }
 
