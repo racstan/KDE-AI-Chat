@@ -433,10 +433,12 @@ def _process_memory_kb(name: str) -> int:
 
 
 def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
-    """Return RSS totals (KiB) for the opencode, stt, and tts processes."""
+    """Return RSS totals (KiB) for the opencode, stt, tts, and scheduler processes."""
     d: Dict[str, int] = {
         "opencode": _process_memory_kb("opencode"),
-        "stt": _process_memory_kb("voice_helper.py"),
+        "stt": _process_memory_kb("voice_helper.py --stt-server"),
+        "tts": _process_memory_kb("voice_helper.py --tts-server"),
+        "scheduler": _process_memory_kb("kde-ai-scheduler.py"),
     }
     print(json.dumps(d))
 

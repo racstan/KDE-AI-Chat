@@ -2796,47 +2796,7 @@ KCM.SimpleKCM {
 
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: "Behavior"
-            }
-
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: "Other settings"
-            }
-
-            QQC2.TextField {
-                id: appDisplayNameField
-
-                Kirigami.FormData.label: "App name:"
-                placeholderText: "KDE AI Chat"
-                onTextChanged: {
-                    if (text !== (plasmoid.configuration.appDisplayName || "KDE AI Chat"))
-                        page.discoveryStatus = "Tip: After changing the app name and pressing Apply/OK, restart plasmashell with: systemctl --user restart plasma-plasmashell.service";
-
-                }
-            }
-
-            RowLayout {
-                visible: page.discoveryStatus.indexOf("systemctl") >= 0
-                Kirigami.FormData.label: "Next step:"
-                Layout.fillWidth: true
-                Layout.maximumWidth: formLayout.fieldMaxWidth
-
-                QQC2.TextField {
-                    Layout.fillWidth: true
-                    readOnly: true
-                    text: "systemctl --user restart plasma-plasmashell.service"
-                    selectByMouse: true
-                }
-
-                QQC2.Button {
-                    text: "Copy"
-                    onClicked: {
-                        copyToClipboard("systemctl --user restart plasma-plasmashell.service");
-                        page.discoveryStatus = "Command copied to clipboard!";
-                    }
-                }
-
+                Kirigami.FormData.label: "Advanced"
             }
 
             QQC2.Label {

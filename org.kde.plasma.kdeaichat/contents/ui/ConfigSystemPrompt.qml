@@ -266,6 +266,44 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Memory")
         }
 
+        Rectangle {
+            visible: configPage.showGuides
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            implicitHeight: memoryGuideLayout.implicitHeight + Kirigami.Units.gridUnit
+            radius: 5
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
+            border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
+            border.width: 1
+
+            RowLayout {
+                id: memoryGuideLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.gridUnit * 0.6
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Icon {
+                    source: "help-hint"
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                    Layout.alignment: Qt.AlignTop
+                }
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    textFormat: Text.RichText
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                    color: Kirigami.Theme.textColor
+                    text: "<b>Memory Guide</b><br><br>" +
+                          "The AI Memory block allows the assistant to 'remember' things across all your conversations.<br><br>" +
+                          "• <b>Enable memory:</b> Turn this on to insert your memory block into the system prompt behind the scenes.<br>" +
+                          "• <b>Memory Content:</b> You can write facts about yourself, preferences, or rules you want the AI to always know.<br>" +
+                          "• Passwords and API keys can be securely referenced using the KWallet integration syntax."
+                }
+            }
+        }
+
         QQC2.CheckBox {
             id: enableMemoryCheck
             Kirigami.FormData.label: i18n("Enable memory:")

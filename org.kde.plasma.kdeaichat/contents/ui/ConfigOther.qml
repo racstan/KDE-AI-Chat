@@ -33,6 +33,7 @@ KCM.SimpleKCM {
     property int memScheduler: 0
     property int memOpenCode: 0
     property int memStt: 0
+    property int memTts: 0
 
     property string _lastSchedSetupPayload: ""
 
@@ -317,6 +318,7 @@ KCM.SimpleKCM {
                     configPage.memScheduler = memData.scheduler || 0;
                     configPage.memOpenCode = memData.opencode || 0;
                     configPage.memStt = memData.stt || 0;
+                    configPage.memTts = memData.tts || 0;
                 } catch (e) {
                     console.warn("Failed to parse memory data:", e);
                 }
@@ -670,6 +672,45 @@ KCM.SimpleKCM {
             }
         }
 
+        // ── Misc Settings ──────────────────────────────────────────────────
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Other Settings")
+        }
+
+        QQC2.TextField {
+            id: appDisplayNameField
+
+            Kirigami.FormData.label: "App name:"
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            placeholderText: "KDE AI Chat"
+            text: plasmoid.configuration.appDisplayName || ""
+            onTextChanged: {
+                if (pageReady && text !== (plasmoid.configuration.appDisplayName || "KDE AI Chat")) {
+                    plasmoid.configuration.appDisplayName = text;
+                }
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            text: "Tip: After changing the app name, restart plasmashell."
+            opacity: 0.8
+        }
+
+        QQC2.Button {
+            text: i18n("Reset All Settings to Defaults")
+            icon.name: "edit-clear-all-symbolic"
+            onClicked: {
+                let cmd = "python3 " + Sec.quoteForShell(configPage.getHelperPath()) + " reset_settings";
+                configPage.utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #reset-settings-" + Date.now());
+                configPage.schedulerStatus = "Settings reset triggered. Restart plasmashell.";
+            }
+        }
+
         Kirigami.Heading {
             Kirigami.FormData.isSection: true
             text: i18n("Resource & Memory Usage")
@@ -743,10 +784,11 @@ KCM.SimpleKCM {
                 id: memGrid
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 anchors.margins: Kirigami.Units.gridUnit * 0.6
-                columns: 2
+                columns: 3
                 columnSpacing: Kirigami.Units.gridUnit
                 rowSpacing: Kirigami.Units.smallSpacing
 
+                // Scheduler
                 RowLayout {
                     spacing: Kirigami.Units.smallSpacing
                     Kirigami.Icon { source: "appointment-new"; implicitWidth: 16; implicitHeight: 16 }
@@ -757,7 +799,19 @@ KCM.SimpleKCM {
                     color: configPage.memScheduler > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
                     font.bold: configPage.memScheduler > 0
                 }
+                QQC2.Button {
+                    icon.name: "application-exit"
+                    text: i18n("Kill")
+                    visible: configPage.memScheduler > 0
+                    onClicked: {
+                        configPage.utilityDs.connectSource("pkill -f kde-ai-scheduler.py #kill-sched-" + Date.now());
+                        configPage.memRefreshing = true;
+                        let cmd = "sleep 0.5 && python3 " + Sec.quoteForShell(configPage.getHelperPath()) + " get_memory_usage";
+                        configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
+                    }
+                }
 
+                // OpenCode
                 RowLayout {
                     spacing: Kirigami.Units.smallSpacing
                     Kirigami.Icon { source: "utilities-terminal"; implicitWidth: 16; implicitHeight: 16 }
@@ -768,24 +822,72 @@ KCM.SimpleKCM {
                     color: configPage.memOpenCode > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
                     font.bold: configPage.memOpenCode > 0
                 }
+                QQC2.Button {
+                    icon.name: "application-exit"
+                    text: i18n("Kill")
+                    visible: configPage.memOpenCode > 0
+                    onClicked: {
+                        configPage.utilityDs.connectSource("pkill -f opencode #kill-opencode-" + Date.now());
+                        configPage.memRefreshing = true;
+                        let cmd = "sleep 0.5 && python3 " + Sec.quoteForShell(configPage.getHelperPath()) + " get_memory_usage";
+                        configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
+                    }
+                }
 
+                // STT
                 RowLayout {
                     spacing: Kirigami.Units.smallSpacing
-                    Kirigami.Icon { source: "audio-speakers"; implicitWidth: 16; implicitHeight: 16 }
-                    QQC2.Label { text: i18n("Voice Tools") }
+                    Kirigami.Icon { source: "audio-input-microphone"; implicitWidth: 16; implicitHeight: 16 }
+                    QQC2.Label { text: i18n("Voice STT") }
                 }
                 QQC2.Label {
                     text: configPage.memStt > 0 ? (configPage.memStt / 1024).toFixed(1) + " MB" : i18n("Not running")
                     color: configPage.memStt > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
                     font.bold: configPage.memStt > 0
                 }
+                QQC2.Button {
+                    icon.name: "application-exit"
+                    text: i18n("Kill")
+                    visible: configPage.memStt > 0
+                    onClicked: {
+                        configPage.utilityDs.connectSource("pkill -f 'voice_helper.py --stt-server' #kill-stt-" + Date.now());
+                        configPage.memRefreshing = true;
+                        let cmd = "sleep 0.5 && python3 " + Sec.quoteForShell(configPage.getHelperPath()) + " get_memory_usage";
+                        configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
+                    }
+                }
 
+                // TTS
+                RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+                    Kirigami.Icon { source: "audio-speakers"; implicitWidth: 16; implicitHeight: 16 }
+                    QQC2.Label { text: i18n("Voice TTS") }
+                }
+                QQC2.Label {
+                    text: configPage.memTts > 0 ? (configPage.memTts / 1024).toFixed(1) + " MB" : i18n("Not running")
+                    color: configPage.memTts > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                    font.bold: configPage.memTts > 0
+                }
+                QQC2.Button {
+                    icon.name: "application-exit"
+                    text: i18n("Kill")
+                    visible: configPage.memTts > 0
+                    onClicked: {
+                        configPage.utilityDs.connectSource("pkill -f 'voice_helper.py --tts-server' #kill-tts-" + Date.now());
+                        configPage.memRefreshing = true;
+                        let cmd = "sleep 0.5 && python3 " + Sec.quoteForShell(configPage.getHelperPath()) + " get_memory_usage";
+                        configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
+                    }
+                }
+
+                // Total
                 QQC2.Label { text: i18n("Total"); font.bold: true }
                 QQC2.Label {
-                    text: (configPage.memScheduler + configPage.memOpenCode + configPage.memStt) > 0 ? ((configPage.memScheduler + configPage.memOpenCode + configPage.memStt) / 1024).toFixed(1) + " MB" : "—"
+                    text: (configPage.memScheduler + configPage.memOpenCode + configPage.memStt + configPage.memTts) > 0 ? ((configPage.memScheduler + configPage.memOpenCode + configPage.memStt + configPage.memTts) / 1024).toFixed(1) + " MB" : "—"
                     font.bold: true
                     color: Kirigami.Theme.highlightColor
                 }
+                Item { Layout.fillWidth: true } // Empty cell for the 3rd column
             }
         }
     }
