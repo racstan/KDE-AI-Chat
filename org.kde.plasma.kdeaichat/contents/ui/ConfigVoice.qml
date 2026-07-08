@@ -25,6 +25,7 @@ KCM.SimpleKCM {
 
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
+    property alias cfg_voiceGpuEnabled: voiceGpuToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceTtsAuto: voiceTtsAutoToggle.checked
     property alias cfg_voiceAutoSend: voiceAutoSendToggle.checked
@@ -204,7 +205,8 @@ KCM.SimpleKCM {
         voiceSetupRunning = true;
         voiceSetupProgress = 0;
         voiceSetupStatus = i18n("Preparing voice engine. This installs code support only; it does not download models.");
-        let cmd = "NON_INTERACTIVE=1 bash " + Sec.quoteForShell(getSetupPath()) + " " + Sec.quoteForShell(getVenvPath());
+        let mode = voiceGpuToggle.checked ? "gpu" : "cpu";
+        let cmd = "NON_INTERACTIVE=1 bash " + Sec.quoteForShell(getSetupPath()) + " " + Sec.quoteForShell(getVenvPath()) + " " + Sec.quoteForShell(mode);
         voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-" + Date.now());
     }
 
@@ -425,6 +427,29 @@ KCM.SimpleKCM {
             font: Kirigami.Theme.smallFont
             opacity: 0.85
             text: i18n("<b>Voice:</b> Enables the microphone button in chat. It does not download or choose models for you.")
+        }
+
+        QQC2.CheckBox {
+            id: voiceGpuToggle
+            visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("GPU Usage:")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            checked: plasmoid.configuration.voiceGpuEnabled || false
+            text: checked ? i18n("Enabled (CUDA)") : i18n("Disabled (CPU only)")
+            onToggled: {
+                plasmoid.configuration.voiceGpuEnabled = checked;
+            }
+        }
+
+        QQC2.Label {
+            visible: page.cfg_showInteractiveGuides && voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>GPU Usage:</b> Enables CUDA hardware acceleration. Turning this on requires you to press <b>Repair Engine</b> below to install the heavy CUDA packages (~3GB). Turn off if your device doesn't have an NVIDIA GPU.")
         }
 
         RowLayout {
