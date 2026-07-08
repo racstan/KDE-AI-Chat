@@ -227,6 +227,13 @@ Item {
             QQC2.TextField {
                 Layout.fillWidth: true
                 text: root.currentChatRenameDraft
+                color: Kirigami.Theme.textColor
+                background: Rectangle {
+                    color: Kirigami.Theme.backgroundColor
+                    radius: Kirigami.Units.smallSpacing
+                    border.color: parent.activeFocus ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.3)
+                    border.width: 1
+                }
                 onTextChanged: root.currentChatRenameDraft = text
                 onAccepted: {
                     root.renameCurrentSession(root.currentChatRenameDraft);
@@ -1062,6 +1069,15 @@ Item {
                             enabled: !root.loading
                             placeholderText: "Type message (Enter sends, Shift+Enter newline)"
                             focus: true
+                            
+                            background: Rectangle {
+                                color: Kirigami.Theme.backgroundColor
+                                radius: 4
+                                border.width: 1
+                                border.color: msgInput.activeFocus ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.3)
+                            }
+                            color: Kirigami.Theme.textColor
+                            
                             onActiveFocusChanged: {
                                 if (activeFocus)
                                     root.ensureWalletLoaded();
@@ -1248,6 +1264,13 @@ Item {
                                             visible: root.editingSessionId === modelData.value
                                             width: parent.width - saveRename.width - archiveChat.width - removeChat.width - (modeBadge.visible ? modeBadge.width + Kirigami.Units.smallSpacing / 2 : 0) - Kirigami.Units.smallSpacing * 3
                                             text: root.editingSessionDraft
+                                            color: Kirigami.Theme.textColor
+                                            background: Rectangle {
+                                                color: Kirigami.Theme.backgroundColor
+                                                radius: Kirigami.Units.smallSpacing
+                                                border.color: parent.activeFocus ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.3)
+                                                border.width: 1
+                                            }
                                             onTextChanged: root.editingSessionDraft = text
                                             onAccepted: root.saveSessionRename(modelData.value)
                                         }
