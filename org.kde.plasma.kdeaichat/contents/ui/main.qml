@@ -1475,6 +1475,27 @@ PlasmoidItem {
         try {
             var text = (root.chatInputText || "").trim();
             var attachments = root.attachedFiles || [];
+
+            // Process Prompt Templates
+            if (text.startsWith("/")) {
+                var firstSpaceIndex = text.indexOf(" ");
+                if (firstSpaceIndex === -1) firstSpaceIndex = text.indexOf("\n");
+                var templateName = text.substring(1, firstSpaceIndex > -1 ? firstSpaceIndex : text.length).trim();
+                var templatesStr = plasmoid.configuration.promptTemplates || "[]";
+                try {
+                    var templates = JSON.parse(templatesStr);
+                    for (var i = 0; i < templates.length; i++) {
+                        if (templates[i].name === templateName) {
+                            var restOfText = firstSpaceIndex > -1 ? text.substring(firstSpaceIndex).trim() : "";
+                            text = templates[i].prompt + (restOfText ? "\n\n" + restOfText : "");
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.log("Error parsing prompt templates:", e);
+                }
+            }
+
             if (text === "" && attachments.length === 0)
                 return ;
 
