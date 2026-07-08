@@ -91,7 +91,14 @@ Item {
     function checkEnv() {
         let sttPath = plasmoid.configuration.voiceSttModelPath || "";
         let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
-        sendCommand(JSON.stringify({cmd: "check_env", stt_model_path: sttPath, tts_model_path: ttsPath, venv_path: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv", espeak_path: plasmoid.configuration.voiceEspeakPath || ""}));
+        sendCommand(JSON.stringify({
+            cmd: "check_env", 
+            stt_model_path: sttPath, 
+            tts_model_path: ttsPath, 
+            venv_path: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv", 
+            espeak_path: plasmoid.configuration.voiceEspeakPath || "",
+            gpu_requested: plasmoid.configuration.voiceGpuEnabled || false
+        }));
     }
 
     function runSetup() {

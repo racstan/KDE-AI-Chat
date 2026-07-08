@@ -195,7 +195,8 @@ KCM.SimpleKCM {
             stt_model_path: sttPathField.text || "",
             tts_model_path: ttsPathField.text || "",
             venv_path: getVenvPath(),
-            espeak_path: plasmoid.configuration.voiceEspeakPath || ""
+            espeak_path: plasmoid.configuration.voiceEspeakPath || "",
+            gpu_requested: plasmoid.configuration.voiceGpuEnabled || false
         });
         activeCheckSource = sendVoiceCommand(payload, "check");
         checkWatchdog.restart();
@@ -794,6 +795,21 @@ KCM.SimpleKCM {
                             }
                         }
                     }
+                }
+                
+                QQC2.Label { text: i18n("Virtual env:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    text: statusText(page.voiceEnvResult && page.voiceEnvResult.venv_ready, i18n("Configured"), page.voiceEnvResult && page.voiceEnvResult.venv_exists ? i18n("Broken/Missing Libs") : i18n("Not created"))
+                    color: page.voiceEnvResult && page.voiceEnvResult.venv_ready ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                }
+                
+                QQC2.Label { visible: voiceGpuToggle.checked; text: i18n("GPU libraries:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label {
+                    visible: voiceGpuToggle.checked
+                    text: statusText(page.voiceEnvResult && page.voiceEnvResult.gpu_ok, i18n("Available"), i18n("Missing (Requires repair)"))
+                    color: page.voiceEnvResult && page.voiceEnvResult.gpu_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
                 QQC2.Label { text: i18n("Microphone:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }

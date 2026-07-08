@@ -101,6 +101,7 @@ class VoiceHelper:
         tts_model_path = payload.get("tts_model_path", "")
         venv_path = payload.get("venv_path", "")
         espeak_path = payload.get("espeak_path", "")
+        gpu_requested = payload.get("gpu_requested", False)
 
         result = {
             "type": "env_check",
@@ -118,9 +119,9 @@ class VoiceHelper:
             "numpy_ok": False,
             "stt_model_path_ok": False,
             "tts_model_path_ok": False,
-            "stt_model_downloaded": False,
             "tts_model_downloaded": False,
             "tts_model_type": "unknown",
+            "gpu_ok": False,
         }
 
         # Check venv path existence
@@ -167,6 +168,16 @@ class VoiceHelper:
             result["numpy_ok"] = True
         except Exception:
             pass
+            
+        if gpu_requested:
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    result["gpu_ok"] = True
+            except Exception:
+                pass
+        else:
+            result["gpu_ok"] = True # Ignore GPU check if not requested
 
         try:
             from faster_whisper import WhisperModel
@@ -213,7 +224,7 @@ class VoiceHelper:
 
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
-        result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"]
+        result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"] and result["gpu_ok"]
         result["stt_ready"] = (
             result["venv_ready"]
             and result["faster_whisper_ok"]
