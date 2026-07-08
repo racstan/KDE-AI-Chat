@@ -8,7 +8,16 @@ import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 
 Item {
+    id: repRoot
     anchors.fill: parent
+
+    Kirigami.Theme.inherit: false
+    Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
+    Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
+    Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
+    Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
+    Kirigami.Theme.highlightColor: "#3182ce"
+
 
     DropArea {
         id: dropArea
@@ -1171,12 +1180,13 @@ Item {
                             }
                         }
 
-                        PC3.Button {
+                        QQC2.Button {
                             icon.name: root.loading ? "list-add" : "document-send"
                             text: root.loading ? "Queue" : "Send"
                             Layout.minimumWidth: Kirigami.Units.gridUnit * 5
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             enabled: root.chatInputText.trim() !== "" || root.attachedFiles.length > 0
+                            highlighted: true
                             onClicked: root.sendMessage()
                         }
 
