@@ -842,7 +842,7 @@ KCM.SimpleKCM {
                     QQC2.Label { text: i18n("Voice STT") }
                 }
                 QQC2.Label {
-                    text: configPage.memStt > 0 ? (configPage.memStt / 1024).toFixed(1) + " MB" : i18n("Not running")
+                    text: configPage.memStt > 0 ? (configPage.memStt / 1024).toFixed(1) + " MB" : i18n("On-demand")
                     color: configPage.memStt > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
                     font.bold: configPage.memStt > 0
                 }
@@ -865,7 +865,7 @@ KCM.SimpleKCM {
                     QQC2.Label { text: i18n("Voice TTS") }
                 }
                 QQC2.Label {
-                    text: configPage.memTts > 0 ? (configPage.memTts / 1024).toFixed(1) + " MB" : i18n("Not running")
+                    text: configPage.memTts > 0 ? (configPage.memTts / 1024).toFixed(1) + " MB" : i18n("On-demand")
                     color: configPage.memTts > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
                     font.bold: configPage.memTts > 0
                 }
