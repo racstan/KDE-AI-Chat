@@ -13,6 +13,7 @@ KCM.SimpleKCM {
     property bool voiceEnvChecked: false
     property var voiceEnvResult: null
     property bool voiceSetupRunning: false
+    property int voiceSetupProgress: 0
     property bool sttTesting: false
     property bool ttsPlaying: false
     property string voiceSetupStatus: ""
@@ -104,12 +105,17 @@ KCM.SimpleKCM {
             voiceSetupRunning = false;
             voiceSetupStatus = voiceReady() ? i18n("Ready. Voice input and read-aloud can use the selected folders.") : explainEnvProblem(resp);
         } else if (resp.type === "setup_status") {
+            if (resp.percent !== undefined) {
+                voiceSetupProgress = resp.percent;
+            }
             if (resp.status === "creating_venv") {
                 voiceSetupStatus = i18n("Creating voice engine...");
             } else if (resp.status === "upgrading_pip") {
                 voiceSetupStatus = i18n("Preparing Python packages...");
             } else if (resp.status === "installing_pytorch") {
                 voiceSetupStatus = i18n("Installing speech runtime...");
+            } else if (resp.status === "installing_spacy") {
+                voiceSetupStatus = i18n("Installing NLP packages...");
             } else if (resp.status === "installing_dependencies") {
                 voiceSetupStatus = i18n("Installing STT/TTS support packages...");
             } else if (resp.status === "installing_kokoro") {
@@ -196,6 +202,7 @@ KCM.SimpleKCM {
 
     function runVoiceSetup() {
         voiceSetupRunning = true;
+        voiceSetupProgress = 0;
         voiceSetupStatus = i18n("Preparing voice engine. This installs code support only; it does not download models.");
         let cmd = "NON_INTERACTIVE=1 bash " + Sec.quoteForShell(getSetupPath()) + " " + Sec.quoteForShell(getVenvPath());
         voicePageDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #voice-setup-" + Date.now());
@@ -645,11 +652,24 @@ KCM.SimpleKCM {
                 Layout.preferredHeight: Kirigami.Units.gridUnit
             }
 
-            QQC2.Label {
+            ColumnLayout {
                 Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                text: voiceSetupStatus || i18n("Select folders, then check status.")
-                color: voiceReady() ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    text: voiceSetupStatus || i18n("Select folders, then check status.")
+                    color: voiceReady() ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
+                }
+
+                QQC2.ProgressBar {
+                    visible: voiceSetupRunning && voiceSetupProgress > 0
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 100
+                    value: voiceSetupProgress
+                }
             }
 
             QQC2.Button {
