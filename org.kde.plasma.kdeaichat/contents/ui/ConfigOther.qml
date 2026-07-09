@@ -801,6 +801,7 @@ KCM.SimpleKCM {
                     font.bold: configPage.memScheduler > 0
                 }
                 QQC2.Button {
+                    id: killSchedBtn
                     icon.name: "application-exit"
                     text: i18n("Kill")
                     visible: configPage.memScheduler > 0
@@ -811,6 +812,7 @@ KCM.SimpleKCM {
                         configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
                     }
                 }
+                Item { visible: !killSchedBtn.visible }
 
                 // OpenCode
                 RowLayout {
@@ -824,6 +826,7 @@ KCM.SimpleKCM {
                     font.bold: configPage.memOpenCode > 0
                 }
                 QQC2.Button {
+                    id: killOpenCodeBtn
                     icon.name: "application-exit"
                     text: i18n("Kill")
                     visible: configPage.memOpenCode > 0
@@ -834,6 +837,7 @@ KCM.SimpleKCM {
                         configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
                     }
                 }
+                Item { visible: !killOpenCodeBtn.visible }
 
                 // STT
                 RowLayout {
@@ -847,6 +851,7 @@ KCM.SimpleKCM {
                     font.bold: configPage.memStt > 0
                 }
                 QQC2.Button {
+                    id: killSttBtn
                     icon.name: "application-exit"
                     text: i18n("Kill")
                     visible: configPage.memStt > 0
@@ -857,6 +862,7 @@ KCM.SimpleKCM {
                         configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
                     }
                 }
+                Item { visible: !killSttBtn.visible }
 
                 // TTS
                 RowLayout {
@@ -870,6 +876,7 @@ KCM.SimpleKCM {
                     font.bold: configPage.memTts > 0
                 }
                 QQC2.Button {
+                    id: killTtsBtn
                     icon.name: "application-exit"
                     text: i18n("Kill")
                     visible: configPage.memTts > 0
@@ -880,6 +887,7 @@ KCM.SimpleKCM {
                         configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
                     }
                 }
+                Item { visible: !killTtsBtn.visible }
 
                 // Total
                 QQC2.Label { text: i18n("Total"); font.bold: true }
