@@ -1120,10 +1120,6 @@ PlasmoidItem {
             if (root.msgListViewRef && root.msgListViewRef.count > 0) {
                 root.msgListViewRef.positionViewAtIndex(root.msgListViewRef.count - 1, ListView.End);
                 root.msgListViewRef.positionViewAtEnd();
-                var maxContentY = root.msgListViewRef.contentHeight - root.msgListViewRef.height;
-                if (maxContentY > 0) {
-                    root.msgListViewRef.contentY = maxContentY;
-                }
             }
         });
     }

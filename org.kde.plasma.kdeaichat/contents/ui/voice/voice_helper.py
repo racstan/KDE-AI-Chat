@@ -172,6 +172,7 @@ class VoiceHelper:
         # Always check if GPU libraries are available
         try:
             import torch
+            result["torch_cuda_version"] = getattr(torch.version, 'cuda', None)
             if torch.cuda.is_available():
                 result["gpu_ok"] = True
         except Exception:

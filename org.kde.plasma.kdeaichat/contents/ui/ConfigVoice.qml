@@ -227,6 +227,7 @@ KCM.SimpleKCM {
         if (!voiceEnvChecked || !voiceEnvResult) return false;
         if (!voiceEnvResult.venv_ready || !voiceEnvResult.faster_whisper_ok || !voiceEnvResult.sounddevice_ok) return true;
         if (voiceTtsEnabledToggle.checked && !voiceEnvResult.tts_ready) return true;
+        if (voiceGpuToggle.checked && !voiceEnvResult.torch_cuda_version) return true;
         return false;
     }
 
@@ -813,8 +814,8 @@ KCM.SimpleKCM {
                 
                 QQC2.Label { text: i18n("GPU libraries:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: statusText(page.voiceEnvResult && page.voiceEnvResult.gpu_ok, i18n("Installed"), i18n("Missing"))
-                    color: page.voiceEnvResult && page.voiceEnvResult.gpu_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    text: page.voiceEnvResult && page.voiceEnvResult.torch_cuda_version ? "✓ " + i18n("Installed (CUDA %1)", page.voiceEnvResult.torch_cuda_version) : "✗ " + i18n("Missing")
+                    color: page.voiceEnvResult && page.voiceEnvResult.torch_cuda_version ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 

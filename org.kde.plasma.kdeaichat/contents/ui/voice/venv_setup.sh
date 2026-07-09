@@ -68,7 +68,7 @@ if [ -d "$VENV_DIR" ]; then
     if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub, scipy, transformers, phonemizer" 2>/dev/null; then
         GPU_READY=1
         if [ "$MODE" = "gpu" ]; then
-            if ! "$VENV_PY" -c "import torch; exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
+            if ! "$VENV_PY" -c "import torch; exit(0 if getattr(torch.version, 'cuda', None) else 1)" 2>/dev/null; then
                 GPU_READY=0
                 echo "  Virtual environment packages exist, but CUDA (GPU) libraries are missing. Upgrading..."
             fi
