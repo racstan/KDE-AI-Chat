@@ -128,10 +128,13 @@ echo '{"type":"setup_status","status":"installing_pytorch","percent":35}'
 
 if [ "$MODE" = "gpu" ]; then
     echo "  Installing GPU (CUDA) enabled PyTorch and runtime libraries..."
+    # If upgrading from CPU to GPU, pip will say "Requirement already satisfied" unless we uninstall first.
+    "$VENV_DIR/bin/pip" uninstall -y torch || true
     # Install standard torch (comes with CUDA by default on Linux) and nvidia runtime packages
     "$VENV_DIR/bin/pip" install torch nvidia-cublas-cu12 nvidia-cudnn-cu12
 else
     echo "  Installing CPU-only PyTorch (efficient space-saving wheel)..."
+    "$VENV_DIR/bin/pip" uninstall -y torch || true
     # Install cpu-only PyTorch to avoid massive ~2GB CUDA download
     "$VENV_DIR/bin/pip" install torch --index-url https://download.pytorch.org/whl/cpu
 fi
