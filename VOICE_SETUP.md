@@ -19,7 +19,17 @@ rm -rf ~/.local/share/kdeaichat/venv
 ```
 Then, click **Repair Engine** inside the widget to rebuild it from scratch.
 
-### 2. Required System Packages
+### 2. GPU Acceleration (CUDA)
+
+If you have an NVIDIA graphics card, you can significantly speed up voice processing:
+1. In the Voice Tools settings, check **GPU Usage (CUDA)**.
+2. If your status shows **GPU libraries: Missing**, click the **Repair Engine** button.
+3. The system will download the GPU-enabled versions of PyTorch (which are heavy, around 3GB).
+4. Once completed, the status will show **GPU libraries: Installed**, and your voice processing will be drastically faster.
+
+*Note: If you do not have an NVIDIA GPU, leave this option disabled, as installing CUDA libraries without the hardware will just waste disk space and could break CPU processing.*
+
+### 3. Required System Packages
 
 The TTS engine (`kokoro`) requires `espeak-ng` to process words. If your status says "espeak-ng missing", please run the appropriate command for your Linux distribution:
 

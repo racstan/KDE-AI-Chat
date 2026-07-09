@@ -169,15 +169,13 @@ class VoiceHelper:
         except Exception:
             pass
             
-        if gpu_requested:
-            try:
-                import torch
-                if torch.cuda.is_available():
-                    result["gpu_ok"] = True
-            except Exception:
-                pass
-        else:
-            result["gpu_ok"] = True # Ignore GPU check if not requested
+        # Always check if GPU libraries are available
+        try:
+            import torch
+            if torch.cuda.is_available():
+                result["gpu_ok"] = True
+        except Exception:
+            pass
 
         try:
             from faster_whisper import WhisperModel
@@ -224,7 +222,9 @@ class VoiceHelper:
 
         # Overall readiness
         is_venv = (hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix))
-        result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"] and result["gpu_ok"]
+        result["venv_ready"] = is_venv and result["sounddevice_ok"] and result["numpy_ok"]
+        if gpu_requested and not result["gpu_ok"]:
+            result["venv_ready"] = False
         result["stt_ready"] = (
             result["venv_ready"]
             and result["faster_whisper_ok"]
