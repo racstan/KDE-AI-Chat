@@ -66,14 +66,23 @@ if [ -d "$VENV_DIR" ]; then
         VENV_PY="$VENV_DIR/bin/python"
     fi
     if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub, scipy, transformers, phonemizer" 2>/dev/null; then
-        echo "  ✓ Virtual environment already exists at: $VENV_DIR"
-        echo "  ✓ All required Python packages are already installed."
-        echo '{"type":"setup_status","status":"done","percent":100}'
-        echo "================================================================="
-        echo ""
-        wait_for_keypress
-        echo ""
-        exit 0
+        GPU_READY=1
+        if [ "$MODE" = "gpu" ]; then
+            if ! "$VENV_PY" -c "import torch; exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
+                GPU_READY=0
+                echo "  Virtual environment packages exist, but CUDA (GPU) libraries are missing. Upgrading..."
+            fi
+        fi
+        if [ "$GPU_READY" = "1" ]; then
+            echo "  ✓ Virtual environment already exists at: $VENV_DIR"
+            echo "  ✓ All required Python packages are already installed."
+            echo '{"type":"setup_status","status":"done","percent":100}'
+            echo "================================================================="
+            echo ""
+            wait_for_keypress
+            echo ""
+            exit 0
+        fi
     fi
 fi
 
