@@ -316,7 +316,7 @@ Item {
                                 if (!msgList.atYEnd) {
                                     if (msgList.moving || msgList.dragging || verticalScrollBar.pressed || verticalScrollBar.active)
                                         root.userScrolledUp = true;
-
+                                }
                             }
                             onContentHeightChanged: {
                                 if (!root.historyOnlyMode && !root.userScrolledUp) {
