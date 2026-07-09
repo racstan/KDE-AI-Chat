@@ -1255,35 +1255,13 @@ KCM.SimpleKCM {
         }
     }
 
-    Item {
-        id: zoomHost
+    Kirigami.FormLayout {
+        id: formLayout
+        width: page.width || 500
+        wideMode: false
+        property int fieldMaxWidth: Kirigami.Units.gridUnit * 36
 
-        implicitWidth: 0
-        implicitHeight: Math.ceil(formLayout.implicitHeight * page.configZoom)
-        clip: true
-
-        Kirigami.FormLayout {
-            id: formLayout
-
-            readonly property real boundedWidth: {
-                var hostW = zoomHost.width;
-                if (hostW <= 0)
-                    return Kirigami.Units.gridUnit * 28;
-
-                return Math.min(hostW / page.configZoom, Kirigami.Units.gridUnit * 32);
-            }
-            //* FormLayout treats preferredWidth 0 as "unset" and uses implicitWidth — cap fields to the form instead.
-            readonly property real fieldMaxWidth: Math.max(Kirigami.Units.gridUnit * 12, boundedWidth)
-
-            x: 0
-            clip: true
-            scale: page.configZoom
-            transformOrigin: Item.TopLeft
-            //* Single column: wideMode uses implicitWidth for grid width and centers it, which clips labels in narrow config dialogs.
-            wideMode: false
-            width: boundedWidth
-
-            ColumnLayout {
+        ColumnLayout {
                 Kirigami.FormData.label: "Appearance:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -2813,7 +2791,5 @@ KCM.SimpleKCM {
             }
 
         }
-
     }
-
 }
