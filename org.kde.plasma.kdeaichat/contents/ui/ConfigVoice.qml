@@ -804,11 +804,10 @@ KCM.SimpleKCM {
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
                 
-                QQC2.Label { visible: voiceGpuToggle.checked; text: i18n("GPU libraries:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
+                QQC2.Label { text: i18n("GPU libraries:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    visible: voiceGpuToggle.checked
-                    text: statusText(page.voiceEnvResult && page.voiceEnvResult.gpu_ok, i18n("Available"), i18n("Missing (Requires repair)"))
-                    color: page.voiceEnvResult && page.voiceEnvResult.gpu_ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    text: plasmoid.configuration.voiceGpuEnabled ? statusText(page.voiceEnvResult && page.voiceEnvResult.gpu_ok, i18n("Available"), i18n("Missing (Requires repair)")) : i18n("Disabled")
+                    color: !plasmoid.configuration.voiceGpuEnabled || (page.voiceEnvResult && page.voiceEnvResult.gpu_ok) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
 
