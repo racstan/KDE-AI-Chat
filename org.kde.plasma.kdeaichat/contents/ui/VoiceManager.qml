@@ -93,6 +93,30 @@ Item {
         voiceDs.connectSource("timeout 90s sh -c " + Sec.rawShellSnippetQuote(cmd) + " #voice-cmd-" + Date.now());
     }
 
+    function sendHttpCommand(payload, port) {
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:" + port + "/command", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.timeout = 300000; // 5 mins max
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                    try {
+                        let resp = JSON.parse(xhr.responseText);
+                        handleResponse(resp, "http");
+                    } catch (e) {}
+                } else {
+                    sendCommand(payload);
+                }
+            }
+        }
+        try {
+            xhr.send(payload);
+        } catch (e) {
+            sendCommand(payload);
+        }
+    }
+
     function checkEnv() {
         let sttPath = plasmoid.configuration.voiceSttModelPath || "";
         let ttsPath = plasmoid.configuration.voiceTtsModelPath || "";
@@ -121,12 +145,12 @@ Item {
         let model = plasmoid.configuration.voiceSttModel || root.defaultSttModel;
         let modelPath = plasmoid.configuration.voiceSttModelPath || "";
         let gpuReq = plasmoid.configuration.voiceGpuEnabled || false;
-        sendCommand(JSON.stringify({cmd: "start_stt", duration: 0, language: lang, model: model, model_path: modelPath, gpu_requested: gpuReq}));
+        sendHttpCommand(JSON.stringify({cmd: "start_stt", duration: 0, language: lang, model: model, model_path: modelPath, gpu_requested: gpuReq}), 9015);
     }
 
     function stopRecording() {
         root.statusText = "Processing...";
-        sendCommand(JSON.stringify({cmd: "stop_stt"}));
+        sendHttpCommand(JSON.stringify({cmd: "stop_stt"}), 9015);
     }
 
     function playTTS(text) {
@@ -136,11 +160,11 @@ Item {
         let modelPath = plasmoid.configuration.voiceTtsModelPath || "";
         let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
         let gpuReq = plasmoid.configuration.voiceGpuEnabled || false;
-        sendCommand(JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a", model_path: modelPath, espeak_path: espeakPath, gpu_requested: gpuReq}));
+        sendHttpCommand(JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a", model_path: modelPath, espeak_path: espeakPath, gpu_requested: gpuReq}), 9016);
     }
 
     function stopTTS() {
-        sendCommand(JSON.stringify({cmd: "stop_tts"}));
+        sendHttpCommand(JSON.stringify({cmd: "stop_tts"}), 9016);
         root.isPlaying = false;
         root.playingText = "";
     }

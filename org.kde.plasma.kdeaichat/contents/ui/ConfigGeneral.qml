@@ -1114,7 +1114,6 @@ KCM.SimpleKCM {
         openCodeModelValueField.text = "";
         openCodeStartCommandField.text = "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
-        systemPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
         openCodeModelCandidates = [];

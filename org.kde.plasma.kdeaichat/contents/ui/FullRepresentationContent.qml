@@ -857,7 +857,8 @@ Item {
                                                     spacing: Kirigami.Units.smallSpacing
 
                                                     PC3.ToolButton {
-                                                        visible: root.currentStreamIndex !== index && root.editingMessageIndex !== index && modelData.role !== "error"
+                                                        visible: root.editingMessageIndex !== index && modelData.role !== "error"
+                                                        enabled: root.currentStreamIndex !== index
                                                         icon.name: "document-edit"
                                                         display: PC3.AbstractButton.IconOnly
                                                         QQC2.ToolTip.visible: hovered
@@ -890,7 +891,8 @@ Item {
                                                     }
 
                                                     PC3.ToolButton {
-                                                        visible: root.currentStreamIndex !== index && plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
+                                                        visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
+                                                        enabled: root.currentStreamIndex !== index
                                                         icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content) ? "media-playback-stop" : "audio-speakers"
                                                         display: PC3.AbstractButton.IconOnly
                                                         QQC2.ToolTip.visible: hovered
@@ -907,7 +909,8 @@ Item {
                                                     }
 
                                                     PC3.ToolButton {
-                                                        visible: root.currentStreamIndex !== index
+                                                        visible: true
+                                                        enabled: root.currentStreamIndex !== index
                                                         icon.name: "edit-copy"
                                                         display: PC3.AbstractButton.IconOnly
                                                         QQC2.ToolTip.visible: hovered
@@ -918,7 +921,8 @@ Item {
                                                     }
 
                                                     PC3.ToolButton {
-                                                        visible: root.currentStreamIndex !== index
+                                                        visible: true
+                                                        enabled: root.currentStreamIndex !== index
                                                         icon.name: "edit-delete"
                                                         display: PC3.AbstractButton.IconOnly
                                                         QQC2.ToolTip.visible: hovered

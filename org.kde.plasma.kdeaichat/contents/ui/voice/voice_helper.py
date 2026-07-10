@@ -868,11 +868,12 @@ class VoiceHelper:
 
                     try:
                         import re
-                        # Split the text into smaller chunks (paragraphs/lines) so that the pipeline 
-                        # yields the first chunk immediately without phonemizing the entire huge document upfront.
-                        paragraphs = [p.strip() for p in re.split(r'\n+', text) if p.strip()]
+                        # Split the text into smaller chunks (sentences) so that the pipeline 
+                        # yields the first chunk immediately without phonemizing too much text upfront.
+                        # Split by punctuation followed by space or newline
+                        chunks = [p.strip() for p in re.split(r'(?<=[.!?])\s+|\n+', text) if p.strip()]
 
-                        for para in paragraphs:
+                        for para in chunks:
                             if self.stop_tts or os.path.exists(stop_tts_file):
                                 break
 
@@ -1034,7 +1035,7 @@ class VoiceHelper:
                     try:
                         import torch
                         if torch.cuda.is_available():
-                            vram_kb = torch.cuda.memory_allocated() // 1024
+                            vram_kb = torch.cuda.memory_reserved() // 1024
                     except:
                         pass
 

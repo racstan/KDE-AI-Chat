@@ -347,8 +347,9 @@ WantedBy=default.target
         f.write(tts_content)
 
     os.system("systemctl --user daemon-reload")
+    os.system("systemctl --user enable --now kde-ai-stt.service 2>/dev/null")
+    os.system("systemctl --user enable --now kde-ai-tts.service 2>/dev/null")
     print("VOICE_SERVICES_SETUP_OK")
-
 
 def cmd_delete_venv_setup(payload: Dict[str, Any]) -> None:
     """Disable/stop voice systemd services and delete the venv & downloaded models."""
@@ -438,7 +439,7 @@ def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
     
     stt_vram = 0
     try:
-        req = urllib.request.urlopen("http://127.0.0.1:4097/status", timeout=1.0)
+        req = urllib.request.urlopen("http://127.0.0.1:9015/status", timeout=1.0)
         d = json.loads(req.read())
         stt_vram = d.get("vram_kb", 0)
     except Exception:
@@ -446,7 +447,7 @@ def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
 
     tts_vram = 0
     try:
-        req = urllib.request.urlopen("http://127.0.0.1:4098/status", timeout=1.0)
+        req = urllib.request.urlopen("http://127.0.0.1:9016/status", timeout=1.0)
         d = json.loads(req.read())
         tts_vram = d.get("vram_kb", 0)
     except Exception:
