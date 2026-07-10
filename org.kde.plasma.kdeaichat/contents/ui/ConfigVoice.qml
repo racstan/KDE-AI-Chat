@@ -131,24 +131,28 @@ KCM.SimpleKCM {
             ttsPlaying = false;
             voiceSetupStatus = resp.error || i18n("Voice engine setup failed.");
         } else if (resp.type === "stt_status") {
-            if (resp.status === "loading_model") sttTestResult = i18n("Loading STT model...");
-            else if (resp.status === "recording") sttTestResult = i18n("Recording. Speak now...");
-            else if (resp.status === "transcribing") sttTestResult = i18n("Transcribing...");
+            let devTag = resp.device ? " [" + resp.device.toUpperCase() + "]" : "";
+            if (resp.status === "loading_model") sttTestResult = i18n("Loading STT model...") + devTag;
+            else if (resp.status === "recording") sttTestResult = i18n("Recording. Speak now...") + devTag;
+            else if (resp.status === "transcribing") sttTestResult = i18n("Transcribing...") + devTag;
         } else if (resp.type === "stt_result") {
             sttTesting = false;
-            sttTestResult = resp.text && resp.text.length > 0 ? resp.text : i18n("No speech detected.");
+            let devTag = resp.device ? " [" + resp.device.toUpperCase() + "]" : "";
+            sttTestResult = resp.text && resp.text.length > 0 ? resp.text + devTag : i18n("No speech detected.") + devTag;
         } else if (resp.type === "stt_error") {
             sttTesting = false;
             sttTestResult = i18n("STT error: ") + (resp.error || i18n("Unknown error"));
         } else if (resp.type === "tts_status") {
-            if (resp.status === "synthesizing") ttsTestResult = i18n("Creating speech...");
+            let devTag = resp.device ? " [" + resp.device.toUpperCase() + "]" : "";
+            if (resp.status === "synthesizing") ttsTestResult = i18n("Creating speech...") + devTag;
             else if (resp.status === "playing") {
                 ttsPlaying = true;
-                ttsTestResult = i18n("Playing test audio...");
+                ttsTestResult = i18n("Playing test audio...") + devTag;
             }
         } else if (resp.type === "tts_done") {
             ttsPlaying = false;
-            ttsTestResult = i18n("TTS test finished.");
+            let devTag = resp.device ? " [" + resp.device.toUpperCase() + "]" : "";
+            ttsTestResult = i18n("TTS test finished.") + devTag;
         } else if (resp.type === "tts_error") {
             ttsPlaying = false;
             ttsTestResult = i18n("TTS error: ") + (resp.error || i18n("Unknown error"));
@@ -857,7 +861,8 @@ KCM.SimpleKCM {
                         cmd: "start_stt",
                         duration: 5,
                         language: sttLanguageBox.currentValue || "auto",
-                        model_path: sttPathField.text || ""
+                        model_path: sttPathField.text || "",
+                        gpu_requested: plasmoid.configuration.voiceGpuEnabled || false
                     }), "stt-test");
                     sttWatchdog.restart();
                 }
@@ -908,7 +913,8 @@ KCM.SimpleKCM {
                         voice: ttsVoiceField.text || "",
                         lang_code: "a",
                         model_path: ttsPathField.text || "",
-                        espeak_path: plasmoid.configuration.voiceEspeakPath || ""
+                        espeak_path: plasmoid.configuration.voiceEspeakPath || "",
+                        gpu_requested: plasmoid.configuration.voiceGpuEnabled || false
                     }), "tts-test");
                     ttsWatchdog.restart();
                 }

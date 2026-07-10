@@ -23,7 +23,9 @@ class VoiceHelper:
     def __init__(self):
         self.stt_model = None
         self.stt_model_name = None
+        self.stt_device = "cpu"
         self.tts_pipeline = None
+        self.tts_device = "cpu"
         self.recording = False
         self.stop_recording = False
         self.tts_playing = False
@@ -38,6 +40,28 @@ class VoiceHelper:
         self.current_status = "idle"
         self.current_countdown = 0
         self.temp_audio_path = os.path.join(tempfile.gettempdir(), "kdeaichat_stt_test.wav")
+        self._nvidia_libs_preloaded = False
+
+    def _preload_nvidia_libs(self):
+        """Pre-load CUDA/cuDNN libraries from venv if present to prevent version mismatches."""
+        if self._nvidia_libs_preloaded:
+            return
+        try:
+            import ctypes
+            import glob
+            import sys
+            import os
+            for p in sys.path:
+                if os.path.isdir(p):
+                    nvidia_libs = glob.glob(os.path.join(p, "nvidia", "*", "lib", "*.so*"))
+                    for lib in sorted(nvidia_libs):
+                        try:
+                            ctypes.CDLL(lib)
+                        except Exception:
+                            pass
+            self._nvidia_libs_preloaded = True
+        except Exception:
+            pass
 
     def emit(self, data):
         """Write a JSON response to stdout and track results for HTTP mode."""
@@ -170,6 +194,7 @@ class VoiceHelper:
             pass
             
         # Always check if GPU libraries are available
+        self._preload_nvidia_libs()
         try:
             import torch
             result["torch_cuda_version"] = getattr(torch.version, 'cuda', None)
@@ -292,6 +317,7 @@ class VoiceHelper:
                 language = payload.get("language", "en")
                 model_name = payload.get("model", "small")
                 custom_model_path = payload.get("model_path", "")
+                gpu_requested = payload.get("gpu_requested", False)
                 if not custom_model_path:
                     self.emit({"type": "stt_error", "error": "Select an STT model folder first."})
                     self.recording = False
@@ -323,27 +349,15 @@ class VoiceHelper:
                 model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
                 if self.stt_model is None or self.stt_model_name != model_identity:
                     self.current_status = "loading_model"
-                    self.emit({"type": "stt_status", "status": "loading_model"})
+                    self.emit({"type": "stt_status", "status": "loading_model", "device": "loading..."})
                     try:
                         # Pre-load CUDA/cuDNN libraries from venv if present
-                        try:
-                            import ctypes
-                            import glob
-                            import sys
-                            for p in sys.path:
-                                if os.path.isdir(p):
-                                    nvidia_libs = glob.glob(os.path.join(p, "nvidia", "*", "lib", "*.so*"))
-                                    for lib in sorted(nvidia_libs):
-                                        try:
-                                            ctypes.CDLL(lib)
-                                        except Exception:
-                                            pass
-                        except Exception:
-                            pass
+                        self._preload_nvidia_libs()
 
                         from faster_whisper import WhisperModel
                         import torch
-                        device = "cuda" if torch.cuda.is_available() else "cpu"
+                        device = "cuda" if gpu_requested and torch.cuda.is_available() else "cpu"
+                        self.stt_device = device
                         compute_type = "float16" if device == "cuda" else "int8"
                         
                         try:
@@ -378,7 +392,7 @@ class VoiceHelper:
                         return
 
                 self.current_status = "recording"
-                self.emit({"type": "stt_status", "status": "recording"})
+                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
 
                 # Record audio using a single continuous stream to prevent microphone icon flickering on the taskbar
                 sample_rate = 16000
@@ -408,7 +422,7 @@ class VoiceHelper:
                     return
 
                 self.current_status = "transcribing"
-                self.emit({"type": "stt_status", "status": "transcribing"})
+                self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
 
                 # Concatenate and transcribe
                 import numpy as np
@@ -439,6 +453,7 @@ class VoiceHelper:
                     "duration": total_recorded,
                     "language": info.language if hasattr(info, "language") else language,
                     "audio_path": audio_path,
+                    "device": self.stt_device,
                 })
 
             except Exception as e:
@@ -507,6 +522,7 @@ class VoiceHelper:
                 lang_code = payload.get("lang_code", "a")
                 custom_model_path = payload.get("model_path", "")
                 espeak_path = payload.get("espeak_path", "")
+                gpu_requested = payload.get("gpu_requested", False)
                 if not custom_model_path:
                     self.emit({"type": "tts_error", "error": "Select a TTS model folder first."})
                     return
@@ -533,7 +549,7 @@ class VoiceHelper:
                     return
 
                 self.current_status = "synthesizing"
-                self.emit({"type": "tts_status", "status": "synthesizing"})
+                self.emit({"type": "tts_status", "status": "synthesizing", "device": "cpu"})
 
                 if model == "espeak-ng":
                     if not (shutil.which("espeak-ng") or shutil.which("espeak")):
@@ -551,7 +567,8 @@ class VoiceHelper:
                     subprocess.run(cmd, check=True)
 
                     self.current_status = "playing"
-                    self.emit({"type": "tts_status", "status": "playing"})
+                    self.tts_device = "cpu"
+                    self.emit({"type": "tts_status", "status": "playing", "device": "cpu"})
 
                     if player == "paplay":
                         proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -575,7 +592,7 @@ class VoiceHelper:
                         os.unlink(tmp_path)
                     except OSError:
                         pass
-                    self.emit({"type": "tts_done"})
+                    self.emit({"type": "tts_done", "device": self.tts_device})
 
                 stop_tts_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_tts")
                 if os.path.exists(stop_tts_file):
@@ -631,7 +648,8 @@ class VoiceHelper:
                             return
 
                     self.current_status = "playing"
-                    self.emit({"type": "tts_status", "status": "playing"})
+                    self.tts_device = "cpu"
+                    self.emit({"type": "tts_status", "status": "playing", "device": "cpu"})
 
                     if player == "paplay":
                         proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -655,7 +673,7 @@ class VoiceHelper:
                         os.unlink(tmp_path)
                     except OSError:
                         pass
-                    self.emit({"type": "tts_done"})
+                    self.emit({"type": "tts_done", "device": self.tts_device})
 
                 elif model == "f5-tts":
                     try:
@@ -677,7 +695,8 @@ class VoiceHelper:
                         sf.write(tmp_path, wav, sr)
 
                     self.current_status = "playing"
-                    self.emit({"type": "tts_status", "status": "playing"})
+                    self.tts_device = "cpu"
+                    self.emit({"type": "tts_status", "status": "playing", "device": "cpu"})
 
                     if player == "paplay":
                         proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -701,7 +720,7 @@ class VoiceHelper:
                         os.unlink(tmp_path)
                     except OSError:
                         pass
-                    self.emit({"type": "tts_done"})
+                    self.emit({"type": "tts_done", "device": self.tts_device})
 
                 elif model == "coqui-tts":
                     try:
@@ -718,7 +737,8 @@ class VoiceHelper:
                     tts_instance.tts_to_file(text=text, file_path=tmp_path)
 
                     self.current_status = "playing"
-                    self.emit({"type": "tts_status", "status": "playing"})
+                    self.tts_device = "cpu"
+                    self.emit({"type": "tts_status", "status": "playing", "device": "cpu"})
 
                     if player == "paplay":
                         proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -742,7 +762,7 @@ class VoiceHelper:
                         os.unlink(tmp_path)
                     except OSError:
                         pass
-                    self.emit({"type": "tts_done"})
+                    self.emit({"type": "tts_done", "device": self.tts_device})
 
                 else:
                     # Default/kokoro-82m
@@ -750,6 +770,7 @@ class VoiceHelper:
                         self.emit({"type": "tts_error", "error": "espeak-ng/espeak not installed. Install with: sudo apt install espeak-ng"})
                         return
 
+                    self._preload_nvidia_libs()
                     from kokoro import KPipeline
                     from kokoro.model import KModel
                     import soundfile as sf
@@ -769,18 +790,21 @@ class VoiceHelper:
                                         break
 
                             if os.path.exists(config_file) and model_file and os.path.exists(model_file):
-                                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                                device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                self.tts_device = device
                                 kmodel = KModel(config=config_file, model=model_file).to(device).eval()
                                 self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
                             else:
-                                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                                device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                self.tts_device = device
                                 self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
                         else:
-                            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                            device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                            self.tts_device = device
                             self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
 
                     self.current_status = "playing"
-                    self.emit({"type": "tts_status", "status": "playing"})
+                    self.emit({"type": "tts_status", "status": "playing", "device": self.tts_device})
 
                     resolved_voice = voice
                     if custom_model_path:
@@ -835,7 +859,7 @@ class VoiceHelper:
                             os.unlink(tmp_path)
                         except OSError:
                             pass
-                    self.emit({"type": "tts_done"})
+                    self.emit({"type": "tts_done", "device": self.tts_device})
 
             except Exception as e:
                 self.emit({"type": "tts_error", "error": str(e)})
@@ -971,7 +995,9 @@ class VoiceHelper:
                     status_data = {
                         "status": helper_self.current_status,
                         "countdown": helper_self.current_countdown,
-                        "recorded_audio_path": helper_self.temp_audio_path if os.path.exists(helper_self.temp_audio_path) else ""
+                        "recorded_audio_path": helper_self.temp_audio_path if os.path.exists(helper_self.temp_audio_path) else "",
+                        "stt_device": helper_self.stt_device,
+                        "tts_device": helper_self.tts_device,
                     }
                     self.wfile.write(json.dumps(status_data).encode("utf-8"))
                 else:

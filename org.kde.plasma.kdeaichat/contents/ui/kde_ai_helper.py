@@ -434,10 +434,17 @@ def _process_memory_kb(name: str) -> int:
 
 def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
     """Return RSS totals (KiB) for the opencode, stt, tts, and scheduler processes."""
+    # For STT/TTS, check both persistent server processes and one-shot command processes
+    stt_mem = _process_memory_kb("voice_helper.py --stt-server")
+    if stt_mem == 0:
+        stt_mem = _process_memory_kb("voice_helper.py.*start_stt")
+    tts_mem = _process_memory_kb("voice_helper.py --tts-server")
+    if tts_mem == 0:
+        tts_mem = _process_memory_kb("voice_helper.py.*cmd.*tts")
     d: Dict[str, int] = {
         "opencode": _process_memory_kb("opencode"),
-        "stt": _process_memory_kb("voice_helper.py --command-json '{\"cmd\":\"start_stt"),
-        "tts": _process_memory_kb("voice_helper.py --command-json '{\"cmd\":\"tts"),
+        "stt": stt_mem,
+        "tts": tts_mem,
         "scheduler": _process_memory_kb("kde-ai-scheduler.py"),
     }
     print(json.dumps(d))

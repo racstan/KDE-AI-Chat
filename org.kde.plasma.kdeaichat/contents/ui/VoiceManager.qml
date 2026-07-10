@@ -48,6 +48,11 @@ Item {
             root.envChecked(resp);
         } else if (resp.type === "setup_status") {
             root.setupStatus(resp.status);
+        } else if (resp.type === "stt_status") {
+            let devTag = resp.device ? " [" + resp.device.toUpperCase() + "]" : "";
+            if (resp.status === "loading_model") root.statusText = "Loading model..." + devTag;
+            else if (resp.status === "recording") root.statusText = "Recording..." + devTag;
+            else if (resp.status === "transcribing") root.statusText = "Transcribing..." + devTag;
         } else if (resp.type === "stt_result") {
             root.isRecording = false;
             root.statusText = "";
@@ -115,7 +120,8 @@ Item {
         let lang = plasmoid.configuration.voiceLanguage || "en";
         let model = plasmoid.configuration.voiceSttModel || root.defaultSttModel;
         let modelPath = plasmoid.configuration.voiceSttModelPath || "";
-        sendCommand(JSON.stringify({cmd: "start_stt", duration: 0, language: lang, model: model, model_path: modelPath}));
+        let gpuReq = plasmoid.configuration.voiceGpuEnabled || false;
+        sendCommand(JSON.stringify({cmd: "start_stt", duration: 0, language: lang, model: model, model_path: modelPath, gpu_requested: gpuReq}));
     }
 
     function stopRecording() {
@@ -129,7 +135,8 @@ Item {
         let voice = plasmoid.configuration.voiceTtsVoice || "";
         let modelPath = plasmoid.configuration.voiceTtsModelPath || "";
         let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
-        sendCommand(JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a", model_path: modelPath, espeak_path: espeakPath}));
+        let gpuReq = plasmoid.configuration.voiceGpuEnabled || false;
+        sendCommand(JSON.stringify({cmd: "tts", text: text, voice: voice, lang_code: "a", model_path: modelPath, espeak_path: espeakPath, gpu_requested: gpuReq}));
     }
 
     function stopTTS() {
