@@ -821,45 +821,74 @@ class VoiceHelper:
                             except Exception:
                                 pass
 
-                    for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
-                        if self.stop_tts or os.path.exists(stop_tts_file):
-                            break
-                        while self.tts_paused and not self.stop_tts:
-                            time.sleep(0.1)
-                        if self.stop_tts or os.path.exists(stop_tts_file):
-                            break
-
-                        audio = np.asarray(audio, dtype=np.float32)
-                        if audio.max() > 0:
-                            audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
-
-                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                            tmp_path = f.name
-                            sf.write(tmp_path, audio, 24000)
-
-                        if player == "paplay":
-                            proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        elif player == "aplay":
-                            proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        else:
-                            proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-                        self.current_tts_proc = proc
-                        while proc.poll() is None:
-                            if self.stop_tts or os.path.exists(stop_tts_file):
-                                proc.terminate()
+                    import queue
+                    play_queue = queue.Queue()
+                    
+                    def playback_worker():
+                        while True:
+                            tmp_path = play_queue.get()
+                            if tmp_path is None:
                                 break
-                            if self.tts_paused:
-                                time.sleep(0.1)
+                                
+                            if self.stop_tts or os.path.exists(stop_tts_file):
+                                try:
+                                    os.unlink(tmp_path)
+                                except OSError:
+                                    pass
+                                play_queue.task_done()
                                 continue
-                            time.sleep(0.1)
-                        self.current_tts_proc = None
+                                
+                            if player == "paplay":
+                                proc = subprocess.Popen(["paplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            elif player == "aplay":
+                                proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            else:
+                                proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-                        try:
-                            os.unlink(tmp_path)
-                        except OSError:
-                            pass
-                    self.emit({"type": "tts_done", "device": self.tts_device})
+                            self.current_tts_proc = proc
+                            while proc.poll() is None:
+                                if self.stop_tts or os.path.exists(stop_tts_file):
+                                    proc.terminate()
+                                    break
+                                if self.tts_paused:
+                                    time.sleep(0.1)
+                                    continue
+                                time.sleep(0.1)
+                            self.current_tts_proc = None
+
+                            try:
+                                os.unlink(tmp_path)
+                            except OSError:
+                                pass
+                                
+                            play_queue.task_done()
+
+                    playback_thread = threading.Thread(target=playback_worker, daemon=True)
+                    playback_thread.start()
+
+                    try:
+                        for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
+                            if self.stop_tts or os.path.exists(stop_tts_file):
+                                break
+                            while self.tts_paused and not self.stop_tts:
+                                time.sleep(0.1)
+                            if self.stop_tts or os.path.exists(stop_tts_file):
+                                break
+
+                            audio = np.asarray(audio, dtype=np.float32)
+                            if audio.max() > 0:
+                                audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
+
+                            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                                tmp_path = f.name
+                                sf.write(tmp_path, audio, 24000)
+
+                            play_queue.put(tmp_path)
+                    finally:
+                        play_queue.put(None)
+                        playback_thread.join()
+                        self.emit({"type": "tts_done", "device": self.tts_device})
+
 
             except Exception as e:
                 self.emit({"type": "tts_error", "error": str(e)})
