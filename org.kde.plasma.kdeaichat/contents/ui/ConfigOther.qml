@@ -40,6 +40,13 @@ KCM.SimpleKCM {
 
     property string _lastSchedSetupPayload: ""
 
+    function resetToDefaults() {
+        appDisplayNameField.text = "KDE AI Chat";
+        schedulerMasterSwitch.checked = false;
+        schedAutoStartToggle.checked = false;
+        executeMissedSchedulesToggle.checked = false;
+    }
+
     readonly property bool showGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
 
     // Paths
@@ -902,6 +909,17 @@ KCM.SimpleKCM {
                 }
                 Item { Layout.fillWidth: true } // Empty cell for the 3rd column
             }
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Advanced")
+        }
+
+        QQC2.Button {
+            Kirigami.FormData.label: i18n("Reset settings:")
+            text: i18n("Reset to defaults")
+            onClicked: configPage.resetToDefaults()
         }
     }
 

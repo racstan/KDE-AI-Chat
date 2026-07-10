@@ -35,6 +35,19 @@ KCM.SimpleKCM {
     property alias cfg_voiceTtsVoice: ttsVoiceField.text
     property alias cfg_voiceVenvPath: enginePathField.text
 
+    function resetToDefaults() {
+        voiceEnabledToggle.checked = false;
+        voiceGpuToggle.checked = false;
+        voiceTtsEnabledToggle.checked = false;
+        voiceTtsAutoToggle.checked = false;
+        voiceAutoSendToggle.checked = true;
+        sttLanguageBox.currentValue = "en";
+        sttPathField.text = "";
+        ttsPathField.text = "";
+        ttsVoiceField.text = "";
+        enginePathField.text = "~/.local/share/kdeaichat/venv";
+    }
+
     P5Support.DataSource {
         id: voicePageDs
         engine: "executable"
@@ -963,6 +976,17 @@ KCM.SimpleKCM {
             font: Kirigami.Theme.smallFont
             opacity: 0.85
             text: i18n("<b>Engine folder:</b> Stores the small Python environment used to run your selected models. This is not a model folder.")
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Advanced")
+        }
+
+        QQC2.Button {
+            Kirigami.FormData.label: i18n("Reset settings:")
+            text: i18n("Reset to defaults")
+            onClicked: page.resetToDefaults()
         }
     }
 }

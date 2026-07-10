@@ -38,6 +38,29 @@ KCM.SimpleKCM {
     property int sysInfoPending: 0
     property var pendingSysInfoCommands: ({})
 
+    function resetToDefaults() {
+        sysInfoOSCheck.checked = false;
+        sysInfoShellCheck.checked = false;
+        sysInfoHostnameCheck.checked = false;
+        sysInfoKernelCheck.checked = false;
+        sysInfoDesktopCheck.checked = false;
+        sysInfoUserCheck.checked = false;
+        sysInfoCPUCheck.checked = false;
+        sysInfoMemoryCheck.checked = false;
+        sysInfoGPUCheck.checked = false;
+        sysInfoDiskCheck.checked = false;
+        sysInfoNetworkCheck.checked = false;
+        sysInfoLocaleCheck.checked = false;
+        sysInfoDateTimeCheck.checked = false;
+        enableSystemPromptCheck.checked = true;
+        customPromptArea.text = "You are KDE AI Chat, a precise and helpful assistant. Give accurate answers, ask clarifying questions when context is missing, and clearly state uncertainty instead of inventing facts.";
+        enableMemoryCheck.checked = false;
+        userMemoryArea.text = "";
+        contextMessageLimitField.value = -1;
+        enableCompactingContextCheck.checked = false;
+        compactContextAfterField.value = 10;
+    }
+
     function triggerPreviewUpdate() {
         var cmds = [];
         if (cfg_sysInfoOS)       cmds.push("cat /etc/os-release");
@@ -425,6 +448,17 @@ KCM.SimpleKCM {
                 opacity: 0.72
                 font: Kirigami.Theme.smallFont
             }
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Advanced")
+        }
+
+        QQC2.Button {
+            Kirigami.FormData.label: i18n("Reset settings:")
+            text: i18n("Reset to defaults")
+            onClicked: configPage.resetToDefaults()
         }
     }
 }

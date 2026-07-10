@@ -867,23 +867,32 @@ class VoiceHelper:
                     playback_thread.start()
 
                     try:
-                        for _, _, audio in self.tts_pipeline(text, voice=resolved_voice):
+                        import re
+                        # Split the text into smaller chunks (paragraphs/lines) so that the pipeline 
+                        # yields the first chunk immediately without phonemizing the entire huge document upfront.
+                        paragraphs = [p.strip() for p in re.split(r'\n+', text) if p.strip()]
+
+                        for para in paragraphs:
                             if self.stop_tts or os.path.exists(stop_tts_file):
                                 break
-                            while self.tts_paused and not self.stop_tts:
-                                time.sleep(0.1)
-                            if self.stop_tts or os.path.exists(stop_tts_file):
-                                break
 
-                            audio = np.asarray(audio, dtype=np.float32)
-                            if audio.max() > 0:
-                                audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
+                            for _, _, audio in self.tts_pipeline(para, voice=resolved_voice):
+                                if self.stop_tts or os.path.exists(stop_tts_file):
+                                    break
+                                while self.tts_paused and not self.stop_tts:
+                                    time.sleep(0.1)
+                                if self.stop_tts or os.path.exists(stop_tts_file):
+                                    break
 
-                            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                                tmp_path = f.name
-                                sf.write(tmp_path, audio, 24000)
+                                audio = np.asarray(audio, dtype=np.float32)
+                                if audio.max() > 0:
+                                    audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
 
-                            play_queue.put(tmp_path)
+                                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                                    tmp_path = f.name
+                                    sf.write(tmp_path, audio, 24000)
+
+                                play_queue.put(tmp_path)
                     finally:
                         play_queue.put(None)
                         playback_thread.join()
