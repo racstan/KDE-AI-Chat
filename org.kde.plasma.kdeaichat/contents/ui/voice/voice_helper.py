@@ -90,7 +90,7 @@ class VoiceHelper:
 
     def _detect_tts_model_type(self, model_path):
         if not model_path or not model_path.strip():
-            return "unknown"
+            return "kokoro-82m"
         
         mp_lower = model_path.lower()
         if "kokoro" in mp_lower or "voices.bin" in mp_lower:
@@ -318,10 +318,6 @@ class VoiceHelper:
                 model_name = payload.get("model", "small")
                 custom_model_path = payload.get("model_path", "")
                 gpu_requested = payload.get("gpu_requested", False)
-                if not custom_model_path:
-                    self.emit({"type": "stt_error", "error": "Select an STT model folder first."})
-                    self.recording = False
-                    return
 
                 # Check microphone
                 try:
@@ -519,13 +515,12 @@ class VoiceHelper:
                 emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]")
                 text = emoji_pattern.sub("", raw_text)
                 voice = payload.get("voice", "")
+                if not voice:
+                    voice = "af_bella"
                 lang_code = payload.get("lang_code", "a")
                 custom_model_path = payload.get("model_path", "")
                 espeak_path = payload.get("espeak_path", "")
                 gpu_requested = payload.get("gpu_requested", False)
-                if not custom_model_path:
-                    self.emit({"type": "tts_error", "error": "Select a TTS model folder first."})
-                    return
                 model = self._detect_tts_model_type(custom_model_path)
 
                 # Setup custom espeak path if provided
@@ -548,8 +543,15 @@ class VoiceHelper:
                     self.emit({"type": "tts_error", "error": "No audio player found. Install pulseaudio-utils or alsa-utils."})
                     return
 
+                has_cuda = False
+                try:
+                    import torch
+                    has_cuda = torch.cuda.is_available()
+                except Exception:
+                    pass
+                device = "cuda" if gpu_requested and has_cuda else "cpu"
                 self.current_status = "synthesizing"
-                self.emit({"type": "tts_status", "status": "synthesizing", "device": "cpu"})
+                self.emit({"type": "tts_status", "status": "synthesizing", "device": device})
 
                 if model == "espeak-ng":
                     if not (shutil.which("espeak-ng") or shutil.which("espeak")):
@@ -771,42 +773,75 @@ class VoiceHelper:
                         return
 
                     self._preload_nvidia_libs()
+                    os.environ["HF_HUB_OFFLINE"] = "1"
+                    os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+                    
+                    import torch
+                    torch.backends.cudnn.enabled = False
+                    
                     from kokoro import KPipeline
                     from kokoro.model import KModel
                     import soundfile as sf
                     import numpy as np
-                    import torch
 
                     if self.tts_pipeline is None:
-                        if custom_model_path:
-                            custom_model_path = os.path.expanduser(custom_model_path)
-                            custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                            config_file = os.path.join(custom_dir, "config.json")
-                            model_file = None
-                            if os.path.exists(custom_dir):
-                                for f in os.listdir(custom_dir):
-                                    if f.endswith(".pth"):
-                                        model_file = os.path.join(custom_dir, f)
-                                        break
+                        try:
+                            if custom_model_path:
+                                custom_model_path = os.path.expanduser(custom_model_path)
+                                custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
+                                config_file = os.path.join(custom_dir, "config.json")
+                                model_file = None
+                                if os.path.exists(custom_dir):
+                                    for f in os.listdir(custom_dir):
+                                        if f.endswith(".pth"):
+                                            model_file = os.path.join(custom_dir, f)
+                                            break
 
-                            if os.path.exists(config_file) and model_file and os.path.exists(model_file):
-                                device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
-                                self.tts_device = device
-                                kmodel = KModel(config=config_file, model=model_file).to(device).eval()
-                                self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
+                                if os.path.exists(config_file) and model_file and os.path.exists(model_file):
+                                    device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                    self.tts_device = device
+                                    kmodel = KModel(config=config_file, model=model_file).to(device).eval()
+                                    self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
+                                else:
+                                    device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                    self.tts_device = device
+                                    self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
                             else:
                                 device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
                                 self.tts_device = device
                                 self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
-                        else:
-                            device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
-                            self.tts_device = device
-                            self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
+                        except Exception:
+                            # Try again online (downloading models/voices if missing)
+                            os.environ["HF_HUB_OFFLINE"] = "0"
+                            if custom_model_path:
+                                custom_model_path = os.path.expanduser(custom_model_path)
+                                custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
+                                config_file = os.path.join(custom_dir, "config.json")
+                                model_file = None
+                                if os.path.exists(custom_dir):
+                                    for f in os.listdir(custom_dir):
+                                        if f.endswith(".pth"):
+                                            model_file = os.path.join(custom_dir, f)
+                                            break
+
+                                if os.path.exists(config_file) and model_file and os.path.exists(model_file):
+                                    device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                    self.tts_device = device
+                                    kmodel = KModel(config=config_file, model=model_file).to(device).eval()
+                                    self.tts_pipeline = KPipeline(lang_code=lang_code, model=kmodel)
+                                else:
+                                    device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                    self.tts_device = device
+                                    self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
+                            else:
+                                device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                self.tts_device = device
+                                self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
 
                     self.current_status = "playing"
                     self.emit({"type": "tts_status", "status": "playing", "device": self.tts_device})
 
-                    resolved_voice = voice
+                    resolved_voice = voice if voice else "af_bella"
                     if custom_model_path:
                         custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
                         if voice:
@@ -872,32 +907,67 @@ class VoiceHelper:
 
                     try:
                         import re
-                        # Split the text into smaller chunks (sentences) so that the pipeline 
-                        # yields the first chunk immediately without phonemizing too much text upfront.
-                        # Split by punctuation followed by space or newline
                         chunks = [p.strip() for p in re.split(r'(?<=[.!?])\s+|\n+', text) if p.strip()]
 
-                        for para in chunks:
-                            if self.stop_tts or os.path.exists(stop_tts_file):
-                                break
-
-                            for _, _, audio in self.tts_pipeline(para, voice=resolved_voice):
-                                if self.stop_tts or os.path.exists(stop_tts_file):
-                                    break
-                                while self.tts_paused and not self.stop_tts:
-                                    time.sleep(0.1)
+                        try:
+                            for para in chunks:
                                 if self.stop_tts or os.path.exists(stop_tts_file):
                                     break
 
-                                audio = np.asarray(audio, dtype=np.float32)
-                                if audio.max() > 0:
-                                    audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
+                                for _, _, audio in self.tts_pipeline(para, voice=resolved_voice):
+                                    if self.stop_tts or os.path.exists(stop_tts_file):
+                                        break
+                                    while self.tts_paused and not self.stop_tts:
+                                        time.sleep(0.1)
+                                    if self.stop_tts or os.path.exists(stop_tts_file):
+                                        break
 
-                                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                                    tmp_path = f.name
-                                    sf.write(tmp_path, audio, 24000)
+                                    audio = np.asarray(audio, dtype=np.float32)
+                                    if audio.max() > 0:
+                                        audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
 
-                                play_queue.put((tmp_path, para))
+                                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                                        tmp_path = f.name
+                                        sf.write(tmp_path, audio, 24000)
+
+                                    play_queue.put((tmp_path, para))
+                        except Exception as loop_err:
+                            if os.environ.get("HF_HUB_OFFLINE") == "1":
+                                # Re-initialize pipeline online
+                                os.environ["HF_HUB_OFFLINE"] = "0"
+                                if custom_model_path:
+                                    device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                    self.tts_device = device
+                                    self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
+                                else:
+                                    device = 'cuda' if gpu_requested and torch.cuda.is_available() else 'cpu'
+                                    self.tts_device = device
+                                    self.tts_pipeline = KPipeline(lang_code=lang_code, device=device)
+                                
+                                # Retry the loop online once
+                                for para in chunks:
+                                    if self.stop_tts or os.path.exists(stop_tts_file):
+                                        break
+
+                                    for _, _, audio in self.tts_pipeline(para, voice=resolved_voice):
+                                        if self.stop_tts or os.path.exists(stop_tts_file):
+                                            break
+                                        while self.tts_paused and not self.stop_tts:
+                                            time.sleep(0.1)
+                                        if self.stop_tts or os.path.exists(stop_tts_file):
+                                            break
+
+                                        audio = np.asarray(audio, dtype=np.float32)
+                                        if audio.max() > 0:
+                                            audio = audio / max(abs(audio.max()), abs(audio.min())) * 0.9
+
+                                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                                            tmp_path = f.name
+                                            sf.write(tmp_path, audio, 24000)
+
+                                        play_queue.put((tmp_path, para))
+                            else:
+                                raise loop_err
                     finally:
                         play_queue.put(None)
                         playback_thread.join()

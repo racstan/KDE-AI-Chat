@@ -417,13 +417,22 @@ def cmd_save_all_schedules(payload: Dict[str, Any]) -> None:
     print("SCHED_SAVE_OK")
 
 
-def _process_memory_kb(name: str) -> int:
+def _process_memory_kb(name: str, env_filter: str = None) -> int:
     """Sum RSS (in KiB) for every process whose command line matches ``name``."""
     r = subprocess.run(["pgrep", "-f", name], capture_output=True, text=True)
     pids = r.stdout.strip().split()
     total = 0
     for pid in pids:
         try:
+            if env_filter:
+                try:
+                    with open(f"/proc/{pid}/environ", "rb") as f:
+                        env_data = f.read()
+                    if env_filter.encode("utf-8") not in env_data:
+                        continue
+                except Exception:
+                    continue
+
             with open(f"/proc/{pid}/status") as f:
                 for line in f:
                     if line.startswith("VmRSS:"):
@@ -454,15 +463,15 @@ def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
         pass
 
     # For STT/TTS, check both persistent server processes and one-shot command processes
-    stt_mem = _process_memory_kb("voice_helper.py --stt-server")
+    stt_mem = _process_memory_kb("voice_helper.py.*--stt-server")
     if stt_mem == 0:
         stt_mem = _process_memory_kb("voice_helper.py.*start_stt")
-    tts_mem = _process_memory_kb("voice_helper.py --tts-server")
+    tts_mem = _process_memory_kb("voice_helper.py.*--tts-server")
     if tts_mem == 0:
         tts_mem = _process_memory_kb("voice_helper.py.*cmd.*tts")
         
     # Only track the widget-launched opencode or opencode serve instances, ignore external processes named just 'opencode'
-    opencode_mem = _process_memory_kb("opencode serve")
+    opencode_mem = _process_memory_kb("opencode serve", env_filter="KDE_AI_CHAT_WIDGET=1")
     
     d: Dict[str, int] = {
         "opencode": opencode_mem,

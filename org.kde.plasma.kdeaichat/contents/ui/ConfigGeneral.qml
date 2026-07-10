@@ -1112,7 +1112,7 @@ KCM.SimpleKCM {
         openCodeUrlField.text = "http://127.0.0.1:4096/v1";
         openCodeProviderValueField.text = "";
         openCodeModelValueField.text = "";
-        openCodeStartCommandField.text = "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
+        openCodeStartCommandField.text = "env KDE_AI_CHAT_WIDGET=1 nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
@@ -1546,7 +1546,7 @@ KCM.SimpleKCM {
                     enabled: !openCodeBusy
                     onClicked: {
                         discoveryStatus = "Running OpenCode start command...";
-                        var cmd = "sh -lc '" + shellEscape(openCodeStartCommandField.text || "nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'";
+                        var cmd = "sh -lc '" + shellEscape(openCodeStartCommandField.text || "env KDE_AI_CHAT_WIDGET=1 nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'";
                         utilityDs.connectSource(cmd + " #opencode-start");
                     }
                 }

@@ -273,10 +273,6 @@ KCM.SimpleKCM {
     }
 
     function firstSetupHint() {
-        if ((sttPathField.text || "").trim().length === 0)
-            return i18n("Please select your STT model folder.");
-        if (voiceTtsEnabledToggle.checked && (ttsPathField.text || "").trim().length === 0)
-            return i18n("Please select your TTS model folder, or turn Read aloud off.");
         return i18n("Checking folders, microphone, audio output, and engine packages. This should finish in under 30 seconds.");
     }
 

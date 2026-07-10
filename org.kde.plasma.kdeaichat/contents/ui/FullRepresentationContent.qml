@@ -495,9 +495,37 @@ Item {
                                                         if (isPlayingThisMessage && root.voiceManagerRef.currentPlayingChunk) {
                                                             let chunk = root.voiceManagerRef.currentPlayingChunk;
                                                             if (chunk.length > 2) {
+                                                                // Clean and split chunk into words
+                                                                let cleanChunk = chunk.replace(/[^\w\s]/g, ' ').trim();
+                                                                let words = cleanChunk.split(/\s+/).filter(function(w) { return w.length > 0; });
+                                                                if (words.length > 0) {
+                                                                    let regexStr = "";
+                                                                    for (let i = 0; i < words.length; i++) {
+                                                                        let escapedWord = words[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                                                        if (i > 0) {
+                                                                            regexStr += "[^a-zA-Z0-9]*?";
+                                                                        }
+                                                                        regexStr += escapedWord;
+                                                                    }
+                                                                    try {
+                                                                        let regex = new RegExp("(" + regexStr + ")", "i");
+                                                                        let match = baseText.match(regex);
+                                                                        if (match) {
+                                                                            let matchedText = match[0];
+                                                                            let startIdx = match.index;
+                                                                            let before = baseText.substring(0, startIdx);
+                                                                            let after = baseText.substring(startIdx + matchedText.length);
+                                                                            let highlightStart = "<span style=\"background-color: " + Kirigami.Theme.highlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>";
+                                                                            let highlightEnd = "</u></span>";
+                                                                            return before + highlightStart + matchedText + highlightEnd + after;
+                                                                        }
+                                                                    } catch(e) {}
+                                                                }
+                                                                
+                                                                // Fallback to simple replace
                                                                 let escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                                                let regex = new RegExp("(" + escaped + ")", "g");
-                                                                return baseText.replace(regex, "<span style=\"background-color: " + Kirigami.Theme.highlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "\">$1</span>");
+                                                                let regex = new RegExp("(" + escaped + ")", "gi");
+                                                                return baseText.replace(regex, "<span style=\"background-color: " + Kirigami.Theme.highlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>$1</u></span>");
                                                             }
                                                         }
                                                         return baseText;
@@ -911,9 +939,13 @@ Item {
                                                         QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content) ? "Stop speaking" : "Read aloud"
                                                         onClicked: {
                                                             if (root.voiceManagerRef) {
-                                                                if (root.voiceManagerRef.isPlaying) {
+                                                                let isPlayingThis = root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content;
+                                                                if (isPlayingThis) {
                                                                     root.voiceManagerRef.stopTTS();
                                                                 } else {
+                                                                    if (root.voiceManagerRef.isPlaying) {
+                                                                        root.voiceManagerRef.stopTTS();
+                                                                    }
                                                                     root.voiceManagerRef.playTTS(modelData.content);
                                                                 }
                                                             }
