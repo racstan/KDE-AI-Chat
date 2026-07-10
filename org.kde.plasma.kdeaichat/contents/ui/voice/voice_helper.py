@@ -826,9 +826,10 @@ class VoiceHelper:
                     
                     def playback_worker():
                         while True:
-                            tmp_path = play_queue.get()
-                            if tmp_path is None:
+                            item = play_queue.get()
+                            if item is None:
                                 break
+                            tmp_path, chunk_text = item
                                 
                             if self.stop_tts or os.path.exists(stop_tts_file):
                                 try:
@@ -844,6 +845,8 @@ class VoiceHelper:
                                 proc = subprocess.Popen(["aplay", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                             else:
                                 proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                            self.emit({"type": "tts_status", "status": "playing", "device": self.tts_device, "chunk": chunk_text})
 
                             self.current_tts_proc = proc
                             while proc.poll() is None:
@@ -893,7 +896,7 @@ class VoiceHelper:
                                     tmp_path = f.name
                                     sf.write(tmp_path, audio, 24000)
 
-                                play_queue.put(tmp_path)
+                                play_queue.put((tmp_path, para))
                     finally:
                         play_queue.put(None)
                         playback_thread.join()

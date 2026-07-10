@@ -8,6 +8,7 @@ Item {
     property bool isRecording: false
     property bool isPlaying: false
     property string playingText: ""
+    property string currentPlayingChunk: ""
     property string statusText: ""
     property string lastRecognizedText: ""
     readonly property string defaultSttModel: "small"
@@ -66,11 +67,18 @@ Item {
             root.errorOccurred(resp.error || "Unknown STT error");
         } else if (resp.type === "tts_done") {
             root.isPlaying = false;
+            root.currentPlayingChunk = "";
         } else if (resp.type === "tts_error") {
             root.isPlaying = false;
+            root.currentPlayingChunk = "";
             root.errorOccurred(resp.error || "Unknown TTS error");
         } else if (resp.type === "tts_status") {
-            if (resp.status === "playing") root.isPlaying = true;
+            if (resp.status === "playing") {
+                root.isPlaying = true;
+                if (resp.chunk) {
+                    root.currentPlayingChunk = resp.chunk;
+                }
+            }
         }
     }
 

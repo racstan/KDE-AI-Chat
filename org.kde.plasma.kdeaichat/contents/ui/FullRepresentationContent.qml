@@ -489,7 +489,19 @@ Item {
                                                     width: parent.width
                                                     wrapMode: Text.Wrap
                                                     textFormat: modelData.role === "error" ? Text.PlainText : Text.MarkdownText
-                                                    text: (root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content
+                                                    text: {
+                                                        let baseText = (root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content;
+                                                        let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content;
+                                                        if (isPlayingThisMessage && root.voiceManagerRef.currentPlayingChunk) {
+                                                            let chunk = root.voiceManagerRef.currentPlayingChunk;
+                                                            if (chunk.length > 2) {
+                                                                let escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                                                let regex = new RegExp("(" + escaped + ")", "g");
+                                                                return baseText.replace(regex, "<span style=\"background-color: " + Kirigami.Theme.highlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "\">$1</span>");
+                                                            }
+                                                        }
+                                                        return baseText;
+                                                    }
                                                     color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
                                                     onLinkActivated: function(link) {
                                                         Qt.openUrlExternally(link);
