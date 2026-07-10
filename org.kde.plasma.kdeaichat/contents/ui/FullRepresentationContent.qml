@@ -18,6 +18,46 @@ Item {
     Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
     Kirigami.Theme.highlightColor: "#3182ce"
 
+    property int playingMessageIndex: -1
+    property color activeHighlightColor: Kirigami.Theme.highlightColor
+
+    SequentialAnimation {
+        id: highlightPulse
+        running: root.voiceManagerRef && root.voiceManagerRef.isPlaying
+        loops: Animation.Infinite
+        alwaysRunToEnd: false
+        
+        ColorAnimation {
+            target: repRoot
+            property: "activeHighlightColor"
+            to: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.4)
+            duration: 1000
+            easing.type: Easing.InOutQuad
+        }
+        ColorAnimation {
+            target: repRoot
+            property: "activeHighlightColor"
+            to: Kirigami.Theme.highlightColor
+            duration: 1000
+            easing.type: Easing.InOutQuad
+        }
+        
+        onRunningChanged: {
+            if (!running) {
+                repRoot.activeHighlightColor = Kirigami.Theme.highlightColor;
+            }
+        }
+    }
+
+    Connections {
+        target: root.voiceManagerRef || null
+        function onIsPlayingChanged() {
+            if (root.voiceManagerRef && !root.voiceManagerRef.isPlaying) {
+                repRoot.playingMessageIndex = -1;
+            }
+        }
+    }
+
 
     DropArea {
         id: dropArea
@@ -488,10 +528,12 @@ Item {
                                                     visible: root.editingMessageIndex !== index || modelData.role === "error"
                                                     width: parent.width
                                                     wrapMode: Text.Wrap
+                                                    selectByMouse: true
+                                                    selectByKeyboard: true
                                                     textFormat: modelData.role === "error" ? Text.PlainText : Text.MarkdownText
                                                     text: {
                                                         let baseText = (root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content;
-                                                        let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content;
+                                                        let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
                                                         if (isPlayingThisMessage && root.voiceManagerRef.currentPlayingChunk) {
                                                             let chunk = root.voiceManagerRef.currentPlayingChunk;
                                                             if (chunk.length > 2) {
@@ -515,7 +557,7 @@ Item {
                                                                             let startIdx = match.index;
                                                                             let before = baseText.substring(0, startIdx);
                                                                             let after = baseText.substring(startIdx + matchedText.length);
-                                                                            let highlightStart = "<span style=\"background-color: " + Kirigami.Theme.highlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>";
+                                                                            let highlightStart = "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>";
                                                                             let highlightEnd = "</u></span>";
                                                                             return before + highlightStart + matchedText + highlightEnd + after;
                                                                         }
@@ -525,7 +567,7 @@ Item {
                                                                 // Fallback to simple replace
                                                                 let escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                                                 let regex = new RegExp("(" + escaped + ")", "gi");
-                                                                return baseText.replace(regex, "<span style=\"background-color: " + Kirigami.Theme.highlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>$1</u></span>");
+                                                                return baseText.replace(regex, "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>$1</u></span>");
                                                             }
                                                         }
                                                         return baseText;
@@ -933,20 +975,23 @@ Item {
                                                     PC3.ToolButton {
                                                         visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
                                                         enabled: root.currentStreamIndex !== index
-                                                        icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content) ? "media-playback-stop" : "audio-speakers"
+                                                        icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "media-playback-stop" : "audio-speakers"
                                                         display: PC3.AbstractButton.IconOnly
                                                         QQC2.ToolTip.visible: hovered
-                                                        QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content) ? "Stop speaking" : "Read aloud"
+                                                        QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "Stop speaking" : ((msgTextLabel.selectedText && msgTextLabel.selectedText.trim().length > 0) ? "Read selected text" : "Read aloud")
                                                         onClicked: {
                                                             if (root.voiceManagerRef) {
-                                                                let isPlayingThis = root.voiceManagerRef.isPlaying && root.voiceManagerRef.playingText === modelData.content;
+                                                                let isPlayingThis = root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
                                                                 if (isPlayingThis) {
                                                                     root.voiceManagerRef.stopTTS();
+                                                                    repRoot.playingMessageIndex = -1;
                                                                 } else {
                                                                     if (root.voiceManagerRef.isPlaying) {
                                                                         root.voiceManagerRef.stopTTS();
                                                                     }
-                                                                    root.voiceManagerRef.playTTS(modelData.content);
+                                                                    let textToPlay = (msgTextLabel.selectedText && msgTextLabel.selectedText.trim().length > 0) ? msgTextLabel.selectedText : modelData.content;
+                                                                    repRoot.playingMessageIndex = index;
+                                                                    root.voiceManagerRef.playTTS(textToPlay);
                                                                 }
                                                             }
                                                         }

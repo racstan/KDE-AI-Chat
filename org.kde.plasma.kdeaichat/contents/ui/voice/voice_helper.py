@@ -512,8 +512,30 @@ class VoiceHelper:
             try:
                 raw_text = payload.get("text", "")
                 import re
-                emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]")
-                text = emoji_pattern.sub("", raw_text)
+                def clean_text_for_tts(t):
+                    # Remove code blocks
+                    t = re.sub(r"```[\s\S]*?```", "", t)
+                    # Remove inline code blocks
+                    t = re.sub(r"`[^`\n]+`", "", t)
+                    # Remove URLs
+                    t = re.sub(r"https?://\S+", "", t)
+                    # Remove HTML tags
+                    t = re.sub(r"<[^>]+>", "", t)
+                    # Remove markdown headers and list markers
+                    t = re.sub(r"^\s*#+\s+", "", t, flags=re.MULTILINE)
+                    t = re.sub(r"^\s*[-*+]\s+", "", t, flags=re.MULTILINE)
+                    t = re.sub(r"^\s*\d+\.\s+", "", t, flags=re.MULTILINE)
+                    # Remove remaining markdown markers: *, _, ~, ==
+                    t = re.sub(r"[\*_~=]", "", t)
+                    # Remove emojis
+                    emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]")
+                    t = emoji_pattern.sub("", t)
+                    # Clean up multiple newlines and spaces
+                    t = re.sub(r"\n+", "\n", t)
+                    t = re.sub(r" {2,}", " ", t)
+                    return t.strip()
+
+                text = clean_text_for_tts(raw_text)
                 voice = payload.get("voice", "")
                 if not voice:
                     voice = "af_bella"
