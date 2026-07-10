@@ -434,6 +434,24 @@ def _process_memory_kb(name: str) -> int:
 
 def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
     """Return RSS totals (KiB) for the opencode, stt, tts, and scheduler processes."""
+    import urllib.request
+    
+    stt_vram = 0
+    try:
+        req = urllib.request.urlopen("http://127.0.0.1:4097/status", timeout=1.0)
+        d = json.loads(req.read())
+        stt_vram = d.get("vram_kb", 0)
+    except Exception:
+        pass
+
+    tts_vram = 0
+    try:
+        req = urllib.request.urlopen("http://127.0.0.1:4098/status", timeout=1.0)
+        d = json.loads(req.read())
+        tts_vram = d.get("vram_kb", 0)
+    except Exception:
+        pass
+
     # For STT/TTS, check both persistent server processes and one-shot command processes
     stt_mem = _process_memory_kb("voice_helper.py --stt-server")
     if stt_mem == 0:
@@ -441,10 +459,16 @@ def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
     tts_mem = _process_memory_kb("voice_helper.py --tts-server")
     if tts_mem == 0:
         tts_mem = _process_memory_kb("voice_helper.py.*cmd.*tts")
+        
+    # Only track the widget-launched opencode or opencode serve instances, ignore external processes named just 'opencode'
+    opencode_mem = _process_memory_kb("opencode serve")
+    
     d: Dict[str, int] = {
-        "opencode": _process_memory_kb("opencode"),
+        "opencode": opencode_mem,
         "stt": stt_mem,
         "tts": tts_mem,
+        "stt_vram": stt_vram,
+        "tts_vram": tts_vram,
         "scheduler": _process_memory_kb("kde-ai-scheduler.py"),
     }
     print(json.dumps(d))

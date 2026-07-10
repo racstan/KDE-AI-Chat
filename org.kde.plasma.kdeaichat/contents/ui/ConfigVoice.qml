@@ -440,11 +440,7 @@ KCM.SimpleKCM {
             visible: voiceEnabledToggle.checked
             Kirigami.FormData.label: i18n("GPU Usage:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            checked: plasmoid.configuration.voiceGpuEnabled || false
             text: checked ? i18n("Enabled (CUDA)") : i18n("Disabled (CPU only)")
-            onToggled: {
-                plasmoid.configuration.voiceGpuEnabled = checked;
-            }
         }
 
         QQC2.Label {
@@ -862,7 +858,7 @@ KCM.SimpleKCM {
                         duration: 5,
                         language: sttLanguageBox.currentValue || "auto",
                         model_path: sttPathField.text || "",
-                        gpu_requested: plasmoid.configuration.voiceGpuEnabled || false
+                        gpu_requested: voiceGpuToggle.checked
                     }), "stt-test");
                     sttWatchdog.restart();
                 }
@@ -914,7 +910,7 @@ KCM.SimpleKCM {
                         lang_code: "a",
                         model_path: ttsPathField.text || "",
                         espeak_path: plasmoid.configuration.voiceEspeakPath || "",
-                        gpu_requested: plasmoid.configuration.voiceGpuEnabled || false
+                        gpu_requested: voiceGpuToggle.checked
                     }), "tts-test");
                     ttsWatchdog.restart();
                 }

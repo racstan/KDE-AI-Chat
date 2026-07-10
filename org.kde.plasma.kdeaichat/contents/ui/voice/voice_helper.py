@@ -1021,12 +1021,21 @@ class VoiceHelper:
                     self.send_header("Content-Type", "application/json")
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
+                    vram_kb = 0
+                    try:
+                        import torch
+                        if torch.cuda.is_available():
+                            vram_kb = torch.cuda.memory_allocated() // 1024
+                    except:
+                        pass
+
                     status_data = {
                         "status": helper_self.current_status,
                         "countdown": helper_self.current_countdown,
                         "recorded_audio_path": helper_self.temp_audio_path if os.path.exists(helper_self.temp_audio_path) else "",
                         "stt_device": helper_self.stt_device,
                         "tts_device": helper_self.tts_device,
+                        "vram_kb": vram_kb,
                     }
                     self.wfile.write(json.dumps(status_data).encode("utf-8"))
                 else:

@@ -857,7 +857,7 @@ Item {
                                                     spacing: Kirigami.Units.smallSpacing
 
                                                     PC3.ToolButton {
-                                                        visible: root.editingMessageIndex !== index && modelData.role !== "error"
+                                                        visible: root.currentStreamIndex !== index && root.editingMessageIndex !== index && modelData.role !== "error"
                                                         icon.name: "document-edit"
                                                         display: PC3.AbstractButton.IconOnly
                                                         QQC2.ToolTip.visible: hovered

@@ -35,6 +35,8 @@ KCM.SimpleKCM {
     property int memOpenCode: 0
     property int memStt: 0
     property int memTts: 0
+    property int memSttVram: 0
+    property int memTtsVram: 0
 
     property string _lastSchedSetupPayload: ""
 
@@ -320,6 +322,8 @@ KCM.SimpleKCM {
                     configPage.memOpenCode = memData.opencode || 0;
                     configPage.memStt = memData.stt || 0;
                     configPage.memTts = memData.tts || 0;
+                    configPage.memSttVram = memData.stt_vram || 0;
+                    configPage.memTtsVram = memData.tts_vram || 0;
                 } catch (e) {
                     console.warn("Failed to parse memory data:", e);
                 }
@@ -846,7 +850,7 @@ KCM.SimpleKCM {
                     QQC2.Label { text: i18n("Voice STT") }
                 }
                 QQC2.Label {
-                    text: configPage.memStt > 0 ? (configPage.memStt / 1024).toFixed(1) + " MB" : i18n("On-demand")
+                    text: configPage.memStt > 0 ? (configPage.memStt / 1024).toFixed(1) + " MB" + (configPage.memSttVram > 0 ? " (VRAM: " + (configPage.memSttVram / 1024).toFixed(1) + " MB)" : "") : i18n("On-demand")
                     color: configPage.memStt > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
                     font.bold: configPage.memStt > 0
                 }
@@ -871,7 +875,7 @@ KCM.SimpleKCM {
                     QQC2.Label { text: i18n("Voice TTS") }
                 }
                 QQC2.Label {
-                    text: configPage.memTts > 0 ? (configPage.memTts / 1024).toFixed(1) + " MB" : i18n("On-demand")
+                    text: configPage.memTts > 0 ? (configPage.memTts / 1024).toFixed(1) + " MB" + (configPage.memTtsVram > 0 ? " (VRAM: " + (configPage.memTtsVram / 1024).toFixed(1) + " MB)" : "") : i18n("On-demand")
                     color: configPage.memTts > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
                     font.bold: configPage.memTts > 0
                 }

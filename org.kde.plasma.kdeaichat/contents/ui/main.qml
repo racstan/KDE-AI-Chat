@@ -1727,8 +1727,8 @@ PlasmoidItem {
         }
         
         var limit = plasmoid.configuration.contextMessageLimit !== undefined ? plasmoid.configuration.contextMessageLimit : -1;
-        if (limit >= 0 && messageRoles.length > limit) {
-            messageRoles = messageRoles.slice(messageRoles.length - limit);
+        if (limit >= 0 && messageRoles.length > limit + 1) {
+            messageRoles = messageRoles.slice(messageRoles.length - (limit + 1));
         }
 
         for (var j = 0; j < messageRoles.length; j++) {
@@ -1760,8 +1760,8 @@ PlasmoidItem {
         }
         
         var limit = plasmoid.configuration.contextMessageLimit !== undefined ? plasmoid.configuration.contextMessageLimit : -1;
-        if (limit >= 0 && messageRoles.length > limit) {
-            messageRoles = messageRoles.slice(messageRoles.length - limit);
+        if (limit >= 0 && messageRoles.length > limit + 1) {
+            messageRoles = messageRoles.slice(messageRoles.length - (limit + 1));
         }
 
         for (var j = 0; j < messageRoles.length; j++) {
