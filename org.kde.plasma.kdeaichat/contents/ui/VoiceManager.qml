@@ -44,6 +44,63 @@ Item {
         }
     }
 
+    Timer {
+        id: statusPoller
+        interval: 300
+        repeat: true
+        running: root.isRecording || root.isPlaying
+        onTriggered: {
+            if (root.isRecording) {
+                let xhr = new XMLHttpRequest();
+                xhr.open("GET", "http://127.0.0.1:9015/status", true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                        try {
+                            let resp = JSON.parse(xhr.responseText);
+                            if (resp.status === "recording") {
+                                root.statusText = "Recording... [" + (resp.stt_device ? resp.stt_device.toUpperCase() : "CPU") + "]";
+                            } else if (resp.status === "transcribing") {
+                                root.statusText = "Transcribing... [" + (resp.stt_device ? resp.stt_device.toUpperCase() : "CPU") + "]";
+                            } else if (resp.status === "idle" && root.isRecording) {
+                                // Likely finished or errored
+                                if (resp.stt_result && resp.stt_result.type === "stt_result") {
+                                    handleResponse(resp.stt_result, "http_poll");
+                                } else if (resp.stt_result && resp.stt_result.type === "stt_error") {
+                                    handleResponse(resp.stt_result, "http_poll");
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                }
+                xhr.send();
+            }
+            if (root.isPlaying) {
+                let xhr = new XMLHttpRequest();
+                xhr.open("GET", "http://127.0.0.1:9016/status", true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                        try {
+                            let resp = JSON.parse(xhr.responseText);
+                            if (resp.status === "playing") {
+                                if (resp.chunk) root.currentPlayingChunk = resp.chunk;
+                            } else if (resp.status === "synthesizing") {
+                                root.currentPlayingChunk = "";
+                            } else if (resp.status === "idle" && root.isPlaying) {
+                                if (resp.tts_result && resp.tts_result.type === "tts_error") {
+                                    handleResponse(resp.tts_result, "http_poll");
+                                } else {
+                                    root.isPlaying = false;
+                                    root.currentPlayingChunk = "";
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                }
+                xhr.send();
+            }
+        }
+    }
+
     function handleResponse(resp, sourceName) {
         if (resp.type === "env_check") {
             root.envChecked(resp);
@@ -79,6 +136,10 @@ Item {
                     root.currentPlayingChunk = resp.chunk;
                 }
             }
+        } else if (resp.type === "tts_started") {
+            root.isPlaying = true;
+        } else if (resp.type === "stt_started") {
+            root.isRecording = true;
         }
     }
 

@@ -846,6 +846,7 @@ class VoiceHelper:
                             else:
                                 proc = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+                            self.current_chunk = chunk_text
                             self.emit({"type": "tts_status", "status": "playing", "device": self.tts_device, "chunk": chunk_text})
 
                             self.current_tts_proc = proc
@@ -965,24 +966,14 @@ class VoiceHelper:
             if cmd == "start_stt":
                 self.stt_result = None
                 self.start_stt(cmd_data)
-                while self.recording and self.stt_result is None:
-                    time.sleep(0.05)
-                timeout = time.time() + 2.0
-                while self.stt_result is None and time.time() < timeout:
-                    time.sleep(0.05)
-                return self.stt_result or {"type": "stt_error", "error": "STT finished with no result"}
+                return {"type": "stt_started"}
             elif cmd == "stop_stt":
                 self.stop_stt(cmd_data)
                 return {"type": "stt_status", "status": "stopping"}
             elif cmd == "tts":
                 self.tts_result = None
                 self.tts(cmd_data)
-                while self.tts_playing and self.tts_result is None:
-                    time.sleep(0.05)
-                timeout = time.time() + 2.0
-                while self.tts_result is None and time.time() < timeout:
-                    time.sleep(0.05)
-                return self.tts_result or {"type": "tts_done"}
+                return {"type": "tts_started"}
             elif cmd == "stop_tts":
                 self.stop_tts_cmd(cmd_data)
                 return {"type": "tts_status", "status": "stopping"}
@@ -1044,10 +1035,11 @@ class VoiceHelper:
 
                     status_data = {
                         "status": helper_self.current_status,
+                        "chunk": getattr(helper_self, "current_chunk", ""),
                         "countdown": helper_self.current_countdown,
                         "recorded_audio_path": helper_self.temp_audio_path if os.path.exists(helper_self.temp_audio_path) else "",
-                        "stt_device": helper_self.stt_device,
-                        "tts_device": helper_self.tts_device,
+                        "stt_device": getattr(helper_self, "stt_device", "cpu"),
+                        "tts_device": getattr(helper_self, "tts_device", "cpu"),
                         "vram_kb": vram_kb,
                     }
                     self.wfile.write(json.dumps(status_data).encode("utf-8"))
