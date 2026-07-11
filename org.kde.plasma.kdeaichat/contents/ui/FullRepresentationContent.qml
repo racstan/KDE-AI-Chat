@@ -608,65 +608,63 @@ Item {
                                                                                 }
                                                                             });
                                                                         }
+                                                                    } else {
+                                                                        textBlockLabel.deselect();
                                                                     }
                                                                 }
                                                             }
 
                                                             Connections {
                                                                 target: root.voiceManagerRef || null
-                                                                function onIsPlayingChanged() {
-                                                                    if (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) {
-                                                                        if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
-                                                                            Qt.callLater(function() {
-                                                                                if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
-                                                                                    textBlockLabel.select(savedSelectionStart, savedSelectionEnd);
+                                                                ignoreUnknownSignals: true
+
+                                                                function onCurrentPlayingChunkChanged() {
+                                                                    let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
+                                                                    if (isPlayingThisMessage) {
+                                                                        let chunk = root.voiceManagerRef.currentPlayingChunk;
+                                                                        if (chunk && chunk.length > 2) {
+                                                                            let baseText = blockData.text;
+                                                                            let cleanChunk = chunk.replace(/[^\w\s]/g, " ").trim();
+                                                                            let words = cleanChunk.split(/\s+/).filter(function(w) { return w.length > 0; });
+                                                                            if (words.length > 0) {
+                                                                                let regexStr = "";
+                                                                                for (let i = 0; i < words.length; i++) {
+                                                                                    let escapedWord = words[i].replace(/[.*+?^${}()|[\\\]]/g, "\\$&");
+                                                                                    if (i > 0) {
+                                                                                        regexStr += "[^a-zA-Z0-9]*?";
+                                                                                    }
+                                                                                    regexStr += escapedWord;
                                                                                 }
-                                                                            });
+                                                                                try {
+                                                                                    let regex = new RegExp(regexStr, "i");
+                                                                                    let match = baseText.match(regex);
+                                                                                    if (match) {
+                                                                                        let startIdx = match.index;
+                                                                                        let endIdx = startIdx + match[0].length;
+                                                                                        textBlockLabel.select(startIdx, endIdx);
+                                                                                        return;
+                                                                                    }
+                                                                                } catch(e) {}
+                                                                            }
+                                                                            let startIdx = baseText.indexOf(chunk);
+                                                                            if (startIdx !== -1) {
+                                                                                textBlockLabel.select(startIdx, startIdx + chunk.length);
+                                                                            }
+                                                                        } else {
+                                                                            textBlockLabel.deselect();
                                                                         }
+                                                                    }
+                                                                }
+
+                                                                function onIsPlayingChanged() {
+                                                                    if (!root.voiceManagerRef || !root.voiceManagerRef.isPlaying) {
+                                                                        textBlockLabel.deselect();
                                                                     }
                                                                 }
                                                             }
 
-                                                            text: {
-                                                                let baseText = blockData.text;
-                                                                let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
-                                                                if (isPlayingThisMessage && root.voiceManagerRef.currentPlayingChunk) {
-                                                                    let chunk = root.voiceManagerRef.currentPlayingChunk;
-                                                                    if (chunk.length > 2) {
-                                                                        let cleanChunk = chunk.replace(/[^\w\s]/g, ' ').trim();
-                                                                        let words = cleanChunk.split(/\s+/).filter(function(w) { return w.length > 0; });
-                                                                        if (words.length > 0) {
-                                                                            let regexStr = "";
-                                                                            for (let i = 0; i < words.length; i++) {
-                                                                                let escapedWord = words[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                                                                if (i > 0) {
-                                                                                    regexStr += "[^a-zA-Z0-9]*?";
-                                                                                }
-                                                                                regexStr += escapedWord;
-                                                                            }
-                                                                            try {
-                                                                                let regex = new RegExp("(" + regexStr + ")", "i");
-                                                                                let match = baseText.match(regex);
-                                                                                if (match) {
-                                                                                    let matchedText = match[0];
-                                                                                    let startIdx = match.index;
-                                                                                    let before = baseText.substring(0, startIdx);
-                                                                                    let after = baseText.substring(startIdx + matchedText.length);
-                                                                                    let highlightStart = "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>";
-                                                                                    let highlightEnd = "</u></span>";
-                                                                                    let res = before + highlightStart + matchedText + highlightEnd + after;
-                                                                                    return res.replace(/\n/g, "<br>");
-                                                                                }
-                                                                            } catch(e) {}
-                                                                        }
-                                                                        let escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                                                        let regex = new RegExp("(" + escaped + ")", "gi");
-                                                                        let res = baseText.replace(regex, "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>$1</u></span>");
-                                                                        return res.replace(/\n/g, "<br>");
-                                                                    }
-                                                                }
-                                                                return baseText;
-                                                            }
+                                                            text: blockData.text
+                                                         }
                                                         }
                                                     }
 
