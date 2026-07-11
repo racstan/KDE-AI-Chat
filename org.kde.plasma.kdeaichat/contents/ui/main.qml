@@ -41,6 +41,7 @@ PlasmoidItem {
     property bool openCodeMode: plasmoid.configuration.useOpenCode
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled || false
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled || false
+    property bool voiceCallEnabled: plasmoid.configuration.voiceCallEnabled || false
     property string compiledSystemPrompt: ""
     property string compiledMemoryBlock: ""
     property var sysInfo: ({

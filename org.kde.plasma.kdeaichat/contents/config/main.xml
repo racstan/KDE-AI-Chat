@@ -261,13 +261,16 @@
       <entry name="promptTemplates" type="String"><default>[]</default></entry>
       <!-- Voice & Audio -->
 <entry name="voiceEnabled" type="Bool">
-      <default>true</default>
+      <default>false</default>
+    </entry>
+<entry name="voiceCallEnabled" type="Bool">
+      <default>false</default>
     </entry>
 <entry name="voiceGpuEnabled" type="Bool">
       <default>false</default>
     </entry>
 <entry name="voiceTtsEnabled" type="Bool">
-      <default>true</default>
+      <default>false</default>
     </entry>
 <entry name="voiceTtsAuto" type="Bool">
       <default>false</default>

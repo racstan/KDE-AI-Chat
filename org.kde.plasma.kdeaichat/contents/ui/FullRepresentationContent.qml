@@ -1535,7 +1535,7 @@ Item {
                         }
 
                         Item {
-                            visible: root.voiceEnabled
+                            visible: root.voiceEnabled && root.voiceCallEnabled
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
 

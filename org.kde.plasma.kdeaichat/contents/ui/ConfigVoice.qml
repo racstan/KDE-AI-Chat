@@ -25,6 +25,7 @@ KCM.SimpleKCM {
 
     property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
+    property alias cfg_voiceCallEnabled: voiceCallEnabledToggle.checked
     property alias cfg_voiceGpuEnabled: voiceGpuToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
     property alias cfg_voiceTtsAuto: voiceTtsAutoToggle.checked
@@ -37,6 +38,7 @@ KCM.SimpleKCM {
 
     function resetToDefaults() {
         voiceEnabledToggle.checked = false;
+        voiceCallEnabledToggle.checked = false;
         voiceGpuToggle.checked = false;
         voiceTtsEnabledToggle.checked = false;
         voiceTtsAutoToggle.checked = false;
@@ -444,8 +446,20 @@ KCM.SimpleKCM {
             text: i18n("<b>Voice:</b> Enables the microphone button in chat. It does not download or choose models for you.")
         }
 
-        QQC2.Label {
+        QQC2.CheckBox {
+            id: voiceCallEnabledToggle
             visible: voiceEnabledToggle.checked
+            Kirigami.FormData.label: i18n("Voice Call (Beta):")
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            checked: plasmoid.configuration.voiceCallEnabled || false
+            text: checked ? i18n("Enabled") : i18n("Disabled")
+            onToggled: {
+                plasmoid.configuration.voiceCallEnabled = checked;
+            }
+        }
+
+        QQC2.Label {
+            visible: voiceEnabledToggle.checked && voiceCallEnabledToggle.checked
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             wrapMode: Text.Wrap
