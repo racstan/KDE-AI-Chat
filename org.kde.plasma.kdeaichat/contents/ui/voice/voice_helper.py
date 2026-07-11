@@ -404,19 +404,12 @@ class VoiceHelper:
                     # ----------------------------------------------------------------
                     # CALL MODE — Percentile-based adaptive VAD
                     #
-                    # Problem: fixed/multiplier thresholds fail in noisy rooms.
-                    # Your mic noise floor is ~0.37, speech peaks at ~0.97.
-                    # The ratio is only 2.6x — not enough for a simple multiplier.
-                    #
-                    # Solution: track a rolling 4-second window of RMS values.
-                    # - noise_level  = 20th percentile of window (quiet floor)
-                    # - speech_level = 80th percentile of window (active speech)
-                    # - is_speech    = current RMS > midpoint + margin
-                    # This dynamically adjusts to ANY room noise level.
-                    #
-                    # Two-threshold hysteresis:
-                    # - ONSET: rms must cross a HIGH bar to start an utterance
-                    # - END:   rms drops below a LOWER bar → silence counter ticks
+                    # Rolling window tracks ONLY silence/ambient frames (not speech)
+                    # to keep the noise floor estimate accurate.
+                    # Two-threshold hysteresis prevents flicker:
+                    #   onset   = high bar (requires 4 consecutive chunks above it)
+                    #   silence = low bar  (requires 1.5s below it to fire)
+                    # Transcribing lock blocks new onsets while Whisper is running.
                     # ----------------------------------------------------------------
 
                     CHUNK_MS = 30
@@ -424,34 +417,34 @@ class VoiceHelper:
                     SILENCE_TIMEOUT_S = 1.5
                     MAX_SEGMENT_S = 20.0
                     PREROLL_CHUNKS = int(0.4 * 1000 / CHUNK_MS)
-                    WINDOW_CHUNKS = int(4.0 * 1000 / CHUNK_MS)   # 4s rolling window
-                    ONSET_CHUNKS  = 4                              # 120ms sustained onset
-                    silence_limit        = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
-                    max_segment_chunks   = int(MAX_SEGMENT_S     * 1000 / CHUNK_MS)
+                    WINDOW_CHUNKS  = int(3.0 * 1000 / CHUNK_MS)   # 3s window of SILENCE frames
+                    ONSET_CHUNKS   = 4                              # 120ms sustained onset
+                    silence_limit       = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
+                    max_segment_chunks  = int(MAX_SEGMENT_S * 1000 / CHUNK_MS)
 
-                    # Rolling RMS window for percentile-based threshold
-                    rms_window = collections.deque(maxlen=WINDOW_CHUNKS)
+                    # Rolling window filled ONLY with non-speech frames
+                    rms_window  = collections.deque(maxlen=WINDOW_CHUNKS)
                     preroll_buf = collections.deque(maxlen=PREROLL_CHUNKS)
 
+                    # Seed the window with a safe initial value
+                    for _ in range(10):
+                        rms_window.append(0.01)
+
+                    # Lock to prevent a new utterance while Whisper is still running
+                    transcribing_lock = threading.Event()
+                    transcribing_lock.set()  # set = free to record
+
                     def compute_thresholds(window):
-                        """Return (onset_thresh, silence_thresh) from rolling window."""
-                        if len(window) < 10:
-                            # Not enough data yet — conservative fallback
-                            return 0.05, 0.03
                         arr = np.array(window)
-                        noise_p20  = float(np.percentile(arr, 20))   # quiet floor
-                        speech_p80 = float(np.percentile(arr, 80))   # typical speech
-                        gap = speech_p80 - noise_p20
-                        if gap < 0.01:
-                            # No clear gap → environment is uniform (pure silence or pure noise)
-                            # Use absolute bump above floor
-                            onset   = noise_p20 + 0.02
-                            silence = noise_p20 + 0.01
-                        else:
-                            # Clear bimodal distribution → use midpoint with margins
-                            mid     = noise_p20 + gap * 0.5
-                            onset   = mid + gap * 0.15   # slightly above midpoint to start
-                            silence = mid - gap * 0.15   # slightly below midpoint to end
+                        noise_p20  = float(np.percentile(arr, 20))
+                        noise_p80  = float(np.percentile(arr, 80))
+                        gap = noise_p80 - noise_p20
+                        if gap < 0.005:
+                            # Uniform environment — bump above floor
+                            return noise_p80 + 0.02, noise_p20 + 0.01
+                        mid     = noise_p20 + gap * 0.5
+                        onset   = mid + gap * 0.2
+                        silence = mid - gap * 0.2
                         return onset, silence
 
                     self.current_status = "recording"
@@ -462,8 +455,6 @@ class VoiceHelper:
                         try:
                             audio = np.concatenate(audio_chunks)
                             if len(audio) < sample_rate * 0.3:
-                                self.current_status = "recording"
-                                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
                                 return
 
                             self.current_status = "transcribing"
@@ -491,11 +482,11 @@ class VoiceHelper:
                                     "device": self.stt_device,
                                     "is_call_mode": True,
                                 })
-
-                            if self.call_mode_active and not self.stop_recording:
-                                self.current_status = "recording"
-                                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
                         except Exception:
+                            pass
+                        finally:
+                            # Signal main loop it can accept a new utterance
+                            transcribing_lock.set()
                             if self.call_mode_active and not self.stop_recording:
                                 self.current_status = "recording"
                                 self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
@@ -518,20 +509,26 @@ class VoiceHelper:
                                 flat = chunk.flatten()
                                 rms  = float(np.sqrt(np.mean(flat ** 2))) if len(flat) > 0 else 0.0
 
-                                # Always update rolling window (even during speech so window stays current)
-                                rms_window.append(rms)
                                 onset_thresh, silence_thresh = compute_thresholds(rms_window)
 
                                 is_onset   = rms > onset_thresh
                                 is_silence = rms < silence_thresh
 
                                 if not speech_detected:
+                                    # Only feed SILENCE frames into the window
+                                    # so speech doesn't corrupt the noise floor estimate
+                                    if not is_onset:
+                                        rms_window.append(rms)
+
                                     preroll_buf.append(flat)
+
+                                    # Don't start a new utterance while Whisper is running
+                                    if not transcribing_lock.is_set():
+                                        continue
 
                                     if is_onset:
                                         onset_counter += 1
                                         if onset_counter >= ONSET_CHUNKS:
-                                            # Confirmed speech start
                                             speech_detected = True
                                             silence_chunks  = 0
                                             speech_chunks   = list(preroll_buf) + [flat]
@@ -554,6 +551,8 @@ class VoiceHelper:
 
                                     if should_send:
                                         seg = list(speech_chunks)
+                                        # Block new onsets until Whisper finishes
+                                        transcribing_lock.clear()
                                         threading.Thread(target=transcribe_and_emit,
                                                          args=(seg,), daemon=True).start()
                                         speech_detected = False
@@ -564,10 +563,13 @@ class VoiceHelper:
 
                             # Flush remaining audio when call ends
                             if speech_detected and speech_chunks:
+                                transcribing_lock.clear()
                                 transcribe_and_emit(list(speech_chunks))
 
                     except Exception as stream_err:
                         self.emit({"type": "stt_error", "error": "Call mode stream error: " + str(stream_err)})
+
+
 
 
 
