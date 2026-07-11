@@ -31,6 +31,7 @@ PlasmoidItem {
     property bool streamingResponse: false
     property string currentStreamText: ""
     property string currentStreamReasoning: ""
+    property string currentStreamExtractedReasoning: ""
     property int currentStreamIndex: -1
     property int editingMessageIndex: -1
     property string editingDraft: ""
@@ -256,6 +257,7 @@ PlasmoidItem {
             root.currentStreamIndex = -1;
             root.currentStreamText = "";
             root.currentStreamReasoning = "";
+            root.currentStreamExtractedReasoning = "";
             root.streamingResponse = false;
             root.editingMessageIndex = -1;
             root.editingDraft = "";
@@ -352,6 +354,7 @@ PlasmoidItem {
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
         root.currentStreamReasoning = "";
+        root.currentStreamExtractedReasoning = "";
         root.streamingResponse = false;
         root.editingMessageIndex = -1;
         root.editingDraft = "";
@@ -608,6 +611,7 @@ PlasmoidItem {
             root.currentStreamIndex = -1;
             root.currentStreamText = "";
             root.currentStreamReasoning = "";
+            root.currentStreamExtractedReasoning = "";
         }
         if (!root.userScrolledUp)
             Qt.callLater(scrollToBottom);
@@ -1326,6 +1330,7 @@ PlasmoidItem {
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
         root.currentStreamReasoning = "";
+        root.currentStreamExtractedReasoning = "";
         root.streamingResponse = false;
 
         var source = root.messages[index] || {
@@ -1868,6 +1873,28 @@ PlasmoidItem {
                             if (streamDelta.content) {
                                 fullText += streamDelta.content;
                             }
+                            
+                            var displayReasoning = "";
+                            var displayText = fullText;
+                            
+                            var thinkStart = displayText.indexOf("<think>");
+                            while (thinkStart !== -1) {
+                                var thinkEnd = displayText.indexOf("</think>", thinkStart);
+                                if (thinkEnd !== -1) {
+                                    var extracted = displayText.substring(thinkStart + 7, thinkEnd);
+                                    if (displayReasoning === "") displayReasoning = extracted;
+                                    else displayReasoning += "\n" + extracted;
+                                    displayText = displayText.substring(0, thinkStart) + displayText.substring(thinkEnd + 8);
+                                } else {
+                                    var extracted = displayText.substring(thinkStart + 7);
+                                    if (displayReasoning === "") displayReasoning = extracted;
+                                    else displayReasoning += "\n" + extracted;
+                                    displayText = displayText.substring(0, thinkStart);
+                                    break;
+                                }
+                                thinkStart = displayText.indexOf("<think>");
+                            }
+
                             if (streamDelta.content || reasoningDelta !== "") {
                             if (root.currentStreamIndex < 0) {
                                 var ts = Date.now();
@@ -1882,7 +1909,8 @@ PlasmoidItem {
                                 root.currentStreamIndex = root.messages.length - 1;
                                 root.streamingResponse = true;
                             }
-                            root.currentStreamText = fullText;
+                            root.currentStreamText = displayText;
+                            root.currentStreamExtractedReasoning = displayReasoning;
                             if (!root.userScrolledUp)
                                 Qt.callLater(scrollToBottom);
 
@@ -1898,7 +1926,14 @@ PlasmoidItem {
                 if (root.currentStreamIndex >= 0) {
                     var msgs = root.messages.slice();
                     msgs[root.currentStreamIndex].content = root.currentStreamText;
-                    msgs[root.currentStreamIndex].reasoning = root.currentStreamReasoning;
+                    
+                    var finalReasoning = root.currentStreamReasoning;
+                    if (root.currentStreamExtractedReasoning !== "") {
+                        if (finalReasoning !== "") finalReasoning += "\n" + root.currentStreamExtractedReasoning;
+                        else finalReasoning = root.currentStreamExtractedReasoning;
+                    }
+                    
+                    msgs[root.currentStreamIndex].reasoning = finalReasoning;
                     root.messages = msgs;
                 } else if (fullText === "" && xhr.status >= 200 && xhr.status < 300) {
                     pushErrorMessage("The model returned an empty response.");
@@ -1906,6 +1941,7 @@ PlasmoidItem {
                 root.currentStreamIndex = -1;
                 root.currentStreamText = "";
                 root.currentStreamReasoning = "";
+                root.currentStreamExtractedReasoning = "";
                 root.streamingResponse = false;
                 if (!root.userScrolledUp)
                     Qt.callLater(scrollToBottom);
@@ -2366,6 +2402,7 @@ PlasmoidItem {
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
         root.currentStreamReasoning = "";
+        root.currentStreamExtractedReasoning = "";
         root.streamingResponse = false;
         root.loading = false;
         saveCurrentSessionState(true);

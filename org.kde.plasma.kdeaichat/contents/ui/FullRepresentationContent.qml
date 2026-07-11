@@ -488,7 +488,7 @@ Item {
                                                 Rectangle {
                                                     id: reasoningBlock
 
-                                                    property string reasoningText: (root.currentStreamIndex === index && root.currentStreamReasoning !== "") ? root.currentStreamReasoning : (modelData.reasoning || "")
+                                                    property string reasoningText: (root.currentStreamIndex === index && (root.currentStreamReasoning !== "" || root.currentStreamExtractedReasoning !== "")) ? (root.currentStreamReasoning + (root.currentStreamReasoning && root.currentStreamExtractedReasoning ? "\n" : "") + root.currentStreamExtractedReasoning) : (modelData.reasoning || "")
 
                                                     visible: modelData.role === "assistant" && reasoningText.length > 0 && root.editingMessageIndex !== index
                                                     width: parent.width
