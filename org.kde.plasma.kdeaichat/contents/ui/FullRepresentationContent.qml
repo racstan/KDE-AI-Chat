@@ -531,6 +531,7 @@ Item {
                                                     width: parent.width
                                                     wrapMode: Text.Wrap
                                                     selectByMouse: true
+                                                     persistentSelection: true
                                                     
                                                     textFormat: modelData.role === "error" ? Text.PlainText : Text.MarkdownText
                                                     text: {
