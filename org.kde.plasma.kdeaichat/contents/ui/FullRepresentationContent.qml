@@ -444,7 +444,7 @@ Item {
                                         Rectangle {
                                             id: bubble
 
-                                            width: Math.min(bubbleCol.implicitWidth + Kirigami.Units.largeSpacing * 2, msgList.width * 0.76, 560)
+                                            width: Math.min(msgList.width * 0.76, 560)
                                             implicitHeight: bubbleCol.implicitHeight + Kirigami.Units.largeSpacing * 2
                                             radius: 10
                                             color: modelData.role === "user" ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.2) : modelData.role === "queued" ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.18) : modelData.role === "error" ? Kirigami.Theme.negativeBackgroundColor : (modelData.role === "permission_request" || modelData.role === "question_request" || modelData.role === "system_compacted") ? Qt.rgba(Kirigami.Theme.focusColor.r, Kirigami.Theme.focusColor.g, Kirigami.Theme.focusColor.b, 0.12) : Kirigami.Theme.backgroundColor
