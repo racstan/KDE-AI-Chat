@@ -1296,15 +1296,15 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.BusyIndicator {
-                            running: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused")
+                            running: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused" && !root.voiceManagerRef.callModeActive)
                             visible: running
                             width: 16
                             height: 16
                         }
 
                         Kirigami.Icon {
-                            source: "audio-volume-high"
-                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud...")
+                            source: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-start" : "audio-volume-high"
+                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.callModeActive)
                             width: 16
                             height: 16
                         }
@@ -1511,12 +1511,12 @@ Item {
                             PC3.ToolButton {
                                 id: recordButton
                                 anchors.fill: parent
-                                icon.name: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "media-playback-stop" : "audio-input-microphone"
+                                icon.name: (root.voiceManagerRef && root.voiceManagerRef.isRecording && !root.voiceManagerRef.callModeActive) ? "media-playback-stop" : "audio-input-microphone"
                                 QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "Stop Recording" : "Record Voice (STT)"
+                                QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isRecording && !root.voiceManagerRef.callModeActive) ? "Stop Recording" : "Record Voice (STT)"
                                 onClicked: {
                                     if (root.voiceManagerRef) {
-                                        if (root.voiceManagerRef.isRecording) {
+                                        if (root.voiceManagerRef.isRecording && !root.voiceManagerRef.callModeActive) {
                                             root.voiceManagerRef.stopRecording();
                                         } else {
                                             root.voiceManagerRef.startRecording();
@@ -1529,7 +1529,38 @@ Item {
                                 anchors.centerIn: parent
                                 width: parent.width * 0.6
                                 height: parent.height * 0.6
-                                running: root.voiceManagerRef && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
+                                running: root.voiceManagerRef && !root.voiceManagerRef.callModeActive && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
+                                visible: running
+                            }
+                        }
+
+                        Item {
+                            visible: root.voiceEnabled
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+
+                            PC3.ToolButton {
+                                id: callButton
+                                anchors.fill: parent
+                                icon.name: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-stop" : "call-start"
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "End Voice Call (Beta)" : "Start hands-free Voice Call (Beta - Uses local GPU/CPU resources)"
+                                onClicked: {
+                                    if (root.voiceManagerRef) {
+                                        if (root.voiceManagerRef.callModeActive) {
+                                            root.voiceManagerRef.stopCallMode();
+                                        } else {
+                                            root.voiceManagerRef.startCallMode();
+                                        }
+                                    }
+                                }
+                            }
+
+                            PC3.BusyIndicator {
+                                anchors.centerIn: parent
+                                width: parent.width * 0.6
+                                height: parent.height * 0.6
+                                running: root.voiceManagerRef && root.voiceManagerRef.callModeActive && root.voiceManagerRef.statusText.indexOf("Connecting") !== -1
                                 visible: running
                             }
                         }

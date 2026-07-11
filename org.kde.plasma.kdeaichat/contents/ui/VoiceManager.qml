@@ -7,6 +7,7 @@ Item {
 
     property bool isRecording: false
     property bool isPlaying: false
+    property bool callModeActive: false
     property string playingText: ""
     property string currentPlayingChunk: ""
     property string statusText: ""
@@ -111,18 +112,22 @@ Item {
             root.setupStatus(resp.status);
         } else if (resp.type === "stt_status") {
             let devTag = resp.device ? " [" + resp.device.toUpperCase() + "]" : "";
-            if (resp.status === "loading_model") root.statusText = "Loading model..." + devTag;
-            else if (resp.status === "recording") root.statusText = "Recording..." + devTag;
-            else if (resp.status === "transcribing") root.statusText = "Transcribing..." + devTag;
+            let callTag = root.callModeActive ? "[Beta] Call Mode - " : "";
+            if (resp.status === "loading_model") root.statusText = callTag + "Loading model..." + devTag;
+            else if (resp.status === "recording") root.statusText = callTag + "Listening..." + devTag;
+            else if (resp.status === "transcribing") root.statusText = callTag + "Transcribing..." + devTag;
         } else if (resp.type === "stt_result") {
-            root.isRecording = false;
-            root.statusText = "";
+            if (!root.callModeActive) {
+                root.isRecording = false;
+                root.statusText = "";
+            }
             root.lastRecognizedText = resp.text || "";
             if (root.lastRecognizedText) {
                 root.textRecognized(root.lastRecognizedText);
             }
         } else if (resp.type === "stt_error") {
             root.isRecording = false;
+            root.callModeActive = false;
             root.statusText = "";
             root.errorOccurred(resp.error || "Unknown STT error");
         } else if (resp.type === "tts_done") {
@@ -156,6 +161,7 @@ Item {
             root.isRecording = true;
         } else if (resp.type === "stt_stopped") {
             root.isRecording = false;
+            root.callModeActive = false;
             root.statusText = "";
         } else if (resp.type === "tts_stopped") {
             root.isPlaying = false;
@@ -229,6 +235,9 @@ Item {
     }
 
     function startRecording() {
+        if (root.callModeActive) {
+            root.stopCallMode();
+        }
         root.isRecording = true;
         root.statusText = "Recording...";
         let lang = plasmoid.configuration.voiceLanguage || "en";
@@ -240,6 +249,41 @@ Item {
 
     function stopRecording() {
         root.statusText = "Processing...";
+        sendHttpCommand(JSON.stringify({cmd: "stop_stt"}), 9015);
+    }
+
+    function startCallMode() {
+        if (root.isRecording) {
+            root.stopRecording();
+        }
+        if (root.isPlaying) {
+            root.stopTTS();
+        }
+        root.callModeActive = true;
+        root.isRecording = true;
+        root.statusText = "[Beta] Call Mode - Connecting...";
+        
+        let lang = plasmoid.configuration.voiceLanguage || "en";
+        let model = plasmoid.configuration.voiceSttModel || root.defaultSttModel;
+        let modelPath = plasmoid.configuration.voiceSttModelPath || "";
+        let gpuReq = plasmoid.configuration.voiceGpuEnabled || false;
+        sendHttpCommand(JSON.stringify({
+            cmd: "start_stt",
+            is_call_mode: true,
+            duration: 0,
+            language: lang,
+            model: model,
+            model_path: modelPath,
+            gpu_requested: gpuReq
+        }), 9015);
+    }
+
+    function stopCallMode() {
+        root.callModeActive = false;
+        root.statusText = "Ending call...";
+        if (root.isPlaying) {
+            root.stopTTS();
+        }
         sendHttpCommand(JSON.stringify({cmd: "stop_stt"}), 9015);
     }
 

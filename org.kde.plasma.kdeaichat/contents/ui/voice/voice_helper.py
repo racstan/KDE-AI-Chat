@@ -387,70 +387,174 @@ class VoiceHelper:
                         self.recording = False
                         return
 
-                self.current_status = "recording"
-                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
-
-                # Record audio using a single continuous stream to prevent microphone icon flickering on the taskbar
+                is_call_mode = payload.get("is_call_mode", False)
+                self.call_mode_active = is_call_mode
                 sample_rate = 16000
-                all_audio = []
-                total_recorded = 0.0
+                import numpy as np
+                import soundfile as sf
+                import sounddevice as sd
 
                 stop_stt_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_stt")
                 if os.path.exists(stop_stt_file):
                     try: os.remove(stop_stt_file)
                     except OSError: pass
 
-                with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
-                    chunk_duration = 0.1  # Check stop_recording every 100ms
+                if is_call_mode:
+                    chunk_duration = 0.1  # 100ms
                     chunk_frames = int(chunk_duration * sample_rate)
-                    while (duration <= 0 or total_recorded < duration) and not self.stop_recording:
+
+                    while self.call_mode_active and not self.stop_recording:
                         if os.path.exists(stop_stt_file):
                             self.stop_recording = True
                             break
-                        self.current_countdown = int(duration - total_recorded) if duration > 0 else 0
-                        chunk, overflowed = stream.read(chunk_frames)
-                        all_audio.append(chunk.flatten())
-                        total_recorded += chunk_duration
 
-                if not all_audio:
-                    self.emit({"type": "stt_result", "text": "", "duration": 0})
-                    self.recording = False
-                    return
+                        all_audio = []
+                        speech_detected = False
+                        consecutive_speech_chunks = 0
+                        consecutive_silence_chunks = 0
+                        background_rms = 0.005
 
-                self.current_status = "transcribing"
-                self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
+                        self.current_status = "recording"
+                        self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
 
-                # Concatenate and transcribe
-                import numpy as np
-                audio = np.concatenate(all_audio)
+                        try:
+                            with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
+                                while self.call_mode_active and not self.stop_recording:
+                                    if os.path.exists(stop_stt_file):
+                                        self.stop_recording = True
+                                        break
 
-                # Save audio to temp file for playback
-                import soundfile as sf
-                audio_path = self.temp_audio_path
-                sf.write(audio_path, audio, sample_rate)
+                                    chunk, overflowed = stream.read(chunk_frames)
+                                    flat_chunk = chunk.flatten()
+                                    all_audio.append(flat_chunk)
 
-                # Skip very short audio
-                if len(audio) < sample_rate * 0.5:
-                    self.emit({"type": "stt_result", "text": "", "duration": total_recorded, "audio_path": audio_path})
-                    self.recording = False
-                    return
+                                    # Compute RMS
+                                    rms = np.sqrt(np.mean(flat_chunk**2)) if len(flat_chunk) > 0 else 0.0
 
-                segments, info = self.stt_model.transcribe(
-                    audio,
-                    beam_size=5,
-                    language=language if language != "auto" else None,
-                    vad_filter=True,
-                )
-                text = " ".join(seg.text for seg in segments).strip()
+                                    # Update background estimate
+                                    if rms < background_rms:
+                                        background_rms = 0.95 * background_rms + 0.05 * rms
+                                    else:
+                                        background_rms = 0.999 * background_rms + 0.001 * rms
 
-                self.emit({
-                    "type": "stt_result",
-                    "text": text,
-                    "duration": total_recorded,
-                    "language": info.language if hasattr(info, "language") else language,
-                    "audio_path": audio_path,
-                    "device": self.stt_device,
-                })
+                                    current_speech_threshold = max(0.015, min(0.05, background_rms + 0.015))
+                                    silence_threshold = current_speech_threshold * 0.8
+
+                                    if rms > current_speech_threshold:
+                                        consecutive_speech_chunks += 1
+                                        consecutive_silence_chunks = 0
+                                        if not speech_detected and consecutive_speech_chunks >= 3:
+                                            speech_detected = True
+                                            if self.tts_playing:
+                                                self.stop_tts_cmd({})
+                                    else:
+                                        consecutive_silence_chunks += 1
+                                        consecutive_speech_chunks = 0
+
+                                    # End-of-speech detection
+                                    if speech_detected and consecutive_silence_chunks >= 12:  # 1.2s silence
+                                        break
+
+                                    # Discard silence window to prevent memory accumulation
+                                    if not speech_detected and len(all_audio) >= 60:
+                                        all_audio = all_audio[-20:]
+
+                        except Exception as stream_err:
+                            self.emit({"type": "stt_status", "status": "recording", "device": "error: " + str(stream_err)})
+                            time.sleep(1)
+                            continue
+
+                        if self.stop_recording or not self.call_mode_active:
+                            break
+
+                        if not speech_detected or not all_audio:
+                            continue
+
+                        audio = np.concatenate(all_audio)
+                        if len(audio) < sample_rate * 0.5:
+                            continue
+
+                        self.current_status = "transcribing"
+                        self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
+
+                        audio_path = self.temp_audio_path
+                        sf.write(audio_path, audio, sample_rate)
+
+                        segments, info = self.stt_model.transcribe(
+                            audio,
+                            beam_size=5,
+                            language=language if language != "auto" else None,
+                            vad_filter=True,
+                        )
+                        text = " ".join(seg.text for seg in segments).strip()
+
+                        if text:
+                            self.emit({
+                                "type": "stt_result",
+                                "text": text,
+                                "duration": len(audio) / sample_rate,
+                                "language": info.language if hasattr(info, "language") else language,
+                                "audio_path": audio_path,
+                                "device": self.stt_device,
+                                "is_call_mode": True
+                            })
+                else:
+                    self.current_status = "recording"
+                    self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+
+                    sample_rate = 16000
+                    all_audio = []
+                    total_recorded = 0.0
+
+                    with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
+                        chunk_duration = 0.1  # Check stop_recording every 100ms
+                        chunk_frames = int(chunk_duration * sample_rate)
+                        while (duration <= 0 or total_recorded < duration) and not self.stop_recording:
+                            if os.path.exists(stop_stt_file):
+                                self.stop_recording = True
+                                break
+                            self.current_countdown = int(duration - total_recorded) if duration > 0 else 0
+                            chunk, overflowed = stream.read(chunk_frames)
+                            all_audio.append(chunk.flatten())
+                            total_recorded += chunk_duration
+
+                    if not all_audio:
+                        self.emit({"type": "stt_result", "text": "", "duration": 0})
+                        self.recording = False
+                        return
+
+                    self.current_status = "transcribing"
+                    self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
+
+                    # Concatenate and transcribe
+                    audio = np.concatenate(all_audio)
+
+                    # Save audio to temp file
+                    audio_path = self.temp_audio_path
+                    sf.write(audio_path, audio, sample_rate)
+
+                    # Skip very short audio
+                    if len(audio) < sample_rate * 0.5:
+                        self.emit({"type": "stt_result", "text": "", "duration": total_recorded, "audio_path": audio_path})
+                        self.recording = False
+                        return
+
+                    segments, info = self.stt_model.transcribe(
+                        audio,
+                        beam_size=5,
+                        language=language if language != "auto" else None,
+                        vad_filter=True,
+                    )
+                    text = " ".join(seg.text for seg in segments).strip()
+
+                    self.emit({
+                        "type": "stt_result",
+                        "text": text,
+                        "duration": total_recorded,
+                        "language": info.language if hasattr(info, "language") else language,
+                        "audio_path": audio_path,
+                        "device": self.stt_device,
+                    })
 
             except Exception as e:
                 self.emit({"type": "stt_error", "error": str(e)})

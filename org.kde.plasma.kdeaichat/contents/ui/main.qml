@@ -75,7 +75,7 @@ PlasmoidItem {
         id: voiceManager
 
         onTextRecognized: function(text) {
-            if (voiceManager.autoSend) {
+            if (voiceManager.callModeActive || voiceManager.autoSend) {
                 root.chatInputText = text;
                 root.sendMessage();
             } else {
@@ -2050,7 +2050,7 @@ PlasmoidItem {
             soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
         }
 
-        if (voiceManager && voiceManager.enabled && voiceManager.ttsAuto) {
+        if (voiceManager && voiceManager.enabled && (voiceManager.ttsAuto || voiceManager.callModeActive)) {
             // Find the last assistant message
             for (var i = root.messages.length - 1; i >= 0; i--) {
                 if (root.messages[i].role === "assistant") {

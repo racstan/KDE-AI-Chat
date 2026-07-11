@@ -20,6 +20,18 @@ import org.kde.plasma.plasma5support as P5Support
         property var localActiveList: []
         property var localArchivedList: []
 
+        Timer {
+            id: refreshTimer
+            interval: 5000
+            repeat: true
+            running: scheduleDialog.opened && scheduleDialog.editingIndex === -1
+            onTriggered: {
+                if (page && typeof page.schedLoadSchedules === "function") {
+                    page.schedLoadSchedules();
+                }
+            }
+        }
+
         Connections {
             target: page
             ignoreUnknownSignals: true
@@ -37,6 +49,14 @@ import org.kde.plasma.plasma5support as P5Support
 
         function translate(text) {
             return (page && typeof page.translate === "function") ? page.translate(text) : text;
+        }
+
+        function updateDraft(patch) {
+            let d = Object.assign({}, draft);
+            for (let k in patch) {
+                d[k] = patch[k];
+            }
+            draft = d;
         }
 
         function getChatsList() {
@@ -142,8 +162,7 @@ import org.kde.plasma.plasma5support as P5Support
                 d.setHours(value);
             else if (field === "minute")
                 d.setMinutes(value);
-            scheduleDialog.draft.startDate = d.toISOString();
-            scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+            scheduleDialog.updateDraft({"startDate": d.toISOString()});
         }
 
         // Helper: human-readable summary
@@ -370,7 +389,7 @@ import org.kde.plasma.plasma5support as P5Support
 
                     delegate: Rectangle {
                         width: activeSchedListView.width - 16
-                        height: 74
+                        implicitHeight: activeSchedRow.implicitHeight + Kirigami.Units.smallSpacing * 3
                         radius: 6
                         color: modelData.enabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.07) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
                         border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
@@ -378,9 +397,12 @@ import org.kde.plasma.plasma5support as P5Support
                         opacity: modelData.enabled ? 1 : 0.55
 
                         RowLayout {
+                            id: activeSchedRow
                             spacing: Kirigami.Units.smallSpacing
                             anchors {
-                                fill: parent
+                                left: parent.left
+                                right: parent.right
+                                top: parent.top
                                 margins: Kirigami.Units.smallSpacing * 1.5
                             }
 
@@ -413,6 +435,29 @@ import org.kde.plasma.plasma5support as P5Support
                                     text: "⏱ " + (modelData.humanReadable || modelData.cron || "") + (modelData.chatName ? " · 💬 " + modelData.chatName : "")
                                     font.pixelSize: 11
                                     opacity: 0.7
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    visible: modelData.enabled && !!modelData.nextRunAt
+                                    text: {
+                                        if (!modelData.nextRunAt) return "";
+                                        try {
+                                            let clean = modelData.nextRunAt;
+                                            if (clean.endsWith("Z")) {
+                                                clean = clean.substring(0, clean.length - 1);
+                                            }
+                                            let dt = new Date(clean);
+                                            return "➡ " + translate("Next run: %1").arg(dt.toLocaleString(Qt.locale(), Locale.ShortFormat));
+                                        } catch (e) {
+                                            return "➡ " + translate("Next run: %1").arg(modelData.nextRunAt);
+                                        }
+                                    }
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                    color: Kirigami.Theme.highlightColor
+                                    opacity: 0.95
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
@@ -774,9 +819,10 @@ import org.kde.plasma.plasma5support as P5Support
                         onActivated: {
                             let selected = model[index];
                             if (selected && selected.id) {
-                                scheduleDialog.draft.chatId = selected.id;
-                                scheduleDialog.draft.chatName = selected.name;
-                                scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                scheduleDialog.updateDraft({
+                                    "chatId": selected.id,
+                                    "chatName": selected.name
+                                });
                             }
                         }
                     }
@@ -812,7 +858,7 @@ import org.kde.plasma.plasma5support as P5Support
                         wrapMode: TextEdit.Wrap
                         text: scheduleDialog.draft.message || ""
                         placeholderText: translate("e.g. What should I focus on today?")
-                        onTextChanged: scheduleDialog.draft.message = text;}
+                        onTextChanged: scheduleDialog.updateDraft({"message": text});}
 
                 }
 
@@ -838,8 +884,7 @@ import org.kde.plasma.plasma5support as P5Support
                             highlighted: (scheduleDialog.draft.taskType || "single") === "single"
                             flat: (scheduleDialog.draft.taskType || "single") !== "single"
                             onClicked: {
-                                scheduleDialog.draft.taskType = "single";
-                                scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                scheduleDialog.updateDraft({"taskType": "single"});
                             }
                         }
 
@@ -848,8 +893,7 @@ import org.kde.plasma.plasma5support as P5Support
                             highlighted: (scheduleDialog.draft.taskType || "single") === "repeat"
                             flat: (scheduleDialog.draft.taskType || "single") !== "repeat"
                             onClicked: {
-                                scheduleDialog.draft.taskType = "repeat";
-                                scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                scheduleDialog.updateDraft({"taskType": "repeat"});
                             }
                         }
 
@@ -1006,8 +1050,7 @@ import org.kde.plasma.plasma5support as P5Support
                                     padding: Kirigami.Units.smallSpacing * 1.5
                                     font.pixelSize: 12
                                     onClicked: {
-                                        scheduleDialog.draft.schedType = modelData.key;
-                                        scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                        scheduleDialog.updateDraft({"schedType": modelData.key});
                                     }}
 
                             }
@@ -1035,8 +1078,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 to: 999
                                 value: scheduleDialog.draft.schedEvery || 1
                                 onValueModified: {
-                                    scheduleDialog.draft.schedEvery = value;
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                    scheduleDialog.updateDraft({"schedEvery": value});
                                 }}
 
                             QQC2.Label {
@@ -1082,8 +1124,9 @@ import org.kde.plasma.plasma5support as P5Support
                                 }
                                 onValueModified: {
                                     let m = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0;
-                                    scheduleDialog.draft.schedTime = (value < 10 ? "0" : "") + value + ":" + (m < 10 ? "0" : "") + m;
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                    scheduleDialog.updateDraft({
+                                        "schedTime": (value < 10 ? "0" : "") + value + ":" + (m < 10 ? "0" : "") + m
+                                    });
                                 }
                             }
 
@@ -1103,8 +1146,9 @@ import org.kde.plasma.plasma5support as P5Support
                                 }
                                 onValueModified: {
                                     let h = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9;
-                                    scheduleDialog.draft.schedTime = (h < 10 ? "0" : "") + h + ":" + (value < 10 ? "0" : "") + value;
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                    scheduleDialog.updateDraft({
+                                        "schedTime": (h < 10 ? "0" : "") + h + ":" + (value < 10 ? "0" : "") + value
+                                    });
                                 }
                             }
 
@@ -1158,13 +1202,11 @@ import org.kde.plasma.plasma5support as P5Support
                                             if (pos >= 0) {
                                                 if (ds.length > 1)
                                                     ds.splice(pos, 1);
-
                                             } else {
                                                 ds.push(index);
                                                 ds.sort();
                                             }
-                                            scheduleDialog.draft.schedDays = ds;
-                                            scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                            scheduleDialog.updateDraft({"schedDays": ds});
                                         }
                                     }
 
@@ -1194,8 +1236,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 to: 28
                                 value: scheduleDialog.draft.schedDayOfMonth || 1
                                 onValueModified: {
-                                    scheduleDialog.draft.schedDayOfMonth = value;
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                    scheduleDialog.updateDraft({"schedDayOfMonth": value});
                                 }}
 
                             QQC2.Label {
@@ -1225,8 +1266,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 text: translate("Limit number of runs")
                                 checked: !!scheduleDialog.draft.limitEnabled
                                 onCheckedChanged: {
-                                    scheduleDialog.draft.limitEnabled = checked;
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                    scheduleDialog.updateDraft({"limitEnabled": checked});
                                 }}
 
                             QQC2.SpinBox {
@@ -1237,8 +1277,7 @@ import org.kde.plasma.plasma5support as P5Support
                                 to: 9999
                                 value: scheduleDialog.draft.limitCount || 5
                                 onValueModified: {
-                                    scheduleDialog.draft.limitCount = value;
-                                    scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                                    scheduleDialog.updateDraft({"limitCount": value});
                                 }}
 
                             QQC2.Label {
@@ -1301,7 +1340,7 @@ import org.kde.plasma.plasma5support as P5Support
                         Layout.fillWidth: true
                         text: scheduleDialog.draft.name || ""
                         placeholderText: translate("Leave blank to auto-name")
-                        onTextChanged: scheduleDialog.draft.name = text;}
+                        onTextChanged: scheduleDialog.updateDraft({"name": text});}
 
                 }
 
@@ -1311,8 +1350,7 @@ import org.kde.plasma.plasma5support as P5Support
 
                         checked: scheduleDialog.draft.notify !== false
                         onCheckedChanged: {
-                            scheduleDialog.draft.notify = checked;
-                            scheduleDialog.draft = Object.assign({}, scheduleDialog.draft);
+                            scheduleDialog.updateDraft({"notify": checked});
                         }}
 
                     QQC2.Label {

@@ -323,7 +323,7 @@ def update_schedule_timestamps(items, sid, now_iso, status, next_iso):
     return updated
 
 
-def next_run_iso(cron_expr):
+def next_run_iso(cron_expr, start_date_str=None):
     """Compute next cron fire time. Pre-parses fields once to avoid per-iteration overhead."""
     parts = cron_expr.strip().split()
     if len(parts) != 5:
@@ -340,8 +340,27 @@ def next_run_iso(cron_expr):
     dom_star = parts[2].strip() == "*"
     dow_star = parts[4].strip() == "*"
 
-    # Start from next minute to avoid re-triggering this minute
-    candidate = datetime.now().replace(second=0, microsecond=0) + timedelta(minutes=1)
+    # Parse start_date if present
+    start_dt = None
+    if start_date_str:
+        try:
+            clean_str = start_date_str
+            if clean_str.endswith("Z"):
+                clean_str = clean_str[:-1] + "+00:00"
+            parsed_dt = datetime.fromisoformat(clean_str)
+            if parsed_dt.tzinfo is not None:
+                parsed_dt = parsed_dt.astimezone().replace(tzinfo=None) # convert to local naive
+            start_dt = parsed_dt
+        except Exception as e:
+            log.warning("Error parsing start_date_str in next_run_iso: %s", e)
+
+    now = datetime.now().replace(second=0, microsecond=0)
+    if start_dt and start_dt > now:
+        # Start search exactly at start_dt because it hasn't run yet
+        candidate = start_dt.replace(second=0, microsecond=0)
+    else:
+        # Start search from next minute
+        candidate = now + timedelta(minutes=1)
 
     # Max search: 1 year of minutes
     for _ in range(527040):
@@ -399,12 +418,12 @@ def refresh_next_runs(items):
                 if should_trigger_missed:
                     old_next = s.get("nextRunAt", "")
                     s["triggerNow"] = True
-                    s["nextRunAt"] = next_run_iso(cron)
+                    s["nextRunAt"] = next_run_iso(cron, s.get("startDate"))
                     log.info(f"[{s.get('name', 'Unnamed')}] Missed run detected! Executing missed schedule (old run: {old_next}, next scheduled: {s['nextRunAt']})")
                     changed = True
                 elif should_recalc:
                     old_next = s.get("nextRunAt", "")
-                    s["nextRunAt"] = next_run_iso(cron)
+                    s["nextRunAt"] = next_run_iso(cron, s.get("startDate"))
                     log.info(f"[{s.get('name', 'Unnamed')}] Recalculated next run time from {old_next} to {s['nextRunAt']} (past run bypassed)")
                     changed = True
     return changed
@@ -534,7 +553,7 @@ def main():
 
                 next_iso = ""
                 if not disable_task and cron:
-                    next_iso = next_run_iso(cron)
+                    next_iso = next_run_iso(cron, s.get("startDate"))
 
                 schedules = update_schedule_timestamps(
                     schedules, sid, now_iso, status or "success", next_iso
