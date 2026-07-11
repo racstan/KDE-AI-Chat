@@ -1180,29 +1180,44 @@ Item {
                                                         }
                                                     }
 
-                                                    PC3.ToolButton {
-                                                        id: ttsPlayButton
+                                                    Item {
+                                                        id: ttsPlayContainer
                                                         visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
-                                                        enabled: root.currentStreamIndex !== index
-                                                        icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "media-playback-stop" : "audio-speakers"
-                                                        display: PC3.AbstractButton.IconOnly
-                                                        QQC2.ToolTip.visible: hovered
-                                                        QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "Stop speaking" : ((lastSelectedText && lastSelectedText.trim().length > 0) ? "Read selected text" : "Read aloud")
-                                                        onClicked: {
-                                                            if (root.voiceManagerRef) {
-                                                                let isPlayingThis = root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
-                                                                if (isPlayingThis) {
-                                                                    root.voiceManagerRef.stopTTS();
-                                                                    repRoot.playingMessageIndex = -1;
-                                                                } else {
-                                                                    if (root.voiceManagerRef.isPlaying) {
+                                                        Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                                                        Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+
+                                                        PC3.ToolButton {
+                                                            id: ttsPlayButton
+                                                            anchors.fill: parent
+                                                            enabled: root.currentStreamIndex !== index
+                                                            icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "media-playback-stop" : "audio-speakers"
+                                                            display: PC3.AbstractButton.IconOnly
+                                                            QQC2.ToolTip.visible: hovered
+                                                            QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "Stop speaking" : ((lastSelectedText && lastSelectedText.trim().length > 0) ? "Read selected text" : "Read aloud")
+                                                            onClicked: {
+                                                                if (root.voiceManagerRef) {
+                                                                    let isPlayingThis = root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
+                                                                    if (isPlayingThis) {
                                                                         root.voiceManagerRef.stopTTS();
+                                                                        repRoot.playingMessageIndex = -1;
+                                                                    } else {
+                                                                        if (root.voiceManagerRef.isPlaying) {
+                                                                            root.voiceManagerRef.stopTTS();
+                                                                        }
+                                                                        let textToPlay = (lastSelectedText && lastSelectedText.trim().length > 0) ? lastSelectedText : modelData.content;
+                                                                        repRoot.playingMessageIndex = index;
+                                                                        root.voiceManagerRef.playTTS(textToPlay);
                                                                     }
-                                                                    let textToPlay = (lastSelectedText && lastSelectedText.trim().length > 0) ? lastSelectedText : modelData.content;
-                                                                    repRoot.playingMessageIndex = index;
-                                                                    root.voiceManagerRef.playTTS(textToPlay);
                                                                 }
                                                             }
+                                                        }
+
+                                                        PC3.BusyIndicator {
+                                                            anchors.centerIn: parent
+                                                            width: parent.width * 0.8
+                                                            height: parent.height * 0.8
+                                                            running: root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
+                                                            visible: running
                                                         }
                                                     }
 
@@ -1280,19 +1295,35 @@ Item {
                     }
 
                     RowLayout {
-                        visible: root.loading
+                        visible: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "")
+                        spacing: Kirigami.Units.smallSpacing
 
                         PC3.BusyIndicator {
-                            running: root.loading
-                            width: 20
-                            height: 20
+                            running: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused")
+                            visible: running
+                            width: 16
+                            height: 16
+                        }
+
+                        Kirigami.Icon {
+                            source: "audio-volume-high"
+                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud...")
+                            width: 16
+                            height: 16
                         }
 
                         PC3.Label {
-                            text: root.streamingResponse ? "Streaming response..." : "Thinking..."
+                            text: {
+                                if (root.loading) {
+                                    return root.streamingResponse ? "Streaming response..." : "Thinking...";
+                                } else if (root.voiceManagerRef && root.voiceManagerRef.statusText) {
+                                    return root.voiceManagerRef.statusText;
+                                }
+                                return "";
+                            }
                             opacity: 0.8
+                            font.italic: true
                         }
-
                     }
 
                     // Attached Files Bar
@@ -1437,7 +1468,16 @@ Item {
                             Component.onCompleted: {
                                 if (root.expanded)
                                     focusTimer.start();
+                                msgInput.text = root.chatInputText;
+                            }
 
+                            Connections {
+                                target: root
+                                function onChatInputTextChanged() {
+                                    if (msgInput.text !== root.chatInputText) {
+                                        msgInput.text = root.chatInputText;
+                                    }
+                                }
                             }
 
                             Timer {
@@ -1466,21 +1506,34 @@ Item {
 
 
 
-                        PC3.ToolButton {
+                        Item {
                             visible: plasmoid.configuration.voiceEnabled
-                            icon.name: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "media-playback-stop" : "audio-input-microphone"
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "Stop Recording" : "Record Voice (STT)"
-                            onClicked: {
-                                if (root.voiceManagerRef) {
-                                    if (root.voiceManagerRef.isRecording) {
-                                        root.voiceManagerRef.stopRecording();
-                                    } else {
-                                        root.voiceManagerRef.startRecording();
+
+                            PC3.ToolButton {
+                                id: recordButton
+                                anchors.fill: parent
+                                icon.name: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "media-playback-stop" : "audio-input-microphone"
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "Stop Recording" : "Record Voice (STT)"
+                                onClicked: {
+                                    if (root.voiceManagerRef) {
+                                        if (root.voiceManagerRef.isRecording) {
+                                            root.voiceManagerRef.stopRecording();
+                                        } else {
+                                            root.voiceManagerRef.startRecording();
+                                        }
                                     }
                                 }
+                            }
+
+                            PC3.BusyIndicator {
+                                anchors.centerIn: parent
+                                width: parent.width * 0.6
+                                height: parent.height * 0.6
+                                running: root.voiceManagerRef && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
+                                visible: running
                             }
                         }
 

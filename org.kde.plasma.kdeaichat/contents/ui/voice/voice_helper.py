@@ -343,7 +343,9 @@ class VoiceHelper:
 
                 # Load model
                 model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
-                if self.stt_model is None or self.stt_model_name != model_identity:
+                import torch
+                device = "cuda" if gpu_requested and torch.cuda.is_available() else "cpu"
+                if self.stt_model is None or self.stt_model_name != model_identity or getattr(self, "stt_device", "cpu") != device:
                     self.current_status = "loading_model"
                     self.emit({"type": "stt_status", "status": "loading_model", "device": "loading..."})
                     try:
@@ -351,8 +353,6 @@ class VoiceHelper:
                         self._preload_nvidia_libs()
 
                         from faster_whisper import WhisperModel
-                        import torch
-                        device = "cuda" if gpu_requested and torch.cuda.is_available() else "cpu"
                         self.stt_device = device
                         compute_type = "float16" if device == "cuda" else "int8"
                         
@@ -1251,6 +1251,81 @@ if __name__ == "__main__":
         helper.wait_for_background_work()
     elif args.stt_server:
         port = args.port or 9015
+        
+        def get_stt_config():
+            import configparser
+            config = configparser.ConfigParser()
+            path = os.path.expanduser("~/.config/kdeaichatrc")
+            res = {
+                "model": "small",
+                "model_path": "",
+                "gpu_requested": False
+            }
+            if os.path.exists(path):
+                try:
+                    config.read(path)
+                    for section in config.sections():
+                        if "voiceSttModel" in config[section]:
+                            res["model"] = config[section].get("voiceSttModel", "small")
+                        if "voiceSttModelPath" in config[section]:
+                            res["model_path"] = config[section].get("voiceSttModelPath", "")
+                        if "voiceGpuEnabled" in config[section]:
+                            val = config[section].get("voiceGpuEnabled", "false").lower()
+                            res["gpu_requested"] = val in ("true", "1", "yes")
+                except Exception:
+                    pass
+            return res
+
+        def preload_stt():
+            try:
+                import threading
+                import torch
+                conf = get_stt_config()
+                model_name = conf["model"]
+                custom_model_path = conf["model_path"]
+                gpu_requested = conf["gpu_requested"]
+
+                model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
+                helper._preload_nvidia_libs()
+                from faster_whisper import WhisperModel
+                device = "cuda" if gpu_requested and torch.cuda.is_available() else "cpu"
+                compute_type = "float16" if device == "cuda" else "int8"
+                
+                print(f"Pre-loading STT model '{model_identity}' on {device}...", flush=True)
+                
+                try:
+                    if custom_model_path:
+                        custom_model_path = os.path.expanduser(custom_model_path)
+                        custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
+                        if os.path.isdir(custom_dir):
+                            helper.stt_model = WhisperModel(custom_dir, device=device, compute_type=compute_type)
+                        else:
+                            helper.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
+                    else:
+                        helper.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
+                except Exception:
+                    if device == "cuda":
+                        if custom_model_path:
+                            custom_model_path = os.path.expanduser(custom_model_path)
+                            custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
+                            if os.path.isdir(custom_dir):
+                                helper.stt_model = WhisperModel(custom_dir, device="cpu", compute_type="int8")
+                            else:
+                                helper.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+                        else:
+                            helper.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+                        device = "cpu"
+                    else:
+                        raise
+
+                helper.stt_model_name = model_identity
+                helper.stt_device = device
+                print(f"STT model pre-loaded successfully on {device}.", flush=True)
+            except Exception as e:
+                print(f"Failed to pre-load STT model: {e}", flush=True)
+
+        import threading
+        threading.Thread(target=preload_stt, daemon=True).start()
         helper.run_http_server(port, mode="stt")
     elif args.tts_server:
         port = args.port or 9016

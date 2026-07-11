@@ -83,14 +83,17 @@ Item {
                             let resp = JSON.parse(xhr.responseText);
                             if (resp.status === "playing") {
                                 if (resp.chunk) root.currentPlayingChunk = resp.chunk;
+                                root.statusText = "Reading aloud...";
                             } else if (resp.status === "synthesizing") {
                                 root.currentPlayingChunk = "";
+                                root.statusText = "Generating speech...";
                             } else if (resp.status === "idle" && root.isPlaying) {
                                 if (resp.tts_result && resp.tts_result.type === "tts_error") {
                                     handleResponse(resp.tts_result, "http_poll");
                                 } else {
                                     root.isPlaying = false;
                                     root.currentPlayingChunk = "";
+                                    root.statusText = "";
                                 }
                             }
                         } catch(e) {}
@@ -125,19 +128,30 @@ Item {
         } else if (resp.type === "tts_done") {
             root.isPlaying = false;
             root.currentPlayingChunk = "";
+            root.statusText = "";
         } else if (resp.type === "tts_error") {
             root.isPlaying = false;
             root.currentPlayingChunk = "";
+            root.statusText = "";
             root.errorOccurred(resp.error || "Unknown TTS error");
         } else if (resp.type === "tts_status") {
             if (resp.status === "playing") {
                 root.isPlaying = true;
+                root.statusText = "Reading aloud...";
                 if (resp.chunk) {
                     root.currentPlayingChunk = resp.chunk;
                 }
+            } else if (resp.status === "synthesizing") {
+                root.isPlaying = true;
+                root.statusText = "Generating speech...";
+            } else if (resp.status === "stopping") {
+                root.statusText = "";
+            } else if (resp.status === "paused") {
+                root.statusText = "Paused";
             }
         } else if (resp.type === "tts_started") {
             root.isPlaying = true;
+            root.statusText = "Generating speech...";
         } else if (resp.type === "stt_started") {
             root.isRecording = true;
         } else if (resp.type === "stt_stopped") {
@@ -146,6 +160,7 @@ Item {
         } else if (resp.type === "tts_stopped") {
             root.isPlaying = false;
             root.currentPlayingChunk = "";
+            root.statusText = "";
         }
     }
 
