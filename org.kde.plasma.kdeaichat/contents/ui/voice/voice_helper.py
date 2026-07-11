@@ -402,41 +402,66 @@ class VoiceHelper:
 
                 if is_call_mode:
                     # ----------------------------------------------------------------
-                    # CALL MODE: Always-on mic, energy VAD, 1.5s silence → send
+                    # CALL MODE — Percentile-based adaptive VAD
                     #
-                    # Key design decisions:
-                    #  - Single sd.InputStream for entire call (no re-open latency)
-                    #  - 30ms chunks for tight tracking
-                    #  - Soft threshold: speech = rms > max(0.006, background*2.0)
-                    #    (much lower than before – catches quiet voices reliably)
-                    #  - Flush remaining audio on call end (no audio ever discarded)
-                    #  - Safety valve: send after 20s regardless (long monologue)
-                    #  - Transcription runs in daemon thread → mic stays recording
+                    # Problem: fixed/multiplier thresholds fail in noisy rooms.
+                    # Your mic noise floor is ~0.37, speech peaks at ~0.97.
+                    # The ratio is only 2.6x — not enough for a simple multiplier.
+                    #
+                    # Solution: track a rolling 4-second window of RMS values.
+                    # - noise_level  = 20th percentile of window (quiet floor)
+                    # - speech_level = 80th percentile of window (active speech)
+                    # - is_speech    = current RMS > midpoint + margin
+                    # This dynamically adjusts to ANY room noise level.
+                    #
+                    # Two-threshold hysteresis:
+                    # - ONSET: rms must cross a HIGH bar to start an utterance
+                    # - END:   rms drops below a LOWER bar → silence counter ticks
                     # ----------------------------------------------------------------
 
                     CHUNK_MS = 30
-                    CHUNK_FRAMES = int(sample_rate * CHUNK_MS / 1000)  # 480 frames
+                    CHUNK_FRAMES = int(sample_rate * CHUNK_MS / 1000)
                     SILENCE_TIMEOUT_S = 1.5
-                    SPEECH_ONSET_CHUNKS = 3       # 90ms of sustained energy = speech
-                    MAX_SEGMENT_S = 20.0          # safety flush after 20s of speech
-                    PREROLL_CHUNKS = int(0.4 * 1000 / CHUNK_MS)  # ~13 chunks = 400ms
+                    MAX_SEGMENT_S = 20.0
+                    PREROLL_CHUNKS = int(0.4 * 1000 / CHUNK_MS)
+                    WINDOW_CHUNKS = int(4.0 * 1000 / CHUNK_MS)   # 4s rolling window
+                    ONSET_CHUNKS  = 4                              # 120ms sustained onset
+                    silence_limit        = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
+                    max_segment_chunks   = int(MAX_SEGMENT_S     * 1000 / CHUNK_MS)
 
-                    # Noise floor — calibrate over first ~1s of audio
-                    background_rms = 0.003
-                    silence_limit = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
-                    max_segment_chunks = int(MAX_SEGMENT_S * 1000 / CHUNK_MS)
-
+                    # Rolling RMS window for percentile-based threshold
+                    rms_window = collections.deque(maxlen=WINDOW_CHUNKS)
                     preroll_buf = collections.deque(maxlen=PREROLL_CHUNKS)
+
+                    def compute_thresholds(window):
+                        """Return (onset_thresh, silence_thresh) from rolling window."""
+                        if len(window) < 10:
+                            # Not enough data yet — conservative fallback
+                            return 0.05, 0.03
+                        arr = np.array(window)
+                        noise_p20  = float(np.percentile(arr, 20))   # quiet floor
+                        speech_p80 = float(np.percentile(arr, 80))   # typical speech
+                        gap = speech_p80 - noise_p20
+                        if gap < 0.01:
+                            # No clear gap → environment is uniform (pure silence or pure noise)
+                            # Use absolute bump above floor
+                            onset   = noise_p20 + 0.02
+                            silence = noise_p20 + 0.01
+                        else:
+                            # Clear bimodal distribution → use midpoint with margins
+                            mid     = noise_p20 + gap * 0.5
+                            onset   = mid + gap * 0.15   # slightly above midpoint to start
+                            silence = mid - gap * 0.15   # slightly below midpoint to end
+                        return onset, silence
 
                     self.current_status = "recording"
                     self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
 
                     def transcribe_and_emit(audio_chunks):
-                        """Run in a daemon thread — mic stays open during transcription."""
+                        """Daemon thread — mic stays open during transcription."""
                         try:
                             audio = np.concatenate(audio_chunks)
                             if len(audio) < sample_rate * 0.3:
-                                # Too short — just return to listening
                                 self.current_status = "recording"
                                 self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
                                 return
@@ -467,7 +492,6 @@ class VoiceHelper:
                                     "is_call_mode": True,
                                 })
 
-                            # Always return to listening after transcribing
                             if self.call_mode_active and not self.stop_recording:
                                 self.current_status = "recording"
                                 self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
@@ -481,10 +505,9 @@ class VoiceHelper:
                                             blocksize=CHUNK_FRAMES) as stream:
 
                             speech_detected = False
-                            speech_chunks = []
-                            onset_counter = 0
-                            silence_chunks = 0
-                            calibration_chunks = 0  # first 33 chunks = ~1s calibration
+                            speech_chunks   = []
+                            onset_counter   = 0
+                            silence_chunks  = 0
 
                             while self.call_mode_active and not self.stop_recording:
                                 if os.path.exists(stop_stt_file):
@@ -493,73 +516,60 @@ class VoiceHelper:
 
                                 chunk, _ = stream.read(CHUNK_FRAMES)
                                 flat = chunk.flatten()
+                                rms  = float(np.sqrt(np.mean(flat ** 2))) if len(flat) > 0 else 0.0
 
-                                rms = float(np.sqrt(np.mean(flat ** 2))) if len(flat) > 0 else 0.0
+                                # Always update rolling window (even during speech so window stays current)
+                                rms_window.append(rms)
+                                onset_thresh, silence_thresh = compute_thresholds(rms_window)
 
-                                # ── Noise floor update ──────────────────────────────
-                                if calibration_chunks < 33:
-                                    # During first ~1s: fast calibration, don't trigger speech
-                                    background_rms = (calibration_chunks * background_rms + rms) / (calibration_chunks + 1)
-                                    calibration_chunks += 1
-                                    preroll_buf.append(flat)
-                                    continue
+                                is_onset   = rms > onset_thresh
+                                is_silence = rms < silence_thresh
 
-                                # Slow adaptive update when in silence
-                                if rms < background_rms * 1.5:
-                                    background_rms = 0.98 * background_rms + 0.02 * rms
-
-                                # ── Speech threshold (very forgiving) ────────────────
-                                # Minimum absolute 0.006 (~half a whisper), max 0.06
-                                threshold = max(0.006, min(0.06, background_rms * 2.0))
-                                is_speech = rms > threshold
-
-                                # ── State machine ────────────────────────────────────
                                 if not speech_detected:
                                     preroll_buf.append(flat)
 
-                                    if is_speech:
+                                    if is_onset:
                                         onset_counter += 1
-                                        if onset_counter >= SPEECH_ONSET_CHUNKS:
+                                        if onset_counter >= ONSET_CHUNKS:
+                                            # Confirmed speech start
                                             speech_detected = True
-                                            silence_chunks = 0
-                                            speech_chunks = list(preroll_buf) + [flat]
+                                            silence_chunks  = 0
+                                            speech_chunks   = list(preroll_buf) + [flat]
                                             if self.tts_playing:
                                                 self.stop_tts_cmd({})
                                     else:
-                                        # Gentle decay so brief noise doesn't falsely prime onset
                                         onset_counter = max(0, onset_counter - 1)
                                 else:
                                     speech_chunks.append(flat)
 
-                                    if is_speech:
-                                        silence_chunks = 0
-                                    else:
+                                    if is_silence:
                                         silence_chunks += 1
+                                    else:
+                                        silence_chunks = 0
 
-                                    # ── Trigger conditions ────────────────────────────
                                     should_send = (
-                                        silence_chunks >= silence_limit or          # 1.5s silence
-                                        len(speech_chunks) >= max_segment_chunks    # 20s safety valve
+                                        silence_chunks >= silence_limit or
+                                        len(speech_chunks) >= max_segment_chunks
                                     )
 
                                     if should_send:
                                         seg = list(speech_chunks)
                                         threading.Thread(target=transcribe_and_emit,
                                                          args=(seg,), daemon=True).start()
-                                        # Reset for next utterance
                                         speech_detected = False
-                                        speech_chunks = []
-                                        onset_counter = 0
-                                        silence_chunks = 0
+                                        speech_chunks   = []
+                                        onset_counter   = 0
+                                        silence_chunks  = 0
                                         preroll_buf.clear()
 
-                            # ── Flush remaining audio when call ends ──────────────────
+                            # Flush remaining audio when call ends
                             if speech_detected and speech_chunks:
-                                seg = list(speech_chunks)
-                                transcribe_and_emit(seg)  # sync — call already stopped
+                                transcribe_and_emit(list(speech_chunks))
 
                     except Exception as stream_err:
                         self.emit({"type": "stt_error", "error": "Call mode stream error: " + str(stream_err)})
+
+
 
                 else:
                     self.current_status = "recording"
