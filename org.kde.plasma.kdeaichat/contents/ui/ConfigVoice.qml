@@ -444,6 +444,17 @@ KCM.SimpleKCM {
             text: i18n("<b>Voice:</b> Enables the microphone button in chat. It does not download or choose models for you.")
         }
 
+        QQC2.Label {
+            visible: voiceEnabledToggle.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.RichText
+            font: Kirigami.Theme.smallFont
+            opacity: 0.85
+            text: i18n("<b>Voice Call (Beta):</b> In chat, the phone/call icon starts a continuous hands-free voice call. The microphone remains active, AI replies are automatically spoken, and speaking interrupts active playback. This runs locally on your CPU/GPU.")
+        }
+
         QQC2.CheckBox {
             id: voiceGpuToggle
             visible: voiceEnabledToggle.checked
