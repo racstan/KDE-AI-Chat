@@ -19,6 +19,7 @@ import org.kde.plasma.plasma5support as P5Support
         property string currentTab: "active"
         property var localActiveList: []
         property var localArchivedList: []
+        property bool hasUnsavedChanges: false
 
         Timer {
             id: refreshTimer
@@ -36,12 +37,12 @@ import org.kde.plasma.plasma5support as P5Support
             target: page
             ignoreUnknownSignals: true
             function onSchedulerListChanged() {
-                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1) {
+                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1 && !scheduleDialog.hasUnsavedChanges) {
                     scheduleDialog.localActiveList = page.schedulerList.slice();
                 }
             }
             function onSchedulerArchivedListChanged() {
-                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1) {
+                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1 && !scheduleDialog.hasUnsavedChanges) {
                     scheduleDialog.localArchivedList = page.schedulerArchivedList.slice();
                 }
             }
@@ -214,6 +215,7 @@ import org.kde.plasma.plasma5support as P5Support
         onOpened: {
             if (page) {
                 page.schedLoadSchedules();
+                scheduleDialog.hasUnsavedChanges = false;
                 localActiveList = page.schedulerList.slice();
                 localArchivedList = page.schedulerArchivedList.slice();
             }
@@ -417,6 +419,7 @@ import org.kde.plasma.plasma5support as P5Support
                                     }
                                     copy[index] = s;
                                     scheduleDialog.localActiveList = copy;
+                                    scheduleDialog.hasUnsavedChanges = true;
                                 }
                             }
 
@@ -524,6 +527,7 @@ import org.kde.plasma.plasma5support as P5Support
 
                                     scheduleDialog.localActiveList = copyActive;
                                     scheduleDialog.localArchivedList = copyArchived;
+                                    scheduleDialog.hasUnsavedChanges = true;
                                 }
                             }
 
@@ -536,6 +540,7 @@ import org.kde.plasma.plasma5support as P5Support
                                     let copy = scheduleDialog.localActiveList.slice();
                                     copy.splice(index, 1);
                                     scheduleDialog.localActiveList = copy;
+                                    scheduleDialog.hasUnsavedChanges = true;
                                 }
                             }
                         }
@@ -614,6 +619,7 @@ import org.kde.plasma.plasma5support as P5Support
 
                                     scheduleDialog.localActiveList = copyActive;
                                     scheduleDialog.localArchivedList = copyArchived;
+                                    scheduleDialog.hasUnsavedChanges = true;
                                 }
                             }
 
@@ -626,6 +632,7 @@ import org.kde.plasma.plasma5support as P5Support
                                     let copyArchived = scheduleDialog.localArchivedList.slice();
                                     copyArchived.splice(index, 1);
                                     scheduleDialog.localArchivedList = copyArchived;
+                                    scheduleDialog.hasUnsavedChanges = true;
                                 }
                             }
                         }
@@ -757,6 +764,7 @@ import org.kde.plasma.plasma5support as P5Support
                     onClicked: {
                         page.schedulerList = scheduleDialog.localActiveList;
                         page.schedulerArchivedList = scheduleDialog.localArchivedList;
+                        scheduleDialog.hasUnsavedChanges = false;
                         page.schedSaveAll();
                         scheduleDialog.close();
                     }
@@ -1393,6 +1401,7 @@ import org.kde.plasma.plasma5support as P5Support
                             else
                                 copy[scheduleDialog.editingIndex] = d;
                             scheduleDialog.localActiveList = copy;
+                            scheduleDialog.hasUnsavedChanges = true;
                             scheduleDialog.editingIndex = -1;
                         }
                     }
