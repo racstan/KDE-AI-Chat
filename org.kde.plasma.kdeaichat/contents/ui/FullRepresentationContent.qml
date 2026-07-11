@@ -1253,8 +1253,8 @@ Item {
                             hoverEnabled: true
                             active: msgList.moving || msgList.dragging || pressed
                             orientation: Qt.Vertical
-                            size: msgList.visibleArea.heightRatio
-                            position: msgList.visibleArea.yPosition
+                            size: msgList.contentHeight > 0 ? Math.min(1.0, msgList.height / msgList.contentHeight) : 1.0
+                            position: msgList.contentHeight > 0 ? Math.max(0.0, Math.min(1.0 - size, msgList.contentY / msgList.contentHeight)) : 0.0
                             
                             anchors.top: msgList.top
                             anchors.bottom: msgList.bottom
@@ -1263,7 +1263,9 @@ Item {
                             onPressedChanged: {
                                 if (!pressed) {
                                     msgList.contentY = position * msgList.contentHeight;
-                                    position = Qt.binding(function() { return msgList.visibleArea.yPosition; });
+                                    position = Qt.binding(function() {
+                                        return msgList.contentHeight > 0 ? Math.max(0.0, Math.min(1.0 - size, msgList.contentY / msgList.contentHeight)) : 0.0;
+                                    });
                                 }
                             }
                         }
