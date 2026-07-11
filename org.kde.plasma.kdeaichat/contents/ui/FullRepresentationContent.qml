@@ -522,14 +522,16 @@ Item {
 
                                                 }
 
-                                                PC3.Label {
-                                                    id: msgTextLabel
+                                                TextEdit {
+                                                     id: msgTextLabel
+                                                     readOnly: true
+                                                     cursorVisible: false
 
                                                     visible: root.editingMessageIndex !== index || modelData.role === "error"
                                                     width: parent.width
                                                     wrapMode: Text.Wrap
                                                     selectByMouse: true
-                                                    selectByKeyboard: true
+                                                    
                                                     textFormat: modelData.role === "error" ? Text.PlainText : Text.MarkdownText
                                                     text: {
                                                         let baseText = (root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content;
@@ -573,6 +575,7 @@ Item {
                                                         return baseText;
                                                     }
                                                     color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                                                     font: Kirigami.Theme.defaultFont
                                                     onLinkActivated: function(link) {
                                                         Qt.openUrlExternally(link);
                                                     }
