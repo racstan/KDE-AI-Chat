@@ -369,8 +369,10 @@ Item {
                             model: root.messages
                             spacing: Kirigami.Units.largeSpacing
                             clip: true
-                            reuseItems: true
+                            reuseItems: false
                             cacheBuffer: 1000
+                            onWidthChanged: forceLayout()
+                            onHeightChanged: forceLayout()
                             Component.onCompleted: root.msgListViewRef = msgList
                             // Track whether user manually scrolled away from bottom
                             onMovementStarted: {
