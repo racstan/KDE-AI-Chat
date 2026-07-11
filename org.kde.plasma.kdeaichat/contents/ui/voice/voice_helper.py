@@ -420,9 +420,9 @@ class VoiceHelper:
 
                     CHUNK_MS = 40                              # 40 ms per frame
                     CHUNK_FRAMES = int(sample_rate * CHUNK_MS / 1000)  # 640
-                    SILENCE_TIMEOUT_S = 3.0                   # seconds of silence → send
-                    SPEECH_ONSET_CHUNKS = 4                   # ~160 ms of energy before "speech"
-                    PREROLL_CHUNKS = int(0.5 * 1000 / CHUNK_MS)  # 12 chunks = 480ms pre-roll
+                    SILENCE_TIMEOUT_S = 1.5                   # seconds of silence → send
+                    SPEECH_ONSET_CHUNKS = 3                   # ~120 ms of energy before "speech"
+                    PREROLL_CHUNKS = int(0.4 * 1000 / CHUNK_MS)  # 10 chunks = 400ms pre-roll
 
                     # Adaptive noise floor (fast-decay, slow-raise approach)
                     background_rms = 0.005
