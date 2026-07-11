@@ -402,50 +402,49 @@ class VoiceHelper:
 
                 if is_call_mode:
                     # ----------------------------------------------------------------
-                    # CALL MODE: Always-on microphone with adaptive VAD
+                    # CALL MODE: Always-on mic, energy VAD, 1.5s silence → send
                     #
-                    # Design goals (SpeechNote-style seamless feel):
-                    #  1. One sd.InputStream that NEVER closes during a call.
-                    #     Eliminates the ~200ms device re-open penalty each turn.
-                    #  2. 40ms chunks (640 frames) for tight energy tracking.
-                    #  3. Pre-roll ring-buffer of ~500ms so we capture the very
-                    #     start of every utterance (speech onset).
-                    #  4. End-of-utterance is detected after 3 seconds of silence
-                    #     AFTER confirmed speech, matching natural pause rhythm.
-                    #  5. While transcribing the previous segment the mic is still
-                    #     open and recording continues into the next segment buffer
-                    #     — zero audio is ever dropped.
-                    #  6. If TTS is playing and speech starts, TTS is interrupted.
+                    # Key design decisions:
+                    #  - Single sd.InputStream for entire call (no re-open latency)
+                    #  - 30ms chunks for tight tracking
+                    #  - Soft threshold: speech = rms > max(0.006, background*2.0)
+                    #    (much lower than before – catches quiet voices reliably)
+                    #  - Flush remaining audio on call end (no audio ever discarded)
+                    #  - Safety valve: send after 20s regardless (long monologue)
+                    #  - Transcription runs in daemon thread → mic stays recording
                     # ----------------------------------------------------------------
 
-                    CHUNK_MS = 40                              # 40 ms per frame
-                    CHUNK_FRAMES = int(sample_rate * CHUNK_MS / 1000)  # 640
-                    SILENCE_TIMEOUT_S = 1.5                   # seconds of silence → send
-                    SPEECH_ONSET_CHUNKS = 3                   # ~120 ms of energy before "speech"
-                    PREROLL_CHUNKS = int(0.4 * 1000 / CHUNK_MS)  # 10 chunks = 400ms pre-roll
+                    CHUNK_MS = 30
+                    CHUNK_FRAMES = int(sample_rate * CHUNK_MS / 1000)  # 480 frames
+                    SILENCE_TIMEOUT_S = 1.5
+                    SPEECH_ONSET_CHUNKS = 3       # 90ms of sustained energy = speech
+                    MAX_SEGMENT_S = 20.0          # safety flush after 20s of speech
+                    PREROLL_CHUNKS = int(0.4 * 1000 / CHUNK_MS)  # ~13 chunks = 400ms
 
-                    # Adaptive noise floor (fast-decay, slow-raise approach)
-                    background_rms = 0.005
-                    NOISE_FLOOR_ALPHA_LOWER = 0.06   # adapts downward fast
-                    NOISE_FLOOR_ALPHA_RAISE = 0.002  # adapts upward slowly
+                    # Noise floor — calibrate over first ~1s of audio
+                    background_rms = 0.003
+                    silence_limit = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
+                    max_segment_chunks = int(MAX_SEGMENT_S * 1000 / CHUNK_MS)
 
-                    # Pre-roll ring buffer — always keep last PREROLL_CHUNKS chunks
                     preroll_buf = collections.deque(maxlen=PREROLL_CHUNKS)
 
                     self.current_status = "recording"
                     self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
 
-                    def transcribe_and_emit(audio_chunks, bg_rms_snapshot):
-                        """Run in a thread so mic stays open during transcription."""
+                    def transcribe_and_emit(audio_chunks):
+                        """Run in a daemon thread — mic stays open during transcription."""
                         try:
                             audio = np.concatenate(audio_chunks)
                             if len(audio) < sample_rate * 0.3:
-                                return  # Discard sub-300ms blips
+                                # Too short — just return to listening
+                                self.current_status = "recording"
+                                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+                                return
 
                             self.current_status = "transcribing"
                             self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
 
-                            audio_path = self.temp_audio_path
+                            audio_path = os.path.join(tempfile.gettempdir(), "kdeaichat_call_seg.wav")
                             sf.write(audio_path, audio, sample_rate)
 
                             segments, info = self.stt_model.transcribe(
@@ -453,7 +452,7 @@ class VoiceHelper:
                                 beam_size=5,
                                 language=language if language != "auto" else None,
                                 vad_filter=True,
-                                vad_parameters={"min_silence_duration_ms": 300},
+                                vad_parameters={"min_silence_duration_ms": 200},
                             )
                             text = " ".join(seg.text for seg in segments).strip()
 
@@ -468,21 +467,24 @@ class VoiceHelper:
                                     "is_call_mode": True,
                                 })
 
-                            # Return to listening state
-                            self.current_status = "recording"
-                            self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
-                        except Exception as te:
-                            self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+                            # Always return to listening after transcribing
+                            if self.call_mode_active and not self.stop_recording:
+                                self.current_status = "recording"
+                                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+                        except Exception:
+                            if self.call_mode_active and not self.stop_recording:
+                                self.current_status = "recording"
+                                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
 
                     try:
                         with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32",
                                             blocksize=CHUNK_FRAMES) as stream:
 
                             speech_detected = False
-                            speech_chunks = []     # utterance accumulator (includes pre-roll)
+                            speech_chunks = []
                             onset_counter = 0
                             silence_chunks = 0
-                            silence_limit = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
+                            calibration_chunks = 0  # first 33 chunks = ~1s calibration
 
                             while self.call_mode_active and not self.stop_recording:
                                 if os.path.exists(stop_stt_file):
@@ -494,37 +496,39 @@ class VoiceHelper:
 
                                 rms = float(np.sqrt(np.mean(flat ** 2))) if len(flat) > 0 else 0.0
 
-                                # Adaptive noise floor
-                                if rms < background_rms:
-                                    background_rms = (1 - NOISE_FLOOR_ALPHA_LOWER) * background_rms + NOISE_FLOOR_ALPHA_LOWER * rms
-                                else:
-                                    background_rms = (1 - NOISE_FLOOR_ALPHA_RAISE) * background_rms + NOISE_FLOOR_ALPHA_RAISE * rms
+                                # ── Noise floor update ──────────────────────────────
+                                if calibration_chunks < 33:
+                                    # During first ~1s: fast calibration, don't trigger speech
+                                    background_rms = (calibration_chunks * background_rms + rms) / (calibration_chunks + 1)
+                                    calibration_chunks += 1
+                                    preroll_buf.append(flat)
+                                    continue
 
-                                # Threshold: speech must be at least 3× noise floor, clipped to [0.012, 0.06]
-                                threshold = max(0.012, min(0.06, background_rms * 3.0))
+                                # Slow adaptive update when in silence
+                                if rms < background_rms * 1.5:
+                                    background_rms = 0.98 * background_rms + 0.02 * rms
 
+                                # ── Speech threshold (very forgiving) ────────────────
+                                # Minimum absolute 0.006 (~half a whisper), max 0.06
+                                threshold = max(0.006, min(0.06, background_rms * 2.0))
                                 is_speech = rms > threshold
 
+                                # ── State machine ────────────────────────────────────
                                 if not speech_detected:
-                                    # Always fill pre-roll buffer
                                     preroll_buf.append(flat)
 
                                     if is_speech:
                                         onset_counter += 1
                                         if onset_counter >= SPEECH_ONSET_CHUNKS:
-                                            # Confirmed speech onset!
                                             speech_detected = True
                                             silence_chunks = 0
-                                            # Seed the utterance with pre-roll so we don't miss onset
                                             speech_chunks = list(preroll_buf) + [flat]
-
-                                            # Interrupt TTS if playing
                                             if self.tts_playing:
                                                 self.stop_tts_cmd({})
                                     else:
+                                        # Gentle decay so brief noise doesn't falsely prime onset
                                         onset_counter = max(0, onset_counter - 1)
                                 else:
-                                    # Inside an utterance
                                     speech_chunks.append(flat)
 
                                     if is_speech:
@@ -532,21 +536,27 @@ class VoiceHelper:
                                     else:
                                         silence_chunks += 1
 
-                                    # 3-second silence → end of utterance
-                                    if silence_chunks >= silence_limit:
-                                        # Fire-and-forget transcription (mic stays open!)
-                                        seg = list(speech_chunks)
-                                        t = threading.Thread(target=transcribe_and_emit,
-                                                             args=(seg, background_rms),
-                                                             daemon=True)
-                                        t.start()
+                                    # ── Trigger conditions ────────────────────────────
+                                    should_send = (
+                                        silence_chunks >= silence_limit or          # 1.5s silence
+                                        len(speech_chunks) >= max_segment_chunks    # 20s safety valve
+                                    )
 
+                                    if should_send:
+                                        seg = list(speech_chunks)
+                                        threading.Thread(target=transcribe_and_emit,
+                                                         args=(seg,), daemon=True).start()
                                         # Reset for next utterance
                                         speech_detected = False
                                         speech_chunks = []
                                         onset_counter = 0
                                         silence_chunks = 0
                                         preroll_buf.clear()
+
+                            # ── Flush remaining audio when call ends ──────────────────
+                            if speech_detected and speech_chunks:
+                                seg = list(speech_chunks)
+                                transcribe_and_emit(seg)  # sync — call already stopped
 
                     except Exception as stream_err:
                         self.emit({"type": "stt_error", "error": "Call mode stream error: " + str(stream_err)})
