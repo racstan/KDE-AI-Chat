@@ -1538,6 +1538,7 @@ Item {
                             visible: root.voiceEnabled && root.voiceCallEnabled
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            Layout.minimumWidth: Kirigami.Units.gridUnit * 1.5
 
                             PC3.ToolButton {
                                 id: callButton
