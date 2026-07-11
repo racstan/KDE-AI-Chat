@@ -395,6 +395,7 @@ Item {
 
                             QQC2.ScrollBar.vertical: QQC2.ScrollBar {
                                 id: verticalScrollBar
+                                live: false
                             }
 
                             delegate: Item {
