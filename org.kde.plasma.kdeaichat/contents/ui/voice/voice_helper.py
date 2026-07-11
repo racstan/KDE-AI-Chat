@@ -393,6 +393,7 @@ class VoiceHelper:
                 import numpy as np
                 import soundfile as sf
                 import sounddevice as sd
+                import collections
 
                 stop_stt_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_stt")
                 if os.path.exists(stop_stt_file):
@@ -400,104 +401,156 @@ class VoiceHelper:
                     except OSError: pass
 
                 if is_call_mode:
-                    chunk_duration = 0.1  # 100ms
-                    chunk_frames = int(chunk_duration * sample_rate)
+                    # ----------------------------------------------------------------
+                    # CALL MODE: Always-on microphone with adaptive VAD
+                    #
+                    # Design goals (SpeechNote-style seamless feel):
+                    #  1. One sd.InputStream that NEVER closes during a call.
+                    #     Eliminates the ~200ms device re-open penalty each turn.
+                    #  2. 40ms chunks (640 frames) for tight energy tracking.
+                    #  3. Pre-roll ring-buffer of ~500ms so we capture the very
+                    #     start of every utterance (speech onset).
+                    #  4. End-of-utterance is detected after 3 seconds of silence
+                    #     AFTER confirmed speech, matching natural pause rhythm.
+                    #  5. While transcribing the previous segment the mic is still
+                    #     open and recording continues into the next segment buffer
+                    #     — zero audio is ever dropped.
+                    #  6. If TTS is playing and speech starts, TTS is interrupted.
+                    # ----------------------------------------------------------------
 
-                    while self.call_mode_active and not self.stop_recording:
-                        if os.path.exists(stop_stt_file):
-                            self.stop_recording = True
-                            break
+                    CHUNK_MS = 40                              # 40 ms per frame
+                    CHUNK_FRAMES = int(sample_rate * CHUNK_MS / 1000)  # 640
+                    SILENCE_TIMEOUT_S = 3.0                   # seconds of silence → send
+                    SPEECH_ONSET_CHUNKS = 4                   # ~160 ms of energy before "speech"
+                    PREROLL_CHUNKS = int(0.5 * 1000 / CHUNK_MS)  # 12 chunks = 480ms pre-roll
 
-                        all_audio = []
-                        speech_detected = False
-                        consecutive_speech_chunks = 0
-                        consecutive_silence_chunks = 0
-                        background_rms = 0.005
+                    # Adaptive noise floor (fast-decay, slow-raise approach)
+                    background_rms = 0.005
+                    NOISE_FLOOR_ALPHA_LOWER = 0.06   # adapts downward fast
+                    NOISE_FLOOR_ALPHA_RAISE = 0.002  # adapts upward slowly
 
-                        self.current_status = "recording"
-                        self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+                    # Pre-roll ring buffer — always keep last PREROLL_CHUNKS chunks
+                    preroll_buf = collections.deque(maxlen=PREROLL_CHUNKS)
 
+                    self.current_status = "recording"
+                    self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+
+                    def transcribe_and_emit(audio_chunks, bg_rms_snapshot):
+                        """Run in a thread so mic stays open during transcription."""
                         try:
-                            with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
-                                while self.call_mode_active and not self.stop_recording:
-                                    if os.path.exists(stop_stt_file):
-                                        self.stop_recording = True
-                                        break
+                            audio = np.concatenate(audio_chunks)
+                            if len(audio) < sample_rate * 0.3:
+                                return  # Discard sub-300ms blips
 
-                                    chunk, overflowed = stream.read(chunk_frames)
-                                    flat_chunk = chunk.flatten()
-                                    all_audio.append(flat_chunk)
+                            self.current_status = "transcribing"
+                            self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
 
-                                    # Compute RMS
-                                    rms = np.sqrt(np.mean(flat_chunk**2)) if len(flat_chunk) > 0 else 0.0
+                            audio_path = self.temp_audio_path
+                            sf.write(audio_path, audio, sample_rate)
 
-                                    # Update background estimate
-                                    if rms < background_rms:
-                                        background_rms = 0.95 * background_rms + 0.05 * rms
-                                    else:
-                                        background_rms = 0.999 * background_rms + 0.001 * rms
+                            segments, info = self.stt_model.transcribe(
+                                audio,
+                                beam_size=5,
+                                language=language if language != "auto" else None,
+                                vad_filter=True,
+                                vad_parameters={"min_silence_duration_ms": 300},
+                            )
+                            text = " ".join(seg.text for seg in segments).strip()
 
-                                    current_speech_threshold = max(0.015, min(0.05, background_rms + 0.015))
-                                    silence_threshold = current_speech_threshold * 0.8
+                            if text:
+                                self.emit({
+                                    "type": "stt_result",
+                                    "text": text,
+                                    "duration": len(audio) / sample_rate,
+                                    "language": info.language if hasattr(info, "language") else language,
+                                    "audio_path": audio_path,
+                                    "device": self.stt_device,
+                                    "is_call_mode": True,
+                                })
 
-                                    if rms > current_speech_threshold:
-                                        consecutive_speech_chunks += 1
-                                        consecutive_silence_chunks = 0
-                                        if not speech_detected and consecutive_speech_chunks >= 3:
+                            # Return to listening state
+                            self.current_status = "recording"
+                            self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+                        except Exception as te:
+                            self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+
+                    try:
+                        with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32",
+                                            blocksize=CHUNK_FRAMES) as stream:
+
+                            speech_detected = False
+                            speech_chunks = []     # utterance accumulator (includes pre-roll)
+                            onset_counter = 0
+                            silence_chunks = 0
+                            silence_limit = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
+
+                            while self.call_mode_active and not self.stop_recording:
+                                if os.path.exists(stop_stt_file):
+                                    self.stop_recording = True
+                                    break
+
+                                chunk, _ = stream.read(CHUNK_FRAMES)
+                                flat = chunk.flatten()
+
+                                rms = float(np.sqrt(np.mean(flat ** 2))) if len(flat) > 0 else 0.0
+
+                                # Adaptive noise floor
+                                if rms < background_rms:
+                                    background_rms = (1 - NOISE_FLOOR_ALPHA_LOWER) * background_rms + NOISE_FLOOR_ALPHA_LOWER * rms
+                                else:
+                                    background_rms = (1 - NOISE_FLOOR_ALPHA_RAISE) * background_rms + NOISE_FLOOR_ALPHA_RAISE * rms
+
+                                # Threshold: speech must be at least 3× noise floor, clipped to [0.012, 0.06]
+                                threshold = max(0.012, min(0.06, background_rms * 3.0))
+
+                                is_speech = rms > threshold
+
+                                if not speech_detected:
+                                    # Always fill pre-roll buffer
+                                    preroll_buf.append(flat)
+
+                                    if is_speech:
+                                        onset_counter += 1
+                                        if onset_counter >= SPEECH_ONSET_CHUNKS:
+                                            # Confirmed speech onset!
                                             speech_detected = True
+                                            silence_chunks = 0
+                                            # Seed the utterance with pre-roll so we don't miss onset
+                                            speech_chunks = list(preroll_buf) + [flat]
+
+                                            # Interrupt TTS if playing
                                             if self.tts_playing:
                                                 self.stop_tts_cmd({})
                                     else:
-                                        consecutive_silence_chunks += 1
-                                        consecutive_speech_chunks = 0
+                                        onset_counter = max(0, onset_counter - 1)
+                                else:
+                                    # Inside an utterance
+                                    speech_chunks.append(flat)
 
-                                    # End-of-speech detection
-                                    if speech_detected and consecutive_silence_chunks >= 12:  # 1.2s silence
-                                        break
+                                    if is_speech:
+                                        silence_chunks = 0
+                                    else:
+                                        silence_chunks += 1
 
-                                    # Discard silence window to prevent memory accumulation
-                                    if not speech_detected and len(all_audio) >= 60:
-                                        all_audio = all_audio[-20:]
+                                    # 3-second silence → end of utterance
+                                    if silence_chunks >= silence_limit:
+                                        # Fire-and-forget transcription (mic stays open!)
+                                        seg = list(speech_chunks)
+                                        t = threading.Thread(target=transcribe_and_emit,
+                                                             args=(seg, background_rms),
+                                                             daemon=True)
+                                        t.start()
 
-                        except Exception as stream_err:
-                            self.emit({"type": "stt_status", "status": "recording", "device": "error: " + str(stream_err)})
-                            time.sleep(1)
-                            continue
+                                        # Reset for next utterance
+                                        speech_detected = False
+                                        speech_chunks = []
+                                        onset_counter = 0
+                                        silence_chunks = 0
+                                        preroll_buf.clear()
 
-                        if self.stop_recording or not self.call_mode_active:
-                            break
+                    except Exception as stream_err:
+                        self.emit({"type": "stt_error", "error": "Call mode stream error: " + str(stream_err)})
 
-                        if not speech_detected or not all_audio:
-                            continue
-
-                        audio = np.concatenate(all_audio)
-                        if len(audio) < sample_rate * 0.5:
-                            continue
-
-                        self.current_status = "transcribing"
-                        self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
-
-                        audio_path = self.temp_audio_path
-                        sf.write(audio_path, audio, sample_rate)
-
-                        segments, info = self.stt_model.transcribe(
-                            audio,
-                            beam_size=5,
-                            language=language if language != "auto" else None,
-                            vad_filter=True,
-                        )
-                        text = " ".join(seg.text for seg in segments).strip()
-
-                        if text:
-                            self.emit({
-                                "type": "stt_result",
-                                "text": text,
-                                "duration": len(audio) / sample_rate,
-                                "language": info.language if hasattr(info, "language") else language,
-                                "audio_path": audio_path,
-                                "device": self.stt_device,
-                                "is_call_mode": True
-                            })
                 else:
                     self.current_status = "recording"
                     self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
