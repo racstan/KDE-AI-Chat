@@ -665,8 +665,7 @@ Item {
 
                                                             text: blockData.text
                                                          }
-                                                        }
-                                                    }
+                                                     }
 
                                                     Component {
                                                         id: codeBlockComp
