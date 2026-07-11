@@ -1183,8 +1183,8 @@ Item {
                                                     Item {
                                                         id: ttsPlayContainer
                                                         visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
-                                                        Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
-                                                        Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                                                        height: Kirigami.Units.gridUnit * 1.5
+                                                        width: Kirigami.Units.gridUnit * 1.5
 
                                                         PC3.ToolButton {
                                                             id: ttsPlayButton
