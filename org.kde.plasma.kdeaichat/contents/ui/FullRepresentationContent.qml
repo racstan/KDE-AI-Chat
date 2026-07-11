@@ -1253,8 +1253,8 @@ Item {
                             hoverEnabled: true
                             active: msgList.moving || msgList.dragging || pressed
                             orientation: Qt.Vertical
-                            size: msgList.contentHeight > 0 ? Math.min(1.0, msgList.height / msgList.contentHeight) : 1.0
-                            position: msgList.contentHeight > 0 ? Math.max(0.0, Math.min(1.0 - size, msgList.contentY / msgList.contentHeight)) : 0.0
+                            size: msgList.visibleArea.heightRatio
+                            position: msgList.visibleArea.yPosition
                             
                             anchors.top: msgList.top
                             anchors.bottom: msgList.bottom
@@ -1262,10 +1262,17 @@ Item {
                             
                             onPressedChanged: {
                                 if (!pressed) {
-                                    msgList.contentY = position * msgList.contentHeight;
-                                    position = Qt.binding(function() {
-                                        return msgList.contentHeight > 0 ? Math.max(0.0, Math.min(1.0 - size, msgList.contentY / msgList.contentHeight)) : 0.0;
-                                    });
+                                    if (msgList.count > 0) {
+                                        if (position >= 1.0 - size - 0.01) {
+                                            msgList.positionViewAtIndex(msgList.count - 1, ListView.End);
+                                        } else {
+                                            let range = 1.0 - size;
+                                            let targetIndex = (range > 0) ? Math.floor((position / range) * (msgList.count - 1)) : 0;
+                                            targetIndex = Math.max(0, Math.min(msgList.count - 1, targetIndex));
+                                            msgList.positionViewAtIndex(targetIndex, ListView.Beginning);
+                                        }
+                                    }
+                                    position = Qt.binding(function() { return msgList.visibleArea.yPosition; });
                                 }
                             }
                         }
