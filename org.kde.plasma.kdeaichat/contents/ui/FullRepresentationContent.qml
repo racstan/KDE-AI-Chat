@@ -392,38 +392,15 @@ Item {
 
                                 }
                             }
+
                             QQC2.ScrollBar.vertical: QQC2.ScrollBar {
                                 id: verticalScrollBar
                             }
 
                             delegate: Item {
-                                id: msgDelegateItem
                                 property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
                                 property bool reasoningExpanded: false
                                 property string lastSelectedText: ""
-
-                                property bool wasRendered: false
-                                readonly property bool isDeferred: (msgList.moving || msgList.dragging) && !wasRendered
-
-                                Component.onCompleted: {
-                                    if (!msgList.moving && !msgList.dragging) {
-                                        wasRendered = true;
-                                    }
-                                }
-
-                                Connections {
-                                    target: msgList
-                                    function onMovingChanged() {
-                                        if (!msgList.moving && !msgList.dragging) {
-                                            msgDelegateItem.wasRendered = true;
-                                        }
-                                    }
-                                    function onDraggingChanged() {
-                                        if (!msgList.moving && !msgList.dragging) {
-                                            msgDelegateItem.wasRendered = true;
-                                        }
-                                    }
-                                }
 
                                 width: msgList.width
                                 implicitHeight: delegateCol.implicitHeight
@@ -515,7 +492,7 @@ Item {
 
                                                     property string reasoningText: (root.currentStreamIndex === index && root.currentStreamReasoning !== "") ? root.currentStreamReasoning : (modelData.reasoning || "")
 
-                                                    visible: modelData.role === "assistant" && reasoningText.length > 0 && root.editingMessageIndex !== index && !msgDelegateItem.isDeferred
+                                                    visible: modelData.role === "assistant" && reasoningText.length > 0 && root.editingMessageIndex !== index
                                                     width: parent.width
                                                     implicitHeight: reasoningCol.implicitHeight + Kirigami.Units.smallSpacing
                                                     radius: 6
@@ -579,25 +556,13 @@ Item {
 
                                                 }
 
-                                                 PC3.Label {
-                                                     width: parent.width
-                                                     visible: (root.editingMessageIndex !== index || modelData.role === "error") && msgDelegateItem.isDeferred
-                                                     text: (root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content
-                                                     wrapMode: Text.Wrap
-                                                     elide: Text.ElideRight
-                                                     maximumLineCount: 3
-                                                     font: Kirigami.Theme.defaultFont
-                                                     color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
-                                                     opacity: 0.6
-                                                 }
+                                                Column {
+                                                    id: messageBlocksCol
+                                                    width: parent.width
+                                                    spacing: Kirigami.Units.smallSpacing
+                                                    visible: root.editingMessageIndex !== index || modelData.role === "error"
 
-                                                 Column {
-                                                     id: messageBlocksCol
-                                                     width: parent.width
-                                                     spacing: Kirigami.Units.smallSpacing
-                                                     visible: (root.editingMessageIndex !== index || modelData.role === "error") && !msgDelegateItem.isDeferred
-
-                                                     property var blocksList: msgDelegateItem.isDeferred ? [] : (modelData.role === "error" ? [{ type: "text", text: modelData.content }] : repRoot.getBlocksForMessage((root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content))
+                                                    property var blocksList: modelData.role === "error" ? [{ type: "text", text: modelData.content }] : repRoot.getBlocksForMessage((root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content)
 
                                                     Component {
                                                         id: textBlockComp
@@ -1100,7 +1065,7 @@ Item {
                                                 }
 
                                                 PC3.Label {
-                                                    visible: modelData.role === "assistant" && modelData.tokens !== undefined && !msgDelegateItem.isDeferred
+                                                    visible: modelData.role === "assistant" && modelData.tokens !== undefined
                                                     width: parent.width
                                                     horizontalAlignment: Text.AlignRight
                                                     text: root.formatTokensUsage(modelData.tokens, modelData.cost)
@@ -1111,7 +1076,7 @@ Item {
 
                                                 // Context items (tool invocations) display
                                                 Column {
-                                                    visible: modelData.role === "assistant" && modelData.contextItems !== undefined && modelData.contextItems.length > 0 && !msgDelegateItem.isDeferred
+                                                    visible: modelData.role === "assistant" && modelData.contextItems !== undefined && modelData.contextItems.length > 0
                                                     width: parent.width
                                                     spacing: 2
 
@@ -1180,7 +1145,6 @@ Item {
                                                 }
 
                                                 Row {
-                                                    visible: !msgDelegateItem.isDeferred
                                                     width: parent.width
                                                     spacing: Kirigami.Units.smallSpacing
 
