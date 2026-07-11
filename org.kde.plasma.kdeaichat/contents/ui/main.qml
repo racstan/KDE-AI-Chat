@@ -39,6 +39,8 @@ PlasmoidItem {
     property bool renamingCurrentChat: false
     property string currentChatRenameDraft: ""
     property bool openCodeMode: plasmoid.configuration.useOpenCode
+    property bool voiceEnabled: plasmoid.configuration.voiceEnabled || false
+    property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled || false
     property string compiledSystemPrompt: ""
     property string compiledMemoryBlock: ""
     property var sysInfo: ({

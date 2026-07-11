@@ -1182,7 +1182,7 @@ Item {
 
                                                     Item {
                                                         id: ttsPlayContainer
-                                                        visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
+                                                        visible: root.voiceEnabled && root.voiceTtsEnabled && modelData.role !== "error"
                                                         height: Kirigami.Units.gridUnit * 1.5
                                                         width: Kirigami.Units.gridUnit * 1.5
 
@@ -1507,7 +1507,7 @@ Item {
 
 
                         Item {
-                            visible: plasmoid.configuration.voiceEnabled
+                            visible: root.voiceEnabled
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
 
