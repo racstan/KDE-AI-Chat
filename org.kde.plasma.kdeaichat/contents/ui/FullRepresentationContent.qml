@@ -393,10 +393,7 @@ Item {
                                 }
                             }
 
-                            QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                                id: verticalScrollBar
-                                live: false
-                            }
+
 
                             delegate: Item {
                                 property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
@@ -1249,6 +1246,26 @@ Item {
 
                             }
 
+                        }
+
+                        QQC2.ScrollBar {
+                            id: verticalScrollBar
+                            hoverEnabled: true
+                            active: msgList.moving || msgList.dragging || pressed
+                            orientation: Qt.Vertical
+                            size: msgList.visibleArea.heightRatio
+                            position: msgList.visibleArea.yPosition
+                            
+                            anchors.top: msgList.top
+                            anchors.bottom: msgList.bottom
+                            anchors.right: msgList.right
+                            
+                            onPressedChanged: {
+                                if (!pressed) {
+                                    msgList.contentY = position * msgList.contentHeight;
+                                    position = Qt.binding(function() { return msgList.visibleArea.yPosition; });
+                                }
+                            }
                         }
 
                     }
