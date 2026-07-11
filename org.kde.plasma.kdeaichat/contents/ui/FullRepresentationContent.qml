@@ -11,6 +11,37 @@ Item {
     id: repRoot
     anchors.fill: parent
 
+    function getBlocksForMessage(content) {
+        if (!content) return [];
+        let blocks = [];
+        let parts = content.split("```");
+        for (let i = 0; i < parts.length; i++) {
+            let part = parts[i];
+            if (i % 2 === 0) {
+                if (part.length > 0 || parts.length === 1) {
+                    blocks.push({ "type": "text", "text": part });
+                }
+            } else {
+                let newlineIdx = part.indexOf("\n");
+                let language = "code";
+                let code = part;
+                if (newlineIdx !== -1) {
+                    let possibleLang = part.substring(0, newlineIdx).trim();
+                    if (/^[a-zA-Z0-9+#-]+$/.test(possibleLang) && possibleLang.length < 15) {
+                        language = possibleLang;
+                        code = part.substring(newlineIdx + 1);
+                    }
+                }
+                // Strip trailing newline if present to keep code tidy
+                if (code.endsWith("\n")) {
+                    code = code.substring(0, code.length - 1);
+                }
+                blocks.push({ "type": "code", "language": language, "text": code });
+            }
+        }
+        return blocks;
+    }
+
     Kirigami.Theme.inherit: false
     Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
     Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
@@ -523,72 +554,235 @@ Item {
 
                                                 }
 
-                                                TextEdit {
-                                                     id: msgTextLabel
-                                                     readOnly: true
-                                                     cursorVisible: false
-
-                                                    visible: root.editingMessageIndex !== index || modelData.role === "error"
+                                                Column {
+                                                    id: messageBlocksCol
                                                     width: parent.width
-                                                    wrapMode: Text.Wrap
-                                                    selectByMouse: true
-                                                    persistentSelection: true
-                                                    onSelectedTextChanged: {
-                                                        if (selectedText && selectedText.trim().length > 0) {
-                                                            lastSelectedText = selectedText;
-                                                        } else {
-                                                            if (typeof ttsPlayButton !== "undefined" && !ttsPlayButton.hovered) {
-                                                                lastSelectedText = "";
+                                                    spacing: Kirigami.Units.smallSpacing
+                                                    visible: root.editingMessageIndex !== index || modelData.role === "error"
+
+                                                    property var blocksList: modelData.role === "error" ? [{ type: "text", text: modelData.content }] : repRoot.getBlocksForMessage((root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content)
+
+                                                    Component {
+                                                        id: textBlockComp
+                                                        TextEdit {
+                                                            id: textBlockLabel
+                                                            width: parent.width
+                                                            readOnly: true
+                                                            cursorVisible: false
+                                                            selectByMouse: true
+                                                            persistentSelection: true
+                                                            wrapMode: Text.Wrap
+                                                            textFormat: Text.MarkdownText
+                                                            color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                                                            font: Kirigami.Theme.defaultFont
+
+                                                            property int savedSelectionStart: -1
+                                                            property int savedSelectionEnd: -1
+
+                                                            onLinkActivated: function(link) {
+                                                                Qt.openUrlExternally(link);
                                                             }
-                                                        }
-                                                    }
-                                                    
-                                                    textFormat: modelData.role === "error" ? Text.PlainText : Text.MarkdownText
-                                                    text: {
-                                                        let baseText = (root.currentStreamIndex === index && root.currentStreamText !== "") ? root.currentStreamText : modelData.content;
-                                                        let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
-                                                        if (isPlayingThisMessage && root.voiceManagerRef.currentPlayingChunk) {
-                                                            let chunk = root.voiceManagerRef.currentPlayingChunk;
-                                                            if (chunk.length > 2) {
-                                                                // Clean and split chunk into words
-                                                                let cleanChunk = chunk.replace(/[^\w\s]/g, ' ').trim();
-                                                                let words = cleanChunk.split(/\s+/).filter(function(w) { return w.length > 0; });
-                                                                if (words.length > 0) {
-                                                                    let regexStr = "";
-                                                                    for (let i = 0; i < words.length; i++) {
-                                                                        let escapedWord = words[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                                                        if (i > 0) {
-                                                                            regexStr += "[^a-zA-Z0-9]*?";
+
+                                                            onSelectedTextChanged: {
+                                                                 if (selectedText && selectedText.trim().length > 0) {
+                                                                     lastSelectedText = selectedText;
+                                                                     savedSelectionStart = selectionStart;
+                                                                     savedSelectionEnd = selectionEnd;
+                                                                 } else {
+                                                                     if (typeof ttsPlayButton !== "undefined" && !ttsPlayButton.hovered) {
+                                                                         lastSelectedText = "";
+                                                                         savedSelectionStart = -1;
+                                                                         savedSelectionEnd = -1;
+                                                                     }
+                                                                 }
+                                                            }
+
+                                                            Connections {
+                                                                target: repRoot
+                                                                function onPlayingMessageIndexChanged() {
+                                                                    if (repRoot.playingMessageIndex === index) {
+                                                                        if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
+                                                                            Qt.callLater(function() {
+                                                                                if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
+                                                                                    textBlockLabel.select(savedSelectionStart, savedSelectionEnd);
+                                                                                }
+                                                                            });
                                                                         }
-                                                                        regexStr += escapedWord;
                                                                     }
-                                                                    try {
-                                                                        let regex = new RegExp("(" + regexStr + ")", "i");
-                                                                        let match = baseText.match(regex);
-                                                                        if (match) {
-                                                                            let matchedText = match[0];
-                                                                            let startIdx = match.index;
-                                                                            let before = baseText.substring(0, startIdx);
-                                                                            let after = baseText.substring(startIdx + matchedText.length);
-                                                                            let highlightStart = "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>";
-                                                                            let highlightEnd = "</u></span>";
-                                                                            return before + highlightStart + matchedText + highlightEnd + after;
-                                                                        }
-                                                                    } catch(e) {}
                                                                 }
-                                                                
-                                                                // Fallback to simple replace
-                                                                let escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                                                let regex = new RegExp("(" + escaped + ")", "gi");
-                                                                return baseText.replace(regex, "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>$1</u></span>");
+                                                            }
+
+                                                            Connections {
+                                                                target: root.voiceManagerRef || null
+                                                                function onIsPlayingChanged() {
+                                                                    if (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) {
+                                                                        if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
+                                                                            Qt.callLater(function() {
+                                                                                if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
+                                                                                    textBlockLabel.select(savedSelectionStart, savedSelectionEnd);
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+
+                                                            text: {
+                                                                let baseText = blockData.text;
+                                                                let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
+                                                                if (isPlayingThisMessage && root.voiceManagerRef.currentPlayingChunk) {
+                                                                    let chunk = root.voiceManagerRef.currentPlayingChunk;
+                                                                    if (chunk.length > 2) {
+                                                                        let cleanChunk = chunk.replace(/[^\w\s]/g, ' ').trim();
+                                                                        let words = cleanChunk.split(/\s+/).filter(function(w) { return w.length > 0; });
+                                                                        if (words.length > 0) {
+                                                                            let regexStr = "";
+                                                                            for (let i = 0; i < words.length; i++) {
+                                                                                let escapedWord = words[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                                                                if (i > 0) {
+                                                                                    regexStr += "[^a-zA-Z0-9]*?";
+                                                                                }
+                                                                                regexStr += escapedWord;
+                                                                            }
+                                                                            try {
+                                                                                let regex = new RegExp("(" + regexStr + ")", "i");
+                                                                                let match = baseText.match(regex);
+                                                                                if (match) {
+                                                                                    let matchedText = match[0];
+                                                                                    let startIdx = match.index;
+                                                                                    let before = baseText.substring(0, startIdx);
+                                                                                    let after = baseText.substring(startIdx + matchedText.length);
+                                                                                    let highlightStart = "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>";
+                                                                                    let highlightEnd = "</u></span>";
+                                                                                    let res = before + highlightStart + matchedText + highlightEnd + after;
+                                                                                    return res.replace(/\n/g, "<br>");
+                                                                                }
+                                                                            } catch(e) {}
+                                                                        }
+                                                                        let escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                                                        let regex = new RegExp("(" + escaped + ")", "gi");
+                                                                        let res = baseText.replace(regex, "<span style=\"background-color: " + repRoot.activeHighlightColor + "; color: " + Kirigami.Theme.highlightedTextColor + "; font-weight: bold;\"><u>$1</u></span>");
+                                                                        return res.replace(/\n/g, "<br>");
+                                                                    }
+                                                                }
+                                                                return baseText;
                                                             }
                                                         }
-                                                        return baseText;
                                                     }
-                                                    color: modelData.role === "error" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
-                                                     font: Kirigami.Theme.defaultFont
-                                                    onLinkActivated: function(link) {
-                                                        Qt.openUrlExternally(link);
+
+                                                    Component {
+                                                        id: codeBlockComp
+                                                        Item {
+                                                            width: parent.width
+                                                            implicitHeight: codeCellCol.implicitHeight
+
+                                                            ColumnLayout {
+                                                                id: codeCellCol
+                                                                anchors.left: parent.left
+                                                                anchors.right: parent.right
+                                                                spacing: 0
+
+                                                                Rectangle {
+                                                                    Layout.fillWidth: true
+                                                                    implicitHeight: 32
+                                                                    color: Qt.rgba(0.12, 0.12, 0.12, 0.9)
+                                                                    radius: 6
+                                                                    Rectangle {
+                                                                        anchors.bottom: parent.bottom
+                                                                        anchors.left: parent.left
+                                                                        anchors.right: parent.right
+                                                                        height: 6
+                                                                        color: parent.color
+                                                                    }
+
+                                                                    RowLayout {
+                                                                        anchors.fill: parent
+                                                                        anchors.leftMargin: Kirigami.Units.smallSpacing * 1.5
+                                                                        anchors.rightMargin: Kirigami.Units.smallSpacing
+
+                                                                        PC3.Label {
+                                                                            text: blockData.language ? blockData.language.toUpperCase() : "CODE"
+                                                                            color: "#a0a0a0"
+                                                                            font.bold: true
+                                                                            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                                                            Layout.fillWidth: true
+                                                                        }
+
+                                                                        PC3.ToolButton {
+                                                                            id: copyBtn
+                                                                            icon.name: "edit-copy"
+                                                                            display: PC3.AbstractButton.IconOnly
+                                                                            QQC2.ToolTip.visible: hovered || tempTooltipTimer.running
+                                                                            QQC2.ToolTip.text: tempTooltipTimer.running ? "Copied!" : "Copy code"
+                                                                            Layout.preferredHeight: 24
+                                                                            Layout.preferredWidth: 24
+                                                                            onClicked: {
+                                                                                root.copyTextToClipboard(blockData.text);
+                                                                                tempTooltipTimer.start();
+                                                                            }
+                                                                            Timer {
+                                                                                id: tempTooltipTimer
+                                                                                interval: 1500
+                                                                                repeat: false
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                Rectangle {
+                                                                    Layout.fillWidth: true
+                                                                    Layout.preferredHeight: Math.min(codeText.implicitHeight + 16, 320)
+                                                                    color: "#1e1e1e"
+                                                                    radius: 6
+                                                                    Rectangle {
+                                                                        anchors.top: parent.top
+                                                                        anchors.left: parent.left
+                                                                        anchors.right: parent.right
+                                                                        height: 6
+                                                                        color: parent.color
+                                                                    }
+
+                                                                    QQC2.ScrollView {
+                                                                        anchors.fill: parent
+                                                                        anchors.margins: 8
+                                                                        QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AsNeeded
+                                                                        QQC2.ScrollBar.vertical.policy: QQC2.ScrollBar.AsNeeded
+
+                                                                        TextEdit {
+                                                                            id: codeText
+                                                                            text: blockData.text
+                                                                            textFormat: Text.PlainText
+                                                                            font.family: "monospace"
+                                                                            font.pixelSize: Kirigami.Theme.defaultFont.pixelSize
+                                                                            color: "#d4d4d4"
+                                                                            readOnly: true
+                                                                            selectByMouse: true
+                                                                            persistentSelection: true
+                                                                            wrapMode: Text.NoWrap
+
+                                                                            onSelectedTextChanged: {
+                                                                                if (selectedText && selectedText.trim().length > 0) {
+                                                                                    lastSelectedText = selectedText;
+                                                                                } else {
+                                                                                    if (typeof ttsPlayButton !== "undefined" && !ttsPlayButton.hovered) {
+                                                                                        lastSelectedText = "";
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Repeater {
+                                                        model: messageBlocksCol.blocksList
+                                                        delegate: Loader {
+                                                            width: parent.width
+                                                            property var blockData: modelData
+                                                            sourceComponent: modelData.type === "code" ? codeBlockComp : textBlockComp
+                                                        }
                                                     }
                                                 }
 
