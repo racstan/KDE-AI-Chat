@@ -263,9 +263,6 @@
 <entry name="voiceEnabled" type="Bool">
       <default>false</default>
     </entry>
-<entry name="voiceCallEnabled" type="Bool">
-      <default>false</default>
-    </entry>
 <entry name="voiceGpuEnabled" type="Bool">
       <default>false</default>
     </entry>

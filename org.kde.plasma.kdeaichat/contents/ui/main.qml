@@ -41,7 +41,6 @@ PlasmoidItem {
     property bool openCodeMode: plasmoid.configuration.useOpenCode
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
-    property bool voiceCallEnabled: plasmoid.configuration.voiceCallEnabled === true
     property string compiledSystemPrompt: ""
     property string compiledMemoryBlock: ""
     property var sysInfo: ({
@@ -76,7 +75,7 @@ PlasmoidItem {
         id: voiceManager
 
         onTextRecognized: function(text) {
-            if (voiceManager.callModeActive || voiceManager.autoSend) {
+            if (voiceManager.autoSend) {
                 root.chatInputText = text;
                 root.sendMessage();
             } else {

@@ -387,249 +387,72 @@ class VoiceHelper:
                         self.recording = False
                         return
 
-                is_call_mode = payload.get("is_call_mode", False)
-                self.call_mode_active = is_call_mode
                 sample_rate = 16000
                 import numpy as np
                 import soundfile as sf
                 import sounddevice as sd
-                import collections
 
                 stop_stt_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_stt")
                 if os.path.exists(stop_stt_file):
                     try: os.remove(stop_stt_file)
                     except OSError: pass
 
-                if is_call_mode:
-                    # ----------------------------------------------------------------
-                    # CALL MODE — Percentile-based adaptive VAD
-                    #
-                    # Rolling window tracks ONLY silence/ambient frames (not speech)
-                    # to keep the noise floor estimate accurate.
-                    # Two-threshold hysteresis prevents flicker:
-                    #   onset   = high bar (requires 4 consecutive chunks above it)
-                    #   silence = low bar  (requires 1.5s below it to fire)
-                    # Transcribing lock blocks new onsets while Whisper is running.
-                    # ----------------------------------------------------------------
+                self.current_status = "recording"
+                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
 
-                    CHUNK_MS = 30
-                    CHUNK_FRAMES = int(sample_rate * CHUNK_MS / 1000)
-                    SILENCE_TIMEOUT_S = 1.5
-                    MAX_SEGMENT_S = 20.0
-                    PREROLL_CHUNKS = int(0.4 * 1000 / CHUNK_MS)
-                    WINDOW_CHUNKS  = int(3.0 * 1000 / CHUNK_MS)   # 3s window of SILENCE frames
-                    ONSET_CHUNKS   = 4                              # 120ms sustained onset
-                    silence_limit       = int(SILENCE_TIMEOUT_S * 1000 / CHUNK_MS)
-                    max_segment_chunks  = int(MAX_SEGMENT_S * 1000 / CHUNK_MS)
+                sample_rate = 16000
+                all_audio = []
+                total_recorded = 0.0
 
-                    # Rolling window filled ONLY with non-speech frames
-                    rms_window  = collections.deque(maxlen=WINDOW_CHUNKS)
-                    preroll_buf = collections.deque(maxlen=PREROLL_CHUNKS)
+                with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
+                    chunk_duration = 0.1  # Check stop_recording every 100ms
+                    chunk_frames = int(chunk_duration * sample_rate)
+                    while (duration <= 0 or total_recorded < duration) and not self.stop_recording:
+                        if os.path.exists(stop_stt_file):
+                            self.stop_recording = True
+                            break
+                        self.current_countdown = int(duration - total_recorded) if duration > 0 else 0
+                        chunk, overflowed = stream.read(chunk_frames)
+                        all_audio.append(chunk.flatten())
+                        total_recorded += chunk_duration
 
-                    # Seed the window with a safe initial value
-                    for _ in range(10):
-                        rms_window.append(0.01)
+                if not all_audio:
+                    self.emit({"type": "stt_result", "text": "", "duration": 0})
+                    self.recording = False
+                    return
 
-                    # Lock to prevent a new utterance while Whisper is still running
-                    transcribing_lock = threading.Event()
-                    transcribing_lock.set()  # set = free to record
+                self.current_status = "transcribing"
+                self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
 
-                    def compute_thresholds(window):
-                        arr = np.array(window)
-                        noise_p20  = float(np.percentile(arr, 20))
-                        noise_p80  = float(np.percentile(arr, 80))
-                        gap = noise_p80 - noise_p20
-                        if gap < 0.005:
-                            # Uniform environment — bump above floor
-                            return noise_p80 + 0.02, noise_p20 + 0.01
-                        mid     = noise_p20 + gap * 0.5
-                        onset   = mid + gap * 0.2
-                        silence = mid - gap * 0.2
-                        return onset, silence
+                # Concatenate and transcribe
+                audio = np.concatenate(all_audio)
 
-                    self.current_status = "recording"
-                    self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
+                # Save audio to temp file
+                audio_path = self.temp_audio_path
+                sf.write(audio_path, audio, sample_rate)
 
-                    def transcribe_and_emit(audio_chunks):
-                        """Daemon thread — mic stays open during transcription."""
-                        try:
-                            audio = np.concatenate(audio_chunks)
-                            if len(audio) < sample_rate * 0.3:
-                                return
+                # Skip very short audio
+                if len(audio) < sample_rate * 0.5:
+                    self.emit({"type": "stt_result", "text": "", "duration": total_recorded, "audio_path": audio_path})
+                    self.recording = False
+                    return
 
-                            self.current_status = "transcribing"
-                            self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
+                segments, info = self.stt_model.transcribe(
+                    audio,
+                    beam_size=5,
+                    language=language if language != "auto" else None,
+                    vad_filter=True,
+                )
+                text = " ".join(seg.text for seg in segments).strip()
 
-                            audio_path = os.path.join(tempfile.gettempdir(), "kdeaichat_call_seg.wav")
-                            sf.write(audio_path, audio, sample_rate)
-
-                            segments, info = self.stt_model.transcribe(
-                                audio,
-                                beam_size=5,
-                                language=language if language != "auto" else None,
-                                vad_filter=True,
-                                vad_parameters={"min_silence_duration_ms": 200},
-                            )
-                            text = " ".join(seg.text for seg in segments).strip()
-
-                            if text:
-                                self.emit({
-                                    "type": "stt_result",
-                                    "text": text,
-                                    "duration": len(audio) / sample_rate,
-                                    "language": info.language if hasattr(info, "language") else language,
-                                    "audio_path": audio_path,
-                                    "device": self.stt_device,
-                                    "is_call_mode": True,
-                                })
-                        except Exception:
-                            pass
-                        finally:
-                            # Signal main loop it can accept a new utterance
-                            transcribing_lock.set()
-                            if self.call_mode_active and not self.stop_recording:
-                                self.current_status = "recording"
-                                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
-
-                    try:
-                        with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32",
-                                            blocksize=CHUNK_FRAMES) as stream:
-
-                            speech_detected = False
-                            speech_chunks   = []
-                            onset_counter   = 0
-                            silence_chunks  = 0
-
-                            while self.call_mode_active and not self.stop_recording:
-                                if os.path.exists(stop_stt_file):
-                                    self.stop_recording = True
-                                    break
-
-                                chunk, _ = stream.read(CHUNK_FRAMES)
-                                flat = chunk.flatten()
-                                rms  = float(np.sqrt(np.mean(flat ** 2))) if len(flat) > 0 else 0.0
-
-                                onset_thresh, silence_thresh = compute_thresholds(rms_window)
-
-                                is_onset   = rms > onset_thresh
-                                is_silence = rms < silence_thresh
-
-                                if not speech_detected:
-                                    # Only feed SILENCE frames into the window
-                                    # so speech doesn't corrupt the noise floor estimate
-                                    if not is_onset:
-                                        rms_window.append(rms)
-
-                                    preroll_buf.append(flat)
-
-                                    # Don't start a new utterance while Whisper is running
-                                    if not transcribing_lock.is_set():
-                                        continue
-
-                                    if is_onset:
-                                        onset_counter += 1
-                                        if onset_counter >= ONSET_CHUNKS:
-                                            speech_detected = True
-                                            silence_chunks  = 0
-                                            speech_chunks   = list(preroll_buf) + [flat]
-                                            if self.tts_playing:
-                                                self.stop_tts_cmd({})
-                                    else:
-                                        onset_counter = max(0, onset_counter - 1)
-                                else:
-                                    speech_chunks.append(flat)
-
-                                    if is_silence:
-                                        silence_chunks += 1
-                                    else:
-                                        silence_chunks = 0
-
-                                    should_send = (
-                                        silence_chunks >= silence_limit or
-                                        len(speech_chunks) >= max_segment_chunks
-                                    )
-
-                                    if should_send:
-                                        seg = list(speech_chunks)
-                                        # Block new onsets until Whisper finishes
-                                        transcribing_lock.clear()
-                                        threading.Thread(target=transcribe_and_emit,
-                                                         args=(seg,), daemon=True).start()
-                                        speech_detected = False
-                                        speech_chunks   = []
-                                        onset_counter   = 0
-                                        silence_chunks  = 0
-                                        preroll_buf.clear()
-
-                            # Flush remaining audio when call ends
-                            if speech_detected and speech_chunks:
-                                transcribing_lock.clear()
-                                transcribe_and_emit(list(speech_chunks))
-
-                    except Exception as stream_err:
-                        self.emit({"type": "stt_error", "error": "Call mode stream error: " + str(stream_err)})
-
-
-
-
-
-                else:
-                    self.current_status = "recording"
-                    self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
-
-                    sample_rate = 16000
-                    all_audio = []
-                    total_recorded = 0.0
-
-                    with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
-                        chunk_duration = 0.1  # Check stop_recording every 100ms
-                        chunk_frames = int(chunk_duration * sample_rate)
-                        while (duration <= 0 or total_recorded < duration) and not self.stop_recording:
-                            if os.path.exists(stop_stt_file):
-                                self.stop_recording = True
-                                break
-                            self.current_countdown = int(duration - total_recorded) if duration > 0 else 0
-                            chunk, overflowed = stream.read(chunk_frames)
-                            all_audio.append(chunk.flatten())
-                            total_recorded += chunk_duration
-
-                    if not all_audio:
-                        self.emit({"type": "stt_result", "text": "", "duration": 0})
-                        self.recording = False
-                        return
-
-                    self.current_status = "transcribing"
-                    self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
-
-                    # Concatenate and transcribe
-                    audio = np.concatenate(all_audio)
-
-                    # Save audio to temp file
-                    audio_path = self.temp_audio_path
-                    sf.write(audio_path, audio, sample_rate)
-
-                    # Skip very short audio
-                    if len(audio) < sample_rate * 0.5:
-                        self.emit({"type": "stt_result", "text": "", "duration": total_recorded, "audio_path": audio_path})
-                        self.recording = False
-                        return
-
-                    segments, info = self.stt_model.transcribe(
-                        audio,
-                        beam_size=5,
-                        language=language if language != "auto" else None,
-                        vad_filter=True,
-                    )
-                    text = " ".join(seg.text for seg in segments).strip()
-
-                    self.emit({
-                        "type": "stt_result",
-                        "text": text,
-                        "duration": total_recorded,
-                        "language": info.language if hasattr(info, "language") else language,
-                        "audio_path": audio_path,
-                        "device": self.stt_device,
-                    })
+                self.emit({
+                    "type": "stt_result",
+                    "text": text,
+                    "duration": total_recorded,
+                    "language": info.language if hasattr(info, "language") else language,
+                    "audio_path": audio_path,
+                    "device": self.stt_device,
+                })
 
             except Exception as e:
                 self.emit({"type": "stt_error", "error": str(e)})
