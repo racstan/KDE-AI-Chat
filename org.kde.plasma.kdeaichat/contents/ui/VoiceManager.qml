@@ -140,6 +140,12 @@ Item {
             root.isPlaying = true;
         } else if (resp.type === "stt_started") {
             root.isRecording = true;
+        } else if (resp.type === "stt_stopped") {
+            root.isRecording = false;
+            root.statusText = "";
+        } else if (resp.type === "tts_stopped") {
+            root.isPlaying = false;
+            root.currentPlayingChunk = "";
         }
     }
 

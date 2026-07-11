@@ -1137,6 +1137,8 @@ class VoiceHelper:
                         "stt_device": getattr(helper_self, "stt_device", "cpu"),
                         "tts_device": getattr(helper_self, "tts_device", "cpu"),
                         "vram_kb": vram_kb,
+                        "stt_result": getattr(helper_self, "stt_result", None),
+                        "tts_result": getattr(helper_self, "tts_result", None),
                     }
                     self.wfile.write(json.dumps(status_data).encode("utf-8"))
                 else:
