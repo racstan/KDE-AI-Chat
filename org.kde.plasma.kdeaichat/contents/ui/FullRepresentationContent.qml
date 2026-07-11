@@ -367,6 +367,7 @@ Item {
                             delegate: Item {
                                 property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
                                 property bool reasoningExpanded: false
+                                property string lastSelectedText: ""
 
                                 width: msgList.width
                                 implicitHeight: delegateCol.implicitHeight
@@ -531,7 +532,16 @@ Item {
                                                     width: parent.width
                                                     wrapMode: Text.Wrap
                                                     selectByMouse: true
-                                                     persistentSelection: true
+                                                    persistentSelection: true
+                                                    onSelectedTextChanged: {
+                                                        if (selectedText && selectedText.trim().length > 0) {
+                                                            lastSelectedText = selectedText;
+                                                        } else {
+                                                            if (typeof ttsPlayButton !== "undefined" && !ttsPlayButton.hovered) {
+                                                                lastSelectedText = "";
+                                                            }
+                                                        }
+                                                    }
                                                     
                                                     textFormat: modelData.role === "error" ? Text.PlainText : Text.MarkdownText
                                                     text: {
@@ -977,12 +987,13 @@ Item {
                                                     }
 
                                                     PC3.ToolButton {
+                                                        id: ttsPlayButton
                                                         visible: plasmoid.configuration.voiceEnabled && plasmoid.configuration.voiceTtsEnabled && modelData.role !== "error"
                                                         enabled: root.currentStreamIndex !== index
                                                         icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "media-playback-stop" : "audio-speakers"
                                                         display: PC3.AbstractButton.IconOnly
                                                         QQC2.ToolTip.visible: hovered
-                                                        QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "Stop speaking" : ((msgTextLabel.selectedText && msgTextLabel.selectedText.trim().length > 0) ? "Read selected text" : "Read aloud")
+                                                        QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "Stop speaking" : ((lastSelectedText && lastSelectedText.trim().length > 0) ? "Read selected text" : "Read aloud")
                                                         onClicked: {
                                                             if (root.voiceManagerRef) {
                                                                 let isPlayingThis = root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
@@ -993,7 +1004,7 @@ Item {
                                                                     if (root.voiceManagerRef.isPlaying) {
                                                                         root.voiceManagerRef.stopTTS();
                                                                     }
-                                                                    let textToPlay = (msgTextLabel.selectedText && msgTextLabel.selectedText.trim().length > 0) ? msgTextLabel.selectedText : modelData.content;
+                                                                    let textToPlay = (lastSelectedText && lastSelectedText.trim().length > 0) ? lastSelectedText : modelData.content;
                                                                     repRoot.playingMessageIndex = index;
                                                                     root.voiceManagerRef.playTTS(textToPlay);
                                                                 }

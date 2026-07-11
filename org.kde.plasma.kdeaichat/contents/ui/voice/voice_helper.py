@@ -530,6 +530,10 @@ class VoiceHelper:
                     # Remove emojis
                     emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]")
                     t = emoji_pattern.sub("", t)
+                    # Remove special characters but keep letters, digits, whitespace, and basic punctuation
+                    t = re.sub(r"[^\w\s.,?!'\":;]", " ", t)
+                    # Remove underscores specifically since \w includes them
+                    t = re.sub(r"_", " ", t)
                     # Clean up multiple newlines and spaces
                     t = re.sub(r"\n+", "\n", t)
                     t = re.sub(r" {2,}", " ", t)
