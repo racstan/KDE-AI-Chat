@@ -106,8 +106,8 @@ import org.kde.plasma.plasma5support as P5Support
                 return "";
 
             let t = d.schedType || "days", n = parseInt(d.schedEvery) || 1;
-            let tp = (d.schedTime || "09:00").split(":");
-            let hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            let sDate = new Date(d.startDate || new Date().toISOString());
+            let hr = sDate.getHours(), mn = sDate.getMinutes();
             if (t === "minutes")
                 return "*/" + n + " * * * *";
 
@@ -192,8 +192,8 @@ import org.kde.plasma.plasma5support as P5Support
                 return translate("Once on") + " " + translate(monthNames[sDate.getMonth()]) + " " + sDate.getDate() + ", " + sDate.getFullYear() + " " + translate("at") + " " + stimeStr;
             }
             let t = d.schedType || "days", n = parseInt(d.schedEvery) || 1;
-            let tp = (d.schedTime || "09:00").split(":");
-            let hr = parseInt(tp[0]) || 9, mn = parseInt(tp[1]) || 0;
+            let sDate = new Date(d.startDate || new Date().toISOString());
+            let hr = sDate.getHours(), mn = sDate.getMinutes();
             let ap = hr >= 12 ? translate("PM") : translate("AM"), h12 = hr % 12 || 12;
             let ms = mn < 10 ? "0" + mn : "" + mn;
             let timeStr = h12 + ":" + ms + " " + ap;
@@ -1116,61 +1116,6 @@ import org.kde.plasma.plasma5support as P5Support
 
                     }
 
-                    ColumnLayout {
-                        visible: ["days", "weeks", "months"].indexOf(scheduleDialog.draft.schedType || "days") >= 0
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-
-                        QQC2.Label {
-                            text: translate("Scheduled Time (Local):")
-                            font.bold: true
-                        }
-
-                        RowLayout {
-                            spacing: Kirigami.Units.smallSpacing
-
-                            QQC2.SpinBox {
-                                id: dlgHour
-
-                                from: 0
-                                to: 23
-                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9
-                                textFromValue: function(v) {
-                                    return (v < 10 ? "0" : "") + v;
-                                }
-                                onValueModified: {
-                                    let m = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0;
-                                    scheduleDialog.updateDraft({
-                                        "schedTime": (value < 10 ? "0" : "") + value + ":" + (m < 10 ? "0" : "") + m
-                                    });
-                                }
-                            }
-
-                            QQC2.Label {
-                                text: ":"
-                            }
-
-                            QQC2.SpinBox {
-                                id: dlgMin
-
-                                from: 0
-                                to: 59
-                                stepSize: 5
-                                value: parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[1]) || 0
-                                textFromValue: function(v) {
-                                    return (v < 10 ? "0" : "") + v;
-                                }
-                                onValueModified: {
-                                    let h = parseInt((scheduleDialog.draft.schedTime || "09:00").split(":")[0]) || 9;
-                                    scheduleDialog.updateDraft({
-                                        "schedTime": (h < 10 ? "0" : "") + h + ":" + (value < 10 ? "0" : "") + value
-                                    });
-                                }
-                            }
-
-                        }
-
-                    }
 
                     ColumnLayout {
                         visible: (scheduleDialog.draft.schedType || "") === "weeks"
