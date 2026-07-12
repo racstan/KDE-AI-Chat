@@ -930,7 +930,7 @@ KCM.SimpleKCM {
 
         QQC2.ComboBox {
             id: uiLanguageCombo
-            Kirigami.FormData.label: i18n("Interface Language:")
+            Kirigami.FormData.label: i18n("Interface Language (Beta):")
             model: [
                 { text: i18n("English"), value: "en" },
                 { text: i18n("Mandarin Chinese"), value: "zh" },

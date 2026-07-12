@@ -1,0 +1,9 @@
+contents/ui/ConfigGeneral.qml
+contents/ui/test_dialog.qml
+contents/ui/ConfigOther.qml
+contents/ui/ConfigSystemPrompt.qml
+contents/ui/VoiceManager.qml
+contents/ui/ScheduleDialog.qml
+contents/ui/main.qml
+contents/ui/ConfigVoice.qml
+contents/ui/FullRepresentationContent.qml
