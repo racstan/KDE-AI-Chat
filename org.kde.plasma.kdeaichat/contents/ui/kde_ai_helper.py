@@ -409,12 +409,20 @@ def cmd_delete_venv_setup(payload: Dict[str, Any]) -> None:
 
 
 def cmd_save_all_schedules(payload: Dict[str, Any]) -> None:
-    """Persist a full schedules payload (replaces the existing file)."""
+    """Persist a full schedules payload (replaces the existing file atomically)."""
     p = os.path.expanduser("~/.local/share/kdeaichat")
     os.makedirs(p, exist_ok=True)
-    with open(os.path.join(p, "schedules.json"), "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
-    print("SCHED_SAVE_OK")
+    target = os.path.join(p, "schedules.json")
+    tmp = target + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, target)
+        os.chmod(target, 0o600)
+        print("SCHED_SAVE_OK")
+    except Exception as e:
+        sys.stderr.write(f"Error saving schedules: {e}\n")
+        print("SCHED_SAVE_ERROR")
 
 
 def _process_memory_kb(name: str, env_filter: str = None) -> int:

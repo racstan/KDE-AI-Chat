@@ -89,7 +89,7 @@ KCM.SimpleKCM {
         configPage._lastSchedSetupPayload = payloadStr;
         let b64Payload = Sec.base64Encode(payloadStr);
         let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.rawShellSnippetQuote(b64Payload);
-        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-auto-setup");
+        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-auto-setup-" + Date.now());
     }
 
     function pollSchedulerState() {
@@ -97,11 +97,13 @@ KCM.SimpleKCM {
     }
 
     function schedLoadSchedules() {
+        if (schedSaving)
+            return;
         let safePath = Sec.validateFilePath(schedulesFilePath);
         if (safePath === "")
             return;
         let cmd = "cat " + Sec.quoteForShell(safePath) + " 2>/dev/null || echo '{\"schedules\":[],\"history\":[]}'";
-        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-load");
+        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-load-" + Date.now());
     }
 
     function schedSaveSchedules(items) {
@@ -143,7 +145,7 @@ KCM.SimpleKCM {
         };
         let b64Payload = Sec.base64Encode(JSON.stringify(payload));
         let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.rawShellSnippetQuote(b64Payload);
-        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-save");
+        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-save-" + Date.now());
     }
 
     function schedTriggerNow(index) {
@@ -365,14 +367,13 @@ KCM.SimpleKCM {
 
                         configPage.schedulerHistory = hist;
                     } catch (e) {
-                        configPage.schedulerList = [];
-                        configPage.schedulerArchivedList = [];
-                        configPage.schedulerHistory = [];
+                        console.warn("Failed to parse schedules JSON:", e);
                     }
                 }
             } else if (sourceName.indexOf("sched-save") >= 0) {
                 configPage.schedSaving = false;
                 configPage.schedulerStatus = "Schedules saved.";
+                configPage.schedLoadSchedules();
             }
 
             disconnectSource(sourceName);
@@ -553,7 +554,7 @@ KCM.SimpleKCM {
                 if (!configPage.pageReady)
                     return;
                 let verb = checked ? "enable" : "disable";
-                configPage.utilityDs.connectSource("sh -c 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable");
+                configPage.utilityDs.connectSource("sh -c 'systemctl --user " + verb + " kde-ai-scheduler.service 2>&1; echo SCHED_ENABLE_OK' #sched-enable-" + Date.now());
             }
         }
 

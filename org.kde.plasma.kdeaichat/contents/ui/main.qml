@@ -1866,7 +1866,7 @@ PlasmoidItem {
                         var obj = JSON.parse(dataStr);
                         if (obj.choices && obj.choices.length > 0 && obj.choices[0].delta) {
                             var streamDelta = obj.choices[0].delta;
-                            var reasoningDelta = streamDelta.reasoning || streamDelta.reasoning_content || streamDelta.thinking || "";
+                            var reasoningDelta = streamDelta.reasoning || streamDelta.reasoning_content || streamDelta.thinking || streamDelta.thought || "";
                             if (reasoningDelta !== "")
                                 root.currentStreamReasoning += reasoningDelta;
 
@@ -2004,8 +2004,8 @@ PlasmoidItem {
                         for (var i = 0; i < obj.content.length; i++) {
                             if (obj.content[i].type === "text")
                                 text += obj.content[i].text;
-                            else if (obj.content[i].type === "thinking" || obj.content[i].type === "reasoning")
-                                reasoningText += obj.content[i].thinking || obj.content[i].text || "";
+                            else if (obj.content[i].type === "thinking" || obj.content[i].type === "reasoning" || obj.content[i].type === "thought")
+                                reasoningText += obj.content[i].thinking || obj.content[i].thought || obj.content[i].text || "";
 
                         }
                     }
