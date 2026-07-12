@@ -1,0 +1,1056 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-12 19:32+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: hi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: contents/ui/ConfigGeneral.qml:1330
+msgid "Interactive Guides:"
+msgstr "इंटरैक्टिव मार्गदर्शिकाएँ:"
+
+#: contents/ui/ConfigGeneral.qml:1333
+msgid "Guides visible — showing setup instructions"
+msgstr "मार्गदर्शिकाएँ दृश्यमान - सेटअप निर्देश दिखा रही हैं"
+
+#: contents/ui/ConfigGeneral.qml:1333
+msgid "Guides hidden"
+msgstr "मार्गदर्शक छिपे हुए हैं"
+
+#: contents/ui/ConfigOther.qml:177
+msgid "No schedule"
+msgstr "कोई शेड्यूल नहीं"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "every day"
+msgstr "रोज रोज"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "weekdays"
+msgstr "काम करने के दिन"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "weekends"
+msgstr "सप्ताहांत"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "on selected days"
+msgstr "चयनित दिनों पर"
+
+#: contents/ui/ConfigOther.qml:185
+msgid "Daily at %1:00 %2 %3"
+msgstr "प्रतिदिन %1:00 %2 %3 पर"
+
+#: contents/ui/ConfigOther.qml:188
+msgid "Every %1 hours"
+msgstr "हर %1 घंटे"
+
+#: contents/ui/ConfigOther.qml:194
+msgid ""
+"<b>Schedules Guide:</b><br/>The scheduler runs in the background. At the "
+"time you choose, it automatically sends a message into your chat and the AI "
+"replies.<br/><br/>• <b>Status: Stopped</b>.<br/>• <b>Action:</b> Toggle the "
+"<b>Scheduler switch</b> below to <b>ON</b> to boot the background daemon."
+msgstr ""
+"<b>शेड्यूल गाइड:</b><br/>शेड्यूलर पृष्ठभूमि में चलता है। आपके द्वारा चुने "
+"जाने पर, यह स्वचालित रूप से आपके चैट में एक संदेश भेजता है और AI उत्तर देता "
+"है।<br/><br/>• <b>स्थिति: बंद</b>।<br/>• <b>कार्रवाई:</b> पृष्ठभूमि डेमॉन को"
+" बूट करने के लिए नीचे <b>शेड्यूलर स्विच</b> को <b>चालू</b> पर टॉगल करें।"
+
+#: contents/ui/ConfigOther.qml:196
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Starting up...</b><br/>• The "
+"scheduler daemon is starting in the background. Once initialized, the status"
+" indicator will show <b>Active</b>.<br/>• (Optional) Make sure to toggle "
+"<b>Auto-start at login</b> to <b>ON</b> if you want automated schedules to "
+"trigger even when you don't open settings."
+msgstr ""
+"<b>शेड्यूल गाइड:</b><br/>• <b>स्थिति: प्रारंभ हो रहा है...</b><br/>• "
+"शेड्यूलर डेमॉन पृष्ठभूमि में प्रारंभ हो रहा है। एक बार आरंभ होने पर, स्थिति "
+"संकेतक <b>सक्रिय</b> दिखाएगा।<br/>• (वैकल्पिक) यदि आप चाहते हैं कि सेटिंग्स "
+"न खोलने पर भी स्वचालित शेड्यूल ट्रिगर हो, तो <b>लॉगिन पर ऑटो-स्टार्ट</b> को "
+"<b>चालू</b> पर टॉगल करना सुनिश्चित करें।"
+
+#: contents/ui/ConfigOther.qml:204
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• The"
+" scheduler is connected and monitoring. But you have <b>0 schedules "
+"configured</b>.<br/>• <b>Action:</b> Click <b>Create Schedule</b> below to "
+"set up your first automated daily or one-time prompt!"
+msgstr ""
+"<b>शेड्यूल गाइड:</b><br/>• <b>स्थिति: सक्रिय और amp; चल रहा है!</b><br/>• "
+"शेड्यूलर कनेक्ट है और निगरानी कर रहा है। लेकिन आपके पास <b>0 शेड्यूल "
+"कॉन्फ़िगर किए गए हैं</b>।<br/>• <b>कार्रवाई:</b> अपना पहला स्वचालित दैनिक या"
+" एक बार का संकेत सेट करने के लिए नीचे <b>शेड्यूल बनाएं</b> पर क्लिक करें!"
+
+#: contents/ui/ConfigOther.qml:205
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• You"
+" have <b>%1 schedule(s) configured</b> (%2 enabled).<br/>• The background "
+"service will run automatically. Click <b>Manage Schedules</b> to edit or "
+"delete tasks, view executed run history logs, and customize history "
+"retention limits.<br/>• <i>Pro-Tip:</i> You can also schedule prompts "
+"directly from the chat box by typing <code>/schedule</code>!"
+msgstr ""
+"<b>शेड्यूल गाइड:</b><br/>• <b>स्थिति: सक्रिय और amp; चल रहा है!</b><br/>• "
+"आपने <b>%1 शेड्यूल कॉन्फ़िगर किया है</b> (%2 सक्षम)।<br/>• पृष्ठभूमि सेवा "
+"स्वचालित रूप से चलेगी। कार्यों को संपादित करने या हटाने, निष्पादित रन इतिहास"
+" लॉग देखने और इतिहास अवधारण सीमा को अनुकूलित करने के लिए <b>शेड्यूल प्रबंधित"
+" करें</b> पर क्लिक करें।<br/>• <i>प्रो-टिप:</i> आप <code>/schedule</code> "
+"टाइप करके सीधे चैट बॉक्स से संकेतों को भी शेड्यूल कर सकते हैं!"
+
+#: contents/ui/ConfigOther.qml:217 contents/ui/ConfigOther.qml:412
+msgid "Prompt Templates"
+msgstr "शीघ्र टेम्पलेट"
+
+#: contents/ui/ConfigOther.qml:231
+msgid "Your saved prompt templates. Type /&lt;name&gt; in chat to use them."
+msgstr ""
+"आपके सहेजे गए प्रॉम्प्ट टेम्प्लेट. टाइप करें /&lt;नाम&gt; चैट में उनका उपयोग"
+" करने के लिए."
+
+#: contents/ui/ConfigOther.qml:282
+msgid "Delete template"
+msgstr "टेम्प्लेट हटाएँ"
+
+#: contents/ui/ConfigOther.qml:298
+msgid "No templates yet. Create one above."
+msgstr "अभी तक कोई टेम्पलेट नहीं. ऊपर एक बनाएं."
+
+#: contents/ui/ConfigOther.qml:459
+msgid "Name (e.g. review)"
+msgstr "नाम (जैसे समीक्षा)"
+
+#: contents/ui/ConfigOther.qml:464
+msgid "System prompt for template"
+msgstr "टेम्पलेट के लिए सिस्टम प्रॉम्प्ट"
+
+#: contents/ui/ConfigOther.qml:468
+msgid "Add"
+msgstr "जोड़ना"
+
+#: contents/ui/ConfigOther.qml:481
+msgid "View"
+msgstr "देखना"
+
+#: contents/ui/ConfigOther.qml:490 contents/ui/ConfigOther.qml:819
+msgid "Scheduler Daemon"
+msgstr "शेड्यूलर डेमन"
+
+#: contents/ui/ConfigOther.qml:498
+msgid "Schedules Guide:"
+msgstr "अनुसूचियाँ मार्गदर्शिका:"
+
+#: contents/ui/ConfigOther.qml:536
+msgid "Scheduler:"
+msgstr "अनुसूचक:"
+
+#: contents/ui/ConfigOther.qml:537
+msgid "ON — scheduler daemon configured"
+msgstr "चालू - शेड्यूलर डेमॉन कॉन्फ़िगर किया गया"
+
+#: contents/ui/ConfigOther.qml:537
+msgid "OFF — scheduler daemon inactive"
+msgstr "बंद - शेड्यूलर डेमॉन निष्क्रिय"
+
+#: contents/ui/ConfigOther.qml:561
+msgid "Auto-start at login:"
+msgstr "लॉगिन पर स्वतः प्रारंभ:"
+
+#: contents/ui/ConfigOther.qml:562
+msgid "Scheduler starts automatically on session startup"
+msgstr "सत्र स्टार्टअप पर शेड्यूलर स्वचालित रूप से प्रारंभ होता है"
+
+#: contents/ui/ConfigOther.qml:562
+msgid "Off — must start manually"
+msgstr "बंद - मैन्युअल रूप से प्रारंभ होना चाहिए"
+
+#: contents/ui/ConfigOther.qml:575
+msgid "Missed schedules:"
+msgstr "छूटे हुए शेड्यूल:"
+
+#: contents/ui/ConfigOther.qml:576
+msgid "Execute missed runs on startup"
+msgstr "स्टार्टअप पर छूटे हुए रन निष्पादित करें"
+
+#: contents/ui/ConfigOther.qml:576
+msgid "Ignore missed runs"
+msgstr "छूटे हुए रनों को नजरअंदाज करें"
+
+#: contents/ui/ConfigOther.qml:590
+msgid ""
+"When the PC is turned off and then it restarts, if any schedule was missed "
+"in that period, should it execute one after another? <font "
+"color=\"#ff4444\"><b>(Highly not recommended)</b></font>"
+msgstr ""
+"जब पीसी बंद हो जाता है और फिर चालू हो जाता है, यदि उस अवधि में कोई शेड्यूल "
+"छूट गया हो, तो क्या उसे एक के बाद एक निष्पादित करना चाहिए? <font "
+"color=\"#ff4444\"><b>(अत्यधिक अनुशंसित नहीं)</b></font>"
+
+#: contents/ui/ConfigOther.qml:600 contents/ui/ConfigVoice.qml:681
+msgid "Status:"
+msgstr "स्थिति:"
+
+#: contents/ui/ConfigOther.qml:605
+msgid "Active"
+msgstr "सक्रिय"
+
+#: contents/ui/ConfigOther.qml:605
+msgid "Stopped"
+msgstr "रुक गया"
+
+#: contents/ui/ConfigOther.qml:611
+msgid "Restart"
+msgstr "पुनः आरंभ करें"
+
+#: contents/ui/ConfigOther.qml:611
+msgid "Force Start"
+msgstr "ज़ोर से आरंभ"
+
+#: contents/ui/ConfigOther.qml:624 contents/ui/ConfigVoice.qml:857
+#: contents/ui/ConfigVoice.qml:907
+msgid "Stop"
+msgstr "रुकना"
+
+#: contents/ui/ConfigOther.qml:636
+msgid "Schedules:"
+msgstr "अनुसूचियाँ:"
+
+#: contents/ui/ConfigOther.qml:640
+msgid "Create Schedule"
+msgstr "शेड्यूल बनाएं"
+
+#: contents/ui/ConfigOther.qml:677
+msgid "Manage Schedules"
+msgstr "शेड्यूल प्रबंधित करें"
+
+#: contents/ui/ConfigOther.qml:687
+msgid "Open Schedules File"
+msgstr "शेड्यूल फ़ाइल खोलें"
+
+#: contents/ui/ConfigOther.qml:702
+msgid "Other Settings"
+msgstr "अन्य सेटिंग्स"
+
+#: contents/ui/ConfigOther.qml:729
+msgid "Reset All Settings to Defaults"
+msgstr "सभी सेटिंग्स को डिफ़ॉल्ट पर रीसेट करें"
+
+#: contents/ui/ConfigOther.qml:740
+msgid "Resource & Memory Usage"
+msgstr "संसाधन एवं स्मृति उपयोग"
+
+#: contents/ui/ConfigOther.qml:747
+msgid "Memory Usage:"
+msgstr "स्मृति प्रयोग:"
+
+#: contents/ui/ConfigOther.qml:750
+msgid "Refreshing…"
+msgstr "ताज़ा..."
+
+#: contents/ui/ConfigOther.qml:750
+msgid "Refresh"
+msgstr "ताज़ा करना"
+
+#: contents/ui/ConfigOther.qml:822 contents/ui/ConfigOther.qml:847
+msgid "Not running"
+msgstr "नहीं चल रहा है"
+
+#: contents/ui/ConfigOther.qml:829 contents/ui/ConfigOther.qml:854
+#: contents/ui/ConfigOther.qml:879 contents/ui/ConfigOther.qml:904
+msgid "Kill"
+msgstr "मारना"
+
+#: contents/ui/ConfigOther.qml:844
+msgid "OpenCode"
+msgstr "ओपनकोड"
+
+#: contents/ui/ConfigOther.qml:869
+msgid "Voice STT"
+msgstr "आवाज एसटीटी"
+
+#: contents/ui/ConfigOther.qml:872 contents/ui/ConfigOther.qml:897
+msgid "On-demand"
+msgstr "मांग पर"
+
+#: contents/ui/ConfigOther.qml:894
+msgid "Voice TTS"
+msgstr "आवाज टीटीएस"
+
+#: contents/ui/ConfigOther.qml:916
+msgid "Total"
+msgstr "कुल"
+
+#: contents/ui/ConfigOther.qml:928 contents/ui/ConfigSystemPrompt.qml:455
+#: contents/ui/ConfigVoice.qml:981
+msgid "Advanced"
+msgstr "विकसित"
+
+#: contents/ui/ConfigOther.qml:933
+msgid "Interface Language:"
+msgstr "इंटरफ़ेस भाषा:"
+
+#: contents/ui/ConfigOther.qml:935 contents/ui/ConfigVoice.qml:517
+msgid "English"
+msgstr "अंग्रेज़ी"
+
+#: contents/ui/ConfigOther.qml:936
+msgid "Mandarin Chinese"
+msgstr "मंदारिन चीनी"
+
+#: contents/ui/ConfigOther.qml:937 contents/ui/ConfigVoice.qml:518
+msgid "Hindi"
+msgstr "हिंदी"
+
+#: contents/ui/ConfigOther.qml:938 contents/ui/ConfigVoice.qml:519
+msgid "Spanish"
+msgstr "स्पैनिश"
+
+#: contents/ui/ConfigOther.qml:939 contents/ui/ConfigVoice.qml:520
+msgid "French"
+msgstr "फ़्रेंच"
+
+#: contents/ui/ConfigOther.qml:940
+msgid "Russian"
+msgstr "रूसी"
+
+#: contents/ui/ConfigOther.qml:941
+msgid "Portuguese"
+msgstr "पुर्तगाली"
+
+#: contents/ui/ConfigOther.qml:942 contents/ui/ConfigVoice.qml:521
+msgid "German"
+msgstr "जर्मन"
+
+#: contents/ui/ConfigOther.qml:961 contents/ui/ConfigSystemPrompt.qml:459
+#: contents/ui/ConfigVoice.qml:985
+msgid "Reset settings:"
+msgstr "सेटिंग्स फिर से करिए:"
+
+#: contents/ui/ConfigOther.qml:962 contents/ui/ConfigSystemPrompt.qml:460
+#: contents/ui/ConfigVoice.qml:986
+msgid "Reset to defaults"
+msgstr "डिफ़ॉल्ट पर पुनः सेट करें"
+
+#: contents/ui/ConfigSystemPrompt.qml:176
+msgid "System Prompt"
+msgstr "सिस्टम प्रॉम्प्ट"
+
+#: contents/ui/ConfigSystemPrompt.qml:221
+msgid "Enable system prompt:"
+msgstr "सिस्टम प्रॉम्प्ट सक्षम करें:"
+
+#: contents/ui/ConfigSystemPrompt.qml:223
+msgid "Enabled — instructions sent before every chat"
+msgstr "सक्षम - प्रत्येक चैट से पहले निर्देश भेजे जाते हैं"
+
+#: contents/ui/ConfigSystemPrompt.qml:223
+#: contents/ui/ConfigSystemPrompt.qml:334
+#: contents/ui/ConfigSystemPrompt.qml:434 contents/ui/ConfigVoice.qml:430
+#: contents/ui/ConfigVoice.qml:557 contents/ui/ConfigVoice.qml:773
+#: contents/ui/ConfigVoice.qml:780 contents/ui/ConfigVoice.qml:821
+msgid "Disabled"
+msgstr "अक्षम"
+
+#: contents/ui/ConfigSystemPrompt.qml:228
+msgid "System Info:"
+msgstr "व्यवस्था की सूचना:"
+
+#: contents/ui/ConfigSystemPrompt.qml:233
+msgid "OS"
+msgstr "ओएस"
+
+#: contents/ui/ConfigSystemPrompt.qml:234
+msgid "Shell"
+msgstr "शंख"
+
+#: contents/ui/ConfigSystemPrompt.qml:235
+msgid "Hostname"
+msgstr "होस्ट का नाम"
+
+#: contents/ui/ConfigSystemPrompt.qml:236
+msgid "Kernel"
+msgstr "गुठली"
+
+#: contents/ui/ConfigSystemPrompt.qml:237
+msgid "Desktop"
+msgstr "डेस्कटॉप"
+
+#: contents/ui/ConfigSystemPrompt.qml:238
+msgid "User"
+msgstr "उपयोगकर्ता"
+
+#: contents/ui/ConfigSystemPrompt.qml:239
+msgid "CPU"
+msgstr "CPU"
+
+#: contents/ui/ConfigSystemPrompt.qml:240
+#: contents/ui/ConfigSystemPrompt.qml:289
+msgid "Memory"
+msgstr "याद"
+
+#: contents/ui/ConfigSystemPrompt.qml:241
+msgid "GPU"
+msgstr "जीपीयू"
+
+#: contents/ui/ConfigSystemPrompt.qml:242
+msgid "Block Devices"
+msgstr "डिवाइसों को ब्लॉक करें"
+
+#: contents/ui/ConfigSystemPrompt.qml:243
+msgid "Network"
+msgstr "नेटवर्क"
+
+#: contents/ui/ConfigSystemPrompt.qml:244
+msgid "Locale"
+msgstr "स्थान"
+
+#: contents/ui/ConfigSystemPrompt.qml:245
+msgid "Date/Time"
+msgstr "दिनांक समय"
+
+#: contents/ui/ConfigSystemPrompt.qml:251
+msgid "Custom Instructions:"
+msgstr "कस्टम निर्देश:"
+
+#: contents/ui/ConfigSystemPrompt.qml:260
+msgid "Additional instructions for the LLM…"
+msgstr "एलएलएम के लिए अतिरिक्त निर्देश…"
+
+#: contents/ui/ConfigSystemPrompt.qml:269
+msgid "System Prompt Preview:"
+msgstr "सिस्टम प्रॉम्प्ट पूर्वावलोकन:"
+
+#: contents/ui/ConfigSystemPrompt.qml:332
+msgid "Enable memory:"
+msgstr "मेमोरी सक्षम करें:"
+
+#: contents/ui/ConfigSystemPrompt.qml:334
+msgid "Enabled — facts remembered across chats"
+msgstr "सक्षम - चैट के दौरान याद रखे गए तथ्य"
+
+#: contents/ui/ConfigSystemPrompt.qml:340
+msgid "Memory Content:"
+msgstr "मेमोरी सामग्री:"
+
+#: contents/ui/ConfigSystemPrompt.qml:349
+msgid ""
+"Facts or preferences you want the assistant to remember across all chats..."
+msgstr ""
+"वे तथ्य या प्राथमिकताएँ जो आप चाहते हैं कि सहायक सभी चैट के दौरान याद रखे..."
+
+#: contents/ui/ConfigSystemPrompt.qml:358
+msgid "Memory Preview:"
+msgstr "मेमोरी पूर्वावलोकन:"
+
+#: contents/ui/ConfigSystemPrompt.qml:378
+msgid "Context"
+msgstr "प्रसंग"
+
+#: contents/ui/ConfigSystemPrompt.qml:416
+msgid "Context limit:"
+msgstr "प्रसंग सीमा:"
+
+#: contents/ui/ConfigSystemPrompt.qml:424
+msgid "messages (-1 = unlimited)"
+msgstr "संदेश (-1 = असीमित)"
+
+#: contents/ui/ConfigSystemPrompt.qml:432
+msgid "Auto-compact context:"
+msgstr "ऑटो-कॉम्पैक्ट संदर्भ:"
+
+#: contents/ui/ConfigSystemPrompt.qml:434
+msgid "Enabled — old messages summarised automatically"
+msgstr "सक्षम - पुराने संदेशों को स्वचालित रूप से सारांशित किया गया"
+
+#: contents/ui/ConfigSystemPrompt.qml:439
+msgid "Compact after:"
+msgstr "बाद में संक्षिप्त:"
+
+#: contents/ui/ConfigSystemPrompt.qml:447
+msgid "messages"
+msgstr "संदेशों"
+
+#: contents/ui/ConfigVoice.qml:72
+msgid "Status check returned no data. Repair the engine, then check again."
+msgstr ""
+"स्थिति जांच से कोई डेटा नहीं लौटा. इंजन की मरम्मत करें, फिर दोबारा जांच "
+"करें।"
+
+#: contents/ui/ConfigVoice.qml:76
+msgid "STT returned no data. Check the selected STT folder and engine status."
+msgstr ""
+"एसटीटी ने कोई डेटा नहीं लौटाया. चयनित एसटीटी फ़ोल्डर और इंजन स्थिति की जाँच "
+"करें।"
+
+#: contents/ui/ConfigVoice.qml:80
+msgid ""
+"TTS returned no data. Check the selected TTS folder, voice name, and engine "
+"status."
+msgstr ""
+"टीटीएस ने कोई डेटा नहीं लौटाया. चयनित टीटीएस फ़ोल्डर, आवाज का नाम और इंजन "
+"स्थिति की जांच करें।"
+
+#: contents/ui/ConfigVoice.qml:102
+msgid ""
+"Status check did not start the voice helper. Repair the engine, then check "
+"again."
+msgstr ""
+"स्थिति जांच से वॉयस हेल्पर प्रारंभ नहीं हुआ। इंजन की मरम्मत करें, फिर दोबारा"
+" जांच करें।"
+
+#: contents/ui/ConfigVoice.qml:106
+msgid "STT helper did not start. Repair the engine, then test again."
+msgstr ""
+"एसटीटी हेल्पर शुरू नहीं हुआ. इंजन की मरम्मत करें, फिर दोबारा परीक्षण करें।"
+
+#: contents/ui/ConfigVoice.qml:110
+msgid "TTS helper did not start. Repair the engine, then test again."
+msgstr ""
+"टीटीएस हेल्पर शुरू नहीं हुआ. इंजन की मरम्मत करें, फिर दोबारा परीक्षण करें।"
+
+#: contents/ui/ConfigVoice.qml:121
+msgid "Ready. Voice input and read-aloud can use the selected folders."
+msgstr ""
+"तैयार। ध्वनि इनपुट और जोर से पढ़ने के लिए चयनित फ़ोल्डर का उपयोग किया जा "
+"सकता है।"
+
+#: contents/ui/ConfigVoice.qml:127
+msgid "Creating voice engine..."
+msgstr "ध्वनि इंजन बनाया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:129
+msgid "Preparing Python packages..."
+msgstr "पायथन पैकेज तैयार किया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:131
+msgid "Installing speech runtime..."
+msgstr "वाक् रनटाइम स्थापित किया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:133
+msgid "Installing NLP packages..."
+msgstr "एनएलपी पैकेज स्थापित किया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:135
+msgid "Installing STT/TTS support packages..."
+msgstr "एसटीटी/टीटीएस समर्थन पैकेज स्थापित किया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:137
+msgid "Installing text-to-speech support..."
+msgstr "पाठ-से-वाक् समर्थन स्थापित किया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:139
+msgid "Engine ready. Rechecking folders..."
+msgstr "इंजन तैयार. फ़ोल्डरों की पुनः जाँच की जा रही है..."
+
+#: contents/ui/ConfigVoice.qml:146
+msgid "Voice engine setup failed."
+msgstr "वॉइस इंजन सेटअप विफल रहा."
+
+#: contents/ui/ConfigVoice.qml:149 contents/ui/ConfigVoice.qml:866
+msgid "Loading STT model..."
+msgstr "एसटीटी मॉडल लोड हो रहा है..."
+
+#: contents/ui/ConfigVoice.qml:150
+msgid "Recording. Speak now..."
+msgstr "रिकॉर्डिंग. अब बोलो..."
+
+#: contents/ui/ConfigVoice.qml:151
+msgid "Transcribing..."
+msgstr "प्रतिलेखन..."
+
+#: contents/ui/ConfigVoice.qml:155
+msgid "No speech detected."
+msgstr "कोई भाषण नहीं मिला."
+
+#: contents/ui/ConfigVoice.qml:158
+msgid "STT error: "
+msgstr "एसटीटी त्रुटि:"
+
+#: contents/ui/ConfigVoice.qml:158 contents/ui/ConfigVoice.qml:172
+msgid "Unknown error"
+msgstr "अज्ञात त्रुटि"
+
+#: contents/ui/ConfigVoice.qml:161 contents/ui/ConfigVoice.qml:916
+msgid "Creating speech..."
+msgstr "भाषण बनाया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:164
+msgid "Playing test audio..."
+msgstr "परीक्षण ऑडियो चलाया जा रहा है..."
+
+#: contents/ui/ConfigVoice.qml:169
+msgid "TTS test finished."
+msgstr "टीटीएस परीक्षण समाप्त हो गया."
+
+#: contents/ui/ConfigVoice.qml:172
+msgid "TTS error: "
+msgstr "टीटीएस त्रुटि:"
+
+#: contents/ui/ConfigVoice.qml:226
+msgid ""
+"Preparing voice engine. This installs code support only; it does not "
+"download models."
+msgstr ""
+"वॉइस इंजन तैयार किया जा रहा है. यह केवल कोड समर्थन स्थापित करता है; यह मॉडल "
+"डाउनलोड नहीं करता है."
+
+#: contents/ui/ConfigVoice.qml:258
+msgid "Recording stopped."
+msgstr "रिकॉर्डिंग बंद हो गई."
+
+#: contents/ui/ConfigVoice.qml:267
+msgid "Speech stopped."
+msgstr "बोलती बंद हो गई."
+
+#: contents/ui/ConfigVoice.qml:277
+msgid ""
+"Checking folders, microphone, audio output, and engine packages. This should"
+" finish in under 30 seconds."
+msgstr ""
+"फ़ोल्डर्स, माइक्रोफ़ोन, ऑडियो आउटपुट और इंजन पैकेज की जाँच करना। यह 30 सेकंड"
+" से कम समय में समाप्त हो जाना चाहिए।"
+
+#: contents/ui/ConfigVoice.qml:282
+msgid ""
+"Not ready: STT folder is empty or does not contain recognizable model files."
+msgstr ""
+"तैयार नहीं: STT फ़ोल्डर खाली है या इसमें पहचानने योग्य मॉडल फ़ाइलें नहीं "
+"हैं।"
+
+#: contents/ui/ConfigVoice.qml:284
+msgid "Not ready: voice engine folder is missing. Press Repair Engine."
+msgstr "तैयार नहीं: ध्वनि इंजन फ़ोल्डर अनुपलब्ध है. मरम्मत इंजन दबाएँ."
+
+#: contents/ui/ConfigVoice.qml:286
+msgid ""
+"Not ready: speech engine packages are missing or broken. Press Repair "
+"Engine."
+msgstr ""
+"तैयार नहीं: स्पीच इंजन पैकेज गायब हैं या टूटे हुए हैं। मरम्मत इंजन दबाएँ."
+
+#: contents/ui/ConfigVoice.qml:288
+msgid "Not ready: no microphone was detected."
+msgstr "तैयार नहीं: कोई माइक्रोफ़ोन नहीं पाया गया."
+
+#: contents/ui/ConfigVoice.qml:290
+msgid ""
+"Not ready: TTS folder is empty or does not contain recognizable model files."
+msgstr ""
+"तैयार नहीं: टीटीएस फ़ोल्डर खाली है या इसमें पहचानने योग्य मॉडल फ़ाइलें नहीं "
+"हैं।"
+
+#: contents/ui/ConfigVoice.qml:292
+msgid "Not ready: no audio output player was found."
+msgstr "तैयार नहीं: कोई ऑडियो आउटपुट प्लेयर नहीं मिला."
+
+#: contents/ui/ConfigVoice.qml:295
+msgid ""
+"Not ready: The selected TTS model requires 'espeak-ng' to be installed on "
+"your system."
+msgstr ""
+"तैयार नहीं: चयनित टीटीएस मॉडल को आपके सिस्टम पर 'एस्पीक-एनजी' स्थापित करने "
+"की आवश्यकता है।"
+
+#: contents/ui/ConfigVoice.qml:296
+msgid ""
+"Not ready: selected TTS folder needs engine support. Press Repair Engine or "
+"choose a compatible folder."
+msgstr ""
+"तैयार नहीं: चयनित टीटीएस फ़ोल्डर को इंजन समर्थन की आवश्यकता है। रिपेयर इंजन "
+"दबाएँ या एक संगत फ़ोल्डर चुनें।"
+
+#: contents/ui/ConfigVoice.qml:298
+msgid "Not ready. Check the rows below."
+msgstr "तैयार नहीं है। नीचे दी गई पंक्तियों की जाँच करें."
+
+#: contents/ui/ConfigVoice.qml:310
+msgid ""
+"Status check timed out. The helper did not answer within 30 seconds. Repair "
+"the engine or select a smaller/local model folder."
+msgstr ""
+"स्थिति जांच का समय समाप्त हो गया. सहायक ने 30 सेकंड के भीतर कोई उत्तर नहीं "
+"दिया। इंजन की मरम्मत करें या एक छोटा/स्थानीय मॉडल फ़ोल्डर चुनें।"
+
+#: contents/ui/ConfigVoice.qml:324
+msgid ""
+"STT test timed out. Check microphone permission, selected STT folder, and "
+"engine status."
+msgstr ""
+"एसटीटी परीक्षण का समय समाप्त हो गया. माइक्रोफ़ोन अनुमति, चयनित STT फ़ोल्डर "
+"और इंजन स्थिति की जाँच करें।"
+
+#: contents/ui/ConfigVoice.qml:338
+msgid ""
+"TTS test timed out. Check the selected TTS folder, voice name, audio output,"
+" and engine status."
+msgstr ""
+"टीटीएस परीक्षण का समय समाप्त हो गया. चयनित टीटीएस फ़ोल्डर, आवाज का नाम, "
+"ऑडियो आउटपुट और इंजन स्थिति की जांच करें।"
+
+#: contents/ui/ConfigVoice.qml:349
+msgid "Select STT Model Folder"
+msgstr "एसटीटी मॉडल फ़ोल्डर का चयन करें"
+
+#: contents/ui/ConfigVoice.qml:361
+msgid "Select TTS Model Folder"
+msgstr "टीटीएस मॉडल फ़ोल्डर का चयन करें"
+
+#: contents/ui/ConfigVoice.qml:379
+msgid "Voice"
+msgstr "आवाज़"
+
+#: contents/ui/ConfigVoice.qml:409
+msgid ""
+"<b>First-time Setup Guide:</b><br>1. Click the 'Readme Guide' button below "
+"for full instructions.<br>2. Click <b>Repair Engine</b> to install "
+"dependencies.<br>3. To automatically download the default models, simply "
+"leave the STT and TTS folder paths empty.<br>4. If you already have models "
+"(Faster Whisper, Kokoro, Piper), you can browse and select their "
+"folders.<br>5. Click <b>Check &amp; Test</b> to verify everything works."
+msgstr ""
+"<b>पहली बार सेटअप गाइड:</b><br>1. पूर्ण निर्देशों के लिए नीचे 'रीडमी गाइड' "
+"बटन पर क्लिक करें।<br>2. निर्भरताएँ स्थापित करने के लिए <b>मरम्मत इंजन</b> "
+"पर क्लिक करें।<br>3. डिफ़ॉल्ट मॉडल को स्वचालित रूप से डाउनलोड करने के लिए, "
+"बस एसटीटी और टीटीएस फ़ोल्डर पथ खाली छोड़ दें।<br>4. यदि आपके पास पहले से ही "
+"मॉडल हैं (फास्टर व्हिस्पर, कोकोरो, पाइपर), तो आप ब्राउज़ कर सकते हैं और उनके"
+" फ़ोल्डर्स का चयन कर सकते हैं।<br>5. <b>जाँचें और क्लिक करें सब कुछ काम करता"
+" है यह सत्यापित करने के लिए परीक्षण</b>करें।"
+
+#: contents/ui/ConfigVoice.qml:419
+msgid "Readme Guide"
+msgstr "रीडमी गाइड"
+
+#: contents/ui/ConfigVoice.qml:427
+msgid "Voice:"
+msgstr "आवाज़:"
+
+#: contents/ui/ConfigVoice.qml:430 contents/ui/ConfigVoice.qml:557
+msgid "Enabled"
+msgstr "सक्रिय"
+
+#: contents/ui/ConfigVoice.qml:445
+msgid ""
+"<b>Voice:</b> Enables the microphone button in chat. It does not download or"
+" choose models for you."
+msgstr ""
+"<b>आवाज़:</b> चैट में माइक्रोफ़ोन बटन सक्षम करता है। यह आपके लिए मॉडल "
+"डाउनलोड या चयन नहीं करता है."
+
+#: contents/ui/ConfigVoice.qml:452
+msgid "GPU Usage:"
+msgstr "जीपीयू उपयोग:"
+
+#: contents/ui/ConfigVoice.qml:454 contents/ui/ConfigVoice.qml:821
+msgid "Enabled (CUDA)"
+msgstr "सक्षम (सीयूडीए)"
+
+#: contents/ui/ConfigVoice.qml:454
+msgid "Disabled (CPU only)"
+msgstr "अक्षम (केवल सीपीयू)"
+
+#: contents/ui/ConfigVoice.qml:465
+msgid ""
+"<b>GPU Usage:</b> Enables CUDA hardware acceleration. Turning this on "
+"requires you to press <b>Repair Engine</b> below to install the heavy CUDA "
+"packages (~3GB). Turn off if your device doesn't have an NVIDIA GPU."
+msgstr ""
+"<b>GPU उपयोग:</b> CUDA हार्डवेयर त्वरण को सक्षम करता है। इसे चालू करने के "
+"लिए आपको भारी CUDA पैकेज (~3GB) स्थापित करने के लिए नीचे <b>मरम्मत इंजन</b> "
+"दबाना होगा। यदि आपके डिवाइस में NVIDIA GPU नहीं है तो बंद कर दें।"
+
+#: contents/ui/ConfigVoice.qml:470 contents/ui/ConfigVoice.qml:757
+msgid "STT folder:"
+msgstr "एसटीटी फ़ोल्डर:"
+
+#: contents/ui/ConfigVoice.qml:479
+msgid "Select an STT model folder"
+msgstr "एक STT मॉडल फ़ोल्डर चुनें"
+
+#: contents/ui/ConfigVoice.qml:488 contents/ui/ConfigVoice.qml:595
+msgid "Browse"
+msgstr "ब्राउज़"
+
+#: contents/ui/ConfigVoice.qml:501
+msgid ""
+"<b>STT folder:</b> Pick the folder that contains your speech-to-text model "
+"files."
+msgstr ""
+"<b>एसटीटी फ़ोल्डर:</b> वह फ़ोल्डर चुनें जिसमें आपकी वाक्-से-पाठ मॉडल फ़ाइलें"
+" हों।"
+
+#: contents/ui/ConfigVoice.qml:506
+msgid "Language:"
+msgstr "भाषा:"
+
+#: contents/ui/ConfigVoice.qml:516
+msgid "Auto detect"
+msgstr "ऑटो का पता लगाने"
+
+#: contents/ui/ConfigVoice.qml:522
+msgid "Japanese"
+msgstr "जापानी"
+
+#: contents/ui/ConfigVoice.qml:523
+msgid "Korean"
+msgstr "कोरियाई"
+
+#: contents/ui/ConfigVoice.qml:524
+msgid "Chinese"
+msgstr "चीनी"
+
+#: contents/ui/ConfigVoice.qml:548
+msgid ""
+"<b>Language:</b> Use Auto for multilingual models. Use English for English-"
+"only models."
+msgstr ""
+"<b>भाषा:</b> बहुभाषी मॉडल के लिए ऑटो का उपयोग करें। केवल अंग्रेजी मॉडल के "
+"लिए अंग्रेजी का प्रयोग करें।"
+
+#: contents/ui/ConfigVoice.qml:554
+msgid "Read aloud:"
+msgstr "ज़ोर से पढ़ें:"
+
+#: contents/ui/ConfigVoice.qml:572
+msgid ""
+"<b>Read aloud:</b> Enables text-to-speech. Leave it off if you only want "
+"microphone input."
+msgstr ""
+"<b>जोर से पढ़ें:</b> टेक्स्ट-टू-स्पीच सक्षम करता है। यदि आप केवल माइक्रोफ़ोन"
+" इनपुट चाहते हैं तो इसे छोड़ दें।"
+
+#: contents/ui/ConfigVoice.qml:577 contents/ui/ConfigVoice.qml:771
+msgid "TTS folder:"
+msgstr "टीटीएस फ़ोल्डर:"
+
+#: contents/ui/ConfigVoice.qml:586
+msgid "Select a TTS model folder"
+msgstr "एक टीटीएस मॉडल फ़ोल्डर चुनें"
+
+#: contents/ui/ConfigVoice.qml:608
+msgid ""
+"<b>TTS folder:</b> Pick the folder that contains your text-to-speech model "
+"files."
+msgstr ""
+"<b>टीटीएस फ़ोल्डर:</b> वह फ़ोल्डर चुनें जिसमें आपकी टेक्स्ट-टू-स्पीच मॉडल "
+"फ़ाइलें हों।"
+
+#: contents/ui/ConfigVoice.qml:613
+msgid "Voice name:"
+msgstr "आवाज का नाम:"
+
+#: contents/ui/ConfigVoice.qml:621
+msgid "Voice id or name"
+msgstr "वॉयस आईडी या नाम"
+
+#: contents/ui/ConfigVoice.qml:634
+msgid ""
+"<b>Voice name:</b> Use the voice id expected by the selected TTS model. If "
+"the model has voice files, use the file name without its extension."
+msgstr ""
+"<b>आवाज का नाम:</b> चयनित टीटीएस मॉडल द्वारा अपेक्षित आवाज आईडी का उपयोग "
+"करें। यदि मॉडल में ध्वनि फ़ाइलें हैं, तो फ़ाइल नाम का उसके एक्सटेंशन के बिना"
+" उपयोग करें।"
+
+#: contents/ui/ConfigVoice.qml:640
+msgid "Auto read:"
+msgstr "स्वतः पढ़ें:"
+
+#: contents/ui/ConfigVoice.qml:643
+msgid "Speak every AI reply"
+msgstr "प्रत्येक एआई उत्तर बोलें"
+
+#: contents/ui/ConfigVoice.qml:643
+msgid "Manual only"
+msgstr "केवल मैनुअल"
+
+#: contents/ui/ConfigVoice.qml:655
+msgid ""
+"<b>Auto read:</b> Turn this on only if every AI response should be spoken "
+"automatically."
+msgstr ""
+"<b>स्वत: पढ़ें:</b> इसे तभी चालू करें जब प्रत्येक AI प्रतिक्रिया स्वचालित "
+"रूप से बोली जानी चाहिए।"
+
+#: contents/ui/ConfigVoice.qml:661
+msgid "Auto-send:"
+msgstr "स्वतः भेजें:"
+
+#: contents/ui/ConfigVoice.qml:664
+msgid "Send transcript immediately"
+msgstr "प्रतिलेख तुरंत भेजें"
+
+#: contents/ui/ConfigVoice.qml:664
+msgid "Put transcript in the input box"
+msgstr "प्रतिलेख को इनपुट बॉक्स में रखें"
+
+#: contents/ui/ConfigVoice.qml:676
+msgid ""
+"<b>Auto-send:</b> Keep on for hands-free chat. Turn off if you want to edit "
+"the transcript before sending."
+msgstr ""
+"<b>ऑटो-सेंड:</b> हैंड्स-फ़्री चैट के लिए जारी रखें। यदि आप भेजने से पहले "
+"प्रतिलेख संपादित करना चाहते हैं तो इसे बंद कर दें।"
+
+#: contents/ui/ConfigVoice.qml:700
+msgid "Select folders, then check status."
+msgstr "फ़ोल्डर्स चुनें, फिर स्थिति जांचें।"
+
+#: contents/ui/ConfigVoice.qml:714
+msgid "Check"
+msgstr "जाँच करना"
+
+#: contents/ui/ConfigVoice.qml:720
+msgid "Repair Engine"
+msgstr "मरम्मत इंजन"
+
+#: contents/ui/ConfigVoice.qml:736
+msgid ""
+"Check validates folders, microphone, audio output, and required packages. "
+"Repair Engine appears only when package support is missing or broken."
+msgstr ""
+"चेक फ़ोल्डर, माइक्रोफ़ोन, ऑडियो आउटपुट और आवश्यक पैकेजों को मान्य करता है। "
+"रिपेयर इंजन तभी प्रकट होता है जब पैकेज सपोर्ट गायब या टूटा हुआ हो।"
+
+#: contents/ui/ConfigVoice.qml:759 contents/ui/ConfigVoice.qml:773
+msgid "Valid"
+msgstr "वैध"
+
+#: contents/ui/ConfigVoice.qml:759 contents/ui/ConfigVoice.qml:773
+msgid "Invalid or empty"
+msgstr "अमान्य या खाली"
+
+#: contents/ui/ConfigVoice.qml:764
+msgid "STT engine:"
+msgstr "एसटीटी इंजन:"
+
+#: contents/ui/ConfigVoice.qml:766 contents/ui/ConfigVoice.qml:780
+msgid "Ready"
+msgstr "तैयार"
+
+#: contents/ui/ConfigVoice.qml:766 contents/ui/ConfigVoice.qml:780
+msgid "Repair engine"
+msgstr "मरम्मत इंजन"
+
+#: contents/ui/ConfigVoice.qml:778
+msgid "TTS engine:"
+msgstr "टीटीएस इंजन:"
+
+#: contents/ui/ConfigVoice.qml:780
+msgid "espeak-ng missing"
+msgstr "एस्पीक-एनजी गायब है"
+
+#: contents/ui/ConfigVoice.qml:787
+msgid "Install espeak-ng:"
+msgstr "एस्पीक-एनजी स्थापित करें:"
+
+#: contents/ui/ConfigVoice.qml:812
+msgid "Virtual env:"
+msgstr "आभासी वातावरण:"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Configured"
+msgstr "कॉन्फ़िगर किया गया"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Broken/Missing Libs"
+msgstr "टूटे/गायब पैर"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Not created"
+msgstr "नहीं बनाया गया"
+
+#: contents/ui/ConfigVoice.qml:819
+msgid "GPU mode:"
+msgstr "जीपीयू मोड:"
+
+#: contents/ui/ConfigVoice.qml:826
+msgid "GPU libraries:"
+msgstr "जीपीयू लाइब्रेरीज़:"
+
+#: contents/ui/ConfigVoice.qml:828
+msgid "Installed (CUDA %1)"
+msgstr "स्थापित (सीयूडीए%1)"
+
+#: contents/ui/ConfigVoice.qml:828
+msgid "Missing"
+msgstr "गुम"
+
+#: contents/ui/ConfigVoice.qml:833
+msgid "Microphone:"
+msgstr "माइक्रोफ़ोन:"
+
+#: contents/ui/ConfigVoice.qml:835 contents/ui/ConfigVoice.qml:842
+msgid "Available"
+msgstr "उपलब्ध"
+
+#: contents/ui/ConfigVoice.qml:835 contents/ui/ConfigVoice.qml:842
+msgid "Not found"
+msgstr "नहीं मिला"
+
+#: contents/ui/ConfigVoice.qml:840
+msgid "Audio output:"
+msgstr "ऑडियो आउटपुट:"
+
+#: contents/ui/ConfigVoice.qml:851
+msgid "Test STT:"
+msgstr "परीक्षण एसटीटी:"
+
+#: contents/ui/ConfigVoice.qml:857
+msgid "Record 5 sec"
+msgstr "5 सेकंड रिकॉर्ड करें"
+
+#: contents/ui/ConfigVoice.qml:887
+msgid ""
+"<b>Test STT:</b> Records five seconds, transcribes it, and shows the text "
+"below."
+msgstr ""
+"<b>एसटीटी का परीक्षण करें:</b> पांच सेकंड रिकॉर्ड करता है, उसे लिपिबद्ध करता"
+" है, और नीचे दिए गए पाठ को दिखाता है।"
+
+#: contents/ui/ConfigVoice.qml:892
+msgid "Transcript:"
+msgstr "प्रतिलेख:"
+
+#: contents/ui/ConfigVoice.qml:901
+msgid "Test TTS:"
+msgstr "टेस्ट टीटीएस:"
+
+#: contents/ui/ConfigVoice.qml:907
+msgid "Speak"
+msgstr "बोलना"
+
+#: contents/ui/ConfigVoice.qml:919
+msgid "Voice setup is ready."
+msgstr "वॉयस सेटअप तैयार है."
+
+#: contents/ui/ConfigVoice.qml:939
+msgid ""
+"<b>Test TTS:</b> Speaks a short sentence with the selected TTS folder and "
+"voice name."
+msgstr ""
+"<b>TTS का परीक्षण करें:</b> चयनित TTS फ़ोल्डर और ध्वनि नाम के साथ एक छोटा "
+"वाक्य बोलता है।"
+
+#: contents/ui/ConfigVoice.qml:944
+msgid "TTS result:"
+msgstr "टीटीएस परिणाम:"
+
+#: contents/ui/ConfigVoice.qml:953
+msgid "Engine folder:"
+msgstr "इंजन फ़ोल्डर:"
+
+#: contents/ui/ConfigVoice.qml:976
+msgid ""
+"<b>Engine folder:</b> Stores the small Python environment used to run your "
+"selected models. This is not a model folder."
+msgstr ""
+"<b>इंजन फ़ोल्डर:</b> आपके चयनित मॉडल को चलाने के लिए उपयोग किए जाने वाले "
+"छोटे पायथन वातावरण को संग्रहीत करता है। यह कोई मॉडल फ़ोल्डर नहीं है."

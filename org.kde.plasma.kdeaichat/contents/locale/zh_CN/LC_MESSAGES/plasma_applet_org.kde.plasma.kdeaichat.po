@@ -1,0 +1,982 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-12 19:32+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: contents/ui/ConfigGeneral.qml:1330
+msgid "Interactive Guides:"
+msgstr "互动指南："
+
+#: contents/ui/ConfigGeneral.qml:1333
+msgid "Guides visible — showing setup instructions"
+msgstr "可见指南 — 显示设置说明"
+
+#: contents/ui/ConfigGeneral.qml:1333
+msgid "Guides hidden"
+msgstr "隐藏指南"
+
+#: contents/ui/ConfigOther.qml:177
+msgid "No schedule"
+msgstr "没有时间表"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "every day"
+msgstr "每天"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "weekdays"
+msgstr "工作日"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "weekends"
+msgstr "周末"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "on selected days"
+msgstr "在选定的日子里"
+
+#: contents/ui/ConfigOther.qml:185
+msgid "Daily at %1:00 %2 %3"
+msgstr "每天 %1:00 %2 %3"
+
+#: contents/ui/ConfigOther.qml:188
+msgid "Every %1 hours"
+msgstr "每%1小时"
+
+#: contents/ui/ConfigOther.qml:194
+msgid ""
+"<b>Schedules Guide:</b><br/>The scheduler runs in the background. At the "
+"time you choose, it automatically sends a message into your chat and the AI "
+"replies.<br/><br/>• <b>Status: Stopped</b>.<br/>• <b>Action:</b> Toggle the "
+"<b>Scheduler switch</b> below to <b>ON</b> to boot the background daemon."
+msgstr ""
+"<b>调度指南：</b><br/>调度程序在后台运行。在您选择的时间，它会自动向您的聊天室发送一条消息，然后 AI 进行回复。<br/><br/>• "
+"<b>状态：已停止</b>。<br/>• <b>操作：</b>将下面的<b>调度程序开关</b>切换至<b>ON</b>以启动后台守护程序。"
+
+#: contents/ui/ConfigOther.qml:196
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Starting up...</b><br/>• The "
+"scheduler daemon is starting in the background. Once initialized, the status"
+" indicator will show <b>Active</b>.<br/>• (Optional) Make sure to toggle "
+"<b>Auto-start at login</b> to <b>ON</b> if you want automated schedules to "
+"trigger even when you don't open settings."
+msgstr ""
+"<b>计划指南：</b><br/>• <b>状态：正在启动...</b><br/>• "
+"计划程序守护程序正在后台启动。初始化后，状态指示器将显示<b>活动</b>。<br/>•（可选）如果您希望即使在未打开设置的情况下也能触发自动计划，请务必将<b>登录时自动启动</b>切换为<b>开启</b>。"
+
+#: contents/ui/ConfigOther.qml:204
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• The"
+" scheduler is connected and monitoring. But you have <b>0 schedules "
+"configured</b>.<br/>• <b>Action:</b> Click <b>Create Schedule</b> below to "
+"set up your first automated daily or one-time prompt!"
+msgstr ""
+"<b>日程指南：</b><br/>• <b>状态：活动且尚未完成正在运行！</b><br/>• 调度程序已连接并正在监视。但您已配置<b>0 "
+"个计划</b>。<br/>• <b>操作：</b>点击下面的<b>创建计划</b>来设置您的第一个自动每日或一次性提示！"
+
+#: contents/ui/ConfigOther.qml:205
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• You"
+" have <b>%1 schedule(s) configured</b> (%2 enabled).<br/>• The background "
+"service will run automatically. Click <b>Manage Schedules</b> to edit or "
+"delete tasks, view executed run history logs, and customize history "
+"retention limits.<br/>• <i>Pro-Tip:</i> You can also schedule prompts "
+"directly from the chat box by typing <code>/schedule</code>!"
+msgstr ""
+"<b>日程指南：</b><br/>• <b>状态：活动且尚未完成正在运行！</b><br/>• 您已配置<b>%1 "
+"个计划</b>（已启用%2）。<br/>• "
+"后台服务将自动运行。单击<b>管理计划</b>可编辑或删除任务、查看已执行的运行历史记录日志以及自定义历史记录保留限制。<br/>• "
+"<i>专业提示</i>：您还可以通过键入<code>/schedule</code> 直接从聊天框中安排提示！"
+
+#: contents/ui/ConfigOther.qml:217 contents/ui/ConfigOther.qml:412
+msgid "Prompt Templates"
+msgstr "提示模板"
+
+#: contents/ui/ConfigOther.qml:231
+msgid "Your saved prompt templates. Type /&lt;name&gt; in chat to use them."
+msgstr "您保存的提示模板。输入 /<名称>在聊天中使用它们。"
+
+#: contents/ui/ConfigOther.qml:282
+msgid "Delete template"
+msgstr "删除模板"
+
+#: contents/ui/ConfigOther.qml:298
+msgid "No templates yet. Create one above."
+msgstr "还没有模板。在上面创建一个。"
+
+#: contents/ui/ConfigOther.qml:459
+msgid "Name (e.g. review)"
+msgstr "姓名（例如评论）"
+
+#: contents/ui/ConfigOther.qml:464
+msgid "System prompt for template"
+msgstr "系统提示输入模板"
+
+#: contents/ui/ConfigOther.qml:468
+msgid "Add"
+msgstr "添加"
+
+#: contents/ui/ConfigOther.qml:481
+msgid "View"
+msgstr "看法"
+
+#: contents/ui/ConfigOther.qml:490 contents/ui/ConfigOther.qml:819
+msgid "Scheduler Daemon"
+msgstr "调度程序守护进程"
+
+#: contents/ui/ConfigOther.qml:498
+msgid "Schedules Guide:"
+msgstr "时间表指南："
+
+#: contents/ui/ConfigOther.qml:536
+msgid "Scheduler:"
+msgstr "调度程序："
+
+#: contents/ui/ConfigOther.qml:537
+msgid "ON — scheduler daemon configured"
+msgstr "ON — 已配置调度程序守护进程"
+
+#: contents/ui/ConfigOther.qml:537
+msgid "OFF — scheduler daemon inactive"
+msgstr "OFF — 调度程序守护进程不活动"
+
+#: contents/ui/ConfigOther.qml:561
+msgid "Auto-start at login:"
+msgstr "登录时自动启动："
+
+#: contents/ui/ConfigOther.qml:562
+msgid "Scheduler starts automatically on session startup"
+msgstr "调度程序在会话启动时自动启动"
+
+#: contents/ui/ConfigOther.qml:562
+msgid "Off — must start manually"
+msgstr "关闭 — 必须手动启动"
+
+#: contents/ui/ConfigOther.qml:575
+msgid "Missed schedules:"
+msgstr "错过的时间表："
+
+#: contents/ui/ConfigOther.qml:576
+msgid "Execute missed runs on startup"
+msgstr "启动时执行错过的运行"
+
+#: contents/ui/ConfigOther.qml:576
+msgid "Ignore missed runs"
+msgstr "忽略错过的跑步"
+
+#: contents/ui/ConfigOther.qml:590
+msgid ""
+"When the PC is turned off and then it restarts, if any schedule was missed "
+"in that period, should it execute one after another? <font "
+"color=\"#ff4444\"><b>(Highly not recommended)</b></font>"
+msgstr ""
+"当电脑关闭然后重新启动时，如果该期间错过了任何计划，是否应该依次执行？ <font "
+"color=\"#ff4444\"><b>（强烈不推荐）</b></font>"
+
+#: contents/ui/ConfigOther.qml:600 contents/ui/ConfigVoice.qml:681
+msgid "Status:"
+msgstr "地位："
+
+#: contents/ui/ConfigOther.qml:605
+msgid "Active"
+msgstr "积极的"
+
+#: contents/ui/ConfigOther.qml:605
+msgid "Stopped"
+msgstr "已停止"
+
+#: contents/ui/ConfigOther.qml:611
+msgid "Restart"
+msgstr "重新启动"
+
+#: contents/ui/ConfigOther.qml:611
+msgid "Force Start"
+msgstr "强制启动"
+
+#: contents/ui/ConfigOther.qml:624 contents/ui/ConfigVoice.qml:857
+#: contents/ui/ConfigVoice.qml:907
+msgid "Stop"
+msgstr "停止"
+
+#: contents/ui/ConfigOther.qml:636
+msgid "Schedules:"
+msgstr "时间表："
+
+#: contents/ui/ConfigOther.qml:640
+msgid "Create Schedule"
+msgstr "创建时间表"
+
+#: contents/ui/ConfigOther.qml:677
+msgid "Manage Schedules"
+msgstr "管理日程"
+
+#: contents/ui/ConfigOther.qml:687
+msgid "Open Schedules File"
+msgstr "打开时间表文件"
+
+#: contents/ui/ConfigOther.qml:702
+msgid "Other Settings"
+msgstr "其他设置"
+
+#: contents/ui/ConfigOther.qml:729
+msgid "Reset All Settings to Defaults"
+msgstr "将所有设置重置为默认值"
+
+#: contents/ui/ConfigOther.qml:740
+msgid "Resource & Memory Usage"
+msgstr "资源和内存使用情况"
+
+#: contents/ui/ConfigOther.qml:747
+msgid "Memory Usage:"
+msgstr "内存使用情况："
+
+#: contents/ui/ConfigOther.qml:750
+msgid "Refreshing…"
+msgstr "清爽…"
+
+#: contents/ui/ConfigOther.qml:750
+msgid "Refresh"
+msgstr "刷新"
+
+#: contents/ui/ConfigOther.qml:822 contents/ui/ConfigOther.qml:847
+msgid "Not running"
+msgstr "未运行"
+
+#: contents/ui/ConfigOther.qml:829 contents/ui/ConfigOther.qml:854
+#: contents/ui/ConfigOther.qml:879 contents/ui/ConfigOther.qml:904
+msgid "Kill"
+msgstr "杀"
+
+#: contents/ui/ConfigOther.qml:844
+msgid "OpenCode"
+msgstr "开放代码"
+
+#: contents/ui/ConfigOther.qml:869
+msgid "Voice STT"
+msgstr "语音STT"
+
+#: contents/ui/ConfigOther.qml:872 contents/ui/ConfigOther.qml:897
+msgid "On-demand"
+msgstr "一经请求"
+
+#: contents/ui/ConfigOther.qml:894
+msgid "Voice TTS"
+msgstr "语音合成"
+
+#: contents/ui/ConfigOther.qml:916
+msgid "Total"
+msgstr "全部的"
+
+#: contents/ui/ConfigOther.qml:928 contents/ui/ConfigSystemPrompt.qml:455
+#: contents/ui/ConfigVoice.qml:981
+msgid "Advanced"
+msgstr "先进的"
+
+#: contents/ui/ConfigOther.qml:933
+msgid "Interface Language:"
+msgstr "界面语言："
+
+#: contents/ui/ConfigOther.qml:935 contents/ui/ConfigVoice.qml:517
+msgid "English"
+msgstr "英语"
+
+#: contents/ui/ConfigOther.qml:936
+msgid "Mandarin Chinese"
+msgstr "普通话 中文"
+
+#: contents/ui/ConfigOther.qml:937 contents/ui/ConfigVoice.qml:518
+msgid "Hindi"
+msgstr "印地语"
+
+#: contents/ui/ConfigOther.qml:938 contents/ui/ConfigVoice.qml:519
+msgid "Spanish"
+msgstr "西班牙语"
+
+#: contents/ui/ConfigOther.qml:939 contents/ui/ConfigVoice.qml:520
+msgid "French"
+msgstr "法语"
+
+#: contents/ui/ConfigOther.qml:940
+msgid "Russian"
+msgstr "俄语"
+
+#: contents/ui/ConfigOther.qml:941
+msgid "Portuguese"
+msgstr "葡萄牙语"
+
+#: contents/ui/ConfigOther.qml:942 contents/ui/ConfigVoice.qml:521
+msgid "German"
+msgstr "德语"
+
+#: contents/ui/ConfigOther.qml:961 contents/ui/ConfigSystemPrompt.qml:459
+#: contents/ui/ConfigVoice.qml:985
+msgid "Reset settings:"
+msgstr "重置设置："
+
+#: contents/ui/ConfigOther.qml:962 contents/ui/ConfigSystemPrompt.qml:460
+#: contents/ui/ConfigVoice.qml:986
+msgid "Reset to defaults"
+msgstr "重置为默认值"
+
+#: contents/ui/ConfigSystemPrompt.qml:176
+msgid "System Prompt"
+msgstr "系统提示"
+
+#: contents/ui/ConfigSystemPrompt.qml:221
+msgid "Enable system prompt:"
+msgstr "启用系统提示："
+
+#: contents/ui/ConfigSystemPrompt.qml:223
+msgid "Enabled — instructions sent before every chat"
+msgstr "已启用 — 每次聊天前发送指令"
+
+#: contents/ui/ConfigSystemPrompt.qml:223
+#: contents/ui/ConfigSystemPrompt.qml:334
+#: contents/ui/ConfigSystemPrompt.qml:434 contents/ui/ConfigVoice.qml:430
+#: contents/ui/ConfigVoice.qml:557 contents/ui/ConfigVoice.qml:773
+#: contents/ui/ConfigVoice.qml:780 contents/ui/ConfigVoice.qml:821
+msgid "Disabled"
+msgstr "残疾人"
+
+#: contents/ui/ConfigSystemPrompt.qml:228
+msgid "System Info:"
+msgstr "系统信息："
+
+#: contents/ui/ConfigSystemPrompt.qml:233
+msgid "OS"
+msgstr "操作系统"
+
+#: contents/ui/ConfigSystemPrompt.qml:234
+msgid "Shell"
+msgstr "壳"
+
+#: contents/ui/ConfigSystemPrompt.qml:235
+msgid "Hostname"
+msgstr "主机名"
+
+#: contents/ui/ConfigSystemPrompt.qml:236
+msgid "Kernel"
+msgstr "核心"
+
+#: contents/ui/ConfigSystemPrompt.qml:237
+msgid "Desktop"
+msgstr "桌面"
+
+#: contents/ui/ConfigSystemPrompt.qml:238
+msgid "User"
+msgstr "用户"
+
+#: contents/ui/ConfigSystemPrompt.qml:239
+msgid "CPU"
+msgstr "中央处理器"
+
+#: contents/ui/ConfigSystemPrompt.qml:240
+#: contents/ui/ConfigSystemPrompt.qml:289
+msgid "Memory"
+msgstr "记忆"
+
+#: contents/ui/ConfigSystemPrompt.qml:241
+msgid "GPU"
+msgstr "图形处理器"
+
+#: contents/ui/ConfigSystemPrompt.qml:242
+msgid "Block Devices"
+msgstr "块设备"
+
+#: contents/ui/ConfigSystemPrompt.qml:243
+msgid "Network"
+msgstr "网络"
+
+#: contents/ui/ConfigSystemPrompt.qml:244
+msgid "Locale"
+msgstr "语言环境"
+
+#: contents/ui/ConfigSystemPrompt.qml:245
+msgid "Date/Time"
+msgstr "日期/时间"
+
+#: contents/ui/ConfigSystemPrompt.qml:251
+msgid "Custom Instructions:"
+msgstr "定制说明："
+
+#: contents/ui/ConfigSystemPrompt.qml:260
+msgid "Additional instructions for the LLM…"
+msgstr "LLM 的附加说明..."
+
+#: contents/ui/ConfigSystemPrompt.qml:269
+msgid "System Prompt Preview:"
+msgstr "系统提示预览："
+
+#: contents/ui/ConfigSystemPrompt.qml:332
+msgid "Enable memory:"
+msgstr "启用内存："
+
+#: contents/ui/ConfigSystemPrompt.qml:334
+msgid "Enabled — facts remembered across chats"
+msgstr "已启用 - 通过聊天记住的事实"
+
+#: contents/ui/ConfigSystemPrompt.qml:340
+msgid "Memory Content:"
+msgstr "内存内容："
+
+#: contents/ui/ConfigSystemPrompt.qml:349
+msgid ""
+"Facts or preferences you want the assistant to remember across all chats..."
+msgstr "您希望助手在所有聊天中记住的事实或偏好..."
+
+#: contents/ui/ConfigSystemPrompt.qml:358
+msgid "Memory Preview:"
+msgstr "内存预览："
+
+#: contents/ui/ConfigSystemPrompt.qml:378
+msgid "Context"
+msgstr "语境"
+
+#: contents/ui/ConfigSystemPrompt.qml:416
+msgid "Context limit:"
+msgstr "上下文限制："
+
+#: contents/ui/ConfigSystemPrompt.qml:424
+msgid "messages (-1 = unlimited)"
+msgstr "消息（-1 = 无限制）"
+
+#: contents/ui/ConfigSystemPrompt.qml:432
+msgid "Auto-compact context:"
+msgstr "自动压缩上下文："
+
+#: contents/ui/ConfigSystemPrompt.qml:434
+msgid "Enabled — old messages summarised automatically"
+msgstr "已启用 — 自动汇总旧消息"
+
+#: contents/ui/ConfigSystemPrompt.qml:439
+msgid "Compact after:"
+msgstr "压缩后："
+
+#: contents/ui/ConfigSystemPrompt.qml:447
+msgid "messages"
+msgstr "消息"
+
+#: contents/ui/ConfigVoice.qml:72
+msgid "Status check returned no data. Repair the engine, then check again."
+msgstr "状态检查未返回任何数据。修理发动机，然后再次检查。"
+
+#: contents/ui/ConfigVoice.qml:76
+msgid "STT returned no data. Check the selected STT folder and engine status."
+msgstr "STT 未返回任何数据。检查所选的 STT 文件夹和引擎状态。"
+
+#: contents/ui/ConfigVoice.qml:80
+msgid ""
+"TTS returned no data. Check the selected TTS folder, voice name, and engine "
+"status."
+msgstr "TTS 未返回任何数据。检查所选的 TTS 文件夹、语音名称和引擎状态。"
+
+#: contents/ui/ConfigVoice.qml:102
+msgid ""
+"Status check did not start the voice helper. Repair the engine, then check "
+"again."
+msgstr "状态检查未启动语音助手。修理发动机，然后再次检查。"
+
+#: contents/ui/ConfigVoice.qml:106
+msgid "STT helper did not start. Repair the engine, then test again."
+msgstr "STT 助手未启动。修理发动机，然后再次测试。"
+
+#: contents/ui/ConfigVoice.qml:110
+msgid "TTS helper did not start. Repair the engine, then test again."
+msgstr "TTS 助手未启动。修理发动机，然后再次测试。"
+
+#: contents/ui/ConfigVoice.qml:121
+msgid "Ready. Voice input and read-aloud can use the selected folders."
+msgstr "准备好。语音输入和朗读可以使用所选文件夹。"
+
+#: contents/ui/ConfigVoice.qml:127
+msgid "Creating voice engine..."
+msgstr "创建语音引擎..."
+
+#: contents/ui/ConfigVoice.qml:129
+msgid "Preparing Python packages..."
+msgstr "正在准备 Python 包..."
+
+#: contents/ui/ConfigVoice.qml:131
+msgid "Installing speech runtime..."
+msgstr "正在安装语音运行时..."
+
+#: contents/ui/ConfigVoice.qml:133
+msgid "Installing NLP packages..."
+msgstr "正在安装 NLP 包..."
+
+#: contents/ui/ConfigVoice.qml:135
+msgid "Installing STT/TTS support packages..."
+msgstr "正在安装 STT/TTS 支持包..."
+
+#: contents/ui/ConfigVoice.qml:137
+msgid "Installing text-to-speech support..."
+msgstr "正在安装文本转语音支持..."
+
+#: contents/ui/ConfigVoice.qml:139
+msgid "Engine ready. Rechecking folders..."
+msgstr "发动机准备就绪。正在重新检查文件夹..."
+
+#: contents/ui/ConfigVoice.qml:146
+msgid "Voice engine setup failed."
+msgstr "语音引擎设置失败。"
+
+#: contents/ui/ConfigVoice.qml:149 contents/ui/ConfigVoice.qml:866
+msgid "Loading STT model..."
+msgstr "正在加载 STT 模型..."
+
+#: contents/ui/ConfigVoice.qml:150
+msgid "Recording. Speak now..."
+msgstr "记录。现在讲..."
+
+#: contents/ui/ConfigVoice.qml:151
+msgid "Transcribing..."
+msgstr "正在抄写..."
+
+#: contents/ui/ConfigVoice.qml:155
+msgid "No speech detected."
+msgstr "未检测到语音。"
+
+#: contents/ui/ConfigVoice.qml:158
+msgid "STT error: "
+msgstr "STT 错误："
+
+#: contents/ui/ConfigVoice.qml:158 contents/ui/ConfigVoice.qml:172
+msgid "Unknown error"
+msgstr "未知错误"
+
+#: contents/ui/ConfigVoice.qml:161 contents/ui/ConfigVoice.qml:916
+msgid "Creating speech..."
+msgstr "创建语音..."
+
+#: contents/ui/ConfigVoice.qml:164
+msgid "Playing test audio..."
+msgstr "正在播放测试音频..."
+
+#: contents/ui/ConfigVoice.qml:169
+msgid "TTS test finished."
+msgstr "TTS 测试完成。"
+
+#: contents/ui/ConfigVoice.qml:172
+msgid "TTS error: "
+msgstr "语音合成错误："
+
+#: contents/ui/ConfigVoice.qml:226
+msgid ""
+"Preparing voice engine. This installs code support only; it does not "
+"download models."
+msgstr "准备语音引擎。这仅安装代码支持；它不下载模型。"
+
+#: contents/ui/ConfigVoice.qml:258
+msgid "Recording stopped."
+msgstr "录音停止了。"
+
+#: contents/ui/ConfigVoice.qml:267
+msgid "Speech stopped."
+msgstr "说话停止了。"
+
+#: contents/ui/ConfigVoice.qml:277
+msgid ""
+"Checking folders, microphone, audio output, and engine packages. This should"
+" finish in under 30 seconds."
+msgstr "检查文件夹、麦克风、音频输出和引擎包。这应该会在 30 秒内完成。"
+
+#: contents/ui/ConfigVoice.qml:282
+msgid ""
+"Not ready: STT folder is empty or does not contain recognizable model files."
+msgstr "未就绪：STT 文件夹为空或不包含可识别的模型文件。"
+
+#: contents/ui/ConfigVoice.qml:284
+msgid "Not ready: voice engine folder is missing. Press Repair Engine."
+msgstr "未准备好：语音引擎文件夹丢失。按修复引擎。"
+
+#: contents/ui/ConfigVoice.qml:286
+msgid ""
+"Not ready: speech engine packages are missing or broken. Press Repair "
+"Engine."
+msgstr "未准备好：语音引擎包丢失或损坏。按修复引擎。"
+
+#: contents/ui/ConfigVoice.qml:288
+msgid "Not ready: no microphone was detected."
+msgstr "未准备好：未检测到麦克风。"
+
+#: contents/ui/ConfigVoice.qml:290
+msgid ""
+"Not ready: TTS folder is empty or does not contain recognizable model files."
+msgstr "未就绪：TTS 文件夹为空或不包含可识别的模型文件。"
+
+#: contents/ui/ConfigVoice.qml:292
+msgid "Not ready: no audio output player was found."
+msgstr "未准备好：未找到音频输出播放器。"
+
+#: contents/ui/ConfigVoice.qml:295
+msgid ""
+"Not ready: The selected TTS model requires 'espeak-ng' to be installed on "
+"your system."
+msgstr "未准备好：所选 TTS 模型需要在您的系统上安装“espeak-ng”。"
+
+#: contents/ui/ConfigVoice.qml:296
+msgid ""
+"Not ready: selected TTS folder needs engine support. Press Repair Engine or "
+"choose a compatible folder."
+msgstr "未准备好：所选 TTS 文件夹需要引擎支持。按修复引擎或选择兼容的文件夹。"
+
+#: contents/ui/ConfigVoice.qml:298
+msgid "Not ready. Check the rows below."
+msgstr "还没准备好。检查下面的行。"
+
+#: contents/ui/ConfigVoice.qml:310
+msgid ""
+"Status check timed out. The helper did not answer within 30 seconds. Repair "
+"the engine or select a smaller/local model folder."
+msgstr "状态检查超时。 30秒内助手没有回答。修复引擎或选择较小/本地模型文件夹。"
+
+#: contents/ui/ConfigVoice.qml:324
+msgid ""
+"STT test timed out. Check microphone permission, selected STT folder, and "
+"engine status."
+msgstr "STT 测试超时。检查麦克风权限、选定的 STT 文件夹和引擎状态。"
+
+#: contents/ui/ConfigVoice.qml:338
+msgid ""
+"TTS test timed out. Check the selected TTS folder, voice name, audio output,"
+" and engine status."
+msgstr "TTS 测试超时。检查所选的 TTS 文件夹、语音名称、音频输出和引擎状态。"
+
+#: contents/ui/ConfigVoice.qml:349
+msgid "Select STT Model Folder"
+msgstr "选择 STT 模型文件夹"
+
+#: contents/ui/ConfigVoice.qml:361
+msgid "Select TTS Model Folder"
+msgstr "选择 TTS 模型文件夹"
+
+#: contents/ui/ConfigVoice.qml:379
+msgid "Voice"
+msgstr "嗓音"
+
+#: contents/ui/ConfigVoice.qml:409
+msgid ""
+"<b>First-time Setup Guide:</b><br>1. Click the 'Readme Guide' button below "
+"for full instructions.<br>2. Click <b>Repair Engine</b> to install "
+"dependencies.<br>3. To automatically download the default models, simply "
+"leave the STT and TTS folder paths empty.<br>4. If you already have models "
+"(Faster Whisper, Kokoro, Piper), you can browse and select their "
+"folders.<br>5. Click <b>Check &amp; Test</b> to verify everything works."
+msgstr ""
+"<b>首次设置指南：</b><br>1.单击下面的“自述指南”按钮获取完整说明。<br>2.单击<b>修复引擎</b>安装依赖项。<br>3.要自动下载默认模型，只需将"
+" STT 和 TTS 文件夹路径留空即可。<br>4.如果您已有模型（Faster "
+"Whisper、Kokoro、Piper），您可以浏览并选择它们的文件夹。<br>5.单击<b>检查并查看测试</b>以验证一切正常。"
+
+#: contents/ui/ConfigVoice.qml:419
+msgid "Readme Guide"
+msgstr "自述文件指南"
+
+#: contents/ui/ConfigVoice.qml:427
+msgid "Voice:"
+msgstr "嗓音："
+
+#: contents/ui/ConfigVoice.qml:430 contents/ui/ConfigVoice.qml:557
+msgid "Enabled"
+msgstr "启用"
+
+#: contents/ui/ConfigVoice.qml:445
+msgid ""
+"<b>Voice:</b> Enables the microphone button in chat. It does not download or"
+" choose models for you."
+msgstr "<b>语音：</b>在聊天中启用麦克风按钮。它不会为您下载或选择模型。"
+
+#: contents/ui/ConfigVoice.qml:452
+msgid "GPU Usage:"
+msgstr "GPU 使用情况："
+
+#: contents/ui/ConfigVoice.qml:454 contents/ui/ConfigVoice.qml:821
+msgid "Enabled (CUDA)"
+msgstr "启用（CUDA）"
+
+#: contents/ui/ConfigVoice.qml:454
+msgid "Disabled (CPU only)"
+msgstr "禁用（仅限 CPU）"
+
+#: contents/ui/ConfigVoice.qml:465
+msgid ""
+"<b>GPU Usage:</b> Enables CUDA hardware acceleration. Turning this on "
+"requires you to press <b>Repair Engine</b> below to install the heavy CUDA "
+"packages (~3GB). Turn off if your device doesn't have an NVIDIA GPU."
+msgstr ""
+"<b>GPU 使用：</b> 启用 CUDA 硬件加速。打开此功能需要您按下面的<b>修复引擎</b>来安装重型 CUDA "
+"软件包（~3GB）。如果您的设备没有 NVIDIA GPU，请关闭。"
+
+#: contents/ui/ConfigVoice.qml:470 contents/ui/ConfigVoice.qml:757
+msgid "STT folder:"
+msgstr "STT文件夹："
+
+#: contents/ui/ConfigVoice.qml:479
+msgid "Select an STT model folder"
+msgstr "选择 STT 模型文件夹"
+
+#: contents/ui/ConfigVoice.qml:488 contents/ui/ConfigVoice.qml:595
+msgid "Browse"
+msgstr "浏览"
+
+#: contents/ui/ConfigVoice.qml:501
+msgid ""
+"<b>STT folder:</b> Pick the folder that contains your speech-to-text model "
+"files."
+msgstr "<b>STT 文件夹：</b> 选择包含语音转文本模型文件的文件夹。"
+
+#: contents/ui/ConfigVoice.qml:506
+msgid "Language:"
+msgstr "语言："
+
+#: contents/ui/ConfigVoice.qml:516
+msgid "Auto detect"
+msgstr "自动检测"
+
+#: contents/ui/ConfigVoice.qml:522
+msgid "Japanese"
+msgstr "日本人"
+
+#: contents/ui/ConfigVoice.qml:523
+msgid "Korean"
+msgstr "韩国人"
+
+#: contents/ui/ConfigVoice.qml:524
+msgid "Chinese"
+msgstr "中国人"
+
+#: contents/ui/ConfigVoice.qml:548
+msgid ""
+"<b>Language:</b> Use Auto for multilingual models. Use English for English-"
+"only models."
+msgstr "<b>语言：</b>对于多语言模型使用“自动”。对于纯英语模型，请使用英语。"
+
+#: contents/ui/ConfigVoice.qml:554
+msgid "Read aloud:"
+msgstr "大声朗读："
+
+#: contents/ui/ConfigVoice.qml:572
+msgid ""
+"<b>Read aloud:</b> Enables text-to-speech. Leave it off if you only want "
+"microphone input."
+msgstr "<b>大声朗读：</b>启用文本转语音。如果您只需要麦克风输入，请将其关闭。"
+
+#: contents/ui/ConfigVoice.qml:577 contents/ui/ConfigVoice.qml:771
+msgid "TTS folder:"
+msgstr "TTS 文件夹："
+
+#: contents/ui/ConfigVoice.qml:586
+msgid "Select a TTS model folder"
+msgstr "选择 TTS 模型文件夹"
+
+#: contents/ui/ConfigVoice.qml:608
+msgid ""
+"<b>TTS folder:</b> Pick the folder that contains your text-to-speech model "
+"files."
+msgstr "<b>TTS 文件夹：</b> 选择包含文本转语音模型文件的文件夹。"
+
+#: contents/ui/ConfigVoice.qml:613
+msgid "Voice name:"
+msgstr "语音名称："
+
+#: contents/ui/ConfigVoice.qml:621
+msgid "Voice id or name"
+msgstr "语音 ID 或名称"
+
+#: contents/ui/ConfigVoice.qml:634
+msgid ""
+"<b>Voice name:</b> Use the voice id expected by the selected TTS model. If "
+"the model has voice files, use the file name without its extension."
+msgstr "<b>语音名称：</b>使用所选 TTS 模型所需的语音 ID。如果模型有语音文件，请使用不带扩展名的文件名。"
+
+#: contents/ui/ConfigVoice.qml:640
+msgid "Auto read:"
+msgstr "自动读取："
+
+#: contents/ui/ConfigVoice.qml:643
+msgid "Speak every AI reply"
+msgstr "说出每个 AI 回复"
+
+#: contents/ui/ConfigVoice.qml:643
+msgid "Manual only"
+msgstr "仅手动"
+
+#: contents/ui/ConfigVoice.qml:655
+msgid ""
+"<b>Auto read:</b> Turn this on only if every AI response should be spoken "
+"automatically."
+msgstr "<b>自动朗读：</b>仅当每个 AI 响应都应自动说出时才打开此选项。"
+
+#: contents/ui/ConfigVoice.qml:661
+msgid "Auto-send:"
+msgstr "自动发送："
+
+#: contents/ui/ConfigVoice.qml:664
+msgid "Send transcript immediately"
+msgstr "立即发送成绩单"
+
+#: contents/ui/ConfigVoice.qml:664
+msgid "Put transcript in the input box"
+msgstr "将成绩单输入到输入框中"
+
+#: contents/ui/ConfigVoice.qml:676
+msgid ""
+"<b>Auto-send:</b> Keep on for hands-free chat. Turn off if you want to edit "
+"the transcript before sending."
+msgstr "<b>自动发送：</b>继续进行免提聊天。如果您想在发送前编辑文字记录，请关闭此选项。"
+
+#: contents/ui/ConfigVoice.qml:700
+msgid "Select folders, then check status."
+msgstr "选择文件夹，然后检查状态。"
+
+#: contents/ui/ConfigVoice.qml:714
+msgid "Check"
+msgstr "查看"
+
+#: contents/ui/ConfigVoice.qml:720
+msgid "Repair Engine"
+msgstr "修理发动机"
+
+#: contents/ui/ConfigVoice.qml:736
+msgid ""
+"Check validates folders, microphone, audio output, and required packages. "
+"Repair Engine appears only when package support is missing or broken."
+msgstr "检查验证文件夹、麦克风、音频输出和所需的包。仅当软件包支持丢失或损坏时，修复引擎才会出现。"
+
+#: contents/ui/ConfigVoice.qml:759 contents/ui/ConfigVoice.qml:773
+msgid "Valid"
+msgstr "有效的"
+
+#: contents/ui/ConfigVoice.qml:759 contents/ui/ConfigVoice.qml:773
+msgid "Invalid or empty"
+msgstr "无效或为空"
+
+#: contents/ui/ConfigVoice.qml:764
+msgid "STT engine:"
+msgstr "STT引擎："
+
+#: contents/ui/ConfigVoice.qml:766 contents/ui/ConfigVoice.qml:780
+msgid "Ready"
+msgstr "准备好"
+
+#: contents/ui/ConfigVoice.qml:766 contents/ui/ConfigVoice.qml:780
+msgid "Repair engine"
+msgstr "修理发动机"
+
+#: contents/ui/ConfigVoice.qml:778
+msgid "TTS engine:"
+msgstr "TTS 引擎："
+
+#: contents/ui/ConfigVoice.qml:780
+msgid "espeak-ng missing"
+msgstr "espeak-ng 缺失"
+
+#: contents/ui/ConfigVoice.qml:787
+msgid "Install espeak-ng:"
+msgstr "安装 espeak-ng："
+
+#: contents/ui/ConfigVoice.qml:812
+msgid "Virtual env:"
+msgstr "虚拟环境："
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Configured"
+msgstr "已配置"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Broken/Missing Libs"
+msgstr "肋骨破损/缺失"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Not created"
+msgstr "未创建"
+
+#: contents/ui/ConfigVoice.qml:819
+msgid "GPU mode:"
+msgstr "GPU模式："
+
+#: contents/ui/ConfigVoice.qml:826
+msgid "GPU libraries:"
+msgstr "GPU库："
+
+#: contents/ui/ConfigVoice.qml:828
+msgid "Installed (CUDA %1)"
+msgstr "已安装（CUDA %1）"
+
+#: contents/ui/ConfigVoice.qml:828
+msgid "Missing"
+msgstr "丢失的"
+
+#: contents/ui/ConfigVoice.qml:833
+msgid "Microphone:"
+msgstr "麦克风："
+
+#: contents/ui/ConfigVoice.qml:835 contents/ui/ConfigVoice.qml:842
+msgid "Available"
+msgstr "可用的"
+
+#: contents/ui/ConfigVoice.qml:835 contents/ui/ConfigVoice.qml:842
+msgid "Not found"
+msgstr "未找到"
+
+#: contents/ui/ConfigVoice.qml:840
+msgid "Audio output:"
+msgstr "音频输出："
+
+#: contents/ui/ConfigVoice.qml:851
+msgid "Test STT:"
+msgstr "测试 STT："
+
+#: contents/ui/ConfigVoice.qml:857
+msgid "Record 5 sec"
+msgstr "记录5秒"
+
+#: contents/ui/ConfigVoice.qml:887
+msgid ""
+"<b>Test STT:</b> Records five seconds, transcribes it, and shows the text "
+"below."
+msgstr "<b>测试 STT：</b> 录制五秒钟，转录它，并显示下面的文本。"
+
+#: contents/ui/ConfigVoice.qml:892
+msgid "Transcript:"
+msgstr "成绩单："
+
+#: contents/ui/ConfigVoice.qml:901
+msgid "Test TTS:"
+msgstr "测试语音合成："
+
+#: contents/ui/ConfigVoice.qml:907
+msgid "Speak"
+msgstr "说话"
+
+#: contents/ui/ConfigVoice.qml:919
+msgid "Voice setup is ready."
+msgstr "语音设置已准备就绪。"
+
+#: contents/ui/ConfigVoice.qml:939
+msgid ""
+"<b>Test TTS:</b> Speaks a short sentence with the selected TTS folder and "
+"voice name."
+msgstr "<b>测试 TTS：</b> 使用所选 TTS 文件夹和语音名称说出一个短句子。"
+
+#: contents/ui/ConfigVoice.qml:944
+msgid "TTS result:"
+msgstr "语音合成结果："
+
+#: contents/ui/ConfigVoice.qml:953
+msgid "Engine folder:"
+msgstr "引擎文件夹："
+
+#: contents/ui/ConfigVoice.qml:976
+msgid ""
+"<b>Engine folder:</b> Stores the small Python environment used to run your "
+"selected models. This is not a model folder."
+msgstr "<b>Engine 文件夹：</b> 存储用于运行所选模型的小型 Python 环境。这不是模型文件夹。"

@@ -1,0 +1,1070 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-12 19:32+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: contents/ui/ConfigGeneral.qml:1330
+msgid "Interactive Guides:"
+msgstr "Guides interactifs :"
+
+#: contents/ui/ConfigGeneral.qml:1333
+msgid "Guides visible — showing setup instructions"
+msgstr "Guides visibles – affichant les instructions de configuration"
+
+#: contents/ui/ConfigGeneral.qml:1333
+msgid "Guides hidden"
+msgstr "Guides cachés"
+
+#: contents/ui/ConfigOther.qml:177
+msgid "No schedule"
+msgstr "Pas d'horaire"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "every day"
+msgstr "tous les jours"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "weekdays"
+msgstr "jours de la semaine"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "weekends"
+msgstr "week-end"
+
+#: contents/ui/ConfigOther.qml:184
+msgid "on selected days"
+msgstr "les jours sélectionnés"
+
+#: contents/ui/ConfigOther.qml:185
+msgid "Daily at %1:00 %2 %3"
+msgstr "Tous les jours à %1:00 %2 %3"
+
+#: contents/ui/ConfigOther.qml:188
+msgid "Every %1 hours"
+msgstr "Toutes les %1 heures"
+
+#: contents/ui/ConfigOther.qml:194
+msgid ""
+"<b>Schedules Guide:</b><br/>The scheduler runs in the background. At the "
+"time you choose, it automatically sends a message into your chat and the AI "
+"replies.<br/><br/>• <b>Status: Stopped</b>.<br/>• <b>Action:</b> Toggle the "
+"<b>Scheduler switch</b> below to <b>ON</b> to boot the background daemon."
+msgstr ""
+"<b>Guide des plannings :</b><br/>Le planificateur s'exécute en arrière-plan."
+" Au moment que vous choisissez, il envoie automatiquement un message dans "
+"votre chat et l'IA répond.<br/><br/>• <b>Statut : Arrêté</b>.<br/>• "
+"<b>Action :</b> Basculez le <b>Commutateur du planificateur</b> ci-dessous "
+"sur <b>ON</b> pour démarrer le démon en arrière-plan."
+
+#: contents/ui/ConfigOther.qml:196
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Starting up...</b><br/>• The "
+"scheduler daemon is starting in the background. Once initialized, the status"
+" indicator will show <b>Active</b>.<br/>• (Optional) Make sure to toggle "
+"<b>Auto-start at login</b> to <b>ON</b> if you want automated schedules to "
+"trigger even when you don't open settings."
+msgstr ""
+"<b>Guide des plannings :</b><br/>• <b>Statut : Démarrage...</b><br/>• Le "
+"démon du planificateur démarre en arrière-plan. Une fois initialisé, "
+"l'indicateur d'état affichera <b>Actif</b>.<br/>• (Facultatif) Assurez-vous "
+"de basculer <b>Démarrage automatique à la connexion</b> sur <b>ON</b> si "
+"vous souhaitez que les programmations automatisées se déclenchent même "
+"lorsque vous n'ouvrez pas les paramètres."
+
+#: contents/ui/ConfigOther.qml:204
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• The"
+" scheduler is connected and monitoring. But you have <b>0 schedules "
+"configured</b>.<br/>• <b>Action:</b> Click <b>Create Schedule</b> below to "
+"set up your first automated daily or one-time prompt!"
+msgstr ""
+"<b>Guide des plannings :</b><br/>• <b>Statut : Actif etamp; en cours "
+"d'exécution !</b><br/>• Le planificateur est connecté et surveillé. Mais "
+"vous n'avez <b>aucune programmation configurée</b>.<br/>• "
+"<b>Action</b> Cliquez sur <b>Créer une programmation</b> ci-dessous pour "
+"configurer votre première invite automatisée quotidienne ou ponctuelle !"
+
+#: contents/ui/ConfigOther.qml:205
+msgid ""
+"<b>Schedules Guide:</b><br/>• <b>Status: Active &amp; running!</b><br/>• You"
+" have <b>%1 schedule(s) configured</b> (%2 enabled).<br/>• The background "
+"service will run automatically. Click <b>Manage Schedules</b> to edit or "
+"delete tasks, view executed run history logs, and customize history "
+"retention limits.<br/>• <i>Pro-Tip:</i> You can also schedule prompts "
+"directly from the chat box by typing <code>/schedule</code>!"
+msgstr ""
+"<b>Guide des plannings :</b><br/>• <b>Statut : Actif etamp; en cours "
+"d'exécution !</b><br/>• Vous avez <b>%1 planification(s) configurée(s)</b> "
+"(%2 activée).<br/>• Le service en arrière-plan s'exécutera automatiquement. "
+"Cliquez sur <b>Gérer les planifications</b> pour modifier ou supprimer des "
+"tâches, afficher les journaux de l'historique des exécutions exécutées et "
+"personnaliser les limites de conservation de l'historique.<br/>• <i>Conseil "
+"de pro :</i> Vous pouvez également planifier des invites directement à "
+"partir de la boîte de discussion en tapant <code>/schedule</code> !"
+
+#: contents/ui/ConfigOther.qml:217 contents/ui/ConfigOther.qml:412
+msgid "Prompt Templates"
+msgstr "Modèles d'invite"
+
+#: contents/ui/ConfigOther.qml:231
+msgid "Your saved prompt templates. Type /&lt;name&gt; in chat to use them."
+msgstr ""
+"Vos modèles d'invite enregistrés. Tapez /&lt;nom&gt; dans le chat pour les "
+"utiliser."
+
+#: contents/ui/ConfigOther.qml:282
+msgid "Delete template"
+msgstr "Supprimer le modèle"
+
+#: contents/ui/ConfigOther.qml:298
+msgid "No templates yet. Create one above."
+msgstr "Aucun modèle pour l'instant. Créez-en un ci-dessus."
+
+#: contents/ui/ConfigOther.qml:459
+msgid "Name (e.g. review)"
+msgstr "Nom (par exemple, avis)"
+
+#: contents/ui/ConfigOther.qml:464
+msgid "System prompt for template"
+msgstr "Invite système pour le modèle"
+
+#: contents/ui/ConfigOther.qml:468
+msgid "Add"
+msgstr "Ajouter"
+
+#: contents/ui/ConfigOther.qml:481
+msgid "View"
+msgstr "Voir"
+
+#: contents/ui/ConfigOther.qml:490 contents/ui/ConfigOther.qml:819
+msgid "Scheduler Daemon"
+msgstr "Démon du planificateur"
+
+#: contents/ui/ConfigOther.qml:498
+msgid "Schedules Guide:"
+msgstr "Guide des horaires :"
+
+#: contents/ui/ConfigOther.qml:536
+msgid "Scheduler:"
+msgstr "Planificateur :"
+
+#: contents/ui/ConfigOther.qml:537
+msgid "ON — scheduler daemon configured"
+msgstr "ON – démon du planificateur configuré"
+
+#: contents/ui/ConfigOther.qml:537
+msgid "OFF — scheduler daemon inactive"
+msgstr "OFF : démon du planificateur inactif"
+
+#: contents/ui/ConfigOther.qml:561
+msgid "Auto-start at login:"
+msgstr "Démarrage automatique à la connexion :"
+
+#: contents/ui/ConfigOther.qml:562
+msgid "Scheduler starts automatically on session startup"
+msgstr "Le planificateur démarre automatiquement au démarrage de la session"
+
+#: contents/ui/ConfigOther.qml:562
+msgid "Off — must start manually"
+msgstr "Désactivé : doit démarrer manuellement"
+
+#: contents/ui/ConfigOther.qml:575
+msgid "Missed schedules:"
+msgstr "Horaires manqués :"
+
+#: contents/ui/ConfigOther.qml:576
+msgid "Execute missed runs on startup"
+msgstr "Exécuter les exécutions manquées au démarrage"
+
+#: contents/ui/ConfigOther.qml:576
+msgid "Ignore missed runs"
+msgstr "Ignorer les courses manquées"
+
+#: contents/ui/ConfigOther.qml:590
+msgid ""
+"When the PC is turned off and then it restarts, if any schedule was missed "
+"in that period, should it execute one after another? <font "
+"color=\"#ff4444\"><b>(Highly not recommended)</b></font>"
+msgstr ""
+"Lorsque le PC est éteint puis redémarré, si un programme a été manqué au "
+"cours de cette période, doit-il s'exécuter l'un après l'autre ? <font "
+"color=\"#ff4444\"><b>(Fortement déconseillé)</b></font>"
+
+#: contents/ui/ConfigOther.qml:600 contents/ui/ConfigVoice.qml:681
+msgid "Status:"
+msgstr "Statut:"
+
+#: contents/ui/ConfigOther.qml:605
+msgid "Active"
+msgstr "Actif"
+
+#: contents/ui/ConfigOther.qml:605
+msgid "Stopped"
+msgstr "Arrêté"
+
+#: contents/ui/ConfigOther.qml:611
+msgid "Restart"
+msgstr "Redémarrage"
+
+#: contents/ui/ConfigOther.qml:611
+msgid "Force Start"
+msgstr "Forcer le démarrage"
+
+#: contents/ui/ConfigOther.qml:624 contents/ui/ConfigVoice.qml:857
+#: contents/ui/ConfigVoice.qml:907
+msgid "Stop"
+msgstr "Arrêt"
+
+#: contents/ui/ConfigOther.qml:636
+msgid "Schedules:"
+msgstr "Horaires :"
+
+#: contents/ui/ConfigOther.qml:640
+msgid "Create Schedule"
+msgstr "Créer un calendrier"
+
+#: contents/ui/ConfigOther.qml:677
+msgid "Manage Schedules"
+msgstr "Gérer les horaires"
+
+#: contents/ui/ConfigOther.qml:687
+msgid "Open Schedules File"
+msgstr "Ouvrir le fichier des horaires"
+
+#: contents/ui/ConfigOther.qml:702
+msgid "Other Settings"
+msgstr "Autres paramètres"
+
+#: contents/ui/ConfigOther.qml:729
+msgid "Reset All Settings to Defaults"
+msgstr "Réinitialiser tous les paramètres par défaut"
+
+#: contents/ui/ConfigOther.qml:740
+msgid "Resource & Memory Usage"
+msgstr "Utilisation des ressources et de la mémoire"
+
+#: contents/ui/ConfigOther.qml:747
+msgid "Memory Usage:"
+msgstr "Utilisation de la mémoire :"
+
+#: contents/ui/ConfigOther.qml:750
+msgid "Refreshing…"
+msgstr "Rafraîchissant…"
+
+#: contents/ui/ConfigOther.qml:750
+msgid "Refresh"
+msgstr "Rafraîchir"
+
+#: contents/ui/ConfigOther.qml:822 contents/ui/ConfigOther.qml:847
+msgid "Not running"
+msgstr "Ne fonctionne pas"
+
+#: contents/ui/ConfigOther.qml:829 contents/ui/ConfigOther.qml:854
+#: contents/ui/ConfigOther.qml:879 contents/ui/ConfigOther.qml:904
+msgid "Kill"
+msgstr "Tuer"
+
+#: contents/ui/ConfigOther.qml:844
+msgid "OpenCode"
+msgstr "Code Ouvert"
+
+#: contents/ui/ConfigOther.qml:869
+msgid "Voice STT"
+msgstr "Voix STT"
+
+#: contents/ui/ConfigOther.qml:872 contents/ui/ConfigOther.qml:897
+msgid "On-demand"
+msgstr "Sur demande"
+
+#: contents/ui/ConfigOther.qml:894
+msgid "Voice TTS"
+msgstr "Voix TTS"
+
+#: contents/ui/ConfigOther.qml:916
+msgid "Total"
+msgstr "Total"
+
+#: contents/ui/ConfigOther.qml:928 contents/ui/ConfigSystemPrompt.qml:455
+#: contents/ui/ConfigVoice.qml:981
+msgid "Advanced"
+msgstr "Avancé"
+
+#: contents/ui/ConfigOther.qml:933
+msgid "Interface Language:"
+msgstr "Langue de l'interface :"
+
+#: contents/ui/ConfigOther.qml:935 contents/ui/ConfigVoice.qml:517
+msgid "English"
+msgstr "Anglais"
+
+#: contents/ui/ConfigOther.qml:936
+msgid "Mandarin Chinese"
+msgstr "Chinois mandarin"
+
+#: contents/ui/ConfigOther.qml:937 contents/ui/ConfigVoice.qml:518
+msgid "Hindi"
+msgstr "hindi"
+
+#: contents/ui/ConfigOther.qml:938 contents/ui/ConfigVoice.qml:519
+msgid "Spanish"
+msgstr "Espagnol"
+
+#: contents/ui/ConfigOther.qml:939 contents/ui/ConfigVoice.qml:520
+msgid "French"
+msgstr "Français"
+
+#: contents/ui/ConfigOther.qml:940
+msgid "Russian"
+msgstr "russe"
+
+#: contents/ui/ConfigOther.qml:941
+msgid "Portuguese"
+msgstr "portugais"
+
+#: contents/ui/ConfigOther.qml:942 contents/ui/ConfigVoice.qml:521
+msgid "German"
+msgstr "Allemand"
+
+#: contents/ui/ConfigOther.qml:961 contents/ui/ConfigSystemPrompt.qml:459
+#: contents/ui/ConfigVoice.qml:985
+msgid "Reset settings:"
+msgstr "Réinitialiser les paramètres :"
+
+#: contents/ui/ConfigOther.qml:962 contents/ui/ConfigSystemPrompt.qml:460
+#: contents/ui/ConfigVoice.qml:986
+msgid "Reset to defaults"
+msgstr "Réinitialiser aux valeurs par défaut"
+
+#: contents/ui/ConfigSystemPrompt.qml:176
+msgid "System Prompt"
+msgstr "Invite système"
+
+#: contents/ui/ConfigSystemPrompt.qml:221
+msgid "Enable system prompt:"
+msgstr "Activer l'invite système :"
+
+#: contents/ui/ConfigSystemPrompt.qml:223
+msgid "Enabled — instructions sent before every chat"
+msgstr "Activé : instructions envoyées avant chaque discussion"
+
+#: contents/ui/ConfigSystemPrompt.qml:223
+#: contents/ui/ConfigSystemPrompt.qml:334
+#: contents/ui/ConfigSystemPrompt.qml:434 contents/ui/ConfigVoice.qml:430
+#: contents/ui/ConfigVoice.qml:557 contents/ui/ConfigVoice.qml:773
+#: contents/ui/ConfigVoice.qml:780 contents/ui/ConfigVoice.qml:821
+msgid "Disabled"
+msgstr "Désactivé"
+
+#: contents/ui/ConfigSystemPrompt.qml:228
+msgid "System Info:"
+msgstr "Informations système :"
+
+#: contents/ui/ConfigSystemPrompt.qml:233
+msgid "OS"
+msgstr "Système d'exploitation"
+
+#: contents/ui/ConfigSystemPrompt.qml:234
+msgid "Shell"
+msgstr "Coquille"
+
+#: contents/ui/ConfigSystemPrompt.qml:235
+msgid "Hostname"
+msgstr "Nom d'hôte"
+
+#: contents/ui/ConfigSystemPrompt.qml:236
+msgid "Kernel"
+msgstr "Noyau"
+
+#: contents/ui/ConfigSystemPrompt.qml:237
+msgid "Desktop"
+msgstr "Bureau"
+
+#: contents/ui/ConfigSystemPrompt.qml:238
+msgid "User"
+msgstr "Utilisateur"
+
+#: contents/ui/ConfigSystemPrompt.qml:239
+msgid "CPU"
+msgstr "Processeur"
+
+#: contents/ui/ConfigSystemPrompt.qml:240
+#: contents/ui/ConfigSystemPrompt.qml:289
+msgid "Memory"
+msgstr "Mémoire"
+
+#: contents/ui/ConfigSystemPrompt.qml:241
+msgid "GPU"
+msgstr "GPU"
+
+#: contents/ui/ConfigSystemPrompt.qml:242
+msgid "Block Devices"
+msgstr "Bloquer les appareils"
+
+#: contents/ui/ConfigSystemPrompt.qml:243
+msgid "Network"
+msgstr "Réseau"
+
+#: contents/ui/ConfigSystemPrompt.qml:244
+msgid "Locale"
+msgstr "Lieu"
+
+#: contents/ui/ConfigSystemPrompt.qml:245
+msgid "Date/Time"
+msgstr "Date/Heure"
+
+#: contents/ui/ConfigSystemPrompt.qml:251
+msgid "Custom Instructions:"
+msgstr "Instructions personnalisées :"
+
+#: contents/ui/ConfigSystemPrompt.qml:260
+msgid "Additional instructions for the LLM…"
+msgstr "Instructions supplémentaires pour le LLM…"
+
+#: contents/ui/ConfigSystemPrompt.qml:269
+msgid "System Prompt Preview:"
+msgstr "Aperçu de l'invite système :"
+
+#: contents/ui/ConfigSystemPrompt.qml:332
+msgid "Enable memory:"
+msgstr "Activer la mémoire :"
+
+#: contents/ui/ConfigSystemPrompt.qml:334
+msgid "Enabled — facts remembered across chats"
+msgstr "Activé : faits mémorisés dans les discussions"
+
+#: contents/ui/ConfigSystemPrompt.qml:340
+msgid "Memory Content:"
+msgstr "Contenu de la mémoire :"
+
+#: contents/ui/ConfigSystemPrompt.qml:349
+msgid ""
+"Facts or preferences you want the assistant to remember across all chats..."
+msgstr ""
+"Faits ou préférences dont vous souhaitez que l'assistant se souvienne dans "
+"toutes les discussions..."
+
+#: contents/ui/ConfigSystemPrompt.qml:358
+msgid "Memory Preview:"
+msgstr "Aperçu de la mémoire :"
+
+#: contents/ui/ConfigSystemPrompt.qml:378
+msgid "Context"
+msgstr "Contexte"
+
+#: contents/ui/ConfigSystemPrompt.qml:416
+msgid "Context limit:"
+msgstr "Limite de contexte :"
+
+#: contents/ui/ConfigSystemPrompt.qml:424
+msgid "messages (-1 = unlimited)"
+msgstr "messages (-1 = illimité)"
+
+#: contents/ui/ConfigSystemPrompt.qml:432
+msgid "Auto-compact context:"
+msgstr "Contexte de compactage automatique :"
+
+#: contents/ui/ConfigSystemPrompt.qml:434
+msgid "Enabled — old messages summarised automatically"
+msgstr "Activé – anciens messages résumés automatiquement"
+
+#: contents/ui/ConfigSystemPrompt.qml:439
+msgid "Compact after:"
+msgstr "Compacter après :"
+
+#: contents/ui/ConfigSystemPrompt.qml:447
+msgid "messages"
+msgstr "messages"
+
+#: contents/ui/ConfigVoice.qml:72
+msgid "Status check returned no data. Repair the engine, then check again."
+msgstr ""
+"La vérification de l'état n'a renvoyé aucune donnée. Réparez le moteur, puis"
+" vérifiez à nouveau."
+
+#: contents/ui/ConfigVoice.qml:76
+msgid "STT returned no data. Check the selected STT folder and engine status."
+msgstr ""
+"STT n'a renvoyé aucune donnée. Vérifiez le dossier STT sélectionné et l'état"
+" du moteur."
+
+#: contents/ui/ConfigVoice.qml:80
+msgid ""
+"TTS returned no data. Check the selected TTS folder, voice name, and engine "
+"status."
+msgstr ""
+"TTS n'a renvoyé aucune donnée. Vérifiez le dossier TTS sélectionné, le nom "
+"de la voix et l'état du moteur."
+
+#: contents/ui/ConfigVoice.qml:102
+msgid ""
+"Status check did not start the voice helper. Repair the engine, then check "
+"again."
+msgstr ""
+"La vérification de l'état n'a pas démarré l'assistant vocal. Réparez le "
+"moteur, puis vérifiez à nouveau."
+
+#: contents/ui/ConfigVoice.qml:106
+msgid "STT helper did not start. Repair the engine, then test again."
+msgstr ""
+"L'assistant STT n'a pas démarré. Réparez le moteur, puis testez à nouveau."
+
+#: contents/ui/ConfigVoice.qml:110
+msgid "TTS helper did not start. Repair the engine, then test again."
+msgstr ""
+"L'assistant TTS n'a pas démarré. Réparez le moteur, puis testez à nouveau."
+
+#: contents/ui/ConfigVoice.qml:121
+msgid "Ready. Voice input and read-aloud can use the selected folders."
+msgstr ""
+"Prêt. La saisie vocale et la lecture à haute voix peuvent utiliser les "
+"dossiers sélectionnés."
+
+#: contents/ui/ConfigVoice.qml:127
+msgid "Creating voice engine..."
+msgstr "Création d'un moteur vocal..."
+
+#: contents/ui/ConfigVoice.qml:129
+msgid "Preparing Python packages..."
+msgstr "Préparation des packages Python..."
+
+#: contents/ui/ConfigVoice.qml:131
+msgid "Installing speech runtime..."
+msgstr "Installation du runtime vocal..."
+
+#: contents/ui/ConfigVoice.qml:133
+msgid "Installing NLP packages..."
+msgstr "Installation des packages NLP..."
+
+#: contents/ui/ConfigVoice.qml:135
+msgid "Installing STT/TTS support packages..."
+msgstr "Installation des packages de support STT/TTS..."
+
+#: contents/ui/ConfigVoice.qml:137
+msgid "Installing text-to-speech support..."
+msgstr "Installation de la prise en charge de la synthèse vocale..."
+
+#: contents/ui/ConfigVoice.qml:139
+msgid "Engine ready. Rechecking folders..."
+msgstr "Moteur prêt. Revérification des dossiers..."
+
+#: contents/ui/ConfigVoice.qml:146
+msgid "Voice engine setup failed."
+msgstr "La configuration du moteur vocal a échoué."
+
+#: contents/ui/ConfigVoice.qml:149 contents/ui/ConfigVoice.qml:866
+msgid "Loading STT model..."
+msgstr "Chargement du modèle STT..."
+
+#: contents/ui/ConfigVoice.qml:150
+msgid "Recording. Speak now..."
+msgstr "Enregistrement. Parlez maintenant..."
+
+#: contents/ui/ConfigVoice.qml:151
+msgid "Transcribing..."
+msgstr "Transcription..."
+
+#: contents/ui/ConfigVoice.qml:155
+msgid "No speech detected."
+msgstr "Aucune parole détectée."
+
+#: contents/ui/ConfigVoice.qml:158
+msgid "STT error: "
+msgstr "Erreur STT :"
+
+#: contents/ui/ConfigVoice.qml:158 contents/ui/ConfigVoice.qml:172
+msgid "Unknown error"
+msgstr "Erreur inconnue"
+
+#: contents/ui/ConfigVoice.qml:161 contents/ui/ConfigVoice.qml:916
+msgid "Creating speech..."
+msgstr "Créer de la parole..."
+
+#: contents/ui/ConfigVoice.qml:164
+msgid "Playing test audio..."
+msgstr "Lecture de l'audio de test..."
+
+#: contents/ui/ConfigVoice.qml:169
+msgid "TTS test finished."
+msgstr "Test TTS terminé."
+
+#: contents/ui/ConfigVoice.qml:172
+msgid "TTS error: "
+msgstr "Erreur TTS :"
+
+#: contents/ui/ConfigVoice.qml:226
+msgid ""
+"Preparing voice engine. This installs code support only; it does not "
+"download models."
+msgstr ""
+"Préparation du moteur vocal. Cela installe uniquement la prise en charge du "
+"code ; il ne télécharge pas de modèles."
+
+#: contents/ui/ConfigVoice.qml:258
+msgid "Recording stopped."
+msgstr "L'enregistrement s'est arrêté."
+
+#: contents/ui/ConfigVoice.qml:267
+msgid "Speech stopped."
+msgstr "Le discours s'est arrêté."
+
+#: contents/ui/ConfigVoice.qml:277
+msgid ""
+"Checking folders, microphone, audio output, and engine packages. This should"
+" finish in under 30 seconds."
+msgstr ""
+"Vérification des dossiers, du microphone, de la sortie audio et des packages"
+" de moteur. Cela devrait se terminer en moins de 30 secondes."
+
+#: contents/ui/ConfigVoice.qml:282
+msgid ""
+"Not ready: STT folder is empty or does not contain recognizable model files."
+msgstr ""
+"Pas prêt : le dossier STT est vide ou ne contient pas de fichiers de modèle "
+"reconnaissables."
+
+#: contents/ui/ConfigVoice.qml:284
+msgid "Not ready: voice engine folder is missing. Press Repair Engine."
+msgstr ""
+"Pas prêt : le dossier du moteur vocal est manquant. Appuyez sur Réparer le "
+"moteur."
+
+#: contents/ui/ConfigVoice.qml:286
+msgid ""
+"Not ready: speech engine packages are missing or broken. Press Repair "
+"Engine."
+msgstr ""
+"Pas prêt : les packages du moteur vocal sont manquants ou endommagés. "
+"Appuyez sur Réparer le moteur."
+
+#: contents/ui/ConfigVoice.qml:288
+msgid "Not ready: no microphone was detected."
+msgstr "Pas prêt : aucun microphone n'a été détecté."
+
+#: contents/ui/ConfigVoice.qml:290
+msgid ""
+"Not ready: TTS folder is empty or does not contain recognizable model files."
+msgstr ""
+"Pas prêt : le dossier TTS est vide ou ne contient pas de fichiers de modèle "
+"reconnaissables."
+
+#: contents/ui/ConfigVoice.qml:292
+msgid "Not ready: no audio output player was found."
+msgstr "Pas prêt : aucun lecteur de sortie audio n'a été trouvé."
+
+#: contents/ui/ConfigVoice.qml:295
+msgid ""
+"Not ready: The selected TTS model requires 'espeak-ng' to be installed on "
+"your system."
+msgstr ""
+"Pas prêt : le modèle TTS sélectionné nécessite que « espeak-ng » soit "
+"installé sur votre système."
+
+#: contents/ui/ConfigVoice.qml:296
+msgid ""
+"Not ready: selected TTS folder needs engine support. Press Repair Engine or "
+"choose a compatible folder."
+msgstr ""
+"Pas prêt : le dossier TTS sélectionné nécessite la prise en charge du "
+"moteur. Appuyez sur Réparer le moteur ou choisissez un dossier compatible."
+
+#: contents/ui/ConfigVoice.qml:298
+msgid "Not ready. Check the rows below."
+msgstr "Pas prêt. Vérifiez les lignes ci-dessous."
+
+#: contents/ui/ConfigVoice.qml:310
+msgid ""
+"Status check timed out. The helper did not answer within 30 seconds. Repair "
+"the engine or select a smaller/local model folder."
+msgstr ""
+"La vérification de l'état a expiré. L'assistant n'a pas répondu dans les 30 "
+"secondes. Réparez le moteur ou sélectionnez un dossier de modèle plus "
+"petit/local."
+
+#: contents/ui/ConfigVoice.qml:324
+msgid ""
+"STT test timed out. Check microphone permission, selected STT folder, and "
+"engine status."
+msgstr ""
+"Le test STT a expiré. Vérifiez l'autorisation du microphone, le dossier STT "
+"sélectionné et l'état du moteur."
+
+#: contents/ui/ConfigVoice.qml:338
+msgid ""
+"TTS test timed out. Check the selected TTS folder, voice name, audio output,"
+" and engine status."
+msgstr ""
+"Le test TTS a expiré. Vérifiez le dossier TTS sélectionné, le nom de la "
+"voix, la sortie audio et l'état du moteur."
+
+#: contents/ui/ConfigVoice.qml:349
+msgid "Select STT Model Folder"
+msgstr "Sélectionnez le dossier de modèle STT"
+
+#: contents/ui/ConfigVoice.qml:361
+msgid "Select TTS Model Folder"
+msgstr "Sélectionnez le dossier de modèle TTS"
+
+#: contents/ui/ConfigVoice.qml:379
+msgid "Voice"
+msgstr "Voix"
+
+#: contents/ui/ConfigVoice.qml:409
+msgid ""
+"<b>First-time Setup Guide:</b><br>1. Click the 'Readme Guide' button below "
+"for full instructions.<br>2. Click <b>Repair Engine</b> to install "
+"dependencies.<br>3. To automatically download the default models, simply "
+"leave the STT and TTS folder paths empty.<br>4. If you already have models "
+"(Faster Whisper, Kokoro, Piper), you can browse and select their "
+"folders.<br>5. Click <b>Check &amp; Test</b> to verify everything works."
+msgstr ""
+"<b>Guide de configuration initiale :</b><br>1. Cliquez sur le bouton "
+"« Guide Lisez-moi » ci-dessous pour obtenir des instructions "
+"complètes.<br>2. Cliquez sur <b>Réparer le moteur</b> pour installer les "
+"dépendances.<br>3. Pour télécharger automatiquement les modèles par défaut, "
+"laissez simplement les chemins des dossiers STT et TTS vides.<br>4. Si vous "
+"possédez déjà des modèles (Faster Whisper, Kokoro, Piper), vous pouvez "
+"parcourir et sélectionner leurs dossiers.<br>5. Cliquez sur <b>Vérifier et "
+"amp; Testez</b> pour vérifier que tout fonctionne."
+
+#: contents/ui/ConfigVoice.qml:419
+msgid "Readme Guide"
+msgstr "Guide Lisezmoi"
+
+#: contents/ui/ConfigVoice.qml:427
+msgid "Voice:"
+msgstr "Voix:"
+
+#: contents/ui/ConfigVoice.qml:430 contents/ui/ConfigVoice.qml:557
+msgid "Enabled"
+msgstr "Activé"
+
+#: contents/ui/ConfigVoice.qml:445
+msgid ""
+"<b>Voice:</b> Enables the microphone button in chat. It does not download or"
+" choose models for you."
+msgstr ""
+"<b>Voix :</b> active le bouton du microphone dans le chat. Il ne télécharge "
+"ni ne choisit de modèles pour vous."
+
+#: contents/ui/ConfigVoice.qml:452
+msgid "GPU Usage:"
+msgstr "Utilisation du GPU :"
+
+#: contents/ui/ConfigVoice.qml:454 contents/ui/ConfigVoice.qml:821
+msgid "Enabled (CUDA)"
+msgstr "Activé (CUDA)"
+
+#: contents/ui/ConfigVoice.qml:454
+msgid "Disabled (CPU only)"
+msgstr "Désactivé (CPU uniquement)"
+
+#: contents/ui/ConfigVoice.qml:465
+msgid ""
+"<b>GPU Usage:</b> Enables CUDA hardware acceleration. Turning this on "
+"requires you to press <b>Repair Engine</b> below to install the heavy CUDA "
+"packages (~3GB). Turn off if your device doesn't have an NVIDIA GPU."
+msgstr ""
+"<b>Utilisation du GPU :</b> active l'accélération matérielle CUDA. Pour "
+"l'activer, vous devez appuyer sur <b>Réparer le moteur</b> ci-dessous pour "
+"installer les packages CUDA lourds (~ 3 Go). Désactivez-le si votre appareil"
+" ne dispose pas d'un GPU NVIDIA."
+
+#: contents/ui/ConfigVoice.qml:470 contents/ui/ConfigVoice.qml:757
+msgid "STT folder:"
+msgstr "Dossier STT :"
+
+#: contents/ui/ConfigVoice.qml:479
+msgid "Select an STT model folder"
+msgstr "Sélectionnez un dossier de modèle STT"
+
+#: contents/ui/ConfigVoice.qml:488 contents/ui/ConfigVoice.qml:595
+msgid "Browse"
+msgstr "Parcourir"
+
+#: contents/ui/ConfigVoice.qml:501
+msgid ""
+"<b>STT folder:</b> Pick the folder that contains your speech-to-text model "
+"files."
+msgstr ""
+"<b>Dossier STT :</b> choisissez le dossier qui contient vos fichiers de "
+"modèle de synthèse vocale."
+
+#: contents/ui/ConfigVoice.qml:506
+msgid "Language:"
+msgstr "Langue:"
+
+#: contents/ui/ConfigVoice.qml:516
+msgid "Auto detect"
+msgstr "Détection automatique"
+
+#: contents/ui/ConfigVoice.qml:522
+msgid "Japanese"
+msgstr "japonais"
+
+#: contents/ui/ConfigVoice.qml:523
+msgid "Korean"
+msgstr "coréen"
+
+#: contents/ui/ConfigVoice.qml:524
+msgid "Chinese"
+msgstr "Chinois"
+
+#: contents/ui/ConfigVoice.qml:548
+msgid ""
+"<b>Language:</b> Use Auto for multilingual models. Use English for English-"
+"only models."
+msgstr ""
+"<b>Langue :</b> utilisez Auto pour les modèles multilingues. Utilisez "
+"l'anglais pour les modèles uniquement en anglais."
+
+#: contents/ui/ConfigVoice.qml:554
+msgid "Read aloud:"
+msgstr "Lire à haute voix :"
+
+#: contents/ui/ConfigVoice.qml:572
+msgid ""
+"<b>Read aloud:</b> Enables text-to-speech. Leave it off if you only want "
+"microphone input."
+msgstr ""
+"<b>Lire à haute voix :</b> active la synthèse vocale. Laissez-le désactivé "
+"si vous souhaitez uniquement une entrée microphone."
+
+#: contents/ui/ConfigVoice.qml:577 contents/ui/ConfigVoice.qml:771
+msgid "TTS folder:"
+msgstr "Dossier TTS :"
+
+#: contents/ui/ConfigVoice.qml:586
+msgid "Select a TTS model folder"
+msgstr "Sélectionnez un dossier de modèle TTS"
+
+#: contents/ui/ConfigVoice.qml:608
+msgid ""
+"<b>TTS folder:</b> Pick the folder that contains your text-to-speech model "
+"files."
+msgstr ""
+"<b>Dossier TTS :</b> choisissez le dossier qui contient vos fichiers de "
+"modèle de synthèse vocale."
+
+#: contents/ui/ConfigVoice.qml:613
+msgid "Voice name:"
+msgstr "Nom de la voix :"
+
+#: contents/ui/ConfigVoice.qml:621
+msgid "Voice id or name"
+msgstr "Identifiant vocal ou nom"
+
+#: contents/ui/ConfigVoice.qml:634
+msgid ""
+"<b>Voice name:</b> Use the voice id expected by the selected TTS model. If "
+"the model has voice files, use the file name without its extension."
+msgstr ""
+"<b>Nom de la voix :</b> utilisez l'identifiant vocal attendu par le modèle "
+"TTS sélectionné. Si le modèle possède des fichiers vocaux, utilisez le nom "
+"du fichier sans son extension."
+
+#: contents/ui/ConfigVoice.qml:640
+msgid "Auto read:"
+msgstr "Lecture automatique :"
+
+#: contents/ui/ConfigVoice.qml:643
+msgid "Speak every AI reply"
+msgstr "Dites chaque réponse de l'IA"
+
+#: contents/ui/ConfigVoice.qml:643
+msgid "Manual only"
+msgstr "Manuel uniquement"
+
+#: contents/ui/ConfigVoice.qml:655
+msgid ""
+"<b>Auto read:</b> Turn this on only if every AI response should be spoken "
+"automatically."
+msgstr ""
+"<b>Lecture automatique :</b> activez cette option uniquement si chaque "
+"réponse de l'IA doit être prononcée automatiquement."
+
+#: contents/ui/ConfigVoice.qml:661
+msgid "Auto-send:"
+msgstr "Envoi automatique :"
+
+#: contents/ui/ConfigVoice.qml:664
+msgid "Send transcript immediately"
+msgstr "Envoyer la transcription immédiatement"
+
+#: contents/ui/ConfigVoice.qml:664
+msgid "Put transcript in the input box"
+msgstr "Mettre la transcription dans la zone de saisie"
+
+#: contents/ui/ConfigVoice.qml:676
+msgid ""
+"<b>Auto-send:</b> Keep on for hands-free chat. Turn off if you want to edit "
+"the transcript before sending."
+msgstr ""
+"<b>Envoi automatique :</b> continuez pour discuter en mains libres. "
+"Désactivez-la si vous souhaitez modifier la transcription avant de "
+"l'envoyer."
+
+#: contents/ui/ConfigVoice.qml:700
+msgid "Select folders, then check status."
+msgstr "Sélectionnez les dossiers, puis vérifiez l'état."
+
+#: contents/ui/ConfigVoice.qml:714
+msgid "Check"
+msgstr "Vérifier"
+
+#: contents/ui/ConfigVoice.qml:720
+msgid "Repair Engine"
+msgstr "Moteur de réparation"
+
+#: contents/ui/ConfigVoice.qml:736
+msgid ""
+"Check validates folders, microphone, audio output, and required packages. "
+"Repair Engine appears only when package support is missing or broken."
+msgstr ""
+"La vérification valide les dossiers, le microphone, la sortie audio et les "
+"packages requis. Le moteur de réparation apparaît uniquement lorsque la "
+"prise en charge du package est manquante ou interrompue."
+
+#: contents/ui/ConfigVoice.qml:759 contents/ui/ConfigVoice.qml:773
+msgid "Valid"
+msgstr "Valide"
+
+#: contents/ui/ConfigVoice.qml:759 contents/ui/ConfigVoice.qml:773
+msgid "Invalid or empty"
+msgstr "Invalide ou vide"
+
+#: contents/ui/ConfigVoice.qml:764
+msgid "STT engine:"
+msgstr "Moteur STT :"
+
+#: contents/ui/ConfigVoice.qml:766 contents/ui/ConfigVoice.qml:780
+msgid "Ready"
+msgstr "Prêt"
+
+#: contents/ui/ConfigVoice.qml:766 contents/ui/ConfigVoice.qml:780
+msgid "Repair engine"
+msgstr "Moteur de réparation"
+
+#: contents/ui/ConfigVoice.qml:778
+msgid "TTS engine:"
+msgstr "Moteur TTS :"
+
+#: contents/ui/ConfigVoice.qml:780
+msgid "espeak-ng missing"
+msgstr "parlant-ng manquant"
+
+#: contents/ui/ConfigVoice.qml:787
+msgid "Install espeak-ng:"
+msgstr "Installez epeak-ng :"
+
+#: contents/ui/ConfigVoice.qml:812
+msgid "Virtual env:"
+msgstr "Environnement virtuel :"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Configured"
+msgstr "Configuré"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Broken/Missing Libs"
+msgstr "Bibliothèques cassées/manquantes"
+
+#: contents/ui/ConfigVoice.qml:814
+msgid "Not created"
+msgstr "Non créé"
+
+#: contents/ui/ConfigVoice.qml:819
+msgid "GPU mode:"
+msgstr "Mode GPU :"
+
+#: contents/ui/ConfigVoice.qml:826
+msgid "GPU libraries:"
+msgstr "Bibliothèques GPU :"
+
+#: contents/ui/ConfigVoice.qml:828
+msgid "Installed (CUDA %1)"
+msgstr "Installé (CUDA %1)"
+
+#: contents/ui/ConfigVoice.qml:828
+msgid "Missing"
+msgstr "Manquant"
+
+#: contents/ui/ConfigVoice.qml:833
+msgid "Microphone:"
+msgstr "Microphone:"
+
+#: contents/ui/ConfigVoice.qml:835 contents/ui/ConfigVoice.qml:842
+msgid "Available"
+msgstr "Disponible"
+
+#: contents/ui/ConfigVoice.qml:835 contents/ui/ConfigVoice.qml:842
+msgid "Not found"
+msgstr "Pas trouvé"
+
+#: contents/ui/ConfigVoice.qml:840
+msgid "Audio output:"
+msgstr "Sortie audio :"
+
+#: contents/ui/ConfigVoice.qml:851
+msgid "Test STT:"
+msgstr "Test STT :"
+
+#: contents/ui/ConfigVoice.qml:857
+msgid "Record 5 sec"
+msgstr "Enregistrer 5 secondes"
+
+#: contents/ui/ConfigVoice.qml:887
+msgid ""
+"<b>Test STT:</b> Records five seconds, transcribes it, and shows the text "
+"below."
+msgstr ""
+"<b>Test STT :</b> enregistre cinq secondes, les transcrit et affiche le "
+"texte ci-dessous."
+
+#: contents/ui/ConfigVoice.qml:892
+msgid "Transcript:"
+msgstr "Transcription:"
+
+#: contents/ui/ConfigVoice.qml:901
+msgid "Test TTS:"
+msgstr "Testez la synthèse vocale :"
+
+#: contents/ui/ConfigVoice.qml:907
+msgid "Speak"
+msgstr "Parler"
+
+#: contents/ui/ConfigVoice.qml:919
+msgid "Voice setup is ready."
+msgstr "La configuration vocale est prête."
+
+#: contents/ui/ConfigVoice.qml:939
+msgid ""
+"<b>Test TTS:</b> Speaks a short sentence with the selected TTS folder and "
+"voice name."
+msgstr ""
+"<b>Test TTS :</b> prononce une courte phrase avec le dossier TTS sélectionné"
+" et le nom de la voix."
+
+#: contents/ui/ConfigVoice.qml:944
+msgid "TTS result:"
+msgstr "Résultat TTS :"
+
+#: contents/ui/ConfigVoice.qml:953
+msgid "Engine folder:"
+msgstr "Dossier moteur :"
+
+#: contents/ui/ConfigVoice.qml:976
+msgid ""
+"<b>Engine folder:</b> Stores the small Python environment used to run your "
+"selected models. This is not a model folder."
+msgstr ""
+"<b>Dossier Engine :</b> stocke le petit environnement Python utilisé pour "
+"exécuter vos modèles sélectionnés. Ce n'est pas un dossier modèle."
