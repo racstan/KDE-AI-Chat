@@ -2721,6 +2721,13 @@ PlasmoidItem {
             "userMemory": plasmoid.configuration.userMemory
         };
         compiledSystemPrompt = Api.buildSystemPrompt(sysInfo, plasmoid.configuration.systemPrompt, options);
+        let lang = plasmoid.configuration.uiLanguage || "en";
+        if (lang !== "en") {
+            let langMap = { "zh": "Mandarin Chinese", "hi": "Hindi", "es": "Spanish", "fr": "French", "ru": "Russian", "pt": "Portuguese", "de": "German" };
+            if (langMap[lang]) {
+                compiledSystemPrompt += "\n\nCRITICAL INSTRUCTION: You MUST respond to all user queries in " + langMap[lang] + ", unless the user explicitly requests otherwise.";
+            }
+        }
         compiledMemoryBlock = Api.buildMemoryBlock(options);
     }
 

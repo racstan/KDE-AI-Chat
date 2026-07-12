@@ -13,6 +13,10 @@
       <default>KDE AI Chat</default>
     </entry>
 
+    <entry name="uiLanguage" type="String">
+      <default>en</default>
+    </entry>
+
     <entry name="appearanceMode" type="Int">
       <default>0</default>
     </entry>
