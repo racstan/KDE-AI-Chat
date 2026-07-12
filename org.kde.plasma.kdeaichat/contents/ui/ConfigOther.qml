@@ -88,8 +88,8 @@ KCM.SimpleKCM {
             return;
         configPage._lastSchedSetupPayload = payloadStr;
         let b64Payload = Sec.base64Encode(payloadStr);
-        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.quoteForShell(b64Payload);
-        utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-auto-setup");
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " setup_scheduler_service " + Sec.rawShellSnippetQuote(b64Payload);
+        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-auto-setup");
     }
 
     function pollSchedulerState() {
@@ -142,8 +142,8 @@ KCM.SimpleKCM {
             }
         };
         let b64Payload = Sec.base64Encode(JSON.stringify(payload));
-        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.quoteForShell(b64Payload);
-        utilityDs.connectSource("sh -c " + Sec.quoteForShell(cmd) + " #sched-save");
+        let cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " save_all_schedules " + Sec.rawShellSnippetQuote(b64Payload);
+        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #sched-save");
     }
 
     function schedTriggerNow(index) {
