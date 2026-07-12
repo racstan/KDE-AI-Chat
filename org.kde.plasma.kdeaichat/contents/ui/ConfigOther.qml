@@ -19,6 +19,7 @@ KCM.SimpleKCM {
     property string cfg_preselectedChatName: ""
     property string cfg_chatSessionsJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]"
     property string cfg_promptTemplates: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.promptTemplates || "[]") : "[]"
+    property string cfg_uiLanguage: "en"
 
     // Configuration page readiness flag
     property bool pageReady: false
@@ -925,6 +926,37 @@ KCM.SimpleKCM {
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("Advanced")
+        }
+
+        QQC2.ComboBox {
+            id: uiLanguageCombo
+            Kirigami.FormData.label: i18n("Interface Language:")
+            model: [
+                { text: i18n("English"), value: "en" },
+                { text: i18n("Mandarin Chinese"), value: "zh" },
+                { text: i18n("Hindi"), value: "hi" },
+                { text: i18n("Spanish"), value: "es" },
+                { text: i18n("French"), value: "fr" },
+                { text: i18n("Bengali"), value: "bn" },
+                { text: i18n("Russian"), value: "ru" },
+                { text: i18n("Portuguese"), value: "pt" },
+                { text: i18n("Urdu"), value: "ur" },
+                { text: i18n("Indonesian"), value: "id" }
+            ]
+            textRole: "text"
+            valueRole: "value"
+            
+            currentIndex: {
+                for (let i = 0; i < count; i++) {
+                    if (model[i].value === configPage.cfg_uiLanguage) {
+                        return i;
+                    }
+                }
+                return 0;
+            }
+            onActivated: {
+                configPage.cfg_uiLanguage = model[currentIndex].value;
+            }
         }
 
         QQC2.Button {
