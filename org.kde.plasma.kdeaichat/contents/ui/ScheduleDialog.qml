@@ -960,7 +960,7 @@ import org.kde.plasma.plasma5support as P5Support
                             QQC2.SpinBox {
                                 id: startYearSpin
 
-                                from: new Date().getFullYear()
+                                from: 2000
                                 to: new Date().getFullYear() + 10
                                 value: scheduleDialog.getStartYear(scheduleDialog.draft.startDate)
                                 onValueModified: {

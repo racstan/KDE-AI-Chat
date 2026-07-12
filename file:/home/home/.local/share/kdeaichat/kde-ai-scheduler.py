@@ -559,13 +559,12 @@ def main():
                     schedules, sid, now_iso, status or "success", next_iso
                 )
 
-                # Archive task when done (single-run or limit reached)
+                # Disable task in state list if done
                 if disable_task:
                     for item in schedules:
                         if item.get("id") == sid:
                             item["enabled"] = False
                             item["nextRunAt"] = ""
-                            item["archived"] = True  # move to archived so UI shows in History
 
                 changed = True
 

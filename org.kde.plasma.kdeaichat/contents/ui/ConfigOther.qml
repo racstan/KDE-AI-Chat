@@ -50,7 +50,13 @@ KCM.SimpleKCM {
     readonly property bool showGuides: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true) : true
 
     // Paths
-    readonly property string dataDirPath: StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat"
+    readonly property string _rawDataDir: {
+        let p = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation));
+        if (p.indexOf("file://") === 0)
+            p = decodeURIComponent(p.substring(7));
+        return p;
+    }
+    readonly property string dataDirPath: _rawDataDir + "/kdeaichat"
     readonly property string schedulesFilePath: dataDirPath + "/schedules.json"
     readonly property string schedulerScriptPath: dataDirPath + "/kde-ai-scheduler.py"
 
@@ -66,8 +72,7 @@ KCM.SimpleKCM {
         let path = decodeURIComponent(urlStr);
         if (path.indexOf("/") === 0 && path.indexOf("/contents/ui/") !== -1)
             return path;
-        let localShare = StandardPaths.writableLocation(StandardPaths.GenericDataLocation);
-        return localShare + "/plasma/plasmoids/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py";
+        return _rawDataDir + "/plasma/plasmoids/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py";
     }
 
     function schedAutoSetup() {
@@ -307,6 +312,7 @@ KCM.SimpleKCM {
             let err = data["stderr"] ? data["stderr"] : "";
 
             if (out.trim() === "" && err.trim() === "") {
+                disconnectSource(sourceName);
                 return;
             }
 
@@ -344,10 +350,13 @@ KCM.SimpleKCM {
                 else if (out.indexOf("AUTO_DISABLED") >= 0)
                     schedAutoStartToggle.checked = false;
             } else if (sourceName.indexOf("sched-load") >= 0) {
+                console.log("ConfigOther sched-load: sourceName =", sourceName, "stdout length =", out.length, "stderr =", err);
                 if (out !== "") {
                     try {
+                        console.log("ConfigOther sched-load raw stdout:", out);
                         let parsed = JSON.parse(out);
                         let allSchedules = parsed.schedules || [];
+                        console.log("ConfigOther sched-load parsed schedules count:", allSchedules.length);
                         let active = [];
                         let archived = [];
                         for (let i = 0; i < allSchedules.length; i++) {
@@ -358,6 +367,7 @@ KCM.SimpleKCM {
                                     active.push(allSchedules[i]);
                             }
                         }
+                        console.log("ConfigOther sched-load: active count =", active.length, "archived count =", archived.length);
                         configPage.schedulerList = active;
                         configPage.schedulerArchivedList = archived;
                         let hist = parsed.history || [];

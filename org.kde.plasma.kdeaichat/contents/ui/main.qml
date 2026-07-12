@@ -8,6 +8,8 @@ import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 import org.kde.plasma.workspace.dbus as DBus
+import QtCore
+import "Security.js" as Sec
 
 PlasmoidItem {
     // Handled lazily by startupTimer / expanded triggers
@@ -3161,6 +3163,84 @@ PlasmoidItem {
                 }
                 disconnectSource(source);
             }
+        }
+    }
+
+    function getHelperPath() {
+        let urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
+        if (urlStr.indexOf("file://") === 0)
+            urlStr = urlStr.substring(7);
+        let path = decodeURIComponent(urlStr);
+        if (path.indexOf("/") === 0 && path.indexOf("/contents/ui/") !== -1)
+            return path;
+        let localShare = StandardPaths.writableLocation(StandardPaths.GenericDataLocation);
+        return localShare + "/plasma/plasmoids/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py";
+    }
+
+    P5Support.DataSource {
+        id: schedulerDs
+
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            let out = data["stdout"] ? data["stdout"] : "";
+
+            schedulerDs.disconnectSource(sourceName);
+
+            if (out.trim() === "")
+                return;
+
+            if (sourceName.indexOf("poll_pending_triggers") >= 0) {
+                try {
+                    let parsed = JSON.parse(out);
+                    let pending = parsed.pending || [];
+                    for (let i = 0; i < pending.length; i++) {
+                        let p = pending[i];
+                        if (p && p.chatId && p.message) {
+                            let idx = root.sessionIndexById(p.chatId);
+                            if (idx >= 0) {
+                                console.log("Scheduler trigger:", p.name, "-> chatId:", p.chatId, "message:", p.message);
+                                if (root.currentSessionId !== p.chatId)
+                                    root.switchSession(p.chatId);
+                                root.chatInputText = p.message;
+                                root.sendMessage();
+
+                                if (p.notify) {
+                                    root.triggerNotificationSound();
+                                    let escMsg = p.name + ": " + p.message;
+                                    let notifyCmd = "notify-send -i dialog-messages 'KDE AI Chat - Scheduler' " + Sec.quoteForShell(escMsg);
+                                    soundDs.connectSource(notifyCmd + " #sched-notify-" + Date.now());
+                                }
+                            } else {
+                                console.warn("Scheduler trigger: chatId not found in sessions:", p.chatId);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Failed to parse pending triggers JSON:", e);
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: schedulerPollTimer
+        interval: 3000
+        repeat: true
+        running: true
+        onTriggered: {
+            // Don't poll until sessions are loaded so sessionIndexById works
+            if (!root._initialLoadDone)
+                return;
+
+            let localShare = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation));
+            if (localShare.indexOf("file://") === 0) {
+                localShare = localShare.substring(7);
+            }
+            localShare = decodeURIComponent(localShare);
+            let pendingDir = localShare + "/kdeaichat/pending";
+            let cmd = "[ -d " + Sec.quoteForShell(pendingDir) + " ] && [ \"$(ls -A " + Sec.quoteForShell(pendingDir) + " 2>/dev/null)\" ] && python3 " + Sec.quoteForShell(root.getHelperPath()) + " poll_pending_triggers";
+            schedulerDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #poll_pending_triggers-" + Date.now());
         }
     }
 
