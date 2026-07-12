@@ -937,11 +937,9 @@ KCM.SimpleKCM {
                 { text: i18n("Hindi"), value: "hi" },
                 { text: i18n("Spanish"), value: "es" },
                 { text: i18n("French"), value: "fr" },
-                { text: i18n("Bengali"), value: "bn" },
                 { text: i18n("Russian"), value: "ru" },
                 { text: i18n("Portuguese"), value: "pt" },
-                { text: i18n("Urdu"), value: "ur" },
-                { text: i18n("Indonesian"), value: "id" }
+                { text: i18n("German"), value: "de" }
             ]
             textRole: "text"
             valueRole: "value"
