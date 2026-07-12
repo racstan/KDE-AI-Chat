@@ -94,6 +94,7 @@ KCM.SimpleKCM {
     property var filteredOpenCodeModels: []
     readonly property string walletFolderName: "KaiChat"
     readonly property string walletAppId: "org.kde.plasma.kdeaichat"
+    readonly property bool hasPlasmoidConfig: typeof plasmoid !== 'undefined' && plasmoid !== null && plasmoid.configuration !== undefined
 
     function updateFilteredProviderModels(searchText) {
         var search = (searchText || "").toLowerCase();
@@ -998,6 +999,9 @@ KCM.SimpleKCM {
 
 
     function saveGeneralSettingsOnly() {
+        if (!hasPlasmoidConfig) {
+            return;
+        }
         // App name saved via ConfigOther.qml
         plasmoid.configuration.appearanceMode = appearanceModeCombo.currentIndex;
 
@@ -1325,10 +1329,12 @@ KCM.SimpleKCM {
 
                 Kirigami.FormData.label: i18n("Interactive Guides:")
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                checked: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
+                checked: hasPlasmoidConfig ? (plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true) : true
                 text: checked ? i18n("Guides visible — showing setup instructions") : i18n("Guides hidden")
                 onToggled: {
-                    plasmoid.configuration.showInteractiveGuides = checked;
+                    if (hasPlasmoidConfig) {
+                        plasmoid.configuration.showInteractiveGuides = checked;
+                    }
                 }
             }
 

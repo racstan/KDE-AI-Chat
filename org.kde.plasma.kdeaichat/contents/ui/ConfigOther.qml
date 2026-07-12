@@ -47,7 +47,7 @@ KCM.SimpleKCM {
         executeMissedSchedulesToggle.checked = false;
     }
 
-    readonly property bool showGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
+    readonly property bool showGuides: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true) : true
 
     // Paths
     readonly property string dataDirPath: StandardPaths.writableLocation(StandardPaths.GenericDataLocation) + "/kdeaichat"
@@ -698,9 +698,9 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             placeholderText: "KDE AI Chat"
-            text: plasmoid.configuration.appDisplayName || ""
+            text: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.appDisplayName || "") : ""
             onTextChanged: {
-                if (pageReady && text !== (plasmoid.configuration.appDisplayName || "KDE AI Chat")) {
+                if (pageReady && plasmoid && plasmoid.configuration && text !== (plasmoid.configuration.appDisplayName || "KDE AI Chat")) {
                     plasmoid.configuration.appDisplayName = text;
                 }
             }

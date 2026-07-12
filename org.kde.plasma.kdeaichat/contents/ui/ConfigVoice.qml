@@ -23,7 +23,8 @@ KCM.SimpleKCM {
     property string activeTtsSource: ""
     property string activeCheckSource: ""
 
-    property bool cfg_showInteractiveGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
+    readonly property bool hasPlasmoidConfig: typeof plasmoid !== 'undefined' && plasmoid !== null && plasmoid.configuration !== undefined
+    property bool cfg_showInteractiveGuides: hasPlasmoidConfig ? (plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true) : true
     property alias cfg_voiceEnabled: voiceEnabledToggle.checked
     property alias cfg_voiceGpuEnabled: voiceGpuToggle.checked
     property alias cfg_voiceTtsEnabled: voiceTtsEnabledToggle.checked
@@ -173,7 +174,7 @@ KCM.SimpleKCM {
     }
 
     function getVenvPath() {
-        return plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv";
+        return hasPlasmoidConfig ? (plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv") : "~/.local/share/kdeaichat/venv";
     }
 
     function getVenvPython() {
@@ -212,8 +213,8 @@ KCM.SimpleKCM {
             stt_model_path: sttPathField.text || "",
             tts_model_path: ttsPathField.text || "",
             venv_path: getVenvPath(),
-            espeak_path: plasmoid.configuration.voiceEspeakPath || "",
-            gpu_requested: plasmoid.configuration.voiceGpuEnabled || false
+            espeak_path: hasPlasmoidConfig ? (plasmoid.configuration.voiceEspeakPath || "") : "",
+            gpu_requested: hasPlasmoidConfig ? (plasmoid.configuration.voiceGpuEnabled || false) : false
         });
         activeCheckSource = sendVoiceCommand(payload, "check");
         checkWatchdog.restart();
@@ -350,7 +351,7 @@ KCM.SimpleKCM {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
             sttPathField.text = path;
-            plasmoid.configuration.voiceSttModelPath = path;
+            if (hasPlasmoidConfig) plasmoid.configuration.voiceSttModelPath = path;
             runEnvCheck();
         }
     }
@@ -362,7 +363,7 @@ KCM.SimpleKCM {
             let path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = decodeURIComponent(path.slice(7));
             ttsPathField.text = path;
-            plasmoid.configuration.voiceTtsModelPath = path;
+            if (hasPlasmoidConfig) plasmoid.configuration.voiceTtsModelPath = path;
             runEnvCheck();
         }
     }
@@ -425,10 +426,10 @@ KCM.SimpleKCM {
             id: voiceEnabledToggle
             Kirigami.FormData.label: i18n("Voice:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            checked: plasmoid.configuration.voiceEnabled || false
+            checked: hasPlasmoidConfig ? (plasmoid.configuration.voiceEnabled || false) : false
             text: checked ? i18n("Enabled") : i18n("Disabled")
             onToggled: {
-                plasmoid.configuration.voiceEnabled = checked;
+                if (hasPlasmoidConfig) plasmoid.configuration.voiceEnabled = checked;
                 if (checked) runEnvCheck();
             }
         }
@@ -474,10 +475,10 @@ KCM.SimpleKCM {
             QQC2.TextField {
                 id: sttPathField
                 Layout.fillWidth: true
-                text: plasmoid.configuration.voiceSttModelPath || ""
+                text: hasPlasmoidConfig ? (plasmoid.configuration.voiceSttModelPath || "") : ""
                 placeholderText: i18n("Select an STT model folder")
                 onEditingFinished: {
-                    plasmoid.configuration.voiceSttModelPath = text;
+                    if (hasPlasmoidConfig) plasmoid.configuration.voiceSttModelPath = text;
                     runEnvCheck();
                 }
             }
@@ -523,7 +524,7 @@ KCM.SimpleKCM {
                     { text: i18n("Chinese"), value: "zh" }
                 ]
                 Component.onCompleted: {
-                    let current = plasmoid.configuration.voiceLanguage || "auto";
+                    let current = hasPlasmoidConfig ? (plasmoid.configuration.voiceLanguage || "auto") : "auto";
                     for (let i = 0; i < model.length; i++) {
                         if (model[i].value === current) {
                             currentIndex = i;
@@ -532,7 +533,7 @@ KCM.SimpleKCM {
                     }
                     currentIndex = 0;
                 }
-                onActivated: plasmoid.configuration.voiceLanguage = currentValue
+                onActivated: { if (hasPlasmoidConfig) plasmoid.configuration.voiceLanguage = currentValue; }
             }
         }
 
@@ -552,10 +553,10 @@ KCM.SimpleKCM {
             visible: voiceEnabledToggle.checked
             Kirigami.FormData.label: i18n("Read aloud:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            checked: plasmoid.configuration.voiceTtsEnabled || false
+            checked: hasPlasmoidConfig ? (plasmoid.configuration.voiceTtsEnabled || false) : false
             text: checked ? i18n("Enabled") : i18n("Disabled")
             onCheckedChanged: {
-                plasmoid.configuration.voiceTtsEnabled = checked;
+                if (hasPlasmoidConfig) plasmoid.configuration.voiceTtsEnabled = checked;
                 if (voiceEnabledToggle.checked) runEnvCheck();
             }
         }
@@ -581,10 +582,10 @@ KCM.SimpleKCM {
             QQC2.TextField {
                 id: ttsPathField
                 Layout.fillWidth: true
-                text: plasmoid.configuration.voiceTtsModelPath || ""
+                text: hasPlasmoidConfig ? (plasmoid.configuration.voiceTtsModelPath || "") : ""
                 placeholderText: i18n("Select a TTS model folder")
                 onEditingFinished: {
-                    plasmoid.configuration.voiceTtsModelPath = text;
+                    if (hasPlasmoidConfig) plasmoid.configuration.voiceTtsModelPath = text;
                     runEnvCheck();
                 }
             }
@@ -616,9 +617,9 @@ KCM.SimpleKCM {
             QQC2.TextField {
                 id: ttsVoiceField
                 Layout.fillWidth: true
-                text: plasmoid.configuration.voiceTtsVoice || ""
+                text: hasPlasmoidConfig ? (plasmoid.configuration.voiceTtsVoice || "") : ""
                 placeholderText: i18n("Voice id or name")
-                onEditingFinished: plasmoid.configuration.voiceTtsVoice = text
+                onEditingFinished: { if (hasPlasmoidConfig) plasmoid.configuration.voiceTtsVoice = text; }
             }
         }
 
@@ -638,9 +639,9 @@ KCM.SimpleKCM {
             visible: voiceEnabledToggle.checked && voiceTtsEnabledToggle.checked
             Kirigami.FormData.label: i18n("Auto read:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            checked: plasmoid.configuration.voiceTtsAuto || false
+            checked: hasPlasmoidConfig ? (plasmoid.configuration.voiceTtsAuto || false) : false
             text: checked ? i18n("Speak every AI reply") : i18n("Manual only")
-            onCheckedChanged: plasmoid.configuration.voiceTtsAuto = checked
+            onCheckedChanged: { if (hasPlasmoidConfig) plasmoid.configuration.voiceTtsAuto = checked; }
         }
 
         QQC2.Label {
@@ -659,9 +660,9 @@ KCM.SimpleKCM {
             visible: voiceEnabledToggle.checked
             Kirigami.FormData.label: i18n("Auto-send:")
             Layout.maximumWidth: formLayout.fieldMaxWidth
-            checked: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
+            checked: hasPlasmoidConfig ? (plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true) : true
             text: checked ? i18n("Send transcript immediately") : i18n("Put transcript in the input box")
-            onCheckedChanged: plasmoid.configuration.voiceAutoSend = checked
+            onCheckedChanged: { if (hasPlasmoidConfig) plasmoid.configuration.voiceAutoSend = checked; }
         }
 
         QQC2.Label {
@@ -817,8 +818,8 @@ KCM.SimpleKCM {
                 
                 QQC2.Label { text: i18n("GPU mode:"); font.bold: true; font.pointSize: Kirigami.Theme.smallFont.pointSize }
                 QQC2.Label {
-                    text: plasmoid.configuration.voiceGpuEnabled ? i18n("Enabled (CUDA)") : i18n("Disabled")
-                    color: plasmoid.configuration.voiceGpuEnabled ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                    text: (hasPlasmoidConfig && plasmoid.configuration.voiceGpuEnabled) ? i18n("Enabled (CUDA)") : i18n("Disabled")
+                    color: (hasPlasmoidConfig && plasmoid.configuration.voiceGpuEnabled) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                 }
                 
@@ -919,7 +920,7 @@ KCM.SimpleKCM {
                         voice: ttsVoiceField.text || "",
                         lang_code: "a",
                         model_path: ttsPathField.text || "",
-                        espeak_path: plasmoid.configuration.voiceEspeakPath || "",
+                        espeak_path: hasPlasmoidConfig ? (plasmoid.configuration.voiceEspeakPath || "") : "",
                         gpu_requested: voiceGpuToggle.checked
                     }), "tts-test");
                     ttsWatchdog.restart();
@@ -956,9 +957,9 @@ KCM.SimpleKCM {
             QQC2.TextField {
                 id: enginePathField
                 Layout.fillWidth: true
-                text: plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv"
+                text: hasPlasmoidConfig ? (plasmoid.configuration.voiceVenvPath || "~/.local/share/kdeaichat/venv") : "~/.local/share/kdeaichat/venv"
                 onEditingFinished: {
-                    plasmoid.configuration.voiceVenvPath = text;
+                    if (hasPlasmoidConfig) plasmoid.configuration.voiceVenvPath = text;
                     runEnvCheck();
                 }
             }

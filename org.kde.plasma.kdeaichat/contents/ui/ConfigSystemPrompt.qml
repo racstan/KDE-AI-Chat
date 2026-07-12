@@ -32,7 +32,7 @@ KCM.SimpleKCM {
     property alias cfg_enableCompactingContext: enableCompactingContextCheck.checked
     property alias cfg_compactContextAfter: compactContextAfterField.value
 
-    readonly property bool showGuides: plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true
+    readonly property bool showGuides: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.showInteractiveGuides !== undefined ? plasmoid.configuration.showInteractiveGuides : true) : true
 
     property var sysInfo: ({})
     property int sysInfoPending: 0
