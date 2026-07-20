@@ -16,7 +16,7 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 | ![OpenCode Bridge](.github/assets/image2.png) | **OpenCode Developer Bridge**: Build an interactive execution link between the chat widget and your local OpenCode workspace. When active, it displays the unique session ID header and utilizes developer-focused models (e.g. `deepseek`) for CLI or scripting tasks. |
 | ![Conversations Sidebar](.github/assets/image3.png) | **Sidebar Chat History**: Conveniently manage your conversations grouped by calendar history. Supports one-click thread renaming, archiving, and deletion. OpenCode developmental streams are clearly badged with a distinct blue `OC` icon. |
 | ![OpenCode Settings](.github/assets/image4.png) | **OpenCode General Settings**: Easily toggle developer mode, verify/restart the local server engine using interactive status controls, customize custom service ports, and auto-discover provider backends. |
-| ![API Key Storage Settings](.github/assets/image5.png) | **Flexible API Key Storage & Prompts**: Tailor custom system prompts and switch API credentials storage between Session-Only, persistent Plain Config, or encrypted KWallet. DBus-backed KWallet controls allow selecting secure keyrings on-the-fly. |
+| ![API Key Storage Settings](.github/assets/image5.png) | **Secure API Key Storage & Prompts**: Tailor custom system prompts. Sensitive API keys are persistently saved in the local configuration file and automatically synced with KDE's secure KWallet system for encrypted vault storage. |
 
 
 ---
@@ -25,11 +25,11 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 - **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
 - **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy (Beta).
-- **🔑 3-Way API Key Storage**: Choose between **Session Only** (keys live in memory), **Plain Config** (saved to `~/.config/kdeaichatrc`), or **Secure KWallet** (native DBus-encrypted storage). Open, reload, or clear the config file directly from the settings panel.
+- **🔑 Secure API Key Storage**: Seamlessly synchronizes entered API keys with KDE Wallet (KWallet) using standard DBus transactions (`qdbus6 org.kde.kwalletd6`), with automatic fallback to standard local KConfig configuration (`~/.config/kdeaichatrc`). Keys are automatically trimmed to prevent whitespace errors.
 - **📅 Background Task Scheduler**: Configure recurrent prompts, automate code/CLI diagnostics, and schedule timed AI inquiries using standard cron expressions, managed via a native systemd user daemon.
 - **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
 - **🗣️ Local Voice Tools (STT & TTS)**: Real-time hands-free speech input and audio read-aloud features. Utilizes local `faster-whisper` for fast Speech-to-Text translation and `kokoro-onnx` for high-quality local Text-to-Speech synthesis, running via an off-thread local Python server.
-- **🌳 Conversation Forking (Branch Editing)**: Editing any older user message automatically deletes subsequent logs and forks the branch as a fresh request, maintaining clean conversation histories.
+- **🌳 Message Editing & History Rewind**: Editing any older user message in the thread automatically deletes subsequent conversation history and resends the edited message as a new prompt, avoiding context pollution.
 - **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
 - **📊 Token Usage & Cost Diagnostics (Beta)**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
 - **⚡ Ultra-Stable Scrolling**: Features huge caching (`cacheBuffer`) and mouse wheel/scrollbar interaction hooks to eliminate scroll layout jumping and auto-snap collisions.
@@ -74,20 +74,12 @@ See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential vid
 
 The following features have been added after the v1.2.6 release and are available in the latest development build:
 
-### 🗄️ Flexible API Key Storage (3-Way Mode)
-Replaced the old KWallet on/off toggle with a full **3-mode key storage selector**:
-- **Session Only** — keys are kept purely in memory and discarded when the widget is closed.
-- **Plain Config** — keys are saved persistently to `~/.config/kdeaichatrc` and auto-loaded on startup.
-- **Secure KWallet** — keys are stored in and loaded from your desktop's secure credentials vault via DBus.
+### 🗄️ Settings Auto-Save & KWallet Sync
+Configuration preferences and keys are **automatically persisted** as you interact with the settings panel — no need to click Apply to save configuration changes.
 
-Settings are **automatically persisted** as you type — no need to click Apply to save your configuration changes.
-
-### 🛠️ Settings Panel Utilities
-New action buttons in the settings panel:
-- **Open Config File** — opens `~/.config/kdeaichatrc` directly in your default text editor.
-- **Reload from Config** — manually re-reads the config file and populates all API key fields without restarting.
-- **Launch KWallet Manager** — opens the KDE Wallet Manager so you can inspect or manage stored keys.
-- **Clear Chat** — wipes the active conversation with one click directly from the settings panel.
+### 🛠️ Key Validation & Discovery
+- **Whitespace Sanitization**: API keys are automatically trimmed when entered or loaded to prevent authentication errors due to accidental trailing spaces or newlines.
+- **Dynamic Model Fetching**: The settings panel includes a **Refresh Models** button that queries the selected provider's endpoint to auto-populate the active models list.
 
 ### 📤 Chat Export
 Export any conversation to a file from the chat toolbar:
@@ -144,8 +136,7 @@ KDE-AI-Chat/
 ├── changelog.md                  # Comprehensive version log
 ├── user_manual.md                # Local operations FAQ manual
 ├── VOICE_SETUP.md                # Whisper & Kokoro setup handbook
-├── SETUP.md                      # End-user credentials & provider setup guide
-└── audit.md                      # Detailed technical audit report
+└── SETUP.md                      # End-user credentials & provider setup guide
 ```
 
 ---
@@ -194,8 +185,6 @@ Every package release is built following a rigorous QA checklist. The code is au
 - **Syntax Integrity**: Compiles with `qmllint` showing 0 warnings and 0 errors.
 - **Security Protocols**: Safe DBus API key storage with input sanitization to protect user credentials. Plain config mode uses base64-encoded payloads to prevent shell injection.
 - **Process Robustness**: Resizing coordinates persist natively across system sessions, and long-running API tasks execute strictly off-thread to ensure the Plasma desktop shell remains 100% fluid.
-
-For detailed analysis, refer to the [Technical Audit Report](audit.md).
 
 ---
 
@@ -246,21 +235,13 @@ If any tool is missing, the widget **will not crash**. Instead, it uses **intell
 
 ## 🔒 Secure Storage & 🛠️ OpenCode Developer Bridge
 
-### Flexible API Key Storage
-KDE AI Chat offers three modes of API key storage to suit any workflow:
+### Secure KWallet & Plain Config Storage
+KDE AI Chat integrates natively with your desktop's secure credentials subsystem, **[KWallet](https://apps.kde.org/kwalletmanager5/)**, using secure DBus transactions (`qdbus6 org.kde.kwalletd6`). When active, it automatically synchronizes and safeguards all your sensitive API keys, loading them securely on startup.
 
-| Mode | Where keys are stored | Survives restart? |
-|:--|:--|:--|
-| **Session Only** | In-memory only | ❌ No |
-| **Plain Config** | `~/.config/kdeaichatrc` | ✅ Yes |
-| **Secure KWallet** | KDE Wallet via DBus | ✅ Yes (encrypted) |
+If KWallet is not available or disabled on your system, the widget falls back to persistent plain-text configuration saved securely under the user's config directory at `~/.config/kdeaichatrc`.
 
-Switch modes instantly from the settings panel — no restart needed. You can also open the config file, reload keys from disk, or launch KWallet Manager directly from the same panel.
-
-### Secure KWallet Integration
-KDE AI Chat integrates natively with your desktop's secure credentials subsystem, **[KWallet](https://apps.kde.org/kwalletmanager5/)**, using secure DBus transactions (`qdbus6 org.kde.kwalletd6`). When active, it safeguards all your sensitive API keys, preventing them from being stored in plain text configuration files.
-- For complete setup instructions and troubleshooting, refer to the [KWallet Secure Storage Guide](user_manual.md#3-secure-storage-kwallet-vs-plain-configs).
-- Download & manage KWallet: [KDE Wallet Manager](https://apps.kde.org/kwalletmanager5/)
+- For credentials setup and troubleshooting, refer to the [Secure Storage Guide](user_manual.md#3-secure-storage-kwallet-vs-plain-configs).
+- Manage your system keys: [KDE Wallet Manager](https://apps.kde.org/kwalletmanager5/)
 
 ### OpenCode Developer Bridge
 Turn your chat interface into an interactive code execution workspace with the native **[OpenCode](https://opencode.ai/) Bridge**. Enable it with a single toggle in the bottom toolbar to establish a local connection with your OpenCode execution environment, rendering structured decision options, code previews, and token-based diagnostics directly in the chat bubbles.
@@ -275,7 +256,6 @@ Turn your chat interface into an interactive code execution workspace with the n
 - [User Operations Manual & FAQ](user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
 - [Voice Setup & Troubleshooting Guide](VOICE_SETUP.md) — Setting up local Speech-to-Text and Text-to-Speech engines, configuring GPU acceleration, and managing offline models.
 - [End-User Setup & API Keys Guide](SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all supported providers.
-- [Technical Audit & Code Quality Report](audit.md) — Detailed results of the May 2026 quality assurance audit.
 
 ---
 

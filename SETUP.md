@@ -68,7 +68,7 @@ All 17 providers follow the same pattern:
 3. **Enter the API Key (saved securely):**
    - Paste your API key in the **API Key** field
    - The key is stored in the system Secret Service (encrypted)
-   - Click **Test Connection** to verify
+   - Click **Refresh Models** to discover models and verify connection
 
 4. **Configure API Endpoint (optional):**
    - Most providers use the default endpoint
@@ -438,16 +438,15 @@ Follow the steps below for each provider you want to use.
 
 ---
 
-### 8. KWallet / API Key Storage
+### 8. KWallet & Plain Config Storage
 
 **What it does:**
-- API keys can be stored using **KDE Wallet (KWallet)** via DBus, in a **plain config file**, or kept **session-only** in memory.
+- API keys are securely synced to your **KDE Wallet (KWallet)** via DBus if active, or fall back to standard persistent plain-text configuration saved in your user home config directory.
 
 **How to use:**
-1. Open Settings → find the **API Key Storage** mode selector.
-2. Choose: **Session Only**, **Plain Config**, or **Secure KWallet**.
-3. In **Plain Config** mode, use **Open Config File** to edit `~/.config/kdeaichatrc` directly.
-4. In **KWallet** mode, use **Launch KWallet Manager** to inspect stored credentials.
+1. Open Settings → enter your credentials for any provider.
+2. The widget automatically trims the keys and syncs them to KWallet (if available) or saves them directly in `~/.config/kdeaichatrc`.
+3. Changes are auto-saved in the background immediately.
 
 **Manual KWallet inspection:**
 ```bash
@@ -507,7 +506,7 @@ qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
 1. Go to Settings → **General**
 2. In the **API Endpoint** field, enter your custom URL
 3. Example: `http://localhost:8000/v1`
-4. Click **Test Connection** to verify
+4. Click **Refresh Models** to query models and verify connection
 
 ---
 
@@ -571,13 +570,12 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
 **Solution:**
 1. Open Settings (gear icon)
 2. Select a provider from the dropdown
-3. Enter API Key and click **Test Connection**
-4. Refresh the widget
+3. Enter API Key and click **Refresh Models** to load active models.
 
 ---
 
 ### API Key Not Working
-**Problem:** "Test Connection" fails or responses show auth errors.
+**Problem:** Model fetching fails or responses show auth errors.
 
 **Solution:**
 1. Verify the API key is correct (copy/paste from provider website)
@@ -613,9 +611,9 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
    kwalletmanager5
    ```
 
-3. If KWallet is not available on your system (e.g., headless server), switch to **Plain Config** mode in the widget Settings instead.
+3. If KWallet is not available on your system, the widget automatically falls back to storing keys securely in your standard local configuration file.
 
-4. Re-enter your API key in Settings — it will be stored to whichever mode is currently selected.
+4. Re-enter your API key in Settings to verify and trigger synchronization.
 
 ---
 

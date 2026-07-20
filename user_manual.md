@@ -9,7 +9,7 @@ This manual provides an in-depth operations guide, walkthroughs of every feature
 ## 📖 Table of Contents
 1. [Getting Started & Installation](#1-getting-started--installation)
 2. [Configuring Providers & API Keys](#2-configuring-providers--api-keys)
-3. [Secure Storage: KWallet vs. Plain Configs](#3-secure-storage-kwallet-vs-plain-configs)
+3. [Secure Storage: KWallet & Plain Configs](#3-secure-storage-kwallet--plain-configs)
 4. [Running Offline Local LLMs (Ollama, LM Studio & LiteLLM)](#4-running-offline-local-llms-ollama-lm-studio--litellm)
 5. [OpenCode Developer Bridge Guide](#5-opencode-developer-bridge-guide)
 6. [Managing Conversations & Chat History](#6-managing-conversations--chat-history)
@@ -78,35 +78,18 @@ KDE AI Chat supports **17 different AI engines** out of the box. Key setups are 
 
 ---
 
-## 3. Secure Storage: KWallet vs. Plain Configs
+## 3. Secure Storage: KWallet & Plain Configs
 
-KDE AI Chat offers **three modes** of API key storage, selectable from the Settings panel under **API Key Storage**:
+KDE AI Chat supports persistent storage of API credentials across desktop sessions. To balance security and usability, the widget integrates two fallback storage mechanisms:
 
-### Mode 1: Session Only
-- Keys are kept purely **in memory** while the widget is running.
-- Discarded when the widget or Plasma shell is closed.
-- Good for one-off use or shared machines.
+### Secure KWallet Integration *(recommended)*
+- Keys are automatically encrypted and stored inside your system's secure **[KDE Wallet](https://apps.kde.org/kwalletmanager5/)** vault.
+- Communication with KWallet is handled seamlessly in the background via DBus (`qdbus6 org.kde.kwalletd6` / `qdbus org.kde.kwalletd6`).
+- Once stored, credentials are loaded securely on widget startup without exposing keys in plaintext files.
 
-### Mode 2: Plain Config
-- Keys are saved persistently to **`~/.config/kdeaichatrc`**.
-- Auto-loaded every time the widget starts.
-- You can open, edit, and reload this file directly from the Settings panel using the **Open Config File** and **Reload from Config** buttons.
-- Good for headless setups or manual key management.
-
-### Mode 3: Secure KWallet *(recommended)*
-- Keys are encrypted and stored inside your system's **[KDE Wallet](https://apps.kde.org/kwalletmanager5/)** via DBus (`qdbus6 org.kde.kwalletd6`).
-- Loaded securely on startup — no plaintext exposure.
-- Use the **Launch KWallet Manager** button in Settings to inspect or manage stored credentials.
-- Recommended for general desktop use.
-
-### Settings Panel Utilities
-From the Settings panel you can also:
-- **Open Config File** — opens `~/.config/kdeaichatrc` in your default text editor
-- **Reload from Config** — re-reads keys from disk without restarting the widget
-- **Launch KWallet Manager** — opens the [KDE Wallet Manager](https://apps.kde.org/kwalletmanager5/) app
-- **Clear Chat** — wipes the active conversation
-
-> **Tip**: Switching storage modes and entering keys is immediately reflected — no Apply button required.
+### Plain Config Fallback
+- If KWallet is disabled or unavailable on the host system, credentials fallback to standard plain-text settings stored under your home config directory at **`~/.config/kdeaichatrc`**.
+- Values are written persistently under the `[General]` configuration group and automatically reloaded when the widget initializes.
 
 ---
 
@@ -176,7 +159,7 @@ Conversation threads are tracked in the persistent sidebar.
 * **Archiving Threads**: Move older conversations into a safe secondary filter list to keep your sidebar active and uncluttered.
 * **Deleting Threads**: Click the trashcan icon to delete the thread and remove its database cache from the disk.
 * **Visual Identifiers**: OpenCode chats are rendered with distinct system badges to instantly separate development workspaces from standard AI conversations.
-* **Branching**: Edit any older user message to automatically delete all subsequent messages and start a fresh branch from that point.
+* **Edit Message**: Edit any older user message to automatically delete subsequent conversation history and re-send the query, rewinding the chat session.
 
 ---
 
@@ -206,11 +189,8 @@ Export any conversation to a file directly from the chat toolbar.
 ### Q: I set a theme and it didn't change anything. What should I do?
 **A**: Ensure that your Plasma global desktop theme doesn't enforce strict application style sheets that override widget layouts. If you want the widget to ignore system-wide rules, go to Settings and change the **Theme Mode** dropdown from "Follow System" to "Strict Dark" or "Strict Light".
 
-### Q: Where are the plain config keys saved?
-**A**: Plain keys are saved to `~/.config/kdeaichatrc`. You can open this file directly from the Settings panel using the **Open Config File** button, or reload it with **Reload from Config**.
-
-### Q: The config file was blank when I opened it — why?
-**A**: This was a known bug in older versions where KConfig's in-memory cache hadn't been flushed to disk yet. It is fully fixed in v1.2.8 — the widget now writes to disk synchronously before opening the file.
+### Q: Where are my keys saved?
+**A**: By default, the widget attempts to store keys securely in KDE Wallet (KWallet) via DBus. If KWallet is unavailable, the keys fall back to standard plaintext configurations saved locally at `~/.config/kdeaichatrc`.
 
 ### Q: Do I need an API key for Ollama / LM Studio / LiteLLM?
 **A**: No. Ollama, LM Studio, and the local provider are keyless by default. LiteLLM Proxy is also keyless unless your specific proxy configuration requires authentication.

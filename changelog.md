@@ -37,12 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.7] - 2026-05-27
 
 ### Added
-- **3-Way API Key Storage Mode**: Replaced the old KWallet on/off toggle with a full three-mode selector — *Session Only* (in-memory, discarded on close), *Plain Config* (saved to `~/.config/kdeaichatrc`, auto-loaded on startup), and *Secure KWallet* (DBus-encrypted vault). Modes are switched instantly with no restart required.
-- **Configuration Auto-Save**: Settings are now persisted automatically as the user types — no Apply button click required. The configuration is written to disk and synced to plasmoid storage immediately on change.
-- **Open Config File Button**: Opens `~/.config/kdeaichatrc` directly in the default text editor from the settings panel.
-- **Reload from Config Button**: Manually re-reads the config file and repopulates all API key fields on demand.
-- **Launch KWallet Manager Button**: Opens the KDE Wallet Manager app so users can inspect or manage their stored credentials without leaving the widget.
-- **Clear Chat Button**: Wipes the active conversation from the settings panel with a single click.
+- **Secure KWallet & Configuration Sync**: Replaced the old KWallet toggle with an automated background synchronization mechanism. API keys entered in settings are securely saved to KWallet via DBus, and fall back to local configuration (`~/.config/kdeaichatrc`) if KWallet is unavailable.
+- **Configuration Auto-Save**: Settings are now persisted automatically as the user types — no Apply button click required. The configuration is written to disk immediately on change.
 - **Chat Export**: Export any conversation to a `.md` or `.txt` file via the chat toolbar. The save dialog is pre-filled with `<chat_title>_<timestamp>.<ext>` as the default filename. Exports use full UTF-8 encoding and include a formatted header with role labels, timestamps, and the export date.
 - **Right-Aligned User Bubbles**: User messages are now right-aligned with a distinct bubble style, mirroring modern messaging UIs. AI responses and system messages remain left-aligned.
 - **LiteLLM Proxy Provider**: Added LiteLLM Proxy as a fully supported 17th provider. Connects to any LiteLLM-compatible server (default `http://localhost:4000/v1`). API key is optional for keyless local proxy setups. Full model discovery, KWallet/plain-config key storage, and model selection are all supported, enabling routing to 100+ LLMs through a single unified proxy.
@@ -61,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Multi-Format Document & File Attachments**: Added drag-and-drop and copy-paste support for document attachments (Images, Word files, PDFs, CSVs, etc.) directly into the chat input field.
 - **Text-Free Attachment Submissions**: Allows users to dispatch queries consisting solely of attachment files (images, documents) without forcing textual prompt input.
-- **Conversation Forking (Edit Branching)**: Implemented branch message editing. Modifying an older user prompt now cleanly deletes all messages following it and dispatches the edited message as a new prompt to prevent context tree contamination.
+- **Message Editing & History Rewind**: Modifying an older user prompt now cleanly deletes all messages following it and re-runs the query, allowing users to rewind the chat history from the edited prompt.
 - **Viewport-Aware Question Navigation**: Added Up/Down tool navigation buttons in the toolbar to cycle between user questions based on the active scroll viewport, with fallback index checking to prevent empty page scrolling.
 - **Token Usage & Cost Indicators**: Added detailed token tracking (input, output, reasoning tokens, cache read/write) and pricing/cost calculators for OpenAI-compatible, Anthropic, and OpenCode streams, displaying context metrics inside the assistant chat bubbles.
 - **NVIDIA NIM & OpenRouter Attribution**: Fully updated all NVIDIA configurations to the standard "NVIDIA NIM" terminology. Added HTTP-Referer and X-Title metrics/attribution headers for OpenRouter API requests.
