@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.9] - 2026-07-20
 
 ### Added
-- **🗣️ Local Voice Tools Integration**: Documented Voice Mode and local setup for Whisper Speech-to-Text and Kokoro Text-to-Speech in the primary README.
+- **🗣️ Local Voice Tools Integration**: Documented Voice Mode and local setup for Whisper Speech-to-Text and Kokoro Text-to-Speech in the primary README and verified compatibility lists.
+- **📅 Background Task Scheduler**: Promoted the systemd-integrated cron task scheduler daemon to a first-class supported feature.
+- **📚 Documentation Updates**: Refactored README, VOICE_SETUP, and file catalogs to match the current release structure.
 
 ### Fixed
 - **Voice Mode State Leakage & Controls**: Fixed voice status leakage across different chat sessions by centralizing the playback tracker in the root `main.qml` component. Switching chat sessions or creating new ones now properly halts current voice generation, stops playback, and cleans up UI states.

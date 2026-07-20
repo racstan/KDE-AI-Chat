@@ -26,8 +26,8 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 - **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
 - **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy (Beta).
 - **🔑 3-Way API Key Storage**: Choose between **Session Only** (keys live in memory), **Plain Config** (saved to `~/.config/kdeaichatrc`), or **Secure KWallet** (native DBus-encrypted storage). Open, reload, or clear the config file directly from the settings panel.
+- **📅 Background Task Scheduler**: Configure recurrent prompts, automate code/CLI diagnostics, and schedule timed AI inquiries using standard cron expressions, managed via a native systemd user daemon.
 - **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
-
 - **🗣️ Local Voice Tools (STT & TTS)**: Real-time hands-free speech input and audio read-aloud features. Utilizes local `faster-whisper` for fast Speech-to-Text translation and `kokoro-onnx` for high-quality local Text-to-Speech synthesis, running via an off-thread local Python server.
 - **🌳 Conversation Forking (Branch Editing)**: Editing any older user message automatically deletes subsequent logs and forks the branch as a fresh request, maintaining clean conversation histories.
 - **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
@@ -126,13 +126,26 @@ KDE-AI-Chat/
 │       ├── config/
 │       │   ├── config.qml        # Config UI page binder
 │       │   └── main.xml          # KConfigXT schema for persistent storage
+│       ├── scripts/
+│       │   ├── kde-ai-scheduler.py      # Background scheduler daemon
+│       │   └── kde-ai-scheduler.service # Systemd user service unit
 │       └── ui/
 │           ├── ConfigGeneral.qml # Widget settings panel (sync logic & API keys)
+│           ├── ConfigVoice.qml   # Voice configuration settings
+│           ├── VoiceManager.qml  # Audio polling & event broker (QML)
+│           ├── voice/
+│           │   ├── voice_helper.py # Python server for Whisper STT and Kokoro TTS
+│           │   └── venv_setup.sh  # Auto-repair environment setup script
+│           ├── ScheduleDialog.qml# GUI Dialog for creating and managing cron tasks
 │           └── main.qml          # Widget main interface (popup, database & SSE)
 ├── .gitignore                    # Git file tracking safety guard
 ├── install.sh                    # One-click developer clean-reinstall script
-├── audit.md                      # Detailed technical audit report
-└── SETUP.md                      # End-user credentials & provider setup guide
+├── README.md                     # Main project guide
+├── changelog.md                  # Comprehensive version log
+├── user_manual.md                # Local operations FAQ manual
+├── VOICE_SETUP.md                # Whisper & Kokoro setup handbook
+├── SETUP.md                      # End-user credentials & provider setup guide
+└── audit.md                      # Detailed technical audit report
 ```
 
 ---
@@ -192,7 +205,7 @@ For developers packaging the widget from local sources, building the distributio
 
 ```bash
 # Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kdeaichat-v1.2.8.plasmoid" org.kde.plasma.kdeaichat \
+zip -r "dist/org.kde.plasma.kdeaichat-v1.2.9.plasmoid" org.kde.plasma.kdeaichat \
   -x "*.git*" "*__pycache__*" "*.DS_Store"
 ```
 
@@ -211,8 +224,7 @@ For a detailed history of features, bug fixes, and performance updates across al
 We are planning multiple active development rounds to implement new requested features:
 1. **Elegant UI Enhancements**: Redefining QML layouts with premium modern visual aesthetics, sleek micro-animations, glassmorphism card panels, and smooth scroll interfaces.
 2. **Interactive Elements for OpenCode**: Introducing rich interactive layouts inside chat bubbles to render code previews, live shell triggers, and interactive compiler feedback widgets.
-3. **Scheduled Chats & Prompt Automation**: Implementing a robust scheduling calendar to automate recurrent prompts, execute off-hour diagnostics, and trigger timed workflows.
-4. **PDF Export**: Extending the chat export utility to generate formatted, printable PDF reports directly from the sidebar.
+3. **PDF Export**: Extending the chat export utility to generate formatted, printable PDF reports directly from the sidebar.
 
 ---
 

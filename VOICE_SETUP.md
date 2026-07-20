@@ -61,3 +61,12 @@ If you already have specific models downloaded, you can point the application to
 - **"Engine is damaged" or "Repair Engine" keeps showing up:** Try deleting your virtual environment folder (`rm -rf ~/.local/share/kdeaichat/venv`) and clicking Repair Engine again. Ensure your system's python development packages (e.g., `python3-venv`, `python3-dev`) are installed.
 - **Microphone not found:** Check your system's PulseAudio or PipeWire settings to ensure a default microphone is selected and unmuted.
 - **Continuous Spinning Icon:** Make sure your `voice_helper.py` isn't blocked by missing dependencies. Checking the CLI logs might help identify missing C-libraries.
+
+---
+
+### 🧪 Verified Compatible Models
+
+The voice engine has been tested and verified with the following models:
+- **Text-to-Speech (TTS)**: Tested on **Kokoro-82m** (ONNX format) for rapid, high-quality local voice synthesis.
+- **Speech-to-Text (STT)**: Tested on **Whisper Small** (default, lightweight) and **Whisper Large (v3)** (for maximum accuracy) in CTranslate2 (`faster-whisper`) format.
+
