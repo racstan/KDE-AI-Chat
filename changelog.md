@@ -59,7 +59,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Text-Free Attachment Submissions**: Allows users to dispatch queries consisting solely of attachment files (images, documents) without forcing textual prompt input.
 - **Message Editing & History Rewind**: Modifying an older user prompt now cleanly deletes all messages following it and re-runs the query, allowing users to rewind the chat history from the edited prompt.
 - **Viewport-Aware Question Navigation**: Added Up/Down tool navigation buttons in the toolbar to cycle between user questions based on the active scroll viewport, with fallback index checking to prevent empty page scrolling.
-- **Token Usage & Cost Indicators**: Added detailed token tracking (input, output, reasoning tokens, cache read/write) and pricing/cost calculators for OpenAI-compatible, Anthropic, and OpenCode streams, displaying context metrics inside the assistant chat bubbles.
 - **NVIDIA NIM & OpenRouter Attribution**: Fully updated all NVIDIA configurations to the standard "NVIDIA NIM" terminology. Added HTTP-Referer and X-Title metrics/attribution headers for OpenRouter API requests.
 
 ### Fixed

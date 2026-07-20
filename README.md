@@ -23,50 +23,19 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 
 ## Key Features
 
-- **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
-- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy (Beta).
-- **🔑 Secure API Key Storage**: Seamlessly synchronizes entered API keys with KDE Wallet (KWallet) using standard DBus transactions (`qdbus6 org.kde.kwalletd6`), with automatic fallback to standard local KConfig configuration (`~/.config/kdeaichatrc`). Keys are automatically trimmed to prevent whitespace errors.
-- **📅 Background Task Scheduler**: Configure recurrent prompts, automate code/CLI diagnostics, and schedule timed AI inquiries using standard cron expressions, managed via a native systemd user daemon.
-- **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
+- **🛡️ OpenCode Developer Bridge (Beta)**: Establish a local connection bridge to your OpenCode workspace and interact with the widget just like the OpenCode CLI. If you have MCPs, custom providers, or skills configured in OpenCode, you can utilize them directly here—enabling you to write/debug code, run web searches, and execute complex local developer workflows directly from your Plasma panel (active development).
 - **🗣️ Local Voice Tools (STT & TTS)**: Real-time hands-free speech input and audio read-aloud features. Utilizes local `faster-whisper` for fast Speech-to-Text translation and `kokoro-onnx` for high-quality local Text-to-Speech synthesis, running via an off-thread local Python server.
+- **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
+- **📅 Background Task Scheduler**: Configure recurrent prompts, automate code/CLI diagnostics, and schedule timed AI inquiries using standard cron expressions, managed via a native systemd user daemon.
 - **🌳 Message Editing & History Rewind**: Editing any older user message in the thread automatically deletes subsequent conversation history and resends the edited message as a new prompt, avoiding context pollution.
+- **🔑 Secure API Key Storage**: Seamlessly synchronizes entered API keys with KDE Wallet (KWallet) using standard DBus transactions (`qdbus6 org.kde.kwalletd6`), with automatic fallback to standard local KConfig configuration (`~/.config/kdeaichatrc`). Keys are automatically trimmed to prevent whitespace errors.
+- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy (Beta).
+- **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
 - **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
-- **📊 Token Usage & Cost Diagnostics (Beta)**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
 - **⚡ Ultra-Stable Scrolling**: Features huge caching (`cacheBuffer`) and mouse wheel/scrollbar interaction hooks to eliminate scroll layout jumping and auto-snap collisions.
 - **🛡️ Offline & Local AI Priority**: Keyless out-of-the-box integration with offline local LLM engines (Ollama, LM Studio, LiteLLM Proxy), ensuring absolute privacy.
 - **🔍 Dynamic Model Discovery**: Auto-detects and populates model lists directly from API endpoints, featuring a real-time searchable combobox.
-- **🛡️ OpenCode Developer Bridge (Beta)**: Establish a local connection bridge to your OpenCode workspace and interact with the widget just like the OpenCode CLI. If you have MCPs, custom providers, or skills configured in OpenCode, you can utilize them directly here—enabling you to write/debug code, run web searches, and execute complex local developer workflows directly from your Plasma panel (active development).
 - **🎨 Custom Popup Canvas Scaling**: Bottom-right drag-to-resize handle with coordinates persisted via KConfigXT backend.
-
----
-
-#### 🎥 Feature Demonstration Video (6-Part Walkthrough)
-
-See **KDE AI Chat** in action! Below is a highly detailed, 6-part sequential video demonstration of the widget's capabilities and end-to-end features:
-
-##### 🎬 Part 0: Introduction & UI Walkthrough
-*Overview of the native Qt/QML user interface, directional chat bubble layouts, and scrolling fluidities:*
-<video src="https://github.com/user-attachments/assets/f46ac923-6602-4d05-aedc-a6a64f8fa7c8" width="100%" controls></video>
-
-##### 🎬 Part 1: Multi-Provider & Model Selection
-*Showcases real-time searchable dropdown lists, dynamic model discovery, and 15+ built-in API providers:*
-<video src="https://github.com/user-attachments/assets/6e2c8050-630a-4f1d-8efb-2d562754149f" width="100%" controls></video>
-
-##### 🎬 Part 2: 3-Way API Key Storage
-*Detailed walk-through of the flexible credentials vault setups — Session Only, persistent Plain Config, and secure DBus KWallet:*
-<video src="https://github.com/user-attachments/assets/a85601cf-f7ae-43ca-9c06-6eb78595d651" width="100%" controls></video>
-
-##### 🎬 Part 3: Document & File Attachments
-*Demonstration of prompt-less and multi-format file attachment parsing with drag-and-drop:*
-<video src="https://github.com/user-attachments/assets/8b93e6da-b40b-46f9-88f8-18be440bb6af" width="100%" controls></video>
-
-##### 🎬 Part 4: OpenCode Developer Bridge
-*Connecting the local OpenCode execution bridge to render structured choice buttons, code previews, and token usage diagnostics:*
-<video src="https://github.com/user-attachments/assets/c9a62f2b-240d-40ea-b785-e118f43c9780" width="100%" controls></video>
-
-##### 🎬 Part 5: Settings Customizations & Chat Export
-*Tinkering with config canvas scaling, custom system prompts, audio chimes, and exporting threads to Markdown or text:*
-<video src="https://github.com/user-attachments/assets/3c65c3e9-b96d-482c-a471-9c54c5abc9fb" width="100%" controls></video>
 
 ---
 
@@ -244,7 +213,7 @@ If KWallet is not available or disabled on your system, the widget falls back to
 - Manage your system keys: [KDE Wallet Manager](https://apps.kde.org/kwalletmanager5/)
 
 ### OpenCode Developer Bridge
-Turn your chat interface into an interactive code execution workspace with the native **[OpenCode](https://opencode.ai/) Bridge**. Enable it with a single toggle in the bottom toolbar to establish a local connection with your OpenCode execution environment, rendering structured decision options, code previews, and token-based diagnostics directly in the chat bubbles.
+Turn your chat interface into an interactive code execution workspace with the native **[OpenCode](https://opencode.ai/) Bridge**. Enable it with a single toggle in the bottom toolbar to establish a local connection with your OpenCode execution environment, rendering structured decision options and code previews directly in the chat bubbles.
 - Official OpenCode site: [opencode.ai](https://opencode.ai/)
 - GitHub repository: [sst/opencode](https://github.com/sst/opencode)
 - For instructions on running and managing sessions, see the [OpenCode Developer Bridge Guide](user_manual.md#5-opencode-developer-bridge-guide).
