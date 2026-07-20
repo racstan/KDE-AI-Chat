@@ -14,7 +14,8 @@ This manual provides an in-depth operations guide, walkthroughs of every feature
 5. [OpenCode Developer Bridge Guide](#5-opencode-developer-bridge-guide)
 6. [Managing Conversations & Chat History](#6-managing-conversations--chat-history)
 7. [Chat Export](#7-chat-export)
-8. [Frequently Asked Questions (FAQ)](#8-frequently-asked-questions-faq)
+8. [Prompt Templates](#8-prompt-templates)
+9. [Frequently Asked Questions (FAQ)](#9-frequently-asked-questions-faq)
 
 ---
 
@@ -181,7 +182,25 @@ Export any conversation to a file directly from the chat toolbar.
 
 ---
 
-## 8. Frequently Asked Questions (FAQ)
+## 8. Prompt Templates
+
+Prompt Templates allow you to save prompts you use frequently and insert them instantly into your chat using a simple command shortcut.
+
+### How to Create Templates
+1. Open the widget Settings and navigate to the **Other** tab.
+2. Under **Prompt Templates**, enter:
+   - **Template Name** (e.g., `code-review` or `translate`).
+   - **System Prompt** (the AI instructions to save).
+3. Click **Add Template**.
+4. You can click **View** to see, test, or delete your existing templates.
+
+### How to Use Templates in Chat
+- In the chat input box, type a slash followed by the template name (e.g., `/code-review`).
+- When you type this shortcut, the widget automatically expands the command into the full prompt you saved, allowing you to ask your question without retyping the instructions.
+
+---
+
+## 9. Frequently Asked Questions (FAQ)
 
 ### Q: Why does the widget say "Thinking" and hang on OpenCode queries?
 **A**: This is usually caused by the local OpenCode server dropping connection mid-stream. We have audited the pipeline to ensure that network errors now trigger explicit failure logs instead of freezing the UI. To fix, verify that the server is active by navigating to the OpenCode settings tab and clicking **Restart Server**.

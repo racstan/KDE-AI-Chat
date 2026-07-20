@@ -2,232 +2,109 @@
 
 [![KDE Store](https://img.shields.io/badge/KDE%20Store-Download-blue?style=for-the-badge&logo=kde)](https://store.kde.org/p/2360152/) [![GitHub Release](https://img.shields.io/github/v/release/racstan/KDE-AI-Chat?style=for-the-badge&color=success)](https://github.com/racstan/KDE-AI-Chat/releases)
 
-Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Qt 6**. It features seamless multi-provider switching, real-time model discovery, session persistence, direct SSE streaming, flexible API key storage, and native chat export. Available to download on the [KDE Store](https://store.kde.org/p/2360152/).
+A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6** desktop. It connects directly to your favorite AI providers (including offline local models), lets you drag-and-drop files, schedule automated tasks, and securely save your API keys.
 
 ---
 
-### 📸 Showcase & Feature Walkthrough
+### 📸 Gallery & Features
 
-#### 🖼️ Screenshot Gallery & Walkthrough
-
-| Screenshot | Feature & Explanation |
+| Screenshot | Description |
 | :--- | :--- |
-| ![Live Chat UI](.github/assets/image.png) | **Premium Native Chat UI**: Features a beautiful, high-performance conversational interface with rich Markdown support (headers, lists, tables, and nested elements) rendered instantly with smooth layout scrolling. |
-| ![OpenCode Bridge](.github/assets/image2.png) | **OpenCode Developer Bridge**: Build an interactive execution link between the chat widget and your local OpenCode workspace. When active, it displays the unique session ID header and utilizes developer-focused models (e.g. `deepseek`) for CLI or scripting tasks. |
-| ![Conversations Sidebar](.github/assets/image3.png) | **Sidebar Chat History**: Conveniently manage your conversations grouped by calendar history. Supports one-click thread renaming, archiving, and deletion. OpenCode developmental streams are clearly badged with a distinct blue `OC` icon. |
-| ![OpenCode Settings](.github/assets/image4.png) | **OpenCode General Settings**: Easily toggle developer mode, verify/restart the local server engine using interactive status controls, customize custom service ports, and auto-discover provider backends. |
-| ![API Key Storage Settings](.github/assets/image5.png) | **Secure API Key Storage & Prompts**: Tailor custom system prompts. Sensitive API keys are persistently saved in the local configuration file and automatically synced with KDE's secure KWallet system for encrypted vault storage. |
-
+| ![Live Chat UI](.github/assets/image.png) | **Simple Chat UI**: A clean conversation interface with full Markdown formatting (lists, tables, code blocks) that scrolls smoothly. |
+| ![OpenCode Bridge](.github/assets/image2.png) | **OpenCode Developer Bridge**: Connects your chat directly to your local OpenCode code-editing workspace for running commands and writing scripts. |
+| ![Conversations Sidebar](.github/assets/image3.png) | **Chat History Sidebar**: Easily manage your past chats. You can rename, archive, or delete threads with one click. |
+| ![OpenCode Settings](.github/assets/image4.png) | **Settings Panel**: Easily manage your settings, toggle developer features, choose AI models, and set up your system preferences. |
+| ![API Key Storage Settings](.github/assets/image5.png) | **Secure Storage & Prompts**: Save your API keys safely. Keys are automatically synced with KDE's secure KWallet vault. |
 
 ---
 
 ## Key Features
 
-- **🛡️ OpenCode Developer Bridge (Beta)**: Establish a local connection bridge to your OpenCode workspace and interact with the widget just like the OpenCode CLI. If you have MCPs, custom providers, or skills configured in OpenCode, you can utilize them directly here—enabling you to write/debug code, run web searches, and execute complex local developer workflows directly from your Plasma panel (active development).
-- **🗣️ Local Voice Tools (STT & TTS)**: Real-time hands-free speech input and audio read-aloud features. Utilizes local `faster-whisper` for fast Speech-to-Text translation and `kokoro-onnx` for high-quality local Text-to-Speech synthesis, running via an off-thread local Python server.
-- **📎 Multi-Format Document & File Attachments**: Drag-and-drop or paste images, PDFs, CSVs, Word documents, and text files directly into the input bar, with support for sending prompt-less attachment queries.
-- **📅 Background Task Scheduler**: Configure recurrent prompts, automate code/CLI diagnostics, and schedule timed AI inquiries using standard cron expressions, managed via a native systemd user daemon.
-- **🌳 Message Editing & History Rewind**: Editing any older user message in the thread automatically deletes subsequent conversation history and resends the edited message as a new prompt, avoiding context pollution.
-- **🔑 Secure API Key Storage**: Seamlessly synchronizes entered API keys with KDE Wallet (KWallet) using standard DBus transactions (`qdbus6 org.kde.kwalletd6`), with automatic fallback to standard local KConfig configuration (`~/.config/kdeaichatrc`). Keys are automatically trimmed to prevent whitespace errors.
-- **🔄 15+ Provider Support**: Native integration with OpenAI, Anthropic (Claude), Groq, DeepSeek, MiniMax, Fireworks AI, Google Gemini, OpenRouter, Mistral, Cloudflare Workers AI, NVIDIA NIM, Hugging Face, xAI (Grok), LM Studio, Local (OpenAI-compatible), Ollama, and LiteLLM Proxy (Beta).
-- **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
-- **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
-- **⚡ Ultra-Stable Scrolling**: Features huge caching (`cacheBuffer`) and mouse wheel/scrollbar interaction hooks to eliminate scroll layout jumping and auto-snap collisions.
-- **🛡️ Offline & Local AI Priority**: Keyless out-of-the-box integration with offline local LLM engines (Ollama, LM Studio, LiteLLM Proxy), ensuring absolute privacy.
-- **🔍 Dynamic Model Discovery**: Auto-detects and populates model lists directly from API endpoints, featuring a real-time searchable combobox.
-- **🎨 Custom Popup Canvas Scaling**: Bottom-right drag-to-resize handle with coordinates persisted via KConfigXT backend.
+- **🛡️ OpenCode Developer Bridge**: Connect the widget to your local code workspace. Run code, search the web, and execute tasks directly from your desktop panel.
+- **🗣️ Local Voice Mode (STT & TTS)**: Talk to the AI hands-free. Speaks out loud using local voice tools (configured via Python).
+- **📎 Drag & Drop Files**: Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send a file without typing any text.
+- **📝 Prompt Templates**: Save prompts you use often in the settings. Type `/<name>` in the chat to insert them instantly.
+- **📅 Task Scheduler**: Set up recurring tasks (like automated code checks or periodic reminders) using simple calendar schedules or cron expressions.
+- **🌳 Edit Messages & Rewind**: Edit any older question to clear the messages after it and restart the conversation from that point.
+- **🔑 Secure API Key Storage**: Safely save your keys. The widget encrypts keys in KDE's secure password manager (KWallet) and falls back to a local config file (`~/.config/kdeaichatrc`) if KWallet is off.
+- **🔄 15+ AI Providers**: Works with OpenAI, Claude, Groq, DeepSeek, Gemini, OpenRouter, Mistral, Ollama, LM Studio, LiteLLM Proxy, and more.
+- **📤 Export Chats**: Save your chat history as Markdown (`.md`) or plain text (`.txt`) with a single click.
+- **🧭 Quick Navigation**: Easily jump between your questions in a long chat using the Up and Down arrow buttons.
+- **⚡ Smooth Scrolling**: Enhanced layout scrolling that won't jump or jitter as messages load.
+- **🎨 Resizable Widget**: Drag the bottom-right corner of the chat popup to resize it exactly how you want.
 
 ---
 
 ## What's New Since v1.2.6
 
-The following features have been added after the v1.2.6 release and are available in the latest development build:
-
-### 🗄️ Settings Auto-Save & KWallet Sync
-Configuration preferences and keys are **automatically persisted** as you interact with the settings panel — no need to click Apply to save configuration changes.
-
-### 🛠️ Key Validation & Discovery
-- **Whitespace Sanitization**: API keys are automatically trimmed when entered or loaded to prevent authentication errors due to accidental trailing spaces or newlines.
-- **Dynamic Model Fetching**: The settings panel includes a **Refresh Models** button that queries the selected provider's endpoint to auto-populate the active models list.
-
-### 📤 Chat Export
-Export any conversation to a file from the chat toolbar:
-- Choose between **Markdown (`.md`)** or **plain text (`.txt`)** output.
-- The save dialog is pre-filled with a descriptive filename: `<chat_title>_<timestamp>.<ext>`.
-- Exported files use full **UTF-8 encoding** and include a formatted header with the export timestamp.
-- Messages are cleanly formatted with role labels, timestamps, and proper wrapping.
-
-### 🔗 LiteLLM Proxy Support (Beta)
-LiteLLM Proxy has been added as a fully supported provider:
-- Connects to any LiteLLM-compatible proxy server (default: `http://localhost:4000/v1`).
-- API key is optional — works with keyless local proxy setups.
-- Full model discovery, KWallet/plain config key storage, and model selection are all supported.
-- Enables routing to 100+ LLMs (GPT, Claude, Gemini, Mistral, etc.) through a single unified interface.
-
----
-
-## Codebase Quality & Audit Status
-
-As of **May 27, 2026**, the codebase has undergone a comprehensive structural audit and is marked **100% production-ready**:
-- **Diagnostic Safety**: The codebase successfully compiles and passes QML structural analysis using the KDE diagnostic suite (`qmllint`) with **zero errors and zero warnings**.
-- **Security Hardening**: Secure DBus transactions with DBus filters in `applyLoadedKey` to prevent status warnings from entering input fields. Base64 serialization is used to safely pass configuration payloads through shell commands, preventing all bash double-quote stripping issues.
-- **Immaculate Directory**: All pre-production developer notes, scratchpads, and unused file assets have been removed for clean packaging.
-
----
-
-## Repository Structure
-
-**KDE AI Chat** is 100% open-source. The repository is organized under a standard KDE Plasma KPackage layout, allowing developers to audit, run diagnostic linters, and build from source:
-
-```text
-KDE-AI-Chat/
-├── org.kde.plasma.kdeaichat/       # Core Widget Package (KPackage structure)
-│   ├── metadata.json             # Plasmoid manifest (version, licensing, API specs)
-│   └── contents/
-│       ├── config/
-│       │   ├── config.qml        # Config UI page binder
-│       │   └── main.xml          # KConfigXT schema for persistent storage
-│       ├── scripts/
-│       │   ├── kde-ai-scheduler.py      # Background scheduler daemon
-│       │   └── kde-ai-scheduler.service # Systemd user service unit
-│       └── ui/
-│           ├── ConfigGeneral.qml # Widget settings panel (sync logic & API keys)
-│           ├── ConfigVoice.qml   # Voice configuration settings
-│           ├── VoiceManager.qml  # Audio polling & event broker (QML)
-│           ├── voice/
-│           │   ├── voice_helper.py # Python server for Whisper STT and Kokoro TTS
-│           │   └── venv_setup.sh  # Auto-repair environment setup script
-│           ├── ScheduleDialog.qml# GUI Dialog for creating and managing cron tasks
-│           └── main.qml          # Widget main interface (popup, database & SSE)
-├── .gitignore                    # Git file tracking safety guard
-├── install.sh                    # One-click developer clean-reinstall script
-├── README.md                     # Main project guide
-├── changelog.md                  # Comprehensive version log
-├── user_manual.md                # Local operations FAQ manual
-├── VOICE_SETUP.md                # Whisper & Kokoro setup handbook
-└── SETUP.md                      # End-user credentials & provider setup guide
-```
+- **Settings Auto-Save**: Your settings and API keys save automatically as you type — no "Apply" or "Save" button needed.
+- **Auto-Trim Keys**: Automatically removes accidental spaces or line breaks when you paste your API keys.
+- **Dynamic Model Fetching**: Click "Refresh Models" in the settings to automatically fetch the list of available models from your AI provider.
+- **LiteLLM Proxy Support**: Easily connect to a local LiteLLM server to use hundreds of models via a single keyless interface.
 
 ---
 
 ## Installation
 
-You can install **KDE AI Chat** directly via the KDE Store, through your Plasma desktop interface, or build it directly from source for custom developer options.
+### Option 1: Install from the Desktop (Recommended)
+1. Right-click your desktop background or panel and select **Add Widgets...**
+2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
+3. Search for **"KDE AI Chat"** and click **Install**.
 
-### Option 1: Web Browser Download (KDE Store)
-1. Open the official **[KDE Store Page for KDE AI Chat](https://store.kde.org/p/2360152/)**.
-2. Click the **Download** button on the right to download the pre-compiled `.plasmoid` bundle package.
-3. Install the package using the native Plasma widget installer or via terminal:
+### Option 2: Web Browser Download (KDE Store)
+1. Go to the [KDE Store Page for KDE AI Chat](https://store.kde.org/p/2360152/).
+2. Click the **Download** button to get the `.plasmoid` file.
+3. Install it using the terminal:
    ```bash
    kpackagetool6 -i /path/to/downloaded-package.plasmoid
    ```
 
-### Option 2: Native Desktop Installation (GUI)
-1. Right-click your desktop background or the Plasma panel and select **Add Widgets...**
-2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
-3. In the search box, search for **"KDE AI Chat"** and click **Install**.
-
-*This automatically fetches and registers the pre-compiled, verified release package from the KDE Store.*
-
-### Option 3: Clone and Install from Source (For Developers)
-If you want to run the latest development build or customize the source files:
-1. Clone the open-source repository:
+### Option 3: Install from Source (For Developers)
+1. Clone the repository:
    ```bash
    git clone https://github.com/racstan/KDE-AI-Chat.git
    cd KDE-AI-Chat
    ```
-2. Run the one-click local installation script:
+2. Run the installer script:
    ```bash
    ./install.sh
    ```
-3. Restart your Plasma shell to apply changes and register the widget:
+3. Restart your Plasma shell to apply changes:
    ```bash
    systemctl --user restart plasma-plasmashell.service
    ```
-4. Right-click your desktop/panel, select **Add Widgets...**, search for **KDE AI Chat**, and drag it onto your screen!
+4. Right-click your desktop/panel, select **Add Widgets...**, and add **KDE AI Chat**!
 
 ---
 
-## Technical Audit & Quality Control
+## System Dependencies
 
-Every package release is built following a rigorous QA checklist. The code is audited to verify:
-- **Syntax Integrity**: Compiles with `qmllint` showing 0 warnings and 0 errors.
-- **Security Protocols**: Safe DBus API key storage with input sanitization to protect user credentials. Plain config mode uses base64-encoded payloads to prevent shell injection.
-- **Process Robustness**: Resizing coordinates persist natively across system sessions, and long-running API tasks execute strictly off-thread to ensure the Plasma desktop shell remains 100% fluid.
+The widget works out of the box, but some features need basic system tools. If a tool is missing, the widget will show a helpful warning inside the chat and explain what to install:
 
----
-
-## Build & Publishing Flow (For Developers)
-
-For developers packaging the widget from local sources, building the distribution archive requires zipping the QML package structure:
-
-```bash
-# Compress the QML folder into a Plasma-compliant .plasmoid archive
-zip -r "dist/org.kde.plasma.kdeaichat-v1.2.9.plasmoid" org.kde.plasma.kdeaichat \
-  -x "*.git*" "*__pycache__*" "*.DS_Store"
-```
-
-
-## Changelog
-
-For a detailed history of features, bug fixes, and performance updates across all releases, please refer to the dedicated [changelog.md](changelog.md) file.
-
----
-
-## 🤝 Open to Contributions & Future Roadmap
-
-**KDE AI Chat** is built by the community, for the community! We are highly open to contributions, bug reports, and collaborative feature enhancements to shape the best native Linux AI experience.
-
-### 🚀 What We're Working On Next
-We are planning multiple active development rounds to implement new requested features:
-1. **Elegant UI Enhancements**: Redefining QML layouts with premium modern visual aesthetics, sleek micro-animations, glassmorphism card panels, and smooth scroll interfaces.
-2. **Interactive Elements for OpenCode**: Introducing rich interactive layouts inside chat bubbles to render code previews, live shell triggers, and interactive compiler feedback widgets.
-3. **PDF Export**: Extending the chat export utility to generate formatted, printable PDF reports directly from the sidebar.
-
----
-
-## 🛠️ System Dependencies & Inline Diagnostics
-
-KDE AI Chat is built strictly using Plasma 6 native libraries. However, specific features (like reading PDF/Word files, or saving credentials securely to KWallet) rely on standard Linux system tools. 
-
-If any tool is missing, the widget **will not crash**. Instead, it uses **intelligent inline diagnostics** to warn you and explain exactly what commands to run to resolve the issue!
-
-### Recommended Optional Packages
-
-| Feature | Required CLI Utility | Debian/Ubuntu | Arch Linux | Fedora |
+| Feature | Tool Needed | Debian/Ubuntu | Arch Linux | Fedora |
 | :--- | :--- | :--- | :--- | :--- |
-| **PDF Attachment Reading** | `pdftotext` | `sudo apt install poppler-utils` | `sudo pacman -S poppler` | `sudo dnf install poppler-utils` |
-| **Word Document Reading** | `pandoc` (Optional Fallback) | `sudo apt install pandoc` | `sudo pacman -S pandoc-cli` | `sudo dnf install pandoc` |
-| **Secure KWallet Storage** | `qdbus6` or `qdbus` | *Pre-installed* (part of `qt6-tools` / `qttools`) | *Pre-installed* (part of `qt6-base` / `qttools`) | *Pre-installed* (part of `qt6-tools` / `qttools`) |
+| **Reading PDFs** | `pdftotext` | `sudo apt install poppler-utils` | `sudo pacman -S poppler` | `sudo dnf install poppler-utils` |
+| **Reading Word Docs** | `pandoc` | `sudo apt install pandoc` | `sudo pacman -S pandoc-cli` | `sudo dnf install pandoc` |
+| **Secure Key Storage** | `qdbus6` / `qdbus` | *Pre-installed* | *Pre-installed* | *Pre-installed* |
 
 ---
 
-## 🔒 Secure Storage & 🛠️ OpenCode Developer Bridge
+## Code Quality & Performance
 
-### Secure KWallet & Plain Config Storage
-KDE AI Chat integrates natively with your desktop's secure credentials subsystem, **[KWallet](https://apps.kde.org/kwalletmanager5/)**, using secure DBus transactions (`qdbus6 org.kde.kwalletd6`). When active, it automatically synchronizes and safeguards all your sensitive API keys, loading them securely on startup.
-
-If KWallet is not available or disabled on your system, the widget falls back to persistent plain-text configuration saved securely under the user's config directory at `~/.config/kdeaichatrc`.
-
-- For credentials setup and troubleshooting, refer to the [Secure Storage Guide](user_manual.md#3-secure-storage-kwallet-vs-plain-configs).
-- Manage your system keys: [KDE Wallet Manager](https://apps.kde.org/kwalletmanager5/)
-
-### OpenCode Developer Bridge
-Turn your chat interface into an interactive code execution workspace with the native **[OpenCode](https://opencode.ai/) Bridge**. Enable it with a single toggle in the bottom toolbar to establish a local connection with your OpenCode execution environment, rendering structured decision options and code previews directly in the chat bubbles.
-- Official OpenCode site: [opencode.ai](https://opencode.ai/)
-- GitHub repository: [sst/opencode](https://github.com/sst/opencode)
-- For instructions on running and managing sessions, see the [OpenCode Developer Bridge Guide](user_manual.md#5-opencode-developer-bridge-guide).
+- **Zero Errors**: Fully passes QML analysis checks (`qmllint`) with zero warnings and zero errors.
+- **Fast and Lightweight**: Heavy API calls and file processing are run in the background so your desktop never freezes.
+- **Secure Handling**: Safe DBus variables and config paths to prevent system exploits or shell injection issues.
 
 ---
 
 ## Documentation Guides
 
-- [User Operations Manual & FAQ](user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
-- [Voice Setup & Troubleshooting Guide](VOICE_SETUP.md) — Setting up local Speech-to-Text and Text-to-Speech engines, configuring GPU acceleration, and managing offline models.
-- [End-User Setup & API Keys Guide](SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all supported providers.
+- [User Operations Manual](user_manual.md) — Step-by-step instructions on chat history, OpenCode, and Prompt Templates.
+- [Voice Setup Guide](VOICE_SETUP.md) — How to set up Speech-to-Text and Text-to-Speech engines locally.
+- [API Keys Setup Guide](SETUP.md) — How to get API keys for each provider.
 
 ---
 
 ## License
 
-GPL-2.0+ — See `metadata.json` for licensing specs.
+GPL-2.0+ — See `metadata.json` for details.
