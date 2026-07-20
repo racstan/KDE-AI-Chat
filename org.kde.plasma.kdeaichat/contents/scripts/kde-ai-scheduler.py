@@ -150,12 +150,33 @@ def load_schedules():
         return []
 
 
-def save_schedules(items):
+def save_schedules(items, modified_sids=None):
     global history, settings_dict
+    if modified_sids is None:
+        modified_sids = set()
     try:
+        try:
+            with open(SCHEDULES_FILE, "r", encoding="utf-8") as f:
+                disk_data = json.load(f)
+        except Exception:
+            disk_data = {"version": 1, "schedules": [], "history": [], "settings": {}}
+
+        disk_schedules = disk_data.get("schedules", [])
+        
+        if not modified_sids:
+            disk_schedules = items
+        else:
+            disk_map = {s.get("id"): s for s in disk_schedules}
+            for s in items:
+                sid = s.get("id")
+                if sid in modified_sids:
+                    if sid in disk_map:
+                        disk_map[sid] = s
+            disk_schedules = list(disk_map.values())
+
         payload = {
             "version": 1,
-            "schedules": items,
+            "schedules": disk_schedules,
             "history": history,
             "settings": settings_dict
         }
@@ -388,7 +409,7 @@ def next_run_iso(cron_expr, start_date_str=None):
 
 def refresh_next_runs(items):
     global execute_missed_schedules
-    changed = False
+    modified_sids = set()
     now = datetime.now()
     for s in items:
         if s.get("enabled") and not s.get("archived", False):
@@ -420,13 +441,13 @@ def refresh_next_runs(items):
                     s["triggerNow"] = True
                     s["nextRunAt"] = next_run_iso(cron, s.get("startDate"))
                     log.info(f"[{s.get('name', 'Unnamed')}] Missed run detected! Executing missed schedule (old run: {old_next}, next scheduled: {s['nextRunAt']})")
-                    changed = True
+                    modified_sids.add(s.get("id"))
                 elif should_recalc:
                     old_next = s.get("nextRunAt", "")
                     s["nextRunAt"] = next_run_iso(cron, s.get("startDate"))
                     log.info(f"[{s.get('name', 'Unnamed')}] Recalculated next run time from {old_next} to {s['nextRunAt']} (past run bypassed)")
-                    changed = True
-    return changed
+                    modified_sids.add(s.get("id"))
+    return modified_sids
 
 
 def _schedules_file_changed() -> bool:
@@ -456,8 +477,9 @@ def main():
     except OSError:
         pass
 
-    if refresh_next_runs(schedules):
-        save_schedules(schedules)
+    mod_sids = refresh_next_runs(schedules)
+    if mod_sids:
+        save_schedules(schedules, mod_sids)
         try:
             _schedules_mtime = os.path.getmtime(SCHEDULES_FILE)
         except OSError:
@@ -470,8 +492,9 @@ def main():
         if reload_requested or _schedules_file_changed():
             reload_requested = False
             schedules = load_schedules()
-            if refresh_next_runs(schedules):
-                save_schedules(schedules)
+            mod_sids = refresh_next_runs(schedules)
+            if mod_sids:
+                save_schedules(schedules, mod_sids)
                 try:
                     _schedules_mtime = os.path.getmtime(SCHEDULES_FILE)
                 except OSError:
@@ -480,16 +503,28 @@ def main():
 
         now = datetime.now()
         now_iso = now.isoformat(timespec="seconds")
-        changed = False
+        modified_sids = set()
 
         for s in schedules:
             if s.get("archived", False):
                 continue
-
+            
+            sid = s.get("id", "")
+            
+            # Migration for old tasks that were finished but not archived correctly by previous versions
             if not s.get("enabled", True):
+                disable_task = False
+                if s.get("taskType") == "single":
+                    disable_task = True
+                elif s.get("limitEnabled", False) and int(s.get("runCount", 0)) >= int(s.get("limitCount", 5)):
+                    disable_task = True
+                
+                if disable_task:
+                    s["archived"] = True
+                    s["nextRunAt"] = ""
+                    modified_sids.add(sid)
                 continue
 
-            sid = s.get("id", "")
             cron = s.get("cron", "").strip()
             trigger_now = s.get("triggerNow", False)
             task_type = s.get("taskType", "repeat")
@@ -505,7 +540,7 @@ def main():
                 limit_count = int(s.get("limitCount", 5))
                 if run_count >= limit_count:
                     s["enabled"] = False
-                    changed = True
+                    modified_sids.add(sid)
                     continue
 
             should_run = trigger_now
@@ -567,10 +602,10 @@ def main():
                             item["nextRunAt"] = ""
                             item["archived"] = True  # move to archived so UI shows in History
 
-                changed = True
+                modified_sids.add(sid)
 
-        if changed:
-            save_schedules(schedules)
+        if modified_sids:
+            save_schedules(schedules, modified_sids)
             # Update mtime so we don't self-reload our own write
             try:
                 _schedules_mtime = os.path.getmtime(SCHEDULES_FILE)

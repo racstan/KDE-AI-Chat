@@ -49,8 +49,7 @@ Item {
     Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
     Kirigami.Theme.highlightColor: "#3182ce"
 
-    property int playingMessageIndex: -1
-    property color activeHighlightColor: Kirigami.Theme.highlightColor
+        property color activeHighlightColor: Kirigami.Theme.highlightColor
 
     SequentialAnimation {
         id: highlightPulse
@@ -84,7 +83,7 @@ Item {
         target: root.voiceManagerRef || null
         function onIsPlayingChanged() {
             if (root.voiceManagerRef && !root.voiceManagerRef.isPlaying) {
-                repRoot.playingMessageIndex = -1;
+                root.playingMessageIndex = -1;
             }
         }
     }
@@ -600,7 +599,7 @@ Item {
                                                             Connections {
                                                                 target: repRoot
                                                                 function onPlayingMessageIndexChanged() {
-                                                                    if (repRoot.playingMessageIndex === index) {
+                                                                    if (root.playingMessageIndex === index) {
                                                                         if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
                                                                             Qt.callLater(function() {
                                                                                 if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
@@ -619,7 +618,7 @@ Item {
                                                                 ignoreUnknownSignals: true
 
                                                                 function onCurrentPlayingChunkChanged() {
-                                                                    let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
+                                                                    let isPlayingThisMessage = root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index;
                                                                     if (isPlayingThisMessage) {
                                                                         let chunk = root.voiceManagerRef.currentPlayingChunk;
                                                                         if (chunk && chunk.length > 2) {
@@ -1187,22 +1186,22 @@ Item {
                                                             id: ttsPlayButton
                                                             anchors.fill: parent
                                                             enabled: root.currentStreamIndex !== index
-                                                            icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "media-playback-stop" : "audio-speakers"
+                                                            icon.name: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index) ? "media-playback-stop" : "audio-speakers"
                                                             display: PC3.AbstractButton.IconOnly
                                                             QQC2.ToolTip.visible: hovered
-                                                            QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index) ? "Stop speaking" : ((lastSelectedText && lastSelectedText.trim().length > 0) ? "Read selected text" : "Read aloud")
+                                                            QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index) ? "Stop speaking" : ((lastSelectedText && lastSelectedText.trim().length > 0) ? "Read selected text" : "Read aloud")
                                                             onClicked: {
                                                                 if (root.voiceManagerRef) {
-                                                                    let isPlayingThis = root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index;
+                                                                    let isPlayingThis = root.voiceManagerRef.isPlaying && root.playingMessageIndex === index;
                                                                     if (isPlayingThis) {
                                                                         root.voiceManagerRef.stopTTS();
-                                                                        repRoot.playingMessageIndex = -1;
+                                                                        root.playingMessageIndex = -1;
                                                                     } else {
                                                                         if (root.voiceManagerRef.isPlaying) {
                                                                             root.voiceManagerRef.stopTTS();
                                                                         }
                                                                         let textToPlay = (lastSelectedText && lastSelectedText.trim().length > 0) ? lastSelectedText : modelData.content;
-                                                                        repRoot.playingMessageIndex = index;
+                                                                        root.playingMessageIndex = index;
                                                                         root.voiceManagerRef.playTTS(textToPlay);
                                                                     }
                                                                 }
@@ -1213,7 +1212,7 @@ Item {
                                                             anchors.centerIn: parent
                                                             width: parent.width * 0.8
                                                             height: parent.height * 0.8
-                                                            running: root.voiceManagerRef && root.voiceManagerRef.isPlaying && repRoot.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
+                                                            running: root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
                                                             visible: running
                                                         }
                                                     }

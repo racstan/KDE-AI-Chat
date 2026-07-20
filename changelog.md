@@ -5,6 +5,20 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.9] - 2026-07-20
+
+### Added
+- **🗣️ Local Voice Tools Integration**: Documented Voice Mode and local setup for Whisper Speech-to-Text and Kokoro Text-to-Speech in the primary README.
+
+### Fixed
+- **Voice Mode State Leakage & Controls**: Fixed voice status leakage across different chat sessions by centralizing the playback tracker in the root `main.qml` component. Switching chat sessions or creating new ones now properly halts current voice generation, stops playback, and cleans up UI states.
+- **Manual TTS Stop Buttons**: Enabled manual TTS stop action on spoken assistant responses.
+- **Voice Playback Race Condition**: Fixed a race condition in `voice_helper.py` where starting a new TTS session while one was active could cause state collisions. Added thread joins to wait for the previous synthesis thread to clean up before initiating the new playback.
+- **Scheduler Auto-Archive and Limits**: Migrated and updated the scheduler task tracking logic in `kde-ai-scheduler.py` to auto-archive completed scheduled tasks and show run counts in `ScheduleDialog.qml`.
+- **Repository Cleanup**: Removed unused pre-production testing scripts and temporary log files from git tracking.
+
+---
+
 ## [1.2.8] - 2026-05-28
 
 ### Added

@@ -505,7 +505,8 @@ class VoiceHelper:
 
         if self.tts_playing:
             self.stop_tts = True
-            time.sleep(0.2)
+            if getattr(self, "tts_thread", None) and self.tts_thread.is_alive():
+                self.tts_thread.join(timeout=2.0)
 
         self.tts_playing = True
         self.stop_tts = False

@@ -35,6 +35,7 @@ PlasmoidItem {
     property string currentStreamReasoning: ""
     property string currentStreamExtractedReasoning: ""
     property int currentStreamIndex: -1
+    property int playingMessageIndex: -1
     property int editingMessageIndex: -1
     property string editingDraft: ""
     property string editingSessionId: ""
@@ -256,6 +257,8 @@ PlasmoidItem {
             root.currentSessionId = s.value;
             root.currentSessionTitle = s.text;
             root.messages = [];
+        root.playingMessageIndex = -1;
+        if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
             root.currentStreamIndex = -1;
             root.currentStreamText = "";
             root.currentStreamReasoning = "";
@@ -353,6 +356,8 @@ PlasmoidItem {
         root.currentSessionId = root.sessions[idx].value;
         root.currentSessionTitle = root.sessions[idx].text;
         root.messages = root.sessions[idx].messages || [];
+        root.playingMessageIndex = -1;
+        if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
         root.currentStreamReasoning = "";
@@ -2094,6 +2099,7 @@ PlasmoidItem {
                 if (root.messages[i].role === "assistant") {
                     var text = (root.messages[i].content || "").trim();
                     if (text) {
+                        root.playingMessageIndex = i;
                         voiceManager.playTTS(text);
                     }
                     break;

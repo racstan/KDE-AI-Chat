@@ -482,6 +482,16 @@ import org.kde.plasma.plasma5support as P5Support
                                 }
 
                                 QQC2.Label {
+                                    visible: modelData.taskType === "repeat" && modelData.limitEnabled
+                                    text: "🔄 " + translate("Executed %1 of %2 times").arg(modelData.runCount || 0).arg(modelData.limitCount || 5)
+                                    font.pixelSize: 10
+                                    color: Kirigami.Theme.positiveTextColor
+                                    opacity: 0.85
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
                                     text: "\"" + (modelData.message || "").substring(0, 60) + ((modelData.message || "").length > 60 ? "…" : "") + "\""
                                     font.pixelSize: 10
                                     opacity: 0.5
@@ -576,7 +586,7 @@ import org.kde.plasma.plasma5support as P5Support
 
                     delegate: Rectangle {
                         width: archivedSchedListView.width - 16
-                        height: 74
+                        implicitHeight: archivedSchedRow.implicitHeight + Kirigami.Units.smallSpacing * 3
                         radius: 6
                         color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.04)
                         border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
@@ -584,9 +594,12 @@ import org.kde.plasma.plasma5support as P5Support
                         opacity: 0.7
 
                         RowLayout {
+                            id: archivedSchedRow
                             spacing: Kirigami.Units.smallSpacing
                             anchors {
-                                fill: parent
+                                left: parent.left
+                                right: parent.right
+                                top: parent.top
                                 margins: Kirigami.Units.smallSpacing * 1.5
                             }
 
@@ -605,6 +618,16 @@ import org.kde.plasma.plasma5support as P5Support
                                     text: "📁 " + (modelData.humanReadable || modelData.cron || "") + (modelData.chatName ? " · 💬 " + modelData.chatName : "")
                                     font.pixelSize: 11
                                     opacity: 0.7
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                QQC2.Label {
+                                    visible: modelData.taskType === "repeat" && modelData.limitEnabled
+                                    text: "🔄 " + translate("Executed %1 of %2 times").arg(modelData.runCount || 0).arg(modelData.limitCount || 5)
+                                    font.pixelSize: 10
+                                    color: Kirigami.Theme.positiveTextColor
+                                    opacity: 0.85
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }

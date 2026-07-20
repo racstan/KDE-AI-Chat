@@ -28,6 +28,7 @@ Native, highly responsive AI chat widget (plasmoid) for **KDE Plasma 6** and **Q
 - **🔑 3-Way API Key Storage**: Choose between **Session Only** (keys live in memory), **Plain Config** (saved to `~/.config/kdeaichatrc`), or **Secure KWallet** (native DBus-encrypted storage). Open, reload, or clear the config file directly from the settings panel.
 - **📤 Chat Export**: Export any conversation to a timestamped `.md` or `.txt` file. Filenames are automatically pre-filled as `<chat_title>_<timestamp>` for instant saving.
 
+- **🗣️ Local Voice Tools (STT & TTS)**: Real-time hands-free speech input and audio read-aloud features. Utilizes local `faster-whisper` for fast Speech-to-Text translation and `kokoro-onnx` for high-quality local Text-to-Speech synthesis, running via an off-thread local Python server.
 - **🌳 Conversation Forking (Branch Editing)**: Editing any older user message automatically deletes subsequent logs and forks the branch as a fresh request, maintaining clean conversation histories.
 - **🧭 Viewport-Aware Navigation**: Jump between user questions instantly via Up/Down navigation buttons that calculate coordinate offsets accurately relative to the active scroll viewport.
 - **📊 Token Usage & Cost Diagnostics (Beta)**: Real-time display of token consumption (input, output, reasoning, cache read/write) and prompt costs on assistant bubbles.
@@ -260,6 +261,7 @@ Turn your chat interface into an interactive code execution workspace with the n
 ## Documentation Guides
 
 - [User Operations Manual & FAQ](user_manual.md) — Dynamic step-by-step operating workflows, local setups, and detailed troubleshooting solutions.
+- [Voice Setup & Troubleshooting Guide](VOICE_SETUP.md) — Setting up local Speech-to-Text and Text-to-Speech engines, configuring GPU acceleration, and managing offline models.
 - [End-User Setup & API Keys Guide](SETUP.md) — Comprehensive guide on creating accounts and retrieving keys for all supported providers.
 - [Technical Audit & Code Quality Report](audit.md) — Detailed results of the May 2026 quality assurance audit.
 
