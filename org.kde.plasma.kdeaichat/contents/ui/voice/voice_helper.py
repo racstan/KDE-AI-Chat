@@ -346,6 +346,9 @@ class VoiceHelper:
                     self.recording = False
                     return
 
+                # Pre-load CUDA/cuDNN libraries from venv if present before importing torch
+                self._preload_nvidia_libs()
+                
                 # Load model
                 model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
                 import torch
@@ -354,9 +357,6 @@ class VoiceHelper:
                     self.current_status = "loading_model"
                     self.emit({"type": "stt_status", "status": "loading_model", "device": "loading..."})
                     try:
-                        # Pre-load CUDA/cuDNN libraries from venv if present
-                        self._preload_nvidia_libs()
-
                         from faster_whisper import WhisperModel
                         self.stt_device = device
                         compute_type = "float16" if device == "cuda" else "int8"
@@ -585,6 +585,7 @@ class VoiceHelper:
 
                 has_cuda = False
                 try:
+                    self._preload_nvidia_libs()
                     import torch
                     has_cuda = torch.cuda.is_available()
                 except Exception:
@@ -1290,7 +1291,6 @@ if __name__ == "__main__":
         def preload_stt():
             try:
                 import threading
-                import torch
                 conf = get_stt_config()
                 model_name = conf["model"]
                 custom_model_path = conf["model_path"]
@@ -1298,6 +1298,7 @@ if __name__ == "__main__":
 
                 model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
                 helper._preload_nvidia_libs()
+                import torch
                 from faster_whisper import WhisperModel
                 device = "cuda" if gpu_requested and torch.cuda.is_available() else "cpu"
                 compute_type = "float16" if device == "cuda" else "int8"
