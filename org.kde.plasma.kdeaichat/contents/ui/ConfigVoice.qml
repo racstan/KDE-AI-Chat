@@ -376,7 +376,7 @@ KCM.SimpleKCM {
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Voice")
+            Kirigami.FormData.label: i18n("Voice (Beta)")
         }
 
         Rectangle {
@@ -406,7 +406,7 @@ KCM.SimpleKCM {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     textFormat: Text.RichText
-                    text: i18n("<b>First-time Setup Guide:</b><br>1. Click the 'Readme Guide' button below for full instructions.<br>2. Click <b>Repair Engine</b> to install dependencies.<br>3. To automatically download the default models, simply leave the STT and TTS folder paths empty.<br>4. If you already have models (Faster Whisper, Kokoro, Piper), you can browse and select their folders.<br>5. Click <b>Check &amp; Test</b> to verify everything works.")
+                    text: i18n("<b>First-time Setup Guide (Beta):</b><br>1. Click the 'Readme Guide' button below for full instructions.<br>2. Click <b>Repair Engine</b> to install dependencies.<br>3. To automatically download the default models, simply leave the STT and TTS folder paths empty.<br>4. If you already have models (Faster Whisper, Kokoro, Piper), you can browse and select their folders.<br>5. Click <b>Check &amp; Test</b> to verify everything works.<br><b>Note: Currently, voice mode only supports NVIDIA GPUs. AMD and other GPU architectures are not supported.</b>")
                 }
             }
         }
@@ -449,7 +449,7 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: voiceGpuToggle
             visible: voiceEnabledToggle.checked
-            Kirigami.FormData.label: i18n("GPU Usage:")
+            Kirigami.FormData.label: i18n("GPU Usage (NVIDIA only):")
             Layout.maximumWidth: formLayout.fieldMaxWidth
             text: checked ? i18n("Enabled (CUDA)") : i18n("Disabled (CPU only)")
         }
@@ -462,7 +462,7 @@ KCM.SimpleKCM {
             textFormat: Text.RichText
             font: Kirigami.Theme.smallFont
             opacity: 0.85
-            text: i18n("<b>GPU Usage:</b> Enables CUDA hardware acceleration. Turning this on requires you to press <b>Repair Engine</b> below to install the heavy CUDA packages (~3GB). Turn off if your device doesn't have an NVIDIA GPU.")
+            text: i18n("<b>GPU Usage:</b> Enables CUDA hardware acceleration. <b>Note: Currently only NVIDIA GPU (CUDA) is supported. AMD and other GPU architectures are not supported.</b> Turning this on requires you to press <b>Repair Engine</b> below to install the heavy CUDA packages (~3GB). Turn off if your device doesn't have an NVIDIA GPU.")
         }
 
         RowLayout {

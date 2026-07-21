@@ -1512,7 +1512,7 @@ Item {
                                 anchors.fill: parent
                                 icon.name: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "media-playback-stop" : "audio-input-microphone"
                                 QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "Stop Recording" : "Record Voice (STT)"
+                                QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.isRecording) ? "Stop Recording" : "Record Voice (Beta STT)"
                                 onClicked: {
                                     if (root.voiceManagerRef) {
                                         if (root.voiceManagerRef.isRecording) {

@@ -1,6 +1,6 @@
-# KDE AI Chat Voice Setup
+# KDE AI Chat Voice Setup (Beta Feature)
 
-This guide walks you through setting up Voice Tools (Speech-to-Text and Text-to-Speech) for your KDE AI Chat application.
+This guide walks you through setting up Voice Tools (Speech-to-Text and Text-to-Speech), which are currently in Beta, for your KDE AI Chat application.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ If you have an NVIDIA graphics card, you can significantly speed up voice proces
 3. The system will download the GPU-enabled versions of PyTorch (which are heavy, around 3GB).
 4. Once completed, the status will show **GPU libraries: Installed**, and your voice processing will be drastically faster.
 
-*Note: If you do not have an NVIDIA GPU, leave this option disabled, as installing CUDA libraries without the hardware will just waste disk space and could break CPU processing.*
+*Note: Currently, only NVIDIA GPU (CUDA) is supported. AMD, Intel, and other GPU architectures are not supported. If you do not have an NVIDIA GPU, leave this option disabled, as installing CUDA libraries without the hardware will just waste disk space and could break CPU processing.*
 
 ### 3. Required System Packages
 

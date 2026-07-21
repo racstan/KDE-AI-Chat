@@ -787,7 +787,7 @@ KCM.SimpleKCM {
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                     color: Kirigami.Theme.textColor
                     text: "<b>Resource &amp; Memory Usage</b> displays the current RAM consumption of background processes.<br><br>" +
-                          "<b>Voice Tools:</b> Aggregates STT (Speech-to-Text) and TTS (Text-to-Speech) engines.<br>" +
+                          "<b>Voice Tools (Beta):</b> Aggregates STT (Speech-to-Text) and TTS (Text-to-Speech) engines.<br>" +
                           "<b>OpenCode:</b> Local AI endpoint process.<br>" +
                           "<b>Scheduler:</b> Background daemon that runs automated prompts.<br>" +
                           "<i>Click Refresh to update these metrics manually.</i>"

@@ -21,7 +21,7 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 ## Key Features
 
 - **🛡️ OpenCode Developer Bridge**: Connect the widget to your local code workspace. Run code, search the web, and execute tasks directly from your desktop panel.
-- **🗣️ Local Voice Mode (STT & TTS)**: Talk to the AI hands-free. Speaks out loud using local voice tools (configured via Python).
+- **🗣️ Local Voice Mode (STT & TTS) (Beta)**: Talk to the AI hands-free. Speaks out loud using local voice tools (configured via Python). Currently supports NVIDIA GPUs only (no AMD support).
 - **📎 Drag & Drop Files**: Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send a file without typing any text.
 - **📝 Prompt Templates**: Save prompts you use often in the settings. Type `/<name>` in the chat to insert them instantly.
 - **📅 Task Scheduler**: Set up recurring tasks (like automated code checks or periodic reminders) using simple calendar schedules or cron expressions.
@@ -32,6 +32,10 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 - **🧭 Quick Navigation**: Easily jump between your questions in a long chat using the Up and Down arrow buttons.
 - **⚡ Smooth Scrolling**: Enhanced layout scrolling that won't jump or jitter as messages load.
 - **🎨 Resizable Widget**: Drag the bottom-right corner of the chat popup to resize it exactly how you want.
+
+> [!TIP]
+> **Can't find your AI provider listed?**
+> You can open the `opencode` CLI in your terminal and configure/save your custom provider inside it (see the [OpenCode Providers Documentation](https://opencode.ai/docs/providers/) for details). Using the widget in **OpenCode mode** is highly recommended for everyone, as it serves as a powerful local agent bridge that supports customized endpoints, workspace commands, and custom providers.
 
 ---
 
@@ -100,7 +104,7 @@ The widget works out of the box, but some features need basic system tools. If a
 ## Documentation Guides
 
 - [User Operations Manual](user_manual.md) — Step-by-step instructions on chat history, OpenCode, and Prompt Templates.
-- [Voice Setup Guide](VOICE_SETUP.md) — How to set up Speech-to-Text and Text-to-Speech engines locally.
+- [Voice Setup Guide (Beta)](VOICE_SETUP.md) — How to set up Speech-to-Text and Text-to-Speech engines locally.
 - [API Keys Setup Guide](SETUP.md) — How to get API keys for each provider.
 
 ---

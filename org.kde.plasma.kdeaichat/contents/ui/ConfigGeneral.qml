@@ -1382,9 +1382,11 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Enable OpenCode mode"
                 onCheckedChanged: {
-                    if (checked)
-                        refreshOpenCodeDiscovery();
-
+                    discoveryStatus = "";
+                    if (checked) {
+                        if (pageReady)
+                            refreshOpenCodeDiscovery();
+                    }
                 }
             }
 

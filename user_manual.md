@@ -16,6 +16,7 @@ This manual provides an in-depth operations guide, walkthroughs of every feature
 7. [Chat Export](#7-chat-export)
 8. [Prompt Templates](#8-prompt-templates)
 9. [Frequently Asked Questions (FAQ)](#9-frequently-asked-questions-faq)
+10. [Voice Mode & Local Speech Tools (Beta)](#10-voice-mode--local-speech-tools-beta)
 
 ---
 
@@ -217,5 +218,22 @@ Prompt Templates allow you to save prompts you use frequently and insert them in
 ### Q: How do I export a conversation?
 **A**: Click the **Export** button (download icon) in the chat toolbar. You can save as `.md` or `.txt`. The filename is pre-filled automatically.
 
+### Q: What if my preferred AI provider is not listed in normal mode settings?
+**A**: If your AI provider is not natively listed under normal mode, you can open the `opencode` CLI in your terminal and configure/save your custom provider configuration there (see the [OpenCode Providers Documentation](https://opencode.ai/docs/providers/) for details). Enabling **OpenCode mode** in the general settings is highly recommended for all users, as it connects the widget to the OpenCode local agent backend which natively supports custom endpoints, local file structures, command execution, and prompt pipelines.
+
 ### Q: How do I report bugs or suggest enhancements?
 **A**: KDE AI Chat is open-source! Please visit [https://github.com/racstan/KDE-AI-Chat](https://github.com/racstan/KDE-AI-Chat) to open an issue or fork the project to submit pull requests.
+
+---
+
+## 10. Voice Mode & Local Speech Tools (Beta)
+
+Voice Mode enables hands-free speech input (Speech-to-Text) and read-aloud features (Text-to-Speech) directly within the chat widget.
+
+### Beta Status
+Please note that Voice Tools are currently a **Beta feature**. You may encounter configuration or compatibility issues depending on your Python virtual environment, microphone configuration, or system audio configuration.
+
+### GPU Acceleration & NVIDIA Support Limitation
+To process voice inputs and synthesize read-aloud audio quickly, you can enable GPU acceleration in the settings.
+> [!IMPORTANT]
+> Currently, **only NVIDIA GPUs (via CUDA)** are supported for local hardware acceleration. AMD, Intel, and other GPU architectures are not supported. If you do not have an NVIDIA GPU, make sure to leave **GPU Usage** disabled in the Voice settings. Leaving it enabled without supported hardware will fail or run extremely slowly.
