@@ -10,16 +10,16 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 
 | Screenshot | Description |
 | :--- | :--- |
-| ![Chat UI 1](.github/assets/image1.png) | **Main Interface**: A clean conversation interface with full Markdown formatting that scrolls smoothly. |
-| ![Chat UI 2](.github/assets/image2.png) | **AI Integration**: Seamlessly connect with your local and remote AI models. |
-| ![Settings 1](.github/assets/image3.png) | **Settings & Preferences**: Easily manage your AI providers, models, and system preferences. |
-| ![Settings 2](.github/assets/image4.png) | **Developer Tools**: Connect your chat directly to OpenCode for running local scripts. |
-| ![Feature 1](.github/assets/image5.png) | **Voice & Automation**: Configure local voice tools and automated background task handling. |
-| ![Feature 2](.github/assets/image6.png) | **Prompt Management**: Organize your custom prompts and scheduled tasks for maximum efficiency. |
-| ![Feature 3](.github/assets/image7.png) | **Context Aware**: Review context files and attached documents seamlessly within the chat. |
-| ![Feature 4](.github/assets/image8.png) | **Advanced Routing**: Route messages to different models for the best results. |
-| ![Feature 5](.github/assets/image9.png) | **Secure Storage**: Save your API keys securely in KDE KWallet. |
-| ![Feature 6](.github/assets/image10.png) | **Customization**: Tailor the layout and behavior to your exact workflow. |
+| ![General Settings](.github/assets/image1.png) | **General Settings (API Config)**: Basic settings (Notification Sound, Timeout, Guides) and API configurations for default providers like Mistral. |
+| ![TTS in Action](.github/assets/image2.png) | **Chat & Text-Selection TTS**: Active conversation showing text selection highlight and the global status bar **"■ Reading aloud..."** with the Stop button. |
+| ![NVIDIA NIM Settings](.github/assets/image3.png) | **NVIDIA NIM Provider Config**: Settings showing dynamic model loading (118 models fetched) and NVIDIA NIM provider setup. |
+| ![OpenCode Settings](.github/assets/image4.png) | **OpenCode Local Configuration**: Developer settings panel for local API server connections (Ollama / Llama.cpp) and model selections. |
+| ![Behavior Settings](.github/assets/image5.png) | **AI Memory Manager**: The behavior configuration tab displaying enabled AI memory, stored user facts, and prompt context preview. |
+| ![Voice Tools Settings](.github/assets/image6.png) | **Voice Tools Setup**: Detailed setup for GPU/CUDA acceleration, local model directories (Whisper & Kokoro), and voice model configurations. |
+| ![Other Settings](.github/assets/image7.png) | **Automation & Background Daemons**: The "Other" tab with settings for custom prompt templates and the login-enabled Scheduler Daemon. |
+| ![Quick-Access Templates](.github/assets/image8.png) | **Quick Prompt Templates**: View and manage short slash-command templates (like `/news`, `/review`) for instant insert. |
+| ![Scheduler UI](.github/assets/image9.png) | **Task Scheduler**: Dialog allowing users to schedule periodic prompt executions (e.g. fetching stock/currency rates every 10 mins). |
+| ![System Monitor](.github/assets/image10.png) | **Resource & Memory Monitor**: Real-time memory consumption display for background daemons with individual one-click "Kill Process" buttons. |
 
 ---
 
