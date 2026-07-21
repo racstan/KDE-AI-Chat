@@ -1,57 +1,66 @@
 KDE AI Chat (v1.3.0)
 A native, fast, and easy-to-use AI chat assistant widget for the KDE Plasma 6 desktop. Connect to your favorite AI providers, drag and drop files, schedule automated tasks, and securely save your API keys.
 
-Key Features:
+KEY FEATURES:
 
-OpenCode Developer Bridge
-Link your chat directly to your local code workspace. You can run code, search the web, and execute developer workflows right from your desktop panel.
+1. OpenCode Developer Bridge
+-> Link your chat directly to your local code workspace. You can run code, search the web, and execute developer workflows right from your desktop panel. Basically running opencode through this widget.
 
-Local Voice Mode
-Talk to the AI hands-free. Includes real-time speech-to-text input and spoken audio responses using local python-based voice tools. A global stop button allows you to interrupt speech playback instantly.
+2. Local Voice Mode
+-> Talk to the AI hands-free. Includes real-time speech-to-text input and spoken audio responses using local python-based voice tools. A global stop button allows you to interrupt speech playback instantly.
 
-Drag and Drop Files
-Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send files by themselves without typing a question.
+3. Drag and Drop Files
+-> Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send files by themselves without typing a question.
 
-Prompt Templates
-Save prompts you use frequently in the settings. Type a slash followed by your template name in the chat box to insert them instantly.
+4. Prompt Templates
+-> Save prompts you use frequently in the settings. Type a slash followed by your template name in the chat box to insert them instantly.
 
-Task Scheduler
-Set up recurring tasks using simple calendar schedules or cron expressions. Great for running automated code checks or asking periodic questions in the background.
+5. Task Scheduler
+-> Set up recurring tasks using simple calendar schedules or cron expressions. Great for running automated code checks or asking periodic questions in the background.
 
-Edit Messages and Rewind
-Edit any older question in the thread to automatically clear subsequent history and restart the conversation from that point.
+6. Edit Messages and Rewind
+-> Edit any older question in the thread to automatically clear subsequent history and restart the conversation from that point.
 
-Secure Key Storage
-Safely save your API keys. The widget encrypts keys in KDE's secure password manager (KWallet) and automatically falls back to a local configuration file (~/.config/kdeaichatrc) if KWallet is not running.
+7. Secure Key Storage
+-> Safely save your API keys. The widget encrypts keys in KDE's secure password manager (KWallet) and automatically falls back to a local configuration file (~/.config/kdeaichatrc) if KWallet is not running.
 
-15+ AI Providers
-Works out of the box with OpenAI, Claude, Groq, DeepSeek, Gemini, OpenRouter, Mistral, Ollama, LM Studio, LiteLLM Proxy, and more.
+8. 15+ AI Providers
+-> Works out of the box with OpenAI, Claude, Groq, DeepSeek, Gemini, OpenRouter, Mistral, Ollama, LM Studio, LiteLLM Proxy, and more. For other custom providers not listed, you can configure them in OpenCode and access them directly through OpenCode mode.
 
-Export Chats
-Save your chat history as Markdown (.md) or plain text (.txt) files with a single click.
+9. Export Chats
+-> Save your chat history as Markdown (.md) or plain text (.txt) files with a single click.
 
-Quick Navigation
-Easily jump between your questions in a long chat using the Up and Down arrow buttons on the toolbar.
+10. Quick Navigation
+-> Easily jump between your questions in a long chat using the Up and Down arrow buttons on the toolbar.
 
-Smooth Scrolling
-Enhanced chat bubble layout scrolling that avoids jittering or jumping when responses load.
+11. Smooth Scrolling
+-> Enhanced chat bubble layout scrolling that avoids jittering or jumping when responses load.
 
-Resizable Layout
-Drag the bottom-right corner of the chat popup to resize it exactly how you want.
+12. Resizable Layout
+-> Drag the bottom-right corner of the chat popup to resize it exactly how you want.
 
-What's New in Version 1.3.0:
-- Added a global stop button to instantly halt voice playback.
-- Fixed GPU detection so local speech-to-text and text-to-speech run faster using CUDA.
-- Integrated background task scheduling using systemd.
-- Added prompt templates management in the settings.
-- Automatically saves settings as you type.
-- Automatically trims whitespace from pasted API keys.
 
-Note to Users:
-This is an open-source, community-driven project built to enhance your KDE Plasma desktop. If you run into any issues with connections, keys, or layout, please let us know by opening an issue on GitHub instead of leaving a low rating. Low ratings hurt the visibility of open-source projects, whereas bug reports allow us to actively fix the problem for you and the community. We are highly active on GitHub and would love to resolve any bugs or integrate your suggestions.
+WHAT'S NEW IN VERSION 1.3.0:
 
-Bugs and Contributions:
-We would love for the community to help make this widget even better. Home page: https://github.com/racstan/KDE-AI-Chat
+-> Added a global stop button to instantly halt voice playback.
+-> Fixed GPU detection so local speech-to-text and text-to-speech run faster using CUDA.
+-> Integrated background task scheduling using systemd.
+-> Added prompt templates management in the settings.
+-> Automatically saves settings as you type.
+-> Automatically trims whitespace from pasted API keys.
 
-Quick Manual Installation:
+
+NOTE TO USERS:
+
+Please note that this is a beta project with many beta features. If you run into any issues with connections, keys, or layout, please be kind and let the developer know about the issues by opening a bug report before rating. Low ratings hurt the visibility of open-source projects, whereas bug reports allow us to actively fix the problem for you and the community. We are highly active on GitHub and would love to resolve any bugs or integrate your suggestions.
+
+
+BUGS AND CONTRIBUTIONS:
+
+We would love for the community to help make this widget even better.
+Home page: https://github.com/racstan/KDE-AI-Chat
+
+
+QUICK MANUAL INSTALLATION:
+
 kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kdeaichat-v1.3.0.plasmoid
