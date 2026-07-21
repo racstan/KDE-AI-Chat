@@ -306,5 +306,8 @@
     <entry name="showInteractiveGuides" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="requestTimeout" type="Int">
+      <default>60</default>
+    </entry>
   </group>
 </kcfg>

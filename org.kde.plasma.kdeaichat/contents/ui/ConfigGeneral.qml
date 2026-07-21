@@ -64,6 +64,7 @@ KCM.SimpleKCM {
     property alias cfg_litellmModel: litellmModelField.text
     property alias cfg_useOpenCode: openCodeToggle.checked
     property alias cfg_playNotificationSound: playSoundToggle.checked
+    property alias cfg_requestTimeout: requestTimeoutSpinBox.value
     property alias cfg_openCodeUrl: openCodeUrlField.text
     property alias cfg_openCodeModel: openCodeModelValueField.text
     property alias cfg_openCodeProvider: openCodeProviderValueField.text
@@ -500,6 +501,10 @@ KCM.SimpleKCM {
     function requestJson(url, headers, onSuccess, onError) {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
+        xhr.timeout = 15000;
+        xhr.ontimeout = function() {
+            onError("Request to " + url + " timed out after 15 seconds.");
+        };
         for (var h in headers) {
             if (Object.prototype.hasOwnProperty.call(headers, h) && headers[h])
                 xhr.setRequestHeader(h, headers[h]);
@@ -662,6 +667,7 @@ KCM.SimpleKCM {
         discoveryStatus = "Checking OpenCode server...";
         requestJson(url, {
         }, function(obj) {
+            if (!openCodeToggle.checked) return;
             var providers = (obj && obj.providers) || [];
             var ids = [];
             var defaults = (obj && obj.default) || {
@@ -699,6 +705,7 @@ KCM.SimpleKCM {
             syncOpenCodeProviderSelection(selectedProvider, rememberedModel || fallbackModel);
             discoveryStatus = "OpenCode server reachable. Loaded " + ids.length + " providers from /config/providers.";
         }, function(err) {
+            if (!openCodeToggle.checked) return;
             openCodeProviderCandidates = [];
             openCodeProviderModelMap = ({
             });
@@ -717,11 +724,15 @@ KCM.SimpleKCM {
             openCodeModelCandidates = [];
             openCodeModelSearch = "";
             updateFilteredOpenCodeModels("");
-            discoveryStatus = "Select an OpenCode provider first.";
+            if (openCodeToggle.checked) {
+                discoveryStatus = "Select an OpenCode provider first.";
+            }
             return ;
         }
         syncOpenCodeProviderSelection(selectedProvider, openCodeModelValueField.text);
-        discoveryStatus = openCodeModelCandidates.length > 0 ? ("Loaded " + openCodeModelCandidates.length + " models for OpenCode provider " + selectedProvider + ".") : ("OpenCode provider " + selectedProvider + " has no models listed by /config/providers.");
+        if (openCodeToggle.checked) {
+            discoveryStatus = openCodeModelCandidates.length > 0 ? ("Loaded " + openCodeModelCandidates.length + " models for OpenCode provider " + selectedProvider + ".") : ("OpenCode provider " + selectedProvider + " has no models listed by /config/providers.");
+        }
     }
 
     function kwalletStore(targetId, value, isBulk) {
@@ -1041,6 +1052,7 @@ KCM.SimpleKCM {
         plasmoid.configuration.litellmModel = litellmModelField.text;
         plasmoid.configuration.useOpenCode = openCodeToggle.checked;
         plasmoid.configuration.playNotificationSound = playSoundToggle.checked;
+        plasmoid.configuration.requestTimeout = requestTimeoutSpinBox.value;
         plasmoid.configuration.openCodeUrl = openCodeUrlField.text;
         plasmoid.configuration.openCodeModel = openCodeModelValueField.text;
         plasmoid.configuration.openCodeProvider = openCodeProviderValueField.text;
@@ -1123,6 +1135,7 @@ KCM.SimpleKCM {
         openCodeModelCandidates = [];
         openCodeProviderModelMap = ({
         });
+        requestTimeoutSpinBox.value = 60;
         discoveryStatus = "Settings reset to defaults.";
     }
 
@@ -1322,6 +1335,24 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: "Notification sound:"
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Play sound when AI finishes a response"
+            }
+
+            RowLayout {
+                id: requestTimeoutLayout
+                Kirigami.FormData.label: "Request timeout:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.SpinBox {
+                    id: requestTimeoutSpinBox
+                    from: 5
+                    to: 600
+                    stepSize: 5
+                    editable: true
+                }
+                QQC2.Label {
+                    text: "seconds"
+                }
             }
 
             QQC2.CheckBox {

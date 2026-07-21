@@ -958,6 +958,10 @@ PlasmoidItem {
         }
         var xhr = new XMLHttpRequest();
         xhr.open("POST", openCodeBaseUrl() + "/session", true);
+        xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+        xhr.ontimeout = function() {
+            failureCallback("OpenCode: session creation timed out after " + (xhr.timeout / 1000) + " seconds.");
+        };
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
@@ -1020,6 +1024,13 @@ PlasmoidItem {
             root.activeXhr = xhr;
             root.openCodeActiveSessionId = remoteSessionId;
             xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
+            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.ontimeout = function() {
+                if (requestFinalized)
+                    return ;
+                requestFinalized = true;
+                failOpenCodeRequest("OpenCode: request timed out after " + (xhr.timeout / 1000) + " seconds.");
+            };
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.onreadystatechange = function() {
                 if (xhr.readyState !== XMLHttpRequest.DONE)
@@ -1802,6 +1813,17 @@ PlasmoidItem {
         var errorHandled = false;
         try {
             xhr.open("POST", url, true);
+            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.ontimeout = function() {
+                if (errorHandled)
+                    return ;
+
+                errorHandled = true;
+                root.loading = false;
+                root.activeXhr = null;
+                pushErrorMessage("Request to " + url + " timed out after " + (xhr.timeout / 1000) + " seconds.");
+                processNextQueuedMessage();
+            };
             xhr.setRequestHeader("Content-Type", "application/json");
             if (apiKey !== "") {
                 var safeKey = apiKey.substring(0, Math.min(8, apiKey.length)) + "... (" + apiKey.length + " chars)";
@@ -1992,6 +2014,17 @@ PlasmoidItem {
         root.loading = true;
         root.activeXhr = xhr;
         xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
+        xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+        xhr.ontimeout = function() {
+            if (errorHandled)
+                return ;
+
+            errorHandled = true;
+            root.loading = false;
+            root.activeXhr = null;
+            pushErrorMessage("Anthropic request timed out after " + (xhr.timeout / 1000) + " seconds.");
+            processNextQueuedMessage();
+        };
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.setRequestHeader("x-api-key", apiKey);
         xhr.setRequestHeader("anthropic-version", "2023-06-01");
@@ -2163,6 +2196,13 @@ PlasmoidItem {
             var url = payload.baseUrl;
             if (url && !url.endsWith("/chat/completions")) url += "/chat/completions";
             xhr.open("POST", url, true);
+            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.ontimeout = function() {
+                root.compactingContext = false;
+            };
+            xhr.onerror = function() {
+                root.compactingContext = false;
+            };
             xhr.setRequestHeader("Content-Type", "application/json");
             for (var key in headers) {
                 xhr.setRequestHeader(key, headers[key]);
@@ -2192,6 +2232,22 @@ PlasmoidItem {
     function respondToPermission(permissionId, approved) {
         function sendToUrl(url, isRetry) {
             xhr.open("POST", url, true);
+            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.ontimeout = function() {
+                if (!isRetry) {
+                    sendToUrl(fallbackUrl, true);
+                } else {
+                    var copy = root.messages.slice();
+                    for (var i = 0; i < copy.length; i++) {
+                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
+                            copy[i].status = "pending";
+                            break;
+                        }
+                    }
+                    root.messages = copy;
+                    pushErrorMessage("OpenCode: permission response timed out.");
+                }
+            };
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.onreadystatechange = function() {
                 if (xhr.readyState !== XMLHttpRequest.DONE)
@@ -2321,6 +2377,10 @@ PlasmoidItem {
             var url = urls[currentUrlIdx];
             currentUrlIdx++;
             xhr.open("POST", url, true);
+            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.ontimeout = function() {
+                tryNextUrl();
+            };
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.onreadystatechange = function() {
                 if (xhr.readyState !== XMLHttpRequest.DONE)

@@ -93,6 +93,8 @@ class VoiceHelper:
             return "kokoro-82m"
         
         mp_lower = model_path.lower()
+        if "espeak" in mp_lower:
+            return "espeak-ng"
         if "kokoro" in mp_lower or "voices.bin" in mp_lower:
             return "kokoro-82m"
         if "piper" in mp_lower or mp_lower.endswith(".onnx") or mp_lower.endswith(".onnx.json"):
@@ -230,18 +232,21 @@ class VoiceHelper:
             result["stt_model_path_ok"] = True
 
         if tts_model_path:
-            tts_p = os.path.expanduser(tts_model_path)
-            if os.path.isfile(tts_p):
+            if "espeak" in tts_model_path.lower():
                 result["tts_model_path_ok"] = True
             else:
-                tts_dir = tts_p
-                if os.path.isdir(tts_dir):
-                    has_model_files = any(
-                        f.endswith(".pth") or f.endswith(".onnx") or f.endswith(".bin") or f.endswith(".pt") or f == "config.json"
-                        for f in os.listdir(tts_dir)
-                    )
-                    if has_model_files:
-                        result["tts_model_path_ok"] = True
+                tts_p = os.path.expanduser(tts_model_path)
+                if os.path.isfile(tts_p):
+                    result["tts_model_path_ok"] = True
+                else:
+                    tts_dir = tts_p
+                    if os.path.isdir(tts_dir):
+                        has_model_files = any(
+                            f.endswith(".pth") or f.endswith(".onnx") or f.endswith(".bin") or f.endswith(".pt") or f == "config.json"
+                            for f in os.listdir(tts_dir)
+                        )
+                        if has_model_files:
+                            result["tts_model_path_ok"] = True
         else:
             # Empty path relies on kokoro auto-download
             result["tts_model_path_ok"] = True
@@ -513,6 +518,10 @@ class VoiceHelper:
 
         def do_tts():
             try:
+                stop_tts_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_tts")
+                if os.path.exists(stop_tts_file):
+                    try: os.remove(stop_tts_file)
+                    except OSError: pass
                 raw_text = payload.get("text", "")
                 import re
                 def clean_text_for_tts(t):
@@ -550,7 +559,9 @@ class VoiceHelper:
                 custom_model_path = payload.get("model_path", "")
                 espeak_path = payload.get("espeak_path", "")
                 gpu_requested = payload.get("gpu_requested", False)
-                model = self._detect_tts_model_type(custom_model_path)
+                model = payload.get("model", "")
+                if not model:
+                    model = self._detect_tts_model_type(custom_model_path)
 
                 # Setup custom espeak path if provided
                 if espeak_path:
@@ -625,12 +636,9 @@ class VoiceHelper:
                         pass
                     self.emit({"type": "tts_done", "device": self.tts_device})
 
-                stop_tts_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_tts")
-                if os.path.exists(stop_tts_file):
-                    try: os.remove(stop_tts_file)
-                    except OSError: pass
 
-                if model == "piper":
+
+                elif model == "piper":
                     model_path = custom_model_path
                     model_path = os.path.expanduser(model_path)
                     if os.path.isdir(model_path):
