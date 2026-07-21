@@ -5,6 +5,19 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-21
+
+### Added
+- **■ Global TTS Stop Button**: Added an interactive global Stop (■) button to the bottom chat status bar during voice generation/playback, allowing instant interruption of text-to-speech.
+- **📚 Streamlined Step-by-Step Setup Guide**: Completely redesigned `VOICE_SETUP.md` with clear distros requirements (Ubuntu, Arch, Fedora, openSUSE) and explicit environment steps.
+- **📸 10-Image Screenshot Gallery**: Refactored the `README.md` to feature 10 newly-updated screenshots displaying settings, task scheduler, voice tools, and system memory monitors.
+
+### Fixed
+- **🗣️ Local Voice Mode GPU Support**: Fixed a bug where Voice STT/TTS would silently fall back to CPU despite GPU/CUDA libraries being installed. Ensured venv CUDA libs are preloaded before PyTorch checks device availability.
+- **⚠️ Voice Installation Disclaimers**: Added time and storage requirement warnings to the setup guide to manage user expectations during machine learning framework installation.
+
+---
+
 ## [1.2.9] - 2026-07-20
 
 ### Added
