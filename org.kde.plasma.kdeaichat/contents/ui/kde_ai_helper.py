@@ -478,8 +478,8 @@ def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
     if tts_mem == 0:
         tts_mem = _process_memory_kb("voice_helper.py.*cmd.*tts")
         
-    # Only track the widget-launched opencode or opencode serve instances, ignore external processes named just 'opencode'
-    opencode_mem = _process_memory_kb("opencode serve", env_filter="KDE_AI_CHAT_WIDGET=1")
+    # Track the opencode serve instance (server). We don't need env_filter because any opencode serve process on the machine is the one we connect to.
+    opencode_mem = _process_memory_kb("opencode serve")
     
     d: Dict[str, int] = {
         "opencode": opencode_mem,

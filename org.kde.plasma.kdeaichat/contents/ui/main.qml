@@ -958,9 +958,9 @@ PlasmoidItem {
         }
         var xhr = new XMLHttpRequest();
         xhr.open("POST", openCodeBaseUrl() + "/session", true);
-        xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+        xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
         xhr.ontimeout = function() {
-            failureCallback("OpenCode: session creation timed out after " + (xhr.timeout / 1000) + " seconds.");
+            failureCallback("OpenCode: session creation timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
         };
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function() {
@@ -1024,12 +1024,12 @@ PlasmoidItem {
             root.activeXhr = xhr;
             root.openCodeActiveSessionId = remoteSessionId;
             xhr.open("POST", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
-            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
             xhr.ontimeout = function() {
-                if (requestFinalized)
-                    return ;
-                requestFinalized = true;
-                failOpenCodeRequest("OpenCode: request timed out after " + (xhr.timeout / 1000) + " seconds.");
+                var modelConfig = plasmoid.configuration.openCodeModel || "";
+                var currentLabel = modelConfig ? "OpenCode (" + modelConfig + ")" : "OpenCode";
+                root.streamingModel = currentLabel;
+                failOpenCodeRequest("OpenCode: request timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
             };
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.onreadystatechange = function() {
@@ -1316,6 +1316,58 @@ PlasmoidItem {
         }]);
         scrollToBottom();
         saveCurrentSessionState(true);
+    }
+
+    function retryFailedMessage(index) {
+        if (index < 0 || index >= root.messages.length) return;
+        var role = root.messages[index].role || "";
+        if (role !== "error") return;
+        
+        var lastUserIdx = -1;
+        for (var i = index - 1; i >= 0; i--) {
+            var r = root.messages[i].role || "";
+            if (r === "user" || r === "queued") {
+                lastUserIdx = i;
+                break;
+            }
+        }
+        
+        if (lastUserIdx >= 0) {
+            stopStreaming();
+            var copy = root.messages.slice(0, lastUserIdx + 1);
+            root.messages = copy;
+            clearCurrentOpenCodeSessionIfNeeded();
+            saveCurrentSessionState(true);
+            root.userScrolledUp = false;
+            sendMessageByIndex(lastUserIdx);
+        }
+    }
+
+    function regenerateResponse(index, promptModifier) {
+        if (index <= 0 || index >= root.messages.length) return;
+        var role = root.messages[index].role || "";
+        if (role !== "assistant" && role !== "opencode_assistant") return;
+        
+        var lastUserIdx = index - 1;
+        var userRole = root.messages[lastUserIdx].role || "";
+        if (userRole !== "user" && userRole !== "queued") return;
+        
+        stopStreaming();
+        var copy = root.messages.slice(0, lastUserIdx + 1);
+        
+        if (promptModifier) {
+            var item = Object.assign({}, copy[lastUserIdx]);
+            item.content = item.content + "\n\n" + promptModifier;
+            item.at = Date.now();
+            item.time = nowTime(item.at);
+            copy[lastUserIdx] = item;
+        }
+        
+        root.messages = copy;
+        clearCurrentOpenCodeSessionIfNeeded();
+        saveCurrentSessionState(true);
+        root.userScrolledUp = false;
+        sendMessageByIndex(lastUserIdx);
     }
 
     function appendUserMessage(text, role, attachments) {
@@ -1813,7 +1865,7 @@ PlasmoidItem {
         var errorHandled = false;
         try {
             xhr.open("POST", url, true);
-            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
             xhr.ontimeout = function() {
                 if (errorHandled)
                     return ;
@@ -1821,7 +1873,7 @@ PlasmoidItem {
                 errorHandled = true;
                 root.loading = false;
                 root.activeXhr = null;
-                pushErrorMessage("Request to " + url + " timed out after " + (xhr.timeout / 1000) + " seconds.");
+                pushErrorMessage("Request to " + url + " timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
                 processNextQueuedMessage();
             };
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -2014,7 +2066,7 @@ PlasmoidItem {
         root.loading = true;
         root.activeXhr = xhr;
         xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
-        xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+        xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
         xhr.ontimeout = function() {
             if (errorHandled)
                 return ;
@@ -2022,7 +2074,7 @@ PlasmoidItem {
             errorHandled = true;
             root.loading = false;
             root.activeXhr = null;
-            pushErrorMessage("Anthropic request timed out after " + (xhr.timeout / 1000) + " seconds.");
+            pushErrorMessage("Anthropic request timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
             processNextQueuedMessage();
         };
         xhr.setRequestHeader("Content-Type", "application/json");
@@ -2196,7 +2248,7 @@ PlasmoidItem {
             var url = payload.baseUrl;
             if (url && !url.endsWith("/chat/completions")) url += "/chat/completions";
             xhr.open("POST", url, true);
-            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
             xhr.ontimeout = function() {
                 root.compactingContext = false;
             };
@@ -2232,7 +2284,7 @@ PlasmoidItem {
     function respondToPermission(permissionId, approved) {
         function sendToUrl(url, isRetry) {
             xhr.open("POST", url, true);
-            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
             xhr.ontimeout = function() {
                 if (!isRetry) {
                     sendToUrl(fallbackUrl, true);
@@ -2377,7 +2429,7 @@ PlasmoidItem {
             var url = urls[currentUrlIdx];
             currentUrlIdx++;
             xhr.open("POST", url, true);
-            xhr.timeout = (plasmoid.configuration.requestTimeout || 60) * 1000;
+            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
             xhr.ontimeout = function() {
                 tryNextUrl();
             };

@@ -1052,7 +1052,7 @@ KCM.SimpleKCM {
         plasmoid.configuration.litellmModel = litellmModelField.text;
         plasmoid.configuration.useOpenCode = openCodeToggle.checked;
         plasmoid.configuration.playNotificationSound = playSoundToggle.checked;
-        plasmoid.configuration.requestTimeout = requestTimeoutSpinBox.value;
+        plasmoid.configuration.requestTimeout = requestTimeoutToggle.checked ? requestTimeoutSpinBox.value : 0;
         plasmoid.configuration.openCodeUrl = openCodeUrlField.text;
         plasmoid.configuration.openCodeModel = openCodeModelValueField.text;
         plasmoid.configuration.openCodeProvider = openCodeProviderValueField.text;
@@ -1135,6 +1135,7 @@ KCM.SimpleKCM {
         openCodeModelCandidates = [];
         openCodeProviderModelMap = ({
         });
+        requestTimeoutToggle.checked = true;
         requestTimeoutSpinBox.value = 60;
         discoveryStatus = "Settings reset to defaults.";
     }
@@ -1343,14 +1344,30 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 spacing: Kirigami.Units.smallSpacing
 
+                QQC2.CheckBox {
+                    id: requestTimeoutToggle
+                    text: "Enable timeout"
+                    checked: hasPlasmoidConfig ? (plasmoid.configuration.requestTimeout > 0) : true
+                    onCheckedChanged: {
+                        if (hasPlasmoidConfig && !checked) {
+                            plasmoid.configuration.requestTimeout = 0;
+                        } else if (hasPlasmoidConfig && checked && requestTimeoutSpinBox.value === 0) {
+                            requestTimeoutSpinBox.value = 60;
+                        }
+                    }
+                }
+
                 QQC2.SpinBox {
                     id: requestTimeoutSpinBox
-                    from: 5
+                    visible: requestTimeoutToggle.checked
+                    from: 1
                     to: 600
                     stepSize: 5
                     editable: true
+                    value: hasPlasmoidConfig && plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout : 60
                 }
                 QQC2.Label {
+                    visible: requestTimeoutToggle.checked
                     text: "seconds"
                 }
             }

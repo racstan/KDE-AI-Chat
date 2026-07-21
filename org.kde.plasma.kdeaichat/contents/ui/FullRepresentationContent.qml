@@ -1218,6 +1218,47 @@ Item {
                                                     }
 
                                                     PC3.ToolButton {
+                                                        id: regenerateBtn
+                                                        visible: (modelData.role === "assistant" || modelData.role === "opencode_assistant")
+                                                        enabled: root.currentStreamIndex !== index
+                                                        icon.name: "view-refresh"
+                                                        display: PC3.AbstractButton.IconOnly
+                                                        QQC2.ToolTip.visible: hovered
+                                                        QQC2.ToolTip.text: "Regenerate"
+                                                        onClicked: regenerateMenu.open()
+                                                        
+                                                        QQC2.Menu {
+                                                            id: regenerateMenu
+                                                            y: regenerateBtn.height
+                                                            QQC2.MenuItem {
+                                                                text: "Regenerate"
+                                                                icon.name: "view-refresh"
+                                                                onTriggered: root.regenerateResponse(index, "")
+                                                            }
+                                                            QQC2.MenuItem {
+                                                                text: "Regenerate Longer"
+                                                                icon.name: "format-list-ordered"
+                                                                onTriggered: root.regenerateResponse(index, "Please provide a longer, more detailed and comprehensive response.")
+                                                            }
+                                                            QQC2.MenuItem {
+                                                                text: "Regenerate Shorter"
+                                                                icon.name: "format-list-unordered"
+                                                                onTriggered: root.regenerateResponse(index, "Please provide a shorter, more concise and brief response.")
+                                                            }
+                                                        }
+                                                    }
+
+                                                    PC3.ToolButton {
+                                                        visible: modelData.role === "error"
+                                                        enabled: root.currentStreamIndex !== index
+                                                        icon.name: "view-refresh"
+                                                        display: PC3.AbstractButton.IconOnly
+                                                        QQC2.ToolTip.visible: hovered
+                                                        QQC2.ToolTip.text: "Retry failed message"
+                                                        onClicked: root.retryFailedMessage(index)
+                                                    }
+
+                                                    PC3.ToolButton {
                                                         visible: true
                                                         enabled: root.currentStreamIndex !== index
                                                         icon.name: "edit-copy"
@@ -1301,11 +1342,22 @@ Item {
                             height: 16
                         }
 
-                        Kirigami.Icon {
-                            source: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-start" : "audio-volume-high"
-                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.callModeActive)
-                            width: 16
-                            height: 16
+                        PC3.ToolButton {
+                            icon.name: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-start" : "media-playback-stop"
+                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive)
+                            display: PC3.AbstractButton.IconOnly
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "Call Mode Active" : "Stop reading"
+                            onClicked: {
+                                if (root.voiceManagerRef) {
+                                    if (root.voiceManagerRef.callModeActive) {
+                                        root.voiceManagerRef.stopCallMode();
+                                    } else {
+                                        root.voiceManagerRef.stopTTS();
+                                    }
+                                }
+                                root.playingMessageIndex = -1;
+                            }
                         }
 
                         PC3.Label {

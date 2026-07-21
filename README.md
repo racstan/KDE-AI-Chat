@@ -10,18 +10,23 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 
 | Screenshot | Description |
 | :--- | :--- |
-| ![Live Chat UI](.github/assets/image.png) | **Simple Chat UI**: A clean conversation interface with full Markdown formatting (lists, tables, code blocks) that scrolls smoothly. |
-| ![OpenCode Bridge](.github/assets/image2.png) | **OpenCode Developer Bridge**: Connects your chat directly to your local OpenCode code-editing workspace for running commands and writing scripts. |
-| ![Conversations Sidebar](.github/assets/image3.png) | **Chat History Sidebar**: Easily manage your past chats. You can rename, archive, or delete threads with one click. |
-| ![OpenCode Settings](.github/assets/image4.png) | **Settings Panel**: Easily manage your settings, toggle developer features, choose AI models, and set up your system preferences. |
-| ![API Key Storage Settings](.github/assets/image5.png) | **Secure Storage & Prompts**: Save your API keys safely. Keys are automatically synced with KDE's secure KWallet vault. |
+| ![Chat UI 1](.github/assets/image1.png) | **Main Interface**: A clean conversation interface with full Markdown formatting that scrolls smoothly. |
+| ![Chat UI 2](.github/assets/image2.png) | **AI Integration**: Seamlessly connect with your local and remote AI models. |
+| ![Settings 1](.github/assets/image3.png) | **Settings & Preferences**: Easily manage your AI providers, models, and system preferences. |
+| ![Settings 2](.github/assets/image4.png) | **Developer Tools**: Connect your chat directly to OpenCode for running local scripts. |
+| ![Feature 1](.github/assets/image5.png) | **Voice & Automation**: Configure local voice tools and automated background task handling. |
+| ![Feature 2](.github/assets/image6.png) | **Prompt Management**: Organize your custom prompts and scheduled tasks for maximum efficiency. |
+| ![Feature 3](.github/assets/image7.png) | **Context Aware**: Review context files and attached documents seamlessly within the chat. |
+| ![Feature 4](.github/assets/image8.png) | **Advanced Routing**: Route messages to different models for the best results. |
+| ![Feature 5](.github/assets/image9.png) | **Secure Storage**: Save your API keys securely in KDE KWallet. |
+| ![Feature 6](.github/assets/image10.png) | **Customization**: Tailor the layout and behavior to your exact workflow. |
 
 ---
 
 ## Key Features
 
 - **🛡️ OpenCode Developer Bridge**: Connect the widget to your local code workspace. Run code, search the web, and execute tasks directly from your desktop panel.
-- **🗣️ Local Voice Mode (STT & TTS) (Beta)**: Talk to the AI hands-free. Speaks out loud using local voice tools (configured via Python). Currently supports NVIDIA GPUs only (no AMD support).
+- **🗣️ Local Voice Mode (STT & TTS) (Beta)**: Talk to the AI hands-free. Speaks out loud using local voice tools (configured via Python). Currently supports NVIDIA GPUs only (no AMD support). You can even highlight/select specific text in the chat and click the "Read Aloud" button to only read that selected part!
 - **📎 Drag & Drop Files**: Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send a file without typing any text.
 - **📝 Prompt Templates**: Save prompts you use often in the settings. Type `/<name>` in the chat to insert them instantly.
 - **📅 Task Scheduler**: Set up recurring tasks (like automated code checks or periodic reminders) using simple calendar schedules or cron expressions.

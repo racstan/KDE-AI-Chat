@@ -3542,8 +3542,13 @@ function ensureVoiceDaemonRunning(port, onStarted) {
 function startDaemonService(port, onStarted) {
     let serviceName = (port === 9015) ? "kde-ai-stt.service" : "kde-ai-tts.service";
     let startCmd = "systemctl --user start " + serviceName;
-    root.voiceDs.connectSource(startCmd + " #start-daemon-on-demand-" + Date.now());
     
+    if (root.voiceManagerRef && root.voiceManagerRef.voiceDs) {
+        root.voiceManagerRef.voiceDs.connectSource("sh -c " + Sec.quoteForShell(startCmd) + " #start-daemon-on-demand-" + Date.now());
+    } else if (typeof dataSources !== "undefined" && dataSources && dataSources.utilityDs) {
+        dataSources.utilityDs.connectSource("sh -c " + Sec.quoteForShell(startCmd) + " #start-daemon-on-demand-" + Date.now());
+    }
+
     if (typeof dataSources !== "undefined" && dataSources && dataSources.voiceDaemonStartTimer) {
         dataSources.voiceDaemonStartTimer.port = port;
         dataSources.voiceDaemonStartTimer.elapsed = 0;
@@ -3567,17 +3572,20 @@ function sendVoiceCommand(port, payload, fallbackSource) {
                     let resp = JSON.parse(xhr.responseText);
                     handleVoiceResponse(resp, fallbackSource);
                 } catch (e) {
-                    root.voiceDs.connectSource(fallbackSource);
+                    if (root.voiceManagerRef && root.voiceManagerRef.voiceDs) root.voiceManagerRef.voiceDs.connectSource(fallbackSource);
+                    else if (typeof dataSources !== "undefined" && dataSources && dataSources.utilityDs) dataSources.utilityDs.connectSource(fallbackSource);
                 }
             } else {
-                root.voiceDs.connectSource(fallbackSource);
+                if (root.voiceManagerRef && root.voiceManagerRef.voiceDs) root.voiceManagerRef.voiceDs.connectSource(fallbackSource);
+                else if (typeof dataSources !== "undefined" && dataSources && dataSources.utilityDs) dataSources.utilityDs.connectSource(fallbackSource);
             }
         }
     };
     try {
         xhr.send(JSON.stringify(payload));
     } catch (e) {
-        root.voiceDs.connectSource(fallbackSource);
+        if (root.voiceManagerRef && root.voiceManagerRef.voiceDs) root.voiceManagerRef.voiceDs.connectSource(fallbackSource);
+        else if (typeof dataSources !== "undefined" && dataSources && dataSources.utilityDs) dataSources.utilityDs.connectSource(fallbackSource);
     }
 }
 

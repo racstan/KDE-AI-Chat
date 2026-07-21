@@ -24,6 +24,8 @@ Item {
     signal envChecked(var result)
     signal setupStatus(string status)
 
+    readonly property alias voiceDs: voiceDs
+
     P5Support.DataSource {
         id: voiceDs
         engine: "executable"
@@ -101,6 +103,17 @@ Item {
                 }
                 xhr.send();
             }
+        }
+    }
+
+    Timer {
+        id: retryTimer
+        interval: 2500
+        property string retryPayload: ""
+        property int retryPort: 0
+        property int retries: 0
+        onTriggered: {
+            sendHttpCommand(retryPayload, retryPort, retries + 1);
         }
     }
 
@@ -183,7 +196,8 @@ Item {
         voiceDs.connectSource("timeout 90s sh -c " + Sec.rawShellSnippetQuote(cmd) + " #voice-cmd-" + Date.now());
     }
 
-    function sendHttpCommand(payload, port) {
+    function sendHttpCommand(payload, port, retries) {
+        if (retries === undefined) retries = 0;
         let xhr = new XMLHttpRequest();
         xhr.open("POST", "http://127.0.0.1:" + port + "/command", true);
         xhr.setRequestHeader("Content-Type", "application/json");
@@ -195,6 +209,16 @@ Item {
                         let resp = JSON.parse(xhr.responseText);
                         handleResponse(resp, "http");
                     } catch (e) {}
+                } else if (retries < 2) {
+                    // Try to start the daemon
+                    let serviceName = (port === 9015) ? "kde-ai-stt.service" : "kde-ai-tts.service";
+                    voiceDs.connectSource("systemctl --user start " + serviceName + " #start-" + Date.now());
+                    
+                    // Wait 2 seconds and retry using the dedicated timer
+                    retryTimer.retryPayload = payload;
+                    retryTimer.retryPort = port;
+                    retryTimer.retries = retries;
+                    retryTimer.start();
                 } else {
                     sendCommand(payload);
                 }
