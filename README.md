@@ -14,7 +14,7 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 | ![TTS in Action](.github/assets/image2.png) | **Chat & Text-Selection TTS**: Active conversation showing text selection highlight and the global status bar **"■ Reading aloud..."** with the Stop button. |
 | ![NVIDIA NIM Settings](.github/assets/image3.png) | **NVIDIA NIM Provider Config**: Settings showing dynamic model loading (118 models fetched) and NVIDIA NIM provider setup. |
 | ![OpenCode Settings](.github/assets/image4.png) | **OpenCode Local Configuration**: Developer settings panel for local API server connections (Ollama / Llama.cpp) and model selections. |
-| ![Behavior Settings](.github/assets/image5.png) | **AI Memory Manager**: The behavior configuration tab displaying enabled AI memory, stored user facts, and prompt context preview. |
+| ![Behavior Settings](.github/assets/image5.png) | **AI Memory Manager & System Prompt**: The behavior configuration tab displaying the customizable system prompt, context settings, enabled AI memory, stored user facts, and prompt context preview. |
 | ![Voice Tools Settings](.github/assets/image6.png) | **Voice Tools Setup**: Detailed setup for GPU/CUDA acceleration, local model directories (Whisper & Kokoro), and voice model configurations. |
 | ![Other Settings](.github/assets/image7.png) | **Automation & Background Daemons**: The "Other" tab with settings for custom prompt templates and the login-enabled Scheduler Daemon. |
 | ![Quick-Access Templates](.github/assets/image8.png) | **Quick Prompt Templates**: View and manage short slash-command templates (like `/news`, `/review`) for instant insert. |
