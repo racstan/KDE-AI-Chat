@@ -98,6 +98,31 @@ function convertMarkdownToHtml(markdown, isDark) {
         let codeBlocks = [];
         html = html.replace(/```([a-zA-Z0-9+#\-_]*)\n([\s\S]*?)```/g, function(match, lang, code) {
             let blockIdx = codeBlocks.length;
+            let normLang = (lang || "").toLowerCase().trim();
+            if (normLang === "diff" || normLang === "patch") {
+                let diffLines = code.replace(/\n$/, '').split("\n");
+                let diffHtml = '<div style="background-color: ' + (isDark ? "#1e2227" : "#f6f8fa") + '; font-family: monospace; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + (isDark ? "#383e4a" : "#d0d7de") + '; font-size: 0.9em; line-height: 1.45;">' +
+                    '<div style="font-weight: bold; margin-bottom: 6px; color: ' + (isDark ? "#61afef" : "#0969da") + '; font-size: 0.85em; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">Git Diff Inspector</div>';
+                for (let i = 0; i < diffLines.length; i++) {
+                    let line = diffLines[i];
+                    let lineBg = "transparent";
+                    let lineColor = codeColor;
+                    if (line.indexOf("+") === 0 && line.indexOf("+++") !== 0) {
+                        lineBg = isDark ? "rgba(46, 160, 67, 0.25)" : "#e6ffec";
+                        lineColor = isDark ? "#7ee787" : "#1a7f37";
+                    } else if (line.indexOf("-") === 0 && line.indexOf("---") !== 0) {
+                        lineBg = isDark ? "rgba(248, 81, 73, 0.25)" : "#ffebe9";
+                        lineColor = isDark ? "#ff7b72" : "#cf222e";
+                    } else if (line.indexOf("@@") === 0 || line.indexOf("diff ") === 0 || line.indexOf("index ") === 0) {
+                        lineColor = isDark ? "#c678dd" : "#8250df";
+                        lineBg = isDark ? "rgba(198, 120, 221, 0.15)" : "#f3e8ff";
+                    }
+                    diffHtml += '<div style="background-color: ' + lineBg + '; color: ' + lineColor + '; white-space: pre-wrap; padding: 1px 4px; border-radius: 2px;">' + line + '</div>';
+                }
+                diffHtml += '</div>';
+                codeBlocks.push(diffHtml);
+                return "%%CB" + blockIdx + "%%";
+            }
             let rendered = '<div style="background-color: ' + codeBg + '; color: ' + codeColor + '; font-family: monospace; padding: 10px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid ' + borderColor + '; overflow-x: auto;">' + '<div style="font-size: 0.8em; color: ' + (isDark ? "#5c6370" : "#a0a1a7") + '; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid ' + borderColor + '; padding-bottom: 4px;">' + (lang ? lang : 'code') + '</div>' + '<pre style="margin: 0; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">' + code.replace(/\n$/, '') + '</pre></div>';
             codeBlocks.push(rendered);
             return "%%CB" + blockIdx + "%%";

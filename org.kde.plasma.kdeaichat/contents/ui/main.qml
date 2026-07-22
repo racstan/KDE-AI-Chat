@@ -43,6 +43,8 @@ PlasmoidItem {
     property bool renamingCurrentChat: false
     property string currentChatRenameDraft: ""
     property bool openCodeMode: plasmoid.configuration.useOpenCode
+    property string openCodeAgent: plasmoid.configuration.openCodeAgent || "coder"
+    property string openCodeWorkspaceCwd: plasmoid.configuration.openCodeWorkspaceCwd || ""
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
     property string compiledSystemPrompt: ""
@@ -1096,9 +1098,13 @@ PlasmoidItem {
             failureCallback("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
         };
         try {
-            xhr.send(JSON.stringify({
+            var sessionPayload = {
                 "title": root.currentSessionTitle || "KDE AI Chat"
-            }));
+            };
+            if (root.openCodeWorkspaceCwd && root.openCodeWorkspaceCwd.trim() !== "")
+                sessionPayload.directory = root.openCodeWorkspaceCwd.trim();
+
+            xhr.send(JSON.stringify(sessionPayload));
         } catch (sendError) {
             failureCallback("OpenCode: failed to create session: " + sendError);
         }
@@ -1230,6 +1236,8 @@ PlasmoidItem {
                     },
                     "parts": parts
                 };
+                if (root.openCodeAgent && root.openCodeAgent.trim() !== "")
+                    reqPayload.agent = root.openCodeAgent.trim();
                 if (sysValue && sysValue.length > 0)
                     reqPayload.system = sysValue;
 
@@ -3316,6 +3324,20 @@ PlasmoidItem {
                 path = decodeURIComponent(path.slice(7));
 
             root.performExportChat(path);
+        }
+    }
+
+    FolderDialog {
+        id: workspaceFolderDialog
+
+        title: "Select OpenCode Working Directory"
+        onAccepted: {
+            var path = selectedFolder.toString();
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+
+            root.openCodeWorkspaceCwd = path;
+            plasmoid.configuration.openCodeWorkspaceCwd = path;
         }
     }
 

@@ -292,23 +292,69 @@ Item {
             visible: !root.historyOnlyMode && root.openCodeMode
             spacing: Kirigami.Units.smallSpacing
 
+            PC3.ToolButton {
+                icon.name: "folder"
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: root.openCodeWorkspaceCwd ? ("Workspace: " + root.openCodeWorkspaceCwd) : "Select OpenCode Workspace Directory"
+                onClicked: workspaceFolderDialog.open()
+            }
+
+            PC3.Label {
+                text: {
+                    var folder = "";
+                    if (root.openCodeWorkspaceCwd) {
+                        var p = root.openCodeWorkspaceCwd;
+                        folder = p.substring(p.lastIndexOf("/") + 1) || p;
+                    }
+                    var sess = root.currentOpenCodeSessionId();
+                    var labelStr = folder ? ("📁 " + folder) : "📁 Workspace";
+                    if (sess) labelStr += " (" + sess.substring(0, 10) + "…)";
+                    return labelStr;
+                }
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font.bold: true
+                opacity: 0.85
+                elide: Text.ElideMiddle
+                Layout.maximumWidth: parent.width - 260
+            }
+
             Item {
                 Layout.fillWidth: true
             }
 
-            PC3.Label {
-                text: root.currentOpenCodeSessionId() !== "" ? ("OpenCode Session: " + root.currentOpenCodeSessionId()) : "OpenCode Mode (Session Not Started)"
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                font.italic: true
-                opacity: 0.85
-                elide: Text.ElideMiddle
-                Layout.maximumWidth: parent.width - 90
+            QQC2.ComboBox {
+                id: agentSelectorCombo
+                implicitWidth: Kirigami.Units.gridUnit * 6
+                implicitHeight: Kirigami.Units.gridUnit * 1.8
+                model: [
+                    { "text": "⚡ Coder", "value": "coder" },
+                    { "text": "🏗️ Architect", "value": "architect" },
+                    { "text": "🔍 Reviewer", "value": "review" },
+                    { "text": "🧭 Explorer", "value": "explore" },
+                    { "text": "💬 Ask", "value": "ask" }
+                ]
+                textRole: "text"
+                valueRole: "value"
+                currentIndex: {
+                    var cur = root.openCodeAgent || "coder";
+                    for (var i = 0; i < model.length; i++) {
+                        if (model[i].value === cur) return i;
+                    }
+                    return 0;
+                }
+                onActivated: {
+                    var val = model[currentIndex].value;
+                    root.openCodeAgent = val;
+                    plasmoid.configuration.openCodeAgent = val;
+                }
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: "Select OpenCode Sub-Agent Profile"
             }
 
             PC3.ToolButton {
                 icon.name: "utilities-terminal"
                 QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: root.currentOpenCodeSessionId() !== "" ? i18n("Open this session in terminal") : i18n("Open OpenCode in terminal")
+                QQC2.ToolTip.text: root.currentOpenCodeSessionId() !== "" ? i18n("Open session in terminal") : i18n("Open OpenCode in terminal")
                 onClicked: root.openOpenCodeInTerminal(root.currentOpenCodeSessionId())
             }
 
@@ -318,10 +364,6 @@ Item {
                 QQC2.ToolTip.text: i18n("Sync session history from OpenCode")
                 enabled: !root.loading && root.currentOpenCodeSessionId() !== ""
                 onClicked: root.syncOpenCodeSessionHistory()
-            }
-
-            Item {
-                Layout.fillWidth: true
             }
         }
 

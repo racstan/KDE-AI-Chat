@@ -14,9 +14,9 @@
 
 ## 2. ⚠️ Gaps & Missing Features ("What's Missing")
 
-1. **No Visual Git Diff or Code Inspector for OpenCode**: When OpenCode tools edit local files, the changes appear as plain text logs or code blocks rather than a side-by-side or inline red/green Git diff card.
-2. **OpenCode Workspace / Repository Selector Is Hidden**: OpenCode connects to a fixed server URL, but users cannot switch working directories (`--cwd` repos) directly from a header dropdown in the plasmoid.
-3. **No OpenCode Agent Sub-Role Selection**: OpenCode supports sub-agent profiles (e.g., `coder`, `architect`, `ask`, `review`), but there is no dropdown selector for these modes in the toolbar.
+1. **[COMPLETED] Visual Git Diff Inspector**: Added red/green line syntax highlighting for diff/patch code blocks.
+2. **[COMPLETED] OpenCode Workspace Directory Selector**: Added folder picker button (`📁 Workspace`) to select local project directories (`--cwd`).
+3. **[COMPLETED] OpenCode Agent Profile Selection**: Added toolbar sub-agent dropdown selector (`Coder`, `Architect`, `Reviewer`, `Explorer`, `Ask`).
 4. **No Full-Duplex Continuous Voice Mode**: Voice interaction requires manually pressing the mic button per turn rather than a continuous hands-free voice conversation.
 5. **[COMPLETED] Direct Screen Region Capture (Spectacle)**: Added interactive camera region capture button directly into the chat prompt toolbar.
 6. **[COMPLETED] Direct Terminal Session Attach & Sync Button**: In OpenCode mode, users can open the current session in Konsole/terminal and sync external CLI session history.
