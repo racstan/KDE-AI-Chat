@@ -522,6 +522,113 @@ PlasmoidItem {
         setCurrentOpenCodeSessionId("");
     }
 
+    function openOpenCodeInTerminal(sessionId) {
+        var sid = (sessionId || currentOpenCodeSessionId() || "").trim();
+        var safeSid = Sec.sanitizeForShell(sid);
+        var runCmd = safeSid ? ("opencode --session " + Sec.quoteForShell(safeSid)) : "opencode";
+        var fullTerminalCmd = "konsole -e " + runCmd + " || x-terminal-emulator -e " + runCmd + " || xterm -e " + runCmd;
+        soundDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(fullTerminalCmd) + " #open-terminal-" + Date.now());
+    }
+
+    function captureScreenRegion() {
+        var timestamp = Date.now();
+        var savePath = "/tmp/kdeaichat_shot_" + timestamp + ".png";
+        var cmd = "spectacle -r -b -n -o " + Sec.quoteForShell(savePath);
+        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #spectacle-shot-" + timestamp + "|" + savePath);
+    }
+
+    function syncOpenCodeSessionHistory() {
+        var remoteSessionId = currentOpenCodeSessionId();
+        if (!remoteSessionId)
+            return;
+        root.loading = true;
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", openCodeBaseUrl() + "/session/" + remoteSessionId + "/message", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return;
+            root.loading = false;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var arr = JSON.parse(xhr.responseText);
+                    if (Array.isArray(arr)) {
+                        var newMsgs = [];
+                        for (var i = 0; i < arr.length; i++) {
+                            var item = arr[i] || {};
+                            var info = item.info || {};
+                            var parts = item.parts || [];
+                            var role = info.role || "user";
+                            var modelLabel = (info.providerID && info.modelID) ? (info.providerID + "/" + info.modelID) : (info.modelID || "OpenCode");
+                            var combinedText = "";
+                            var ctx = [];
+                            for (var p = 0; p < parts.length; p++) {
+                                var part = parts[p] || {};
+                                if (part.type === "text") {
+                                    combinedText += part.text || part.content || "";
+                                } else if (part.type === "tool-invocation") {
+                                    var toolName = part.toolName || part.tool || "";
+                                    var toolArgs = part.args || part.input || {};
+                                    if (toolName !== "") {
+                                        var desc = toolName;
+                                        if (toolArgs.filePath || toolArgs.path || toolArgs.file)
+                                            desc += ": " + (toolArgs.filePath || toolArgs.path || toolArgs.file);
+                                        else if (toolArgs.command)
+                                            desc += ": " + String(toolArgs.command).substring(0, 60);
+                                        ctx.push(desc);
+                                    }
+                                }
+                            }
+                            var normalizedTokens = {};
+                            if (item.tokens) {
+                                var rawTokens = item.tokens || {};
+                                normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
+                                normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
+                                if (rawTokens.reasoning !== undefined) normalizedTokens.reasoning = rawTokens.reasoning;
+                                if (rawTokens.cache !== undefined) normalizedTokens.cache = rawTokens.cache;
+                            }
+                            var ts = info.createdAt ? new Date(info.createdAt).getTime() : Date.now();
+                            newMsgs.push({
+                                "role": role,
+                                "content": combinedText || "(empty)",
+                                "model": role === "user" ? "You" : modelLabel,
+                                "id": info.id || ("msg-" + i),
+                                "at": ts,
+                                "time": nowTime(ts),
+                                "contextItems": ctx,
+                                "tokens": normalizedTokens.input !== undefined ? normalizedTokens : undefined,
+                                "cost": item.cost || undefined,
+                                "openCodeSessionId": remoteSessionId
+                            });
+                        }
+                        if (newMsgs.length > 0) {
+                            var idx = sessionIndexById(root.currentSessionId);
+                            if (idx >= 0) {
+                                root.messages = newMsgs;
+                                var updated = root.sessions.slice();
+                                var sItem = Object.assign({}, updated[idx]);
+                                sItem.messages = newMsgs;
+                                updated[idx] = sItem;
+                                root.sessions = updated;
+                                saveCurrentSessionState(true);
+                                scrollToBottom();
+                            }
+                        }
+                    }
+                } catch (err) {
+                    pushErrorMessage("Failed to parse synced messages: " + err);
+                }
+            } else {
+                pushErrorMessage("Sync failed: OpenCode returned HTTP " + xhr.status);
+            }
+        };
+        xhr.onerror = function() {
+            root.loading = false;
+            pushErrorMessage("Sync failed: Could not reach OpenCode server at " + openCodeBaseUrl());
+        };
+        xhr.send();
+    }
+
     function extractReadableError(prefix, errObj, fallbackText) {
         if (errObj) {
             if (errObj.data && errObj.data.message)
@@ -3127,6 +3234,20 @@ PlasmoidItem {
                     } catch (e) {
                         console.log("Failed to parse clipboard data: " + e);
                     }
+                }
+                disconnectSource(sourceName);
+                return ;
+            }
+            if (sourceName.indexOf("#spectacle-shot-") !== -1) {
+                if (exitCode === 0) {
+                    var parts = sourceName.split("|");
+                    if (parts.length > 1) {
+                        var shotPath = parts[1].trim();
+                        if (shotPath !== "")
+                            attachFile("file://" + shotPath);
+                    }
+                } else {
+                    pushErrorMessage("Screen region capture cancelled or failed.");
                 }
                 disconnectSource(sourceName);
                 return ;

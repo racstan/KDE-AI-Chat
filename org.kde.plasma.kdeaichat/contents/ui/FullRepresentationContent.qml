@@ -287,15 +287,42 @@ Item {
 
         }
 
-        PC3.Label {
+        RowLayout {
             Layout.fillWidth: true
-            visible: !root.historyOnlyMode && root.openCodeMode && root.currentOpenCodeSessionId() !== ""
-            text: "OpenCode Session ID: " + root.currentOpenCodeSessionId()
-            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-            font.italic: true
-            opacity: 0.8
-            horizontalAlignment: Text.AlignHCenter
-            elide: Text.ElideRight
+            visible: !root.historyOnlyMode && root.openCodeMode
+            spacing: Kirigami.Units.smallSpacing
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            PC3.Label {
+                text: root.currentOpenCodeSessionId() !== "" ? ("OpenCode Session: " + root.currentOpenCodeSessionId()) : "OpenCode Mode (Session Not Started)"
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font.italic: true
+                opacity: 0.85
+                elide: Text.ElideMiddle
+                Layout.maximumWidth: parent.width - 90
+            }
+
+            PC3.ToolButton {
+                icon.name: "utilities-terminal"
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: root.currentOpenCodeSessionId() !== "" ? i18n("Open this session in terminal") : i18n("Open OpenCode in terminal")
+                onClicked: root.openOpenCodeInTerminal(root.currentOpenCodeSessionId())
+            }
+
+            PC3.ToolButton {
+                icon.name: "view-refresh"
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: i18n("Sync session history from OpenCode")
+                enabled: !root.loading && root.currentOpenCodeSessionId() !== ""
+                onClicked: root.syncOpenCodeSessionHistory()
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
         RowLayout {
@@ -1485,7 +1512,7 @@ Item {
                             Layout.preferredHeight: Math.min(Layout.maximumHeight, Math.max(Layout.minimumHeight, contentHeight + topPadding + bottomPadding))
                             wrapMode: Text.WordWrap
                             clip: true
-                            enabled: !root.loading
+                            enabled: true
                             placeholderText: "Type message (Enter sends, Shift+Enter newline)"
                             focus: true
                             
@@ -1587,10 +1614,20 @@ Item {
 
 
                         PC3.ToolButton {
+                            icon.name: "camera-photo-symbolic"
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
+                            enabled: true
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: "Capture screen region (Spectacle)"
+                            onClicked: root.captureScreenRegion()
+                        }
+
+                        PC3.ToolButton {
                             icon.name: "mail-attachment"
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                            enabled: !root.loading
+                            enabled: true
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: "Attach files (Images, PDF, CSV, Word documents)"
                             onClicked: fileDialog.open()
@@ -1600,7 +1637,7 @@ Item {
                             icon.name: "edit-paste"
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-                            enabled: !root.loading
+                            enabled: true
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: "Paste file or text from clipboard"
                             onClicked: {
@@ -1615,11 +1652,13 @@ Item {
 
                         QQC2.Button {
                             icon.name: root.loading ? "list-add" : "document-send"
-                            text: root.loading ? "Queue" : "Send"
+                            text: root.loading ? "+ Queue" : "Send"
                             Layout.minimumWidth: Kirigami.Units.gridUnit * 5
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
                             enabled: root.chatInputText.trim() !== "" || root.attachedFiles.length > 0
                             highlighted: true
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: root.loading ? "Queue message to send after current response finishes" : "Send message"
                             onClicked: root.sendMessage()
                         }
 
