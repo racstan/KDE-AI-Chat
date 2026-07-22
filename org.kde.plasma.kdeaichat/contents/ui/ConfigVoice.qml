@@ -431,9 +431,11 @@ KCM.SimpleKCM {
             onToggled: {
                 if (hasPlasmoidConfig) plasmoid.configuration.voiceEnabled = checked;
                 if (checked) {
+                    let startCmd = "systemctl --user enable --now kde-ai-stt.service 2>/dev/null; " + (voiceTtsEnabledToggle.checked ? "systemctl --user enable --now kde-ai-tts.service 2>/dev/null;" : "");
+                    voicePageDs.connectSource("sh -c " + Sec.quoteForShell(startCmd) + " #start-voice-" + Date.now());
                     runEnvCheck();
                 } else {
-                    let killCmd = "systemctl --user stop kde-ai-stt.service 2>/dev/null; systemctl --user stop kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --stt-server' 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
+                    let killCmd = "systemctl --user disable --now kde-ai-stt.service 2>/dev/null; systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --stt-server' 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
                     voicePageDs.connectSource("sh -c " + Sec.quoteForShell(killCmd) + " #kill-voice-" + Date.now());
                 }
             }
@@ -562,8 +564,11 @@ KCM.SimpleKCM {
             text: checked ? i18n("Enabled") : i18n("Disabled")
             onCheckedChanged: {
                 if (hasPlasmoidConfig) plasmoid.configuration.voiceTtsEnabled = checked;
-                if (!checked) {
-                    let killCmd = "systemctl --user stop kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
+                if (checked && voiceEnabledToggle.checked) {
+                    let startCmd = "systemctl --user enable --now kde-ai-tts.service 2>/dev/null";
+                    voicePageDs.connectSource("sh -c " + Sec.quoteForShell(startCmd) + " #start-tts-" + Date.now());
+                } else if (!checked) {
+                    let killCmd = "systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
                     voicePageDs.connectSource("sh -c " + Sec.quoteForShell(killCmd) + " #kill-tts-" + Date.now());
                 }
                 if (voiceEnabledToggle.checked) runEnvCheck();

@@ -12,12 +12,12 @@
         "Id": "org.kde.plasma.kdeaichat",
         "License": "GPL-2.0+",
         "Name": "KDE AI Chat",
-        "Version": "1.3.0",
+        "Version": "1.3.1",
         "Website": "https://github.com/racstan/KDE-AI-Chat",
         "BugReportUrl": "https://github.com/racstan/KDE-AI-Chat/issues"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-ConfigurationUI": "ui/ConfigGeneral.qml",
-    "Version": "1.3.0"
+    "Version": "1.3.1"
 }

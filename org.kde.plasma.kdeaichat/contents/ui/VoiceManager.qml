@@ -18,6 +18,18 @@ Item {
     property bool autoSend: plasmoid.configuration.voiceAutoSend !== undefined ? plasmoid.configuration.voiceAutoSend : true
     property bool ttsAuto: plasmoid.configuration.voiceTtsAuto || false
     onTtsAutoChanged: plasmoid.configuration.voiceTtsAuto = ttsAuto
+
+    Component.onCompleted: {
+        let isVoiceEnabled = plasmoid.configuration.voiceEnabled || false;
+        let isTtsEnabled = plasmoid.configuration.voiceTtsEnabled || false;
+        if (!isVoiceEnabled) {
+            let killCmd = "systemctl --user disable --now kde-ai-stt.service 2>/dev/null; systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --stt-server' 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
+            voiceDs.connectSource("sh -c " + Sec.quoteForShell(killCmd) + " #startup-sync-voice-off-" + Date.now());
+        } else if (!isTtsEnabled) {
+            let killCmd = "systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
+            voiceDs.connectSource("sh -c " + Sec.quoteForShell(killCmd) + " #startup-sync-tts-off-" + Date.now());
+        }
+    }
     
     signal textRecognized(string text)
     signal errorOccurred(string errorText)

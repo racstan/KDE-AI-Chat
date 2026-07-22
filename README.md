@@ -44,15 +44,15 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 
 ---
 
-## What's New in Recent Releases (v1.3.0)
+## What's New in Recent Releases (v1.3.1)
 
+- **🗣️ Voice Service Autostart Fix**: Resolved background voice daemons (`kde-ai-stt.service` and `kde-ai-tts.service`) autostarting on system reboot when voice tools are disabled. Toggling voice tools or TTS off now disables systemd autostart units (`systemctl --user disable --now`), freeing background RAM.
 - **⏹️ Global Stop Voice Button**: Added an instant Stop button (■) to the chat bar so you can interrupt voice speech read-alouds at any moment.
 - **🗣️ Better Local Voice Support**: Enhanced voice setup and fixed compatibility with local NVIDIA GPUs to run `faster-whisper` and `kokoro-onnx` voice servers much faster.
 - **📅 Background Task Scheduler**: Added a native task scheduler to automate recurring AI prompts (like running code checks or asking daily questions) in the background via systemd.
 - **🌳 Message Editing & History Rewind**: Edit older questions in the chat to automatically clear subsequent history and restart from that point.
 - **🗄️ Settings Auto-Save**: Your API keys and settings now save automatically as you type — no "Apply" or "Save" button needed.
 - **📤 Chat Export**: Save your chat history as Markdown (`.md`) or plain text (`.txt`) with pre-filled filenames.
-- **🔗 LiteLLM Proxy Support**: Connect to a local LiteLLM server to use hundreds of models via a single keyless interface.
 - **⚡ Smooth Scrolling**: Fixed dynamic scroll issues to ensure chat bubble layout doesn't flicker or jump when loading responses.
 
 ---

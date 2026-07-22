@@ -879,7 +879,7 @@ KCM.SimpleKCM {
                     text: i18n("Kill")
                     visible: configPage.memStt > 0
                     onClicked: {
-                        configPage.utilityDs.connectSource("pkill -f 'voice_helper.py --stt-server' #kill-stt-" + Date.now());
+                        configPage.utilityDs.connectSource("sh -c 'systemctl --user disable --now kde-ai-stt.service 2>/dev/null; pkill -9 -f \"voice_helper.py --stt-server\" 2>/dev/null' #kill-stt-" + Date.now());
                         configPage.memRefreshing = true;
                         let cmd = "sleep 0.5 && python3 " + Sec.quoteForShell(configPage.getHelperPath()) + " get_memory_usage";
                         configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
@@ -904,7 +904,7 @@ KCM.SimpleKCM {
                     text: i18n("Kill")
                     visible: configPage.memTts > 0
                     onClicked: {
-                        configPage.utilityDs.connectSource("pkill -f 'voice_helper.py --tts-server' #kill-tts-" + Date.now());
+                        configPage.utilityDs.connectSource("sh -c 'systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -9 -f \"voice_helper.py --tts-server\" 2>/dev/null' #kill-tts-" + Date.now());
                         configPage.memRefreshing = true;
                         let cmd = "sleep 0.5 && python3 " + Sec.quoteForShell(configPage.getHelperPath()) + " get_memory_usage";
                         configPage.utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());

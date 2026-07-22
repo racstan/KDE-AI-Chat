@@ -347,8 +347,17 @@ WantedBy=default.target
         f.write(tts_content)
 
     os.system("systemctl --user daemon-reload")
-    os.system("systemctl --user enable --now kde-ai-stt.service 2>/dev/null")
-    os.system("systemctl --user enable --now kde-ai-tts.service 2>/dev/null")
+    voice_enabled = payload.get("voiceEnabled", True)
+    voice_tts_enabled = payload.get("voiceTtsEnabled", True)
+    if voice_enabled:
+        os.system("systemctl --user enable --now kde-ai-stt.service 2>/dev/null")
+    else:
+        os.system("systemctl --user disable --now kde-ai-stt.service 2>/dev/null")
+
+    if voice_enabled and voice_tts_enabled:
+        os.system("systemctl --user enable --now kde-ai-tts.service 2>/dev/null")
+    else:
+        os.system("systemctl --user disable --now kde-ai-tts.service 2>/dev/null")
     print("VOICE_SERVICES_SETUP_OK")
 
 def cmd_delete_venv_setup(payload: Dict[str, Any]) -> None:

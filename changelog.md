@@ -5,6 +5,13 @@ All notable changes to the **KDE AI Chat** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-07-22
+
+### Fixed
+- **🗣️ Voice Service Autostart Management**: Fixed an issue where systemd user units (`kde-ai-stt.service` and `kde-ai-tts.service`) remained enabled and autostarted on system reboot even when voice tools were toggled off in settings. Toggling voice tools or TTS off now disables systemd autostart units (`systemctl --user disable --now`), and widget startup automatically syncs systemd service state to avoid unnecessary background RAM usage.
+
+---
+
 ## [1.3.0] - 2026-07-21
 
 ### Added
