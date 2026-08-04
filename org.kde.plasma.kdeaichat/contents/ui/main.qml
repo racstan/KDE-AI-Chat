@@ -43,8 +43,11 @@ PlasmoidItem {
     property bool renamingCurrentChat: false
     property string currentChatRenameDraft: ""
     property bool openCodeMode: plasmoid.configuration.useOpenCode
-    property string openCodeAgent: plasmoid.configuration.openCodeAgent || "coder"
+    property string openCodeAgent: plasmoid.configuration.openCodeAgent || ""
     property string openCodeWorkspaceCwd: plasmoid.configuration.openCodeWorkspaceCwd || ""
+    property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel !== false
+    property var openCodeAgentsList: []
+    property bool desktopSelectionEnabled: plasmoid.configuration.desktopSelectionEnabled === true
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
     property string compiledSystemPrompt: ""
@@ -797,6 +800,29 @@ PlasmoidItem {
         }
     }
 
+    function fetchOpenCodeAgents() {
+        // Read agents from opencode config JSON. We use the config file directly via a shell
+        // command since OpenCode doesn't expose a /agents REST endpoint in the API.
+        // The config has an "agent" object with agent-name keys.
+        var configPath = (Qt.resolvedUrl("file://" + fileReaderDs.sourceName).toString() !== "" ? "" : "");
+        var cmd = "python3 -c \""
+            + "import json, os; "
+            + "cfg = os.path.expanduser('~/.config/opencode/opencode.json'); "
+            + "data = json.load(open(cfg)) if os.path.exists(cfg) else {}; "
+            + "agents = list(data.get('agent', {}).keys()); "
+            + "default = data.get('default_agent', ''); "
+            + "print(json.dumps({'agents': agents, 'default': default}))"
+            + "\" #fetch-opencode-agents";
+        fileReaderDs.connectSource(cmd);
+    }
+
+    function fetchDesktopSelection() {
+        // Read the X11 primary selection (currently selected text on desktop)
+        // Uses xsel or xclip as fallback. The result pre-fills the chat input and opens the panel.
+        var cmd = "xsel --primary --output 2>/dev/null || xclip -out -selection primary 2>/dev/null #desktop-selection";
+        fileReaderDs.connectSource(cmd);
+    }
+
     function handleOpenCodeEvent(eventObj) {
         var props = eventObj && eventObj.properties ? eventObj.properties : {
         };
@@ -1020,6 +1046,12 @@ PlasmoidItem {
                     if (!root.userScrolledUp)
                         Qt.callLater(scrollToBottom);
 
+                    // Send desktop notification so user sees the question even if plasmoid is collapsed
+                    if (plasmoid.configuration.playNotificationSound) {
+                        var shortQText = qText.length > 80 ? qText.substring(0, 77) + "..." : qText;
+                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u normal -i dialog-question \"OpenCode needs your input\" " + Sec.quoteForShell(shortQText) + " #opencode-question-notify");
+                        triggerNotificationSound();
+                    }
                 }
             }
         } else if (eventObj.type === "question.replied") {
@@ -1225,19 +1257,25 @@ PlasmoidItem {
                         "text": lastMsg.content || ""
                     });
                 }
+                var agentName = (root.openCodeAgent || "").trim();
                 var sysValue = "";
                 if (compiledMemoryBlock && compiledMemoryBlock.length > 0)
                     sysValue = compiledMemoryBlock;
 
                 var reqPayload = {
-                    "model": {
-                        "providerID": providerId,
-                        "modelID": modelId
-                    },
                     "parts": parts
                 };
-                if (root.openCodeAgent && root.openCodeAgent.trim() !== "")
-                    reqPayload.agent = root.openCodeAgent.trim();
+                // Only send model if no agent is selected OR user has explicitly opted out of using agent model.
+                // When an agent is selected, its model is set in opencode.json and sending a conflicting
+                // provider/model causes "No provider available" errors.
+                if (!agentName || !root.openCodeUseAgentModel) {
+                    reqPayload.model = {
+                        "providerID": providerId,
+                        "modelID": modelId
+                    };
+                }
+                if (agentName !== "")
+                    reqPayload.agent = agentName;
                 if (sysValue && sysValue.length > 0)
                     reqPayload.system = sysValue;
 
@@ -1506,8 +1544,8 @@ PlasmoidItem {
         if (root.openCodeMode)
             return validateOpenCodeConfig();
 
-        var provider = plasmoid.configuration.provider || "openai";
-        var providerCfg = getProviderConfig(provider);
+        var provider = root.getEffectiveProvider ? root.getEffectiveProvider(root.currentSessionId) : (plasmoid.configuration.provider || "openai");
+        var providerCfg = getProviderConfig(provider, root.currentSessionId);
         return validateProviderConfig(provider, providerCfg);
     }
 
@@ -1546,8 +1584,8 @@ PlasmoidItem {
             doOpenCodeRequest();
             return ;
         }
-        var provider = plasmoid.configuration.provider || "openai";
-        var providerCfg = getProviderConfig(provider);
+        var provider = root.getEffectiveProvider ? root.getEffectiveProvider(root.currentSessionId) : (plasmoid.configuration.provider || "openai");
+        var providerCfg = getProviderConfig(provider, root.currentSessionId);
         if (providerCfg.type === "anthropic")
             doAnthropicRequest(providerCfg.apiKey, providerCfg.model);
         else
@@ -3256,6 +3294,42 @@ PlasmoidItem {
                     }
                 } else {
                     pushErrorMessage("Screen region capture cancelled or failed.");
+                }
+                disconnectSource(sourceName);
+                return ;
+            }
+            if (sourceName.indexOf("#fetch-opencode-agents") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    try {
+                        var agentData = JSON.parse(stdout.trim());
+                        var agents = agentData.agents || [];
+                        var defaultAgent = agentData.default || "";
+                        // Build agent list for the ComboBox
+                        var agentList = [];
+                        for (var ai = 0; ai < agents.length; ai++) {
+                            agentList.push({ "text": agents[ai], "value": agents[ai] });
+                        }
+                        if (agentList.length > 0)
+                            root.openCodeAgentsList = agentList;
+                        // Auto-select default agent if none selected yet
+                        if (defaultAgent && (root.openCodeAgent === "" || root.openCodeAgent === "coder")) {
+                            root.openCodeAgent = defaultAgent;
+                            plasmoid.configuration.openCodeAgent = defaultAgent;
+                        }
+                    } catch (e) {
+                        console.log("Failed to parse opencode agents: " + e);
+                    }
+                }
+                disconnectSource(sourceName);
+                return ;
+            }
+            if (sourceName.indexOf("#desktop-selection") !== -1) {
+                if (exitCode === 0 && stdout.trim() !== "") {
+                    var selText = stdout.trim();
+                    if (selText !== "") {
+                        root.chatInputText = selText;
+                        plasmoid.expanded = true;
+                    }
                 }
                 disconnectSource(sourceName);
                 return ;

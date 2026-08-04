@@ -87,3 +87,35 @@ def test_image_provider_uses_its_own_settings():
         "headers": None,
         "allowEmptyKey": False,
     }
+
+
+def test_parse_model_ids():
+    with open(PROVIDER_SERVICE, encoding="utf-8") as source_file:
+        source = re.sub(
+            r"^\s*\.pragma\s+library\s*\n",
+            "",
+            source_file.read(),
+            count=1,
+        )
+
+    driver = """
+    var resp = { data: [{ id: "gpt-4o" }, { id: "gpt-3.5-turbo" }] };
+    console.log(JSON.stringify(parseModelIds(resp)));
+    """
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as script:
+        script.write(source)
+        script.write(driver)
+        script_path = script.name
+
+    try:
+        result = subprocess.run(
+            ["node", script_path],
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=10,
+        )
+        assert json.loads(result.stdout) == ["gpt-4o", "gpt-3.5-turbo"]
+    finally:
+        os.unlink(script_path)
+

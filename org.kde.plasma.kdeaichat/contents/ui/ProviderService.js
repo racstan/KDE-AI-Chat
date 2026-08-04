@@ -453,3 +453,107 @@ function getApiKeyProviderIds() {
 function getSupportedProviders() {
     return Object.keys(PROVIDER_CONFIGS);
 }
+
+/**
+ * Parse model IDs from various provider API response structures.
+ *
+ * @param {Object} responseObj  Raw JSON object returned by the models endpoint.
+ * @returns {string[]} List of unique model ID strings.
+ */
+function parseModelIds(responseObj) {
+    var ids = [];
+    function pushId(v) {
+        if (!v) return;
+        if (ids.indexOf(v) < 0) ids.push(v);
+    }
+    if (Array.isArray(responseObj)) {
+        for (let i = 0; i < responseObj.length; i++) {
+            if (typeof responseObj[i] === "string") pushId(responseObj[i]);
+            else if (responseObj[i] && responseObj[i].id) pushId(responseObj[i].id);
+            else if (responseObj[i] && responseObj[i].name) pushId(responseObj[i].name);
+        }
+    } else if (responseObj && Array.isArray(responseObj.data)) {
+        for (let j = 0; j < responseObj.data.length; j++) {
+            if (responseObj.data[j] && responseObj.data[j].id) pushId(responseObj.data[j].id);
+            else if (responseObj.data[j] && responseObj.data[j].name) pushId(responseObj.data[j].name);
+        }
+    } else if (responseObj && Array.isArray(responseObj.models)) {
+        for (let k = 0; k < responseObj.models.length; k++) {
+            if (typeof responseObj.models[k] === "string") pushId(responseObj.models[k]);
+            else if (responseObj.models[k] && responseObj.models[k].id) pushId(responseObj.models[k].id);
+            else if (responseObj.models[k] && responseObj.models[k].name) pushId(responseObj.models[k].name);
+        }
+    }
+    return ids;
+}
+
+/**
+ * Fetch available model candidate IDs for a specific provider on-the-fly.
+ *
+ * @param {string} providerId  The provider ID (e.g. "openai", "anthropic", "groq", "ollama").
+ * @param {Object} configuration  The user's plasmoid.configuration map.
+ * @param {function(string[]):void} onSuccess  Callback invoked with array of model IDs.
+ * @param {function(string):void} onError  Callback invoked with error message string.
+ */
+function fetchModelsForProvider(providerId, configuration, onSuccess, onError) {
+    let cfg = getProviderConfig(providerId, configuration);
+    let apiKeyKey = getApiKeyConfigKey(providerId);
+    if (apiKeyKey && (!cfg.apiKey || cfg.apiKey.trim() === "")) {
+        if (onError) onError("API key missing for " + getProviderDisplayName(providerId));
+        return;
+    }
+
+    let headers = {};
+    if (cfg.apiKey) {
+        headers["Authorization"] = "Bearer " + cfg.apiKey;
+    }
+
+    let url = "";
+    if (cfg.type === "anthropic") {
+        headers["x-api-key"] = cfg.apiKey;
+        headers["anthropic-version"] = "2023-06-01";
+        url = "https://api.anthropic.com/v1/models";
+    } else {
+        let base = cfg.baseUrl || "";
+        base = base.replace(/\/$/, "");
+        if (base.endsWith("/chat/completions")) {
+            url = base.substring(0, base.length - "/chat/completions".length) + "/models";
+        } else {
+            url = base + "/models";
+        }
+    }
+
+    if (cfg.headers) {
+        for (let k in cfg.headers) {
+            if (cfg.headers.hasOwnProperty(k)) {
+                headers[k] = cfg.headers[k];
+            }
+        }
+    }
+
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.responseType = "text";
+    for (let h in headers) {
+        if (headers[h]) xhr.setRequestHeader(h, headers[h]);
+    }
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== XMLHttpRequest.DONE) return;
+        if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+                let parsed = JSON.parse(xhr.responseText);
+                let ids = parseModelIds(parsed);
+                if (onSuccess) onSuccess(ids);
+            } catch (e) {
+                if (onError) onError("Parse error: " + e.toString());
+            }
+        } else {
+            if (onError) onError("HTTP " + xhr.status + " from " + url);
+        }
+    };
+    xhr.onerror = function() {
+        if (onError) onError("Network error requesting " + url);
+    };
+    xhr.send();
+}
+

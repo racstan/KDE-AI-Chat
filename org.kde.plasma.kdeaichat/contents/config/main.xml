@@ -203,6 +203,18 @@
     <entry name="openCodeStopCommand" type="String">
       <default>pkill -f opencode &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo OpenCode stop command launched. || echo No OpenCode process matched.</default>
     </entry>
+    <entry name="openCodeAgent" type="String">
+      <default></default>
+    </entry>
+    <entry name="openCodeWorkspaceCwd" type="String">
+      <default></default>
+    </entry>
+    <entry name="openCodeUseAgentModel" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="desktopSelectionEnabled" type="Bool">
+      <default>false</default>
+    </entry>
 
 
 

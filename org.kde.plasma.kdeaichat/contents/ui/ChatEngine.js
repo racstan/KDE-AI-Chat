@@ -872,8 +872,8 @@ url = openCodeBaseUrl() + "/v1/chat/completions";
 model = (plasmoid.configuration.openCodeModel || "").trim();
 provider = "opencode";
 } else {
-provider = plasmoid.configuration.provider || "openai";
-let providerCfg = getProviderConfig(provider);
+provider = getEffectiveProvider(sId);
+let providerCfg = getProviderConfig(provider, sId);
 isAnthropic = (providerCfg.type === "anthropic");
 if (isAnthropic) {
 apiKey = providerCfg.apiKey;
@@ -2453,12 +2453,12 @@ return ;
 doOpenCodeRequest();
 return ;
 }
-if (isImageProvider(plasmoid.configuration.provider)) {
-    doImageGenerationRequest(text, plasmoid.configuration.provider);
+let effectiveProv = getEffectiveProvider(root.currentSessionId);
+if (isImageProvider(effectiveProv)) {
+    doImageGenerationRequest(text, effectiveProv);
     return ;
 }
-let provider = plasmoid.configuration.provider || "openai";
-let providerCfg = getProviderConfig(provider);
+let providerCfg = getProviderConfig(effectiveProv, root.currentSessionId);
 if (providerCfg.type === "anthropic")
 doAnthropicRequest(providerCfg.apiKey, providerCfg.model);
 else
@@ -2636,9 +2636,31 @@ processNextQueuedMessage();
 }
 
 
-function getProviderConfig(provider) {
-let cfg = ProviderService.getProviderConfig(provider, plasmoid.configuration);
-let sessionModel = getSessionProperty(root.currentSessionId, "chatModel", "").trim();
+function getEffectiveProvider(sessionId) {
+let sId = sessionId || root.currentSessionId;
+let chatProv = getSessionProperty(sId, "chatProvider", "").trim();
+if (chatProv !== "") {
+return chatProv;
+}
+return plasmoid.configuration.provider || "openai";
+}
+
+function getEffectiveModel(sessionId) {
+let sId = sessionId || root.currentSessionId;
+let chatMod = getSessionProperty(sId, "chatModel", "").trim();
+if (chatMod !== "") {
+return chatMod;
+}
+let prov = getEffectiveProvider(sId);
+let cfg = ProviderService.getProviderConfig(prov, plasmoid.configuration);
+return cfg.model || "";
+}
+
+function getProviderConfig(provider, sessionId) {
+let sId = sessionId || root.currentSessionId;
+let effProvider = provider || getEffectiveProvider(sId);
+let cfg = ProviderService.getProviderConfig(effProvider, plasmoid.configuration);
+let sessionModel = getSessionProperty(sId, "chatModel", "").trim();
 if (sessionModel !== "")
 cfg.model = sessionModel;
 return cfg;
@@ -2673,19 +2695,17 @@ return false;
 function injectMemoriesToUserMessage(contentVal, sessionId) {
     let sId = sessionId || root.currentSessionId;
     let memoryOn = plasmoid.configuration.memoryEnabled || false;
-    if (memoryOn) {
-        let memoryTxt = (plasmoid.configuration.userMemory || "").trim();
-        let chatMemoryTxt = getSessionProperty(sId, "chatMemory", "").trim();
-        let parts = [];
-        if (memoryTxt !== "") {
-            parts.push("--- Global Memory ---\n" + memoryTxt + "\n--- End of Global Memory ---");
-        }
-        if (chatMemoryTxt !== "") {
-            parts.push("--- Chat Memory ---\n" + chatMemoryTxt + "\n--- End of Chat Memory ---");
-        }
-        if (parts.length > 0) {
-            contentVal = contentVal + "\n\n[System Instruction: The following are memories. They may or maynot be useful to you.\n" + parts.join("\n\n") + "]";
-        }
+    let memoryTxt = memoryOn ? (plasmoid.configuration.userMemory || "").trim() : "";
+    let chatMemoryTxt = getSessionProperty(sId, "chatMemory", "").trim();
+    let parts = [];
+    if (memoryTxt !== "") {
+        parts.push("--- Global Memory ---\n" + memoryTxt + "\n--- End of Global Memory ---");
+    }
+    if (chatMemoryTxt !== "") {
+        parts.push("--- Chat Memory ---\n" + chatMemoryTxt + "\n--- End of Chat Memory ---");
+    }
+    if (parts.length > 0) {
+        contentVal = contentVal + "\n\n[System Instruction: The following are memories. They may or maynot be useful to you.\n" + parts.join("\n\n") + "]";
     }
     return contentVal;
 }
