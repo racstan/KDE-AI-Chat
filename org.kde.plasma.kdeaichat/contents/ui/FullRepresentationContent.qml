@@ -447,15 +447,15 @@ Item {
 
                 model: {
                     var globalProv = plasmoid.configuration.provider || "openai";
-                    var globalProvName = ProviderService.getProviderDisplayName(globalProv);
+                    var globalProvName = ProviderService.getProviderDisplayName(globalProv, plasmoid.configuration);
                     var list = [{
                         "text": "Default (" + globalProvName + ")",
                         "value": ""
                     }];
-                    var supported = ProviderService.getSupportedProviders();
+                    var supported = ProviderService.getSupportedProviders(plasmoid.configuration);
                     for (var i = 0; i < supported.length; i++) {
                         list.push({
-                            "text": ProviderService.getProviderDisplayName(supported[i]),
+                            "text": ProviderService.getProviderDisplayName(supported[i], plasmoid.configuration),
                             "value": supported[i]
                         });
                     }
@@ -592,6 +592,29 @@ Item {
                             clip: true
                             reuseItems: false
                             cacheBuffer: 1000
+
+                            // Smooth free-flowing touchpad kinetics
+                            boundsBehavior: Flickable.DragAndOvershootBounds
+                            flickDeceleration: 1800
+                            maximumFlickVelocity: 6000
+                            pixelAligned: true
+
+                            WheelHandler {
+                                id: msgListWheelHandler
+                                target: msgList
+                                orientation: Qt.Vertical
+                                onWheel: function(event) {
+                                    if (event && event.pixelDelta && event.pixelDelta.y !== 0) {
+                                        var newY = msgList.contentY - event.pixelDelta.y;
+                                        var minY = msgList.originY;
+                                        var maxY = Math.max(minY, msgList.contentHeight - msgList.height);
+                                        msgList.contentY = Math.max(minY, Math.min(newY, maxY));
+                                        if (!msgList.atYEnd) root.userScrolledUp = true;
+                                        event.accepted = true;
+                                    }
+                                }
+                            }
+
                             onWidthChanged: forceLayout()
                             onHeightChanged: forceLayout()
                             Component.onCompleted: root.msgListViewRef = msgList

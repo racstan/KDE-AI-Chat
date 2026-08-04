@@ -12,9 +12,9 @@ import QtCore
 import "Security.js" as Sec
 
 PlasmoidItem {
-    // Handled lazily by startupTimer / expanded triggers
-
     id: root
+
+    plasmoid.icon: (plasmoid.configuration && plasmoid.configuration.customIcon) ? plasmoid.configuration.customIcon : "dialog-messages"
 
     property var sessions: []
     property string currentSessionId: ""
@@ -2052,6 +2052,7 @@ PlasmoidItem {
         }
         root.loading = true;
         root.activeXhr = xhr;
+        var useStreaming = plasmoid.configuration.disableStreaming !== true;
         var buffer = "";
         var offset = 0;
         var fullText = "";
@@ -2081,6 +2082,66 @@ PlasmoidItem {
                 }
                 return ;
             }
+
+            if (!useStreaming) {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    root.loading = false;
+                    root.activeXhr = null;
+                    try {
+                        var respObj = JSON.parse(xhr.responseText);
+                        var choices = respObj.choices || [];
+                        var firstChoice = choices[0] || {};
+                        var msgContent = (firstChoice.message ? firstChoice.message.content : "") || "";
+                        var msgReasoning = (firstChoice.message ? (firstChoice.message.reasoning || firstChoice.message.reasoning_content || firstChoice.message.thought || "") : "") || "";
+
+                        var displayReasoning = msgReasoning;
+                        var displayText = msgContent;
+                        var thinkStart = displayText.indexOf("<think>");
+                        while (thinkStart !== -1) {
+                            var thinkEnd = displayText.indexOf("</think>", thinkStart);
+                            if (thinkEnd !== -1) {
+                                var extracted = displayText.substring(thinkStart + 7, thinkEnd);
+                                if (displayReasoning === "") displayReasoning = extracted;
+                                else displayReasoning += "\n" + extracted;
+                                displayText = displayText.substring(0, thinkStart) + displayText.substring(thinkEnd + 8);
+                            } else {
+                                var extracted = displayText.substring(thinkStart + 7);
+                                if (displayReasoning === "") displayReasoning = extracted;
+                                else displayReasoning += "\n" + extracted;
+                                displayText = displayText.substring(0, thinkStart);
+                                break;
+                            }
+                            thinkStart = displayText.indexOf("<think>");
+                        }
+
+                        var ts = Date.now();
+                        var resMsg = {
+                            "role": "assistant",
+                            "content": displayText || "(empty response)",
+                            "time": nowTime(ts),
+                            "at": ts,
+                            "model": modelLabel || model || ""
+                        };
+                        if (displayReasoning !== "") resMsg.reasoning = displayReasoning;
+                        if (respObj.usage) {
+                            resMsg.tokens = {
+                                "input": respObj.usage.prompt_tokens || respObj.usage.input_tokens || 0,
+                                "output": respObj.usage.completion_tokens || respObj.usage.output_tokens || 0
+                            };
+                        }
+                        root.messages = root.messages.concat([resMsg]);
+                        if (!root.userScrolledUp) Qt.callLater(scrollToBottom);
+                        triggerNotificationSound();
+                        saveCurrentSessionState(true);
+                        processNextQueuedMessage();
+                    } catch (parseErr) {
+                        pushErrorMessage("Failed to parse non-streaming response: " + parseErr.toString());
+                        processNextQueuedMessage();
+                    }
+                }
+                return;
+            }
+
             var delta = xhr.responseText.slice(offset);
             offset = xhr.responseText.length;
             buffer += delta;
@@ -2199,7 +2260,7 @@ PlasmoidItem {
             xhr.send(JSON.stringify({
                 "model": model,
                 "messages": buildOpenAICompatPayload(),
-                "stream": true
+                "stream": useStreaming
             }));
         } catch (sendError) {
             root.loading = false;

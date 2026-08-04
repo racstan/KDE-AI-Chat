@@ -352,26 +352,42 @@ let API_KEY_CONFIG_MAP = {
  * @param {string} providerId  Provider id (e.g. `"openai"`).
  * @returns {string} Human-readable name, or the id, or `"Selected provider"`.
  */
-function getProviderDisplayName(providerId) {
-    return DISPLAY_NAMES[providerId] || providerId || "Selected provider";
+function parseCustomProviders(configuration) {
+    if (!configuration || !configuration.customProvidersJson) return [];
+    try {
+        let raw = configuration.customProvidersJson;
+        let list = (typeof raw === "string") ? JSON.parse(raw) : raw;
+        return Array.isArray(list) ? list : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+/**
+ * Display name for a provider, falling back to custom provider name, the id, and then to a
+ * generic label.
+ *
+ * @param {string} providerId  Provider id (e.g. `"openai"` or `"custom_123"`).
+ * @param {Object} [configuration] Optional configuration map.
+ * @returns {string} Human-readable name.
+ */
+function getProviderDisplayName(providerId, configuration) {
+    if (DISPLAY_NAMES[providerId]) return DISPLAY_NAMES[providerId];
+    if (configuration) {
+        let customs = parseCustomProviders(configuration);
+        for (let i = 0; i < customs.length; i++) {
+            if (customs[i] && customs[i].id === providerId && customs[i].name) {
+                return "[Custom] " + customs[i].name;
+            }
+        }
+    }
+    return providerId || "Selected provider";
 }
 
 /**
  * Build a runtime provider config object by resolving all keys against
  * the user's `plasmoid.configuration` map. Returns a plain object the
  * request layer can consume directly.
- *
- * Output shape:
- *   - `type`: `"openai-compat"` or `"anthropic"`
- *   - `baseUrl`: resolved base URL (omitted for anthropic)
- *   - `apiKey`: trimmed key (empty string if `configKey` is empty)
- *   - `model`: resolved model name
- *   - `headers`: extra HTTP headers (only set for OpenRouter)
- *   - `allowEmptyKey`: whether the provider works without a key
- *     (e.g. local Ollama, LM Studio)
- *
- * If `providerId` is unknown, falls back to OpenAI-compatible defaults
- * driven by the `baseUrl`/`apiKey`/`model` configuration fields.
  *
  * @param {string} providerId  Provider id.
  * @param {Object} configuration  The user's `plasmoid.configuration` map.
@@ -381,6 +397,20 @@ function getProviderDisplayName(providerId) {
 function getProviderConfig(providerId, configuration) {
     let entry = PROVIDER_CONFIGS[providerId];
     if (!entry) {
+        let customs = parseCustomProviders(configuration);
+        for (let i = 0; i < customs.length; i++) {
+            let cp = customs[i];
+            if (cp && cp.id === providerId) {
+                return {
+                    "type": cp.type || "openai-compat",
+                    "baseUrl": (cp.baseUrl || "").trim(),
+                    "apiKey": (cp.apiKey || "").trim(),
+                    "model": (cp.model || "").trim(),
+                    "headers": cp.headers || null,
+                    "allowEmptyKey": cp.allowEmptyKey !== false
+                };
+            }
+        }
         return {
             "type": "openai-compat",
             "baseUrl": (configuration.baseUrl || "https://api.openai.com/v1"),
@@ -445,13 +475,22 @@ function getApiKeyProviderIds() {
 }
 
 /**
- * List all provider ids known to the registry, including local
- * providers (Ollama, LM Studio, etc.) that have no API key field.
+ * List all provider ids known to the registry, including custom remote providers.
  *
+ * @param {Object} [configuration] Optional configuration map.
  * @returns {string[]} Provider ids.
  */
-function getSupportedProviders() {
-    return Object.keys(PROVIDER_CONFIGS);
+function getSupportedProviders(configuration) {
+    let keys = Object.keys(PROVIDER_CONFIGS);
+    if (configuration) {
+        let customs = parseCustomProviders(configuration);
+        for (let i = 0; i < customs.length; i++) {
+            if (customs[i] && customs[i].id && keys.indexOf(customs[i].id) < 0) {
+                keys.push(customs[i].id);
+            }
+        }
+    }
+    return keys;
 }
 
 /**

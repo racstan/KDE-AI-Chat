@@ -12,6 +12,9 @@ KCM.SimpleKCM {
     id: configPage
 
     property alias cfg_appDisplayName: appDisplayNameField.text
+    property alias cfg_customIcon: customIconField.text
+    property alias cfg_disableStreaming: disableStreamingToggle.checked
+    property alias cfg_enableMcpTools: enableMcpToolsToggle.checked
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
     property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked
@@ -19,6 +22,8 @@ KCM.SimpleKCM {
     property string cfg_preselectedChatName: ""
     property string cfg_chatSessionsJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]"
     property string cfg_promptTemplates: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.promptTemplates || "[]") : "[]"
+    property string cfg_customProvidersJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customProvidersJson || "[]") : "[]"
+    property string cfg_mcpServersJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.mcpServersJson || "[]") : "[]"
     property string cfg_uiLanguage: "en"
 
     // Configuration page readiness flag
@@ -692,6 +697,234 @@ KCM.SimpleKCM {
                     if (safeSchedPath === "")
                         return;
                     configPage.utilityDs.connectSource("xdg-open " + Sec.quoteForShell(safeSchedPath) + " || kde-open " + Sec.quoteForShell(safeSchedPath) + " || kwrite " + Sec.quoteForShell(safeSchedPath) + " || kate " + Sec.quoteForShell(safeSchedPath) + " || nano " + Sec.quoteForShell(safeSchedPath) + " #open-sched-file");
+                }
+            }
+        }
+
+        // ── Custom Remote Providers ──────────────────────────────────────────────────
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Multiple Remote Providers (Custom Endpoints)")
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            implicitHeight: customProvLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
+            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
+            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+            border.width: 1
+            radius: 6
+
+            ColumnLayout {
+                id: customProvLayout
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.Label {
+                    text: i18n("Configure multiple custom AI provider endpoints simultaneously:")
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
+                    opacity: 0.8
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.TextField {
+                        id: newCpName
+                        placeholderText: "Provider Name (e.g. Enterprise LLM)"
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.ComboBox {
+                        id: newCpType
+                        model: ["openai-compat", "anthropic"]
+                        Layout.preferredWidth: 130
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.TextField {
+                        id: newCpUrl
+                        placeholderText: "Base URL (e.g. https://api.myllm.com/v1)"
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.TextField {
+                        id: newCpKey
+                        placeholderText: "API Key (optional)"
+                        echoMode: QQC2.TextField.Password
+                        Layout.preferredWidth: 150
+                    }
+
+                    QQC2.TextField {
+                        id: newCpModel
+                        placeholderText: "Model ID"
+                        Layout.preferredWidth: 120
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Add Provider")
+                        icon.name: "list-add"
+                        enabled: newCpName.text.trim().length > 0 && newCpUrl.text.trim().length > 0
+                        onClicked: {
+                            var list = [];
+                            try { list = JSON.parse(configPage.cfg_customProvidersJson || "[]"); } catch (e) { list = []; }
+                            var newId = "custom_" + Date.now();
+                            list.push({
+                                "id": newId,
+                                "name": newCpName.text.trim(),
+                                "type": newCpType.currentText,
+                                "baseUrl": newCpUrl.text.trim(),
+                                "apiKey": newCpKey.text.trim(),
+                                "model": newCpModel.text.trim()
+                            });
+                            configPage.cfg_customProvidersJson = JSON.stringify(list);
+                            if (plasmoid && plasmoid.configuration) {
+                                plasmoid.configuration.customProvidersJson = JSON.stringify(list);
+                            }
+                            newCpName.text = "";
+                            newCpUrl.text = "";
+                            newCpKey.text = "";
+                            newCpModel.text = "";
+                        }
+                    }
+                }
+
+                ListView {
+                    Layout.fillWidth: true
+                    implicitHeight: Math.min(180, count * 50)
+                    clip: true
+                    model: {
+                        try { return JSON.parse(configPage.cfg_customProvidersJson || "[]"); }
+                        catch(e) { return []; }
+                    }
+                    delegate: Rectangle {
+                        width: parent.width
+                        implicitHeight: 44
+                        color: index % 2 === 0 ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.02) : Qt.rgba(0,0,0,0)
+                        border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.06)
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            spacing: 8
+
+                            Kirigami.Icon {
+                                source: "network-server"
+                                implicitWidth: 18
+                                implicitHeight: 18
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 1
+                                QQC2.Label {
+                                    text: modelData.name + " (" + modelData.type + ")"
+                                    font.bold: true
+                                }
+                                QQC2.Label {
+                                    text: modelData.baseUrl + (modelData.model ? (" | model: " + modelData.model) : "")
+                                    font.pointSize: 8
+                                    opacity: 0.7
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            QQC2.ToolButton {
+                                icon.name: "edit-delete"
+                                onClicked: {
+                                    var list = JSON.parse(configPage.cfg_customProvidersJson || "[]");
+                                    list.splice(index, 1);
+                                    configPage.cfg_customProvidersJson = JSON.stringify(list);
+                                    if (plasmoid && plasmoid.configuration) {
+                                        plasmoid.configuration.customProvidersJson = JSON.stringify(list);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Widget Appearance & Custom Icon ──────────────────────────────────
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Widget Icon & Appearance")
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Widget Icon:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Icon {
+                source: customIconField.text || "dialog-messages"
+                implicitWidth: 24
+                implicitHeight: 24
+            }
+
+            QQC2.TextField {
+                id: customIconField
+                Layout.fillWidth: true
+                placeholderText: "dialog-messages"
+                text: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "dialog-messages") : "dialog-messages"
+                onTextChanged: {
+                    if (pageReady && plasmoid && plasmoid.configuration && text !== (plasmoid.configuration.customIcon || "")) {
+                        plasmoid.configuration.customIcon = text;
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label { text: i18n("Presets:"); opacity: 0.7 }
+
+            QQC2.Button { text: "💬 messages"; onClicked: customIconField.text = "dialog-messages" }
+            QQC2.Button { text: "🤖 bot"; onClicked: customIconField.text = "bot-symbolic" }
+            QQC2.Button { text: "🧠 brain"; onClicked: customIconField.text = "brain" }
+            QQC2.Button { text: "⚡ terminal"; onClicked: customIconField.text = "utilities-terminal" }
+            QQC2.Button { text: "🌐 network"; onClicked: customIconField.text = "network-workgroup" }
+        }
+
+        // ── Advanced HTTP & MCP Tools ──────────────────────────────────────────
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Response Streaming & MCP Server Tools")
+        }
+
+        QQC2.CheckBox {
+            id: disableStreamingToggle
+            Kirigami.FormData.label: i18n("Response Streaming:")
+            text: i18n("Disable response streaming (use full JSON responses)")
+            checked: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.disableStreaming === true) : false
+            onCheckedChanged: {
+                if (pageReady && plasmoid && plasmoid.configuration) {
+                    plasmoid.configuration.disableStreaming = checked;
+                }
+            }
+        }
+
+        QQC2.CheckBox {
+            id: enableMcpToolsToggle
+            Kirigami.FormData.label: i18n("MCP & Search Tools:")
+            text: i18n("Enable Model Context Protocol (MCP) server & web search tools")
+            checked: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.enableMcpTools !== false) : true
+            onCheckedChanged: {
+                if (pageReady && plasmoid && plasmoid.configuration) {
+                    plasmoid.configuration.enableMcpTools = checked;
                 }
             }
         }

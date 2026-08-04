@@ -512,6 +512,84 @@ def cmd_export_chat(payload: Dict[str, Any]) -> None:
     print("OK")
 
 
+def cmd_mcp_web_search(payload: Dict[str, Any]) -> None:
+    """Perform a web search using DuckDuckGo HTML search API and print JSON results."""
+    import urllib.request
+    import urllib.parse
+    import re
+    from html import unescape
+
+    query = payload.get("query", "").strip()
+    if not query:
+        print(json.dumps({"status": "error", "message": "Empty search query", "results": []}))
+        return
+
+    results: List[Dict[str, str]] = []
+    try:
+        url = "https://html.duckduckgo.com/html/?q=" + urllib.parse.quote(query)
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        })
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html = response.read().decode("utf-8", errors="ignore")
+
+        raw_matches = re.findall(
+            r'<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?<a[^>]+class="result__snippet"[^>]*>(.*?)</a>',
+            html, re.DOTALL
+        )
+        if not raw_matches:
+            raw_matches = re.findall(
+                r'<a class="result__url"[^>]*href="([^"]+)"[^>]*>\s*(.*?)\s*</a>.*?<a class="result__snippet"[^>]*>(.*?)</a>',
+                html, re.DOTALL
+            )
+
+        for link, title, snippet in raw_matches[:6]:
+            clean_title = unescape(re.sub(r'<[^>]+>', '', title)).strip()
+            clean_snippet = unescape(re.sub(r'<[^>]+>', '', snippet)).strip()
+            link_match = re.search(r'uddg=([^&]+)', link)
+            actual_url = urllib.parse.unquote(link_match.group(1)) if link_match else link
+            if actual_url and clean_title:
+                results.append({
+                    "title": clean_title,
+                    "snippet": clean_snippet,
+                    "url": actual_url
+                })
+        print(json.dumps({"status": "ok", "query": query, "results": results}))
+    except Exception as e:
+        print(json.dumps({"status": "error", "message": str(e), "results": []}))
+
+
+def cmd_mcp_query(payload: Dict[str, Any]) -> None:
+    """Execute JSON-RPC query or tool execution on an MCP stdio server command."""
+    command = payload.get("serverCommand", "")
+    method = payload.get("method", "tools/list")
+    params = payload.get("params", {})
+
+    if not command:
+        print(json.dumps({"status": "error", "message": "No server command provided"}))
+        return
+
+    try:
+        proc = subprocess.Popen(
+            command,
+            shell=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        req_msg = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}) + "\n"
+        stdout_data, stderr_data = proc.communicate(input=req_msg, timeout=15)
+        
+        resp_lines = [l for l in stdout_data.splitlines() if l.strip().startswith("{")]
+        if resp_lines:
+            print(resp_lines[0])
+        else:
+            print(json.dumps({"status": "ok", "raw": stdout_data, "stderr": stderr_data}))
+    except Exception as e:
+        print(json.dumps({"status": "error", "message": str(e)}))
+
+
 def _decode_payload(raw: str) -> Dict[str, Any]:
     """Decode the base64+JSON payload passed as ``argv[2]``.
 
@@ -561,6 +639,8 @@ def main() -> None:
         "save_all_schedules": cmd_save_all_schedules,
         "get_memory_usage": cmd_get_memory_usage,
         "export_chat": cmd_export_chat,
+        "mcp_web_search": cmd_mcp_web_search,
+        "mcp_query": cmd_mcp_query,
     }
 
     if command not in commands:

@@ -25,7 +25,9 @@ QQC2.Dialog {
     property string selectedModel: ""
     property string selectedOpenCodeAgent: ""
     property string selectedOpenCodeWorkspaceCwd: ""
+    property bool chatMemoryEnabled: true
     property string chatMemoryText: ""
+    property bool chatSystemPromptEnabled: true
     property string chatSystemPromptText: ""
     property int selectedResponseLength: 0
 
@@ -52,7 +54,9 @@ QQC2.Dialog {
             selectedModel = rootRef.getSessionProperty(targetSessionId, "chatModel", "");
             selectedOpenCodeAgent = rootRef.getSessionProperty(targetSessionId, "openCodeAgent", "");
             selectedOpenCodeWorkspaceCwd = rootRef.getSessionProperty(targetSessionId, "openCodeWorkspaceCwd", "");
+            chatMemoryEnabled = rootRef.getSessionProperty(targetSessionId, "chatMemoryEnabled", true);
             chatMemoryText = rootRef.getSessionProperty(targetSessionId, "chatMemory", "");
+            chatSystemPromptEnabled = rootRef.getSessionProperty(targetSessionId, "chatSystemPromptEnabled", true);
             chatSystemPromptText = rootRef.getSessionProperty(targetSessionId, "chatSystemPrompt", "");
             selectedResponseLength = rootRef.getSessionProperty(targetSessionId, "responseLength", 0);
         } else {
@@ -61,7 +65,9 @@ QQC2.Dialog {
             selectedModel = "";
             selectedOpenCodeAgent = "";
             selectedOpenCodeWorkspaceCwd = "";
+            chatMemoryEnabled = true;
             chatMemoryText = "";
+            chatSystemPromptEnabled = true;
             chatSystemPromptText = "";
             selectedResponseLength = 0;
         }
@@ -101,7 +107,9 @@ QQC2.Dialog {
             rootRef.setSessionProperty(targetSessionId, "chatModel", selectedModel);
             rootRef.setSessionProperty(targetSessionId, "openCodeAgent", selectedOpenCodeAgent);
             rootRef.setSessionProperty(targetSessionId, "openCodeWorkspaceCwd", selectedOpenCodeWorkspaceCwd);
+            rootRef.setSessionProperty(targetSessionId, "chatMemoryEnabled", chatMemoryEnabled);
             rootRef.setSessionProperty(targetSessionId, "chatMemory", chatMemoryText);
+            rootRef.setSessionProperty(targetSessionId, "chatSystemPromptEnabled", chatSystemPromptEnabled);
             rootRef.setSessionProperty(targetSessionId, "chatSystemPrompt", chatSystemPromptText);
             rootRef.setSessionProperty(targetSessionId, "responseLength", selectedResponseLength);
         }
@@ -124,7 +132,9 @@ QQC2.Dialog {
         selectedModel = "";
         selectedOpenCodeAgent = "";
         selectedOpenCodeWorkspaceCwd = "";
+        chatMemoryEnabled = true;
         chatMemoryText = "";
+        chatSystemPromptEnabled = true;
         chatSystemPromptText = "";
         selectedResponseLength = 0;
         statusText = "Reset chat properties to global defaults.";
@@ -286,14 +296,15 @@ QQC2.Dialog {
                                 valueRole: "value"
 
                                 model: {
+                                    var cfg = chatSettingsDialog.rootRef ? chatSettingsDialog.rootRef.plasmoid.configuration : null;
                                     var list = [{
-                                        "text": "Default (Global: " + ProviderService.getProviderDisplayName(chatSettingsDialog.rootRef ? (chatSettingsDialog.rootRef.plasmoid.configuration.provider || "openai") : "openai") + ")",
+                                        "text": "Default (Global: " + ProviderService.getProviderDisplayName(cfg ? (cfg.provider || "openai") : "openai", cfg) + ")",
                                         "value": ""
                                     }];
-                                    var supported = ProviderService.getSupportedProviders();
+                                    var supported = ProviderService.getSupportedProviders(cfg);
                                     for (var i = 0; i < supported.length; i++) {
                                         list.push({
-                                            "text": ProviderService.getProviderDisplayName(supported[i]),
+                                            "text": ProviderService.getProviderDisplayName(supported[i], cfg),
                                             "value": supported[i]
                                         });
                                     }
@@ -501,9 +512,18 @@ QQC2.Dialog {
                         anchors.margins: Kirigami.Units.smallSpacing * 1.5
                         spacing: Kirigami.Units.smallSpacing
 
-                        PC3.Label {
-                            text: "Per-Chat Memory"
-                            font.bold: true
+                        RowLayout {
+                            Layout.fillWidth: true
+                            PC3.Label {
+                                text: "Per-Chat Memory"
+                                font.bold: true
+                                Layout.fillWidth: true
+                            }
+                            PC3.CheckBox {
+                                text: "Enable Chat Memory"
+                                checked: chatSettingsDialog.chatMemoryEnabled
+                                onClicked: chatSettingsDialog.chatMemoryEnabled = checked
+                            }
                         }
 
                         PC3.Label {
@@ -517,6 +537,7 @@ QQC2.Dialog {
                         QQC2.TextArea {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 70
+                            enabled: chatSettingsDialog.chatMemoryEnabled
                             wrapMode: Text.WordWrap
                             placeholderText: "e.g. User prefers Python 3.12 syntax and strict typing for code snippets in this session."
                             text: chatSettingsDialog.chatMemoryText
@@ -541,9 +562,18 @@ QQC2.Dialog {
                         anchors.margins: Kirigami.Units.smallSpacing * 1.5
                         spacing: Kirigami.Units.smallSpacing
 
-                        PC3.Label {
-                            text: "Per-Chat System Instructions"
-                            font.bold: true
+                        RowLayout {
+                            Layout.fillWidth: true
+                            PC3.Label {
+                                text: "Per-Chat System Instructions"
+                                font.bold: true
+                                Layout.fillWidth: true
+                            }
+                            PC3.CheckBox {
+                                text: "Enable System Context"
+                                checked: chatSettingsDialog.chatSystemPromptEnabled
+                                onClicked: chatSettingsDialog.chatSystemPromptEnabled = checked
+                            }
                         }
 
                         PC3.Label {
@@ -557,6 +587,7 @@ QQC2.Dialog {
                         QQC2.TextArea {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 70
+                            enabled: chatSettingsDialog.chatSystemPromptEnabled
                             wrapMode: Text.WordWrap
                             placeholderText: "e.g. Act as a senior Linux kernel software engineer..."
                             text: chatSettingsDialog.chatSystemPromptText

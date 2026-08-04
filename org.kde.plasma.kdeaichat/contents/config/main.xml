@@ -250,6 +250,21 @@
     <entry name="playNotificationSound" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="customIcon" type="String">
+      <default>dialog-messages</default>
+    </entry>
+    <entry name="disableStreaming" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="customProvidersJson" type="String">
+      <default>[]</default>
+    </entry>
+    <entry name="mcpServersJson" type="String">
+      <default>[]</default>
+    </entry>
+    <entry name="enableMcpTools" type="Bool">
+      <default>true</default>
+    </entry>
 
     <entry name="sysInfoOS" type="Bool"><default>false</default></entry>
     <entry name="sysInfoShell" type="Bool"><default>false</default></entry>
