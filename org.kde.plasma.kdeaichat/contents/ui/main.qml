@@ -801,16 +801,61 @@ PlasmoidItem {
     }
 
     function fetchOpenCodeAgents() {
-        // Read agents from opencode config JSON. We use the config file directly via a shell
-        // command since OpenCode doesn't expose a /agents REST endpoint in the API.
-        // The config has an "agent" object with agent-name keys.
-        var configPath = (Qt.resolvedUrl("file://" + fileReaderDs.sourceName).toString() !== "" ? "" : "");
+        var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
+        baseUrl = baseUrl.replace(/\/v1\/?$/, "");
+        var configEndpoint = baseUrl + "/config";
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", configEndpoint, true);
+        xhr.timeout = 1500;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE) return;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    var agentKeys = data.agent ? Object.keys(data.agent) : [];
+                    var agentList = [];
+                    for (var i = 0; i < agentKeys.length; i++) {
+                        agentList.push(agentKeys[i]);
+                    }
+                    if (agentList.length === 0) {
+                        agentList = ["coder", "architect", "ask", "general", "review", "explore"];
+                    }
+                    root.openCodeAgentsList = agentList;
+                    var defaultAgent = data.default_agent || "coder";
+                    if (defaultAgent && (!root.openCodeAgent || root.openCodeAgent === "")) {
+                        root.openCodeAgent = defaultAgent;
+                        plasmoid.configuration.openCodeAgent = defaultAgent;
+                    }
+                    return;
+                } catch (e) {}
+            }
+            runFallbackAgentFileFetch();
+        };
+        xhr.ontimeout = function() { runFallbackAgentFileFetch(); };
+        xhr.onerror = function() { runFallbackAgentFileFetch(); };
+        try {
+            xhr.send();
+        } catch (err) {
+            runFallbackAgentFileFetch();
+        }
+    }
+
+    function runFallbackAgentFileFetch() {
         var cmd = "python3 -c \""
-            + "import json, os; "
-            + "cfg = os.path.expanduser('~/.config/opencode/opencode.json'); "
-            + "data = json.load(open(cfg)) if os.path.exists(cfg) else {}; "
-            + "agents = list(data.get('agent', {}).keys()); "
-            + "default = data.get('default_agent', ''); "
+            + "import json, os, glob; "
+            + "paths = [os.path.expanduser('~/.config/opencode/opencode.json'), './opencode.json']; "
+            + "agents = []; default = 'coder'; "
+            + "for p in paths:\n"
+            + "    if os.path.exists(p):\n"
+            + "        try:\n"
+            + "            d = json.load(open(p))\n"
+            + "            ag = list(d.get('agent', {}).keys())\n"
+            + "            if ag: agents.extend(ag)\n"
+            + "            if d.get('default_agent'): default = d.get('default_agent')\n"
+            + "        except Exception: pass\n"
+            + "agents = list(dict.fromkeys(agents)); "
+            + "if not agents: agents = ['coder', 'architect', 'ask', 'general', 'review', 'explore']; "
             + "print(json.dumps({'agents': agents, 'default': default}))"
             + "\" #fetch-opencode-agents";
         fileReaderDs.connectSource(cmd);
