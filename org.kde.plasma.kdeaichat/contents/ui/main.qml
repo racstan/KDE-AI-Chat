@@ -49,6 +49,7 @@ PlasmoidItem {
     property var openCodeAgentsList: []
     property var openCodeProvidersList: []
     property var openCodeModelsList: []
+    property bool fetchingAgentsInProgress: false
     property bool desktopSelectionEnabled: plasmoid.configuration.desktopSelectionEnabled === true
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
@@ -803,15 +804,19 @@ PlasmoidItem {
     }
 
     function fetchOpenCodeAgents() {
+        if (root.fetchingAgentsInProgress) return;
+        root.fetchingAgentsInProgress = true;
+
         var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
         baseUrl = baseUrl.replace(/\/v1\/?$/, "");
         var agentEndpoint = baseUrl + "/agent";
 
         var xhr = new XMLHttpRequest();
         xhr.open("GET", agentEndpoint, true);
-        xhr.timeout = 1500;
+        xhr.timeout = 1000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE) return;
+            root.fetchingAgentsInProgress = false;
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     var data = JSON.parse(xhr.responseText);
@@ -832,55 +837,22 @@ PlasmoidItem {
                     }
                 } catch (e) {}
             }
-            tryConfigEndpointFetch();
+            // Fast fallback to standard default agent suite
+            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
         };
-        xhr.ontimeout = function() { tryConfigEndpointFetch(); };
-        xhr.onerror = function() { tryConfigEndpointFetch(); };
+        xhr.ontimeout = function() {
+            root.fetchingAgentsInProgress = false;
+            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
+        };
+        xhr.onerror = function() {
+            root.fetchingAgentsInProgress = false;
+            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
+        };
         try {
             xhr.send();
         } catch (err) {
-            tryConfigEndpointFetch();
-        }
-    }
-
-    function tryConfigEndpointFetch() {
-        var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
-        baseUrl = baseUrl.replace(/\/v1\/?$/, "");
-        var configEndpoint = baseUrl + "/config";
-
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", configEndpoint, true);
-        xhr.timeout = 1500;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return;
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    var data = JSON.parse(xhr.responseText);
-                    var agentKeys = data.agent ? Object.keys(data.agent) : [];
-                    var agentList = [];
-                    for (var i = 0; i < agentKeys.length; i++) {
-                        agentList.push(agentKeys[i]);
-                    }
-                    if (agentList.length === 0) {
-                        agentList = ["coder", "architect", "ask", "general", "review", "explore"];
-                    }
-                    root.openCodeAgentsList = agentList;
-                    var defaultAgent = data.default_agent || "coder";
-                    if (defaultAgent && (!root.openCodeAgent || root.openCodeAgent === "")) {
-                        root.openCodeAgent = defaultAgent;
-                        plasmoid.configuration.openCodeAgent = defaultAgent;
-                    }
-                    return;
-                } catch (e) {}
-            }
-            runFallbackAgentFileFetch();
-        };
-        xhr.ontimeout = function() { runFallbackAgentFileFetch(); };
-        xhr.onerror = function() { runFallbackAgentFileFetch(); };
-        try {
-            xhr.send();
-        } catch (err) {
-            runFallbackAgentFileFetch();
+            root.fetchingAgentsInProgress = false;
+            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
         }
     }
 

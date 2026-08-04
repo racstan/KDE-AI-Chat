@@ -9,10 +9,10 @@ import "ProviderService.js" as ProviderService
 QQC2.Dialog {
     id: chatSettingsDialog
 
-    title: targetSessionTitle ? ("Chat Settings - " + targetSessionTitle) : "Chat Settings"
+    title: targetSessionTitle ? ("Chat Settings: " + targetSessionTitle) : "Chat Settings"
     modal: true
     focus: true
-    padding: Kirigami.Units.gridUnit
+    padding: 16
     standardButtons: QQC2.Dialog.NoButton
 
     property var rootRef: null
@@ -36,8 +36,8 @@ QQC2.Dialog {
     property bool loadingModels: false
     property string statusText: ""
 
-    width: Math.min(Screen.width ? Screen.width * 0.9 : 640, 600)
-    height: Math.min(Screen.height ? Screen.height * 0.85 : 700, 660)
+    width: 600
+    height: 640
 
     function openForSession(sessionId) {
         if (!rootRef) return;
@@ -166,22 +166,22 @@ QQC2.Dialog {
 
     contentItem: ColumnLayout {
         anchors.fill: parent
-        spacing: Kirigami.Units.mediumSpacing
+        spacing: 12
 
-        // Main Scrollable Area
         QQC2.ScrollView {
+            id: scrollPane
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
 
             ColumnLayout {
-                width: parent.width
-                spacing: Kirigami.Units.mediumSpacing
+                width: scrollPane.width - 24
+                spacing: 14
 
                 // Mode Selector Card
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: modeLayout.implicitHeight + Kirigami.Units.gridUnit
+                    implicitHeight: modeLayout.implicitHeight + 20
                     color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
                     border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.3)
                     border.width: 1
@@ -190,8 +190,8 @@ QQC2.Dialog {
                     ColumnLayout {
                         id: modeLayout
                         anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing * 1.5
-                        spacing: Kirigami.Units.smallSpacing
+                        anchors.margins: 12
+                        spacing: 8
 
                         PC3.Label {
                             text: "Chat Execution Mode"
@@ -201,7 +201,7 @@ QQC2.Dialog {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.mediumSpacing
+                            spacing: 16
 
                             PC3.RadioButton {
                                 id: modeNormalRadio
@@ -245,7 +245,7 @@ QQC2.Dialog {
                 Rectangle {
                     visible: chatSettingsDialog.selectedMode !== "opencode"
                     Layout.fillWidth: true
-                    implicitHeight: providerCardLayout.implicitHeight + Kirigami.Units.gridUnit
+                    implicitHeight: providerCardLayout.implicitHeight + 20
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
                     border.width: 1
@@ -254,17 +254,17 @@ QQC2.Dialog {
                     ColumnLayout {
                         id: providerCardLayout
                         anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing * 1.5
-                        spacing: Kirigami.Units.smallSpacing
+                        anchors.margins: 12
+                        spacing: 10
 
                         PC3.Label {
-                            text: "Provider & Model Overrides (Configured APIs Only)"
+                            text: "Provider & Model Overrides"
                             font.bold: true
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: 8
 
                             PC3.Label {
                                 text: "Provider:"
@@ -311,7 +311,7 @@ QQC2.Dialog {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: 8
 
                             PC3.Label {
                                 text: "Model:"
@@ -328,25 +328,21 @@ QQC2.Dialog {
                                     for (var i = 0; i < chatSettingsDialog.modelCandidates.length; i++) {
                                         list.push(chatSettingsDialog.modelCandidates[i]);
                                     }
-                                    if (chatSettingsDialog.selectedModel && list.indexOf(chatSettingsDialog.selectedModel) < 0) {
-                                        list.push(chatSettingsDialog.selectedModel);
-                                    }
                                     return list;
                                 }
 
                                 editText: chatSettingsDialog.selectedModel
 
-                                onEditTextChanged: {
-                                    chatSettingsDialog.selectedModel = editText;
-                                }
-
                                 onActivated: {
                                     if (currentIndex === 0) {
                                         chatSettingsDialog.selectedModel = "";
-                                        editText = "";
                                     } else {
                                         chatSettingsDialog.selectedModel = currentText;
                                     }
+                                }
+
+                                onAccepted: {
+                                    chatSettingsDialog.selectedModel = editText;
                                 }
                             }
 
@@ -358,7 +354,6 @@ QQC2.Dialog {
                                 QQC2.ToolTip {
                                     text: "Fetch available candidate models live from API endpoint"
                                     visible: refreshModelsBtn.hovered
-                                    z: 9999
                                 }
                             }
                         }
@@ -379,7 +374,7 @@ QQC2.Dialog {
                 Rectangle {
                     visible: chatSettingsDialog.selectedMode === "opencode"
                     Layout.fillWidth: true
-                    implicitHeight: openCodeCardLayout.implicitHeight + Kirigami.Units.gridUnit
+                    implicitHeight: openCodeCardLayout.implicitHeight + 20
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
                     border.width: 1
@@ -388,8 +383,8 @@ QQC2.Dialog {
                     ColumnLayout {
                         id: openCodeCardLayout
                         anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing * 1.5
-                        spacing: Kirigami.Units.smallSpacing
+                        anchors.margins: 12
+                        spacing: 10
 
                         PC3.Label {
                             text: "OpenCode Engine Properties"
@@ -398,7 +393,7 @@ QQC2.Dialog {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: 8
 
                             PC3.Label {
                                 text: "Agent Profile:"
@@ -416,20 +411,21 @@ QQC2.Dialog {
                                         var aName = (typeof aItem === "string") ? aItem : (aItem.name || aItem.text || "");
                                         if (aName && list.indexOf(aName) < 0) list.push(aName);
                                     }
-                                    if (chatSettingsDialog.selectedOpenCodeAgent && list.indexOf(chatSettingsDialog.selectedOpenCodeAgent) < 0) {
-                                        list.push(chatSettingsDialog.selectedOpenCodeAgent);
-                                    }
                                     return list;
                                 }
+
                                 editText: chatSettingsDialog.selectedOpenCodeAgent
-                                onEditTextChanged: chatSettingsDialog.selectedOpenCodeAgent = editText
+
                                 onActivated: {
                                     if (currentIndex === 0) {
                                         chatSettingsDialog.selectedOpenCodeAgent = "";
-                                        editText = "";
                                     } else {
                                         chatSettingsDialog.selectedOpenCodeAgent = currentText;
                                     }
+                                }
+
+                                onAccepted: {
+                                    chatSettingsDialog.selectedOpenCodeAgent = editText;
                                 }
                             }
 
@@ -446,14 +442,13 @@ QQC2.Dialog {
                                 QQC2.ToolTip {
                                     text: "Refresh active agents list from OpenCode server / opencode.json"
                                     visible: refreshAgentsBtn.hovered
-                                    z: 9999
                                 }
                             }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: 8
 
                             PC3.Label {
                                 text: "Model / Provider:"
@@ -469,20 +464,21 @@ QQC2.Dialog {
                                     for (var i = 0; i < mList.length; i++) {
                                         if (list.indexOf(mList[i]) < 0) list.push(mList[i]);
                                     }
-                                    if (chatSettingsDialog.selectedOpenCodeModel && list.indexOf(chatSettingsDialog.selectedOpenCodeModel) < 0) {
-                                        list.push(chatSettingsDialog.selectedOpenCodeModel);
-                                    }
                                     return list;
                                 }
+
                                 editText: chatSettingsDialog.selectedOpenCodeModel
-                                onEditTextChanged: chatSettingsDialog.selectedOpenCodeModel = editText
+
                                 onActivated: {
                                     if (currentIndex === 0) {
                                         chatSettingsDialog.selectedOpenCodeModel = "";
-                                        editText = "";
                                     } else {
                                         chatSettingsDialog.selectedOpenCodeModel = currentText;
                                     }
+                                }
+
+                                onAccepted: {
+                                    chatSettingsDialog.selectedOpenCodeModel = editText;
                                 }
                             }
 
@@ -499,14 +495,13 @@ QQC2.Dialog {
                                 QQC2.ToolTip {
                                     text: "Refresh providers & models from OpenCode /provider API"
                                     visible: refreshOpenCodeModelsBtn.hovered
-                                    z: 9999
                                 }
                             }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: 8
 
                             PC3.Label {
                                 text: "Workspace Cwd:"
@@ -528,7 +523,6 @@ QQC2.Dialog {
                                 QQC2.ToolTip {
                                     text: "Browse workspace directory folder"
                                     visible: browseDirBtn.hovered
-                                    z: 9999
                                 }
                             }
                         }
@@ -538,7 +532,7 @@ QQC2.Dialog {
                 // Per-Chat Memory Card
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: memoryCardLayout.implicitHeight + Kirigami.Units.gridUnit
+                    implicitHeight: memoryCardLayout.implicitHeight + 20
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
                     border.width: 1
@@ -547,8 +541,8 @@ QQC2.Dialog {
                     ColumnLayout {
                         id: memoryCardLayout
                         anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing * 1.5
-                        spacing: Kirigami.Units.smallSpacing
+                        anchors.margins: 12
+                        spacing: 8
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -588,7 +582,7 @@ QQC2.Dialog {
                 Rectangle {
                     visible: chatSettingsDialog.selectedMode !== "opencode"
                     Layout.fillWidth: true
-                    implicitHeight: sysPromptCardLayout.implicitHeight + Kirigami.Units.gridUnit
+                    implicitHeight: sysPromptCardLayout.implicitHeight + 20
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
                     border.width: 1
@@ -597,8 +591,8 @@ QQC2.Dialog {
                     ColumnLayout {
                         id: sysPromptCardLayout
                         anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing * 1.5
-                        spacing: Kirigami.Units.smallSpacing
+                        anchors.margins: 12
+                        spacing: 8
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -638,7 +632,7 @@ QQC2.Dialog {
                 Rectangle {
                     visible: chatSettingsDialog.selectedMode !== "opencode"
                     Layout.fillWidth: true
-                    implicitHeight: respLenCardLayout.implicitHeight + Kirigami.Units.gridUnit
+                    implicitHeight: respLenCardLayout.implicitHeight + 20
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
                     border.width: 1
@@ -647,8 +641,8 @@ QQC2.Dialog {
                     ColumnLayout {
                         id: respLenCardLayout
                         anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing * 1.5
-                        spacing: Kirigami.Units.smallSpacing
+                        anchors.margins: 12
+                        spacing: 8
 
                         PC3.Label {
                             text: "Response Length Preference"
@@ -657,7 +651,7 @@ QQC2.Dialog {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: 8
 
                             PC3.Label {
                                 text: "Length:"
@@ -679,7 +673,7 @@ QQC2.Dialog {
         // Bottom Action Buttons
         RowLayout {
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+            spacing: 8
 
             PC3.Button {
                 text: "Reset Defaults"
