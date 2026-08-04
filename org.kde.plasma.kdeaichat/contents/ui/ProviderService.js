@@ -594,6 +594,7 @@ function fetchModelsForProvider(providerId, configuration, onSuccess, onError) {
     let xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.responseType = "text";
+    xhr.timeout = 5000; // 5 second timeout — never hang plasmashell
     for (let h in headers) {
         if (headers[h]) xhr.setRequestHeader(h, headers[h]);
     }
@@ -611,9 +612,14 @@ function fetchModelsForProvider(providerId, configuration, onSuccess, onError) {
             if (onError) onError("HTTP " + xhr.status + " from " + url);
         }
     };
+    xhr.ontimeout = function() {
+        if (onError) onError("Timed out fetching models from " + url);
+    };
     xhr.onerror = function() {
         if (onError) onError("Network error requesting " + url);
     };
-    xhr.send();
+    try { xhr.send(); } catch(e) {
+        if (onError) onError("Send failed: " + e);
+    }
 }
 

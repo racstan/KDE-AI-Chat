@@ -76,9 +76,7 @@ QQC2.Dialog {
         }
 
         statusText = "";
-        if (selectedMode === "provider") {
-            refreshModelCandidates();
-        } else {
+        if (selectedMode === "opencode") {
             if (typeof rootRef.fetchOpenCodeAgents === "function") {
                 rootRef.fetchOpenCodeAgents();
             }
@@ -86,6 +84,7 @@ QQC2.Dialog {
                 rootRef.fetchOpenCodeProvidersAndModels();
             }
         }
+        // Note: Models are NOT auto-fetched on open. User clicks the ↻ button.
         open();
     }
 
@@ -293,18 +292,19 @@ QQC2.Dialog {
                                     return list;
                                 }
 
-                                currentIndex: {
+                                Component.onCompleted: {
+                                    // Set index once after model is ready - avoid binding loop
                                     var cur = chatSettingsDialog.selectedProvider;
                                     for (var i = 0; i < model.length; i++) {
-                                        if (model[i].value === cur) return i;
+                                        if (model[i].value === cur) { currentIndex = i; return; }
                                     }
-                                    return 0;
+                                    currentIndex = 0;
                                 }
 
                                 onActivated: {
                                     var val = model[currentIndex].value;
                                     chatSettingsDialog.selectedProvider = val;
-                                    chatSettingsDialog.refreshModelCandidates();
+                                    // Don't auto-fetch models on provider change either - user clicks ↻
                                 }
                             }
                         }
@@ -331,11 +331,13 @@ QQC2.Dialog {
                                     return list;
                                 }
 
-                                editText: chatSettingsDialog.selectedModel
+                                // Use Component.onCompleted to set initial text without binding loop
+                                Component.onCompleted: { editText = chatSettingsDialog.selectedModel || ""; }
 
                                 onActivated: {
                                     if (currentIndex === 0) {
                                         chatSettingsDialog.selectedModel = "";
+                                        editText = "";
                                     } else {
                                         chatSettingsDialog.selectedModel = currentText;
                                     }
@@ -401,6 +403,7 @@ QQC2.Dialog {
                             }
 
                             QQC2.ComboBox {
+                                id: agentCombo
                                 Layout.fillWidth: true
                                 editable: true
                                 model: {
@@ -414,11 +417,12 @@ QQC2.Dialog {
                                     return list;
                                 }
 
-                                editText: chatSettingsDialog.selectedOpenCodeAgent
+                                Component.onCompleted: { editText = chatSettingsDialog.selectedOpenCodeAgent || ""; }
 
                                 onActivated: {
                                     if (currentIndex === 0) {
                                         chatSettingsDialog.selectedOpenCodeAgent = "";
+                                        editText = "";
                                     } else {
                                         chatSettingsDialog.selectedOpenCodeAgent = currentText;
                                     }
@@ -456,6 +460,7 @@ QQC2.Dialog {
                             }
 
                             QQC2.ComboBox {
+                                id: ocModelCombo
                                 Layout.fillWidth: true
                                 editable: true
                                 model: {
@@ -467,11 +472,12 @@ QQC2.Dialog {
                                     return list;
                                 }
 
-                                editText: chatSettingsDialog.selectedOpenCodeModel
+                                Component.onCompleted: { editText = chatSettingsDialog.selectedOpenCodeModel || ""; }
 
                                 onActivated: {
                                     if (currentIndex === 0) {
                                         chatSettingsDialog.selectedOpenCodeModel = "";
+                                        editText = "";
                                     } else {
                                         chatSettingsDialog.selectedOpenCodeModel = currentText;
                                     }
