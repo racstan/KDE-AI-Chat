@@ -47,6 +47,8 @@ PlasmoidItem {
     property string openCodeWorkspaceCwd: plasmoid.configuration.openCodeWorkspaceCwd || ""
     property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel !== false
     property var openCodeAgentsList: []
+    property var openCodeProvidersList: []
+    property var openCodeModelsList: []
     property bool desktopSelectionEnabled: plasmoid.configuration.desktopSelectionEnabled === true
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
@@ -803,6 +805,47 @@ PlasmoidItem {
     function fetchOpenCodeAgents() {
         var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
         baseUrl = baseUrl.replace(/\/v1\/?$/, "");
+        var agentEndpoint = baseUrl + "/agent";
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", agentEndpoint, true);
+        xhr.timeout = 1500;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE) return;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    var agentList = [];
+                    if (Array.isArray(data)) {
+                        for (var i = 0; i < data.length; i++) {
+                            if (data[i] && data[i].name) agentList.push(data[i].name);
+                        }
+                    } else if (data && typeof data === "object") {
+                        agentList = Object.keys(data);
+                    }
+                    if (agentList.length > 0) {
+                        root.openCodeAgentsList = agentList;
+                        if (!root.openCodeAgent || root.openCodeAgent === "") {
+                            root.openCodeAgent = agentList[0];
+                        }
+                        return;
+                    }
+                } catch (e) {}
+            }
+            tryConfigEndpointFetch();
+        };
+        xhr.ontimeout = function() { tryConfigEndpointFetch(); };
+        xhr.onerror = function() { tryConfigEndpointFetch(); };
+        try {
+            xhr.send();
+        } catch (err) {
+            tryConfigEndpointFetch();
+        }
+    }
+
+    function tryConfigEndpointFetch() {
+        var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
+        baseUrl = baseUrl.replace(/\/v1\/?$/, "");
         var configEndpoint = baseUrl + "/config";
 
         var xhr = new XMLHttpRequest();
@@ -839,6 +882,42 @@ PlasmoidItem {
         } catch (err) {
             runFallbackAgentFileFetch();
         }
+    }
+
+    function fetchOpenCodeProvidersAndModels() {
+        var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
+        baseUrl = baseUrl.replace(/\/v1\/?$/, "");
+        var providerEndpoint = baseUrl + "/provider";
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", providerEndpoint, true);
+        xhr.timeout = 2000;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE) return;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    var allProvs = data.all || data.connected || [];
+                    var provList = [];
+                    var modelList = [];
+                    for (var i = 0; i < allProvs.length; i++) {
+                        var p = allProvs[i];
+                        if (p && p.id) {
+                            provList.push({ "id": p.id, "name": p.name || p.id });
+                            if (p.models && typeof p.models === "object") {
+                                var mKeys = Object.keys(p.models);
+                                for (var j = 0; j < mKeys.length; j++) {
+                                    modelList.push(p.id + "/" + mKeys[j]);
+                                }
+                            }
+                        }
+                    }
+                    if (provList.length > 0) root.openCodeProvidersList = provList;
+                    if (modelList.length > 0) root.openCodeModelsList = modelList;
+                } catch (e) {}
+            }
+        };
+        try { xhr.send(); } catch (e) {}
     }
 
     function runFallbackAgentFileFetch() {
@@ -1740,7 +1819,7 @@ PlasmoidItem {
             missing.push("API key");
 
         if (missing.length > 0)
-            return "Cannot send with " + name + ". Missing: " + missing.join(", ") + ".";
+            return "⚠️ Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model.";
 
         return "";
     }

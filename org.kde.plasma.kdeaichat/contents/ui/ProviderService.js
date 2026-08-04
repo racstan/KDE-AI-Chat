@@ -494,6 +494,27 @@ function getSupportedProviders(configuration) {
 }
 
 /**
+ * List all provider ids that have a valid configured API key (or don't require an API key).
+ * Used by settings and chat header to only show usable providers in Normal mode.
+ *
+ * @param {Object} configuration User's plasmoid.configuration map.
+ * @returns {string[]} Provider ids.
+ */
+function getConfiguredProviders(configuration) {
+    let all = getSupportedProviders(configuration);
+    if (!configuration) return all;
+    let configured = [];
+    for (let i = 0; i < all.length; i++) {
+        let pId = all[i];
+        let pConf = getProviderConfig(pId, configuration);
+        if (pConf.allowEmptyKey || (pConf.apiKey && pConf.apiKey.length > 0)) {
+            configured.push(pId);
+        }
+    }
+    return configured.length > 0 ? configured : all;
+}
+
+/**
  * Parse model IDs from various provider API response structures.
  *
  * @param {Object} responseObj  Raw JSON object returned by the models endpoint.

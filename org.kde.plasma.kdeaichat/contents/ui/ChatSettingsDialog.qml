@@ -9,7 +9,7 @@ import "ProviderService.js" as ProviderService
 QQC2.Dialog {
     id: chatSettingsDialog
 
-    title: "Chat Settings"
+    title: targetSessionTitle ? ("Chat Settings - " + targetSessionTitle) : "Chat Settings"
     modal: true
     focus: true
     padding: Kirigami.Units.gridUnit
@@ -24,6 +24,7 @@ QQC2.Dialog {
     property string selectedProvider: ""
     property string selectedModel: ""
     property string selectedOpenCodeAgent: ""
+    property string selectedOpenCodeModel: ""
     property string selectedOpenCodeWorkspaceCwd: ""
     property bool chatMemoryEnabled: true
     property string chatMemoryText: ""
@@ -35,8 +36,8 @@ QQC2.Dialog {
     property bool loadingModels: false
     property string statusText: ""
 
-    width: Math.min(Screen.width ? Screen.width * 0.9 : 620, 580)
-    height: Math.min(Screen.height ? Screen.height * 0.85 : 680, 640)
+    width: Math.min(Screen.width ? Screen.width * 0.9 : 640, 600)
+    height: Math.min(Screen.height ? Screen.height * 0.85 : 700, 660)
 
     function openForSession(sessionId) {
         if (!rootRef) return;
@@ -53,6 +54,7 @@ QQC2.Dialog {
             selectedProvider = rootRef.getSessionProperty(targetSessionId, "chatProvider", "");
             selectedModel = rootRef.getSessionProperty(targetSessionId, "chatModel", "");
             selectedOpenCodeAgent = rootRef.getSessionProperty(targetSessionId, "openCodeAgent", "");
+            selectedOpenCodeModel = rootRef.getSessionProperty(targetSessionId, "openCodeModel", "");
             selectedOpenCodeWorkspaceCwd = rootRef.getSessionProperty(targetSessionId, "openCodeWorkspaceCwd", "");
             chatMemoryEnabled = rootRef.getSessionProperty(targetSessionId, "chatMemoryEnabled", true);
             chatMemoryText = rootRef.getSessionProperty(targetSessionId, "chatMemory", "");
@@ -64,6 +66,7 @@ QQC2.Dialog {
             selectedProvider = "";
             selectedModel = "";
             selectedOpenCodeAgent = "";
+            selectedOpenCodeModel = "";
             selectedOpenCodeWorkspaceCwd = "";
             chatMemoryEnabled = true;
             chatMemoryText = "";
@@ -75,8 +78,13 @@ QQC2.Dialog {
         statusText = "";
         if (selectedMode === "provider") {
             refreshModelCandidates();
-        } else if (typeof rootRef.fetchOpenCodeAgents === "function") {
-            rootRef.fetchOpenCodeAgents();
+        } else {
+            if (typeof rootRef.fetchOpenCodeAgents === "function") {
+                rootRef.fetchOpenCodeAgents();
+            }
+            if (typeof rootRef.fetchOpenCodeProvidersAndModels === "function") {
+                rootRef.fetchOpenCodeProvidersAndModels();
+            }
         }
         open();
     }
@@ -85,7 +93,7 @@ QQC2.Dialog {
         if (!rootRef || !rootRef.plasmoid) return;
         var prov = selectedProvider || rootRef.plasmoid.configuration.provider || "openai";
         loadingModels = true;
-        statusText = "Fetching models for " + ProviderService.getProviderDisplayName(prov) + "...";
+        statusText = "Fetching models for " + ProviderService.getProviderDisplayName(prov, rootRef.plasmoid.configuration) + "...";
         modelCandidates = [];
 
         ProviderService.fetchModelsForProvider(prov, rootRef.plasmoid.configuration, function(ids) {
@@ -106,6 +114,7 @@ QQC2.Dialog {
             rootRef.setSessionProperty(targetSessionId, "chatProvider", selectedProvider);
             rootRef.setSessionProperty(targetSessionId, "chatModel", selectedModel);
             rootRef.setSessionProperty(targetSessionId, "openCodeAgent", selectedOpenCodeAgent);
+            rootRef.setSessionProperty(targetSessionId, "openCodeModel", selectedOpenCodeModel);
             rootRef.setSessionProperty(targetSessionId, "openCodeWorkspaceCwd", selectedOpenCodeWorkspaceCwd);
             rootRef.setSessionProperty(targetSessionId, "chatMemoryEnabled", chatMemoryEnabled);
             rootRef.setSessionProperty(targetSessionId, "chatMemory", chatMemoryText);
@@ -131,6 +140,7 @@ QQC2.Dialog {
         selectedProvider = "";
         selectedModel = "";
         selectedOpenCodeAgent = "";
+        selectedOpenCodeModel = "";
         selectedOpenCodeWorkspaceCwd = "";
         chatMemoryEnabled = true;
         chatMemoryText = "";
@@ -155,51 +165,20 @@ QQC2.Dialog {
     }
 
     contentItem: ColumnLayout {
+        anchors.fill: parent
         spacing: Kirigami.Units.mediumSpacing
 
-        // Header Section
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
-
-            Kirigami.Icon {
-                source: "preferences-other"
-                implicitWidth: 26
-                implicitHeight: 26
-                color: Kirigami.Theme.highlightColor
-            }
-
-            ColumnLayout {
-                spacing: 2
-                Layout.fillWidth: true
-
-                PC3.Label {
-                    text: "Per-Chat Settings"
-                    font.bold: true
-                    font.pointSize: 12
-                }
-
-                PC3.Label {
-                    text: targetSessionTitle ? ("Chat: " + targetSessionTitle) : "Current Session"
-                    font.italic: true
-                    opacity: 0.75
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                }
-            }
-        }
-
+        // Main Scrollable Area
         QQC2.ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
 
             ColumnLayout {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                spacing: Kirigami.Units.largeSpacing
+                width: parent.width
+                spacing: Kirigami.Units.mediumSpacing
 
-                // Group 0: Mode Selector Card
+                // Mode Selector Card
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: modeLayout.implicitHeight + Kirigami.Units.gridUnit
@@ -243,6 +222,9 @@ QQC2.Dialog {
                                     if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeAgents === "function") {
                                         chatSettingsDialog.rootRef.fetchOpenCodeAgents();
                                     }
+                                    if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels === "function") {
+                                        chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels();
+                                    }
                                 }
                             }
                         }
@@ -276,7 +258,7 @@ QQC2.Dialog {
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.Label {
-                            text: "Provider & Model Overrides (On-The-Fly)"
+                            text: "Provider & Model Overrides (Configured APIs Only)"
                             font.bold: true
                         }
 
@@ -301,11 +283,11 @@ QQC2.Dialog {
                                         "text": "Default (Global: " + ProviderService.getProviderDisplayName(cfg ? (cfg.provider || "openai") : "openai", cfg) + ")",
                                         "value": ""
                                     }];
-                                    var supported = ProviderService.getSupportedProviders(cfg);
-                                    for (var i = 0; i < supported.length; i++) {
+                                    var configured = ProviderService.getConfiguredProviders(cfg);
+                                    for (var i = 0; i < configured.length; i++) {
                                         list.push({
-                                            "text": ProviderService.getProviderDisplayName(supported[i], cfg),
-                                            "value": supported[i]
+                                            "text": ProviderService.getProviderDisplayName(configured[i], cfg),
+                                            "value": configured[i]
                                         });
                                     }
                                     return list;
@@ -410,7 +392,7 @@ QQC2.Dialog {
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.Label {
-                            text: "OpenCode Integration Properties"
+                            text: "OpenCode Engine Properties"
                             font.bold: true
                         }
 
@@ -428,9 +410,11 @@ QQC2.Dialog {
                                 editable: true
                                 model: {
                                     var agents = chatSettingsDialog.rootRef ? chatSettingsDialog.rootRef.openCodeAgentsList : [];
-                                    var list = ["(default from opencode.json)"];
+                                    var list = ["(default agent from opencode)"];
                                     for (var i = 0; i < agents.length; i++) {
-                                        list.push(agents[i]);
+                                        var aItem = agents[i];
+                                        var aName = (typeof aItem === "string") ? aItem : (aItem.name || aItem.text || "");
+                                        if (aName && list.indexOf(aName) < 0) list.push(aName);
                                     }
                                     if (chatSettingsDialog.selectedOpenCodeAgent && list.indexOf(chatSettingsDialog.selectedOpenCodeAgent) < 0) {
                                         list.push(chatSettingsDialog.selectedOpenCodeAgent);
@@ -455,12 +439,66 @@ QQC2.Dialog {
                                 onClicked: {
                                     if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeAgents === "function") {
                                         chatSettingsDialog.rootRef.fetchOpenCodeAgents();
+                                        chatSettingsDialog.statusText = "Refreshed OpenCode agents list.";
                                     }
                                 }
 
                                 QQC2.ToolTip {
-                                    text: "Refresh agents from opencode.json"
+                                    text: "Refresh active agents list from OpenCode server / opencode.json"
                                     visible: refreshAgentsBtn.hovered
+                                    z: 9999
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            PC3.Label {
+                                text: "Model / Provider:"
+                                Layout.preferredWidth: 100
+                            }
+
+                            QQC2.ComboBox {
+                                Layout.fillWidth: true
+                                editable: true
+                                model: {
+                                    var list = ["(default model from opencode)"];
+                                    var mList = chatSettingsDialog.rootRef ? chatSettingsDialog.rootRef.openCodeModelsList : [];
+                                    for (var i = 0; i < mList.length; i++) {
+                                        if (list.indexOf(mList[i]) < 0) list.push(mList[i]);
+                                    }
+                                    if (chatSettingsDialog.selectedOpenCodeModel && list.indexOf(chatSettingsDialog.selectedOpenCodeModel) < 0) {
+                                        list.push(chatSettingsDialog.selectedOpenCodeModel);
+                                    }
+                                    return list;
+                                }
+                                editText: chatSettingsDialog.selectedOpenCodeModel
+                                onEditTextChanged: chatSettingsDialog.selectedOpenCodeModel = editText
+                                onActivated: {
+                                    if (currentIndex === 0) {
+                                        chatSettingsDialog.selectedOpenCodeModel = "";
+                                        editText = "";
+                                    } else {
+                                        chatSettingsDialog.selectedOpenCodeModel = currentText;
+                                    }
+                                }
+                            }
+
+                            PC3.ToolButton {
+                                id: refreshOpenCodeModelsBtn
+                                icon.name: "view-refresh"
+                                onClicked: {
+                                    if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels === "function") {
+                                        chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels();
+                                        chatSettingsDialog.statusText = "Refreshed OpenCode providers and models.";
+                                    }
+                                }
+
+                                QQC2.ToolTip {
+                                    text: "Refresh providers & models from OpenCode /provider API"
+                                    visible: refreshOpenCodeModelsBtn.hovered
                                     z: 9999
                                 }
                             }
@@ -638,7 +676,7 @@ QQC2.Dialog {
             }
         }
 
-        // Action Buttons Row
+        // Bottom Action Buttons
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing

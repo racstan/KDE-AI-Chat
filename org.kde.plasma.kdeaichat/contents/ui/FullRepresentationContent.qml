@@ -452,7 +452,7 @@ Item {
                         "text": "Default (" + globalProvName + ")",
                         "value": ""
                     }];
-                    var supported = ProviderService.getSupportedProviders(plasmoid.configuration);
+                    var supported = ProviderService.getConfiguredProviders(plasmoid.configuration);
                     for (var i = 0; i < supported.length; i++) {
                         list.push({
                             "text": ProviderService.getProviderDisplayName(supported[i], plasmoid.configuration),
