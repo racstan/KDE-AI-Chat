@@ -14,7 +14,7 @@ import "Security.js" as Sec
 PlasmoidItem {
     id: root
 
-    plasmoid.icon: (plasmoid.configuration && plasmoid.configuration.customIcon) ? plasmoid.configuration.customIcon : "dialog-messages"
+    Plasmoid.icon: (plasmoid && plasmoid.configuration && plasmoid.configuration.customIcon) ? plasmoid.configuration.customIcon : "dialog-messages"
 
     property var sessions: []
     property string currentSessionId: ""
