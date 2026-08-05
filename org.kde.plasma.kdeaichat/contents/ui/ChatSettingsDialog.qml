@@ -6,703 +6,660 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "ProviderService.js" as ProviderService
 
-QQC2.Dialog {
+// ChatSettingsDialog — per-chat settings panel
+// DESIGN RULES (to prevent binding loops & hangs):
+//   1. No declarative property bindings on ComboBox.editText or ComboBox.currentIndex
+//   2. All state is stored in plain JS vars (d.*) and pushed to controls manually via open()
+//   3. No network calls on open — only on explicit button press
+//   4. All XHR done inside ProviderService which has a 5s timeout
+
+QQC2.Popup {
     id: chatSettingsDialog
 
-    title: targetSessionTitle ? ("Chat Settings: " + targetSessionTitle) : "Chat Settings"
-    modal: true
-    focus: true
-    padding: 16
-    standardButtons: QQC2.Dialog.NoButton
-
+    // ── public API ──────────────────────────────────────────────────
     property var rootRef: null
-    property string targetSessionId: ""
-    property string targetSessionTitle: ""
-
-    // Session properties
-    property string selectedMode: "provider" // "provider" or "opencode"
-    property string selectedProvider: ""
-    property string selectedModel: ""
-    property string selectedOpenCodeAgent: ""
-    property string selectedOpenCodeModel: ""
-    property string selectedOpenCodeWorkspaceCwd: ""
-    property bool chatMemoryEnabled: true
-    property string chatMemoryText: ""
-    property bool chatSystemPromptEnabled: true
-    property string chatSystemPromptText: ""
-    property int selectedResponseLength: 0
-
-    property var modelCandidates: []
-    property bool loadingModels: false
-    property string statusText: ""
-
-    width: 600
-    height: 640
 
     function openForSession(sessionId) {
         if (!rootRef) return;
-        targetSessionId = sessionId || rootRef.currentSessionId || "";
-        targetSessionTitle = rootRef.currentSessionTitle || "Current Chat";
-
-        if (typeof rootRef.getSessionProperty === "function") {
-            var src = rootRef.getSessionProperty(targetSessionId, "source", "");
-            if (!src) {
-                src = (rootRef.openCodeMode ? "opencode" : "provider");
-            }
-            selectedMode = src;
-
-            selectedProvider = rootRef.getSessionProperty(targetSessionId, "chatProvider", "");
-            selectedModel = rootRef.getSessionProperty(targetSessionId, "chatModel", "");
-            selectedOpenCodeAgent = rootRef.getSessionProperty(targetSessionId, "openCodeAgent", "");
-            selectedOpenCodeModel = rootRef.getSessionProperty(targetSessionId, "openCodeModel", "");
-            selectedOpenCodeWorkspaceCwd = rootRef.getSessionProperty(targetSessionId, "openCodeWorkspaceCwd", "");
-            chatMemoryEnabled = rootRef.getSessionProperty(targetSessionId, "chatMemoryEnabled", true);
-            chatMemoryText = rootRef.getSessionProperty(targetSessionId, "chatMemory", "");
-            chatSystemPromptEnabled = rootRef.getSessionProperty(targetSessionId, "chatSystemPromptEnabled", true);
-            chatSystemPromptText = rootRef.getSessionProperty(targetSessionId, "chatSystemPrompt", "");
-            selectedResponseLength = rootRef.getSessionProperty(targetSessionId, "responseLength", 0);
-        } else {
-            selectedMode = rootRef.openCodeMode ? "opencode" : "provider";
-            selectedProvider = "";
-            selectedModel = "";
-            selectedOpenCodeAgent = "";
-            selectedOpenCodeModel = "";
-            selectedOpenCodeWorkspaceCwd = "";
-            chatMemoryEnabled = true;
-            chatMemoryText = "";
-            chatSystemPromptEnabled = true;
-            chatSystemPromptText = "";
-            selectedResponseLength = 0;
-        }
-
-        statusText = "";
-        if (selectedMode === "opencode") {
-            if (typeof rootRef.fetchOpenCodeAgents === "function") {
-                rootRef.fetchOpenCodeAgents();
-            }
-            if (typeof rootRef.fetchOpenCodeProvidersAndModels === "function") {
-                rootRef.fetchOpenCodeProvidersAndModels();
-            }
-        }
-        // Note: Models are NOT auto-fetched on open. User clicks the ↻ button.
+        _load(sessionId);
         open();
     }
 
-    function refreshModelCandidates() {
-        if (!rootRef || !rootRef.plasmoid) return;
-        var prov = selectedProvider || rootRef.plasmoid.configuration.provider || "openai";
-        loadingModels = true;
-        statusText = "Fetching models for " + ProviderService.getProviderDisplayName(prov, rootRef.plasmoid.configuration) + "...";
-        modelCandidates = [];
+    // ── private state (plain object, never declaratively bound) ─────
+    property var _d: ({})
 
-        ProviderService.fetchModelsForProvider(prov, rootRef.plasmoid.configuration, function(ids) {
-            loadingModels = false;
-            modelCandidates = ids;
-            statusText = ids.length > 0 ? ("Loaded " + ids.length + " candidate models") : "No models returned from API endpoint";
-        }, function(err) {
-            loadingModels = false;
-            statusText = "API query result: " + err;
-        });
+    function _load(sessionId) {
+        var r = rootRef;
+        var get = (k, def) =>
+            (typeof r.getSessionProperty === "function")
+                ? r.getSessionProperty(sessionId, k, def)
+                : def;
+
+        var src = get("source", "");
+        if (!src) src = r.openCodeMode ? "opencode" : "provider";
+
+        _d = {
+            sessionId:   sessionId,
+            sessionTitle: r.currentSessionTitle || "Current Chat",
+            mode:        src,
+            provider:    get("chatProvider",            ""),
+            model:       get("chatModel",               ""),
+            ocAgent:     get("openCodeAgent",           ""),
+            ocModel:     get("openCodeModel",           ""),
+            ocCwd:       get("openCodeWorkspaceCwd",    ""),
+            memEnabled:  get("chatMemoryEnabled",       true),
+            memText:     get("chatMemory",              ""),
+            sysEnabled:  get("chatSystemPromptEnabled", true),
+            sysText:     get("chatSystemPrompt",        ""),
+            respLen:     get("responseLength",          0),
+        };
+
+        // push to controls now that _d is ready
+        _applyToControls();
     }
 
-    function saveSettings() {
-        if (!rootRef || !targetSessionId) return;
+    function _applyToControls() {
+        var d = _d;
+        titleLabel.text = "Chat Settings: " + d.sessionTitle;
+        modeNormalBtn.checked    = (d.mode !== "opencode");
+        modeOpenCodeBtn.checked  = (d.mode === "opencode");
+        normalCard.visible       = (d.mode !== "opencode");
+        openCodeCard.visible     = (d.mode === "opencode");
+        statusLabel.text         = "";
 
-        if (typeof rootRef.setSessionProperty === "function") {
-            rootRef.setSessionProperty(targetSessionId, "source", selectedMode);
-            rootRef.setSessionProperty(targetSessionId, "chatProvider", selectedProvider);
-            rootRef.setSessionProperty(targetSessionId, "chatModel", selectedModel);
-            rootRef.setSessionProperty(targetSessionId, "openCodeAgent", selectedOpenCodeAgent);
-            rootRef.setSessionProperty(targetSessionId, "openCodeModel", selectedOpenCodeModel);
-            rootRef.setSessionProperty(targetSessionId, "openCodeWorkspaceCwd", selectedOpenCodeWorkspaceCwd);
-            rootRef.setSessionProperty(targetSessionId, "chatMemoryEnabled", chatMemoryEnabled);
-            rootRef.setSessionProperty(targetSessionId, "chatMemory", chatMemoryText);
-            rootRef.setSessionProperty(targetSessionId, "chatSystemPromptEnabled", chatSystemPromptEnabled);
-            rootRef.setSessionProperty(targetSessionId, "chatSystemPrompt", chatSystemPromptText);
-            rootRef.setSessionProperty(targetSessionId, "responseLength", selectedResponseLength);
+        // provider combo — find index by value
+        var cfg = rootRef ? rootRef.plasmoid.configuration : null;
+        var provList = _buildProviderModel(cfg);
+        providerCombo.model = provList;
+        providerCombo.currentIndex = 0;
+        for (var i = 0; i < provList.length; i++) {
+            if (provList[i].value === d.provider) { providerCombo.currentIndex = i; break; }
         }
 
-        if (targetSessionId === rootRef.currentSessionId) {
-            rootRef.openCodeMode = (selectedMode === "opencode");
-            if (selectedOpenCodeAgent) rootRef.openCodeAgent = selectedOpenCodeAgent;
-            if (selectedOpenCodeWorkspaceCwd) rootRef.openCodeWorkspaceCwd = selectedOpenCodeWorkspaceCwd;
-        }
+        // model field — plain text
+        modelField.text = d.model;
 
-        if (typeof rootRef.saveCurrentSessionState === "function") {
+        // opencode agent combo
+        var agentList = _buildAgentModel();
+        agentCombo.model = agentList;
+        agentCombo.currentIndex = 0;
+        for (var j = 0; j < agentList.length; j++) {
+            if (agentList[j] === d.ocAgent) { agentCombo.currentIndex = j; break; }
+        }
+        agentCombo.editText = d.ocAgent || "";
+
+        // opencode model combo
+        var ocModelList = _buildOcModelModel();
+        ocModelCombo.model = ocModelList;
+        ocModelCombo.currentIndex = 0;
+        for (var k = 0; k < ocModelList.length; k++) {
+            if (ocModelList[k] === d.ocModel) { ocModelCombo.currentIndex = k; break; }
+        }
+        ocModelCombo.editText = d.ocModel || "";
+
+        // other fields
+        cwdField.text              = d.ocCwd;
+        memCheck.checked           = d.memEnabled;
+        memArea.text               = d.memText;
+        memArea.enabled            = d.memEnabled;
+        sysCheck.checked           = d.sysEnabled;
+        sysArea.text               = d.sysText;
+        sysArea.enabled            = d.sysEnabled;
+        respLenCombo.currentIndex  = d.respLen || 0;
+    }
+
+    function _buildProviderModel(cfg) {
+        var globalProv = cfg ? (cfg.provider || "openai") : "openai";
+        var list = [{ text: "Default (Global: " + ProviderService.getProviderDisplayName(globalProv, cfg) + ")", value: "" }];
+        var providers = ProviderService.getConfiguredProviders(cfg);
+        for (var i = 0; i < providers.length; i++) {
+            list.push({ text: ProviderService.getProviderDisplayName(providers[i], cfg), value: providers[i] });
+        }
+        return list;
+    }
+
+    function _buildAgentModel() {
+        var agents = rootRef ? rootRef.openCodeAgentsList : [];
+        var list = ["(default agent)"];
+        for (var i = 0; i < agents.length; i++) {
+            var name = (typeof agents[i] === "string") ? agents[i] : (agents[i].name || "");
+            if (name && list.indexOf(name) < 0) list.push(name);
+        }
+        return list;
+    }
+
+    function _buildOcModelModel() {
+        var models = rootRef ? rootRef.openCodeModelsList : [];
+        var list = ["(default model)"];
+        for (var i = 0; i < models.length; i++) {
+            if (models[i] && list.indexOf(models[i]) < 0) list.push(models[i]);
+        }
+        return list;
+    }
+
+    function _readFromControls() {
+        _d.provider   = (providerCombo.currentIndex > 0 && providerCombo.model)
+                         ? (providerCombo.model[providerCombo.currentIndex].value || "") : "";
+        _d.model      = modelField.text.trim();
+        _d.ocAgent    = (agentCombo.currentIndex > 0) ? agentCombo.currentText : agentCombo.editText;
+        _d.ocModel    = (ocModelCombo.currentIndex > 0) ? ocModelCombo.currentText : ocModelCombo.editText;
+        _d.ocCwd      = cwdField.text.trim();
+        _d.memEnabled = memCheck.checked;
+        _d.memText    = memArea.text;
+        _d.sysEnabled = sysCheck.checked;
+        _d.sysText    = sysArea.text;
+        _d.respLen    = respLenCombo.currentIndex;
+    }
+
+    function _saveAndClose() {
+        if (!rootRef || !_d.sessionId) { close(); return; }
+        _readFromControls();
+        var d = _d;
+        var set = (k, v) => { if (typeof rootRef.setSessionProperty === "function") rootRef.setSessionProperty(d.sessionId, k, v); };
+        set("source",                 d.mode);
+        set("chatProvider",           d.provider);
+        set("chatModel",              d.model);
+        set("openCodeAgent",          d.ocAgent);
+        set("openCodeModel",          d.ocModel);
+        set("openCodeWorkspaceCwd",   d.ocCwd);
+        set("chatMemoryEnabled",      d.memEnabled);
+        set("chatMemory",             d.memText);
+        set("chatSystemPromptEnabled",d.sysEnabled);
+        set("chatSystemPrompt",       d.sysText);
+        set("responseLength",         d.respLen);
+
+        if (d.sessionId === rootRef.currentSessionId) {
+            rootRef.openCodeMode = (d.mode === "opencode");
+            if (d.ocAgent) rootRef.openCodeAgent = d.ocAgent;
+            if (d.ocCwd)   rootRef.openCodeWorkspaceCwd = d.ocCwd;
+        }
+        if (typeof rootRef.saveCurrentSessionState === "function")
             rootRef.saveCurrentSessionState(true);
-        }
         close();
     }
 
-    function resetDefaults() {
-        selectedMode = rootRef && rootRef.plasmoid && rootRef.plasmoid.configuration.useOpenCode ? "opencode" : "provider";
-        selectedProvider = "";
-        selectedModel = "";
-        selectedOpenCodeAgent = "";
-        selectedOpenCodeModel = "";
-        selectedOpenCodeWorkspaceCwd = "";
-        chatMemoryEnabled = true;
-        chatMemoryText = "";
-        chatSystemPromptEnabled = true;
-        chatSystemPromptText = "";
-        selectedResponseLength = 0;
-        statusText = "Reset chat properties to global defaults.";
-        if (selectedMode === "provider") {
-            refreshModelCandidates();
-        }
+    function _resetDefaults() {
+        var r = rootRef;
+        var useOC = r && r.plasmoid && r.plasmoid.configuration.useOpenCode;
+        _d.mode      = useOC ? "opencode" : "provider";
+        _d.provider  = ""; _d.model  = "";
+        _d.ocAgent   = ""; _d.ocModel = ""; _d.ocCwd = "";
+        _d.memEnabled = true;  _d.memText = "";
+        _d.sysEnabled = true;  _d.sysText = "";
+        _d.respLen   = 0;
+        _applyToControls();
     }
 
+    function _switchMode(mode) {
+        _d.mode = mode;
+        normalCard.visible    = (mode !== "opencode");
+        openCodeCard.visible  = (mode === "opencode");
+        modeNormalBtn.checked   = (mode !== "opencode");
+        modeOpenCodeBtn.checked = (mode === "opencode");
+    }
+
+    // ── popup geometry ───────────────────────────────────────────────
+    modal: true
+    focus: true
+    closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutside
+    width: 580
+    height: 600
+    x: parent ? (parent.width  - width)  / 2 : 0
+    y: parent ? (parent.height - height) / 2 : 0
+
+    // ── FolderDialog ─────────────────────────────────────────────────
     FolderDialog {
         id: dirDialog
         title: "Select OpenCode Workspace Directory"
-        currentFolder: selectedOpenCodeWorkspaceCwd ? ("file://" + selectedOpenCodeWorkspaceCwd) : ""
         onAccepted: {
             var path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0) path = path.substring(7);
-            selectedOpenCodeWorkspaceCwd = path;
+            if (path.startsWith("file://")) path = path.substring(7);
+            cwdField.text = path;
         }
     }
 
-    contentItem: ColumnLayout {
-        anchors.fill: parent
-        spacing: 12
+    // ── main content ─────────────────────────────────────────────────
+    background: Rectangle {
+        color: Kirigami.Theme.backgroundColor
+        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                              Kirigami.Theme.highlightColor.g,
+                              Kirigami.Theme.highlightColor.b, 0.4)
+        border.width: 1
+        radius: 10
+    }
 
+    contentItem: ColumnLayout {
+        spacing: 0
+
+        // ── header ──
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 52
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                           Kirigami.Theme.highlightColor.g,
+                           Kirigami.Theme.highlightColor.b, 0.12)
+            radius: 10
+            // square bottom corners
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 10; color: parent.color }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 10
+
+                Kirigami.Icon {
+                    source: "preferences-other"
+                    implicitWidth: 22; implicitHeight: 22
+                    color: Kirigami.Theme.highlightColor
+                }
+
+                PC3.Label {
+                    id: titleLabel
+                    text: "Chat Settings"
+                    font.bold: true
+                    font.pointSize: 11
+                    Layout.fillWidth: true
+                }
+
+                PC3.ToolButton {
+                    icon.name: "window-close"
+                    onClicked: chatSettingsDialog.close()
+                    flat: true
+                }
+            }
+        }
+
+        // ── scrollable body ──
         QQC2.ScrollView {
-            id: scrollPane
+            id: sv
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            contentWidth: sv.width
 
             ColumnLayout {
-                width: scrollPane.width - 24
-                spacing: 14
+                width: sv.width - 2
+                spacing: 10
 
-                // Mode Selector Card
+                Item { height: 8 }
+
+                // ── Mode selector ──────────────────────────────────
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: modeLayout.implicitHeight + 20
-                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.08)
-                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.3)
-                    border.width: 1
-                    radius: 8
+                    Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: modeRow.implicitHeight + 24
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                   Kirigami.Theme.highlightColor.g,
+                                   Kirigami.Theme.highlightColor.b, 0.07)
+                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                          Kirigami.Theme.highlightColor.g,
+                                          Kirigami.Theme.highlightColor.b, 0.25)
+                    border.width: 1; radius: 8
 
                     ColumnLayout {
-                        id: modeLayout
-                        anchors.fill: parent
-                        anchors.margins: 12
+                        id: modeRow
+                        anchors { fill: parent; margins: 12 }
                         spacing: 8
 
-                        PC3.Label {
-                            text: "Chat Execution Mode"
-                            font.bold: true
-                            color: Kirigami.Theme.textColor
-                        }
+                        PC3.Label { text: "Chat Mode"; font.bold: true }
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 16
-
+                            spacing: 20
                             PC3.RadioButton {
-                                id: modeNormalRadio
-                                text: "🌐 Normal AI Provider Mode"
-                                checked: chatSettingsDialog.selectedMode !== "opencode"
-                                onClicked: {
-                                    chatSettingsDialog.selectedMode = "provider";
-                                    chatSettingsDialog.refreshModelCandidates();
-                                }
+                                id: modeNormalBtn
+                                text: "🌐 Normal AI Provider"
+                                onClicked: chatSettingsDialog._switchMode("provider")
                             }
-
                             PC3.RadioButton {
-                                id: modeOpenCodeRadio
-                                text: "💻 OpenCode Mode"
-                                checked: chatSettingsDialog.selectedMode === "opencode"
-                                onClicked: {
-                                    chatSettingsDialog.selectedMode = "opencode";
-                                    if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeAgents === "function") {
-                                        chatSettingsDialog.rootRef.fetchOpenCodeAgents();
-                                    }
-                                    if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels === "function") {
-                                        chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels();
-                                    }
-                                }
+                                id: modeOpenCodeBtn
+                                text: "💻 OpenCode Engine"
+                                onClicked: chatSettingsDialog._switchMode("opencode")
                             }
-                        }
-
-                        PC3.Label {
-                            text: chatSettingsDialog.selectedMode === "opencode" ?
-                                  "OpenCode Mode routes messages to local/remote OpenCode assistant engine with workspace tools." :
-                                  "Normal AI Mode uses configured AI model APIs directly (OpenAI, Anthropic, Gemini, Groq, Ollama, etc.)."
-                            font.pointSize: 8.5
-                            opacity: 0.75
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
                         }
                     }
                 }
 
-                // Normal Mode Settings: Provider & Model Card
+                // ── Normal Mode card ───────────────────────────────
                 Rectangle {
-                    visible: chatSettingsDialog.selectedMode !== "opencode"
+                    id: normalCard
                     Layout.fillWidth: true
-                    implicitHeight: providerCardLayout.implicitHeight + 20
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                    border.width: 1
-                    radius: 8
+                    Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: normalLayout.implicitHeight + 24
+                    color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                   Kirigami.Theme.textColor.g,
+                                   Kirigami.Theme.textColor.b, 0.03)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.12)
+                    border.width: 1; radius: 8
 
                     ColumnLayout {
-                        id: providerCardLayout
-                        anchors.fill: parent
-                        anchors.margins: 12
+                        id: normalLayout
+                        anchors { fill: parent; margins: 12 }
                         spacing: 10
 
-                        PC3.Label {
-                            text: "Provider & Model Overrides"
-                            font.bold: true
-                        }
+                        PC3.Label { text: "Provider & Model"; font.bold: true }
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            PC3.Label {
-                                text: "Provider:"
-                                Layout.preferredWidth: 100
-                            }
-
+                            Layout.fillWidth: true; spacing: 8
+                            PC3.Label { text: "Provider:"; Layout.preferredWidth: 90 }
                             QQC2.ComboBox {
                                 id: providerCombo
                                 Layout.fillWidth: true
-                                textRole: "text"
-                                valueRole: "value"
-
-                                model: {
-                                    var cfg = chatSettingsDialog.rootRef ? chatSettingsDialog.rootRef.plasmoid.configuration : null;
-                                    var list = [{
-                                        "text": "Default (Global: " + ProviderService.getProviderDisplayName(cfg ? (cfg.provider || "openai") : "openai", cfg) + ")",
-                                        "value": ""
-                                    }];
-                                    var configured = ProviderService.getConfiguredProviders(cfg);
-                                    for (var i = 0; i < configured.length; i++) {
-                                        list.push({
-                                            "text": ProviderService.getProviderDisplayName(configured[i], cfg),
-                                            "value": configured[i]
-                                        });
-                                    }
-                                    return list;
-                                }
-
-                                Component.onCompleted: {
-                                    // Set index once after model is ready - avoid binding loop
-                                    var cur = chatSettingsDialog.selectedProvider;
-                                    for (var i = 0; i < model.length; i++) {
-                                        if (model[i].value === cur) { currentIndex = i; return; }
-                                    }
-                                    currentIndex = 0;
-                                }
-
-                                onActivated: {
-                                    var val = model[currentIndex].value;
-                                    chatSettingsDialog.selectedProvider = val;
-                                    // Don't auto-fetch models on provider change either - user clicks ↻
-                                }
+                                textRole: "text"; valueRole: "value"
+                                // model set imperatively in _applyToControls
                             }
                         }
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            PC3.Label {
-                                text: "Model:"
-                                Layout.preferredWidth: 100
-                            }
-
-                            QQC2.ComboBox {
-                                id: modelCombo
+                            Layout.fillWidth: true; spacing: 8
+                            PC3.Label { text: "Model:"; Layout.preferredWidth: 90 }
+                            QQC2.TextField {
+                                id: modelField
                                 Layout.fillWidth: true
-                                editable: true
-
-                                model: {
-                                    var list = ["Default (Global Model)"];
-                                    for (var i = 0; i < chatSettingsDialog.modelCandidates.length; i++) {
-                                        list.push(chatSettingsDialog.modelCandidates[i]);
-                                    }
-                                    return list;
-                                }
-
-                                // Use Component.onCompleted to set initial text without binding loop
-                                Component.onCompleted: { editText = chatSettingsDialog.selectedModel || ""; }
-
-                                onActivated: {
-                                    if (currentIndex === 0) {
-                                        chatSettingsDialog.selectedModel = "";
-                                        editText = "";
-                                    } else {
-                                        chatSettingsDialog.selectedModel = currentText;
-                                    }
-                                }
-
-                                onAccepted: {
-                                    chatSettingsDialog.selectedModel = editText;
-                                }
+                                placeholderText: "Leave blank to use global model"
+                                // text set imperatively in _applyToControls
                             }
-
                             PC3.ToolButton {
                                 id: refreshModelsBtn
                                 icon.name: "view-refresh"
-                                onClicked: chatSettingsDialog.refreshModelCandidates()
-
-                                QQC2.ToolTip {
-                                    text: "Fetch available candidate models live from API endpoint"
-                                    visible: refreshModelsBtn.hovered
+                                enabled: !chatSettingsDialog._fetching
+                                onClicked: {
+                                    var r = chatSettingsDialog.rootRef;
+                                    if (!r || !r.plasmoid) return;
+                                    var prov = (providerCombo.currentIndex > 0 && providerCombo.model)
+                                               ? providerCombo.model[providerCombo.currentIndex].value
+                                               : r.plasmoid.configuration.provider || "openai";
+                                    chatSettingsDialog._fetching = true;
+                                    statusLabel.text = "Fetching models…";
+                                    ProviderService.fetchModelsForProvider(prov, r.plasmoid.configuration,
+                                        function(ids) {
+                                            chatSettingsDialog._fetching = false;
+                                            statusLabel.text = ids.length > 0
+                                                ? ("✓ " + ids.length + " models loaded")
+                                                : "No models returned";
+                                            // repopulate model field if it was blank
+                                            if (!modelField.text && ids.length > 0)
+                                                modelField.placeholderText = ids[0] + " (first result)";
+                                        },
+                                        function(err) {
+                                            chatSettingsDialog._fetching = false;
+                                            statusLabel.text = "⚠ " + err;
+                                        });
                                 }
+                                QQC2.ToolTip.text: "Fetch available models from provider API (5s timeout)"
+                                QQC2.ToolTip.visible: hovered
                             }
                         }
 
                         PC3.Label {
-                            text: chatSettingsDialog.statusText
-                            font.pointSize: 8.5
-                            opacity: 0.8
+                            id: statusLabel
+                            text: ""
+                            visible: text !== ""
+                            font.pointSize: 8.5; opacity: 0.8
                             color: Kirigami.Theme.highlightColor
-                            visible: chatSettingsDialog.statusText !== ""
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
                     }
                 }
 
-                // OpenCode Mode Settings Card
+                // ── OpenCode card ──────────────────────────────────
                 Rectangle {
-                    visible: chatSettingsDialog.selectedMode === "opencode"
+                    id: openCodeCard
                     Layout.fillWidth: true
-                    implicitHeight: openCodeCardLayout.implicitHeight + 20
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                    border.width: 1
-                    radius: 8
+                    Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: ocLayout.implicitHeight + 24
+                    color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                   Kirigami.Theme.textColor.g,
+                                   Kirigami.Theme.textColor.b, 0.03)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.12)
+                    border.width: 1; radius: 8
 
                     ColumnLayout {
-                        id: openCodeCardLayout
-                        anchors.fill: parent
-                        anchors.margins: 12
+                        id: ocLayout
+                        anchors { fill: parent; margins: 12 }
                         spacing: 10
 
-                        PC3.Label {
-                            text: "OpenCode Engine Properties"
-                            font.bold: true
-                        }
+                        PC3.Label { text: "OpenCode Engine"; font.bold: true }
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            PC3.Label {
-                                text: "Agent Profile:"
-                                Layout.preferredWidth: 100
-                            }
-
+                            Layout.fillWidth: true; spacing: 8
+                            PC3.Label { text: "Agent:"; Layout.preferredWidth: 90 }
                             QQC2.ComboBox {
                                 id: agentCombo
                                 Layout.fillWidth: true
                                 editable: true
-                                model: {
-                                    var agents = chatSettingsDialog.rootRef ? chatSettingsDialog.rootRef.openCodeAgentsList : [];
-                                    var list = ["(default agent from opencode)"];
-                                    for (var i = 0; i < agents.length; i++) {
-                                        var aItem = agents[i];
-                                        var aName = (typeof aItem === "string") ? aItem : (aItem.name || aItem.text || "");
-                                        if (aName && list.indexOf(aName) < 0) list.push(aName);
-                                    }
-                                    return list;
-                                }
-
-                                Component.onCompleted: { editText = chatSettingsDialog.selectedOpenCodeAgent || ""; }
-
-                                onActivated: {
-                                    if (currentIndex === 0) {
-                                        chatSettingsDialog.selectedOpenCodeAgent = "";
-                                        editText = "";
-                                    } else {
-                                        chatSettingsDialog.selectedOpenCodeAgent = currentText;
-                                    }
-                                }
-
-                                onAccepted: {
-                                    chatSettingsDialog.selectedOpenCodeAgent = editText;
-                                }
+                                // model & index set imperatively in _applyToControls
                             }
-
                             PC3.ToolButton {
-                                id: refreshAgentsBtn
                                 icon.name: "view-refresh"
                                 onClicked: {
-                                    if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeAgents === "function") {
-                                        chatSettingsDialog.rootRef.fetchOpenCodeAgents();
-                                        chatSettingsDialog.statusText = "Refreshed OpenCode agents list.";
+                                    var r = chatSettingsDialog.rootRef;
+                                    if (r && typeof r.fetchOpenCodeAgents === "function") {
+                                        r.fetchOpenCodeAgents();
+                                        // rebuild combo after agents arrive (delayed)
+                                        Qt.callLater(function() {
+                                            var list = chatSettingsDialog._buildAgentModel();
+                                            var prev = agentCombo.editText;
+                                            agentCombo.model = list;
+                                            agentCombo.editText = prev;
+                                        });
                                     }
                                 }
-
-                                QQC2.ToolTip {
-                                    text: "Refresh active agents list from OpenCode server / opencode.json"
-                                    visible: refreshAgentsBtn.hovered
-                                }
+                                QQC2.ToolTip.text: "Refresh agent list from OpenCode server"
+                                QQC2.ToolTip.visible: hovered
                             }
                         }
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            PC3.Label {
-                                text: "Model / Provider:"
-                                Layout.preferredWidth: 100
-                            }
-
+                            Layout.fillWidth: true; spacing: 8
+                            PC3.Label { text: "Model:"; Layout.preferredWidth: 90 }
                             QQC2.ComboBox {
                                 id: ocModelCombo
                                 Layout.fillWidth: true
                                 editable: true
-                                model: {
-                                    var list = ["(default model from opencode)"];
-                                    var mList = chatSettingsDialog.rootRef ? chatSettingsDialog.rootRef.openCodeModelsList : [];
-                                    for (var i = 0; i < mList.length; i++) {
-                                        if (list.indexOf(mList[i]) < 0) list.push(mList[i]);
-                                    }
-                                    return list;
-                                }
-
-                                Component.onCompleted: { editText = chatSettingsDialog.selectedOpenCodeModel || ""; }
-
-                                onActivated: {
-                                    if (currentIndex === 0) {
-                                        chatSettingsDialog.selectedOpenCodeModel = "";
-                                        editText = "";
-                                    } else {
-                                        chatSettingsDialog.selectedOpenCodeModel = currentText;
-                                    }
-                                }
-
-                                onAccepted: {
-                                    chatSettingsDialog.selectedOpenCodeModel = editText;
-                                }
+                                // model & index set imperatively in _applyToControls
                             }
-
                             PC3.ToolButton {
-                                id: refreshOpenCodeModelsBtn
                                 icon.name: "view-refresh"
                                 onClicked: {
-                                    if (chatSettingsDialog.rootRef && typeof chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels === "function") {
-                                        chatSettingsDialog.rootRef.fetchOpenCodeProvidersAndModels();
-                                        chatSettingsDialog.statusText = "Refreshed OpenCode providers and models.";
+                                    var r = chatSettingsDialog.rootRef;
+                                    if (r && typeof r.fetchOpenCodeProvidersAndModels === "function") {
+                                        r.fetchOpenCodeProvidersAndModels();
+                                        Qt.callLater(function() {
+                                            var list = chatSettingsDialog._buildOcModelModel();
+                                            var prev = ocModelCombo.editText;
+                                            ocModelCombo.model = list;
+                                            ocModelCombo.editText = prev;
+                                        });
                                     }
                                 }
-
-                                QQC2.ToolTip {
-                                    text: "Refresh providers & models from OpenCode /provider API"
-                                    visible: refreshOpenCodeModelsBtn.hovered
-                                }
+                                QQC2.ToolTip.text: "Refresh model list from OpenCode /provider API"
+                                QQC2.ToolTip.visible: hovered
                             }
                         }
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            PC3.Label {
-                                text: "Workspace Cwd:"
-                                Layout.preferredWidth: 100
-                            }
-
+                            Layout.fillWidth: true; spacing: 8
+                            PC3.Label { text: "Workspace:"; Layout.preferredWidth: 90 }
                             QQC2.TextField {
+                                id: cwdField
                                 Layout.fillWidth: true
-                                placeholderText: "Default global workspace directory"
-                                text: chatSettingsDialog.selectedOpenCodeWorkspaceCwd
-                                onTextChanged: chatSettingsDialog.selectedOpenCodeWorkspaceCwd = text
+                                placeholderText: "Use global workspace directory"
                             }
-
                             PC3.ToolButton {
-                                id: browseDirBtn
                                 icon.name: "folder"
                                 onClicked: dirDialog.open()
-
-                                QQC2.ToolTip {
-                                    text: "Browse workspace directory folder"
-                                    visible: browseDirBtn.hovered
-                                }
+                                QQC2.ToolTip.text: "Browse for workspace folder"
+                                QQC2.ToolTip.visible: hovered
                             }
                         }
                     }
                 }
 
-                // Per-Chat Memory Card
+                // ── Chat Memory ────────────────────────────────────
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: memoryCardLayout.implicitHeight + 20
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                    border.width: 1
-                    radius: 8
+                    Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: memLayout.implicitHeight + 24
+                    color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                   Kirigami.Theme.textColor.g,
+                                   Kirigami.Theme.textColor.b, 0.03)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.12)
+                    border.width: 1; radius: 8
 
                     ColumnLayout {
-                        id: memoryCardLayout
-                        anchors.fill: parent
-                        anchors.margins: 12
+                        id: memLayout
+                        anchors { fill: parent; margins: 12 }
                         spacing: 8
 
                         RowLayout {
                             Layout.fillWidth: true
-                            PC3.Label {
-                                text: "Per-Chat Memory"
-                                font.bold: true
-                                Layout.fillWidth: true
-                            }
+                            PC3.Label { text: "Per-Chat Memory"; font.bold: true; Layout.fillWidth: true }
                             PC3.CheckBox {
-                                text: "Enable Chat Memory"
-                                checked: chatSettingsDialog.chatMemoryEnabled
-                                onClicked: chatSettingsDialog.chatMemoryEnabled = checked
+                                id: memCheck
+                                text: "Enable"
+                                onClicked: memArea.enabled = checked
                             }
                         }
 
                         PC3.Label {
-                            text: "Notes, facts, and context items retained specifically for this session:"
-                            font.pointSize: 8.5
-                            opacity: 0.75
-                            wrapMode: Text.WordWrap
+                            text: "Notes retained for this session:"
+                            font.pointSize: 8.5; opacity: 0.7
                             Layout.fillWidth: true
                         }
 
                         QQC2.TextArea {
+                            id: memArea
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 70
-                            enabled: chatSettingsDialog.chatMemoryEnabled
+                            Layout.preferredHeight: 64
                             wrapMode: Text.WordWrap
-                            placeholderText: "e.g. User prefers Python 3.12 syntax and strict typing for code snippets in this session."
-                            text: chatSettingsDialog.chatMemoryText
-                            onTextChanged: chatSettingsDialog.chatMemoryText = text
+                            placeholderText: "e.g. User prefers Python 3.12..."
                         }
                     }
                 }
 
-                // Per-Chat System Instructions Card (Normal Mode)
+                // ── System Context (Normal mode only) ──────────────
                 Rectangle {
-                    visible: chatSettingsDialog.selectedMode !== "opencode"
+                    visible: _d.mode !== "opencode"
                     Layout.fillWidth: true
-                    implicitHeight: sysPromptCardLayout.implicitHeight + 20
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                    border.width: 1
-                    radius: 8
+                    Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: sysLayout.implicitHeight + 24
+                    color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                   Kirigami.Theme.textColor.g,
+                                   Kirigami.Theme.textColor.b, 0.03)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.12)
+                    border.width: 1; radius: 8
 
                     ColumnLayout {
-                        id: sysPromptCardLayout
-                        anchors.fill: parent
-                        anchors.margins: 12
+                        id: sysLayout
+                        anchors { fill: parent; margins: 12 }
                         spacing: 8
 
                         RowLayout {
                             Layout.fillWidth: true
-                            PC3.Label {
-                                text: "Per-Chat System Instructions"
-                                font.bold: true
-                                Layout.fillWidth: true
-                            }
+                            PC3.Label { text: "System Instructions"; font.bold: true; Layout.fillWidth: true }
                             PC3.CheckBox {
-                                text: "Enable System Context"
-                                checked: chatSettingsDialog.chatSystemPromptEnabled
-                                onClicked: chatSettingsDialog.chatSystemPromptEnabled = checked
+                                id: sysCheck
+                                text: "Enable"
+                                onClicked: sysArea.enabled = checked
                             }
-                        }
-
-                        PC3.Label {
-                            text: "Custom system prompt additions for this chat (extends global system prompt):"
-                            font.pointSize: 8.5
-                            opacity: 0.75
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
                         }
 
                         QQC2.TextArea {
+                            id: sysArea
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 70
-                            enabled: chatSettingsDialog.chatSystemPromptEnabled
+                            Layout.preferredHeight: 64
                             wrapMode: Text.WordWrap
-                            placeholderText: "e.g. Act as a senior Linux kernel software engineer..."
-                            text: chatSettingsDialog.chatSystemPromptText
-                            onTextChanged: chatSettingsDialog.chatSystemPromptText = text
+                            placeholderText: "Custom system prompt for this chat..."
                         }
                     }
                 }
 
-                // Response Length Preference Card (Normal Mode)
+                // ── Response length (Normal mode only) ────────────
                 Rectangle {
-                    visible: chatSettingsDialog.selectedMode !== "opencode"
+                    visible: _d.mode !== "opencode"
                     Layout.fillWidth: true
-                    implicitHeight: respLenCardLayout.implicitHeight + 20
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                    border.width: 1
-                    radius: 8
+                    Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: respLayout.implicitHeight + 24
+                    color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                   Kirigami.Theme.textColor.g,
+                                   Kirigami.Theme.textColor.b, 0.03)
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.12)
+                    border.width: 1; radius: 8
 
-                    ColumnLayout {
-                        id: respLenCardLayout
-                        anchors.fill: parent
-                        anchors.margins: 12
+                    RowLayout {
+                        id: respLayout
+                        anchors { fill: parent; margins: 12 }
                         spacing: 8
-
-                        PC3.Label {
-                            text: "Response Length Preference"
-                            font.bold: true
-                        }
-
-                        RowLayout {
+                        PC3.Label { text: "Response Length:"; font.bold: true }
+                        QQC2.ComboBox {
+                            id: respLenCombo
                             Layout.fillWidth: true
-                            spacing: 8
-
-                            PC3.Label {
-                                text: "Length:"
-                                Layout.preferredWidth: 100
-                            }
-
-                            QQC2.ComboBox {
-                                Layout.fillWidth: true
-                                model: ["Default (Global)", "Short (~256 tokens)", "Balanced (~1024 tokens)", "Detailed (~4096 tokens)", "Comprehensive (~8192 tokens)"]
-                                currentIndex: chatSettingsDialog.selectedResponseLength
-                                onActivated: chatSettingsDialog.selectedResponseLength = currentIndex
-                            }
+                            model: ["Default (Global)", "Short (~256 tokens)",
+                                    "Balanced (~1024 tokens)", "Detailed (~4096 tokens)",
+                                    "Comprehensive (~8192 tokens)"]
                         }
                     }
                 }
+
+                Item { height: 8 }
             }
         }
 
-        // Bottom Action Buttons
-        RowLayout {
+        // ── footer buttons ───────────────────────────────────────────
+        Rectangle {
             Layout.fillWidth: true
-            spacing: 8
+            implicitHeight: footerRow.implicitHeight + 20
+            color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
+                           Kirigami.Theme.backgroundColor.g,
+                           Kirigami.Theme.backgroundColor.b, 1)
+            radius: 10
+            // square top corners
+            Rectangle { anchors.top: parent.top; width: parent.width; height: 10; color: parent.color }
+            // separator
+            Rectangle { anchors.top: parent.top; width: parent.width; height: 1;
+                         color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g,
+                                        Kirigami.Theme.textColor.b, 0.1) }
 
-            PC3.Button {
-                text: "Reset Defaults"
-                icon.name: "edit-clear-all"
-                onClicked: chatSettingsDialog.resetDefaults()
-            }
+            RowLayout {
+                id: footerRow
+                anchors { fill: parent; margins: 12 }
+                spacing: 8
 
-            Item {
-                Layout.fillWidth: true
-            }
+                PC3.Button {
+                    text: "Reset Defaults"
+                    icon.name: "edit-clear-all"
+                    onClicked: chatSettingsDialog._resetDefaults()
+                }
 
-            PC3.Button {
-                text: "Cancel"
-                icon.name: "dialog-cancel"
-                onClicked: chatSettingsDialog.close()
-            }
+                Item { Layout.fillWidth: true }
 
-            PC3.Button {
-                text: "Save Settings"
-                icon.name: "dialog-ok-apply"
-                highlighted: true
-                onClicked: chatSettingsDialog.saveSettings()
+                PC3.Button {
+                    text: "Cancel"
+                    icon.name: "dialog-cancel"
+                    onClicked: chatSettingsDialog.close()
+                }
+
+                PC3.Button {
+                    text: "Save"
+                    icon.name: "dialog-ok-apply"
+                    highlighted: true
+                    onClicked: chatSettingsDialog._saveAndClose()
+                }
             }
         }
     }
+
+    // internal flag for fetch-in-progress
+    property bool _fetching: false
 }
