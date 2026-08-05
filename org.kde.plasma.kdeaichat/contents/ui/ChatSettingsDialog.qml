@@ -446,35 +446,6 @@ QQC2.Popup {
 
                         RowLayout {
                             Layout.fillWidth: true; spacing: 8
-                            PC3.Label { text: "Agent:"; Layout.preferredWidth: 90 }
-                            QQC2.ComboBox {
-                                id: agentCombo
-                                Layout.fillWidth: true
-                                editable: true
-                                // model & index set imperatively in _applyToControls
-                            }
-                            PC3.ToolButton {
-                                icon.name: "view-refresh"
-                                onClicked: {
-                                    var r = chatSettingsDialog.rootRef;
-                                    if (r && typeof r.fetchOpenCodeAgents === "function") {
-                                        r.fetchOpenCodeAgents();
-                                        // rebuild combo after agents arrive (delayed)
-                                        Qt.callLater(function() {
-                                            var list = chatSettingsDialog._buildAgentModel();
-                                            var prev = agentCombo.editText;
-                                            agentCombo.model = list;
-                                            agentCombo.editText = prev;
-                                        });
-                                    }
-                                }
-                                QQC2.ToolTip.text: "Refresh agent list from OpenCode server"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
                             PC3.Label { text: "Provider:"; Layout.preferredWidth: 90 }
                             QQC2.ComboBox {
                                 id: ocProviderCombo
@@ -498,8 +469,7 @@ QQC2.Popup {
                                 onClicked: {
                                     var r = chatSettingsDialog.rootRef;
                                     if (r && typeof r.fetchOpenCodeProvidersAndModels === "function") {
-                                        r.fetchOpenCodeProvidersAndModels();
-                                        Qt.callLater(function() {
+                                        r.fetchOpenCodeProvidersAndModels(function() {
                                             var pList = chatSettingsDialog._buildOcProviderModel();
                                             var pPrev = ocProviderCombo.editText;
                                             ocProviderCombo.model = pList;
@@ -529,6 +499,33 @@ QQC2.Popup {
                                 icon.name: "folder"
                                 onClicked: dirDialog.open()
                                 QQC2.ToolTip.text: "Browse for workspace folder"
+                                QQC2.ToolTip.visible: hovered
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 8
+                            PC3.Label { text: "Agent:"; Layout.preferredWidth: 90 }
+                            QQC2.ComboBox {
+                                id: agentCombo
+                                Layout.fillWidth: true
+                                editable: true
+                                // model & index set imperatively in _applyToControls
+                            }
+                            PC3.ToolButton {
+                                icon.name: "view-refresh"
+                                onClicked: {
+                                    var r = chatSettingsDialog.rootRef;
+                                    if (r && typeof r.fetchOpenCodeAgents === "function") {
+                                        r.fetchOpenCodeAgents(function() {
+                                            var list = chatSettingsDialog._buildAgentModel();
+                                            var prev = agentCombo.editText;
+                                            agentCombo.model = list;
+                                            agentCombo.editText = prev;
+                                        });
+                                    }
+                                }
+                                QQC2.ToolTip.text: "Refresh agent list from OpenCode server"
                                 QQC2.ToolTip.visible: hovered
                             }
                         }

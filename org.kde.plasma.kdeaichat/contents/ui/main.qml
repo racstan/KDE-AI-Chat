@@ -803,7 +803,7 @@ PlasmoidItem {
         }
     }
 
-    function fetchOpenCodeAgents() {
+    function fetchOpenCodeAgents(callback) {
         if (root.fetchingAgentsInProgress) return;
         root.fetchingAgentsInProgress = true;
 
@@ -833,30 +833,35 @@ PlasmoidItem {
                         if (!root.openCodeAgent || root.openCodeAgent === "") {
                             root.openCodeAgent = agentList[0];
                         }
+                        if (callback) callback();
                         return;
                     }
                 } catch (e) {}
             }
             // Fast fallback to standard default agent suite
             root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
+            if (callback) callback();
         };
         xhr.ontimeout = function() {
             root.fetchingAgentsInProgress = false;
             root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
+            if (callback) callback();
         };
         xhr.onerror = function() {
             root.fetchingAgentsInProgress = false;
             root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
+            if (callback) callback();
         };
         try {
             xhr.send();
         } catch (err) {
             root.fetchingAgentsInProgress = false;
             root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
+            if (callback) callback();
         }
     }
 
-    function fetchOpenCodeProvidersAndModels() {
+    function fetchOpenCodeProvidersAndModels(callback) {
         var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
         baseUrl = baseUrl.replace(/\/v1\/?$/, "");
         var providerEndpoint = baseUrl + "/provider";
@@ -888,8 +893,11 @@ PlasmoidItem {
                     if (modelList.length > 0) root.openCodeModelsList = modelList;
                 } catch (e) {}
             }
+            if (callback) callback();
         };
-        try { xhr.send(); } catch (e) {}
+        xhr.ontimeout = function() { if (callback) callback(); };
+        xhr.onerror = function() { if (callback) callback(); };
+        try { xhr.send(); } catch (e) { if (callback) callback(); }
     }
 
     function runFallbackAgentFileFetch() {

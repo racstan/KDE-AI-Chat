@@ -128,6 +128,34 @@ KCM.SimpleKCM {
         }
     }
 
+    function _buildProviderBoxModel() {
+        var list = [
+            {"value": "openai", "text": "OpenAI"},
+            {"value": "anthropic", "text": "Anthropic"},
+            {"value": "groq", "text": "Groq"},
+            {"value": "deepseek", "text": "DeepSeek"},
+            {"value": "minimax", "text": "MiniMax"},
+            {"value": "fireworks", "text": "Fireworks AI"},
+            {"value": "google", "text": "Google Gemini"},
+            {"value": "openrouter", "text": "OpenRouter"},
+            {"value": "mistral", "text": "Mistral"},
+            {"value": "cloudflare", "text": "Cloudflare Workers AI"},
+            {"value": "nvidia", "text": "NVIDIA NIM"},
+            {"value": "huggingface", "text": "Hugging Face Router"},
+            {"value": "xai", "text": "xAI (Grok)"},
+            {"value": "lmstudio", "text": "LM Studio"},
+            {"value": "local", "text": "Local (OpenAI-compatible)"},
+            {"value": "ollama", "text": "Ollama"},
+            {"value": "litellm", "text": "LiteLLM Proxy"}
+        ];
+        var customs = [];
+        try { customs = JSON.parse(page.cfg_customProvidersJson || "[]"); } catch(e) {}
+        for (var i = 0; i < customs.length; i++) {
+            list.push({ "value": customs[i].id, "text": "[Custom] " + customs[i].name });
+        }
+        return list;
+    }
+
     function effectiveWalletName() {
         return "kdewallet";
     }
@@ -1454,58 +1482,7 @@ KCM.SimpleKCM {
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 textRole: "text"
                 valueRole: "value"
-                model: [{
-                    "value": "openai",
-                    "text": "OpenAI"
-                }, {
-                    "value": "anthropic",
-                    "text": "Anthropic"
-                }, {
-                    "value": "groq",
-                    "text": "Groq"
-                }, {
-                    "value": "deepseek",
-                    "text": "DeepSeek"
-                }, {
-                    "value": "minimax",
-                    "text": "MiniMax"
-                }, {
-                    "value": "fireworks",
-                    "text": "Fireworks AI"
-                }, {
-                    "value": "google",
-                    "text": "Google Gemini"
-                }, {
-                    "value": "openrouter",
-                    "text": "OpenRouter"
-                }, {
-                    "value": "mistral",
-                    "text": "Mistral"
-                }, {
-                    "value": "cloudflare",
-                    "text": "Cloudflare Workers AI"
-                }, {
-                    "value": "nvidia",
-                    "text": "NVIDIA NIM"
-                }, {
-                    "value": "huggingface",
-                    "text": "Hugging Face Router"
-                }, {
-                    "value": "xai",
-                    "text": "xAI (Grok)"
-                }, {
-                    "value": "lmstudio",
-                    "text": "LM Studio"
-                }, {
-                    "value": "local",
-                    "text": "Local (OpenAI-compatible)"
-                }, {
-                    "value": "ollama",
-                    "text": "Ollama"
-                }, {
-                    "value": "litellm",
-                    "text": "LiteLLM Proxy"
-                }]
+                model: page._buildProviderBoxModel()
                 onActivated: {
                     providerModelCandidates = [];
                     discoveryStatus = "";
@@ -2910,9 +2887,16 @@ KCM.SimpleKCM {
                                 "apiKey": newCpKey.text.trim(),
                                 "model": newCpModel.text.trim()
                             });
+                            var oldVal = providerBox.currentValue;
                             page.cfg_customProvidersJson = JSON.stringify(list);
                             if (plasmoid && plasmoid.configuration) {
                                 plasmoid.configuration.customProvidersJson = JSON.stringify(list);
+                            }
+                            providerBox.model = page._buildProviderBoxModel();
+                            for (var j = 0; j < providerBox.model.length; j++) {
+                                if (providerBox.model[j].value === oldVal) {
+                                    providerBox.currentIndex = j; break;
+                                }
                             }
                             newCpName.text = "";
                             newCpUrl.text = "";
@@ -2966,11 +2950,18 @@ KCM.SimpleKCM {
                             QQC2.ToolButton {
                                 icon.name: "edit-delete"
                                 onClicked: {
+                                    var oldVal = providerBox.currentValue;
                                     var list = JSON.parse(page.cfg_customProvidersJson || "[]");
                                     list.splice(index, 1);
                                     page.cfg_customProvidersJson = JSON.stringify(list);
                                     if (plasmoid && plasmoid.configuration) {
                                         plasmoid.configuration.customProvidersJson = JSON.stringify(list);
+                                    }
+                                    providerBox.model = page._buildProviderBoxModel();
+                                    for (var j = 0; j < providerBox.model.length; j++) {
+                                        if (providerBox.model[j].value === oldVal) {
+                                            providerBox.currentIndex = j; break;
+                                        }
                                     }
                                 }
                             }
