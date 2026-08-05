@@ -45,6 +45,7 @@ QQC2.Popup {
             provider:    get("chatProvider",            ""),
             model:       get("chatModel",               ""),
             ocAgent:     get("openCodeAgent",           ""),
+            ocProvider:  get("openCodeProvider",        ""),
             ocModel:     get("openCodeModel",           ""),
             ocCwd:       get("openCodeWorkspaceCwd",    ""),
             memEnabled:  get("chatMemoryEnabled",       true),
@@ -52,6 +53,7 @@ QQC2.Popup {
             sysEnabled:  get("chatSystemPromptEnabled", true),
             sysText:     get("chatSystemPrompt",        ""),
             respLen:     get("responseLength",          0),
+            modelCandidates: [],
         };
 
         // push to controls now that _d is ready
@@ -76,25 +78,23 @@ QQC2.Popup {
             if (provList[i].value === d.provider) { providerCombo.currentIndex = i; break; }
         }
 
-        // model field — plain text
-        modelField.text = d.model;
+        // model combo — editable
+        modelCombo.model = d.modelCandidates || [];
+        modelCombo.editText = d.model || "";
 
         // opencode agent combo
         var agentList = _buildAgentModel();
         agentCombo.model = agentList;
-        agentCombo.currentIndex = 0;
-        for (var j = 0; j < agentList.length; j++) {
-            if (agentList[j] === d.ocAgent) { agentCombo.currentIndex = j; break; }
-        }
         agentCombo.editText = d.ocAgent || "";
+
+        // opencode provider combo
+        var ocProvList = _buildOcProviderModel();
+        ocProviderCombo.model = ocProvList;
+        ocProviderCombo.editText = d.ocProvider || "";
 
         // opencode model combo
         var ocModelList = _buildOcModelModel();
         ocModelCombo.model = ocModelList;
-        ocModelCombo.currentIndex = 0;
-        for (var k = 0; k < ocModelList.length; k++) {
-            if (ocModelList[k] === d.ocModel) { ocModelCombo.currentIndex = k; break; }
-        }
         ocModelCombo.editText = d.ocModel || "";
 
         // other fields
@@ -128,6 +128,16 @@ QQC2.Popup {
         return list;
     }
 
+    function _buildOcProviderModel() {
+        var provs = rootRef ? rootRef.openCodeProvidersList : [];
+        var list = ["(default provider)"];
+        for (var i = 0; i < provs.length; i++) {
+            var pId = (typeof provs[i] === "string") ? provs[i] : (provs[i].id || "");
+            if (pId && list.indexOf(pId) < 0) list.push(pId);
+        }
+        return list;
+    }
+
     function _buildOcModelModel() {
         var models = rootRef ? rootRef.openCodeModelsList : [];
         var list = ["(default model)"];
@@ -140,9 +150,16 @@ QQC2.Popup {
     function _readFromControls() {
         _d.provider   = (providerCombo.currentIndex > 0 && providerCombo.model)
                          ? (providerCombo.model[providerCombo.currentIndex].value || "") : "";
-        _d.model      = modelField.text.trim();
-        _d.ocAgent    = (agentCombo.currentIndex > 0) ? agentCombo.currentText : agentCombo.editText;
-        _d.ocModel    = (ocModelCombo.currentIndex > 0) ? ocModelCombo.currentText : ocModelCombo.editText;
+        _d.model      = modelCombo.editText.trim();
+        _d.ocAgent    = agentCombo.editText.trim();
+        if (_d.ocAgent === "(default agent)") _d.ocAgent = "";
+        
+        _d.ocProvider = ocProviderCombo.editText.trim();
+        if (_d.ocProvider === "(default provider)") _d.ocProvider = "";
+
+        _d.ocModel    = ocModelCombo.editText.trim();
+        if (_d.ocModel === "(default model)") _d.ocModel = "";
+
         _d.ocCwd      = cwdField.text.trim();
         _d.memEnabled = memCheck.checked;
         _d.memText    = memArea.text;
@@ -160,6 +177,7 @@ QQC2.Popup {
         set("chatProvider",           d.provider);
         set("chatModel",              d.model);
         set("openCodeAgent",          d.ocAgent);
+        set("openCodeProvider",       d.ocProvider);
         set("openCodeModel",          d.ocModel);
         set("openCodeWorkspaceCwd",   d.ocCwd);
         set("chatMemoryEnabled",      d.memEnabled);
@@ -183,7 +201,7 @@ QQC2.Popup {
         var useOC = r && r.plasmoid && r.plasmoid.configuration.useOpenCode;
         _d.mode      = useOC ? "opencode" : "provider";
         _d.provider  = ""; _d.model  = "";
-        _d.ocAgent   = ""; _d.ocModel = ""; _d.ocCwd = "";
+        _d.ocAgent   = ""; _d.ocProvider = ""; _d.ocModel = ""; _d.ocCwd = "";
         _d.memEnabled = true;  _d.memText = "";
         _d.sysEnabled = true;  _d.sysText = "";
         _d.respLen   = 0;
@@ -354,10 +372,10 @@ QQC2.Popup {
                         RowLayout {
                             Layout.fillWidth: true; spacing: 8
                             PC3.Label { text: "Model:"; Layout.preferredWidth: 90 }
-                            QQC2.TextField {
-                                id: modelField
+                            QQC2.ComboBox {
+                                id: modelCombo
                                 Layout.fillWidth: true
-                                placeholderText: "Leave blank to use global model"
+                                editable: true
                                 // text set imperatively in _applyToControls
                             }
                             PC3.ToolButton {
@@ -378,9 +396,10 @@ QQC2.Popup {
                                             statusLabel.text = ids.length > 0
                                                 ? ("✓ " + ids.length + " models loaded")
                                                 : "No models returned";
-                                            // repopulate model field if it was blank
-                                            if (!modelField.text && ids.length > 0)
-                                                modelField.placeholderText = ids[0] + " (first result)";
+                                            chatSettingsDialog._d.modelCandidates = ids;
+                                            var prev = modelCombo.editText;
+                                            modelCombo.model = ids;
+                                            modelCombo.editText = prev || (ids.length > 0 ? ids[0] : "");
                                         },
                                         function(err) {
                                             chatSettingsDialog._fetching = false;
@@ -456,6 +475,17 @@ QQC2.Popup {
 
                         RowLayout {
                             Layout.fillWidth: true; spacing: 8
+                            PC3.Label { text: "Provider:"; Layout.preferredWidth: 90 }
+                            QQC2.ComboBox {
+                                id: ocProviderCombo
+                                Layout.fillWidth: true
+                                editable: true
+                                // model & index set imperatively in _applyToControls
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 8
                             PC3.Label { text: "Model:"; Layout.preferredWidth: 90 }
                             QQC2.ComboBox {
                                 id: ocModelCombo
@@ -470,14 +500,19 @@ QQC2.Popup {
                                     if (r && typeof r.fetchOpenCodeProvidersAndModels === "function") {
                                         r.fetchOpenCodeProvidersAndModels();
                                         Qt.callLater(function() {
-                                            var list = chatSettingsDialog._buildOcModelModel();
-                                            var prev = ocModelCombo.editText;
-                                            ocModelCombo.model = list;
-                                            ocModelCombo.editText = prev;
+                                            var pList = chatSettingsDialog._buildOcProviderModel();
+                                            var pPrev = ocProviderCombo.editText;
+                                            ocProviderCombo.model = pList;
+                                            ocProviderCombo.editText = pPrev;
+
+                                            var mList = chatSettingsDialog._buildOcModelModel();
+                                            var mPrev = ocModelCombo.editText;
+                                            ocModelCombo.model = mList;
+                                            ocModelCombo.editText = mPrev;
                                         });
                                     }
                                 }
-                                QQC2.ToolTip.text: "Refresh model list from OpenCode /provider API"
+                                QQC2.ToolTip.text: "Refresh providers & models from OpenCode /provider API"
                                 QQC2.ToolTip.visible: hovered
                             }
                         }
