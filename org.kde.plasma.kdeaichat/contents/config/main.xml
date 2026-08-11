@@ -28,14 +28,14 @@
       <default></default>
     </entry>
     <entry name="model" type="String">
-      <default>gpt-4o-mini</default>
+      <default></default>
     </entry>
 
     <entry name="anthropicApiKey" type="String">
       <default></default>
     </entry>
     <entry name="anthropicModel" type="String">
-      <default>claude-3-5-sonnet-latest</default>
+      <default></default>
     </entry>
 
     <entry name="groqBaseUrl" type="String">
@@ -45,7 +45,7 @@
       <default></default>
     </entry>
     <entry name="groqModel" type="String">
-      <default>llama-3.3-70b-versatile</default>
+      <default></default>
     </entry>
 
     <entry name="deepSeekBaseUrl" type="String">
@@ -55,7 +55,7 @@
       <default></default>
     </entry>
     <entry name="deepSeekModel" type="String">
-      <default>deepseek-v4-pro</default>
+      <default></default>
     </entry>
 
     <entry name="miniMaxBaseUrl" type="String">
@@ -65,7 +65,7 @@
       <default></default>
     </entry>
     <entry name="miniMaxModel" type="String">
-      <default>MiniMax-M2.7</default>
+      <default></default>
     </entry>
 
     <entry name="fireworksBaseUrl" type="String">
@@ -75,7 +75,7 @@
       <default></default>
     </entry>
     <entry name="fireworksModel" type="String">
-      <default>accounts/fireworks/models/llama-v3p3-70b-instruct</default>
+      <default></default>
     </entry>
 
     <entry name="googleBaseUrl" type="String">
@@ -85,7 +85,7 @@
       <default></default>
     </entry>
     <entry name="googleModel" type="String">
-      <default>gemini-3-flash-preview</default>
+      <default></default>
     </entry>
 
     <entry name="openRouterBaseUrl" type="String">
@@ -95,7 +95,7 @@
       <default></default>
     </entry>
     <entry name="openRouterModel" type="String">
-      <default>openai/gpt-4o-mini</default>
+      <default></default>
     </entry>
     <entry name="openRouterReferer" type="String">
       <default></default>
@@ -111,7 +111,7 @@
       <default></default>
     </entry>
     <entry name="mistralModel" type="String">
-      <default>mistral-small-latest</default>
+      <default></default>
     </entry>
 
     <entry name="cloudflareBaseUrl" type="String">
@@ -121,7 +121,7 @@
       <default></default>
     </entry>
     <entry name="cloudflareModel" type="String">
-      <default>@cf/meta/llama-3.1-8b-instruct</default>
+      <default></default>
     </entry>
 
     <entry name="nvidiaBaseUrl" type="String">
@@ -131,7 +131,7 @@
       <default></default>
     </entry>
     <entry name="nvidiaModel" type="String">
-      <default>meta/llama-3.1-70b-instruct</default>
+      <default></default>
     </entry>
 
     <entry name="huggingFaceBaseUrl" type="String">
@@ -141,7 +141,7 @@
       <default></default>
     </entry>
     <entry name="huggingFaceModel" type="String">
-      <default>openai/gpt-oss-120b:groq</default>
+      <default></default>
     </entry>
 
     <entry name="xaiBaseUrl" type="String">
@@ -151,7 +151,7 @@
       <default></default>
     </entry>
     <entry name="xaiModel" type="String">
-      <default>grok-2-latest</default>
+      <default></default>
     </entry>
 
     <entry name="lmStudioBaseUrl" type="String">
@@ -165,14 +165,14 @@
       <default>http://localhost:11434/v1</default>
     </entry>
     <entry name="localModel" type="String">
-      <default>llama3.2</default>
+      <default></default>
     </entry>
 
     <entry name="ollamaBaseUrl" type="String">
       <default>http://localhost:11434/v1</default>
     </entry>
     <entry name="ollamaModel" type="String">
-      <default>llama3.2</default>
+      <default></default>
     </entry>
 
     <entry name="litellmBaseUrl" type="String">
@@ -182,6 +182,26 @@
       <default></default>
     </entry>
     <entry name="litellmModel" type="String">
+      <default></default>
+    </entry>
+
+    <entry name="maritacaBaseUrl" type="String">
+      <default>https://chat.maritaca.ai/api</default>
+    </entry>
+    <entry name="maritacaApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="maritacaModel" type="String">
+      <default></default>
+    </entry>
+
+    <entry name="perplexityBaseUrl" type="String">
+      <default>https://api.perplexity.ai/router/v1</default>
+    </entry>
+    <entry name="perplexityApiKey" type="String">
+      <default></default>
+    </entry>
+    <entry name="perplexityModel" type="String">
       <default></default>
     </entry>
 
@@ -265,6 +285,12 @@
     <entry name="enableMcpTools" type="Bool">
       <default>false</default>
     </entry>
+    <entry name="autoNameChats" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="autoRestartPlasmaShell" type="Bool">
+      <default>false</default>
+    </entry>
 
     <entry name="sysInfoOS" type="Bool"><default>false</default></entry>
     <entry name="sysInfoShell" type="Bool"><default>false</default></entry>
@@ -303,11 +329,11 @@
 <entry name="voiceTtsAuto" type="Bool">
       <default>false</default>
     </entry>
-<entry name="voiceSttModel" type="String">
-      <default>small</default>
+    <entry name="voiceSttModel" type="String">
+      <default></default>
     </entry>
-<entry name="voiceTtsModel" type="String">
-      <default>kokoro-82m</default>
+    <entry name="voiceTtsModel" type="String">
+      <default></default>
     </entry>
 <entry name="voiceSttModelPath" type="String">
       <default></default>

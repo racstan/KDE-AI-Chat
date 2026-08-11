@@ -11,7 +11,7 @@ Item {
     property string currentPlayingChunk: ""
     property string statusText: ""
     property string lastRecognizedText: ""
-    readonly property string defaultSttModel: "small"
+    readonly property string defaultSttModel: ""
     
     // Config aliases for convenience
     property bool enabled: plasmoid.configuration.voiceEnabled || false

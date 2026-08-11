@@ -208,7 +208,16 @@ let PROVIDER_CONFIGS = {
         modelKey: "maritacaModel",
         baseUrlKey: "maritacaBaseUrl",
         defaultBaseUrl: "https://chat.maritaca.ai/api",
-        defaultModel: "sabia-4",
+        defaultModel: "",
+        allowEmptyKey: false
+    },
+    "perplexity": {
+        type: "openai-compat",
+        configKey: "perplexityApiKey",
+        modelKey: "perplexityModel",
+        baseUrlKey: "perplexityBaseUrl",
+        defaultBaseUrl: "https://api.perplexity.ai/router/v1",
+        defaultModel: "",
         allowEmptyKey: false
     },
     "pollinations": {
@@ -217,7 +226,7 @@ let PROVIDER_CONFIGS = {
         modelKey: "pollinationsModel",
         baseUrlKey: "pollinationsBaseUrl",
         defaultBaseUrl: "https://image.pollinations.ai",
-        defaultModel: "flux",
+        defaultModel: "",
         allowEmptyKey: true
     },
     "huggingface-image": {
@@ -226,7 +235,7 @@ let PROVIDER_CONFIGS = {
         modelKey: "huggingfaceImageModel",
         baseUrlKey: "huggingfaceImageBaseUrl",
         defaultBaseUrl: "https://api-inference.huggingface.co",
-        defaultModel: "stabilityai/stable-diffusion-xl-base-1.0",
+        defaultModel: "",
         allowEmptyKey: false
     },
     "together-image": {
@@ -235,7 +244,7 @@ let PROVIDER_CONFIGS = {
         modelKey: "togetherImageModel",
         baseUrlKey: "togetherImageBaseUrl",
         defaultBaseUrl: "https://api.together.xyz/v1",
-        defaultModel: "black-forest-labs/FLUX.1-schnell-Free",
+        defaultModel: "",
         allowEmptyKey: false
     },
     "openai-image": {
@@ -244,7 +253,7 @@ let PROVIDER_CONFIGS = {
         modelKey: "openaiImageModel",
         baseUrlKey: "baseUrl",
         defaultBaseUrl: "https://api.openai.com/v1",
-        defaultModel: "dall-e-3",
+        defaultModel: "",
         allowEmptyKey: false
     },
     "google-image": {
@@ -253,7 +262,7 @@ let PROVIDER_CONFIGS = {
         modelKey: "googleImageModel",
         baseUrlKey: "googleImageBaseUrl",
         defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
-        defaultModel: "imagen-4",
+        defaultModel: "",
         allowEmptyKey: false
     },
     "stability-image": {
@@ -262,7 +271,7 @@ let PROVIDER_CONFIGS = {
         modelKey: "stabilityImageModel",
         baseUrlKey: "stabilityImageBaseUrl",
         defaultBaseUrl: "https://api.stability.ai",
-        defaultModel: "stable-diffusion-xl-1024-v1-0",
+        defaultModel: "",
         allowEmptyKey: false
     },
     "replicate-image": {
@@ -271,7 +280,7 @@ let PROVIDER_CONFIGS = {
         modelKey: "replicateImageModel",
         baseUrlKey: "replicateImageBaseUrl",
         defaultBaseUrl: "https://api.replicate.com",
-        defaultModel: "black-forest-labs/flux-schnell",
+        defaultModel: "",
         allowEmptyKey: false
     }
 };
@@ -298,6 +307,7 @@ let DISPLAY_NAMES = {
     "moonshot": "Moonshot",
     "mimo": "MiMo",
     "maritaca": "Maritaca",
+    "perplexity": "Perplexity",
     "pollinations": "[Image] Pollinations.ai",
     "huggingface-image": "[Image] HuggingFace Image",
     "together-image": "[Image] Together AI",
@@ -326,6 +336,7 @@ let API_KEY_CONFIG_MAP = {
     "moonshot": "moonshotApiKey",
     "mimo": "mimoApiKey",
     "maritaca": "maritacaApiKey",
+    "perplexity": "perplexityApiKey",
     "huggingface-image": "huggingfaceImageApiKey",
     "together-image": "togetherImageApiKey",
     "openai-image": "apiKey",

@@ -6,692 +6,367 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "ProviderService.js" as ProviderService
 
-// ChatSettingsDialog — per-chat settings panel
-// DESIGN RULES (to prevent binding loops & hangs):
-//   1. No declarative property bindings on ComboBox.editText or ComboBox.currentIndex
-//   2. All state is stored in plain JS vars (d.*) and pushed to controls manually via open()
-//   3. No network calls on open — only on explicit button press
-//   4. All XHR done inside ProviderService which has a 5s timeout
-
+// A deliberately small, state-owned editor.  The dialog never binds a
+// ComboBox property to mutable session data: it loads a draft, performs
+// bounded asynchronous refreshes, then commits the draft once.
 QQC2.Popup {
-    id: chatSettingsDialog
+    id: page
 
-    // ── public API ──────────────────────────────────────────────────
     property var rootRef: null
+    property string _sessionId: ""
+    property string _sessionTitle: ""
+    property string _mode: "provider"
+    property string _provider: ""
+    property string _model: ""
+    property string _ocAgent: ""
+    property string _ocProvider: ""
+    property string _ocModel: ""
+    property string _ocCwd: ""
+    property bool _memoryEnabled: true
+    property string _memory: ""
+    property bool _systemEnabled: true
+    property string _system: ""
+    property int _responseLength: 0
+    property var _modelCandidates: []
+    property int _generation: 0
+    property bool _busy: false
+    property string _status: ""
+
+    function _get(key, fallback) {
+        if (rootRef && typeof rootRef.getSessionProperty === "function")
+            return rootRef.getSessionProperty(_sessionId, key, fallback);
+        return fallback;
+    }
+
+    function _invalidate() {
+        _generation += 1;
+        _busy = false;
+        _status = "";
+    }
+
+    function _requestToken() {
+        _busy = true;
+        return { generation: _generation, sessionId: _sessionId };
+    }
+
+    function _current(token) {
+        return token && token.generation === _generation && token.sessionId === _sessionId;
+    }
+
+    function _providerEntries() {
+        var cfg = rootRef && rootRef.plasmoid ? rootRef.plasmoid.configuration : null;
+        var global = cfg ? (cfg.provider || "openai") : "openai";
+        var result = [{ text: "Default · " + ProviderService.getProviderDisplayName(global, cfg), value: "" }];
+        var configured = ProviderService.getConfiguredProviders(cfg);
+        for (var i = 0; i < configured.length; i++)
+            result.push({ text: ProviderService.getProviderDisplayName(configured[i], cfg), value: configured[i] });
+        return result;
+    }
+
+    function _names(items, sentinel) {
+        var result = [sentinel];
+        for (var i = 0; i < (items || []).length; i++) {
+            var item = items[i];
+            var value = typeof item === "string" ? item : (item && (item.value || item.id || item.name || item.text));
+            if (value && result.indexOf(value) < 0)
+                result.push(value);
+        }
+        return result;
+    }
+
+    function _applyLists() {
+        providerCombo.model = _providerEntries();
+        providerCombo.currentIndex = 0;
+        for (var i = 0; i < providerCombo.model.length; i++) {
+            if (providerCombo.model[i].value === _provider) {
+                providerCombo.currentIndex = i;
+                break;
+            }
+        }
+        modelCombo.model = _modelCandidates;
+        modelCombo.editText = _model;
+        agentCombo.model = _names(rootRef ? rootRef.openCodeAgentsList : [], "(default agent)");
+        agentCombo.editText = _ocAgent || "";
+        ocProviderCombo.model = _names(rootRef ? rootRef.openCodeProvidersList : [], "(default provider)");
+        ocProviderCombo.editText = _ocProvider || "";
+        ocModelCombo.model = _names(rootRef ? rootRef.openCodeModelsList : [], "(default model)");
+        ocModelCombo.editText = _ocModel || "";
+    }
+
+    function _load(sessionId) {
+        _invalidate();
+        _sessionId = sessionId || "";
+        var source = _get("source", "");
+        if (!source)
+            source = rootRef && rootRef.openCodeMode ? "opencode" : "provider";
+        _sessionTitle = rootRef && rootRef.currentSessionTitle ? rootRef.currentSessionTitle : "Current Chat";
+        _mode = source;
+        _provider = _get("chatProvider", "");
+        _model = _get("chatModel", "");
+        _ocAgent = _get("openCodeAgent", "");
+        _ocProvider = _get("openCodeProvider", "");
+        _ocModel = _get("openCodeModel", "");
+        _ocCwd = _get("openCodeWorkspaceCwd", "");
+        _memoryEnabled = _get("chatMemoryEnabled", true);
+        _memory = _get("chatMemory", "");
+        _systemEnabled = _get("chatSystemPromptEnabled", true);
+        _system = _get("chatSystemPrompt", "");
+        _responseLength = _get("responseLength", 0) || 0;
+        _modelCandidates = [];
+        _applyLists();
+        cwdField.text = _ocCwd;
+        memoryCheck.checked = _memoryEnabled;
+        memoryArea.text = _memory;
+        systemCheck.checked = _systemEnabled;
+        systemArea.text = _system;
+        responseLengthCombo.currentIndex = _responseLength;
+        Qt.callLater(function() {
+            if (_sessionId !== sessionId)
+                return;
+            if (_mode === "opencode") {
+                _refreshOpenCode(function() { _refreshAgents(); });
+            } else if (_provider || (rootRef && rootRef.plasmoid && rootRef.plasmoid.configuration.apiKey)) {
+                _refreshModels(false);
+            }
+        });
+    }
 
     function openForSession(sessionId) {
-        if (!rootRef) return;
+        if (!rootRef)
+            return;
         _load(sessionId);
         open();
     }
 
-    // ── private state (plain object, never declaratively bound) ─────
-    property var _d: ({})
+    function _selectedProvider() {
+        if (providerCombo.currentIndex > 0 && providerCombo.model)
+            return providerCombo.model[providerCombo.currentIndex].value || "";
+        return rootRef && rootRef.plasmoid ? (rootRef.plasmoid.configuration.provider || "openai") : "openai";
+    }
 
-    function _load(sessionId) {
-        var r = rootRef;
-        var get = (k, def) =>
-            (typeof r.getSessionProperty === "function")
-                ? r.getSessionProperty(sessionId, k, def)
-                : def;
+    function _refreshModels(showStatus) {
+        if (_busy || !rootRef || !rootRef.plasmoid)
+            return;
+        var provider = _selectedProvider();
+        var token = _requestToken();
+        if (showStatus)
+            _status = "Fetching models…";
+        ProviderService.fetchModelsForProvider(provider, rootRef.plasmoid.configuration,
+            function(models) {
+                if (!_current(token)) return;
+                _busy = false;
+                _modelCandidates = models || [];
+                if (!_model && _modelCandidates.length > 0)
+                    _model = _modelCandidates[0];
+                modelCombo.model = _modelCandidates;
+                modelCombo.editText = _model;
+                _status = _modelCandidates.length > 0 ? ("Loaded " + _modelCandidates.length + " models") : "No models returned";
+            },
+            function(errorText) {
+                if (!_current(token)) return;
+                _busy = false;
+                _status = "Model refresh failed: " + errorText;
+            });
+    }
 
-        var src = get("source", "");
-        if (!src) src = r.openCodeMode ? "opencode" : "provider";
+    function _refreshAgents() {
+        if (_busy || !rootRef || typeof rootRef.fetchOpenCodeAgents !== "function")
+            return;
+        var token = _requestToken();
+        _status = "Fetching OpenCode agents…";
+        rootRef.fetchOpenCodeAgents(function() {
+            if (!_current(token)) return;
+            _busy = false;
+            _applyLists();
+            _status = (rootRef.openCodeAgentsList || []).length > 0 ? "OpenCode agents loaded" : "No agents reported by OpenCode";
+        });
+    }
 
-        _d = {
-            sessionId:   sessionId,
-            sessionTitle: r.currentSessionTitle || "Current Chat",
-            mode:        src,
-            provider:    get("chatProvider",            ""),
-            model:       get("chatModel",               ""),
-            ocAgent:     get("openCodeAgent",           ""),
-            ocProvider:  get("openCodeProvider",        ""),
-            ocModel:     get("openCodeModel",           ""),
-            ocCwd:       get("openCodeWorkspaceCwd",    ""),
-            memEnabled:  get("chatMemoryEnabled",       true),
-            memText:     get("chatMemory",              ""),
-            sysEnabled:  get("chatSystemPromptEnabled", true),
-            sysText:     get("chatSystemPrompt",        ""),
-            respLen:     get("responseLength",          0),
-            modelCandidates: [],
+    function _refreshOpenCode(done) {
+        if (_busy || !rootRef || typeof rootRef.fetchOpenCodeProvidersAndModels !== "function") {
+            if (done)
+                done();
+            return;
+        }
+        var token = _requestToken();
+        _status = "Fetching OpenCode providers…";
+        rootRef.fetchOpenCodeProvidersAndModels(function() {
+            if (!_current(token)) return;
+            _busy = false;
+            _applyLists();
+            _status = "OpenCode providers and models loaded";
+            if (done)
+                done();
+        });
+    }
+
+    function _save() {
+        _invalidate();
+        if (!rootRef || !_sessionId) {
+            close();
+            return;
+        }
+        var agent = agentCombo.editText.trim();
+        var ocProvider = ocProviderCombo.editText.trim();
+        var ocModel = ocModelCombo.editText.trim();
+        if (agent === "(default agent)") agent = "";
+        if (ocProvider === "(default provider)") ocProvider = "";
+        if (ocModel === "(default model)") ocModel = "";
+        var overrides = {
+            source: _mode,
+            chatProvider: _selectedProvider() === (rootRef.plasmoid.configuration.provider || "openai") ? "" : _selectedProvider(),
+            chatModel: modelCombo.editText.trim(),
+            openCodeAgent: agent,
+            openCodeProvider: ocProvider,
+            openCodeModel: ocModel,
+            openCodeWorkspaceCwd: cwdField.text.trim(),
+            chatMemoryEnabled: memoryCheck.checked,
+            chatMemory: memoryArea.text,
+            chatSystemPromptEnabled: systemCheck.checked,
+            chatSystemPrompt: systemArea.text,
+            responseLength: responseLengthCombo.currentIndex
         };
-
-        // push to controls now that _d is ready
-        _applyToControls();
-    }
-
-    function _applyToControls() {
-        var d = _d;
-        titleLabel.text = "Chat Settings: " + d.sessionTitle;
-        modeNormalBtn.checked    = (d.mode !== "opencode");
-        modeOpenCodeBtn.checked  = (d.mode === "opencode");
-        normalCard.visible       = (d.mode !== "opencode");
-        openCodeCard.visible     = (d.mode === "opencode");
-        statusLabel.text         = "";
-
-        // provider combo — find index by value
-        var cfg = rootRef ? rootRef.plasmoid.configuration : null;
-        var provList = _buildProviderModel(cfg);
-        providerCombo.model = provList;
-        providerCombo.currentIndex = 0;
-        for (var i = 0; i < provList.length; i++) {
-            if (provList[i].value === d.provider) { providerCombo.currentIndex = i; break; }
+        if (typeof rootRef.setSessionOverrides === "function")
+            rootRef.setSessionOverrides(_sessionId, overrides);
+        else if (typeof rootRef.setSessionProperty === "function") {
+            for (var key in overrides)
+                rootRef.setSessionProperty(_sessionId, key, overrides[key]);
         }
-
-        // model combo — editable
-        modelCombo.model = d.modelCandidates || [];
-        modelCombo.editText = d.model || "";
-
-        // opencode agent combo
-        var agentList = _buildAgentModel();
-        agentCombo.model = agentList;
-        agentCombo.editText = d.ocAgent || "";
-
-        // opencode provider combo
-        var ocProvList = _buildOcProviderModel();
-        ocProviderCombo.model = ocProvList;
-        ocProviderCombo.editText = d.ocProvider || "";
-
-        // opencode model combo
-        var ocModelList = _buildOcModelModel();
-        ocModelCombo.model = ocModelList;
-        ocModelCombo.editText = d.ocModel || "";
-
-        // other fields
-        cwdField.text              = d.ocCwd;
-        memCheck.checked           = d.memEnabled;
-        memArea.text               = d.memText;
-        memArea.enabled            = d.memEnabled;
-        sysCheck.checked           = d.sysEnabled;
-        sysArea.text               = d.sysText;
-        sysArea.enabled            = d.sysEnabled;
-        respLenCombo.currentIndex  = d.respLen || 0;
-    }
-
-    function _buildProviderModel(cfg) {
-        var globalProv = cfg ? (cfg.provider || "openai") : "openai";
-        var list = [{ text: "Default (Global: " + ProviderService.getProviderDisplayName(globalProv, cfg) + ")", value: "" }];
-        var providers = ProviderService.getConfiguredProviders(cfg);
-        for (var i = 0; i < providers.length; i++) {
-            list.push({ text: ProviderService.getProviderDisplayName(providers[i], cfg), value: providers[i] });
-        }
-        return list;
-    }
-
-    function _buildAgentModel() {
-        var agents = rootRef ? rootRef.openCodeAgentsList : [];
-        var list = ["(default agent)"];
-        for (var i = 0; i < agents.length; i++) {
-            var name = (typeof agents[i] === "string") ? agents[i] : (agents[i].name || "");
-            if (name && list.indexOf(name) < 0) list.push(name);
-        }
-        return list;
-    }
-
-    function _buildOcProviderModel() {
-        var provs = rootRef ? rootRef.openCodeProvidersList : [];
-        var list = ["(default provider)"];
-        for (var i = 0; i < provs.length; i++) {
-            var pId = (typeof provs[i] === "string") ? provs[i] : (provs[i].id || "");
-            if (pId && list.indexOf(pId) < 0) list.push(pId);
-        }
-        return list;
-    }
-
-    function _buildOcModelModel() {
-        var models = rootRef ? rootRef.openCodeModelsList : [];
-        var list = ["(default model)"];
-        for (var i = 0; i < models.length; i++) {
-            if (models[i] && list.indexOf(models[i]) < 0) list.push(models[i]);
-        }
-        return list;
-    }
-
-    function _readFromControls() {
-        _d.provider   = (providerCombo.currentIndex > 0 && providerCombo.model)
-                         ? (providerCombo.model[providerCombo.currentIndex].value || "") : "";
-        _d.model      = modelCombo.editText.trim();
-        _d.ocAgent    = agentCombo.editText.trim();
-        if (_d.ocAgent === "(default agent)") _d.ocAgent = "";
-        
-        _d.ocProvider = ocProviderCombo.editText.trim();
-        if (_d.ocProvider === "(default provider)") _d.ocProvider = "";
-
-        _d.ocModel    = ocModelCombo.editText.trim();
-        if (_d.ocModel === "(default model)") _d.ocModel = "";
-
-        _d.ocCwd      = cwdField.text.trim();
-        _d.memEnabled = memCheck.checked;
-        _d.memText    = memArea.text;
-        _d.sysEnabled = sysCheck.checked;
-        _d.sysText    = sysArea.text;
-        _d.respLen    = respLenCombo.currentIndex;
-    }
-
-    function _saveAndClose() {
-        if (!rootRef || !_d.sessionId) { close(); return; }
-        _readFromControls();
-        var d = _d;
-        var set = (k, v) => { if (typeof rootRef.setSessionProperty === "function") rootRef.setSessionProperty(d.sessionId, k, v); };
-        set("source",                 d.mode);
-        set("chatProvider",           d.provider);
-        set("chatModel",              d.model);
-        set("openCodeAgent",          d.ocAgent);
-        set("openCodeProvider",       d.ocProvider);
-        set("openCodeModel",          d.ocModel);
-        set("openCodeWorkspaceCwd",   d.ocCwd);
-        set("chatMemoryEnabled",      d.memEnabled);
-        set("chatMemory",             d.memText);
-        set("chatSystemPromptEnabled",d.sysEnabled);
-        set("chatSystemPrompt",       d.sysText);
-        set("responseLength",         d.respLen);
-
-        if (d.sessionId === rootRef.currentSessionId) {
-            rootRef.openCodeMode = (d.mode === "opencode");
-            if (d.ocAgent) rootRef.openCodeAgent = d.ocAgent;
-            if (d.ocCwd)   rootRef.openCodeWorkspaceCwd = d.ocCwd;
-        }
-        if (typeof rootRef.saveCurrentSessionState === "function")
-            rootRef.saveCurrentSessionState(true);
         close();
     }
 
-    function _resetDefaults() {
-        var r = rootRef;
-        var useOC = r && r.plasmoid && r.plasmoid.configuration.useOpenCode;
-        _d.mode      = useOC ? "opencode" : "provider";
-        _d.provider  = ""; _d.model  = "";
-        _d.ocAgent   = ""; _d.ocProvider = ""; _d.ocModel = ""; _d.ocCwd = "";
-        _d.memEnabled = true;  _d.memText = "";
-        _d.sysEnabled = true;  _d.sysText = "";
-        _d.respLen   = 0;
-        _applyToControls();
+    function _reset() {
+        _invalidate();
+        _mode = rootRef && rootRef.plasmoid && rootRef.plasmoid.configuration.useOpenCode ? "opencode" : "provider";
+        _provider = ""; _model = ""; _ocAgent = ""; _ocProvider = ""; _ocModel = ""; _ocCwd = "";
+        _memoryEnabled = true; _memory = ""; _systemEnabled = true; _system = ""; _responseLength = 0;
+        _modelCandidates = [];
+        _applyLists();
+        memoryCheck.checked = true; memoryArea.text = ""; systemCheck.checked = true; systemArea.text = "";
+        responseLengthCombo.currentIndex = 0;
     }
 
-    function _switchMode(mode) {
-        _d.mode = mode;
-        normalCard.visible    = (mode !== "opencode");
-        openCodeCard.visible  = (mode === "opencode");
-        modeNormalBtn.checked   = (mode !== "opencode");
-        modeOpenCodeBtn.checked = (mode === "opencode");
+    function _setMode(mode) {
+        _invalidate();
+        _mode = mode;
     }
 
-    // ── popup geometry ───────────────────────────────────────────────
     modal: true
     focus: true
     closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutside
-    width: 580
-    height: 600
-    x: parent ? (parent.width  - width)  / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
+    onClosed: page._invalidate()
+    width: Math.max(380, Math.min(700, parent ? parent.width - 24 : 700))
+    height: Math.max(480, Math.min(760, parent ? parent.height - 24 : 760))
 
-    // ── FolderDialog ─────────────────────────────────────────────────
     FolderDialog {
-        id: dirDialog
-        title: "Select OpenCode Workspace Directory"
+        id: folderDialog
+        title: "Select OpenCode workspace"
         onAccepted: {
             var path = selectedFolder.toString();
-            if (path.startsWith("file://")) path = path.substring(7);
+            if (path.indexOf("file://") === 0) path = path.substring(7);
             cwdField.text = path;
         }
     }
 
-    // ── main content ─────────────────────────────────────────────────
     background: Rectangle {
         color: Kirigami.Theme.backgroundColor
-        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                              Kirigami.Theme.highlightColor.g,
-                              Kirigami.Theme.highlightColor.b, 0.4)
+        radius: 12
         border.width: 1
-        radius: 10
+        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.35)
     }
 
     contentItem: ColumnLayout {
         spacing: 0
-
-        // ── header ──
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: 52
-            color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                           Kirigami.Theme.highlightColor.g,
-                           Kirigami.Theme.highlightColor.b, 0.12)
-            radius: 10
-            // square bottom corners
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 10; color: parent.color }
-
+            implicitHeight: 58
+            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.13)
             RowLayout {
-                anchors.fill: parent
-                anchors.margins: 14
-                spacing: 10
-
-                Kirigami.Icon {
-                    source: "preferences-other"
-                    implicitWidth: 22; implicitHeight: 22
-                    color: Kirigami.Theme.highlightColor
+                anchors.fill: parent; anchors.margins: 14; spacing: 10
+                Kirigami.Icon { source: "preferences-other"; implicitWidth: 24; implicitHeight: 24 }
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 0
+                    PC3.Label { text: "Chat settings"; font.bold: true; font.pointSize: 11 }
+                    PC3.Label { text: page._sessionTitle; opacity: 0.65; elide: Text.ElideRight; Layout.fillWidth: true }
                 }
-
-                PC3.Label {
-                    id: titleLabel
-                    text: "Chat Settings"
-                    font.bold: true
-                    font.pointSize: 11
-                    Layout.fillWidth: true
-                }
-
-                PC3.ToolButton {
-                    icon.name: "window-close"
-                    onClicked: chatSettingsDialog.close()
-                    flat: true
-                }
+                PC3.ToolButton { icon.name: "window-close"; onClicked: page.close() }
             }
         }
 
-        // ── scrollable body ──
         QQC2.ScrollView {
-            id: sv
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
-            contentWidth: sv.width
-
+            Layout.fillWidth: true; Layout.fillHeight: true; clip: true
             ColumnLayout {
-                width: sv.width - 2
-                spacing: 10
-
-                Item { height: 8 }
-
-                // ── Mode selector ──────────────────────────────────
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 12; Layout.rightMargin: 12
-                    implicitHeight: modeRow.implicitHeight + 24
-                    color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                   Kirigami.Theme.highlightColor.g,
-                                   Kirigami.Theme.highlightColor.b, 0.07)
-                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                          Kirigami.Theme.highlightColor.g,
-                                          Kirigami.Theme.highlightColor.b, 0.25)
-                    border.width: 1; radius: 8
-
-                    ColumnLayout {
-                        id: modeRow
-                        anchors { fill: parent; margins: 12 }
-                        spacing: 8
-
-                        PC3.Label { text: "Chat Mode"; font.bold: true }
-
-                        RowLayout {
-                            spacing: 20
-                            PC3.RadioButton {
-                                id: modeNormalBtn
-                                text: "🌐 Normal AI Provider"
-                                onClicked: chatSettingsDialog._switchMode("provider")
-                            }
-                            PC3.RadioButton {
-                                id: modeOpenCodeBtn
-                                text: "💻 OpenCode Engine"
-                                onClicked: chatSettingsDialog._switchMode("opencode")
-                            }
-                        }
-                    }
+                width: Math.max(0, page.width - 24); spacing: 12
+                Item { implicitHeight: 4 }
+                PC3.Label { text: "Choose how this chat responds"; font.bold: true; Layout.leftMargin: 12 }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; spacing: 10
+                    PC3.RadioButton { text: "Normal provider"; checked: page._mode !== "opencode"; onClicked: page._setMode("provider") }
+                    PC3.RadioButton { text: "OpenCode"; checked: page._mode === "opencode"; onClicked: page._setMode("opencode") }
                 }
 
-                // ── Normal Mode card ───────────────────────────────
                 Rectangle {
-                    id: normalCard
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 12; Layout.rightMargin: 12
-                    implicitHeight: normalLayout.implicitHeight + 24
-                    color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                   Kirigami.Theme.textColor.g,
-                                   Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                          Kirigami.Theme.textColor.g,
-                                          Kirigami.Theme.textColor.b, 0.12)
-                    border.width: 1; radius: 8
-
+                    visible: page._mode !== "opencode"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: normalColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
                     ColumnLayout {
-                        id: normalLayout
-                        anchors { fill: parent; margins: 12 }
-                        spacing: 10
-
-                        PC3.Label { text: "Provider & Model"; font.bold: true }
-
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            PC3.Label { text: "Provider:"; Layout.preferredWidth: 90 }
-                            QQC2.ComboBox {
-                                id: providerCombo
-                                Layout.fillWidth: true
-                                textRole: "text"; valueRole: "value"
-                                // model set imperatively in _applyToControls
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            PC3.Label { text: "Model:"; Layout.preferredWidth: 90 }
-                            QQC2.ComboBox {
-                                id: modelCombo
-                                Layout.fillWidth: true
-                                editable: true
-                                // text set imperatively in _applyToControls
-                            }
-                            PC3.ToolButton {
-                                id: refreshModelsBtn
-                                icon.name: "view-refresh"
-                                enabled: !chatSettingsDialog._fetching
-                                onClicked: {
-                                    var r = chatSettingsDialog.rootRef;
-                                    if (!r || !r.plasmoid) return;
-                                    var prov = (providerCombo.currentIndex > 0 && providerCombo.model)
-                                               ? providerCombo.model[providerCombo.currentIndex].value
-                                               : r.plasmoid.configuration.provider || "openai";
-                                    chatSettingsDialog._fetching = true;
-                                    statusLabel.text = "Fetching models…";
-                                    ProviderService.fetchModelsForProvider(prov, r.plasmoid.configuration,
-                                        function(ids) {
-                                            chatSettingsDialog._fetching = false;
-                                            statusLabel.text = ids.length > 0
-                                                ? ("✓ " + ids.length + " models loaded")
-                                                : "No models returned";
-                                            chatSettingsDialog._d.modelCandidates = ids;
-                                            var prev = modelCombo.editText;
-                                            modelCombo.model = ids;
-                                            modelCombo.editText = prev || (ids.length > 0 ? ids[0] : "");
-                                        },
-                                        function(err) {
-                                            chatSettingsDialog._fetching = false;
-                                            statusLabel.text = "⚠ " + err;
-                                        });
-                                }
-                                QQC2.ToolTip.text: "Fetch available models from provider API (5s timeout)"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                        }
-
-                        PC3.Label {
-                            id: statusLabel
-                            text: ""
-                            visible: text !== ""
-                            font.pointSize: 8.5; opacity: 0.8
-                            color: Kirigami.Theme.highlightColor
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-                }
-
-                // ── OpenCode card ──────────────────────────────────
-                Rectangle {
-                    id: openCodeCard
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 12; Layout.rightMargin: 12
-                    implicitHeight: ocLayout.implicitHeight + 24
-                    color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                   Kirigami.Theme.textColor.g,
-                                   Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                          Kirigami.Theme.textColor.g,
-                                          Kirigami.Theme.textColor.b, 0.12)
-                    border.width: 1; radius: 8
-
-                    ColumnLayout {
-                        id: ocLayout
-                        anchors { fill: parent; margins: 12 }
-                        spacing: 10
-
-                        PC3.Label { text: "OpenCode Engine"; font.bold: true }
-
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            PC3.Label { text: "Provider:"; Layout.preferredWidth: 90 }
-                            QQC2.ComboBox {
-                                id: ocProviderCombo
-                                Layout.fillWidth: true
-                                editable: true
-                                // model & index set imperatively in _applyToControls
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            PC3.Label { text: "Model:"; Layout.preferredWidth: 90 }
-                            QQC2.ComboBox {
-                                id: ocModelCombo
-                                Layout.fillWidth: true
-                                editable: true
-                                // model & index set imperatively in _applyToControls
-                            }
-                            PC3.ToolButton {
-                                icon.name: "view-refresh"
-                                onClicked: {
-                                    var r = chatSettingsDialog.rootRef;
-                                    if (r && typeof r.fetchOpenCodeProvidersAndModels === "function") {
-                                        r.fetchOpenCodeProvidersAndModels(function() {
-                                            var pList = chatSettingsDialog._buildOcProviderModel();
-                                            var pPrev = ocProviderCombo.editText;
-                                            ocProviderCombo.model = pList;
-                                            ocProviderCombo.editText = pPrev;
-
-                                            var mList = chatSettingsDialog._buildOcModelModel();
-                                            var mPrev = ocModelCombo.editText;
-                                            ocModelCombo.model = mList;
-                                            ocModelCombo.editText = mPrev;
-                                        });
-                                    }
-                                }
-                                QQC2.ToolTip.text: "Refresh providers & models from OpenCode /provider API"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            PC3.Label { text: "Workspace:"; Layout.preferredWidth: 90 }
-                            QQC2.TextField {
-                                id: cwdField
-                                Layout.fillWidth: true
-                                placeholderText: "Use global workspace directory"
-                            }
-                            PC3.ToolButton {
-                                icon.name: "folder"
-                                onClicked: dirDialog.open()
-                                QQC2.ToolTip.text: "Browse for workspace folder"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            PC3.Label { text: "Agent:"; Layout.preferredWidth: 90 }
-                            QQC2.ComboBox {
-                                id: agentCombo
-                                Layout.fillWidth: true
-                                editable: true
-                                // model & index set imperatively in _applyToControls
-                            }
-                            PC3.ToolButton {
-                                icon.name: "view-refresh"
-                                onClicked: {
-                                    var r = chatSettingsDialog.rootRef;
-                                    if (r && typeof r.fetchOpenCodeAgents === "function") {
-                                        r.fetchOpenCodeAgents(function() {
-                                            var list = chatSettingsDialog._buildAgentModel();
-                                            var prev = agentCombo.editText;
-                                            agentCombo.model = list;
-                                            agentCombo.editText = prev;
-                                        });
-                                    }
-                                }
-                                QQC2.ToolTip.text: "Refresh agent list from OpenCode server"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                        }
-                    }
-                }
-
-                // ── Chat Memory ────────────────────────────────────
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 12; Layout.rightMargin: 12
-                    implicitHeight: memLayout.implicitHeight + 24
-                    color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                   Kirigami.Theme.textColor.g,
-                                   Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                          Kirigami.Theme.textColor.g,
-                                          Kirigami.Theme.textColor.b, 0.12)
-                    border.width: 1; radius: 8
-
-                    ColumnLayout {
-                        id: memLayout
-                        anchors { fill: parent; margins: 12 }
-                        spacing: 8
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            PC3.Label { text: "Per-Chat Memory"; font.bold: true; Layout.fillWidth: true }
-                            PC3.CheckBox {
-                                id: memCheck
-                                text: "Enable"
-                                onClicked: memArea.enabled = checked
-                            }
-                        }
-
-                        PC3.Label {
-                            text: "Notes retained for this session:"
-                            font.pointSize: 8.5; opacity: 0.7
-                            Layout.fillWidth: true
-                        }
-
-                        QQC2.TextArea {
-                            id: memArea
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 64
-                            wrapMode: Text.WordWrap
-                            placeholderText: "e.g. User prefers Python 3.12..."
-                        }
-                    }
-                }
-
-                // ── System Context (Normal mode only) ──────────────
-                Rectangle {
-                    visible: _d.mode !== "opencode"
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 12; Layout.rightMargin: 12
-                    implicitHeight: sysLayout.implicitHeight + 24
-                    color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                   Kirigami.Theme.textColor.g,
-                                   Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                          Kirigami.Theme.textColor.g,
-                                          Kirigami.Theme.textColor.b, 0.12)
-                    border.width: 1; radius: 8
-
-                    ColumnLayout {
-                        id: sysLayout
-                        anchors { fill: parent; margins: 12 }
-                        spacing: 8
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            PC3.Label { text: "System Instructions"; font.bold: true; Layout.fillWidth: true }
-                            PC3.CheckBox {
-                                id: sysCheck
-                                text: "Enable"
-                                onClicked: sysArea.enabled = checked
-                            }
-                        }
-
-                        QQC2.TextArea {
-                            id: sysArea
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 64
-                            wrapMode: Text.WordWrap
-                            placeholderText: "Custom system prompt for this chat..."
-                        }
-                    }
-                }
-
-                // ── Response length (Normal mode only) ────────────
-                Rectangle {
-                    visible: _d.mode !== "opencode"
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 12; Layout.rightMargin: 12
-                    implicitHeight: respLayout.implicitHeight + 24
-                    color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                   Kirigami.Theme.textColor.g,
-                                   Kirigami.Theme.textColor.b, 0.03)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                          Kirigami.Theme.textColor.g,
-                                          Kirigami.Theme.textColor.b, 0.12)
-                    border.width: 1; radius: 8
-
-                    RowLayout {
-                        id: respLayout
-                        anchors { fill: parent; margins: 12 }
-                        spacing: 8
-                        PC3.Label { text: "Response Length:"; font.bold: true }
+                        id: normalColumn; anchors.fill: parent; anchors.margins: 12; spacing: 9
+                        PC3.Label { text: "Provider and model"; font.bold: true }
                         QQC2.ComboBox {
-                            id: respLenCombo
-                            Layout.fillWidth: true
-                            model: ["Default (Global)", "Short (~256 tokens)",
-                                    "Balanced (~1024 tokens)", "Detailed (~4096 tokens)",
-                                    "Comprehensive (~8192 tokens)"]
+                            id: providerCombo; Layout.fillWidth: true; textRole: "text"; valueRole: "value"
+                            onActivated: { page._provider = currentValue || ""; page._model = ""; page._modelCandidates = []; page._refreshModels(true); }
                         }
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 8
+                            QQC2.ComboBox { id: modelCombo; Layout.fillWidth: true; editable: true }
+                            PC3.Button { text: page._busy ? "Loading…" : "Refresh"; enabled: !page._busy; onClicked: page._refreshModels(true) }
+                        }
+                        PC3.Label { text: "Models are loaded from the selected provider API. Select one before saving."; wrapMode: Text.WordWrap; opacity: 0.65; Layout.fillWidth: true }
                     }
                 }
 
-                Item { height: 8 }
+                Rectangle {
+                    visible: page._mode === "opencode"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: openCodeColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
+                    ColumnLayout {
+                        id: openCodeColumn; anchors.fill: parent; anchors.margins: 12; spacing: 9
+                        PC3.Label { text: "OpenCode connection"; font.bold: true }
+                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Provider"; Layout.preferredWidth: 76 }; QQC2.ComboBox { id: ocProviderCombo; Layout.fillWidth: true; editable: true }; PC3.Button { text: "Refresh"; enabled: !page._busy; onClicked: page._refreshOpenCode() } }
+                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Model"; Layout.preferredWidth: 76 }; QQC2.ComboBox { id: ocModelCombo; Layout.fillWidth: true; editable: true } }
+                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Agent"; Layout.preferredWidth: 76 }; QQC2.ComboBox { id: agentCombo; Layout.fillWidth: true; editable: true }; PC3.Button { text: "Refresh"; enabled: !page._busy; onClicked: page._refreshAgents() } }
+                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Workspace"; Layout.preferredWidth: 76 }; QQC2.TextField { id: cwdField; Layout.fillWidth: true }; PC3.ToolButton { icon.name: "folder"; onClicked: folderDialog.open() } }
+                        PC3.Label { text: "OpenCode agents and models come only from its API/configuration."; wrapMode: Text.WordWrap; opacity: 0.65; Layout.fillWidth: true }
+                    }
+                }
+
+                PC3.Label { text: page._status; visible: text.length > 0; color: Kirigami.Theme.highlightColor; wrapMode: Text.WordWrap; Layout.leftMargin: 12; Layout.rightMargin: 12; Layout.fillWidth: true }
+
+                Rectangle {
+                    Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; implicitHeight: memoryColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
+                    ColumnLayout { id: memoryColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
+                        RowLayout { Layout.fillWidth: true; PC3.Label { text: "Chat memory"; font.bold: true; Layout.fillWidth: true }; QQC2.CheckBox { id: memoryCheck; text: "Enable"; onCheckedChanged: page._memoryEnabled = checked } }
+                        QQC2.TextArea { id: memoryArea; Layout.fillWidth: true; Layout.preferredHeight: 72; enabled: memoryCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Notes retained for this chat"; onTextChanged: page._memory = text }
+                    }
+                }
+                Rectangle {
+                    visible: page._mode !== "opencode"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; implicitHeight: systemColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
+                    ColumnLayout { id: systemColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
+                        RowLayout { Layout.fillWidth: true; PC3.Label { text: "System instructions"; font.bold: true; Layout.fillWidth: true }; QQC2.CheckBox { id: systemCheck; text: "Enable"; onCheckedChanged: page._systemEnabled = checked } }
+                        QQC2.TextArea { id: systemArea; Layout.fillWidth: true; Layout.preferredHeight: 88; enabled: systemCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Instructions for this chat"; onTextChanged: page._system = text }
+                    }
+                }
+                RowLayout { visible: page._mode !== "opencode"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; QQC2.Label { text: "Response length"; Layout.fillWidth: true }; QQC2.ComboBox { id: responseLengthCombo; model: ["Default", "Short", "Balanced", "Detailed", "Comprehensive"] } }
+                Item { implicitHeight: 8 }
             }
         }
 
-        // ── footer buttons ───────────────────────────────────────────
         Rectangle {
-            Layout.fillWidth: true
-            implicitHeight: footerRow.implicitHeight + 20
-            color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
-                           Kirigami.Theme.backgroundColor.g,
-                           Kirigami.Theme.backgroundColor.b, 1)
-            radius: 10
-            // square top corners
-            Rectangle { anchors.top: parent.top; width: parent.width; height: 10; color: parent.color }
-            // separator
-            Rectangle { anchors.top: parent.top; width: parent.width; height: 1;
-                         color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g,
-                                        Kirigami.Theme.textColor.b, 0.1) }
-
-            RowLayout {
-                id: footerRow
-                anchors { fill: parent; margins: 12 }
-                spacing: 8
-
-                PC3.Button {
-                    text: "Reset Defaults"
-                    icon.name: "edit-clear-all"
-                    onClicked: chatSettingsDialog._resetDefaults()
-                }
-
+            Layout.fillWidth: true; implicitHeight: 58; color: Kirigami.Theme.backgroundColor
+            RowLayout { anchors.fill: parent; anchors.margins: 12; spacing: 8
+                PC3.Button { text: "Reset"; icon.name: "edit-clear-all"; onClicked: page._reset() }
                 Item { Layout.fillWidth: true }
-
-                PC3.Button {
-                    text: "Cancel"
-                    icon.name: "dialog-cancel"
-                    onClicked: chatSettingsDialog.close()
-                }
-
-                PC3.Button {
-                    text: "Save"
-                    icon.name: "dialog-ok-apply"
-                    highlighted: true
-                    onClicked: chatSettingsDialog._saveAndClose()
-                }
+                PC3.Button { text: "Cancel"; onClicked: page.close() }
+                PC3.Button { text: "Save"; highlighted: true; enabled: !page._busy; onClicked: page._save() }
             }
         }
     }
-
-    // internal flag for fetch-in-progress
-    property bool _fetching: false
 }

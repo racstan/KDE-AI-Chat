@@ -51,6 +51,7 @@ PlasmoidItem {
     property var openCodeProvidersList: []
     property var openCodeModelsList: []
     property bool fetchingAgentsInProgress: false
+    property var openCodeAgentFetchWaiters: []
     property bool desktopSelectionEnabled: plasmoid.configuration.desktopSelectionEnabled === true
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
@@ -66,6 +67,16 @@ PlasmoidItem {
     property string chatInputText: ""
     property var msgListViewRef: null
     property bool userScrolledUp: false
+    // Keep the viewport stable while a response grows.  A response must not
+    // yank the user to the newest bubble; only an explicit jump-to-latest
+    // action releases this lock.
+    property bool responseScrollLocked: false
+    property real responseScrollY: 0
+    property bool responseScrollUserMoved: false
+    property bool restoringResponseScroll: false
+    property bool titleGenerationInProgress: false
+    property string titleGenerationSessionId: ""
+    property bool plasmaShellWatchdogRunning: false
     // Tool-call context is kept separate from the visible chat model. This
     // lets an OpenAI-compatible provider complete an MCP round-trip without
     // rendering protocol messages as ordinary chat bubbles.
@@ -284,6 +295,39 @@ PlasmoidItem {
         }
     }
 
+    // Apply a dialog's complete draft in one model update.  Per-chat settings
+    // are shown in the history sidebar, so assigning root.sessions once is
+    // important: a dozen individual writes otherwise rebuild that ListView
+    // a dozen times and can make plasmashell appear hung.
+    function setSessionOverrides(sessionId, overrides) {
+        var idx = sessionIndexById(sessionId || root.currentSessionId);
+        if (idx < 0 || !overrides)
+            return false;
+
+        var updated = root.sessions.slice();
+        var session = Object.assign({}, updated[idx]);
+        var changed = false;
+        for (var key in overrides) {
+            if (!Object.prototype.hasOwnProperty.call(overrides, key))
+                continue;
+            if (session[key] !== overrides[key])
+                changed = true;
+            session[key] = overrides[key];
+        }
+        if (!changed)
+            return true;
+
+        updated[idx] = session;
+        root.sessions = updated;
+        if (session.value === root.currentSessionId) {
+            root.openCodeMode = session.source === "opencode";
+            root.openCodeAgent = session.openCodeAgent || "";
+            root.openCodeWorkspaceCwd = session.openCodeWorkspaceCwd || "";
+        }
+        persistSessions();
+        return true;
+    }
+
     function getEffectiveProvider(sessionId) {
         var override = String(getSessionProperty(sessionId, "chatProvider", "") || "").trim();
         return override || plasmoid.configuration.provider || "openai";
@@ -457,6 +501,7 @@ PlasmoidItem {
             root.currentSessionId = s.value;
             root.currentSessionTitle = s.text;
             root.messages = [];
+            resetResponseScrollPosition();
         root.playingMessageIndex = -1;
         if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
             root.currentStreamIndex = -1;
@@ -570,7 +615,8 @@ PlasmoidItem {
         root.renamingCurrentChat = false;
         root.currentChatRenameDraft = "";
         persistSessions();
-        scrollToBottom();
+        resetResponseScrollPosition();
+        scrollToBottom(true);
         root.focusInput();
     }
 
@@ -995,9 +1041,72 @@ PlasmoidItem {
         }
     }
 
+    function _notifyOpenCodeAgentFetchWaiters() {
+        var waiters = root.openCodeAgentFetchWaiters || [];
+        root.openCodeAgentFetchWaiters = [];
+        for (var i = 0; i < waiters.length; i++) {
+            if (waiters[i])
+                Qt.callLater(waiters[i]);
+        }
+    }
+
+    function normalizeOpenCodeAgents(payload) {
+        var values = [];
+        function add(value) {
+            var name = typeof value === "string" ? value : (value && (value.id || value.name || value.value || value.text));
+            if (name && typeof name === "string" && values.indexOf(name) < 0)
+                values.push(name);
+        }
+        function read(value) {
+            if (!value)
+                return;
+            if (Array.isArray(value)) {
+                for (var i = 0; i < value.length; i++) add(value[i]);
+                return;
+            }
+            if (typeof value !== "object") {
+                add(value);
+                return;
+            }
+            var known = ["agents", "agent", "data", "items", "all", "connected"];
+            var found = false;
+            for (var k = 0; k < known.length; k++) {
+                if (value[known[k]] !== undefined) {
+                    read(value[known[k]]);
+                    found = true;
+                }
+            }
+            if (!found) {
+                var keys = Object.keys(value);
+                for (var j = 0; j < keys.length; j++) {
+                    if (keys[j] !== "default" && keys[j] !== "default_agent")
+                        add(keys[j]);
+                }
+            }
+        }
+        read(payload);
+        var result = [];
+        for (var n = 0; n < values.length; n++)
+            result.push({ "text": values[n], "value": values[n] });
+        return result;
+    }
+
+    function _finishOpenCodeAgents(list, defaultAgent) {
+        root.openCodeAgentsList = list || [];
+        if (defaultAgent && (!root.openCodeAgent || root.openCodeAgent === ""))
+            root.openCodeAgent = defaultAgent;
+        root.fetchingAgentsInProgress = false;
+        _notifyOpenCodeAgentFetchWaiters();
+    }
+
     function fetchOpenCodeAgents(callback) {
-        if (root.fetchingAgentsInProgress) return;
+        if (root.fetchingAgentsInProgress) {
+            if (callback)
+                root.openCodeAgentFetchWaiters = (root.openCodeAgentFetchWaiters || []).concat([callback]);
+            return null;
+        }
         root.fetchingAgentsInProgress = true;
+        root.openCodeAgentFetchWaiters = callback ? [callback] : [];
 
         var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
         baseUrl = baseUrl.replace(/\/v1\/?$/, "");
@@ -1008,48 +1117,28 @@ PlasmoidItem {
         xhr.timeout = 1000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE) return;
-            root.fetchingAgentsInProgress = false;
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     var data = JSON.parse(xhr.responseText);
-                    var agentList = [];
-                    if (Array.isArray(data)) {
-                        for (var i = 0; i < data.length; i++) {
-                            if (data[i] && data[i].name) agentList.push(data[i].name);
-                        }
-                    } else if (data && typeof data === "object") {
-                        agentList = Object.keys(data);
-                    }
+                    var agentList = normalizeOpenCodeAgents(data);
                     if (agentList.length > 0) {
-                        root.openCodeAgentsList = agentList;
-                        if (!root.openCodeAgent || root.openCodeAgent === "") {
-                            root.openCodeAgent = agentList[0];
-                        }
-                        if (callback) callback();
+                        _finishOpenCodeAgents(agentList, data.default_agent || data.default || "");
                         return;
                     }
                 } catch (e) {}
             }
-            // Fast fallback to standard default agent suite
-            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
-            if (callback) callback();
+            runFallbackAgentFileFetch();
         };
         xhr.ontimeout = function() {
-            root.fetchingAgentsInProgress = false;
-            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
-            if (callback) callback();
+            runFallbackAgentFileFetch();
         };
         xhr.onerror = function() {
-            root.fetchingAgentsInProgress = false;
-            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
-            if (callback) callback();
+            runFallbackAgentFileFetch();
         };
         try {
             xhr.send();
         } catch (err) {
-            root.fetchingAgentsInProgress = false;
-            root.openCodeAgentsList = ["coder", "architect", "ask", "general", "review", "explore"];
-            if (callback) callback();
+            runFallbackAgentFileFetch();
         }
     }
 
@@ -1096,7 +1185,7 @@ PlasmoidItem {
         var cmd = "python3 -c \""
             + "import json, os, glob; "
             + "paths = [os.path.expanduser('~/.config/opencode/opencode.json'), './opencode.json']; "
-            + "agents = []; default = 'coder'; "
+            + "agents = []; default = ''; "
             + "for p in paths:\n"
             + "    if os.path.exists(p):\n"
             + "        try:\n"
@@ -1106,7 +1195,6 @@ PlasmoidItem {
             + "            if d.get('default_agent'): default = d.get('default_agent')\n"
             + "        except Exception: pass\n"
             + "agents = list(dict.fromkeys(agents)); "
-            + "if not agents: agents = ['coder', 'architect', 'ask', 'general', 'review', 'explore']; "
             + "print(json.dumps({'agents': agents, 'default': default}))"
             + "\" #fetch-opencode-agents";
         fileReaderDs.connectSource(cmd);
@@ -1588,8 +1676,46 @@ PlasmoidItem {
         });
     }
 
-    function scrollToBottom() {
+    function captureResponseScrollPosition() {
+        if (root.responseScrollLocked)
+            return;
+        root.responseScrollLocked = true;
+        root.responseScrollUserMoved = false;
+        root.responseScrollY = root.msgListViewRef ? root.msgListViewRef.contentY : 0;
+    }
+
+    function restoreResponseScrollPosition() {
+        if (!root.responseScrollLocked || root.responseScrollUserMoved || !root.msgListViewRef)
+            return;
+        var targetY = root.responseScrollY;
         Qt.callLater(function() {
+            if (!root.responseScrollLocked || root.responseScrollUserMoved || !root.msgListViewRef)
+                return;
+            root.restoringResponseScroll = true;
+            var view = root.msgListViewRef;
+            var minY = view.originY;
+            var maxY = Math.max(minY, view.contentHeight - view.height);
+            view.contentY = Math.max(minY, Math.min(targetY, maxY));
+            root.restoringResponseScroll = false;
+        });
+    }
+
+    function resetResponseScrollPosition() {
+        root.responseScrollLocked = false;
+        root.responseScrollUserMoved = false;
+        root.responseScrollY = 0;
+    }
+
+    function scrollToBottom(force) {
+        if (force) {
+            resetResponseScrollPosition();
+            root.userScrolledUp = false;
+        } else if (root.responseScrollLocked) {
+            return;
+        }
+        Qt.callLater(function() {
+            if (!force && root.responseScrollLocked)
+                return;
             if (root.msgListViewRef && root.msgListViewRef.count > 0) {
                 root.msgListViewRef.positionViewAtIndex(root.msgListViewRef.count - 1, ListView.End);
                 root.msgListViewRef.positionViewAtEnd();
@@ -1831,7 +1957,7 @@ PlasmoidItem {
             "attachments": attachments || []
         }]);
         saveCurrentSessionState(true);
-        if (!root.userScrolledUp)
+        if (!root.userScrolledUp && !root.responseScrollLocked)
             Qt.callLater(scrollToBottom);
 
     }
@@ -1859,6 +1985,7 @@ PlasmoidItem {
 
         var source = root.messages[index] || {
         };
+        captureResponseScrollPosition();
         var text = (source.content || "").trim();
         var hasAttachments = source.attachments && source.attachments.length > 0;
         if (!text && !hasAttachments)
@@ -1867,6 +1994,7 @@ PlasmoidItem {
         var validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             pushErrorMessage(validationError);
+            restoreResponseScrollPosition();
             return ;
         }
         if ((source.role || "") === "queued") {
@@ -1902,6 +2030,129 @@ PlasmoidItem {
                 sendMessageByIndex(i);
                 return ;
             }
+        }
+        restoreResponseScrollPosition();
+    }
+
+    function _cleanGeneratedTitle(value) {
+        var title = String(value || "").replace(/```[\s\S]*?```/g, "").trim();
+        title = title.replace(/^['"`]+|['"`]+$/g, "").replace(/\s+/g, " ").trim();
+        if (title.length > 80)
+            title = title.substring(0, 77).replace(/\s+\S*$/, "") + "…";
+        return title;
+    }
+
+    function maybeGenerateChatTitle() {
+        if (plasmoid.configuration.autoNameChats === false || root.openCodeMode
+                || root.titleGenerationInProgress || !root.currentSessionId)
+            return;
+        var currentTitle = (root.currentSessionTitle || "").trim().toLowerCase();
+        if (currentTitle !== "" && currentTitle !== "new chat")
+            return;
+
+        var firstUser = "";
+        var assistantCount = 0;
+        for (var i = 0; i < root.messages.length; i++) {
+            if (!firstUser && root.messages[i].role === "user")
+                firstUser = String(root.messages[i].content || "").trim();
+            if (root.messages[i].role === "assistant")
+                assistantCount++;
+        }
+        if (!firstUser || assistantCount === 0)
+            return;
+
+        var sessionId = root.currentSessionId;
+        var cfg = getProviderConfig(root.getEffectiveProvider(sessionId), sessionId);
+        if (!cfg || !cfg.model || !cfg.baseUrl || (!cfg.allowEmptyKey && !cfg.apiKey))
+            return;
+        root.titleGenerationInProgress = true;
+        root.titleGenerationSessionId = sessionId;
+
+        var xhr = new XMLHttpRequest();
+        var endpoint = String(cfg.baseUrl).replace(/\/$/, "");
+        var isAnthropic = cfg.type === "anthropic";
+        if (isAnthropic) {
+            if (!endpoint.endsWith("/messages")) endpoint += "/messages";
+        } else {
+            endpoint += "/chat/completions";
+        }
+        var finished = false;
+        function finish() {
+            if (finished) return;
+            finished = true;
+            root.titleGenerationInProgress = false;
+            root.titleGenerationSessionId = "";
+        }
+        xhr.timeout = 8000;
+        xhr.ontimeout = finish;
+        xhr.onerror = finish;
+        try {
+            xhr.open("POST", endpoint, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            if (isAnthropic) {
+                xhr.setRequestHeader("x-api-key", cfg.apiKey);
+                xhr.setRequestHeader("anthropic-version", "2023-06-01");
+            } else if (cfg.apiKey) {
+                xhr.setRequestHeader("Authorization", "Bearer " + cfg.apiKey);
+            }
+            if (cfg.headers) {
+                for (var headerName in cfg.headers)
+                    if (Object.prototype.hasOwnProperty.call(cfg.headers, headerName) && cfg.headers[headerName])
+                        xhr.setRequestHeader(headerName, cfg.headers[headerName]);
+            }
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                if (xhr.status >= 200 && xhr.status < 300 && root.currentSessionId === sessionId) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        var raw = isAnthropic
+                            ? ((response.content && response.content[0] && response.content[0].text) || "")
+                            : (((response.choices || [])[0] || {}).message || {}).content || "";
+                        var title = _cleanGeneratedTitle(raw);
+                        if (title && (root.currentSessionTitle || "New Chat").trim().toLowerCase() === "new chat") {
+                            root.currentSessionTitle = title;
+                            saveCurrentSessionState(false);
+                        }
+                    } catch (e) {}
+                }
+                finish();
+            };
+            var prompt = "Create a concise 3-6 word title for this conversation. Return only the title, no quotes or punctuation.\n\nUser message:\n" + firstUser.substring(0, 1200);
+            var body = isAnthropic ? {
+                model: cfg.model,
+                max_tokens: 32,
+                messages: [{ role: "user", content: prompt }]
+            } : {
+                model: cfg.model,
+                stream: false,
+                messages: [
+                    { role: "system", content: "You name chats concisely." },
+                    { role: "user", content: prompt }
+                ]
+            };
+            xhr.send(JSON.stringify(body));
+        } catch (e) {
+            finish();
+        }
+    }
+
+    function runPlasmaShellWatchdog(action) {
+        var encoded = Sec.base64Encode(JSON.stringify({"action": action}));
+        var token = "#plasmashell-watchdog-" + Date.now();
+        var command = "python3 " + Sec.quoteForShell(getHelperPath())
+            + " plasmashell_watchdog " + Sec.quoteForShell(encoded) + " " + token;
+        fileReaderDs.connectSource(command);
+        plasmaShellWatchdogRunning = action !== "stop";
+    }
+
+    function syncPlasmaShellWatchdog() {
+        if (plasmoid.configuration.autoRestartPlasmaShell === true) {
+            runPlasmaShellWatchdog("start");
+            watchdogHeartbeatTimer.start();
+        } else {
+            watchdogHeartbeatTimer.stop();
+            if (plasmaShellWatchdogRunning)
+                runPlasmaShellWatchdog("stop");
         }
     }
 
@@ -1985,7 +2236,6 @@ PlasmoidItem {
             root.attachedFiles = [];
             root.chatInputText = "";
             root.clearChatInput();
-            root.userScrolledUp = false;
             if (root.loading) {
                 appendUserMessage(text, "queued", attachments);
                 return ;
@@ -2240,6 +2490,7 @@ PlasmoidItem {
                         if (!root.userScrolledUp) Qt.callLater(scrollToBottom);
                         triggerNotificationSound();
                         saveCurrentSessionState(true);
+                        maybeGenerateChatTitle();
                         processNextQueuedMessage();
                     } catch (parseErr) {
                         pushErrorMessage("Failed to parse non-streaming response: " + parseErr.toString());
@@ -2350,6 +2601,7 @@ PlasmoidItem {
 
                 triggerNotificationSound();
                 saveCurrentSessionState(true);
+                maybeGenerateChatTitle();
                 processNextQueuedMessage();
             }
         };
@@ -2478,6 +2730,8 @@ PlasmoidItem {
             }
             scrollToBottom();
             saveCurrentSessionState(true);
+            if (xhr.status >= 200 && xhr.status < 300)
+                maybeGenerateChatTitle();
             processNextQueuedMessage();
         };
         xhr.onerror = function() {
@@ -3051,6 +3305,10 @@ PlasmoidItem {
             plasmoid.configuration.xaiApiKey = strVal;
         else if (targetId === "litellm")
             plasmoid.configuration.litellmApiKey = strVal;
+        else if (targetId === "maritaca")
+            plasmoid.configuration.maritacaApiKey = strVal;
+        else if (targetId === "perplexity")
+            plasmoid.configuration.perplexityApiKey = strVal;
     }
 
     function loadKWalletKeysAtStartup() {
@@ -3070,7 +3328,7 @@ PlasmoidItem {
                     }
                     walletCall("passwordList", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(passwordsMap) {
                         if (passwordsMap) {
-                            var targets = ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm"];
+                            var targets = ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "maritaca", "perplexity"];
                             for (var i = 0; i < targets.length; i++) {
                                 var targetId = targets[i];
                                 var key = "kai-chat-" + targetId + "-api-key";
@@ -3242,7 +3500,7 @@ PlasmoidItem {
     onHistoryOnlyModeChanged: {
         if (!historyOnlyMode) {
             root.focusInput();
-            Qt.callLater(root.scrollToBottom);
+            Qt.callLater(function() { root.scrollToBottom(true); });
         }
     }
     onExpandedChanged: {
@@ -3253,9 +3511,10 @@ PlasmoidItem {
         }
     }
     Component.onCompleted: {
+        root.syncPlasmaShellWatchdog();
     }
     onMessagesChanged: {
-        if (!root.historyOnlyMode && !root.userScrolledUp)
+        if (!root.historyOnlyMode && !root.userScrolledUp && !root.responseScrollLocked)
             Qt.callLater(scrollToBottom);
 
     }
@@ -3266,7 +3525,7 @@ PlasmoidItem {
         interval: 100
         repeat: false
         onTriggered: {
-            root.scrollToBottom();
+            root.scrollToBottom(false);
         }
     }
 
@@ -3278,6 +3537,21 @@ PlasmoidItem {
         repeat: false
         onTriggered: {
             root.triggerInitialLoad();
+        }
+    }
+
+    Timer {
+        id: plasmaShellHeartbeatTimer
+        interval: 5000
+        repeat: true
+        running: plasmoid.configuration.autoRestartPlasmaShell === true
+        onTriggered: root.runPlasmaShellWatchdog("heartbeat")
+    }
+
+    Connections {
+        target: plasmoid.configuration
+        function onAutoRestartPlasmaShellChanged() {
+            root.syncPlasmaShellWatchdog();
         }
     }
 
@@ -3490,27 +3764,22 @@ PlasmoidItem {
                 return ;
             }
             if (sourceName.indexOf("#fetch-opencode-agents") !== -1) {
+                var fallbackAgents = [];
+                var fallbackDefault = "";
                 if (exitCode === 0 && stdout.trim() !== "") {
                     try {
                         var agentData = JSON.parse(stdout.trim());
-                        var agents = agentData.agents || [];
-                        var defaultAgent = agentData.default || "";
-                        // Build agent list for the ComboBox
-                        var agentList = [];
-                        for (var ai = 0; ai < agents.length; ai++) {
-                            agentList.push({ "text": agents[ai], "value": agents[ai] });
-                        }
-                        if (agentList.length > 0)
-                            root.openCodeAgentsList = agentList;
-                        // Auto-select default agent if none selected yet
-                        if (defaultAgent && (root.openCodeAgent === "" || root.openCodeAgent === "coder")) {
-                            root.openCodeAgent = defaultAgent;
-                            plasmoid.configuration.openCodeAgent = defaultAgent;
-                        }
+                        fallbackAgents = normalizeOpenCodeAgents(agentData);
+                        fallbackDefault = agentData.default || agentData.default_agent || "";
                     } catch (e) {
                         console.log("Failed to parse opencode agents: " + e);
                     }
                 }
+                _finishOpenCodeAgents(fallbackAgents, fallbackDefault);
+                disconnectSource(sourceName);
+                return ;
+            }
+            if (sourceName.indexOf("#plasmashell-watchdog-") !== -1) {
                 disconnectSource(sourceName);
                 return ;
             }

@@ -16,6 +16,8 @@ UI_DIR = os.path.join(
 CHAT_ENGINE = os.path.join(UI_DIR, "ChatEngine.js")
 PROVIDER_SERVICE = os.path.join(UI_DIR, "ProviderService.js")
 SESSION_MANAGER = os.path.join(UI_DIR, "SessionManager.js")
+MAIN_QML = os.path.join(UI_DIR, "main.qml")
+CHAT_SETTINGS_DIALOG = os.path.join(UI_DIR, "ChatSettingsDialog.qml")
 
 
 def _read_js(path):
@@ -155,3 +157,74 @@ def test_per_chat_fallback_to_global_defaults():
         assert data["cfgModel"] == "llama-3.3-70b-versatile"
     finally:
         os.unlink(script_path)
+
+
+def test_direct_provider_registry_includes_maritaca_and_perplexity():
+    """Keep the direct-mode provider registry and endpoint defaults aligned."""
+    provider_src = _read_js(PROVIDER_SERVICE)
+    harness = (
+        provider_src
+        + """
+        var configuration = {
+            maritacaApiKey: "maritaca-test-key",
+            perplexityApiKey: "perplexity-test-key"
+        };
+        var maritaca = getProviderConfig("maritaca", configuration);
+        var perplexity = getProviderConfig("perplexity", configuration);
+        console.log(JSON.stringify({
+            maritaca: maritaca,
+            perplexity: perplexity,
+            maritacaKey: getApiKeyConfigKey("maritaca"),
+            perplexityKey: getApiKeyConfigKey("perplexity")
+        }));
+        """
+    )
+
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as script:
+        script.write(harness)
+        script_path = script.name
+
+    try:
+        result = subprocess.run(
+            ["node", script_path],
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=10,
+        )
+        data = json.loads(result.stdout)
+        assert data["maritaca"]["type"] == "openai-compat"
+        assert data["maritaca"]["baseUrl"] == "https://chat.maritaca.ai/api"
+        assert data["maritaca"]["model"] == ""
+        assert data["perplexity"]["type"] == "openai-compat"
+        assert data["perplexity"]["baseUrl"] == "https://api.perplexity.ai/router/v1"
+        assert data["perplexity"]["model"] == ""
+        assert data["maritacaKey"] == "maritacaApiKey"
+        assert data["perplexityKey"] == "perplexityApiKey"
+    finally:
+        os.unlink(script_path)
+
+
+def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
+    """Protect the dialog from model churn and stale async refresh results."""
+    with open(MAIN_QML, encoding="utf-8") as f:
+        main_source = f.read()
+    with open(CHAT_SETTINGS_DIALOG, encoding="utf-8") as f:
+        dialog_source = f.read()
+
+    assert "function setSessionOverrides(sessionId, overrides)" in main_source
+    assert "property var openCodeAgentFetchWaiters" in main_source
+    assert "function _notifyOpenCodeAgentFetchWaiters()" in main_source
+    assert "openCodeAgentFetchWaiters = (root.openCodeAgentFetchWaiters || []).concat([callback])" in main_source
+    atomic_body = main_source.split("function setSessionOverrides(sessionId, overrides)", 1)[1].split(
+        "function getEffectiveProvider", 1
+    )[0]
+    assert atomic_body.count("root.sessions = updated") == 1
+    assert "persistSessions();" in atomic_body
+
+    assert "property int _generation" in dialog_source
+    assert "function _current(token)" in dialog_source
+    assert dialog_source.count("_current(token)") >= 5
+    assert "setSessionOverrides(_sessionId, overrides)" in dialog_source
+    assert "saveCurrentSessionState" not in dialog_source
+    assert "visible: page._mode !== \"opencode\"" in dialog_source

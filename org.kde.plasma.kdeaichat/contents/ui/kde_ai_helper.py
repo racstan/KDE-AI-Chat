@@ -15,6 +15,7 @@ import base64
 import shutil
 import subprocess
 import configparser
+import time
 from typing import Any, Callable, Dict, List
 
 
@@ -590,6 +591,137 @@ def cmd_mcp_query(payload: Dict[str, Any]) -> None:
         print(json.dumps({"status": "error", "message": str(e)}))
 
 
+def _watchdog_dir() -> str:
+    return os.path.expanduser("~/.local/share/kdeaichat")
+
+
+def _watchdog_paths(payload: Dict[str, Any]) -> Dict[str, str]:
+    folder = os.path.expanduser(payload.get("directory") or _watchdog_dir())
+    return {
+        "directory": folder,
+        "heartbeat": os.path.join(folder, "plasmashell-heartbeat"),
+        "pid": os.path.join(folder, "plasmashell-watchdog.pid"),
+        "last_restart": os.path.join(folder, "plasmashell-watchdog.last-restart"),
+    }
+
+
+def _pid_is_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _write_heartbeat(path: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a", encoding="utf-8"):
+        os.utime(path, None)
+
+
+def _watchdog_monitor(payload: Dict[str, Any], paths: Dict[str, str]) -> None:
+    timeout = max(15, int(payload.get("timeout", 45)))
+    cooldown = max(timeout, int(payload.get("restartCooldown", 180)))
+    monitor_pid = os.getpid()
+    with open(paths["pid"], "w", encoding="utf-8") as pid_file:
+        pid_file.write(str(monitor_pid))
+
+    try:
+        while True:
+            try:
+                heartbeat_age = time.time() - os.path.getmtime(paths["heartbeat"])
+            except OSError:
+                heartbeat_age = timeout + 1
+
+            if heartbeat_age > timeout:
+                try:
+                    last_restart = os.path.getmtime(paths["last_restart"])
+                except OSError:
+                    last_restart = 0
+
+                if time.time() - last_restart >= cooldown:
+                    try:
+                        subprocess.run(
+                            ["systemctl", "--user", "restart", "plasma-plasmashell.service"],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            timeout=30,
+                            check=False,
+                        )
+                    finally:
+                        _write_heartbeat(paths["heartbeat"])
+                        with open(paths["last_restart"], "w", encoding="utf-8") as marker:
+                            marker.write(str(time.time()))
+            time.sleep(min(5, max(1, timeout // 3)))
+    finally:
+        try:
+            with open(paths["pid"], encoding="utf-8") as pid_file:
+                if pid_file.read().strip() == str(monitor_pid):
+                    os.unlink(paths["pid"])
+        except OSError:
+            pass
+
+
+def cmd_plasmashell_watchdog(payload: Dict[str, Any]) -> None:
+    """Start, stop, or heartbeat an external PlasmaShell recovery monitor."""
+    action = payload.get("action", "heartbeat")
+    paths = _watchdog_paths(payload)
+    os.makedirs(paths["directory"], exist_ok=True)
+
+    if action == "heartbeat":
+        _write_heartbeat(paths["heartbeat"])
+        print(json.dumps({"status": "ok", "action": action}))
+        return
+
+    if action == "stop":
+        try:
+            with open(paths["pid"], encoding="utf-8") as pid_file:
+                pid = int(pid_file.read().strip())
+            if _pid_is_alive(pid):
+                os.kill(pid, 15)
+        except (OSError, ValueError):
+            pass
+        try:
+            os.unlink(paths["pid"])
+        except OSError:
+            pass
+        print(json.dumps({"status": "ok", "action": action}))
+        return
+
+    if action == "monitor":
+        _watchdog_monitor(payload, paths)
+        return
+    if action != "start":
+        raise ValueError("Unknown watchdog action: " + str(action))
+
+    try:
+        with open(paths["pid"], encoding="utf-8") as pid_file:
+            existing_pid = int(pid_file.read().strip())
+        if _pid_is_alive(existing_pid):
+            print(json.dumps({"status": "already-running", "pid": existing_pid}))
+            return
+    except (OSError, ValueError):
+        pass
+
+    _write_heartbeat(paths["heartbeat"])
+    monitor_payload = dict(payload)
+    monitor_payload["action"] = "monitor"
+    encoded = base64.b64encode(json.dumps(monitor_payload).encode("utf-8")).decode("ascii")
+    child = subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), "plasmashell_watchdog", encoded],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+    with open(paths["pid"], "w", encoding="utf-8") as pid_file:
+        pid_file.write(str(child.pid))
+    print(json.dumps({"status": "started", "pid": child.pid}))
+
+
 def _decode_payload(raw: str) -> Dict[str, Any]:
     """Decode the base64+JSON payload passed as ``argv[2]``.
 
@@ -641,6 +773,7 @@ def main() -> None:
         "export_chat": cmd_export_chat,
         "mcp_web_search": cmd_mcp_web_search,
         "mcp_query": cmd_mcp_query,
+        "plasmashell_watchdog": cmd_plasmashell_watchdog,
     }
 
     if command not in commands:

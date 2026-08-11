@@ -246,7 +246,7 @@ Item {
                 QQC2.ToolTip.text: "Jump to latest message"
                 onClicked: {
                     root.userScrolledUp = false;
-                    root.scrollToBottom();
+                    root.scrollToBottom(true);
                 }
             }
 
@@ -305,6 +305,10 @@ Item {
                 if (root.openCodeMode && root.openCodeAgentsList.length === 0)
                     root.fetchOpenCodeAgents();
             }
+            onVisibleChanged: {
+                if (visible && root.openCodeAgentsList.length === 0)
+                    root.fetchOpenCodeAgents();
+            }
 
             PC3.ToolButton {
                 icon.name: "folder"
@@ -340,16 +344,13 @@ Item {
                 id: agentSelectorCombo
                 implicitWidth: Kirigami.Units.gridUnit * 7
                 implicitHeight: Kirigami.Units.gridUnit * 1.8
-                // Use dynamically fetched agents if available, otherwise fallback to built-in defaults
-                model: root.openCodeAgentsList.length > 0 ? root.openCodeAgentsList : [
-                    { "text": "coder", "value": "coder" },
-                    { "text": "architect", "value": "architect" },
-                    { "text": "review", "value": "review" },
-                    { "text": "explore", "value": "explore" },
-                    { "text": "ask", "value": "ask" }
-                ]
+                // The list is populated from OpenCode's API/configuration.
+                // Never invent agent names locally: an empty list means that
+                // OpenCode has not reported any agents yet.
+                model: root.openCodeAgentsList
                 textRole: "text"
                 valueRole: "value"
+                enabled: model.length > 0
                 currentIndex: {
                     var cur = root.openCodeAgent || "";
                     for (var i = 0; i < model.length; i++) {
@@ -358,6 +359,7 @@ Item {
                     return 0;
                 }
                 onActivated: {
+                    if (!model[currentIndex]) return;
                     var val = model[currentIndex].value;
                     root.openCodeAgent = val;
                     plasmoid.configuration.openCodeAgent = val;
@@ -493,11 +495,13 @@ Item {
                                     var delta = event && event.pixelDelta && event.pixelDelta.y !== 0
                                         ? event.pixelDelta.y
                                         : (event && event.angleDelta ? event.angleDelta.y / 8 : 0);
-                                    if (delta !== 0) {
+                                if (delta !== 0) {
                                         var newY = msgList.contentY - delta;
                                         var minY = msgList.originY;
                                         var maxY = Math.max(minY, msgList.contentHeight - msgList.height);
                                         msgList.contentY = Math.max(minY, Math.min(newY, maxY));
+                                        if (!root.restoringResponseScroll)
+                                            root.responseScrollUserMoved = true;
                                         if (!msgList.atYEnd) root.userScrolledUp = true;
                                         event.accepted = true;
                                     }
@@ -509,6 +513,8 @@ Item {
                             Component.onCompleted: root.msgListViewRef = msgList
                             // Track whether user manually scrolled away from bottom
                             onMovementStarted: {
+                                if (!root.restoringResponseScroll)
+                                    root.responseScrollUserMoved = true;
                                 if (!msgList.atYEnd)
                                     root.userScrolledUp = true;
 
@@ -519,6 +525,8 @@ Item {
 
                             }
                             onContentYChanged: {
+                                if (root.restoringResponseScroll)
+                                    return;
                                 if (!msgList.atYEnd) {
                                     if (msgList.moving || msgList.dragging || verticalScrollBar.pressed || verticalScrollBar.active)
                                         root.userScrolledUp = true;

@@ -1962,7 +1962,7 @@ function doImageGenerationRequest(text, providerId) {
     let config = plasmoid.configuration;
     if (providerId === "pollinations") {
         let encoded = encodeURIComponent(text);
-        let model = config.pollinationsModel || "flux";
+        let model = config.pollinationsModel || "";
         let baseUrl = (config.pollinationsBaseUrl || "https://image.pollinations.ai").trim().replace(/\/+$/, "");
         let imageUrl = baseUrl + "/prompt/" + encoded + "?width=1024&height=1024&model=" + encodeURIComponent(model) + "&nologo=true";
         let xhr = new XMLHttpRequest();
@@ -2008,7 +2008,7 @@ function doImageGenerationRequest(text, providerId) {
     }
     if (providerId === "together-image") {
         let apiKey = config.togetherImageApiKey || "";
-        let model = config.togetherImageModel || "black-forest-labs/FLUX.1-schnell-Free";
+        let model = config.togetherImageModel || "";
         let baseUrl = (config.togetherImageBaseUrl || "https://api.together.xyz/v1").replace(/\/$/, "");
         let url = baseUrl + "/images/generations";
         let xhr = new XMLHttpRequest();
@@ -2064,7 +2064,7 @@ function doImageGenerationRequest(text, providerId) {
     }
     if (providerId === "huggingface-image") {
         let apiKey = config.huggingfaceImageApiKey || "";
-        let model = config.huggingfaceImageModel || "stabilityai/stable-diffusion-xl-base-1.0";
+        let model = config.huggingfaceImageModel || "";
         let baseUrl = (config.huggingfaceImageBaseUrl || "https://api-inference.huggingface.co").replace(/\/$/, "");
         let url = baseUrl + "/models/" + model;
         let xhr = new XMLHttpRequest();
@@ -2112,7 +2112,7 @@ function doImageGenerationRequest(text, providerId) {
     }
     if (providerId === "openai-image") {
         let apiKey = config.apiKey || "";
-        let model = config.openaiImageModel || "dall-e-3";
+        let model = config.openaiImageModel || "";
         let baseUrl = (config.baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
         let url = baseUrl + "/images/generations";
         let xhr = new XMLHttpRequest();
@@ -2166,7 +2166,7 @@ function doImageGenerationRequest(text, providerId) {
     }
     if (providerId === "google-image") {
         let apiKey = config.googleApiKey || "";
-        let model = config.googleImageModel || "imagen-4";
+        let model = config.googleImageModel || "";
         let baseUrl = (config.googleImageBaseUrl || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
         let url = baseUrl + "/models/" + model + ":predict";
         let xhr = new XMLHttpRequest();
@@ -2221,7 +2221,7 @@ function doImageGenerationRequest(text, providerId) {
     }
     if (providerId === "stability-image") {
         let apiKey = config.stabilityApiKey || "";
-        let model = config.stabilityImageModel || "stable-diffusion-xl-1024-v1-0";
+        let model = config.stabilityImageModel || "";
         let baseUrl = (config.stabilityImageBaseUrl || "https://api.stability.ai").replace(/\/$/, "");
         let url = baseUrl + "/v1/generation/" + model + "/text-to-image";
         let xhr = new XMLHttpRequest();
@@ -2278,7 +2278,7 @@ function doImageGenerationRequest(text, providerId) {
     }
     if (providerId === "replicate-image") {
         let apiKey = config.replicateApiKey || "";
-        let model = config.replicateImageModel || "black-forest-labs/flux-schnell";
+        let model = config.replicateImageModel || "";
         let baseUrl = (config.replicateImageBaseUrl || "https://api.replicate.com").replace(/\/$/, "");
         let createUrl = baseUrl + "/v1/models/" + model + "/predictions";
         let xhr = new XMLHttpRequest();
@@ -3647,7 +3647,7 @@ function startVoiceRecording() {
         let venvPath = resolveVenvPath();
         let venvPy = venvPath + "/bin/python3";
         let lang = plasmoid.configuration.voiceLanguage || "en";
-        let model = plasmoid.configuration.voiceSttModel || "large-v3-turbo";
+        let model = plasmoid.configuration.voiceSttModel || "";
         let modelPath = plasmoid.configuration.voiceSttModelPath || "";
         let payload = {cmd: "start_stt", duration: 300, language: lang, model: model, model_path: modelPath};
         let payloadStr = JSON.stringify(payload);
@@ -3725,7 +3725,7 @@ function triggerTts(text) {
         let venvPath = resolveVenvPath();
         let venvPy = venvPath + "/bin/python3";
         let voice = plasmoid.configuration.voiceTtsVoice || "af_heart";
-        let ttsModel = plasmoid.configuration.voiceTtsModel || "kokoro-82m";
+        let ttsModel = plasmoid.configuration.voiceTtsModel || "";
         let ttsModelPath = plasmoid.configuration.voiceTtsModelPath || "";
         let espeakPath = plasmoid.configuration.voiceEspeakPath || "";
         let payload = {
@@ -5245,4 +5245,3 @@ root.kwalletLoading = true;
 let walletName = (plasmoid.configuration.kwalletName || "").trim() || "kdewallet";
 kwalletStartupDs.connectSource(walletBulkReadCommand(walletName, root.configKwalletAutoPrompt) + " #kwallet-startup-load");
 }
-

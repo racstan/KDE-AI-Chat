@@ -62,6 +62,12 @@ KCM.SimpleKCM {
     property alias cfg_litellmBaseUrl: litellmBaseUrlField.text
     property alias cfg_litellmApiKey: litellmApiKeyField.text
     property alias cfg_litellmModel: litellmModelField.text
+    property alias cfg_maritacaBaseUrl: maritacaBaseUrlField.text
+    property alias cfg_maritacaApiKey: maritacaApiKeyField.text
+    property alias cfg_maritacaModel: maritacaModelField.text
+    property alias cfg_perplexityBaseUrl: perplexityBaseUrlField.text
+    property alias cfg_perplexityApiKey: perplexityApiKeyField.text
+    property alias cfg_perplexityModel: perplexityModelField.text
     property alias cfg_useOpenCode: openCodeToggle.checked
     property alias cfg_playNotificationSound: playSoundToggle.checked
     property alias cfg_requestTimeout: requestTimeoutSpinBox.value
@@ -82,6 +88,8 @@ KCM.SimpleKCM {
         return sourceName.indexOf("#opencode-") >= 0;
     }).length > 0
     property var providerModelCandidates: []
+    property int providerRefreshGeneration: 0
+    property bool providerRefreshBusy: false
     property var openCodeProviderCandidates: []
     property var openCodeModelCandidates: []
     property var openCodeProviderModelMap: ({
@@ -146,7 +154,9 @@ KCM.SimpleKCM {
             {"value": "lmstudio", "text": "LM Studio"},
             {"value": "local", "text": "Local (OpenAI-compatible)"},
             {"value": "ollama", "text": "Ollama"},
-            {"value": "litellm", "text": "LiteLLM Proxy"}
+            {"value": "litellm", "text": "LiteLLM Proxy"},
+            {"value": "maritaca", "text": "Maritaca"},
+            {"value": "perplexity", "text": "Perplexity"}
         ];
         var customs = [];
         try { customs = JSON.parse(page.cfg_customProvidersJson || "[]"); } catch(e) {}
@@ -262,6 +272,12 @@ KCM.SimpleKCM {
 
         if (providerId === "litellm")
             return (litellmApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "maritaca")
+            return (maritacaApiKeyField.text || "").trim() !== "";
+
+        if (providerId === "perplexity")
+            return (perplexityApiKeyField.text || "").trim() !== "";
 
         if (providerId === "openai")
             return (apiKeyField.text || "").trim() !== "";
@@ -433,6 +449,24 @@ KCM.SimpleKCM {
                 "modelField": litellmModelField
             };
 
+        if (p === "maritaca")
+            return {
+                "id": p,
+                "type": "openai-compat",
+                "baseUrl": maritacaBaseUrlField.text,
+                "apiKey": maritacaApiKeyField.text,
+                "modelField": maritacaModelField
+            };
+
+        if (p === "perplexity")
+            return {
+                "id": p,
+                "type": "openai-compat",
+                "baseUrl": perplexityBaseUrlField.text,
+                "apiKey": perplexityApiKeyField.text,
+                "modelField": perplexityModelField
+            };
+
         return {
             "id": "openai",
             "type": "openai-compat",
@@ -556,14 +590,22 @@ KCM.SimpleKCM {
         xhr.onerror = function() {
             onError("Network error while requesting " + url);
         };
-        xhr.send();
+        try {
+            xhr.send();
+        } catch (e) {
+            onError("Unable to start request: " + e);
+        }
+        return xhr;
     }
 
     function refreshCurrentProviderModels() {
+        var requestGeneration = ++providerRefreshGeneration;
+        providerRefreshBusy = true;
         var cfg = currentProviderConfig();
         var headers = {
         };
         if (providerNeedsApiKey(cfg.id) && (!cfg.apiKey || cfg.apiKey.trim() === "")) {
+            providerRefreshBusy = false;
             providerModelCandidates = [];
             providerModelSearch = "";
             updateFilteredProviderModels("");
@@ -573,35 +615,33 @@ KCM.SimpleKCM {
         if (cfg.apiKey)
             headers["Authorization"] = "Bearer " + cfg.apiKey;
 
-        if (cfg.type === "anthropic") {
-            headers["x-api-key"] = cfg.apiKey;
-            headers["anthropic-version"] = "2023-06-01";
-            requestJson("https://api.anthropic.com/v1/models", headers, function(obj) {
-                var ids = parseModelIds(obj);
-                providerModelCandidates = ids;
-                providerModelSearch = "";
-                updateFilteredProviderModels("");
-                discoveryStatus = ids.length > 0 ? ("Loaded " + ids.length + " models for " + currentProviderDisplayName() + ".") : "No models returned for this provider/API key.";
-            }, function(err) {
-                providerModelCandidates = [];
-                providerModelSearch = "";
-                updateFilteredProviderModels("");
-                discoveryStatus = err;
-            });
-            return ;
+        function failed(err) {
+            if (requestGeneration !== providerRefreshGeneration)
+                return;
+            providerRefreshBusy = false;
+            providerModelCandidates = [];
+            providerModelSearch = "";
+            updateFilteredProviderModels("");
+            discoveryStatus = err;
         }
-        requestJson(makeOpenAiModelsUrl(cfg.baseUrl), headers, function(obj) {
+        function succeeded(obj) {
+            if (requestGeneration !== providerRefreshGeneration)
+                return;
+            providerRefreshBusy = false;
             var ids = parseModelIds(obj);
             providerModelCandidates = ids;
             providerModelSearch = "";
             updateFilteredProviderModels("");
             discoveryStatus = ids.length > 0 ? ("Loaded " + ids.length + " models for " + currentProviderDisplayName() + ".") : "No models returned for this provider/API key.";
-        }, function(err) {
-            providerModelCandidates = [];
-            providerModelSearch = "";
-            updateFilteredProviderModels("");
-            discoveryStatus = err;
-        });
+        }
+
+        if (cfg.type === "anthropic") {
+            headers["x-api-key"] = cfg.apiKey;
+            headers["anthropic-version"] = "2023-06-01";
+            requestJson(makeOpenAiModelsUrl(cfg.baseUrl || "https://api.anthropic.com/v1"), headers, succeeded, failed);
+            return ;
+        }
+        requestJson(makeOpenAiModelsUrl(cfg.baseUrl), headers, succeeded, failed);
     }
 
     function applyDetectedModelToActiveProvider(modelId) {
@@ -871,6 +911,10 @@ KCM.SimpleKCM {
             xaiApiKeyField.text = normalized;
         else if (targetId === "litellm")
             litellmApiKeyField.text = normalized;
+        else if (targetId === "maritaca")
+            maritacaApiKeyField.text = normalized;
+        else if (targetId === "perplexity")
+            perplexityApiKeyField.text = normalized;
         var after = apiKeyForTarget(targetId);
         if (before !== after && providerBox.currentValue === targetId)
             refreshCurrentProviderModels();
@@ -878,7 +922,7 @@ KCM.SimpleKCM {
     }
 
     function keyTargetIds() {
-        return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm"];
+        return ["openai", "anthropic", "groq", "deepseek", "minimax", "fireworks", "google", "openrouter", "mistral", "cloudflare", "nvidia", "huggingface", "xai", "litellm", "maritaca", "perplexity"];
     }
 
     function apiKeyForTarget(targetId) {
@@ -923,6 +967,12 @@ KCM.SimpleKCM {
 
         if (targetId === "litellm")
             return litellmApiKeyField.text;
+
+        if (targetId === "maritaca")
+            return maritacaApiKeyField.text;
+
+        if (targetId === "perplexity")
+            return perplexityApiKeyField.text;
 
         return "";
     }
@@ -1034,6 +1084,8 @@ KCM.SimpleKCM {
         huggingFaceApiKeyField.text = "";
         xaiApiKeyField.text = "";
         litellmApiKeyField.text = "";
+        maritacaApiKeyField.text = "";
+        perplexityApiKeyField.text = "";
     }
 
 
@@ -1079,6 +1131,10 @@ KCM.SimpleKCM {
         plasmoid.configuration.ollamaModel = ollamaModelField.text;
         plasmoid.configuration.litellmBaseUrl = litellmBaseUrlField.text;
         plasmoid.configuration.litellmModel = litellmModelField.text;
+        plasmoid.configuration.maritacaBaseUrl = maritacaBaseUrlField.text;
+        plasmoid.configuration.maritacaModel = maritacaModelField.text;
+        plasmoid.configuration.perplexityBaseUrl = perplexityBaseUrlField.text;
+        plasmoid.configuration.perplexityModel = perplexityModelField.text;
         plasmoid.configuration.useOpenCode = openCodeToggle.checked;
         plasmoid.configuration.playNotificationSound = playSoundToggle.checked;
         plasmoid.configuration.requestTimeout = requestTimeoutToggle.checked ? requestTimeoutSpinBox.value : 0;
@@ -1108,51 +1164,57 @@ KCM.SimpleKCM {
         providerBox.currentIndex = 0;
         baseUrlField.text = "https://api.openai.com/v1";
         apiKeyField.text = "";
-        modelField.text = "gpt-4o-mini";
+        modelField.text = "";
         anthropicApiKeyField.text = "";
-        anthropicModelField.text = "claude-3-5-sonnet-latest";
+        anthropicModelField.text = "";
         groqBaseUrlField.text = "https://api.groq.com/openai/v1";
         groqApiKeyField.text = "";
-        groqModelField.text = "llama-3.3-70b-versatile";
+        groqModelField.text = "";
         deepSeekBaseUrlField.text = "https://api.deepseek.com";
         deepSeekApiKeyField.text = "";
-        deepSeekModelField.text = "deepseek-v4-pro";
+        deepSeekModelField.text = "";
         miniMaxBaseUrlField.text = "https://api.minimax.io/v1";
         miniMaxApiKeyField.text = "";
-        miniMaxModelField.text = "MiniMax-M2.7";
+        miniMaxModelField.text = "";
         fireworksBaseUrlField.text = "https://api.fireworks.ai/inference/v1";
         fireworksApiKeyField.text = "";
-        fireworksModelField.text = "accounts/fireworks/models/llama-v3p3-70b-instruct";
+        fireworksModelField.text = "";
         googleBaseUrlField.text = "https://generativelanguage.googleapis.com/v1beta/openai/";
         googleApiKeyField.text = "";
-        googleModelField.text = "gemini-3-flash-preview";
+        googleModelField.text = "";
         openRouterBaseUrlField.text = "https://openrouter.ai/api/v1";
         openRouterApiKeyField.text = "";
-        openRouterModelField.text = "openai/gpt-4o-mini";
+        openRouterModelField.text = "";
         mistralBaseUrlField.text = "https://api.mistral.ai/v1";
         mistralApiKeyField.text = "";
-        mistralModelField.text = "mistral-small-latest";
+        mistralModelField.text = "";
         cloudflareBaseUrlField.text = "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1";
         cloudflareApiKeyField.text = "";
-        cloudflareModelField.text = "@cf/meta/llama-3.1-8b-instruct";
+        cloudflareModelField.text = "";
         nvidiaBaseUrlField.text = "https://integrate.api.nvidia.com/v1";
         nvidiaApiKeyField.text = "";
-        nvidiaModelField.text = "meta/llama-3.1-70b-instruct";
+        nvidiaModelField.text = "";
         huggingFaceBaseUrlField.text = "https://router.huggingface.co/v1";
         huggingFaceApiKeyField.text = "";
-        huggingFaceModelField.text = "openai/gpt-oss-120b:groq";
+        huggingFaceModelField.text = "";
         xaiBaseUrlField.text = "https://api.x.ai/v1";
         xaiApiKeyField.text = "";
-        xaiModelField.text = "grok-2-latest";
+        xaiModelField.text = "";
         lmStudioBaseUrlField.text = "http://localhost:1234/v1";
         lmStudioModelField.text = "";
         localBaseUrlField.text = "http://localhost:11434/v1";
-        localModelField.text = "llama3.2";
+        localModelField.text = "";
         ollamaBaseUrlField.text = "http://localhost:11434/v1";
-        ollamaModelField.text = "llama3.2";
+        ollamaModelField.text = "";
         litellmBaseUrlField.text = "http://localhost:4000/v1";
         litellmApiKeyField.text = "";
         litellmModelField.text = "";
+        maritacaBaseUrlField.text = "https://chat.maritaca.ai/api";
+        maritacaApiKeyField.text = "";
+        maritacaModelField.text = "";
+        perplexityBaseUrlField.text = "https://api.perplexity.ai/router/v1";
+        perplexityApiKeyField.text = "";
+        perplexityModelField.text = "";
         openCodeToggle.checked = false;
         openCodeUrlField.text = "http://127.0.0.1:4096/v1";
         openCodeProviderValueField.text = "";
@@ -1176,6 +1238,8 @@ KCM.SimpleKCM {
 
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery();
+        else
+            Qt.callLater(function() { refreshCurrentProviderModels(); });
 
         // Refresh memory usage
         var cmd = "python3 " + quoteForShell(getHelperPath()) + " get_memory_usage";
@@ -1486,6 +1550,8 @@ KCM.SimpleKCM {
                 onActivated: {
                     providerModelCandidates = [];
                     discoveryStatus = "";
+                    if (pageReady)
+                        Qt.callLater(function() { refreshCurrentProviderModels(); });
                 }
             }
 
@@ -1495,12 +1561,12 @@ KCM.SimpleKCM {
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
                 text: "Refresh models for active provider"
-                enabled: !providerNeedsApiKey(providerBox.currentValue || "openai") || providerHasConfiguredKey(providerBox.currentValue || "openai")
+                 enabled: !providerRefreshBusy && (!providerNeedsApiKey(providerBox.currentValue || "openai") || providerHasConfiguredKey(providerBox.currentValue || "openai"))
                 onClicked: refreshCurrentProviderModels()
             }
 
             QQC2.BusyIndicator {
-                visible: !openCodeToggle.checked && openCodeBusy
+                 visible: !openCodeToggle.checked && (openCodeBusy || providerRefreshBusy)
                 running: visible
                 Kirigami.FormData.label: "Loading:"
             }
@@ -1793,7 +1859,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("openai") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "gpt-4o-mini"
+                placeholderText: "Refresh models to choose one"
                 text: activeProviderModelValue()
                 onTextChanged: setActiveProviderModelValue(text)
             }
@@ -1860,7 +1926,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("anthropic") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "claude-3-5-sonnet-latest"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -1935,7 +2001,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("groq") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "llama-3.3-70b-versatile"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -2010,7 +2076,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("deepseek") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "deepseek-v4-pro"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -2160,7 +2226,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("fireworks") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "accounts/fireworks/models/llama-v3p3-70b-instruct"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -2310,7 +2376,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("openrouter") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "openai/gpt-4o-mini"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -2385,7 +2451,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("mistral") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "mistral-small-latest"
+                placeholderText: "Fetch models to choose one"
             }
 
             QQC2.TextField {
@@ -2460,7 +2526,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("cloudflare") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "@cf/meta/llama-3.1-8b-instruct"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -2535,7 +2601,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("nvidia") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "meta/llama-3.1-70b-instruct"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -2591,7 +2657,7 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("huggingface") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "openai/gpt-oss-120b:groq"
+                placeholderText: "Refresh models to choose one"
             }
 
             QQC2.TextField {
@@ -2801,7 +2867,139 @@ KCM.SimpleKCM {
                 visible: page.providerModelVisible("litellm") && (false)
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
-                placeholderText: "gpt-4o-mini"
+                placeholderText: "Refresh models to choose one"
+            }
+
+            QQC2.TextField {
+                id: maritacaBaseUrlField
+                Kirigami.FormData.label: "Maritaca URL:"
+                visible: page.providerEnabled("maritaca")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://chat.maritaca.ai/api"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: "Maritaca key:"
+                visible: page.providerEnabled("maritaca")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: maritacaApiKeyField
+                    Layout.fillWidth: true
+                    echoMode: maritacaKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("maritaca", text);
+                        page.refreshIfActiveProvider("maritaca");
+                    }
+                }
+                QQC2.Button {
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    onClicked: {
+                        page.saveKey("maritaca", maritacaApiKeyField.text);
+                        page.refreshIfActiveProvider("maritaca");
+                        saved = true;
+                        maritacaSaveTimer.start();
+                    }
+                    Timer {
+                        id: maritacaSaveTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                }
+                QQC2.Button {
+                    id: maritacaKeyShowHide
+                    checkable: true
+                    text: checked ? "Hide" : "Show"
+                }
+            }
+
+            QQC2.Label {
+                visible: page.providerNeedsKeyHintVisible("maritaca")
+                Kirigami.FormData.label: "Maritaca model:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: "Enter the Maritaca API key first, then refresh models or type a model name."
+                wrapMode: Text.Wrap
+                opacity: 0.75
+            }
+
+            QQC2.TextField {
+                id: maritacaModelField
+                Kirigami.FormData.label: "Maritaca model:"
+                visible: page.providerModelVisible("maritaca") && (false)
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "Fetch models to choose one"
+            }
+
+            QQC2.TextField {
+                id: perplexityBaseUrlField
+                Kirigami.FormData.label: "Perplexity URL:"
+                visible: page.providerEnabled("perplexity")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "https://api.perplexity.ai/router/v1"
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: "Perplexity key:"
+                visible: page.providerEnabled("perplexity")
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+
+                QQC2.TextField {
+                    id: perplexityApiKeyField
+                    Layout.fillWidth: true
+                    echoMode: perplexityKeyShowHide.checked ? TextInput.Normal : TextInput.Password
+                    onEditingFinished: {
+                        page.saveKey("perplexity", text);
+                        page.refreshIfActiveProvider("perplexity");
+                    }
+                }
+                QQC2.Button {
+                    property bool saved: false
+                    text: saved ? "Saved!" : "Save"
+                    icon.name: saved ? "dialog-ok" : "document-save"
+                    onClicked: {
+                        page.saveKey("perplexity", perplexityApiKeyField.text);
+                        page.refreshIfActiveProvider("perplexity");
+                        saved = true;
+                        perplexitySaveTimer.start();
+                    }
+                    Timer {
+                        id: perplexitySaveTimer
+                        interval: 2000
+                        onTriggered: parent.saved = false
+                    }
+                }
+                QQC2.Button {
+                    id: perplexityKeyShowHide
+                    checkable: true
+                    text: checked ? "Hide" : "Show"
+                }
+            }
+
+            QQC2.Label {
+                visible: page.providerNeedsKeyHintVisible("perplexity")
+                Kirigami.FormData.label: "Perplexity model:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: "Enter a Perplexity API key, then refresh models or type a Gateway model name."
+                wrapMode: Text.Wrap
+                opacity: 0.75
+            }
+
+            QQC2.TextField {
+                id: perplexityModelField
+                Kirigami.FormData.label: "Perplexity model:"
+                visible: page.providerModelVisible("perplexity") && (false)
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                placeholderText: "Fetch models to choose one"
             }
 
         // ── Other Providers ──────────────────────────────────────────────────
