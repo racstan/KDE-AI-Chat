@@ -431,121 +431,7 @@ Item {
             visible: !root.historyOnlyMode && !root.openCodeMode && !root.renamingCurrentChat
             spacing: Kirigami.Units.smallSpacing
 
-            PC3.Label {
-                text: "Provider:"
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                font.bold: true
-                opacity: 0.75
-            }
 
-            QQC2.ComboBox {
-                id: chatProviderCombo
-                implicitWidth: Kirigami.Units.gridUnit * 7.5
-                implicitHeight: Kirigami.Units.gridUnit * 1.8
-                textRole: "text"
-                valueRole: "value"
-
-                model: {
-                    var globalProv = plasmoid.configuration.provider || "openai";
-                    var globalProvName = ProviderService.getProviderDisplayName(globalProv, plasmoid.configuration);
-                    var list = [{
-                        "text": "Default (" + globalProvName + ")",
-                        "value": ""
-                    }];
-                    var supported = ProviderService.getConfiguredProviders(plasmoid.configuration);
-                    for (var i = 0; i < supported.length; i++) {
-                        list.push({
-                            "text": ProviderService.getProviderDisplayName(supported[i], plasmoid.configuration),
-                            "value": supported[i]
-                        });
-                    }
-                    return list;
-                }
-
-                currentIndex: {
-                    var sId = root.currentSessionId;
-                    var cur = (typeof root.getSessionProperty === "function") ? root.getSessionProperty(sId, "chatProvider", "") : "";
-                    for (var i = 0; i < model.length; i++) {
-                        if (model[i].value === cur) return i;
-                    }
-                    return 0;
-                }
-
-                onActivated: {
-                    var val = model[currentIndex].value;
-                    if (typeof root.setSessionProperty === "function") {
-                        root.setSessionProperty(root.currentSessionId, "chatProvider", val);
-                        root.saveCurrentSessionState(true);
-                    }
-                }
-
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: "Switch provider on-the-fly for this chat"
-            }
-
-            PC3.Label {
-                text: "Model:"
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                font.bold: true
-                opacity: 0.75
-            }
-
-            QQC2.ComboBox {
-                id: chatModelCombo
-                implicitWidth: Kirigami.Units.gridUnit * 9
-                implicitHeight: Kirigami.Units.gridUnit * 1.8
-                editable: true
-
-                property var candidates: []
-                property string loadedForProvider: "___NONE___"
-
-                function refreshCandidates() {
-                    var sId = root.currentSessionId;
-                    var prov = (typeof root.getEffectiveProvider === "function") ? root.getEffectiveProvider(sId) : (plasmoid.configuration.provider || "openai");
-                    if (loadedForProvider === prov && candidates.length > 0) return;
-                    loadedForProvider = prov;
-                    ProviderService.fetchModelsForProvider(prov, plasmoid.configuration, function(ids) {
-                        candidates = ids;
-                    }, function(err) {
-                        candidates = [];
-                    });
-                }
-
-                Component.onCompleted: refreshCandidates()
-                onPressedChanged: { if (pressed) refreshCandidates(); }
-
-                model: {
-                    var list = ["Default (Global Model)"];
-                    for (var i = 0; i < candidates.length; i++) {
-                        list.push(candidates[i]);
-                    }
-                    var curModel = (typeof root.getSessionProperty === "function") ? root.getSessionProperty(root.currentSessionId, "chatModel", "") : "";
-                    if (curModel && list.indexOf(curModel) < 0) {
-                        list.push(curModel);
-                    }
-                    return list;
-                }
-
-                editText: (typeof root.getSessionProperty === "function") ? root.getSessionProperty(root.currentSessionId, "chatModel", "") : ""
-
-                onEditTextChanged: {
-                    if (activeFocus && typeof root.setSessionProperty === "function") {
-                        root.setSessionProperty(root.currentSessionId, "chatModel", editText);
-                        root.saveCurrentSessionState(true);
-                    }
-                }
-
-                onActivated: {
-                    if (typeof root.setSessionProperty === "function") {
-                        var val = currentIndex === 0 ? "" : currentText;
-                        root.setSessionProperty(root.currentSessionId, "chatModel", val);
-                        root.saveCurrentSessionState(true);
-                    }
-                }
-
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: "Switch or enter model on-the-fly for this chat"
-            }
 
             Item { Layout.fillWidth: true }
 
@@ -597,15 +483,18 @@ Item {
                             boundsBehavior: Flickable.DragAndOvershootBounds
                             flickDeceleration: 1800
                             maximumFlickVelocity: 6000
-                            pixelAligned: true
+                            pixelAligned: false
 
                             WheelHandler {
                                 id: msgListWheelHandler
                                 target: msgList
                                 orientation: Qt.Vertical
                                 onWheel: function(event) {
-                                    if (event && event.pixelDelta && event.pixelDelta.y !== 0) {
-                                        var newY = msgList.contentY - event.pixelDelta.y;
+                                    var delta = event && event.pixelDelta && event.pixelDelta.y !== 0
+                                        ? event.pixelDelta.y
+                                        : (event && event.angleDelta ? event.angleDelta.y / 8 : 0);
+                                    if (delta !== 0) {
+                                        var newY = msgList.contentY - delta;
                                         var minY = msgList.originY;
                                         var maxY = Math.max(minY, msgList.contentHeight - msgList.height);
                                         msgList.contentY = Math.max(minY, Math.min(newY, maxY));

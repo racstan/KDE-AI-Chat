@@ -769,12 +769,36 @@ KCM.SimpleKCM {
             id: enableMcpToolsToggle
             Kirigami.FormData.label: i18n("MCP & Search Tools:")
             text: i18n("Enable Model Context Protocol (MCP) server & web search tools")
-            checked: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.enableMcpTools !== false) : true
+            checked: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.enableMcpTools === true) : false
             onCheckedChanged: {
                 if (pageReady && plasmoid && plasmoid.configuration) {
                     plasmoid.configuration.enableMcpTools = checked;
                 }
             }
+        }
+
+        QQC2.TextArea {
+            id: mcpServersField
+            Kirigami.FormData.label: i18n("MCP servers:")
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            Layout.preferredHeight: 76
+            wrapMode: Text.Wrap
+            placeholderText: '[{"id":"filesystem","command":"npx ...","tools":[]}]'
+            text: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.mcpServersJson || "[]") : "[]"
+            onTextChanged: {
+                if (pageReady && plasmoid && plasmoid.configuration)
+                    plasmoid.configuration.mcpServersJson = text;
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            text: i18n("MCP server JSON is optional. Each server may provide a command and a tools array with name, description, and inputSchema.")
+            opacity: 0.7
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
         }
 
         // ── Misc Settings ──────────────────────────────────────────────────

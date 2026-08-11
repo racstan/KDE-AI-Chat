@@ -27,7 +27,7 @@ let PROVIDER_CONFIGS = {
         type: "anthropic",
         configKey: "anthropicApiKey",
         modelKey: "anthropicModel",
-        defaultBaseUrl: "",
+        defaultBaseUrl: "https://api.anthropic.com/v1",
         defaultModel: "",
         allowEmptyKey: false
     },
@@ -428,10 +428,8 @@ function getProviderConfig(providerId, configuration) {
 
     let model = configuration[entry.modelKey] || entry.defaultModel || "";
     let baseUrl = "";
-    if (entry.type !== "anthropic") {
-        let baseUrlKey = entry.baseUrlKey || (providerId === "openai" ? "baseUrl" : null);
-        baseUrl = (baseUrlKey ? configuration[baseUrlKey] : "") || entry.defaultBaseUrl || "";
-    }
+    let baseUrlKey = entry.baseUrlKey || (providerId === "openai" ? "baseUrl" : null);
+    baseUrl = (baseUrlKey ? configuration[baseUrlKey] : "") || entry.defaultBaseUrl || "";
 
     let headers = null;
     if (entry.hasHeaders && providerId === "openrouter") {
@@ -572,7 +570,8 @@ function fetchModelsForProvider(providerId, configuration, onSuccess, onError) {
     if (cfg.type === "anthropic") {
         headers["x-api-key"] = cfg.apiKey;
         headers["anthropic-version"] = "2023-06-01";
-        url = "https://api.anthropic.com/v1/models";
+        let base = (cfg.baseUrl || "https://api.anthropic.com/v1").replace(/\/$/, "");
+        url = base.endsWith("/models") ? base : base + "/models";
     } else {
         let base = cfg.baseUrl || "";
         base = base.replace(/\/$/, "");
@@ -622,4 +621,3 @@ function fetchModelsForProvider(providerId, configuration, onSuccess, onError) {
         if (onError) onError("Send failed: " + e);
     }
 }
-

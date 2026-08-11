@@ -3,6 +3,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import "api.js" as Api
+import "ProviderService.js" as ProviderService
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
@@ -65,6 +66,13 @@ PlasmoidItem {
     property string chatInputText: ""
     property var msgListViewRef: null
     property bool userScrolledUp: false
+    // Tool-call context is kept separate from the visible chat model. This
+    // lets an OpenAI-compatible provider complete an MCP round-trip without
+    // rendering protocol messages as ordinary chat bubbles.
+    property var mcpFollowupMessages: []
+    property int mcpToolRound: 0
+    property var mcpPendingOperations: ({})
+    property int mcpOperationCounter: 0
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
@@ -247,6 +255,190 @@ PlasmoidItem {
 
         }
         return -1;
+    }
+
+    // Session overrides are deliberately stored on the session object rather
+    // than in global plasmoid configuration.  This makes provider/model
+    // changes apply to the current chat immediately without affecting other
+    // chats.
+    function getSessionProperty(sessionId, key, defaultValue) {
+        var idx = sessionIndexById(sessionId || root.currentSessionId);
+        if (idx < 0 || !root.sessions[idx] || root.sessions[idx][key] === undefined || root.sessions[idx][key] === null)
+            return defaultValue;
+        return root.sessions[idx][key];
+    }
+
+    function setSessionProperty(sessionId, key, value) {
+        var idx = sessionIndexById(sessionId || root.currentSessionId);
+        if (idx < 0)
+            return;
+        var updated = root.sessions.slice();
+        var session = Object.assign({}, updated[idx]);
+        session[key] = value;
+        updated[idx] = session;
+        root.sessions = updated;
+        if (session.value === root.currentSessionId) {
+            // Keep the live mode in sync with a setting saved in the dialog.
+            if (key === "source")
+                root.openCodeMode = value === "opencode";
+        }
+    }
+
+    function getEffectiveProvider(sessionId) {
+        var override = String(getSessionProperty(sessionId, "chatProvider", "") || "").trim();
+        return override || plasmoid.configuration.provider || "openai";
+    }
+
+    function getEffectiveModel(sessionId) {
+        var override = String(getSessionProperty(sessionId, "chatModel", "") || "").trim();
+        if (override)
+            return override;
+        return ProviderService.getProviderConfig(getEffectiveProvider(sessionId), plasmoid.configuration).model || "";
+    }
+
+    function _mcpServers() {
+        if (!plasmoid.configuration.mcpServersJson)
+            return [];
+        try {
+            var servers = JSON.parse(plasmoid.configuration.mcpServersJson);
+            return Array.isArray(servers) ? servers : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function _mcpFunctionName(serverId, toolName) {
+        return "mcp_" + String(serverId || "server").replace(/[^A-Za-z0-9_-]/g, "_")
+            + "_" + String(toolName || "tool").replace(/[^A-Za-z0-9_-]/g, "_");
+    }
+
+    function mcpToolDefinitions() {
+        if (plasmoid.configuration.enableMcpTools !== true)
+            return [];
+
+        var defs = [{
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "Search the public web and return a few relevant results.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"query": {"type": "string", "description": "The search query"}},
+                    "required": ["query"]
+                }
+            }
+        }];
+        var servers = _mcpServers();
+        for (var i = 0; i < servers.length; i++) {
+            var server = servers[i] || {};
+            var tools = Array.isArray(server.tools) ? server.tools : [];
+            for (var j = 0; j < tools.length; j++) {
+                var tool = tools[j] || {};
+                if (!tool.name)
+                    continue;
+                defs.push({
+                    "type": "function",
+                    "function": {
+                        "name": _mcpFunctionName(server.id || server.name, tool.name),
+                        "description": tool.description || ("MCP tool " + tool.name),
+                        "parameters": tool.inputSchema || tool.parameters || {"type": "object"}
+                    }
+                });
+            }
+        }
+        return defs;
+    }
+
+    function _mcpResultText(data) {
+        var stdout = data && data["stdout"] ? String(data["stdout"]).trim() : "";
+        if (!stdout)
+            return JSON.stringify({"status": "error", "message": String((data && data["stderr"]) || "MCP helper returned no output")});
+        try {
+            return JSON.stringify(JSON.parse(stdout));
+        } catch (e) {
+            return JSON.stringify({"status": "ok", "raw": stdout});
+        }
+    }
+
+    function _startMcpOperation(command, payload, callback) {
+        var token = "#mcp-tool-" + (++root.mcpOperationCounter) + "-" + Date.now();
+        root.mcpPendingOperations[token] = callback;
+        var encoded = Sec.base64Encode(JSON.stringify(payload || {}));
+        var cmd = "python3 " + Sec.quoteForShell(root.getHelperPath()) + " "
+            + command + " " + Sec.quoteForShell(encoded);
+        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " " + token);
+    }
+
+    function executeMcpTool(toolName, argumentsObject, callback) {
+        var args = argumentsObject || {};
+        if (toolName === "web_search") {
+            _startMcpOperation("mcp_web_search", {"query": String(args.query || "")}, callback);
+            return;
+        }
+        var servers = _mcpServers();
+        for (var i = 0; i < servers.length; i++) {
+            var server = servers[i] || {};
+            var tools = Array.isArray(server.tools) ? server.tools : [];
+            for (var j = 0; j < tools.length; j++) {
+                var tool = tools[j] || {};
+                if (_mcpFunctionName(server.id || server.name, tool.name) !== toolName)
+                    continue;
+                _startMcpOperation("mcp_query", {
+                    "serverCommand": server.command || "",
+                    "method": "tools/call",
+                    "params": {"name": tool.name, "arguments": args}
+                }, callback);
+                return;
+            }
+        }
+        callback(JSON.stringify({"status": "error", "message": "Unknown MCP tool: " + toolName}));
+    }
+
+    function handleMcpToolCalls(toolCalls, requestArgs, assistantMessage) {
+        if (!Array.isArray(toolCalls) || toolCalls.length === 0)
+            return false;
+        if (root.mcpToolRound >= 3) {
+            root.mcpFollowupMessages = [];
+            pushErrorMessage("MCP tool-call limit reached; the model did not finish after three tool rounds.");
+            processNextQueuedMessage();
+            return true;
+        }
+
+        root.loading = true;
+        var results = [];
+        var next = function(index) {
+            if (index >= toolCalls.length) {
+                root.mcpFollowupMessages = root.mcpFollowupMessages.concat([{
+                    "role": "assistant",
+                    "content": assistantMessage.content || "",
+                    "tool_calls": toolCalls
+                }]);
+                for (var r = 0; r < results.length; r++)
+                    root.mcpFollowupMessages.push(results[r]);
+                root.mcpToolRound++;
+                doOpenAICompatRequest(requestArgs.baseUrl, requestArgs.apiKey, requestArgs.model,
+                    requestArgs.extraHeaders, requestArgs.modelLabel);
+                return;
+            }
+            var call = toolCalls[index] || {};
+            var fn = call.function || {};
+            var parsedArgs = {};
+            try {
+                parsedArgs = typeof fn.arguments === "string" ? JSON.parse(fn.arguments) : (fn.arguments || {});
+            } catch (e) {
+                parsedArgs = {};
+            }
+            executeMcpTool(fn.name || "", parsedArgs, function(resultText) {
+                results.push({
+                    "role": "tool",
+                    "tool_call_id": call.id || ("mcp-call-" + index),
+                    "content": resultText
+                });
+                next(index + 1);
+            });
+        };
+        next(0);
+        return true;
     }
 
     function createSession(switchToNew) {
@@ -1566,7 +1758,7 @@ PlasmoidItem {
         var ts = Date.now();
         root.messages = root.messages.concat([{
             "role": "error",
-            "content": "DEBUG: " + text,
+            "content": text,
             "time": nowTime(ts),
             "at": ts,
             "model": ""
@@ -1654,6 +1846,11 @@ PlasmoidItem {
     }
 
     function sendMessageByIndex(index) {
+        // A normal user message starts a fresh MCP exchange.  Follow-up
+        // requests from handleMcpToolCalls call the provider directly so
+        // their protocol messages remain intact.
+        root.mcpFollowupMessages = [];
+        root.mcpToolRound = 0;
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
         root.currentStreamReasoning = "";
@@ -1688,10 +1885,10 @@ PlasmoidItem {
             doOpenCodeRequest();
             return ;
         }
-        var provider = root.getEffectiveProvider ? root.getEffectiveProvider(root.currentSessionId) : (plasmoid.configuration.provider || "openai");
+        var provider = root.getEffectiveProvider(root.currentSessionId);
         var providerCfg = getProviderConfig(provider, root.currentSessionId);
         if (providerCfg.type === "anthropic")
-            doAnthropicRequest(providerCfg.apiKey, providerCfg.model);
+            doAnthropicRequest(providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model, providerCfg.headers);
         else
             doOpenAICompatRequest(providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model, providerCfg.headers, providerCfg.model);
     }
@@ -1709,55 +1906,7 @@ PlasmoidItem {
     }
 
     function providerDisplayName(providerId) {
-        if (providerId === "openai")
-            return "OpenAI";
-
-        if (providerId === "anthropic")
-            return "Anthropic";
-
-        if (providerId === "groq")
-            return "Groq";
-
-        if (providerId === "deepseek")
-            return "DeepSeek";
-
-        if (providerId === "minimax")
-            return "MiniMax";
-
-        if (providerId === "fireworks")
-            return "Fireworks";
-
-        if (providerId === "google")
-            return "Google Gemini";
-
-        if (providerId === "openrouter")
-            return "OpenRouter";
-
-        if (providerId === "mistral")
-            return "Mistral";
-
-        if (providerId === "cloudflare")
-            return "Cloudflare";
-
-        if (providerId === "nvidia")
-            return "NVIDIA NIM";
-
-        if (providerId === "huggingface")
-            return "Hugging Face";
-
-        if (providerId === "xai")
-            return "xAI";
-
-        if (providerId === "litellm")
-            return "LiteLLM Proxy";
-
-        if (providerId === "lmstudio")
-            return "LM Studio";
-
-        if (providerId === "local")
-            return "Local";
-
-        return providerId || "Selected provider";
+        return ProviderService.getProviderDisplayName(providerId, plasmoid.configuration);
     }
 
     function validateOpenCodeConfig() {
@@ -1851,179 +2000,13 @@ PlasmoidItem {
         }
     }
 
-    function getProviderConfig(provider) {
-        if (provider === "anthropic")
-            return {
-                "type": "anthropic",
-                "apiKey": (plasmoid.configuration.anthropicApiKey || "").trim(),
-                "model": plasmoid.configuration.anthropicModel || "",
-                "allowEmptyKey": false
-            };
-
-        if (provider === "local")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.localBaseUrl || "http://localhost:11434/v1",
-                "apiKey": "",
-                "model": plasmoid.configuration.localModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
-
-        if (provider === "ollama")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.ollamaBaseUrl || "http://localhost:11434/v1",
-                "apiKey": "",
-                "model": plasmoid.configuration.ollamaModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
-
-        if (provider === "litellm")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.litellmBaseUrl || "http://localhost:4000/v1",
-                "apiKey": (plasmoid.configuration.litellmApiKey || "").trim(),
-                "model": plasmoid.configuration.litellmModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
-
-        if (provider === "lmstudio")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.lmStudioBaseUrl || "http://localhost:1234/v1",
-                "apiKey": "",
-                "model": plasmoid.configuration.lmStudioModel || "",
-                "headers": null,
-                "allowEmptyKey": true
-            };
-
-        if (provider === "groq")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.groqBaseUrl || "https://api.groq.com/openai/v1",
-                "apiKey": (plasmoid.configuration.groqApiKey || "").trim(),
-                "model": plasmoid.configuration.groqModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "deepseek")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.deepSeekBaseUrl || "https://api.deepseek.com",
-                "apiKey": (plasmoid.configuration.deepSeekApiKey || "").trim(),
-                "model": plasmoid.configuration.deepSeekModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "minimax")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.miniMaxBaseUrl || "https://api.minimax.io/v1",
-                "apiKey": (plasmoid.configuration.miniMaxApiKey || "").trim(),
-                "model": plasmoid.configuration.miniMaxModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "fireworks")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.fireworksBaseUrl || "https://api.fireworks.ai/inference/v1",
-                "apiKey": (plasmoid.configuration.fireworksApiKey || "").trim(),
-                "model": plasmoid.configuration.fireworksModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "google")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.googleBaseUrl || "https://generativelanguage.googleapis.com/v1beta/openai/",
-                "apiKey": (plasmoid.configuration.googleApiKey || "").trim(),
-                "model": plasmoid.configuration.googleModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "openrouter") {
-            var headers = {
-            };
-            var referer = plasmoid.configuration.openRouterReferer || "https://github.com/racstan/KDE-AI-Chat";
-            var title = plasmoid.configuration.openRouterTitle || "KDE AI Chat";
-            headers["HTTP-Referer"] = referer;
-            headers["X-Title"] = title;
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.openRouterBaseUrl || "https://openrouter.ai/api/v1",
-                "apiKey": (plasmoid.configuration.openRouterApiKey || "").trim(),
-                "model": plasmoid.configuration.openRouterModel || "",
-                "headers": headers,
-                "allowEmptyKey": false
-            };
-        }
-        if (provider === "mistral")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.mistralBaseUrl || "https://api.mistral.ai/v1",
-                "apiKey": (plasmoid.configuration.mistralApiKey || "").trim(),
-                "model": plasmoid.configuration.mistralModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "cloudflare")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.cloudflareBaseUrl || "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
-                "apiKey": (plasmoid.configuration.cloudflareApiKey || "").trim(),
-                "model": plasmoid.configuration.cloudflareModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "nvidia")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.nvidiaBaseUrl || "https://integrate.api.nvidia.com/v1",
-                "apiKey": (plasmoid.configuration.nvidiaApiKey || "").trim(),
-                "model": plasmoid.configuration.nvidiaModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "huggingface")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.huggingFaceBaseUrl || "https://router.huggingface.co/v1",
-                "apiKey": (plasmoid.configuration.huggingFaceApiKey || "").trim(),
-                "model": plasmoid.configuration.huggingFaceModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        if (provider === "xai")
-            return {
-                "type": "openai-compat",
-                "baseUrl": plasmoid.configuration.xaiBaseUrl || "https://api.x.ai/v1",
-                "apiKey": (plasmoid.configuration.xaiApiKey || "").trim(),
-                "model": plasmoid.configuration.xaiModel || "",
-                "headers": null,
-                "allowEmptyKey": false
-            };
-
-        return {
-            "type": "openai-compat",
-            "baseUrl": plasmoid.configuration.baseUrl || "https://api.openai.com/v1",
-            "apiKey": (plasmoid.configuration.apiKey || "").trim(),
-            "model": plasmoid.configuration.model || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
+    function getProviderConfig(provider, sessionId) {
+        var providerId = provider || getEffectiveProvider(sessionId || root.currentSessionId);
+        var cfg = ProviderService.getProviderConfig(providerId, plasmoid.configuration);
+        var sessionModel = String(getSessionProperty(sessionId || root.currentSessionId, "chatModel", "") || "").trim();
+        if (sessionModel)
+            cfg.model = sessionModel;
+        return cfg;
     }
 
     function buildOpenAICompatPayload() {
@@ -2080,6 +2063,10 @@ PlasmoidItem {
                 });
             }
         }
+        // Tool-call and tool-result messages are protocol context only; do
+        // not add them to the visible chat history.
+        for (var k = 0; k < root.mcpFollowupMessages.length; k++)
+            arr.push(root.mcpFollowupMessages[k]);
         return arr;
     }
 
@@ -2156,7 +2143,10 @@ PlasmoidItem {
         }
         root.loading = true;
         root.activeXhr = xhr;
-        var useStreaming = plasmoid.configuration.disableStreaming !== true;
+        var mcpTools = mcpToolDefinitions();
+        // Tool calls require the complete assistant message, so keep this
+        // request non-streaming even when normal streaming is enabled.
+        var useStreaming = plasmoid.configuration.disableStreaming !== true && mcpTools.length === 0;
         var buffer = "";
         var offset = 0;
         var fullText = "";
@@ -2173,6 +2163,9 @@ PlasmoidItem {
 
                     errorHandled = true;
                     var err = "Request to " + url + " failed (HTTP " + xhr.status + ")";
+                    if (xhr.status === 401) {
+                        err = "Authentication Failed (HTTP 401): Please verify that your API key is correct and not missing.";
+                    }
                     try {
                         var eobj = JSON.parse(xhr.responseText);
                         if (eobj.error && eobj.error.message)
@@ -2195,6 +2188,16 @@ PlasmoidItem {
                         var respObj = JSON.parse(xhr.responseText);
                         var choices = respObj.choices || [];
                         var firstChoice = choices[0] || {};
+                        if (mcpTools.length > 0 && firstChoice.message && firstChoice.message.tool_calls) {
+                            handleMcpToolCalls(firstChoice.message.tool_calls, {
+                                "baseUrl": baseUrl,
+                                "apiKey": apiKey,
+                                "model": model,
+                                "extraHeaders": extraHeaders,
+                                "modelLabel": modelLabel
+                            }, firstChoice.message);
+                            return;
+                        }
                         var msgContent = (firstChoice.message ? firstChoice.message.content : "") || "";
                         var msgReasoning = (firstChoice.message ? (firstChoice.message.reasoning || firstChoice.message.reasoning_content || firstChoice.message.thought || "") : "") || "";
 
@@ -2361,11 +2364,16 @@ PlasmoidItem {
             processNextQueuedMessage();
         };
         try {
-            xhr.send(JSON.stringify({
+            var requestBody = {
                 "model": model,
                 "messages": buildOpenAICompatPayload(),
                 "stream": useStreaming
-            }));
+            };
+            if (mcpTools.length > 0) {
+                requestBody.tools = mcpTools;
+                requestBody.tool_choice = "auto";
+            }
+            xhr.send(JSON.stringify(requestBody));
         } catch (sendError) {
             root.loading = false;
             root.activeXhr = null;
@@ -2373,7 +2381,7 @@ PlasmoidItem {
         }
     }
 
-    function doAnthropicRequest(apiKey, model) {
+    function doAnthropicRequest(baseUrl, apiKey, model, extraHeaders) {
         if (!apiKey) {
             pushErrorMessage("Anthropic API key missing in settings.");
             processNextQueuedMessage();
@@ -2383,7 +2391,10 @@ PlasmoidItem {
         var errorHandled = false;
         root.loading = true;
         root.activeXhr = xhr;
-        xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
+        var endpoint = (baseUrl || "https://api.anthropic.com/v1").replace(/\/$/, "");
+        if (!endpoint.endsWith("/messages"))
+            endpoint += "/messages";
+        xhr.open("POST", endpoint, true);
         xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
         xhr.ontimeout = function() {
             if (errorHandled)
@@ -2398,6 +2409,12 @@ PlasmoidItem {
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.setRequestHeader("x-api-key", apiKey);
         xhr.setRequestHeader("anthropic-version", "2023-06-01");
+        if (extraHeaders) {
+            for (var headerName in extraHeaders) {
+                if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
+                    xhr.setRequestHeader(headerName, extraHeaders[headerName]);
+            }
+        }
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return ;
@@ -2470,7 +2487,7 @@ PlasmoidItem {
             errorHandled = true;
             root.loading = false;
             root.activeXhr = null;
-            pushErrorMessage("Could not reach https://api.anthropic.com/v1/messages. Check network access and API configuration.");
+            pushErrorMessage("Could not reach " + endpoint + ". Check network access and API configuration.");
             processNextQueuedMessage();
         };
         var anthropicReqBody = {
@@ -3389,6 +3406,15 @@ PlasmoidItem {
             var exitCode = data["exit code"];
             var stdout = data["stdout"] || "";
             var stderr = data["stderr"] || "";
+            if (sourceName.indexOf("#mcp-tool-") !== -1) {
+                var mcpToken = sourceName.substring(sourceName.indexOf("#mcp-tool-"));
+                var mcpCallback = root.mcpPendingOperations[mcpToken];
+                delete root.mcpPendingOperations[mcpToken];
+                disconnectSource(sourceName);
+                if (mcpCallback)
+                    mcpCallback({"exit code": exitCode, "stdout": stdout, "stderr": stderr});
+                return ;
+            }
             if (sourceName.indexOf("--clipboard") !== -1) {
                 if (exitCode === 0 && stderr.trim() === "") {
                     try {
@@ -3758,7 +3784,8 @@ PlasmoidItem {
             anchors.centerIn: parent
             width: Math.min(parent.width, parent.height) * 0.8
             height: width
-            source: "dialog-messages"
+            source: (plasmoid && plasmoid.configuration && plasmoid.configuration.customIcon)
+                ? plasmoid.configuration.customIcon : "dialog-messages"
         }
 
     }
