@@ -1052,8 +1052,21 @@ PlasmoidItem {
 
     function normalizeOpenCodeAgents(payload) {
         var values = [];
-        function add(value) {
+        function isSubagent(name, metadata) {
+            var mode = metadata && (metadata.mode || metadata.agentMode || metadata.type || metadata.kind);
+            if (mode && /sub[-_ ]?agent|internal/i.test(String(mode)))
+                return true;
+            if (metadata && (metadata.hidden === true || metadata.internal === true || metadata.isSubagent === true))
+                return true;
+            // OpenCode exposes these implementation agents through /agent as
+            // well. They are not selectable top-level agent profiles.
+            return ["compaction", "explore", "general", "summary", "title"].indexOf(String(name).toLowerCase()) >= 0;
+        }
+        function add(value, keyName) {
             var name = typeof value === "string" ? value : (value && (value.id || value.name || value.value || value.text));
+            name = name || keyName || "";
+            if (isSubagent(name, value))
+                return;
             if (name && typeof name === "string" && values.indexOf(name) < 0)
                 values.push(name);
         }
@@ -1080,7 +1093,7 @@ PlasmoidItem {
                 var keys = Object.keys(value);
                 for (var j = 0; j < keys.length; j++) {
                     if (keys[j] !== "default" && keys[j] !== "default_agent")
-                        add(keys[j]);
+                        add(value[keys[j]], keys[j]);
                 }
             }
         }
@@ -1093,8 +1106,17 @@ PlasmoidItem {
 
     function _finishOpenCodeAgents(list, defaultAgent) {
         root.openCodeAgentsList = list || [];
-        if (defaultAgent && (!root.openCodeAgent || root.openCodeAgent === ""))
-            root.openCodeAgent = defaultAgent;
+        var selectedAgent = "";
+        for (var i = 0; i < root.openCodeAgentsList.length; i++) {
+            if (root.openCodeAgentsList[i].value === defaultAgent || root.openCodeAgentsList[i].value === root.openCodeAgent) {
+                selectedAgent = root.openCodeAgentsList[i].value;
+                break;
+            }
+        }
+        if (!selectedAgent && root.openCodeAgentsList.length > 0)
+            selectedAgent = root.openCodeAgentsList[0].value;
+        if (selectedAgent)
+            root.openCodeAgent = selectedAgent;
         root.fetchingAgentsInProgress = false;
         _notifyOpenCodeAgentFetchWaiters();
     }
@@ -1190,11 +1212,18 @@ PlasmoidItem {
             + "    if os.path.exists(p):\n"
             + "        try:\n"
             + "            d = json.load(open(p))\n"
-            + "            ag = list(d.get('agent', {}).keys())\n"
-            + "            if ag: agents.extend(ag)\n"
+            + "            ag = d.get('agent', {})\n"
+            + "            if isinstance(ag, dict):\n"
+            + "                for n, spec in ag.items():\n"
+            + "                    item = dict(spec) if isinstance(spec, dict) else {}\n"
+            + "                    item['name'] = n; item['id'] = n; agents.append(item)\n"
             + "            if d.get('default_agent'): default = d.get('default_agent')\n"
             + "        except Exception: pass\n"
-            + "agents = list(dict.fromkeys(agents)); "
+            + "unique = {}; "
+            + "for item in agents:\n"
+            + "    key = item.get('id') or item.get('name') if isinstance(item, dict) else item\n"
+            + "    if key and key not in unique: unique[key] = item\n"
+            + "agents = list(unique.values()); "
             + "print(json.dumps({'agents': agents, 'default': default}))"
             + "\" #fetch-opencode-agents";
         fileReaderDs.connectSource(cmd);

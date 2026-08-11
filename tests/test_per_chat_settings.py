@@ -216,6 +216,10 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
     assert "property var openCodeAgentFetchWaiters" in main_source
     assert "function _notifyOpenCodeAgentFetchWaiters()" in main_source
     assert "openCodeAgentFetchWaiters = (root.openCodeAgentFetchWaiters || []).concat([callback])" in main_source
+    assert "function isSubagent(name, metadata)" in main_source
+    assert "sub[-_ ]?agent" in main_source
+    assert '"compaction", "explore", "general", "summary", "title"' in main_source
+    assert "item['name'] = n; item['id'] = n" in main_source
     atomic_body = main_source.split("function setSessionOverrides(sessionId, overrides)", 1)[1].split(
         "function getEffectiveProvider", 1
     )[0]
