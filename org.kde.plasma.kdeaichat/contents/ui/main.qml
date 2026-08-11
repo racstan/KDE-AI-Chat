@@ -2148,9 +2148,9 @@ PlasmoidItem {
     function syncPlasmaShellWatchdog() {
         if (plasmoid.configuration.autoRestartPlasmaShell === true) {
             runPlasmaShellWatchdog("start");
-            watchdogHeartbeatTimer.start();
+            plasmaShellHeartbeatTimer.start();
         } else {
-            watchdogHeartbeatTimer.stop();
+            plasmaShellHeartbeatTimer.stop();
             if (plasmaShellWatchdogRunning)
                 runPlasmaShellWatchdog("stop");
         }
