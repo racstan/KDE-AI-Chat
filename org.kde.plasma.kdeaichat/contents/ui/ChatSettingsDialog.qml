@@ -330,10 +330,55 @@ QQC2.Popup {
                     ColumnLayout {
                         id: openCodeColumn; anchors.fill: parent; anchors.margins: 12; spacing: 9
                         PC3.Label { text: "OpenCode connection"; font.bold: true }
-                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Provider"; Layout.preferredWidth: 76 }; QQC2.ComboBox { id: ocProviderCombo; Layout.fillWidth: true; editable: true }; PC3.Button { text: "Refresh"; enabled: !page._busy; onClicked: page._refreshOpenCode() } }
-                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Model"; Layout.preferredWidth: 76 }; QQC2.ComboBox { id: ocModelCombo; Layout.fillWidth: true; editable: true } }
-                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Agent"; Layout.preferredWidth: 76 }; QQC2.ComboBox { id: agentCombo; Layout.fillWidth: true; editable: true }; PC3.Button { text: "Refresh"; enabled: !page._busy; onClicked: page._refreshAgents() } }
-                        RowLayout { Layout.fillWidth: true; QQC2.Label { text: "Workspace"; Layout.preferredWidth: 76 }; QQC2.TextField { id: cwdField; Layout.fillWidth: true }; PC3.ToolButton { icon.name: "folder"; onClicked: folderDialog.open() } }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            QQC2.Label { text: "Provider"; Layout.preferredWidth: 76 }
+                            QQC2.ComboBox {
+                                id: ocProviderCombo
+                                Layout.fillWidth: true
+                                editable: true
+                            }
+                            PC3.Button {
+                                text: "Refresh"
+                                enabled: !page._busy
+                                onClicked: page._refreshOpenCode()
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            QQC2.Label { text: "Model"; Layout.preferredWidth: 76 }
+                            QQC2.ComboBox {
+                                id: ocModelCombo
+                                Layout.fillWidth: true
+                                editable: true
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            QQC2.Label { text: "Agent"; Layout.preferredWidth: 76 }
+                            QQC2.ComboBox {
+                                id: agentCombo
+                                Layout.fillWidth: true
+                                editable: true
+                            }
+                            PC3.Button {
+                                text: "Refresh"
+                                enabled: !page._busy
+                                onClicked: page._refreshAgents()
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            QQC2.Label { text: "Workspace"; Layout.preferredWidth: 76 }
+                            QQC2.TextField {
+                                id: cwdField
+                                Layout.fillWidth: true
+                            }
+                            PC3.ToolButton {
+                                icon.name: "folder"
+                                onClicked: folderDialog.open()
+                            }
+                        }
                         PC3.Label { text: "OpenCode agents and models come only from its API/configuration."; wrapMode: Text.WordWrap; opacity: 0.65; Layout.fillWidth: true }
                     }
                 }
@@ -343,18 +388,60 @@ QQC2.Popup {
                 Rectangle {
                     Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; implicitHeight: memoryColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
                     ColumnLayout { id: memoryColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
-                        RowLayout { Layout.fillWidth: true; PC3.Label { text: "Chat memory"; font.bold: true; Layout.fillWidth: true }; QQC2.CheckBox { id: memoryCheck; text: "Enable"; onCheckedChanged: page._memoryEnabled = checked } }
-                        QQC2.TextArea { id: memoryArea; Layout.fillWidth: true; Layout.preferredHeight: 72; enabled: memoryCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Notes retained for this chat"; onTextChanged: page._memory = text }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            PC3.Label { text: "Chat memory"; font.bold: true; Layout.fillWidth: true }
+                            QQC2.CheckBox {
+                                id: memoryCheck
+                                text: "Enable"
+                                onCheckedChanged: page._memoryEnabled = checked
+                            }
+                        }
+                        QQC2.TextArea {
+                            id: memoryArea
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 72
+                            enabled: memoryCheck.checked
+                            wrapMode: Text.WordWrap
+                            placeholderText: "Notes retained for this chat"
+                            onTextChanged: page._memory = text
+                        }
                     }
                 }
                 Rectangle {
                     visible: page._mode !== "opencode"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; implicitHeight: systemColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
                     ColumnLayout { id: systemColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
-                        RowLayout { Layout.fillWidth: true; PC3.Label { text: "System instructions"; font.bold: true; Layout.fillWidth: true }; QQC2.CheckBox { id: systemCheck; text: "Enable"; onCheckedChanged: page._systemEnabled = checked } }
-                        QQC2.TextArea { id: systemArea; Layout.fillWidth: true; Layout.preferredHeight: 88; enabled: systemCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Instructions for this chat"; onTextChanged: page._system = text }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            PC3.Label { text: "System instructions"; font.bold: true; Layout.fillWidth: true }
+                            QQC2.CheckBox {
+                                id: systemCheck
+                                text: "Enable"
+                                onCheckedChanged: page._systemEnabled = checked
+                            }
+                        }
+                        QQC2.TextArea {
+                            id: systemArea
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 88
+                            enabled: systemCheck.checked
+                            wrapMode: Text.WordWrap
+                            placeholderText: "Instructions for this chat"
+                            onTextChanged: page._system = text
+                        }
                     }
                 }
-                RowLayout { visible: page._mode !== "opencode"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; QQC2.Label { text: "Response length"; Layout.fillWidth: true }; QQC2.ComboBox { id: responseLengthCombo; model: ["Default", "Short", "Balanced", "Detailed", "Comprehensive"] } }
+                RowLayout {
+                    visible: page._mode !== "opencode"
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 12
+                    Layout.rightMargin: 12
+                    QQC2.Label { text: "Response length"; Layout.fillWidth: true }
+                    QQC2.ComboBox {
+                        id: responseLengthCombo
+                        model: ["Default", "Short", "Balanced", "Detailed", "Comprehensive"]
+                    }
+                }
                 Item { implicitHeight: 8 }
             }
         }
