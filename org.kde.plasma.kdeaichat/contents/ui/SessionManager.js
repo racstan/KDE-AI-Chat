@@ -1,4 +1,4 @@
-.pragma library
+
 
 /**
  * SessionManager — session identity, parsing, and base64 utilities.

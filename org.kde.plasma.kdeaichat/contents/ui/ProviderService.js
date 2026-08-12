@@ -1,4 +1,4 @@
-.pragma library
+
 
 /**
  * @typedef {Object} ProviderEntry
