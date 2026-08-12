@@ -69,6 +69,7 @@ KCM.SimpleKCM {
     property alias cfg_perplexityApiKey: perplexityApiKeyField.text
     property alias cfg_perplexityModel: perplexityModelField.text
     property alias cfg_useOpenCode: openCodeToggle.checked
+    property alias cfg_usePi: piToggle.checked
     property alias cfg_playNotificationSound: playSoundToggle.checked
     property alias cfg_requestTimeout: requestTimeoutSpinBox.value
     property alias cfg_openCodeUrl: openCodeUrlField.text
@@ -1216,6 +1217,7 @@ KCM.SimpleKCM {
         perplexityApiKeyField.text = "";
         perplexityModelField.text = "";
         openCodeToggle.checked = false;
+        piToggle.checked = false;
         openCodeUrlField.text = "http://127.0.0.1:4096/v1";
         openCodeProviderValueField.text = "";
         openCodeModelValueField.text = "";
@@ -1238,7 +1240,7 @@ KCM.SimpleKCM {
 
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery();
-        else
+        else if (!piToggle.checked)
             Qt.callLater(function() { refreshCurrentProviderModels(); });
 
         // Refresh memory usage
@@ -1525,14 +1527,28 @@ KCM.SimpleKCM {
                 onCheckedChanged: {
                     discoveryStatus = "";
                     if (checked) {
+                        piToggle.checked = false;
                         if (pageReady)
                             refreshOpenCodeDiscovery();
                     }
                 }
             }
 
+            QQC2.CheckBox {
+                id: piToggle
+
+                Kirigami.FormData.label: "Pi mode:"
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                text: "Enable Pi CLI Agent"
+                onCheckedChanged: {
+                    if (checked) {
+                        openCodeToggle.checked = false;
+                    }
+                }
+            }
+
             Kirigami.Separator {
-                visible: !openCodeToggle.checked
+                visible: !openCodeToggle.checked && !piToggle.checked
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: "Provider"
             }
@@ -1540,7 +1556,7 @@ KCM.SimpleKCM {
             QQC2.ComboBox {
                 id: providerBox
 
-                visible: !openCodeToggle.checked
+                visible: !openCodeToggle.checked && !piToggle.checked
                 Kirigami.FormData.label: "Default provider:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -1556,7 +1572,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.Button {
-                visible: !openCodeToggle.checked
+                visible: !openCodeToggle.checked && !piToggle.checked
                 Kirigami.FormData.label: "Model discovery:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth
@@ -1566,7 +1582,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.BusyIndicator {
-                 visible: !openCodeToggle.checked && (openCodeBusy || providerRefreshBusy)
+                 visible: !openCodeToggle.checked && !piToggle.checked && (openCodeBusy || providerRefreshBusy)
                 running: visible
                 Kirigami.FormData.label: "Loading:"
             }
@@ -1585,7 +1601,7 @@ KCM.SimpleKCM {
                     }
                 }
 
-                visible: !openCodeToggle.checked && providerModelVisible(providerBox.currentValue || "openai")
+                visible: !openCodeToggle.checked && !piToggle.checked && providerModelVisible(providerBox.currentValue || "openai")
                 Kirigami.FormData.label: "Model:"
                 Layout.fillWidth: true
                 Layout.maximumWidth: formLayout.fieldMaxWidth

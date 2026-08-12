@@ -237,7 +237,7 @@ QQC2.Popup {
 
     function _reset() {
         _invalidate();
-        _mode = rootRef && rootRef.plasmoid && rootRef.plasmoid.configuration.useOpenCode ? "opencode" : "provider";
+        _mode = rootRef && rootRef.plasmoid && rootRef.plasmoid.configuration.usePi ? "pi" : (rootRef && rootRef.plasmoid && rootRef.plasmoid.configuration.useOpenCode ? "opencode" : "provider");
         _provider = ""; _model = ""; _ocAgent = ""; _ocProvider = ""; _ocModel = ""; _ocCwd = "";
         _memoryEnabled = true; _memory = ""; _systemEnabled = true; _system = ""; _responseLength = 0;
         _modelCandidates = [];
@@ -301,12 +301,13 @@ QQC2.Popup {
                 PC3.Label { text: "Choose how this chat responds"; font.bold: true; Layout.leftMargin: 12 }
                 RowLayout {
                     Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; spacing: 10
-                    PC3.RadioButton { text: "Normal provider"; checked: page._mode !== "opencode"; onClicked: page._setMode("provider") }
+                    PC3.RadioButton { text: "Normal provider"; checked: page._mode === "provider"; onClicked: page._setMode("provider") }
                     PC3.RadioButton { text: "OpenCode"; checked: page._mode === "opencode"; onClicked: page._setMode("opencode") }
+                    PC3.RadioButton { text: "Pi Agent"; checked: page._mode === "pi"; onClicked: page._setMode("pi") }
                 }
 
                 Rectangle {
-                    visible: page._mode !== "opencode"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
+                    visible: page._mode === "provider"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
                     implicitHeight: normalColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
                     ColumnLayout {
                         id: normalColumn; anchors.fill: parent; anchors.margins: 12; spacing: 9
@@ -380,6 +381,17 @@ QQC2.Popup {
                             }
                         }
                         PC3.Label { text: "OpenCode agents and models come only from its API/configuration."; wrapMode: Text.WordWrap; opacity: 0.65; Layout.fillWidth: true }
+                        PC3.Label { text: "For workspace, enter absolute path or leave empty."; wrapMode: Text.WordWrap; opacity: 0.65; Layout.fillWidth: true }
+                    }
+                }
+
+                Rectangle {
+                    visible: page._mode === "pi"; Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
+                    implicitHeight: piColumn.implicitHeight + 24; radius: 10; color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.035)
+                    ColumnLayout {
+                        id: piColumn; anchors.fill: parent; anchors.margins: 12; spacing: 9
+                        PC3.Label { text: "Pi Agent configuration"; font.bold: true }
+                        PC3.Label { text: "Pi mode uses your global Pi configuration. It communicates directly via CLI."; wrapMode: Text.WordWrap; opacity: 0.65; Layout.fillWidth: true }
                     }
                 }
 

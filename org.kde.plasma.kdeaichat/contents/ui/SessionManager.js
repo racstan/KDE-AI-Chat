@@ -218,17 +218,19 @@ function isSessionOrderCorrect(sessions) {
  * Build a fresh session object.
  *
  * @param {string} sessionId  Id to assign (`value` field).
- * @param {boolean} [useOpenCode]  If true, `source` is `"opencode"`.
+ * @param {boolean} [useOpenCode]  If true, `source` is `"opencode"`. Deprecated; use `source` param instead.
+ * @param {string} [source]  Explicit source string: `"provider"`, `"opencode"`, or `"pi"`. Overrides `useOpenCode`.
  * @returns {Object} A new session object with default fields populated.
  */
-function createSessionObj(sessionId, useOpenCode) {
+function createSessionObj(sessionId, useOpenCode, source) {
+    let resolvedSource = source || (useOpenCode ? "opencode" : "provider");
     return {
         "value": sessionId,
         "text": "New Chat",
         "createdAt": Date.now(),
         "updatedAt": Date.now(),
         "archived": false,
-        "source": useOpenCode ? "opencode" : "provider",
+        "source": resolvedSource,
         "openCodeSessionId": "",
         "readCount": 0,
         "messages": []

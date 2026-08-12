@@ -332,6 +332,8 @@ Follow the steps below for each provider you want to use.
 
 **Provider Support:**
 - All 17 providers support streaming
+- If a provider rejects streaming requests, open Settings → **Other** and enable
+  **Disable response streaming (use full JSON responses)**.
 
 ---
 
@@ -507,6 +509,31 @@ qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
 2. In the **API Endpoint** field, enter your custom URL
 3. Example: `http://localhost:8000/v1`
 4. Click **Refresh Models** to query models and verify connection
+
+---
+
+### Widget Icon, Non-streaming Responses, and MCP Tools
+
+These three options are in Settings → **Other**, under
+**Widget Icon & Appearance** and **Response Streaming & MCP Server Tools**:
+
+- **Widget Icon:** click **Choose Image…** to pick any image file (PNG, JPG,
+  SVG, WEBP, or animated GIF) — the image is shown in the panel and updates
+  live. **Reset** restores the default icon, or use the presets for KDE icon
+  names.
+- **Disable response streaming:** sends a complete JSON request instead of an
+  SSE stream for OpenAI-compatible providers. This is useful for providers that
+  return HTTP 400 when `stream: true` is requested.
+- **Enable Model Context Protocol (MCP) server & web search tools:** opt in to
+  the built-in web search tool. The optional **MCP servers** field accepts a JSON
+  array, for example:
+
+  ```json
+  [{"id":"filesystem","command":"npx ...","tools":[]}]
+  ```
+
+  Each declared tool needs a name, description, and input schema. MCP tool calls
+  are handled automatically and are kept out of the visible chat transcript.
 
 ---
 

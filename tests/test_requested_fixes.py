@@ -10,6 +10,8 @@ MAIN_XML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "conf
 PROVIDER_SERVICE = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ProviderService.js")
 HELPER_PY = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "kde_ai_helper.py")
 FULL_REP_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "FullRepresentationContent.qml")
+CONFIG_OTHER_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigOther.qml")
+MAIN_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "main.qml")
 
 
 def test_main_xml_contains_new_config_entries():
@@ -85,3 +87,33 @@ def test_touchpad_scroll_handler_in_full_representation():
     assert "flickDeceleration: 1800" in content
     assert "maximumFlickVelocity: 6000" in content
     assert "WheelHandler" in content
+
+
+def test_feature_settings_are_exposed_and_persisted():
+    with open(CONFIG_OTHER_QML, encoding="utf-8") as f:
+        config_other = f.read()
+    with open(MAIN_QML, encoding="utf-8") as f:
+        main_qml = f.read()
+
+    assert "property alias cfg_customIcon: customIconValue" in config_other
+    assert "cfg_disableStreaming: disableStreamingToggle.checked" in config_other
+    assert "cfg_enableMcpTools: enableMcpToolsToggle.checked" in config_other
+    assert "cfg_mcpServersJson: mcpServersField.text" in config_other
+    assert "function isCustomIconImage" in config_other
+    assert "function customIconImageSource" in config_other
+    assert "function applyCustomIcon" in config_other
+    assert "customIconFileDialog" in config_other
+    assert "FileDialog.OpenFile" in config_other
+    assert "*.gif" in config_other
+    assert "plasmoid.configuration.customIcon = value" in config_other
+    assert "plasmoid.configuration.disableStreaming = checked" in config_other
+    assert "plasmoid.configuration.enableMcpTools = checked" in config_other
+    assert "plasmoid.configuration.mcpServersJson = text" in config_other
+    assert "Plasmoid.icon:" in main_qml
+    assert "function customIconIsImage" in main_qml
+    assert "function customIconImageSource" in main_qml
+    assert "plasmoid.configuration.disableStreaming !== true" in main_qml
+    assert "plasmoid.configuration.enableMcpTools !== true" in main_qml
+    assert "if (plasmoid.configuration.disableStreaming === true)" in main_qml
+    assert "root.openCodeEventXhr.abort()" in main_qml
+    assert "root.openCodeMode && plasmoid.configuration.disableStreaming !== true" in main_qml

@@ -143,6 +143,7 @@ let s = {
 };
 root.sessions = [s].concat(root.sessions);
 root.openCodeMode = (s.source === "opencode");
+root.piMode = (s.source === "pi");
 root.currentSessionId = s.value;
 root.currentSessionTitle = s.text;
 root.messages = forkedMessages;
@@ -298,9 +299,9 @@ root.sessions = copy;
 function historySessionTint(sessionData) {
 if (!sessionData)
 return Qt.rgba(root.themeTextColor.r, root.themeTextColor.g, root.themeTextColor.b, 0.05);
-if (sessionData.value === root.currentSessionId && sessionData.source === "opencode")
+if (sessionData.value === root.currentSessionId && (sessionData.source === "opencode" || sessionData.source === "pi"))
 return Qt.rgba(0.2, 0.48, 0.92, 0.22);
-if (sessionData.source === "opencode")
+if (sessionData.source === "opencode" || sessionData.source === "pi")
 return Qt.rgba(0.2, 0.48, 0.92, 0.1);
 if (sessionData.value === root.currentSessionId)
 return Qt.rgba(root.themeHighlightColor.r, root.themeHighlightColor.g, root.themeHighlightColor.b, 0.18);
@@ -312,6 +313,8 @@ function sessionSubtitle(sessionData) {
 let parts = [];
 if (sessionData.source === "opencode")
 parts.push("OpenCode");
+else if (sessionData.source === "pi")
+parts.push("Pi Agent");
 if (sessionData.archived)
 parts.push("Archived");
 parts.push("Updated " + root.formatDateTime(sessionData.updatedAt || sessionData.createdAt || Date.now()));
@@ -329,21 +332,23 @@ return -1;
 
 
 function createSession(switchToNew) {
-let mode = plasmoid.configuration.useOpenCode;
+let usePi = plasmoid.configuration.usePi;
+let useOpenCode = plasmoid.configuration.useOpenCode;
 let s = {
 "value": makeSessionId(),
 "text": "New Chat",
 "createdAt": Date.now(),
 "updatedAt": Date.now(),
 "archived": false,
-"source": mode ? "opencode" : "provider",
+"source": usePi ? "pi" : (useOpenCode ? "opencode" : "provider"),
 "openCodeSessionId": "",
 "readCount": 0,
 "messages": []
 };
 root.sessions = [s].concat(root.sessions);
 if (switchToNew) {
-root.openCodeMode = mode;
+root.piMode = usePi;
+root.openCodeMode = useOpenCode;
 root.currentSessionId = s.value;
 root.currentSessionTitle = s.text;
 root.messages = [];
@@ -375,8 +380,10 @@ root._lastParsedMsgIdx = -1;
 root._lastMetaIdx = -1;
 root.messages = root.sessions[idx].messages || [];
 // onMessagesChanged handles precomputation — no need for explicit call.
-if (root.sessions[idx])
+if (root.sessions[idx]) {
 root.openCodeMode = (root.sessions[idx].source === "opencode");
+root.piMode = (root.sessions[idx].source === "pi");
+}
 sortSessionsByUpdated();
 let kcfgData = (plasmoid.configuration.chatSessionsJson || "").trim();
 if (kcfgData !== "" && kcfgData !== "[]") {
@@ -517,6 +524,7 @@ root._lastMetaIdx = -1;
 // Show empty instantly — user sees immediate response.
 root.messages = [];
 root.openCodeMode = root.sessions[idx] ? (root.sessions[idx].source === "opencode") : false;
+root.piMode = root.sessions[idx] ? (root.sessions[idx].source === "pi") : false;
 root.editingMessageIndex = -1;
 root.editingDraft = "";
 root.editingSessionId = "";
@@ -2414,7 +2422,7 @@ let text = (source.content || "").trim();
 let hasAttachments = source.attachments && source.attachments.length > 0;
 if (!text && !hasAttachments)
 return ;
-if (!root.openCodeMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
+if (!root.openCodeMode && !root.piMode && plasmoid.configuration.keyStorageMode === 2 && !root.kwalletKeysLoaded) {
 root.loading = true;
 loadKWalletKeysIfNeeded(
 function onSuccess() {
@@ -2444,7 +2452,15 @@ copy[index] = queued;
 root.messages = copy;
 saveCurrentSessionState(true);
 }
-setCurrentSessionSource(root.openCodeMode ? "opencode" : "provider");
+setCurrentSessionSource(root.piMode ? "pi" : (root.openCodeMode ? "opencode" : "provider"));
+if (root.piMode) {
+if (text.startsWith("/")) {
+runLocalPiCommand(text);
+return ;
+}
+doPiRequest();
+return ;
+}
 if (root.openCodeMode) {
 if (text.startsWith("/")) {
 runLocalOpenCodeCommand(text);
@@ -3972,6 +3988,8 @@ soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u critical -i dia
 function validateCurrentSendTarget() {
 if (root.openCodeMode)
 return validateOpenCodeConfig();
+if (root.piMode)
+return ""; // Pi uses local CLI, no API key needed
 let provider = plasmoid.configuration.provider || "openai";
 let providerCfg = getProviderConfig(provider);
 return validateProviderConfig(provider, providerCfg);
@@ -4753,7 +4771,69 @@ xhr.send();
 handleNotRunning(e.toString());
 }
 }
+function runLocalPiCommand(cmdText) {
+let bare = cmdText.trim();
+if (bare.startsWith("/")) bare = bare.substring(1);
+let verb = bare.split(" ")[0].toLowerCase();
+root.autocompleteActive = false;
+if (verb === "help") {
+pushInfoMessage("**Pi commands:**\n- `/help` \u2014 this message\n- `/version` \u2014 show installed Pi version");
+return;
+}
+if (verb === "version") {
+root.loading = true;
+beginAssistantStreaming("Pi Agent");
+updateAssistantStreamingContent("Checking Pi version...", "Pi Agent");
+let piEnvPfx = "export PATH=\"$PATH:$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/bin\"; ";
+piTerminalDs.connectSource("sh -c " + Sec.quoteForShell(piEnvPfx + "pi --version") + " #pi-cli-" + Date.now());
+return;
+}
+pushErrorMessage("Unknown Pi command: `" + cmdText.trim() + "`\nType `/help` to see available commands.");
+}
 
+function doPiRequest() {
+root.loading = true;
+// Set up streaming bubble so user sees a "Thinking..." indicator
+beginAssistantStreaming("Pi Agent");
+updateAssistantStreamingContent("Thinking...", "Pi Agent");
+let sessionId = "kde-ai-chat-" + root.currentSessionId;
+let lastUserMsg = "";
+for (let i = root.messages.length - 1; i >= 0; i--) {
+if (root.messages[i].role === "user") {
+lastUserMsg = root.messages[i].content;
+break;
+}
+}
+let piEnvPrefix = "export PATH=\"$PATH:$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/bin\"; ";
+let piArgs = "pi --session-id " + Sec.quoteForShell(sessionId) + " --mode text -p " + Sec.quoteForShell(lastUserMsg);
+let cmd = "sh -c " + Sec.quoteForShell(piEnvPrefix + piArgs + " 2>/dev/null") + " #pi-req-" + Date.now();
+piTerminalDs.connectSource(cmd);
+}
+
+function handlePiResponse(sourceName, stdout, stderr, exitCode) {
+// Stop spinner
+root.loading = false;
+if (exitCode !== 0) {
+// Kill the streaming bubble on error
+root.streamingResponse = false;
+root.streamingContent = "";
+root.streamingModel = "";
+let errStr = (stderr || stdout || "").trim();
+if (errStr === "") errStr = "Pi process exited with code " + exitCode;
+pushErrorMessage("Pi agent failed: " + errStr);
+try { processNextQueuedMessage(); } catch (e) {}
+return;
+}
+let res = (stdout || "").trim();
+// Replace the "Thinking..." placeholder with the real response by
+// overwriting the streaming content and then flushing it to root.messages
+root.streamingContent = res;
+root.streamingModel = "Pi Agent";
+try { flushStreamingBuffer(); } catch (e) { console.error("handlePiResponse: flushStreamingBuffer failed:", e); }
+try { saveCurrentSessionState(true); } catch (e) { console.error("handlePiResponse: saveCurrentSessionState failed:", e); }
+try { triggerNotificationSound(); } catch (e) {}
+try { processNextQueuedMessage(); } catch (e) {}
+}
 
 function doOpenCodeRequest() {
 let requestFinalized = false;

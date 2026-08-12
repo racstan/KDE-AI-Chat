@@ -1355,6 +1355,7 @@ plasmoid.configuration.language = page.cfg_language || "";
 plasmoid.configuration.showInteractiveGuides = page.showGuidesToggle.checked;
 plasmoid.configuration.autoStartOpenCodeServer = page.autoStartOpenCodeToggle.checked;
 plasmoid.configuration.useOpenCode = page.openCodeToggle.checked;
+plasmoid.configuration.usePi = page.piToggle.checked;
 plasmoid.configuration.playNotificationSound = page.playSoundToggle.checked;
 plasmoid.configuration.openCodeUrl = (page ? page.cfg_openCodeUrl : "");
 plasmoid.configuration.openCodeModel = (page ? page.cfg_openCodeModel : "");

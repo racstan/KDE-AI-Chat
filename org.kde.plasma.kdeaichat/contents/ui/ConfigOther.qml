@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
+import QtQuick.Dialogs
 import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
@@ -12,7 +13,11 @@ KCM.SimpleKCM {
     id: configPage
 
     property alias cfg_appDisplayName: appDisplayNameField.text
-    property alias cfg_customIcon: customIconField.text
+    // Custom widget icon: either a KDE icon name or a path to an image file
+    // (PNG/JPG/SVG/WEBP/GIF). The value is also written live to the config so
+    // the panel icon updates immediately after picking an image.
+    property string customIconValue: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "dialog-messages") : "dialog-messages"
+    property alias cfg_customIcon: customIconValue
     property alias cfg_disableStreaming: disableStreamingToggle.checked
     property alias cfg_enableMcpTools: enableMcpToolsToggle.checked
     property alias cfg_autoNameChats: autoNameChatsToggle.checked
@@ -25,11 +30,43 @@ KCM.SimpleKCM {
     property string cfg_chatSessionsJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]"
     property string cfg_promptTemplates: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.promptTemplates || "[]") : "[]"
 
-    property string cfg_mcpServersJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.mcpServersJson || "[]") : "[]"
+    // Keep this as a real KCM config alias so the MCP server list is restored
+    // and applied through the same path as the other settings on this page.
+    property alias cfg_mcpServersJson: mcpServersField.text
     property string cfg_uiLanguage: "en"
 
     // Configuration page readiness flag
     property bool pageReady: false
+
+    // Returns true when the custom icon value points at an image file rather
+    // than a KDE icon name.
+    function isCustomIconImage(value) {
+        if (!value)
+            return false;
+        let v = String(value).trim().toLowerCase();
+        if (v.indexOf("file://") === 0 || v.charAt(0) === "/")
+            return true;
+        return v.endsWith(".png") || v.endsWith(".jpg") || v.endsWith(".jpeg")
+            || v.endsWith(".gif") || v.endsWith(".webp") || v.endsWith(".svg")
+            || v.endsWith(".svgz") || v.endsWith(".bmp");
+    }
+
+    // Turns a stored icon value (file path) into a QML-usable source URL.
+    function customIconImageSource(value) {
+        let v = String(value || "").trim();
+        if (v === "")
+            return "";
+        if (v.indexOf("file://") === 0)
+            return v;
+        return "file://" + v;
+    }
+
+    // Updates the live value and persists it immediately.
+    function applyCustomIcon(value) {
+        customIconValue = value;
+        if (plasmoid && plasmoid.configuration)
+            plasmoid.configuration.customIcon = value;
+    }
 
     // Scheduler state variables
     property bool schedulerDaemonRunning: false
@@ -716,22 +753,38 @@ KCM.SimpleKCM {
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
-            Kirigami.Icon {
-                source: customIconField.text || "dialog-messages"
-                implicitWidth: 24
-                implicitHeight: 24
+            // Preview: renders image files (including animated GIFs) via
+            // Image and falls back to Kirigami.Icon for KDE icon names.
+            Image {
+                id: customIconPreviewImage
+                visible: configPage.isCustomIconImage(customIconValue)
+                source: configPage.isCustomIconImage(customIconValue) ? configPage.customIconImageSource(customIconValue) : ""
+                sourceSize.width: 40
+                sourceSize.height: 40
+                fillMode: Image.PreserveAspectFit
+                cache: false
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
             }
 
-            QQC2.TextField {
-                id: customIconField
-                Layout.fillWidth: true
-                placeholderText: "dialog-messages"
-                text: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "dialog-messages") : "dialog-messages"
-                onTextChanged: {
-                    if (pageReady && plasmoid && plasmoid.configuration && text !== (plasmoid.configuration.customIcon || "")) {
-                        plasmoid.configuration.customIcon = text;
-                    }
-                }
+            Kirigami.Icon {
+                visible: !configPage.isCustomIconImage(customIconValue)
+                source: configPage.isCustomIconImage(customIconValue) ? "" : (customIconValue || "dialog-messages")
+                implicitWidth: 40
+                implicitHeight: 40
+            }
+
+            QQC2.Button {
+                text: i18n("Choose Image…")
+                icon.name: "image-x-generic"
+                onClicked: customIconFileDialog.open()
+            }
+
+            QQC2.Button {
+                text: i18n("Reset")
+                icon.name: "edit-undo"
+                visible: (customIconValue || "dialog-messages") !== "dialog-messages"
+                onClicked: configPage.applyCustomIcon("dialog-messages")
             }
         }
 
@@ -740,13 +793,22 @@ KCM.SimpleKCM {
             Layout.maximumWidth: formLayout.fieldMaxWidth
             spacing: Kirigami.Units.smallSpacing
 
-            QQC2.Label { text: i18n("Presets:"); opacity: 0.7 }
+            QQC2.Label { text: i18n("Presets (KDE icons):"); opacity: 0.7 }
 
-            QQC2.Button { text: "💬 messages"; onClicked: customIconField.text = "dialog-messages" }
-            QQC2.Button { text: "🤖 bot"; onClicked: customIconField.text = "bot-symbolic" }
-            QQC2.Button { text: "🧠 brain"; onClicked: customIconField.text = "brain" }
-            QQC2.Button { text: "⚡ terminal"; onClicked: customIconField.text = "utilities-terminal" }
-            QQC2.Button { text: "🌐 network"; onClicked: customIconField.text = "network-workgroup" }
+            QQC2.Button { text: "💬 messages"; onClicked: configPage.applyCustomIcon("dialog-messages") }
+            QQC2.Button { text: "🤖 bot"; onClicked: configPage.applyCustomIcon("bot-symbolic") }
+            QQC2.Button { text: "🧠 brain"; onClicked: configPage.applyCustomIcon("brain") }
+            QQC2.Button { text: "⚡ terminal"; onClicked: configPage.applyCustomIcon("utilities-terminal") }
+            QQC2.Button { text: "🌐 network"; onClicked: configPage.applyCustomIcon("network-workgroup") }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: formLayout.fieldMaxWidth
+            wrapMode: Text.Wrap
+            text: i18n("Pick any image file (PNG, JPG, SVG, WEBP — animated GIFs are supported). The image is shown in the panel; the presets set KDE icon names.")
+            opacity: 0.7
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
         }
 
         // ── Advanced HTTP & MCP Tools ──────────────────────────────────────────
@@ -1099,6 +1161,24 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Reset settings:")
             text: i18n("Reset to defaults")
             onClicked: configPage.resetToDefaults()
+        }
+    }
+
+    // Image picker for the custom widget icon. Lives at root level so it is
+    // not managed by the form layout.
+    FileDialog {
+        id: customIconFileDialog
+        title: i18n("Choose Widget Icon Image")
+        acceptLabel: i18n("Choose")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [i18n("Image files (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)")]
+        onAccepted: {
+            let url = selectedFile.toString();
+            let path = url;
+            if (path.indexOf("file://") === 0)
+                path = path.substring(7);
+            path = decodeURIComponent(path);
+            configPage.applyCustomIcon(path);
         }
     }
 

@@ -15,6 +15,8 @@ import "Security.js" as Sec
 PlasmoidItem {
     id: root
 
+    // The icon value may be a KDE icon name or an image file path chosen in
+    // Settings → Other (see customIconIsImage below).
     Plasmoid.icon: (plasmoid && plasmoid.configuration && plasmoid.configuration.customIcon) ? plasmoid.configuration.customIcon : "dialog-messages"
 
     property var sessions: []
@@ -44,6 +46,7 @@ PlasmoidItem {
     property bool renamingCurrentChat: false
     property string currentChatRenameDraft: ""
     property bool openCodeMode: plasmoid.configuration.useOpenCode
+    property bool piMode: plasmoid.configuration.usePi
     property string openCodeAgent: plasmoid.configuration.openCodeAgent || ""
     property string openCodeWorkspaceCwd: plasmoid.configuration.openCodeWorkspaceCwd || ""
     property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel !== false
@@ -989,6 +992,17 @@ PlasmoidItem {
     }
 
     function ensureOpenCodeEventStream() {
+        // OpenCode delivers incremental updates over this side-channel.  When
+        // the user opts out of streaming, rely on the completed /message
+        // response instead and do not keep an SSE connection alive.
+        if (plasmoid.configuration.disableStreaming === true) {
+            if (root.openCodeEventXhr) {
+                root.openCodeEventXhr.abort();
+                root.openCodeEventXhr = null;
+            }
+            return ;
+        }
+
         if (root.openCodeEventXhr)
             return ;
 
@@ -1026,7 +1040,7 @@ PlasmoidItem {
             }
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 root.openCodeEventXhr = null;
-                if (root.openCodeMode)
+                if (root.openCodeMode && plasmoid.configuration.disableStreaming !== true)
                     Qt.callLater(ensureOpenCodeEventStream);
 
             }
@@ -3701,6 +3715,20 @@ PlasmoidItem {
     }
 
     P5Support.DataSource {
+        id: piTerminalDs
+
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var exitCode = data["exit code"];
+            var stdout = data["stdout"] || "";
+            var stderr = data["stderr"] || "";
+            disconnectSource(sourceName);
+            handlePiResponse(sourceName, stdout, stderr, exitCode);
+        }
+    }
+
+    P5Support.DataSource {
         id: fileReaderDs
 
         engine: "executable"
@@ -4075,16 +4103,56 @@ PlasmoidItem {
         }
     }
 
+    // True when the custom widget icon is an image file (not a KDE icon name).
+    function customIconIsImage() {
+        var v = (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "") : "";
+        if (v === "")
+            return false;
+        var s = v.trim().toLowerCase();
+        if (s.indexOf("file://") === 0 || s.charAt(0) === "/")
+            return true;
+        return s.endsWith(".png") || s.endsWith(".jpg") || s.endsWith(".jpeg")
+            || s.endsWith(".gif") || s.endsWith(".webp") || s.endsWith(".svg")
+            || s.endsWith(".svgz") || s.endsWith(".bmp");
+    }
+
+    // Turns the stored icon value (a file path) into a QML-usable source URL.
+    function customIconImageSource() {
+        var v = (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "") : "";
+        if (v === "")
+            return "";
+        if (v.indexOf("file://") === 0)
+            return v;
+        return "file://" + v;
+    }
+
     compactRepresentation: MouseArea {
         onClicked: root.expanded = !root.expanded
+
+        // Custom image icons (including animated GIFs) are rendered with an
+        // Image element; KDE icon names fall back to Kirigami.Icon.
+        Image {
+            anchors.centerIn: parent
+            width: Math.min(parent.width, parent.height) * 0.8
+            height: width
+            visible: root.customIconIsImage()
+            source: root.customIconImageSource()
+            sourceSize.width: width * 2
+            sourceSize.height: height * 2
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            cache: false
+        }
 
         Kirigami.Icon {
             anchors.centerIn: parent
             width: Math.min(parent.width, parent.height) * 0.8
             height: width
+            visible: !root.customIconIsImage()
             source: (plasmoid && plasmoid.configuration && plasmoid.configuration.customIcon)
                 ? plasmoid.configuration.customIcon : "dialog-messages"
         }
+    }
 
     }
 
