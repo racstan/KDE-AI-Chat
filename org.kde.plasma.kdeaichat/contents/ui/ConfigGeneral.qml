@@ -227,7 +227,7 @@ KCM.SimpleKCM {
     }
 
     function providerEnabled(providerId) {
-        return !openCodeToggle.checked && providerBox.currentValue === providerId;
+        return !openCodeToggle.checked && !piToggle.checked && providerBox.currentValue === providerId;
     }
 
     function providerNeedsApiKey(providerId) {
