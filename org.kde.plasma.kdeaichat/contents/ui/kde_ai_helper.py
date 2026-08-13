@@ -731,6 +731,7 @@ def cmd_get_pi_models(payload: Dict[str, Any]) -> None:
         
         proc = subprocess.run(
             ["pi", "--list-models"],
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

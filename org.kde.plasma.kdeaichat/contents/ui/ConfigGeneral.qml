@@ -1954,14 +1954,14 @@ KCM.SimpleKCM {
                 id: openCodeProviderValueField
 
                 visible: false
-                text: ""
+                text: plasmoid.configuration.openCodeProvider || ""
             }
 
             QQC2.TextField {
                 id: openCodeModelValueField
 
                 visible: false
-                text: ""
+                text: plasmoid.configuration.openCodeModel || ""
             }
 
             QQC2.TextField {
