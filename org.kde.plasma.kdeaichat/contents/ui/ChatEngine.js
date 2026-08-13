@@ -4804,8 +4804,13 @@ lastUserMsg = root.messages[i].content;
 break;
 }
 }
+let piProvider = (plasmoid && plasmoid.configuration && plasmoid.configuration.piProvider) ? plasmoid.configuration.piProvider.trim() : "";
+let piModel = (plasmoid && plasmoid.configuration && plasmoid.configuration.piModel) ? plasmoid.configuration.piModel.trim() : "";
+let extraArgs = "";
+if (piProvider) extraArgs += " --provider " + Sec.quoteForShell(piProvider);
+if (piModel) extraArgs += " --model " + Sec.quoteForShell(piModel);
 let piEnvPrefix = "export PATH=\"$PATH:$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/bin\"; ";
-let piArgs = "pi --session-id " + Sec.quoteForShell(sessionId) + " --mode text -p " + Sec.quoteForShell(lastUserMsg);
+let piArgs = "pi --session-id " + Sec.quoteForShell(sessionId) + " --mode text" + extraArgs + " -p " + Sec.quoteForShell(lastUserMsg);
 let cmd = "sh -c " + Sec.quoteForShell(piEnvPrefix + piArgs + " 2>/dev/null") + " #pi-req-" + Date.now();
 piTerminalDs.connectSource(cmd);
 }

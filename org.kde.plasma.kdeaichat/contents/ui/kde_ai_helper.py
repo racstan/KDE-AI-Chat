@@ -722,6 +722,40 @@ def cmd_plasmashell_watchdog(payload: Dict[str, Any]) -> None:
     print(json.dumps({"status": "started", "pid": child.pid}))
 
 
+def cmd_get_pi_models(payload: Dict[str, Any]) -> None:
+    try:
+        # We source ~/.profile or similar if needed, or rely on pi in PATH or global install
+        # Pi is a globally installed CLI agent
+        env = os.environ.copy()
+        env["PATH"] = env.get("PATH", "") + ":" + os.path.expanduser("~/.npm-global/bin") + ":" + os.path.expanduser("~/.local/bin") + ":" + os.path.expanduser("~/bin")
+        
+        proc = subprocess.run(
+            ["pi", "--list-models"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10,
+            env=env
+        )
+        providers_dict = {}
+        lines = proc.stdout.splitlines()[1:]
+        for line in lines:
+            parts = line.split()
+            if len(parts) >= 2:
+                prov = parts[0]
+                model = parts[1]
+                if prov not in providers_dict:
+                    providers_dict[prov] = []
+                providers_dict[prov].append(model)
+        
+        providers_list = []
+        for prov, models in providers_dict.items():
+            providers_list.append({"id": prov, "models": models})
+        print(json.dumps({"providers": providers_list}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+
+
 def _decode_payload(raw: str) -> Dict[str, Any]:
     """Decode the base64+JSON payload passed as ``argv[2]``.
 
@@ -774,6 +808,7 @@ def main() -> None:
         "mcp_web_search": cmd_mcp_web_search,
         "mcp_query": cmd_mcp_query,
         "plasmashell_watchdog": cmd_plasmashell_watchdog,
+        "get_pi_models": cmd_get_pi_models,
     }
 
     if command not in commands:

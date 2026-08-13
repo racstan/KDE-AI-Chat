@@ -77,6 +77,8 @@ KCM.SimpleKCM {
     property alias cfg_openCodeProvider: openCodeProviderValueField.text
     property alias cfg_openCodeStartCommand: openCodeStartCommandField.text
     property alias cfg_openCodeStopCommand: openCodeStopCommandField.text
+    property alias cfg_piProvider: piProviderValueField.text
+    property alias cfg_piModel: piModelValueField.text
     property string cfg_customProvidersJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customProvidersJson || "[]") : "[]"
     property string discoveryStatus: ""
     property var pendingOps: ({
@@ -92,17 +94,21 @@ KCM.SimpleKCM {
     property int providerRefreshGeneration: 0
     property bool providerRefreshBusy: false
     property var openCodeProviderCandidates: []
-    property var openCodeModelCandidates: []
     property var openCodeProviderModelMap: ({
     })
+    property var openCodeModelCandidates: []
+    property string openCodeModelSearch: ""
+    property var piProviderCandidates: []
+    property var piProviderModelMap: ({
+    })
+    property var piModelCandidates: []
+    property string piModelSearch: ""
+    property string _cachedSchedulesJson: ""
     property bool memRefreshing: false
     property int memOpenCode: 0
     property int memStt: 0
     property int memTts: 0
     property string providerModelSearch: ""
-    property string openCodeModelSearch: ""
-    property var filteredProviderModels: []
-    property var filteredOpenCodeModels: []
     readonly property string walletFolderName: "KaiChat"
     readonly property string walletAppId: "org.kde.plasma.kdeaichat"
     readonly property bool hasPlasmoidConfig: typeof plasmoid !== 'undefined' && plasmoid !== null && plasmoid.configuration !== undefined
@@ -135,6 +141,34 @@ KCM.SimpleKCM {
             }
             filteredOpenCodeModels = filtered;
         }
+    }
+
+    function updateFilteredPiModels(searchText) {
+        var search = (searchText || "").toLowerCase();
+        if (search === "") {
+            piModelCandidates = piProviderModelMap[piProviderValueField.text] || [];
+        } else {
+            var all = piProviderModelMap[piProviderValueField.text] || [];
+            var filtered = [];
+            for (var i = 0; i < all.length; i++) {
+                if (all[i].toLowerCase().indexOf(search) >= 0)
+                    filtered.push(all[i]);
+            }
+            piModelCandidates = filtered;
+        }
+    }
+
+    function syncPiProviderSelection(providerId, preferredModel) {
+        var selectedProvider = providerId || "";
+        var candidateModels = piProviderModelMap[selectedProvider] || [];
+        var chosenModel = preferredModel || piModelValueField.text || "";
+        if (candidateModels.indexOf(chosenModel) < 0)
+            chosenModel = candidateModels.length > 0 ? candidateModels[0] : "";
+        piProviderValueField.text = selectedProvider;
+        piModelCandidates = candidateModels;
+        piModelSearch = "";
+        updateFilteredPiModels("");
+        piModelValueField.text = chosenModel;
     }
 
     function _buildProviderBoxModel() {
@@ -732,6 +766,13 @@ KCM.SimpleKCM {
         probeOpenCodeProviders(openCodeUrlField.text);
     }
 
+    function refreshPiDiscovery() {
+        discoveryStatus = "Checking Pi Agent models...";
+        var cmd = "python3 " + quoteForShell(getHelperPath()) + " get_pi_models";
+        var uid = "pi_models_" + Date.now();
+        utilityDs.connectSource(cmd + " #" + uid);
+    }
+
     function probeOpenCodeProviders(baseUrl) {
         var url = openCodeServerRoot(baseUrl) + "/config/providers";
         discoveryStatus = "Checking OpenCode server...";
@@ -1137,11 +1178,14 @@ KCM.SimpleKCM {
         plasmoid.configuration.perplexityBaseUrl = perplexityBaseUrlField.text;
         plasmoid.configuration.perplexityModel = perplexityModelField.text;
         plasmoid.configuration.useOpenCode = openCodeToggle.checked;
+        plasmoid.configuration.usePi = piToggle.checked;
         plasmoid.configuration.playNotificationSound = playSoundToggle.checked;
         plasmoid.configuration.requestTimeout = requestTimeoutToggle.checked ? requestTimeoutSpinBox.value : 0;
         plasmoid.configuration.openCodeUrl = openCodeUrlField.text;
-        plasmoid.configuration.openCodeModel = openCodeModelValueField.text;
         plasmoid.configuration.openCodeProvider = openCodeProviderValueField.text;
+        plasmoid.configuration.openCodeModel = openCodeModelValueField.text;
+        plasmoid.configuration.piProvider = piProviderValueField.text;
+        plasmoid.configuration.piModel = piModelValueField.text;
         plasmoid.configuration.openCodeStartCommand = openCodeStartCommandField.text;
         plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text;
         plasmoid.configuration.kwalletName = walletNameField.text;
@@ -1221,12 +1265,18 @@ KCM.SimpleKCM {
         openCodeUrlField.text = "http://127.0.0.1:4096/v1";
         openCodeProviderValueField.text = "";
         openCodeModelValueField.text = "";
+        piProviderValueField.text = "";
+        piModelValueField.text = "";
         openCodeStartCommandField.text = "env KDE_AI_CHAT_WIDGET=1 nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
         openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
         providerModelCandidates = [];
         openCodeProviderCandidates = [];
         openCodeModelCandidates = [];
         openCodeProviderModelMap = ({
+        });
+        piProviderCandidates = [];
+        piModelCandidates = [];
+        piProviderModelMap = ({
         });
         requestTimeoutToggle.checked = true;
         requestTimeoutSpinBox.value = 60;
@@ -1240,7 +1290,9 @@ KCM.SimpleKCM {
 
         if (openCodeToggle.checked)
             refreshOpenCodeDiscovery();
-        else if (!piToggle.checked)
+        else if (piToggle.checked)
+            refreshPiDiscovery();
+        else
             Qt.callLater(function() { refreshCurrentProviderModels(); });
 
         // Refresh memory usage
@@ -1359,6 +1411,47 @@ KCM.SimpleKCM {
                     } catch (e) {
                         console.warn("Failed to parse memory data:", e);
                     }
+                }
+            } else if (sourceName.indexOf("#pi_models_") >= 0) {
+                try {
+                    var msg = JSON.parse(out);
+                    if (msg.providers && Array.isArray(msg.providers)) {
+                        var providers = msg.providers;
+                        var ids = [];
+                        var modelsByProvider = {};
+                        for (var i = 0; i < providers.length; i++) {
+                            var provider = providers[i];
+                            var providerId = provider && provider.id ? provider.id : "";
+                            if (!providerId) continue;
+                            if (ids.indexOf(providerId) < 0) ids.push(providerId);
+                            var mods = [];
+                            if (provider.models && Array.isArray(provider.models)) {
+                                mods = provider.models;
+                            }
+                            modelsByProvider[providerId] = mods;
+                        }
+                        piProviderCandidates = ids;
+                        piProviderModelMap = modelsByProvider;
+                        if (ids.length === 0) {
+                            piModelCandidates = [];
+                            piModelSearch = "";
+                            updateFilteredPiModels("");
+                            piProviderValueField.text = "";
+                            piModelValueField.text = "";
+                            discoveryStatus = "Pi agent returned no models.";
+                        } else {
+                            var selectedProvider = piProviderValueField.text || "";
+                            if (ids.indexOf(selectedProvider) < 0)
+                                selectedProvider = ids[0];
+                            var rememberedModel = piModelValueField.text || "";
+                            syncPiProviderSelection(selectedProvider, rememberedModel);
+                            discoveryStatus = "Pi models loaded successfully.";
+                        }
+                    } else if (msg.status === "error" || msg.error) {
+                        discoveryStatus = "Helper error: " + (msg.message || msg.error);
+                    }
+                } catch(e) {
+                    discoveryStatus = "Error parsing Pi models: " + out;
                 }
             } else {
                 discoveryStatus = out !== "" ? out : (err !== "" ? err : "Command finished.");
@@ -1543,6 +1636,7 @@ KCM.SimpleKCM {
                 onCheckedChanged: {
                     if (checked) {
                         openCodeToggle.checked = false;
+                        refreshPiDiscovery();
                     }
                 }
             }
@@ -1779,7 +1873,82 @@ KCM.SimpleKCM {
                 id: openCodeStopCommandField
 
                 visible: false
+                text: plasmoid.configuration.openCodeStopCommand || ""
             }
+
+            Kirigami.Separator {
+                visible: piToggle.checked
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: "Pi Agent Details"
+            }
+
+            QQC2.ComboBox {
+                id: piProvidersCombo
+
+                visible: piToggle.checked && piProviderCandidates.length > 0
+                Kirigami.FormData.label: "Providers:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                model: piProviderCandidates
+                onActivated: {
+                    piProviderValueField.text = currentText;
+                    syncPiProviderSelection(currentText, "");
+                }
+            }
+
+            QQC2.Button {
+                visible: piToggle.checked
+                Kirigami.FormData.label: "Pi models:"
+                text: "Refresh models"
+                onClicked: refreshPiDiscovery()
+            }
+
+            QQC2.ComboBox {
+                id: piModelsCombo
+
+                function syncText() {
+                    var val = piModelValueField.text || "";
+                    var idx = piModelCandidates.indexOf(val);
+                    if (idx >= 0) {
+                        currentIndex = idx;
+                    } else {
+                        currentIndex = -1;
+                        editText = val;
+                    }
+                }
+
+                visible: piToggle.checked
+                Kirigami.FormData.label: "Model:"
+                Layout.fillWidth: true
+                Layout.maximumWidth: formLayout.fieldMaxWidth
+                editable: true
+                model: piModelCandidates
+                Component.onCompleted: syncText()
+                onModelChanged: syncText()
+                onEditTextChanged: {
+                    if (activeFocus)
+                        piModelValueField.text = editText;
+                }
+                onActivated: {
+                    piModelValueField.text = currentText;
+                }
+                onAccepted: {
+                    piModelValueField.text = editText;
+                }
+            }
+
+            QQC2.TextField {
+                id: piProviderValueField
+                visible: false
+                text: plasmoid.configuration.piProvider || ""
+            }
+
+            QQC2.TextField {
+                id: piModelValueField
+                visible: false
+                text: plasmoid.configuration.piModel || ""
+            }
+
 
             QQC2.TextField {
                 id: openCodeProviderValueField

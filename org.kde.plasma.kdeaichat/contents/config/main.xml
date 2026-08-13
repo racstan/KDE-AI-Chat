@@ -208,6 +208,12 @@
     <entry name="usePi" type="Bool">
       <default>false</default>
     </entry>
+    <entry name="piProvider" type="String">
+      <default></default>
+    </entry>
+    <entry name="piModel" type="String">
+      <default></default>
+    </entry>
 
     <entry name="useOpenCode" type="Bool">
       <default>false</default>
