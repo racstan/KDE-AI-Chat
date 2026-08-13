@@ -4154,8 +4154,6 @@ PlasmoidItem {
         }
     }
 
-    }
-
     fullRepresentation: Item {
         implicitWidth: root.popupPreferredWidth
         implicitHeight: root.popupPreferredHeight
