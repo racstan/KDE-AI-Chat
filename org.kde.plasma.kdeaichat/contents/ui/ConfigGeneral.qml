@@ -6,6 +6,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.workspace.dbus as DBus
+import "ProviderService.js" as ProviderService
 
 KCM.SimpleKCM {
     id: page
@@ -109,6 +110,7 @@ KCM.SimpleKCM {
     property int memStt: 0
     property int memTts: 0
     property string providerModelSearch: ""
+    property string editingCustomProviderId: ""
     readonly property string walletFolderName: "KaiChat"
     readonly property string walletAppId: "org.kde.plasma.kdeaichat"
     readonly property bool hasPlasmoidConfig: typeof plasmoid !== 'undefined' && plasmoid !== null && plasmoid.configuration !== undefined
@@ -201,6 +203,38 @@ KCM.SimpleKCM {
         return list;
     }
 
+    // ── Custom provider helpers (two-step multi-provider UX) ────────────
+    function isCustomProviderId(id) {
+        return String(id || "").indexOf("custom_") === 0;
+    }
+    function customProviderById(id) {
+        var list = [];
+        try { list = JSON.parse(page.cfg_customProvidersJson || "[]"); } catch(e) { return null; }
+        for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i];
+        return null;
+    }
+    function setCustomProviderProperty(id, key, value) {
+        var list = [];
+        try { list = JSON.parse(page.cfg_customProvidersJson || "[]"); } catch(e) { list = []; }
+        var changed = false;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].id === id) { list[i][key] = value; changed = true; break; }
+        }
+        if (!changed) return;
+        var json = JSON.stringify(list);
+        page.cfg_customProvidersJson = json;
+        if (plasmoid && plasmoid.configuration) plasmoid.configuration.customProvidersJson = json;
+        // keep dropdown in sync without losing selection
+        var cur = providerBox.currentValue;
+        providerBox.model = page._buildProviderBoxModel();
+        for (var j = 0; j < providerBox.model.length; j++) if (providerBox.model[j].value === cur) { providerBox.currentIndex = j; break; }
+    }
+    function customProviderDefaultBaseUrl(providerType) {
+        // Provide sensible defaults for quick-add
+        if (providerType === "anthropic") return "https://api.anthropic.com/v1";
+        return "https://api.openai.com/v1";
+    }
+
     function effectiveWalletName() {
         return "kdewallet";
     }
@@ -226,10 +260,14 @@ KCM.SimpleKCM {
     }
 
     function setActiveProviderModelValue(value) {
+        var p = providerBox.currentValue || "openai";
+        if (isCustomProviderId(p)) { setCustomProviderProperty(p, "model", value || ""); return; }
         currentProviderConfig().modelField.text = value || "";
     }
 
     function activeProviderModelValue() {
+        var p = providerBox.currentValue || "openai";
+        if (isCustomProviderId(p)) { var c = customProviderById(p); return c ? (c.model || "") : ""; }
         return currentProviderConfig().modelField.text || "";
     }
 
@@ -265,10 +303,29 @@ KCM.SimpleKCM {
     }
 
     function providerNeedsApiKey(providerId) {
+        if (isCustomProviderId(providerId)) {
+            var cp = customProviderById(providerId);
+            if (!cp) return true;
+            // mirrors ProviderService custom allowEmptyKey logic
+            if (cp.allowEmptyKey === true) return false;
+            if (cp.type === "anthropic") return true;
+            // openai-compat custom: require key unless it's a localhost url
+            var url = String(cp.baseUrl || "").toLowerCase();
+            if (url.indexOf("localhost") >= 0 || url.indexOf("127.0.0.1") >= 0) return false;
+            return true;
+        }
         return providerId !== "local" && providerId !== "lmstudio" && providerId !== "ollama" && providerId !== "litellm";
     }
 
     function providerHasConfiguredKey(providerId) {
+        if (isCustomProviderId(providerId)) {
+            var cp2 = customProviderById(providerId);
+            if (!cp2) return false;
+            if (cp2.allowEmptyKey === true) return true;
+            var u = String(cp2.baseUrl || "").toLowerCase();
+            if (u.indexOf("localhost") >= 0 || u.indexOf("127.0.0.1") >= 0) return true;
+            return (cp2.apiKey || "").trim() !== "";
+        }
         if (providerId === "anthropic")
             return (anthropicApiKeyField.text || "").trim() !== "";
 
@@ -502,6 +559,21 @@ KCM.SimpleKCM {
                 "modelField": perplexityModelField
             };
 
+        if (isCustomProviderId(p)) {
+            var cp0 = customProviderById(p);
+            if (cp0) {
+                // modelField is virtual — writes go through setCustomProviderProperty
+                var dummy = { text: cp0.model || "" };
+                return {
+                    "id": p,
+                    "type": cp0.type || "openai-compat",
+                    "baseUrl": cp0.baseUrl || "",
+                    "apiKey": cp0.apiKey || "",
+                    "modelField": dummy
+                };
+            }
+        }
+
         return {
             "id": "openai",
             "type": "openai-compat",
@@ -680,6 +752,11 @@ KCM.SimpleKCM {
     }
 
     function applyDetectedModelToActiveProvider(modelId) {
+        var p = providerBox.currentValue || "openai";
+        if (isCustomProviderId(p)) {
+            setCustomProviderProperty(p, "model", modelId || "");
+            return;
+        }
         var cfg = currentProviderConfig();
         cfg.modelField.text = modelId || "";
     }
@@ -3254,24 +3331,28 @@ KCM.SimpleKCM {
                         Layout.preferredWidth: 120
                     }
 
-                    QQC2.Button {
-                        text: i18n("Add Provider")
-                        icon.name: "list-add"
-                        enabled: newCpName.text.trim().length > 0 && newCpUrl.text.trim().length > 0
-                        onClicked: {
-                            var list = [];
-                            try { list = JSON.parse(page.cfg_customProvidersJson || "[]"); } catch (e) { list = []; }
-                            var newId = "custom_" + Date.now();
-                            list.push({
-                                "id": newId,
-                                "name": newCpName.text.trim(),
-                                "type": newCpType.currentText,
-                                "baseUrl": newCpUrl.text.trim(),
-                                "apiKey": newCpKey.text.trim(),
-                                "model": newCpModel.text.trim()
-                            });
-                            var oldVal = providerBox.currentValue;
-                            page.cfg_customProvidersJson = JSON.stringify(list);
+                     QQC2.Button {
+                         text: page.editingCustomProviderId ? i18n("Save Provider") : i18n("Add Provider")
+                         icon.name: "list-add"
+                         enabled: newCpName.text.trim().length > 0 && newCpUrl.text.trim().length > 0
+                         onClicked: {
+                             var list = [];
+                             try { list = JSON.parse(page.cfg_customProvidersJson || "[]"); } catch (e) { list = []; }
+                             var entry = {
+                                 "id": page.editingCustomProviderId || ("custom_" + Date.now()),
+                                 "name": newCpName.text.trim(),
+                                 "type": newCpType.currentText,
+                                 "baseUrl": newCpUrl.text.trim(),
+                                 "apiKey": newCpKey.text.trim(),
+                                 "model": newCpModel.text.trim()
+                             };
+                             var replaced = false;
+                             for (var n = 0; n < list.length; n++) {
+                                 if (list[n] && list[n].id === entry.id) { list[n] = entry; replaced = true; break; }
+                             }
+                             if (!replaced) list.push(entry);
+                             var oldVal = providerBox.currentValue;
+                             page.cfg_customProvidersJson = JSON.stringify(list);
                             if (plasmoid && plasmoid.configuration) {
                                 plasmoid.configuration.customProvidersJson = JSON.stringify(list);
                             }
@@ -3282,11 +3363,20 @@ KCM.SimpleKCM {
                                 }
                             }
                             newCpName.text = "";
-                            newCpUrl.text = "";
-                            newCpKey.text = "";
-                            newCpModel.text = "";
-                        }
-                    }
+                             newCpUrl.text = "";
+                             newCpKey.text = "";
+                             newCpModel.text = "";
+                             page.editingCustomProviderId = "";
+                         }
+                     }
+                     QQC2.Button {
+                         visible: page.editingCustomProviderId !== ""
+                         text: i18n("Cancel")
+                         onClicked: {
+                             page.editingCustomProviderId = "";
+                             newCpName.text = ""; newCpUrl.text = ""; newCpKey.text = ""; newCpModel.text = "";
+                         }
+                     }
                 }
 
                 ListView {
@@ -3330,8 +3420,22 @@ KCM.SimpleKCM {
                                 }
                             }
 
-                            QQC2.ToolButton {
-                                icon.name: "edit-delete"
+                             QQC2.ToolButton {
+                                 icon.name: "document-edit"
+                                 QQC2.ToolTip.text: i18n("Edit provider")
+                                 onClicked: {
+                                     page.editingCustomProviderId = modelData.id || "";
+                                     newCpName.text = modelData.name || "";
+                                     newCpType.currentIndex = newCpType.model.indexOf(modelData.type || "openai-compat");
+                                     if (newCpType.currentIndex < 0) newCpType.currentIndex = 0;
+                                     newCpUrl.text = modelData.baseUrl || "";
+                                     newCpKey.text = modelData.apiKey || "";
+                                     newCpModel.text = modelData.model || "";
+                                 }
+                             }
+
+                             QQC2.ToolButton {
+                                 icon.name: "edit-delete"
                                 onClicked: {
                                     var oldVal = providerBox.currentValue;
                                     var list = JSON.parse(page.cfg_customProvidersJson || "[]");

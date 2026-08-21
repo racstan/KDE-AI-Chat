@@ -432,6 +432,7 @@ PlasmoidItem {
                     continue;
                 _startMcpOperation("mcp_query", {
                     "serverCommand": server.command || "",
+                    "serverArgs": Array.isArray(server.args) ? server.args : [],
                     "method": "tools/call",
                     "params": {"name": tool.name, "arguments": args}
                 }, callback);

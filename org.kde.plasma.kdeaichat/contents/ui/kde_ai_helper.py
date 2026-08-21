@@ -14,6 +14,7 @@ import json
 import base64
 import shutil
 import subprocess
+import shlex
 import configparser
 import time
 from typing import Any, Callable, Dict, List
@@ -561,8 +562,9 @@ def cmd_mcp_web_search(payload: Dict[str, Any]) -> None:
 
 
 def cmd_mcp_query(payload: Dict[str, Any]) -> None:
-    """Execute JSON-RPC query or tool execution on an MCP stdio server command."""
+    """Run one MCP stdio request using the MCP initialize handshake."""
     command = payload.get("serverCommand", "")
+    command_args = payload.get("serverArgs", [])
     method = payload.get("method", "tools/list")
     params = payload.get("params", {})
 
@@ -571,24 +573,77 @@ def cmd_mcp_query(payload: Dict[str, Any]) -> None:
         return
 
     try:
+        argv = shlex.split(command) if isinstance(command, str) else list(command or [])
+        if isinstance(command_args, list):
+            argv.extend(str(arg) for arg in command_args)
+        if not argv:
+            raise ValueError("Empty MCP server command")
         proc = subprocess.Popen(
-            command,
-            shell=True,
+            argv,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        req_msg = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}) + "\n"
-        stdout_data, stderr_data = proc.communicate(input=req_msg, timeout=15)
-        
-        resp_lines = [l for l in stdout_data.splitlines() if l.strip().startswith("{")]
-        if resp_lines:
-            print(resp_lines[0])
-        else:
-            print(json.dumps({"status": "ok", "raw": stdout_data, "stderr": stderr_data}))
+        messages = [
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+                "protocolVersion": payload.get("protocolVersion", "2025-06-18"),
+                "capabilities": {}, "clientInfo": {"name": "KDE AI Chat", "version": "1.0"},
+            }},
+            {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
+            {"jsonrpc": "2.0", "id": 2, "method": method, "params": params},
+        ]
+        stdout_data, stderr_data = proc.communicate(input="".join(json.dumps(m) + "\n" for m in messages), timeout=15)
+        responses = []
+        for line in stdout_data.splitlines():
+            try:
+                item = json.loads(line)
+                if isinstance(item, dict): responses.append(item)
+            except json.JSONDecodeError:
+                pass
+        result = next((item for item in reversed(responses) if item.get("id") == 2), None)
+        print(json.dumps(result or (responses[-1] if responses else {"status": "error", "message": stderr_data.strip() or "MCP server returned no JSON response"})))
+    except subprocess.TimeoutExpired:
+        proc.kill(); proc.communicate()
+        print(json.dumps({"status": "error", "message": "MCP server timed out after 15 seconds"}))
     except Exception as e:
         print(json.dumps({"status": "error", "message": str(e)}))
+
+
+def cmd_mcp_discover(payload: Dict[str, Any]) -> None:
+    """Discover tools for configured servers using the standard MCP handshake."""
+    results = []
+    for server in payload.get("servers", []):
+        if not isinstance(server, dict) or not server.get("command"):
+            continue
+        request = dict(server)
+        request["method"] = "tools/list"
+        # Capture the same command output without changing the public RPC shape.
+        argv = shlex.split(str(server.get("command", "")))
+        argv.extend(str(arg) for arg in server.get("args", []) if isinstance(server.get("args", []), list))
+        try:
+            proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            messages = [
+                {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "KDE AI Chat", "version": "1.0"}}},
+                {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+            ]
+            output, error = proc.communicate("".join(json.dumps(m) + "\n" for m in messages), timeout=15)
+            response = None
+            for line in reversed(output.splitlines()):
+                try:
+                    item = json.loads(line)
+                    if isinstance(item, dict) and item.get("id") == 2:
+                        response = item; break
+                except json.JSONDecodeError:
+                    pass
+            results.append({"id": server.get("id") or server.get("name") or "server", "tools": ((response or {}).get("result") or {}).get("tools", []), "error": "" if response else error.strip() or "No tools/list response"})
+        except subprocess.TimeoutExpired:
+            proc.kill(); proc.communicate()
+            results.append({"id": server.get("id") or server.get("name") or "server", "tools": [], "error": "Timed out"})
+        except Exception as exc:
+            results.append({"id": server.get("id") or server.get("name") or "server", "tools": [], "error": str(exc)})
+    print(json.dumps({"servers": results}))
 
 
 def _watchdog_dir() -> str:
@@ -808,6 +863,7 @@ def main() -> None:
         "export_chat": cmd_export_chat,
         "mcp_web_search": cmd_mcp_web_search,
         "mcp_query": cmd_mcp_query,
+        "mcp_discover": cmd_mcp_discover,
         "plasmashell_watchdog": cmd_plasmashell_watchdog,
         "get_pi_models": cmd_get_pi_models,
     }

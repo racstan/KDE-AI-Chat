@@ -529,11 +529,13 @@ These three options are in Settings → **Other**, under
   array, for example:
 
   ```json
-  [{"id":"filesystem","command":"npx ...","tools":[]}]
+   [{"id":"filesystem","command":"npx","args":["-y","@modelcontextprotocol/server-filesystem","/tmp"],"tools":[]}]
   ```
 
-  Each declared tool needs a name, description, and input schema. MCP tool calls
-  are handled automatically and are kept out of the visible chat transcript.
+   Click **Discover tools** after adding a server. The widget performs the
+   standard MCP `initialize` and `tools/list` handshake and fills tool schemas
+   automatically. MCP tool calls are handled automatically and are kept out of
+   the visible chat transcript.
 
 ---
 

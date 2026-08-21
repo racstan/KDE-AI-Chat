@@ -64,6 +64,16 @@ def test_provider_service_custom_providers():
         os.unlink(script_path)
 
 
+def test_custom_provider_settings_use_custom_endpoint_and_model_storage():
+    with open(os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigGeneral.qml"), encoding="utf-8") as f:
+        source = f.read()
+    assert "function customProviderById(id)" in source
+    assert "setCustomProviderProperty(p, \"model\", modelId || \"\")" in source
+    assert "if (isCustomProviderId(p))" in source
+    assert "text: page.editingCustomProviderId ? i18n(\"Save Provider\")" in source
+    assert "document-edit" in source
+
+
 def test_kde_ai_helper_mcp_web_search():
     payload = json.dumps({"query": "python"})
     import base64
@@ -77,6 +87,16 @@ def test_kde_ai_helper_mcp_web_search():
     assert data["status"] == "ok"
     assert data["query"] == "python"
     assert isinstance(data["results"], list)
+
+
+def test_kde_ai_helper_mcp_uses_initialize_handshake_and_safe_argv():
+    with open(HELPER_PY, encoding="utf-8") as f:
+        source = f.read()
+    assert '"method": "initialize"' in source
+    assert '"method": "notifications/initialized"' in source
+    assert "shlex.split" in source
+    assert "mcp_discover" in source
+    assert "shell=True" not in source[source.index("def cmd_mcp_query"):source.index("def _watchdog_dir")]
 
 
 def test_touchpad_scroll_handler_in_full_representation():
