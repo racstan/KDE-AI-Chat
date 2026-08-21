@@ -143,8 +143,10 @@ Item {
     }
 
     ColumnLayout {
+        id: mainContentColumn
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
+        anchors.rightMargin: chatSettingsDialog.visible ? chatSettingsDialog.width + Kirigami.Units.smallSpacing : Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
         RowLayout {
@@ -206,8 +208,8 @@ Item {
                 visible: !root.historyOnlyMode
                 icon.name: "preferences-other"
                 QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: "Chat Settings (Provider, Model, Memory)"
-                onClicked: chatSettingsDialog.openForSession(root.currentSessionId)
+                QQC2.ToolTip.text: "Open chat controls sidebar"
+                onClicked: chatSettingsDialog.toggleForSession(root.currentSessionId)
             }
 
             PC3.ToolButton {
@@ -426,23 +428,6 @@ Item {
                 onClicked: root.renamingCurrentChat = false
             }
 
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            visible: !root.historyOnlyMode && !root.openCodeMode && !root.renamingCurrentChat
-            spacing: Kirigami.Units.smallSpacing
-
-
-
-            Item { Layout.fillWidth: true }
-
-            PC3.ToolButton {
-                icon.name: "preferences-other"
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: "Per-chat Settings (Memory, System Prompt, etc.)"
-                onClicked: chatSettingsDialog.openForSession(root.currentSessionId)
-            }
         }
 
         StackLayout {
@@ -2016,5 +2001,6 @@ Item {
     ChatSettingsDialog {
         id: chatSettingsDialog
         rootRef: root
+        hostItem: repRoot
     }
 }

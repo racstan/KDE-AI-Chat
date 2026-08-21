@@ -229,6 +229,15 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
     assert "property int _generation" in dialog_source
     assert "function _current(token)" in dialog_source
     assert dialog_source.count("_current(token)") >= 5
+    assert "property Item hostItem" in dialog_source
+    assert "property bool sidebarOpen" in dialog_source
+    assert "anchors.right: parent ? parent.right : undefined" in dialog_source
+    assert "function toggleForSession(sessionId)" in dialog_source
+    assert "property bool _loadingDraft" in dialog_source
+    assert "id: piProviderCombo" in dialog_source
+    assert "id: piModelCombo" in dialog_source
+    assert "rootRef.fetchPiModels" in dialog_source
     assert "setSessionOverrides(_sessionId, overrides)" in dialog_source
     assert "saveCurrentSessionState" not in dialog_source
     assert "visible: page._mode !== \"opencode\"" in dialog_source
+    assert "chatSettingsDialog.toggleForSession(root.currentSessionId)" in open(os.path.join(UI_DIR, "FullRepresentationContent.qml"), encoding="utf-8").read()

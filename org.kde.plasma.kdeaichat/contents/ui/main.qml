@@ -53,6 +53,10 @@ PlasmoidItem {
     property var openCodeAgentsList: []
     property var openCodeProvidersList: []
     property var openCodeModelsList: []
+    property var piProviderCandidates: []
+    property var piProviderModelMap: ({})
+    property bool piModelsFetching: false
+    property var piModelFetchWaiters: []
     property bool fetchingAgentsInProgress: false
     property var openCodeAgentFetchWaiters: []
     property bool desktopSelectionEnabled: plasmoid.configuration.desktopSelectionEnabled === true
@@ -145,6 +149,15 @@ PlasmoidItem {
 
             }
         });
+    }
+
+    function fetchPiModels(callback) {
+        if (callback)
+            root.piModelFetchWaiters = (root.piModelFetchWaiters || []).concat([callback]);
+        if (root.piModelsFetching)
+            return;
+        root.piModelsFetching = true;
+        piDiscoveryDs.connectSource("python3 " + Sec.quoteForShell(root.getHelperPath()) + " get_pi_models #pi-models-" + Date.now());
     }
 
     function triggerInitialLoad() {
@@ -1180,42 +1193,63 @@ PlasmoidItem {
     }
 
     function fetchOpenCodeProvidersAndModels(callback) {
+        // Treat every refresh as a snapshot. Keeping the previous arrays when
+        // the server returns an empty/error response made the sidebar claim a
+        // refresh while visibly showing stale provider/model choices.
+        root.openCodeProvidersList = [];
+        root.openCodeModelsList = [];
         var baseUrl = (plasmoid && plasmoid.configuration && plasmoid.configuration.openCodeUrl) ? plasmoid.configuration.openCodeUrl : "http://127.0.0.1:4096/v1";
         baseUrl = baseUrl.replace(/\/v1\/?$/, "");
-        var providerEndpoint = baseUrl + "/provider";
-
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", providerEndpoint, true);
-        xhr.timeout = 2000;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return;
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    var data = JSON.parse(xhr.responseText);
-                    var allProvs = data.all || data.connected || [];
-                    var provList = [];
-                    var modelList = [];
-                    for (var i = 0; i < allProvs.length; i++) {
-                        var p = allProvs[i];
-                        if (p && p.id) {
-                            provList.push({ "id": p.id, "name": p.name || p.id });
-                            if (p.models && typeof p.models === "object") {
-                                var mKeys = Object.keys(p.models);
-                                for (var j = 0; j < mKeys.length; j++) {
-                                    modelList.push(p.id + "/" + mKeys[j]);
+        var endpoints = [baseUrl + "/config/providers", baseUrl + "/provider"];
+        var endpointIndex = 0;
+        function requestNext() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", endpoints[endpointIndex], true);
+            xhr.timeout = 2000;
+            var requestFinished = false;
+            var finish = function(success) {
+                if (requestFinished) return;
+                requestFinished = true;
+                if (success || endpointIndex >= endpoints.length - 1) {
+                    if (callback) callback();
+                    return;
+                }
+                endpointIndex++;
+                requestNext();
+            };
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        var allProvs = data.providers || data.all || data.connected || [];
+                        var provList = [];
+                        var modelList = [];
+                        for (var i = 0; i < allProvs.length; i++) {
+                            var p = allProvs[i];
+                            var providerId = p && (p.id || p.name);
+                            if (providerId) {
+                                provList.push({ "id": providerId, "name": p.name || providerId });
+                                if (p.models && typeof p.models === "object") {
+                                    var mKeys = Object.keys(p.models);
+                                    for (var j = 0; j < mKeys.length; j++)
+                                        modelList.push(providerId + "/" + mKeys[j]);
                                 }
                             }
                         }
-                    }
-                    if (provList.length > 0) root.openCodeProvidersList = provList;
-                    if (modelList.length > 0) root.openCodeModelsList = modelList;
-                } catch (e) {}
-            }
-            if (callback) callback();
-        };
-        xhr.ontimeout = function() { if (callback) callback(); };
-        xhr.onerror = function() { if (callback) callback(); };
-        try { xhr.send(); } catch (e) { if (callback) callback(); }
+                        root.openCodeProvidersList = provList;
+                        root.openCodeModelsList = modelList;
+                        finish(provList.length > 0);
+                        return;
+                    } catch (e) {}
+                }
+                finish(false);
+            };
+            xhr.ontimeout = function() { finish(false); };
+            xhr.onerror = function() { finish(false); };
+            try { xhr.send(); } catch (e) { finish(false); }
+        }
+        requestNext();
     }
 
     function runFallbackAgentFileFetch() {
@@ -3726,6 +3760,37 @@ PlasmoidItem {
             var stderr = data["stderr"] || "";
             disconnectSource(sourceName);
             handlePiResponse(sourceName, stdout, stderr, exitCode);
+        }
+    }
+
+    P5Support.DataSource {
+        id: piDiscoveryDs
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) {
+            var stdout = data["stdout"] || "";
+            var providers = [];
+            var modelMap = {};
+            try {
+                var payload = JSON.parse(stdout);
+                var rows = payload.providers || [];
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i] || {};
+                    var id = row.id || row.provider || "";
+                    if (!id) continue;
+                    var models = Array.isArray(row.models) ? row.models : [];
+                    providers.push({"text": id, "value": id});
+                    modelMap[id] = models;
+                }
+            } catch (e) {}
+            root.piProviderCandidates = providers;
+            root.piProviderModelMap = modelMap;
+            root.piModelsFetching = false;
+            disconnectSource(sourceName);
+            var waiters = root.piModelFetchWaiters || [];
+            root.piModelFetchWaiters = [];
+            for (var w = 0; w < waiters.length; w++)
+                if (waiters[w]) waiters[w](providers, modelMap);
         }
     }
 
