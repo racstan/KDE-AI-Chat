@@ -35,7 +35,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qt6-declarative-dev-tools
 
-      - name: Lint live QML and translation smoke-test sources
+      - name: Lint live QML sources
         run: |
           qmllint org.kde.plasma.kdeaichat/contents/ui/main.qml
           qmllint org.kde.plasma.kdeaichat/contents/ui/FullRepresentationContent.qml
@@ -64,7 +64,6 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/VoiceManager.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py",
-                      "org.kde.plasma.kdeaichat/contents/ui/translations.js",
                   ]
                   missing = [name for name in required if name not in names]
                   if missing:

@@ -4,7 +4,7 @@
 
 * **Native KDE Plasma 6 Desktop Integration**: Native QML Plasma widget (`main.qml`, `FullRepresentationContent.qml`) running in panel, desktop, or system tray mode. Includes global hotkeys (`Meta+Shift+A`), resizable geometry, and secure key encryption using KWallet via `Security.js`.
 * **Multi-Provider AI Architecture**: Support for 15+ cloud & local AI providers in `ProviderService.js` (OpenAI, Anthropic Claude, Google Gemini, Groq, DeepSeek, OpenRouter, Mistral, Ollama, LM Studio, NVIDIA NIM, LiteLLM Proxy, and OpenCode).
-* **OpenCode Developer Bridge**: Managed in `ChatEngine.js`. Connects to a local `opencode serve` instance over SSE, handling streaming tool calls, session sync, interactive security requests (`permission_request`), and interactive prompts (`question_request`).
+* **OpenCode Developer Bridge**: Managed in `main.qml`. Connects to a local `opencode serve` instance over SSE, handling streaming tool calls, session sync, interactive security requests (`permission_request`), and interactive prompts (`question_request`).
 * **Local Voice STT & TTS Engine**: Managed by `VoiceManager.qml` & `kde_ai_helper.py`. Uses `faster-whisper` for Speech-to-Text and `kokoro-onnx` for Text-to-Speech via systemd user daemons (`kde-ai-stt.service` / `kde-ai-tts.service`), complete with chat selection read-aloud and a global speech interrupt button (`■`).
 * **File Drag & Drop Extractor**: Python background extractor (`doc_extractor.py`) for PDF parsing (`pdftotext`), DOCX (`pandoc`), Vision images, CSVs, and code files.
 * **Task Scheduler & Automation**: Native background task runner in `ScheduleDialog.qml` leveraging systemd timers for periodic AI prompt executions and desktop notifications.
