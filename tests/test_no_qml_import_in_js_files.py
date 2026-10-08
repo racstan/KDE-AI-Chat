@@ -2,9 +2,8 @@
 
 `Security.js`, `ProviderService.js`, etc. are imported as aliases in
 `main.qml` (e.g. `import "Security.js" as Sec`). When a JS helper file
-like `MainNetwork.js` re-declares them with `.import "Security.js"
-as Sec`, the .import directive is a QML-only construct and causes a
-SyntaxError when the same file is loaded by a non-QML context — for
+re-declares them with `.import "Security.js" as Sec`, the .import
+directive is a QML-only construct and causes a SyntaxError when the same file is loaded by a non-QML context — for
 instance, when the plasmoid test runner (qmltestrunner), the QML
 compiler (qmllint), or any tooling that evaluates the file under
 plain JavaScript tries to parse it.
@@ -13,9 +12,8 @@ The previous fix (commit 4414f4d) explicitly removed these lines and
 documented the rationale. A later lag-fix commit (bce6fc8) re-added
 them by accident. This test guards against re-introduction.
 
-Each of the four files known to have carried the regression at some
-point must start with either `.pragma library`, a `//`-style comment,
-or a top-level `function` / `var` / `let` / `const` declaration.
+Each JS module imported by the live widget must start with either
+`.pragma library`, a `//`-style comment, or a top-level `function` / `var` / `let` / `const` declaration.
 """
 import os
 import re
@@ -26,11 +24,12 @@ UI_DIR = os.path.join(
     "..", "org.kde.plasma.kdeaichat", "contents", "ui",
 )
 
-# The set of JS files known to have been affected by the regression.
-# If a new file is added later, extend this list.
+# Every JS module imported by the live QML. Extend this list when a new
+# module is added.
 WATCHED_FILES = (
-    "ChatEngine.js",
-    "ConfigGeneralLogic.js",
+    "Security.js",
+    "ProviderService.js",
+    "api.js",
 )
 
 # Top-of-file patterns that are legal in a plain .js file.
