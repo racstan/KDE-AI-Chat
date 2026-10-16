@@ -1070,7 +1070,7 @@ PlasmoidItem {
         var snapshot = {"kind": "delete", "session": removed, "index": idx};
         root.undoSnapshot = snapshot;
         pendingChatDeletionTimer.restart();
-        showNotice(i18n("Chat “%1” deleted.", removed.text || i18n("New Chat")), "information", i18n("Undo"), function() {
+        showNotice(i18n("Chat “%1” deleted, with any scheduled prompts that post to it.", displayTitle(removed.text)), "information", i18n("Undo"), function() {
             root.undoDeleteSession(snapshot);
         });
         if (root.currentSessionId === sessionId) {
