@@ -2300,14 +2300,14 @@ PlasmoidItem {
         var verb = bare.split(/\s+/)[0].toLowerCase();
         if (verb === "help") {
             var ts = Date.now();
-            root.messages = root.messages.concat([{"role": "assistant", "content": "**Pi commands:**\n- `/help` — show available commands\n- `/version` — show the installed Pi version", "model": "Pi Agent", "time": nowTime(ts), "at": ts}]);
+            root.messages = root.messages.concat([{"role": "assistant", "content": i18n("**Pi commands:**\n- `/help`: show the available commands\n- `/version`: show the installed Pi version"), "model": i18n("Pi agent"), "time": nowTime(ts), "at": ts}]);
             finishPiRequest(sessionId, generation);
             return;
         }
         if (verb === "version") {
             var id = "pi-version-" + Date.now();
             var versionTs = Date.now();
-            root.messages = root.messages.concat([{"role": "assistant", "content": "Checking Pi version…", "model": "Pi Agent", "time": nowTime(versionTs), "at": versionTs, "id": id}]);
+            root.messages = root.messages.concat([{"role": "assistant", "content": i18n("Checking the Pi version…"), "model": i18n("Pi agent"), "time": nowTime(versionTs), "at": versionTs, "id": id}]);
             runPiCommand({"version": true}, sessionId, generation, id);
             return;
         }

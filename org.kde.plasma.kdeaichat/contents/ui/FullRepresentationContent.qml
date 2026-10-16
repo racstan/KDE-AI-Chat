@@ -50,6 +50,32 @@ Item {
         return Qt.rgba(color.r, color.g, color.b, alpha);
     }
 
+    // Prompt templates (and Pi's own commands) offered while typing "/name".
+    function slashSuggestions(text) {
+        var m = /^\/([^\s]*)$/.exec(String(text || ""));
+        if (!m)
+            return [];
+        var query = m[1].toLowerCase();
+        var list = [];
+        try {
+            var templates = JSON.parse(plasmoid.configuration.promptTemplates || "[]");
+            for (var i = 0; Array.isArray(templates) && i < templates.length; i++) {
+                var t = templates[i];
+                if (t && t.name && String(t.name).toLowerCase().indexOf(query) === 0)
+                    list.push({"name": String(t.name), "detail": String(t.prompt || "").replace(/\s+/g, " ").substring(0, 80)});
+            }
+        } catch (e) {
+        }
+        if (root.piMode) {
+            var piCommands = [{"name": "help", "detail": i18n("Show Pi's commands")}, {"name": "version", "detail": i18n("Show the installed Pi version")}];
+            for (var j = 0; j < piCommands.length; j++) {
+                if (piCommands[j].name.indexOf(query) === 0)
+                    list.push(piCommands[j]);
+            }
+        }
+        return list;
+    }
+
     // Regenerating a reply removes everything after it, so ask first
     // when there is anything after it.
     function requestRegenerate(index, variant) {
@@ -1656,6 +1682,8 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.ScrollView {
+                            id: inputScroll
+
                             Layout.fillWidth: true
                             Layout.minimumHeight: Kirigami.Units.gridUnit * 3
                             Layout.maximumHeight: Kirigami.Units.gridUnit * 7
@@ -1666,7 +1694,7 @@ Item {
 
                                 maximumLength: 200000
                                 wrapMode: Text.WordWrap
-                                placeholderText: i18n("Ask anything…")
+                                placeholderText: i18n("Ask anything… (type / for templates)")
                                 Accessible.name: i18n("Message")
                                 focus: true
 
@@ -1677,6 +1705,24 @@ Item {
                                 // Sync to root property so root-scope functions can read/clear it
                                 onTextChanged: root.chatInputText = text
                                 Keys.onPressed: function(event) {
+                                    if (slashPopup.visible) {
+                                        if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
+                                            event.accepted = true;
+                                            var n = slashPopup.matches.length;
+                                            slashList.currentIndex = (slashList.currentIndex + (event.key === Qt.Key_Down ? 1 : n - 1)) % n;
+                                            return;
+                                        }
+                                        if (event.key === Qt.Key_Tab || ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier))) {
+                                            event.accepted = true;
+                                            slashPopup.accept();
+                                            return;
+                                        }
+                                        if (event.key === Qt.Key_Escape) {
+                                            event.accepted = true;
+                                            slashPopup.dismissedFor = msgInput.text;
+                                            return;
+                                        }
+                                    }
                                     if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
                                         event.accepted = true;
                                         root.sendMessage();
@@ -1734,6 +1780,74 @@ Item {
                                     }
 
                                     target: root
+                                }
+                            }
+                        }
+
+                        // Template suggestions while typing "/name".
+                        QQC2.Popup {
+                            id: slashPopup
+
+                            parent: inputScroll
+
+                            property string dismissedFor: ""
+                            readonly property var matches: msgInput.activeFocus && msgInput.text !== dismissedFor ? repRoot.slashSuggestions(msgInput.text) : []
+
+                            function accept() {
+                                var item = matches[slashList.currentIndex];
+                                if (!item)
+                                    return;
+                                msgInput.text = "/" + item.name + " ";
+                                msgInput.cursorPosition = msgInput.length;
+                            }
+
+                            visible: matches.length > 0
+                            closePolicy: QQC2.Popup.NoAutoClose
+                            x: 0
+                            y: -height - Kirigami.Units.smallSpacing
+                            width: inputScroll.width
+                            height: Math.min(slashList.contentHeight, Kirigami.Units.gridUnit * 10) + topPadding + bottomPadding
+                            padding: Kirigami.Units.smallSpacing
+                            onMatchesChanged: slashList.currentIndex = 0
+
+                            ListView {
+                                id: slashList
+
+                                anchors.fill: parent
+                                clip: true
+                                model: slashPopup.matches
+                                currentIndex: 0
+
+                                delegate: PC3.ItemDelegate {
+                                    required property var modelData
+                                    required property int index
+
+                                    width: ListView.view.width
+                                    highlighted: ListView.isCurrentItem
+                                    text: "/" + modelData.name
+                                    onClicked: {
+                                        slashList.currentIndex = index;
+                                        slashPopup.accept();
+                                        msgInput.forceActiveFocus();
+                                    }
+
+                                    contentItem: ColumnLayout {
+                                        spacing: 0
+                                        PC3.Label {
+                                            Layout.fillWidth: true
+                                            text: "/" + modelData.name
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                        }
+                                        PC3.Label {
+                                            Layout.fillWidth: true
+                                            visible: text !== ""
+                                            text: modelData.detail
+                                            font: Kirigami.Theme.smallFont
+                                            color: Kirigami.Theme.disabledTextColor
+                                            elide: Text.ElideRight
+                                        }
+                                    }
                                 }
                             }
                         }
