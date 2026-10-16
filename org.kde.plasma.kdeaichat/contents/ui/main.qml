@@ -108,17 +108,31 @@ PlasmoidItem {
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
-    readonly property bool popupIsDark: {
+    // Popup colours. "Follow system" (0) returns null: the popup then uses the
+    // Plasma theme as is, including the user's accent and high-contrast
+    // schemes. "Light" (1) and "Dark" (2) override only the base roles with
+    // Breeze values and keep the system accent colour.
+    readonly property var popupPalette: {
         var mode = plasmoid.configuration.appearanceMode || 0;
         if (mode === 1)
-            return false;
+            return {"background": "#ffffff", "alternateBackground": "#f7f7f7", "text": "#232629", "disabledText": "#707377"};
 
         if (mode === 2)
-            return true;
+            return {"background": "#141618", "alternateBackground": "#1d1f22", "text": "#fcfcfc", "disabledText": "#a1a9b1"};
 
-        return Qt.styleHints.colorScheme === Qt.Dark;
+        return null;
     }
     property bool keysLoaded: false
+    // True once the KWallet lookup has finished (successfully or not), so the
+    // UI doesn't report "API key missing" while keys are still loading.
+    property bool walletLoadFinished: false
+    // Transient message shown above the chat input (see showNotice()).
+    property string noticeText: ""
+    property string noticeType: "information"
+    property string noticeActionText: ""
+    property var noticeAction: null
+    // A cleared or deleted chat that can still be restored with Undo.
+    property var undoSnapshot: null
     property var walletApiKeys: ({})
     property bool _initialLoadDone: false
     property string sessionHistoryLoadError: ""
@@ -133,12 +147,12 @@ PlasmoidItem {
         id: voiceManager
 
         onTextRecognized: function(text) {
-            if (voiceManager.autoSend) {
-                root.chatInputText = text;
+            // Never throw away what the user already typed: dictation is
+            // appended, and only sent right away into an empty input.
+            var hadDraft = root.chatInputText.trim() !== "";
+            root.chatInputText += (root.chatInputText ? " " : "") + text;
+            if (voiceManager.autoSend && !hadDraft)
                 root.sendMessage();
-            } else {
-                root.chatInputText += (root.chatInputText ? " " : "") + text;
-            }
         }
 
         onErrorOccurred: function(errorText) {
@@ -168,6 +182,143 @@ PlasmoidItem {
         root.focusInputRequested();
     }
 
+    // ---- Short-lived notices above the input -------------------------
+    // For problems the user can fix right away (attachments, export, ...)
+    // and for Undo offers. Unlike error bubbles they are not saved in the chat.
+    function showNotice(text, type, actionText, action) {
+        root.noticeText = String(text || "");
+        root.noticeType = type || "information";
+        root.noticeActionText = actionText || "";
+        root.noticeAction = action || null;
+        if (root.noticeText)
+            noticeTimer.restart();
+    }
+
+    function dismissNotice() {
+        noticeTimer.stop();
+        root.noticeText = "";
+        root.noticeActionText = "";
+        root.noticeAction = null;
+    }
+
+    function triggerNoticeAction() {
+        var action = root.noticeAction;
+        dismissNotice();
+        if (action)
+            action();
+    }
+
+    Timer {
+        id: noticeTimer
+        interval: root.noticeActionText ? 10000 : 7000
+        onTriggered: root.dismissNotice()
+    }
+
+    function openExportDialog() {
+        var title = (root.currentSessionTitle || i18n("New Chat")).replace(/[\/\?<>\\:\*\|"\s]+/g, "_");
+        var stamp = Qt.formatDateTime(new Date(), "yyyy-MM-dd_HH-mm");
+        var folder = String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation));
+        exportFileDialog.currentFolder = folder;
+        exportFileDialog.selectedFile = folder + "/" + title + "_" + stamp + ".md";
+        exportFileDialog.open();
+    }
+
+    // ---- Where the current chat's messages go -------------------------
+    function urlHost(url) {
+        var m = /^[a-z][a-z0-9+.-]*:\/\/(?:[^\/?#@]*@)?(\[[^\]]+\]|[^\/:?#]+)/i.exec(String(url || ""));
+        return m ? m[1].toLowerCase() : "";
+    }
+
+    function isLoopbackHost(host) {
+        host = String(host || "").replace(/^\[|\]$/g, "");
+        return host === "localhost" || host === "::1" || host === "0.0.0.0" || /^127\./.test(host);
+    }
+
+    // {kind, name, model, host, local} for the chat header and empty state.
+    function chatDestination(sessionId) {
+        var sid = sessionId || root.currentSessionId;
+        if (root.openCodeMode) {
+            var ocUrl = openCodeBaseUrl();
+            var ocAgent = String(getSessionProperty(sid, "openCodeAgent", root.openCodeAgent || "") || "");
+            var ocModel = String(getSessionProperty(sid, "openCodeModel", plasmoid.configuration.openCodeModel || "") || "");
+            return {"kind": "opencode", "name": i18n("OpenCode"), "model": ocAgent || ocModel,
+                    "host": urlHost(ocUrl), "local": isLoopbackHost(urlHost(ocUrl))};
+        }
+        if (root.piMode)
+            return {"kind": "pi", "name": i18n("Pi agent"), "model": String(plasmoid.configuration.piModel || ""),
+                    "host": "", "local": false};
+        var providerId = getEffectiveProvider(sid);
+        var cfg = getProviderConfig(providerId, sid);
+        var base = cfg.baseUrl || (cfg.type === "anthropic" ? "https://api.anthropic.com" : "");
+        return {"kind": "provider", "name": providerDisplayName(providerId), "model": String(cfg.model || ""),
+                "host": urlHost(base), "local": isLoopbackHost(urlHost(base))};
+    }
+
+    // One sentence saying where messages are sent, for tooltips.
+    function chatDestinationDescription(dest) {
+        if (!dest)
+            return "";
+        if (dest.kind === "pi")
+            return i18n("Messages are handed to the pi command on this computer, which sends them to the provider configured in Pi.");
+        if (dest.local)
+            return i18n("Runs on this computer. Messages don't leave it.");
+        if (dest.host)
+            return i18n("Messages are sent to %1.", dest.host);
+        return "";
+    }
+
+    // What's missing before the current chat can send, as one sentence, or ""
+    // when the chat is ready (or keys are still loading).
+    function chatSetupIssue(sessionId) {
+        var sid = sessionId || root.currentSessionId;
+        if (root.piMode)
+            return "";
+        if (root.openCodeMode)
+            return validateOpenCodeConfig(sid);
+        var providerId = getEffectiveProvider(sid);
+        var issue = validateProviderConfig(providerId, getProviderConfig(providerId, sid));
+        if (issue && !root.walletLoadFinished)
+            return "";
+        return issue;
+    }
+
+    // ---- Clear / delete with Undo -------------------------------------
+    function clearCurrentChat() {
+        if (root.loading)
+            return;
+        commitPendingChatDeletion();
+        var snapshot = {
+            "kind": "clear",
+            "sessionId": root.currentSessionId,
+            "messages": root.messages,
+            "openCodeSessionId": currentOpenCodeSessionId()
+        };
+        root.messages = [];
+        root.editingMessageIndex = -1;
+        root.editingDraft = "";
+        clearCurrentOpenCodeSessionIfNeeded();
+        saveCurrentSessionState(true);
+        root.undoSnapshot = snapshot;
+        showNotice(i18n("Chat cleared."), "information", i18n("Undo"), function() {
+            root.undoClearChat(snapshot);
+        });
+    }
+
+    function undoClearChat(snapshot) {
+        if (!snapshot || root.undoSnapshot !== snapshot)
+            return;
+        root.undoSnapshot = null;
+        if (sessionIndexById(snapshot.sessionId) < 0)
+            return;
+        if (root.currentSessionId !== snapshot.sessionId)
+            switchSession(snapshot.sessionId);
+        root.messages = snapshot.messages;
+        if (snapshot.openCodeSessionId)
+            setCurrentOpenCodeSessionId(snapshot.openCodeSessionId);
+        saveCurrentSessionState(false);
+        Qt.callLater(root.scrollToBottom);
+    }
+
     function fetchPiModels(callback) {
         if (callback)
             root.piModelFetchWaiters = (root.piModelFetchWaiters || []).concat([callback]);
@@ -194,19 +345,11 @@ PlasmoidItem {
         return v < 10 ? ("0" + v) : String(v);
     }
 
+    // Stored on messages for backwards compatibility; the UI formats times
+    // from the timestamp with the user's locale (formatMessageTime()).
     function nowTime(ts) {
         var d = ts ? new Date(ts) : new Date();
         return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
-    }
-
-    function formatDateTime(ts) {
-        return new Date(ts).toLocaleString(undefined, {
-            "year": "numeric",
-            "month": "short",
-            "day": "2-digit",
-            "hour": "2-digit",
-            "minute": "2-digit"
-        });
     }
 
     function makeSessionId() {
@@ -218,7 +361,7 @@ PlasmoidItem {
         root.sessionHistoryLoadBlocked = false;
         var raw = String(plasmoid.configuration.chatSessionsJson || "[]");
         if (raw.length > 25000000) {
-            root.sessionHistoryLoadError = "Stored chat history is too large to load safely.";
+            root.sessionHistoryLoadError = i18n("Your stored chats are too large to load safely.");
             root.sessionHistoryLoadBlocked = true;
             return [];
         }
@@ -249,7 +392,7 @@ PlasmoidItem {
                     if (message.content.length > root.maxMessageChars) {
                         message.content = message.content.substring(0, root.maxMessageChars) + "\n[message truncated]";
                         if (!root.sessionHistoryLoadError)
-                            root.sessionHistoryLoadError = "One or more stored messages exceeded the safe display limit and were truncated.";
+                            root.sessionHistoryLoadError = i18n("Some very long stored messages were shortened so they can be shown.");
                     }
                     if (!message.at) message.at = session.updatedAt || session.createdAt || Date.now();
                     if (!message.time) message.time = nowTime(message.at);
@@ -259,7 +402,7 @@ PlasmoidItem {
             }
             return valid;
         } catch (e) {
-            root.sessionHistoryLoadError = "Stored chat history could not be parsed. It was left untouched.";
+            root.sessionHistoryLoadError = i18n("Your stored chats couldn't be read. They were left untouched.");
             root.sessionHistoryLoadBlocked = true;
             return [];
         }
@@ -271,7 +414,7 @@ PlasmoidItem {
         try {
             var encoded = JSON.stringify(root.sessions);
             if (encoded.length > 25000000) {
-                root.sessionHistoryLoadError = "Chat history is too large to persist safely; older messages should be removed or exported.";
+                root.sessionHistoryLoadError = i18n("Your chats are too large to save. Export and delete older chats to keep saving.");
                 console.warn("KDE AI Chat: session history is too large to persist.");
                 return;
             }
@@ -313,13 +456,22 @@ PlasmoidItem {
     function sessionSubtitle(sessionData) {
         var parts = [];
         if (sessionData.source === "opencode")
-            parts.push("OpenCode");
+            parts.push(i18n("OpenCode"));
+        else if (sessionData.source === "pi")
+            parts.push(i18n("Pi agent"));
 
-        if (sessionData.archived)
-            parts.push("Archived");
-
-        parts.push("Updated " + root.formatDateTime(sessionData.updatedAt || sessionData.createdAt || Date.now()));
+        var ts = new Date(sessionData.updatedAt || sessionData.createdAt || Date.now());
+        var today = new Date();
+        var sameDay = ts.toDateString() === today.toDateString();
+        parts.push(sameDay ? Qt.formatTime(ts, Qt.locale().timeFormat(Locale.ShortFormat))
+                           : Qt.formatDate(ts, Qt.locale().dateFormat(Locale.ShortFormat)));
         return parts.join(" · ");
+    }
+
+    // Chats are stored with the English default name; show it translated.
+    function displayTitle(title) {
+        var t = String(title || "").trim();
+        return (t === "" || t === "New Chat") ? i18n("New Chat") : t;
     }
 
     function sessionIndexById(sessionId) {
@@ -596,7 +748,7 @@ PlasmoidItem {
         toolCalls = toolCalls.slice(0, 20);
         if (root.mcpToolRound >= 3) {
             root.mcpFollowupMessages = [];
-            pushErrorMessage("MCP tool-call limit reached; the model did not finish after three tool rounds.");
+            pushErrorMessage(i18n("The model kept calling tools without finishing its answer, so it was stopped after three rounds."));
             processNextQueuedMessage();
             return true;
         }
@@ -844,24 +996,35 @@ PlasmoidItem {
         cancelSessionRename();
     }
 
+    // Deleting keeps the chat restorable for a few seconds (Undo). Its
+    // schedules are only removed once that window has passed.
     function deleteSession(sessionId) {
-        if (root.sessions.length <= 1)
-            return ;
-
-        if (sessionId === root.currentSessionId)
-            invalidateActiveRequest(false);
         var idx = sessionIndexById(sessionId);
         if (idx < 0)
             return ;
 
+        if (sessionId === root.currentSessionId)
+            invalidateActiveRequest(false);
+        // Never leave the user without a chat: replace the last one.
+        if (root.sessions.length <= 1) {
+            saveCurrentSessionState(false);
+            createSession(true);
+            idx = sessionIndexById(sessionId);
+        }
+        commitPendingChatDeletion();
+        var removed = root.sessions[idx];
+        if (sessionId === root.currentSessionId)
+            removed = Object.assign({}, removed, {"messages": root.messages});
+
         var updated = root.sessions.slice();
         updated.splice(idx, 1);
         root.sessions = updated;
-        var helper = getHelperPath();
-        if (helper) {
-            var deletePayload = Sec.base64Encode(JSON.stringify({"sessionId": sessionId}));
-            fileReaderDs.connectSource("python3 " + Sec.quoteForShell(helper) + " delete_session_schedules " + Sec.rawShellSnippetQuote(deletePayload) + " #delete-session-schedules-" + Date.now());
-        }
+        var snapshot = {"kind": "delete", "session": removed, "index": idx};
+        root.undoSnapshot = snapshot;
+        pendingChatDeletionTimer.restart();
+        showNotice(i18n("Chat “%1” deleted.", removed.text || i18n("New Chat")), "information", i18n("Undo"), function() {
+            root.undoDeleteSession(snapshot);
+        });
         if (root.currentSessionId === sessionId) {
             var next = root.sessions[0];
             root.currentSessionId = next.value;
@@ -871,6 +1034,38 @@ PlasmoidItem {
         }
         cancelSessionRename();
         persistSessions();
+    }
+
+    function undoDeleteSession(snapshot) {
+        if (!snapshot || root.undoSnapshot !== snapshot)
+            return;
+        pendingChatDeletionTimer.stop();
+        root.undoSnapshot = null;
+        var updated = root.sessions.slice();
+        updated.splice(Math.min(snapshot.index, updated.length), 0, snapshot.session);
+        root.sessions = updated;
+        persistSessions();
+        switchSession(snapshot.session.value);
+    }
+
+    // Finish a deletion whose Undo window has passed (or was superseded).
+    function commitPendingChatDeletion() {
+        pendingChatDeletionTimer.stop();
+        var snapshot = root.undoSnapshot;
+        if (!snapshot || snapshot.kind !== "delete")
+            return;
+        root.undoSnapshot = null;
+        var helper = getHelperPath();
+        if (helper) {
+            var deletePayload = Sec.base64Encode(JSON.stringify({"sessionId": snapshot.session.value}));
+            fileReaderDs.connectSource("python3 " + Sec.quoteForShell(helper) + " delete_session_schedules " + Sec.rawShellSnippetQuote(deletePayload) + " #delete-session-schedules-" + Date.now());
+        }
+    }
+
+    Timer {
+        id: pendingChatDeletionTimer
+        interval: 11000
+        onTriggered: root.commitPendingChatDeletion()
     }
 
     function deleteMessage(index) {
@@ -966,7 +1161,7 @@ PlasmoidItem {
     function captureScreenRegion() {
         var timestamp = Date.now();
         var savePath = "/tmp/kdeaichat_shot_" + timestamp + ".png";
-        var cmd = "umask 077 && spectacle -r -b -n -o " + Sec.quoteForShell(savePath);
+        var cmd = "command -v spectacle >/dev/null || exit 127; umask 077 && spectacle -r -b -n -o " + Sec.quoteForShell(savePath);
         fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #spectacle-shot-" + timestamp + "|" + savePath);
     }
 
@@ -987,7 +1182,7 @@ PlasmoidItem {
             root.activeXhr = null;
             root.activeRequestSessionId = "";
             root.requestGeneration++;
-            pushErrorMessage("Sync failed: invalid OpenCode endpoint.");
+            showNotice(i18n("Couldn't load the OpenCode history: the OpenCode server address is not valid."), "error");
             return;
         }
         xhr.setRequestHeader("Content-Type", "application/json");
@@ -1071,10 +1266,10 @@ PlasmoidItem {
                         }
                     }
                 } catch (err) {
-                    pushErrorMessage("Failed to parse synced messages: " + err);
+                    showNotice(i18n("Couldn't read the history OpenCode sent."), "error");
                 }
             } else {
-                pushErrorMessage("Sync failed: OpenCode returned HTTP " + xhr.status);
+                showNotice(i18n("Couldn't load the OpenCode history (error %1).", xhr.status), "error");
             }
         };
         xhr.onerror = function() {
@@ -1083,7 +1278,7 @@ PlasmoidItem {
             root.activeXhr = null;
             root.activeRequestSessionId = "";
             root.requestGeneration++;
-            pushErrorMessage("Sync failed: Could not reach OpenCode server at " + openCodeBaseUrl());
+            showNotice(i18n("Couldn't reach the OpenCode server at %1. Is it running?", openCodeBaseUrl()), "error");
         };
         try { xhr.send(); } catch (e) {
             if (requestIsCurrent(sessionId, generation)) {
@@ -1091,7 +1286,7 @@ PlasmoidItem {
                 root.activeXhr = null;
                 root.activeRequestSessionId = "";
                 root.requestGeneration++;
-                pushErrorMessage("Sync failed: " + e);
+                showNotice(i18n("Couldn't load the OpenCode history."), "error");
             }
         }
     }
@@ -1552,7 +1747,7 @@ PlasmoidItem {
                 beginAssistantStreaming((info.providerID && info.modelID) ? (info.providerID + "/" + info.modelID) : (info.modelID || "OpenCode"));
                 if (info.error && !root.openCodeErrorShownForRequest) {
                     root.openCodeErrorShownForRequest = true;
-                    pushErrorMessage(extractReadableError("OpenCode: ", info.error, "Request failed."));
+                    pushErrorMessage(i18n("OpenCode reported an error."), {"details": extractReadableError("", info.error, "")});
                 }
             }
         } else if (eventObj.type === "message.part.updated") {
@@ -1602,7 +1797,7 @@ PlasmoidItem {
         } else if (eventObj.type === "session.error") {
             if (!root.openCodeErrorShownForRequest) {
                 root.openCodeErrorShownForRequest = true;
-                pushErrorMessage(extractReadableError("OpenCode: ", props.error, "Session error."));
+                pushErrorMessage(i18n("OpenCode reported an error."), {"details": extractReadableError("", props.error, "")});
             }
         } else if (eventObj.type === "session.status") {
             var status = props.status || {
@@ -1827,17 +2022,17 @@ PlasmoidItem {
         }
         var xhr = new XMLHttpRequest();
         var finished = false;
-        var fail = function(message) {
+        var fail = function(kind, status, detail) {
             if (finished || !isCurrent()) return;
             finished = true;
             root.activeXhr = null;
-            failureCallback(message);
+            failureCallback(describeRequestError(i18n("OpenCode"), kind, status, detail));
         };
         try {
             xhr.open("POST", openCodeBaseUrl() + "/session", true);
             xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
             xhr.ontimeout = function() {
-                fail("OpenCode: session creation timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
+                fail("timeout", 0, i18n("Creating an OpenCode session took longer than %1 seconds.", xhr.timeout / 1000));
             };
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.onreadystatechange = function() {
@@ -1851,7 +2046,7 @@ PlasmoidItem {
                         var obj = JSON.parse(xhr.responseText);
                         var remoteId = Sec.validateRemoteSessionId(obj.id || "");
                         if (remoteId === "") {
-                            fail("OpenCode: server created a session without a valid id.");
+                            fail("parse", 0, "Session created without a valid id.");
                             return;
                         }
                         finished = true;
@@ -1859,14 +2054,14 @@ PlasmoidItem {
                         setCurrentOpenCodeSessionId(remoteId, sessionId);
                         successCallback(remoteId);
                     } catch (parseError) {
-                        fail("OpenCode: could not parse session creation response.");
+                        fail("parse", 0, "Could not parse the session creation response.");
                     }
                 } else {
-                    fail("OpenCode: failed to create a server session (HTTP " + xhr.status + ").");
+                    fail(xhr.status ? "http" : "network", xhr.status, openCodeBaseUrl() + "/session\n" + httpErrorDetail(xhr));
                 }
             };
             xhr.onerror = function() {
-                fail("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
+                fail("network", 0, openCodeBaseUrl() + "/session");
             };
             root.activeXhr = xhr;
             var sessionPayload = {"title": root.currentSessionTitle || "KDE AI Chat"};
@@ -1875,7 +2070,7 @@ PlasmoidItem {
                 sessionPayload.directory = String(cwd).trim();
             xhr.send(JSON.stringify(sessionPayload));
         } catch (sendError) {
-            fail("OpenCode: failed to create session: " + sendError);
+            fail("internal", 0, String(sendError));
         }
     }
 
@@ -1884,13 +2079,13 @@ PlasmoidItem {
         var generation = requestGeneration !== undefined ? requestGeneration : root.requestGeneration;
         var requestFinalized = false;
         var isCurrent = function() { return requestIsCurrent(sessionId, generation); };
-        function failOpenCodeRequest(message) {
+        function failOpenCodeRequest(kind, status, detail) {
             if (requestFinalized || !isCurrent())
                 return;
             requestFinalized = true;
             if (!root.openCodeErrorShownForRequest) {
                 root.openCodeErrorShownForRequest = true;
-                pushErrorMessage(message);
+                pushRequestError(i18n("OpenCode"), kind, status, detail);
             }
             finishOpenCodeRequest(sessionId, generation);
         }
@@ -1915,15 +2110,14 @@ PlasmoidItem {
                 xhr.open("POST", openCodeBaseUrl() + "/session/" + encodeURIComponent(remoteSessionId) + "/message", true);
                 xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
                 xhr.ontimeout = function() {
-                    failOpenCodeRequest("OpenCode: request timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
+                    failOpenCodeRequest("timeout", 0, i18n("No answer within %1 seconds.", xhr.timeout / 1000));
                 };
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState !== XMLHttpRequest.DONE || requestFinalized || !isCurrent())
                         return;
                     if (xhr.status < 200 || xhr.status >= 300) {
-                        var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
-                        failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
+                        failOpenCodeRequest(xhr.status > 0 ? "http" : "network", xhr.status, openCodeBaseUrl() + "/session/" + remoteSessionId + "/message\n" + httpErrorDetail(xhr));
                         return;
                     }
                     try {
@@ -1934,7 +2128,7 @@ PlasmoidItem {
                             root.openCodeAssistantServerMessageId = obj.info.id;
                         if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
                             root.openCodeErrorShownForRequest = true;
-                            pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
+                            pushErrorMessage(i18n("OpenCode reported an error."), {"details": extractReadableError("", obj.info.error, "")});
                         }
                         if (obj.parts && obj.parts.length > 0) {
                             var combined = "";
@@ -1956,20 +2150,20 @@ PlasmoidItem {
                                 updateAssistantStreamingContent("(empty response)", responseLabel);
                         }
                     } catch (parseResponseError) {
-                        failOpenCodeRequest("OpenCode: could not parse the server response.");
+                        failOpenCodeRequest("parse", 0, "");
                         return;
                     }
                     requestFinalized = true;
                     finishOpenCodeRequest(sessionId, generation);
                 };
                 xhr.onerror = function() {
-                    failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
+                    failOpenCodeRequest("network", 0, openCodeBaseUrl() + "/session/" + remoteSessionId + "/message");
                 };
 
                 var lastMsg = root.messages[root.messages.length - 1] || {};
                 var parts = [];
                 if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-                    var messagePayload = buildMessageContent(lastMsg.content || "", lastMsg.attachments, "openai");
+                    var messagePayload = buildMessageContent(modelTextFor(lastMsg), lastMsg.attachments, "openai");
                     if (typeof messagePayload === "string") {
                         parts.push({"type": "text", "text": messagePayload});
                     } else {
@@ -1999,14 +2193,14 @@ PlasmoidItem {
                 if (systemParts.length > 0) reqPayload.system = systemParts.join("\n\n");
                 xhr.send(JSON.stringify(reqPayload));
             } catch (sendError) {
-                failOpenCodeRequest("OpenCode: failed to send request: " + sendError);
+                failOpenCodeRequest("internal", 0, String(sendError));
             }
-        }, function(errorMessage) {
+        }, function(error) {
             if (!isCurrent() || requestFinalized) return;
             requestFinalized = true;
             if (!root.openCodeErrorShownForRequest) {
                 root.openCodeErrorShownForRequest = true;
-                pushErrorMessage(errorMessage);
+                pushErrorMessage(error.text, error);
             }
             finishOpenCodeRequest(sessionId, generation);
         }, sessionId, generation);
@@ -2040,7 +2234,7 @@ PlasmoidItem {
         if (!helper) {
             delete pending[marker];
             root.pendingPiRequests = pending;
-            pushErrorMessage("Pi helper is not available in the installed widget.");
+            pushErrorMessage(i18n("This installation of KDE AI Chat is incomplete (a helper script is missing). Reinstall the widget."));
             finishPiRequest(sessionId, generation);
             return;
         }
@@ -2069,7 +2263,7 @@ PlasmoidItem {
             runPiCommand({"version": true}, sessionId, generation, id);
             return;
         }
-        pushErrorMessage("Unknown Pi command: `" + String(cmdText || "").trim() + "`\nType `/help` to see available commands.");
+        pushErrorMessage(i18n("Unknown Pi command: %1. Type /help to see the available commands.", String(cmdText || "").trim()));
         finishPiRequest(sessionId, generation);
     }
 
@@ -2077,7 +2271,7 @@ PlasmoidItem {
         if (!requestIsCurrent(sessionId, generation))
             return;
         var lastMsg = root.messages[root.messages.length - 1] || {};
-        var prompt = String(lastMsg.content || "");
+        var prompt = modelTextFor(lastMsg);
         if (prompt.trim().charAt(0) === "/") {
             root.loading = true;
             runLocalPiCommand(prompt, sessionId, generation);
@@ -2093,7 +2287,7 @@ PlasmoidItem {
             }
         }
         if (prompt.length > 100000) {
-            pushErrorMessage("Pi prompt is too large. Keep Pi prompts under 100,000 characters.");
+            pushErrorMessage(i18n("This message is too long for Pi. Keep Pi messages under 100,000 characters."));
             finishPiRequest(sessionId, generation);
             return;
         }
@@ -2137,7 +2331,7 @@ PlasmoidItem {
                 if (failed[fi].id === pending.messageId) { failed.splice(fi, 1); break; }
             }
             root.messages = failed;
-            pushErrorMessage("Pi agent failed: " + (err.trim() || out.trim() || ("process exited with code " + code)));
+            pushErrorMessage(i18n("Pi stopped with an error."), {"details": err.trim() || out.trim() || i18n("Exit code %1", code)});
             finishPiRequest(pending.sessionId, pending.generation);
             return;
         }
@@ -2242,38 +2436,20 @@ PlasmoidItem {
         var targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
         var daysDiff = Math.floor((today.getTime() - targetDay.getTime()) / 8.64e+07);
         if (daysDiff === 0)
-            return "Today";
+            return i18n("Today");
 
         if (daysDiff === 1)
-            return "Yesterday";
+            return i18n("Yesterday");
 
-        if (daysDiff === 2)
-            return "Day before yesterday";
-
-        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        return months[target.getMonth()] + " " + pad2(target.getDate()) + ", " + target.getFullYear();
-    }
-
-    function countMessagesForDayKey(dayKey) {
-        var count = 0;
-        for (var i = 0; i < root.messages.length; i++) {
-            if (messageDayKeyAt(i) === dayKey)
-                count++;
-
-        }
-        return count;
+        return Qt.formatDate(target, Qt.locale().dateFormat(Locale.LongFormat));
     }
 
     function dayDividerLabelForIndex(index) {
-        var key = messageDayKeyAt(index);
-        return dayBucketLabel(messageTimestampAt(index)) + " (" + countMessagesForDayKey(key) + ")";
+        return dayBucketLabel(messageTimestampAt(index));
     }
 
     function formatMessageTime(message, index) {
-        if (message && message.time)
-            return message.time;
-
-        return nowTime(messageTimestampAt(index));
+        return Qt.formatTime(new Date(messageTimestampAt(index)), Qt.locale().timeFormat(Locale.ShortFormat));
     }
 
     function jumpOneMessageAbove() {
@@ -2354,41 +2530,128 @@ PlasmoidItem {
         }
     }
 
+    // Short form shown under a reply, e.g. "1,234 tokens".
+    function formatTokensSummary(tokens) {
+        if (!tokens)
+            return "";
+        var total = (tokens.input || 0) + (tokens.output || 0) + (tokens.reasoning || 0);
+        return total > 0 ? i18np("%1 token", "%1 tokens", Number(total).toLocaleString(Qt.locale(), "f", 0)) : "";
+    }
+
+    // Full breakdown for the tooltip.
     function formatTokensUsage(tokens, cost) {
         if (!tokens)
             return "";
 
+        var loc = Qt.locale();
+        var n = function(v) { return Number(v || 0).toLocaleString(loc, "f", 0); };
         var parts = [];
         if (tokens.input !== undefined)
-            parts.push("Input: " + tokens.input);
+            parts.push(i18n("Sent: %1 tokens", n(tokens.input)));
 
         if (tokens.output !== undefined)
-            parts.push("Output: " + tokens.output);
+            parts.push(i18n("Received: %1 tokens", n(tokens.output)));
 
         if (tokens.reasoning !== undefined && tokens.reasoning > 0)
-            parts.push("Reasoning: " + tokens.reasoning);
+            parts.push(i18n("Reasoning: %1 tokens", n(tokens.reasoning)));
 
         if (tokens.cache && (tokens.cache.read > 0 || tokens.cache.write > 0))
-            parts.push("Cache R/W: " + tokens.cache.read + "/" + tokens.cache.write);
+            parts.push(i18n("Cache read/written: %1 / %2 tokens", n(tokens.cache.read), n(tokens.cache.write)));
 
-        var res = parts.join(" | ");
         if (cost !== undefined && cost > 0)
-            res += " | Cost: $" + cost.toFixed(5);
+            parts.push(i18n("Cost reported by the provider: %1 USD", Number(cost).toLocaleString(loc, "f", 5)));
 
-        return res;
+        return parts.join("\n");
     }
 
-    function pushErrorMessage(text) {
+    // Adds an error bubble to the chat. options.details holds technical
+    // text shown behind "Show Details"; options.action "settings" adds an
+    // "Open Settings" button.
+    function pushErrorMessage(text, options) {
         var ts = Date.now();
-        root.messages = root.messages.concat([{
+        var item = {
             "role": "error",
             "content": text,
             "time": nowTime(ts),
             "at": ts,
             "model": ""
-        }]);
+        };
+        if (options && options.details)
+            item.details = Sec.scrubSecrets(String(options.details)).substring(0, 4000);
+        if (options && options.action)
+            item.action = options.action;
+        root.messages = root.messages.concat([item]);
         scrollToBottom();
         saveCurrentSessionState(true);
+    }
+
+    // The provider's own error message from a failed response, if any.
+    function httpErrorDetail(xhr) {
+        var body = "";
+        try {
+            body = String(xhr.responseText || "");
+            var obj = JSON.parse(body);
+            if (obj.error && obj.error.message)
+                return String(obj.error.message);
+            if (typeof obj.error === "string")
+                return obj.error;
+            if (obj.message)
+                return String(obj.message);
+            if (obj.detail)
+                return typeof obj.detail === "string" ? obj.detail : JSON.stringify(obj.detail);
+        } catch (e) {
+        }
+        return body.substring(0, 500);
+    }
+
+    // Plain-language wording for a failed request.
+    // kind: "http", "timeout", "network", "parse", "empty", "toolarge", "internal".
+    function describeRequestError(serviceName, kind, status, detail) {
+        var name = serviceName || i18n("The AI service");
+        var text = "";
+        var action = "";
+        if (kind === "timeout") {
+            text = i18n("%1 took too long to answer. Try again, or allow more time under Settings.", name);
+        } else if (kind === "network") {
+            text = i18n("Couldn't reach %1. Check your internet connection and the server address in Settings.", name);
+            action = "settings";
+        } else if (kind === "parse") {
+            text = i18n("%1 sent a reply that couldn't be read.", name);
+        } else if (kind === "empty") {
+            text = i18n("%1 sent an empty reply.", name);
+        } else if (kind === "toolarge") {
+            text = i18n("The reply from %1 was too long to show safely.", name);
+        } else if (kind === "http") {
+            if (status === 401 || status === 403) {
+                text = i18n("%1 didn't accept the API key. Check the key in Settings.", name);
+                action = "settings";
+            } else if (status === 404) {
+                text = i18n("%1 couldn't find the model or address. Check both in Settings.", name);
+                action = "settings";
+            } else if (status === 402) {
+                text = i18n("%1 says the account has run out of credit.", name);
+            } else if (status === 429) {
+                text = i18n("%1 is limiting requests right now (rate limit or quota). Wait a moment, then try again.", name);
+            } else if (status === 400 || status === 413 || status === 422) {
+                text = i18n("%1 couldn't process the request. The details say why.", name);
+            } else if (status >= 500) {
+                text = i18n("%1 had a problem on its side (error %2). Try again in a moment.", name, status);
+            } else {
+                text = i18n("%1 returned an error (HTTP %2).", name, status);
+            }
+        } else {
+            text = i18n("Something went wrong while talking to %1.", name);
+        }
+        return {"text": text, "details": detail || "", "action": action};
+    }
+
+    function pushRequestError(serviceName, kind, status, detail) {
+        var e = describeRequestError(serviceName, kind, status, detail);
+        pushErrorMessage(e.text, {"details": e.details, "action": e.action});
+    }
+
+    function requestServiceName(sessionId) {
+        return providerDisplayName(getEffectiveProvider(sessionId || root.currentSessionId));
     }
 
     function retryFailedMessage(index) {
@@ -2416,26 +2679,40 @@ PlasmoidItem {
         }
     }
 
-    function regenerateResponse(index, promptModifier) {
+    // Text sent to the model for a message: what the user wrote plus any
+    // hidden instruction (e.g. "answer more briefly" from Regenerate).
+    function modelTextFor(message) {
+        var text = String(message && message.content || "");
+        return message && message.instruction ? text + "\n\n" + message.instruction : text;
+    }
+
+    // variant: "" (same request again), "longer" or "shorter". The user's
+    // own message is never rewritten; the request rides along as a hidden
+    // instruction that the bubble shows as a short note.
+    function regenerateResponse(index, variant) {
         if (index <= 0 || index >= root.messages.length) return;
         var role = root.messages[index].role || "";
         if (role !== "assistant" && role !== "opencode_assistant") return;
-        
+
         var lastUserIdx = index - 1;
         var userRole = root.messages[lastUserIdx].role || "";
         if (userRole !== "user" && userRole !== "queued") return;
-        
+
         stopStreaming();
         var copy = root.messages.slice(0, lastUserIdx + 1);
-        
-        if (promptModifier) {
-            var item = Object.assign({}, copy[lastUserIdx]);
-            item.content = item.content + "\n\n" + promptModifier;
-            item.at = Date.now();
-            item.time = nowTime(item.at);
-            copy[lastUserIdx] = item;
+        var item = Object.assign({}, copy[lastUserIdx]);
+        if (variant === "longer") {
+            item.instruction = "Please give a longer, more detailed and comprehensive answer.";
+            item.instructionKind = "longer";
+        } else if (variant === "shorter") {
+            item.instruction = "Please give a shorter, more concise answer.";
+            item.instructionKind = "shorter";
+        } else {
+            delete item.instruction;
+            delete item.instructionKind;
         }
-        
+        copy[lastUserIdx] = item;
+
         root.messages = copy;
         clearCurrentOpenCodeSessionIfNeeded();
         saveCurrentSessionState(true);
@@ -2493,7 +2770,7 @@ PlasmoidItem {
 
         var validationError = validateCurrentSendTarget();
         if (validationError !== "") {
-            pushErrorMessage(validationError);
+            pushErrorMessage(validationError, {"action": "settings"});
             restoreResponseScrollPosition();
             return ;
         }
@@ -2699,46 +2976,37 @@ PlasmoidItem {
         return ProviderService.getProviderDisplayName(providerId, plasmoid.configuration);
     }
 
+    // Returns "" when OpenCode is ready, otherwise one sentence saying what
+    // to set up.
     function validateOpenCodeConfig(sessionId) {
-        var missing = [];
         if (!openCodeBaseUrl())
-            missing.push("a valid OpenCode HTTP(S) URL");
+            return i18n("Set the OpenCode server address in Settings.");
         var provider = String(getSessionProperty(sessionId, "openCodeProvider", plasmoid.configuration.openCodeProvider || "") || "").trim();
         var model = String(getSessionProperty(sessionId, "openCodeModel", plasmoid.configuration.openCodeModel || "") || "").trim();
         var agent = String(getSessionProperty(sessionId, "openCodeAgent", root.openCodeAgent || "") || "").trim();
-        if (!provider && !agent)
-            missing.push("OpenCode provider or agent");
-        if (!model && !agent)
-            missing.push("OpenCode model or agent");
-        if (missing.length > 0)
-            return "Cannot send yet. Configure: " + missing.join(", ") + ".";
+        if (!agent && (!provider || !model))
+            return i18n("Choose an OpenCode agent, or a provider and model, in Chat Settings or Settings.");
         return "";
     }
 
+    // Returns "" when the provider is ready, otherwise one sentence saying
+    // what to set up.
     function validateProviderConfig(providerId, cfg) {
-        if (!cfg)
-            return "Provider configuration missing.";
+        if (!providerId || !cfg)
+            return i18n("Choose an AI provider in Settings to start chatting.");
 
-        var missing = [];
         var name = providerDisplayName(providerId);
-        if (!providerId)
-            missing.push("provider");
-
-        if (!cfg.baseUrl && cfg.type !== "anthropic")
-            missing.push("base URL");
-
-        if (!cfg.model)
-            missing.push("model");
-
-        if (cfg.type === "anthropic" && !cfg.apiKey)
-            missing.push("API key");
-
-        if (cfg.type !== "anthropic" && !cfg.allowEmptyKey && !cfg.apiKey)
-            missing.push("API key");
-
-        if (missing.length > 0)
-            return "⚠️ Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model.";
-
+        var needsKey = cfg.type === "anthropic" ? !cfg.apiKey : (!cfg.allowEmptyKey && !cfg.apiKey);
+        var needsUrl = !cfg.baseUrl && cfg.type !== "anthropic";
+        var needsModel = !cfg.model;
+        if (needsUrl)
+            return i18n("Set the server address for %1 in Settings.", name);
+        if (needsKey && needsModel)
+            return i18n("Add your %1 API key and choose a model in Settings to start chatting.", name);
+        if (needsKey)
+            return i18n("Add your %1 API key in Settings to start chatting.", name);
+        if (needsModel)
+            return i18n("Choose a %1 model in Settings or Chat Settings.", name);
         return "";
     }
 
@@ -2769,13 +3037,13 @@ PlasmoidItem {
             }
 
             if (text.length > 200000) {
-                pushErrorMessage("Message is too large. Keep messages under 200,000 characters.");
+                showNotice(i18n("This message is too long. Keep messages under 200,000 characters."), "error");
                 return;
             }
             if (text === "" && attachments.length === 0)
                 return ;
             if (!attachmentsReadyToSend()) {
-                pushErrorMessage("Please wait for attached files to finish loading before sending.");
+                showNotice(i18n("Wait for the attachments to finish loading, then send again."), "warning");
                 return;
             }
 
@@ -2793,7 +3061,7 @@ PlasmoidItem {
         } catch (err) {
             root.loading = false;
             root.activeXhr = null;
-            pushErrorMessage("Send failed: " + err);
+            pushErrorMessage(i18n("The message couldn't be sent."), {"details": String(err)});
             processNextQueuedMessage();
         }
     }
@@ -2909,7 +3177,7 @@ PlasmoidItem {
         for (var j = 0; j < messageRoles.length; j++) {
             var rm = messageRoles[j];
             if (rm.role === "user" && rm.attachments && rm.attachments.length > 0) {
-                var payloadContent = buildMessageContent(rm.content, rm.attachments, "openai");
+                var payloadContent = buildMessageContent(modelTextFor(rm), rm.attachments, "openai");
                 arr.push({
                     "role": rm.role,
                     "content": payloadContent
@@ -2917,7 +3185,7 @@ PlasmoidItem {
             } else {
                 arr.push({
                     "role": rm.role,
-                    "content": rm.content
+                    "content": modelTextFor(rm)
                 });
             }
         }
@@ -2943,7 +3211,7 @@ PlasmoidItem {
         for (var j = 0; j < messageRoles.length; j++) {
             var rm = messageRoles[j];
             if (rm.role === "user" && rm.attachments && rm.attachments.length > 0) {
-                var payloadContent = buildMessageContent(rm.content, rm.attachments, "anthropic");
+                var payloadContent = buildMessageContent(modelTextFor(rm), rm.attachments, "anthropic");
                 arr.push({
                     "role": rm.role,
                     "content": payloadContent
@@ -2951,7 +3219,7 @@ PlasmoidItem {
             } else {
                 arr.push({
                     "role": rm.role,
-                    "content": rm.content
+                    "content": modelTextFor(rm)
                 });
             }
         }
@@ -2982,16 +3250,12 @@ PlasmoidItem {
                 resetProviderStreamingState();
                 root.activeRequestSessionId = "";
                 root.requestGeneration++;
-                pushErrorMessage("Request to " + url + " timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
+                pushRequestError(requestServiceName(sessionId), "timeout", 0, i18n("No answer from %1 within %2 seconds.", Sec.scrubSecrets(url), xhr.timeout / 1000));
                 processNextQueuedMessage();
             };
             xhr.setRequestHeader("Content-Type", "application/json");
-            if (apiKey !== "") {
-                console.log("DEBUG: Sending authenticated request to " + Sec.scrubSecrets(url));
+            if (apiKey !== "")
                 xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
-            } else {
-                console.log("DEBUG: Sending request without Authorization header (empty key) to " + Sec.scrubSecrets(url));
-            }
             if (extraHeaders) {
                 for (var headerName in extraHeaders) {
                     if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
@@ -3005,7 +3269,7 @@ PlasmoidItem {
                 root.activeXhr = null;
                 root.activeRequestSessionId = "";
                 root.requestGeneration++;
-                pushErrorMessage("Failed to start request: " + setupError);
+                pushRequestError(requestServiceName(sessionId), "internal", 0, String(setupError));
                 processNextQueuedMessage();
             }
             return ;
@@ -3039,23 +3303,10 @@ PlasmoidItem {
                     resetProviderStreamingState();
                     root.activeRequestSessionId = "";
                     root.requestGeneration++;
-                    var err = "Request to " + url + " failed (HTTP " + xhr.status + ")";
-                    if (xhr.status === 401) {
-                        err = "Authentication Failed (HTTP 401): Please verify that your API key is correct and not missing.";
-                    }
-                    try {
-                        var eobj = JSON.parse(xhr.responseText);
-                        if (eobj.error && eobj.error.message)
-                            err += ": " + eobj.error.message;
-                        else if (eobj.error)
-                            err += ": " + JSON.stringify(eobj.error);
-                        else if (eobj.message)
-                            err += ": " + eobj.message;
-                        else if (eobj.detail)
-                            err += ": " + eobj.detail;
-                    } catch (e) {
-                    }
-                    pushErrorMessage(err);
+                    if (xhr.status === 0)
+                        pushRequestError(requestServiceName(sessionId), "network", 0, Sec.scrubSecrets(url));
+                    else
+                        pushRequestError(requestServiceName(sessionId), "http", xhr.status, i18n("HTTP %1 from %2", xhr.status, Sec.scrubSecrets(url)) + "\n" + httpErrorDetail(xhr));
                     processNextQueuedMessage();
                 }
                 return ;
@@ -3140,7 +3391,7 @@ PlasmoidItem {
                         requestFinished = true;
                         root.activeRequestSessionId = "";
                         root.requestGeneration++;
-                        pushErrorMessage("Failed to parse non-streaming response: " + parseErr.toString());
+                        pushRequestError(requestServiceName(sessionId), "parse", 0, parseErr.toString());
                         processNextQueuedMessage();
                     }
                 }
@@ -3156,7 +3407,7 @@ PlasmoidItem {
                 root.activeRequestSessionId = "";
                 root.requestGeneration++;
                 try { xhr.abort(); } catch (e) {}
-                pushErrorMessage("Provider response exceeded the safe size limit.");
+                pushRequestError(requestServiceName(sessionId), "toolarge", 0, "");
                 processNextQueuedMessage();
                 return;
             }
@@ -3256,7 +3507,7 @@ PlasmoidItem {
                     msgs[root.currentStreamIndex].reasoning = finalReasoning;
                     root.messages = msgs;
                 } else if (fullText === "" && xhr.status >= 200 && xhr.status < 300) {
-                    pushErrorMessage("The model returned an empty response.");
+                    pushRequestError(requestServiceName(sessionId), "empty", 0, "");
                 }
                 root.currentStreamIndex = -1;
                 root.currentStreamText = "";
@@ -3283,7 +3534,7 @@ PlasmoidItem {
             resetProviderStreamingState();
             root.activeRequestSessionId = "";
             root.requestGeneration++;
-            pushErrorMessage("Could not reach " + url + ". Check the server URL and whether that endpoint accepts API requests.");
+            pushRequestError(requestServiceName(sessionId), "network", 0, Sec.scrubSecrets(url));
             processNextQueuedMessage();
         };
         try {
@@ -3308,7 +3559,7 @@ PlasmoidItem {
                 resetProviderStreamingState();
                 root.activeRequestSessionId = "";
                 root.requestGeneration++;
-                pushErrorMessage("Failed to send request: " + sendError);
+                pushRequestError(requestServiceName(sessionId), "internal", 0, String(sendError));
                 processNextQueuedMessage();
             }
         }
@@ -3322,7 +3573,7 @@ PlasmoidItem {
             if (isCurrent()) {
                 root.activeRequestSessionId = "";
                 root.requestGeneration++;
-                pushErrorMessage("Anthropic API key missing in settings.");
+                pushErrorMessage(i18n("Add your Anthropic API key in Settings to start chatting."), {"action": "settings"});
                 processNextQueuedMessage();
             }
             return;
@@ -3333,7 +3584,8 @@ PlasmoidItem {
         var endpoint = (baseUrl || "https://api.anthropic.com/v1").replace(/\/$/, "");
         if (!endpoint.endsWith("/messages"))
             endpoint += "/messages";
-        var finishError = function(message) {
+        var serviceName = requestServiceName(sessionId);
+        var finishError = function(kind, status, detail) {
             if (errorHandled || requestFinished || !isCurrent()) return;
             errorHandled = true;
             requestFinished = true;
@@ -3342,7 +3594,7 @@ PlasmoidItem {
             resetProviderStreamingState();
             root.activeRequestSessionId = "";
             root.requestGeneration++;
-            pushErrorMessage(message);
+            pushRequestError(serviceName, kind, status, detail);
             processNextQueuedMessage();
         };
         if (!isCurrent()) return;
@@ -3350,7 +3602,7 @@ PlasmoidItem {
             xhr.open("POST", endpoint, true);
             xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
             xhr.ontimeout = function() {
-                finishError("Anthropic request timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
+                finishError("timeout", 0, i18n("No answer within %1 seconds.", xhr.timeout / 1000));
             };
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.setRequestHeader("x-api-key", apiKey);
@@ -3390,22 +3642,14 @@ PlasmoidItem {
                             msgObj.tokens = {"input": obj.usage.input_tokens || 0, "output": obj.usage.output_tokens || 0};
                         root.messages = root.messages.concat([msgObj]);
                     } catch (e) {
-                        finishError("Failed to parse Anthropic response");
+                        finishError("parse", 0, String(e));
                         return;
                     }
                 } else {
-                    var err = "Anthropic HTTP " + xhr.status;
-                    try {
-                        var eobj = JSON.parse(xhr.responseText);
-                        if (eobj.error) {
-                            if (typeof eobj.error === "string") err += " | " + eobj.error;
-                            else {
-                                if (eobj.error.message) err = "Anthropic Error (" + xhr.status + "): " + eobj.error.message;
-                                if (eobj.error.type) err = "[" + eobj.error.type + "] " + err;
-                            }
-                        }
-                    } catch (e2) {}
-                    finishError(err);
+                    if (xhr.status === 0)
+                        finishError("network", 0, Sec.scrubSecrets(endpoint));
+                    else
+                        finishError("http", xhr.status, i18n("HTTP %1 from %2", xhr.status, Sec.scrubSecrets(endpoint)) + "\n" + httpErrorDetail(xhr));
                     return;
                 }
                 requestFinished = true;
@@ -3419,7 +3663,7 @@ PlasmoidItem {
                 processNextQueuedMessage();
             };
             xhr.onerror = function() {
-                finishError("Could not reach " + endpoint + ". Check network access and API configuration.");
+                finishError("network", 0, Sec.scrubSecrets(endpoint));
             };
             var maxTokens = responseMaxTokens(sessionId, 1024);
             var anthropicReqBody = {"model": model, "max_tokens": maxTokens, "messages": buildAnthropicPayload(sessionId)};
@@ -3434,7 +3678,7 @@ PlasmoidItem {
                 anthropicReqBody.system = systemPromptParts.join("\n\n");
             xhr.send(JSON.stringify(anthropicReqBody));
         } catch (sendError) {
-            finishError("Failed to send Anthropic request: " + sendError);
+            finishError("internal", 0, String(sendError));
         }
     }
 
@@ -3598,7 +3842,7 @@ PlasmoidItem {
                         }
                     }
                     root.messages = copy;
-                    pushErrorMessage("OpenCode: permission response timed out.");
+                    showNotice(i18n("OpenCode didn't confirm your answer in time. Try again."), "error");
                 }
             };
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -3627,7 +3871,7 @@ PlasmoidItem {
                         }
                     }
                     root.messages = copy;
-                    pushErrorMessage("OpenCode: failed to reply to permission (HTTP " + xhr.status + ").");
+                    showNotice(i18n("OpenCode didn't accept your answer (error %1).", xhr.status), "error");
                 }
             };
             xhr.onerror = function() {
@@ -3642,7 +3886,7 @@ PlasmoidItem {
                         }
                     }
                     root.messages = copy;
-                    pushErrorMessage("OpenCode: could not reach permission reply server endpoint.");
+                    showNotice(i18n("Couldn't reach OpenCode to send your answer."), "error");
                 }
             };
             xhr.send(JSON.stringify({
@@ -3761,7 +4005,7 @@ PlasmoidItem {
                     }
                 }
                 root.messages = copy;
-                pushErrorMessage("OpenCode: failed to reply to question endpoint.");
+                showNotice(i18n("Couldn't reach OpenCode to send your answer."), "error");
                 return ;
             }
             var url = urls[currentUrlIdx];
@@ -3798,7 +4042,7 @@ PlasmoidItem {
                         }
                     }
                     root.messages = copy;
-                    pushErrorMessage("OpenCode: failed to reply to question (HTTP " + xhr.status + ").");
+                    showNotice(i18n("OpenCode didn't accept your answer (error %1).", xhr.status), "error");
                 }
             };
             xhr.onerror = function() {
@@ -3934,7 +4178,7 @@ PlasmoidItem {
         localPath = decodeURIComponent(localPath);
         var files = root.attachedFiles.slice();
         if (files.length >= 10) {
-            pushErrorMessage("You can attach at most 10 files per message.");
+            showNotice(i18n("You can attach up to 10 files per message."), "warning");
             return;
         }
         for (var i = 0; i < files.length; i++) {
@@ -3960,7 +4204,7 @@ PlasmoidItem {
         if (!docExtractorPath || !safePath) {
             files.pop();
             root.attachedFiles = files;
-            pushErrorMessage("Unable to attach this file: unsupported or unsafe path.");
+            showNotice(i18n("This file can't be attached. Its name or location isn't supported."), "error");
             return;
         }
         var marker = "extract-file-" + (++root.attachmentRequestCounter) + "-" + Date.now();
@@ -4041,7 +4285,7 @@ PlasmoidItem {
     function checkClipboardForAttachments() {
         var docExtractorPath = getDocExtractorPath();
         if (!docExtractorPath) {
-            pushErrorMessage("Attachment extractor is not available in the installed widget.");
+            showNotice(i18n("This installation of KDE AI Chat is incomplete (a helper script is missing). Reinstall the widget."), "error");
             return;
         }
         var cmd = "timeout 20s python3 " + Sec.quoteForShell(docExtractorPath) + " --clipboard";
@@ -4104,18 +4348,27 @@ PlasmoidItem {
 
     function loadKWalletKeysAtStartup() {
         var walletName = "kdewallet";
+        var finish = function() {
+            root.walletLoadFinished = true;
+        };
+        root.walletLoadFinished = false;
         walletCall("wallets", [], function(wallets) {
             root.walletApiKeys = ({});
-            if (!Array.isArray(wallets) || wallets.indexOf(walletName) === -1)
+            if (!Array.isArray(wallets) || wallets.indexOf(walletName) === -1) {
+                finish();
                 return ;
+            }
 
             walletCall("open", [walletName, new DBus.int64(0), "org.kde.plasma.kdeaichat"], function(handle) {
-                if (handle < 0)
+                if (handle < 0) {
+                    finish();
                     return ;
+                }
 
                 walletCall("hasFolder", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(hasFolder) {
                     if (!hasFolder) {
                         walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
+                        finish();
                         return ;
                     }
                     walletCall("passwordList", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(passwordsMap) {
@@ -4136,10 +4389,11 @@ PlasmoidItem {
                             }
                         }
                         walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
-                    });
-                });
-            });
-        });
+                        finish();
+                    }, finish);
+                }, finish);
+            }, finish);
+        }, finish);
     }
 
     function performExportChat(filePath) {
@@ -4220,11 +4474,11 @@ PlasmoidItem {
         var safePath = Sec.validateFilePath(filePath);
         var helper = getHelperPath();
         if (!safePath || !helper) {
-            pushErrorMessage("Export cancelled: invalid destination or helper unavailable.");
+            showNotice(i18n("The chat couldn't be exported to that location."), "error");
             return;
         }
         if (content.length > 500000) {
-            pushErrorMessage("This chat is too large to export in one operation. Remove older messages or export a shorter conversation.");
+            showNotice(i18n("This chat is too large to export. Remove older messages and try again."), "error");
             return;
         }
         var payload = {
@@ -4233,7 +4487,7 @@ PlasmoidItem {
         };
         var encoded = Sec.base64Encode(JSON.stringify(payload));
         if (encoded.length > 900000) {
-            pushErrorMessage("This chat is too large to export in one operation. Remove older messages or export a shorter conversation.");
+            showNotice(i18n("This chat is too large to export. Remove older messages and try again."), "error");
             return;
         }
         var cmd = "python3 " + Sec.quoteForShell(helper) + " export_chat " + Sec.rawShellSnippetQuote(encoded)
@@ -4654,7 +4908,10 @@ PlasmoidItem {
                             attachFile("file://" + shotPath);
                     }
                 } else {
-                    pushErrorMessage("Screen region capture cancelled or failed.");
+                    // Exit code 127: Spectacle isn't installed. Anything else
+                    // means the user cancelled, which needs no message.
+                    if (exitCode === 127)
+                        showNotice(i18n("Screen capture needs Spectacle. Install it from Discover or your package manager."), "warning");
                 }
                 disconnectSource(sourceName);
                 return ;
@@ -4681,7 +4938,7 @@ PlasmoidItem {
             }
             if (sourceName.indexOf("#export-chat-save") !== -1) {
                 if (exitCode !== 0)
-                    pushErrorMessage("Export failed: " + (stderr.trim() || stdout.trim() || ("helper exited with code " + exitCode)));
+                    showNotice(i18n("The chat couldn't be exported."), "error");
                 disconnectSource(sourceName);
                 return ;
             }
@@ -4753,9 +5010,9 @@ PlasmoidItem {
     FileDialog {
         id: fileDialog
 
-        title: "Attach Files"
+        title: i18n("Attach Files")
         fileMode: FileDialog.OpenFiles
-        nameFilters: ["All supported files (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", "Documents (*.pdf *.docx *.csv *.txt *.md *.json)", "All files (*)"]
+        nameFilters: [i18n("All supported files") + " (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", i18n("Images") + " (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", i18n("Documents") + " (*.pdf *.docx *.csv *.txt *.md *.json)", i18n("All files") + " (*)"]
         onAccepted: {
             for (var i = 0; i < selectedFiles.length; i++) {
                 root.attachFile(selectedFiles[i]);
@@ -4766,9 +5023,9 @@ PlasmoidItem {
     FileDialog {
         id: exportFileDialog
 
-        title: "Export Chat Session"
+        title: i18n("Export Chat")
         fileMode: FileDialog.SaveFile
-        nameFilters: ["Markdown files (*.md)", "Plain text files (*.txt)"]
+        nameFilters: [i18n("Markdown files") + " (*.md)", i18n("Plain text files") + " (*.txt)"]
         onAccepted: {
             var path = selectedFile.toString();
             if (path.indexOf("file://") === 0)
@@ -4781,7 +5038,7 @@ PlasmoidItem {
     FolderDialog {
         id: workspaceFolderDialog
 
-        title: "Select OpenCode Working Directory"
+        title: i18n("Choose OpenCode Workspace")
         onAccepted: {
             var path = selectedFolder.toString();
             if (path.indexOf("file://") === 0)
@@ -5069,17 +5326,19 @@ PlasmoidItem {
                 Qt.callLater(root.scrollToBottom);
             }
         }
-        Kirigami.Theme.inherit: false
-        Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
-        Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
-        Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
-        Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
-        Kirigami.Theme.highlightColor: "#3182ce"
+        // Binding a Kirigami colour to undefined resets it to the theme value.
+        Kirigami.Theme.backgroundColor: root.popupPalette ? root.popupPalette.background : undefined
+        Kirigami.Theme.alternateBackgroundColor: root.popupPalette ? root.popupPalette.alternateBackground : undefined
+        Kirigami.Theme.textColor: root.popupPalette ? root.popupPalette.text : undefined
+        Kirigami.Theme.disabledTextColor: root.popupPalette ? root.popupPalette.disabledText : undefined
 
+        // Plasma already paints the popup frame; only a forced light/dark
+        // palette needs its own background.
         Rectangle {
             anchors.fill: parent
+            visible: root.popupPalette !== null
             color: Kirigami.Theme.backgroundColor
-            radius: 8
+            radius: Kirigami.Units.cornerRadius || Kirigami.Units.smallSpacing
         }
 
         Loader {
