@@ -410,7 +410,7 @@ PlasmoidItem {
                     else if (typeof message.content !== "string")
                         message.content = String(message.content);
                     if (message.content.length > root.maxMessageChars) {
-                        message.content = message.content.substring(0, root.maxMessageChars) + "\n[message truncated]";
+                        message.content = message.content.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                         if (!root.sessionHistoryLoadError)
                             root.sessionHistoryLoadError = i18n("Some very long stored messages were shortened so they can be shown.");
                     }
@@ -1288,7 +1288,7 @@ PlasmoidItem {
                             var ts = info.createdAt ? new Date(info.createdAt).getTime() : Date.now();
                             newMsgs.push({
                                 "role": role,
-                                "content": combinedText || "(empty)",
+                                "content": combinedText || i18n("(empty)"),
                                 "model": role === "user" ? "You" : modelLabel,
                                 "id": info.id || ("msg-" + i),
                                 "at": ts,
@@ -1398,7 +1398,7 @@ PlasmoidItem {
         else
             newText = existing + incoming;
         root.currentStreamText = newText.length > root.maxMessageChars
-            ? newText.substring(0, root.maxMessageChars) + "\n[response truncated]"
+            ? newText.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]")
             : newText;
         root.streamingResponse = root.currentStreamText !== "";
         if (!root.userScrolledUp)
@@ -1871,7 +1871,7 @@ PlasmoidItem {
                 }
                 var msg = {
                     "role": "permission_request",
-                    "content": "OpenCode is asking for permission to run **" + tool + "**:\n\n```json\n" + argStr + "\n```",
+                    "content": i18n("OpenCode wants to run **%1**:", tool) + "\n\n```json\n" + argStr + "\n```",
                     "model": "OpenCode Security",
                     "id": "perm-" + permId,
                     "permissionId": permId,
@@ -1998,7 +1998,7 @@ PlasmoidItem {
                 if (!alreadyExists) {
                     var msg = {
                         "role": "question_request",
-                        "content": "OpenCode is asking a question:\n\n**" + qText + "**",
+                        "content": "**" + qText + "**",
                         "model": "OpenCode Question",
                         "id": "question-" + requestID,
                         "questionId": requestID,
@@ -2188,14 +2188,14 @@ PlasmoidItem {
                                     combinedReasoning += obj.parts[i].text || obj.parts[i].content || obj.parts[i].summary || "";
                             }
                             if (combined.length > root.maxMessageChars)
-                                combined = combined.substring(0, root.maxMessageChars) + "\n[response truncated]";
+                                combined = combined.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                             if (combinedReasoning.length > root.maxMessageChars)
-                                combinedReasoning = combinedReasoning.substring(0, root.maxMessageChars) + "\n[reasoning truncated]";
+                                combinedReasoning = combinedReasoning.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                             if (combinedReasoning !== "") appendAssistantReasoning(combinedReasoning);
                             var responseLabel = providerId && modelId ? providerId + "/" + modelId : "OpenCode";
                             if (combined !== "") updateAssistantStreamingContent(combined, responseLabel);
                             else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
-                                updateAssistantStreamingContent("(empty response)", responseLabel);
+                                updateAssistantStreamingContent(i18n("(The reply was empty.)"), responseLabel);
                         }
                     } catch (parseResponseError) {
                         failOpenCodeRequest("parse", 0, "");
@@ -2341,7 +2341,7 @@ PlasmoidItem {
         }
         var messageId = "pi-response-" + Date.now() + "-" + root.piRequestCounter;
         var ts = Date.now();
-        root.messages = root.messages.concat([{"role": "assistant", "content": "Thinking…", "model": "Pi Agent", "time": nowTime(ts), "at": ts, "id": messageId}]);
+        root.messages = root.messages.concat([{"role": "assistant", "content": i18n("Thinking…"), "model": i18n("Pi agent"), "time": nowTime(ts), "at": ts, "id": messageId}]);
         root.loading = true;
         root.streamingResponse = true;
         saveCurrentSessionState(true);
@@ -2383,11 +2383,11 @@ PlasmoidItem {
             finishPiRequest(pending.sessionId, pending.generation);
             return;
         }
-        var result = out.trim() || "(empty response)";
+        var result = out.trim() || i18n("(The reply was empty.)");
         var updated = root.messages.slice();
         for (var ui = 0; ui < updated.length; ui++) {
             if (updated[ui].id === pending.messageId) {
-                updated[ui] = Object.assign({}, updated[ui], {"content": result, "model": "Pi Agent"});
+                updated[ui] = Object.assign({}, updated[ui], {"content": result, "model": i18n("Pi agent")});
                 break;
             }
         }
@@ -3411,12 +3411,12 @@ PlasmoidItem {
 
                         var ts = Date.now();
                         if (displayText.length > root.maxMessageChars)
-                            displayText = displayText.substring(0, root.maxMessageChars) + "\n[response truncated]";
+                            displayText = displayText.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                         if (displayReasoning.length > root.maxMessageChars)
-                            displayReasoning = displayReasoning.substring(0, root.maxMessageChars) + "\n[reasoning truncated]";
+                            displayReasoning = displayReasoning.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                         var resMsg = {
                             "role": "assistant",
-                            "content": displayText || "(empty response)",
+                            "content": displayText || i18n("(The reply was empty.)"),
                             "time": nowTime(ts),
                             "at": ts,
                             "model": modelLabel || model || ""
@@ -3489,7 +3489,7 @@ PlasmoidItem {
                             if (streamDelta.content) {
                                 fullText += typeof streamDelta.content === "string" ? streamDelta.content : JSON.stringify(streamDelta.content);
                                 if (fullText.length > root.maxMessageChars)
-                                    fullText = fullText.substring(0, root.maxMessageChars) + "\n[response truncated]";
+                                    fullText = fullText.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                             }
                             
                             var displayReasoning = "";
@@ -3684,11 +3684,11 @@ PlasmoidItem {
                             }
                         }
                         if (text.length > root.maxMessageChars)
-                            text = text.substring(0, root.maxMessageChars) + "\n[response truncated]";
+                            text = text.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                         if (reasoningText.length > root.maxMessageChars)
-                            reasoningText = reasoningText.substring(0, root.maxMessageChars) + "\n[reasoning truncated]";
+                            reasoningText = reasoningText.substring(0, root.maxMessageChars) + "\n" + i18n("[Shortened: the rest was too long to show]");
                         var ts = Date.now();
-                        var msgObj = {"role": "assistant", "content": text || "(empty response)", "time": nowTime(ts), "at": ts, "model": model || ""};
+                        var msgObj = {"role": "assistant", "content": text || i18n("(The reply was empty.)"), "time": nowTime(ts), "at": ts, "model": model || ""};
                         if (reasoningText !== "") msgObj.reasoning = reasoningText;
                         if (obj.usage)
                             msgObj.tokens = {"input": obj.usage.input_tokens || 0, "output": obj.usage.output_tokens || 0};
@@ -4476,79 +4476,37 @@ PlasmoidItem {
 
     function performExportChat(filePath) {
         var isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown");
-        var content = "";
-        var sessionTitle = root.currentSessionTitle || "Untitled Session";
-        var now = new Date();
-        var dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString();
+        var sessionTitle = displayTitle(root.currentSessionTitle);
+        var loc = Qt.locale();
+        var stamp = function(ts) {
+            return new Date(ts || Date.now()).toLocaleString(loc, Locale.ShortFormat);
+        };
+        var author = function(m) {
+            if (m.role === "user")
+                return i18n("You");
+            if (m.role === "error")
+                return i18n("Error");
+            return m.model || i18n("Assistant");
+        };
+        var lines = [];
         if (isMarkdown) {
-            content += "# 💬 KDE AI Chat: " + sessionTitle + "\n";
-            content += "*Exported on " + dateStr + "*\n\n";
-            content += "---\n\n";
-            for (var i = 0; i < root.messages.length; i++) {
-                var m = root.messages[i];
-                if (m.role === "user") {
-                    content += "<div align=\"right\">\n\n";
-                    content += "### 👤 **User** (" + (m.time || "") + ")\n";
-                    content += m.content + "\n\n";
-                    content += "</div>\n\n";
-                    content += "---\n\n";
-                } else if (m.role === "assistant") {
-                    var modelName = m.model || plasmoid.configuration.model || "Assistant";
-                    content += "<div align=\"left\">\n\n";
-                    content += "### 🤖 **" + modelName + "** (" + (m.time || "") + ")\n";
-                    content += m.content + "\n\n";
-                    content += "</div>\n\n";
-                    content += "---\n\n";
-                } else if (m.role === "error") {
-                    content += "<div align=\"left\">\n\n";
-                    content += "### ❌ **System Error** (" + (m.time || "") + ")\n";
-                    content += "> " + m.content + "\n\n";
-                    content += "</div>\n\n";
-                    content += "---\n\n";
-                }
-            }
+            lines.push("# " + sessionTitle, "", "_" + i18n("Exported from KDE AI Chat on %1", stamp(Date.now())) + "_", "");
         } else {
-            content += "==================================================\n";
-            content += "💬 KDE AI Chat: " + sessionTitle + "\n";
-            content += "Exported on: " + dateStr + "\n";
-            content += "==================================================\n\n";
-            var rightAlignTxt = function rightAlignTxt(text, width) {
-                if (!width)
-                    width = 80;
-
-                var lines = text.split("\n");
-                for (var j = 0; j < lines.length; j++) {
-                    var trimmed = lines[j].trim();
-                    if (trimmed.length === 0) {
-                        lines[j] = "";
-                        continue;
-                    }
-                    if (trimmed.length >= width)
-                        lines[j] = trimmed;
-                    else
-                        lines[j] = " ".repeat(width - trimmed.length) + trimmed;
-                }
-                return lines.join("\n");
-            };
-            for (var i = 0; i < root.messages.length; i++) {
-                var m = root.messages[i];
-                if (m.role === "user") {
-                    var userHeader = "👤 User (" + (m.time || "") + "):";
-                    content += " ".repeat(Math.max(0, 80 - userHeader.length)) + userHeader + "\n";
-                    content += rightAlignTxt(m.content, 80) + "\n\n";
-                    content += "--------------------------------------------------\n\n";
-                } else if (m.role === "assistant") {
-                    var modelName = m.model || plasmoid.configuration.model || "Assistant";
-                    content += "🤖 " + modelName + " (" + (m.time || "") + "):\n";
-                    content += m.content + "\n\n";
-                    content += "--------------------------------------------------\n\n";
-                } else if (m.role === "error") {
-                    content += "❌ System Error (" + (m.time || "") + "):\n";
-                    content += "ERROR: " + m.content + "\n\n";
-                    content += "--------------------------------------------------\n\n";
-                }
+            lines.push(sessionTitle, i18n("Exported from KDE AI Chat on %1", stamp(Date.now())), "");
+        }
+        for (var i = 0; i < root.messages.length; i++) {
+            var m = root.messages[i];
+            if (m.role !== "user" && m.role !== "assistant" && m.role !== "error")
+                continue;
+            var heading = i18nc("message author · date and time", "%1 · %2", author(m), stamp(m.at));
+            if (isMarkdown) {
+                lines.push("---", "", "### " + heading, "");
+                lines.push(m.role === "error" ? "> " + String(m.content || "").split("\n").join("\n> ") : String(m.content || ""), "");
+            } else {
+                lines.push("----------------------------------------", heading, "", String(m.content || ""), "");
             }
         }
+        var content = lines.join("\n");
         var safePath = Sec.validateFilePath(filePath);
         var helper = getHelperPath();
         if (!safePath || !helper) {
