@@ -280,6 +280,10 @@
     <entry name="playNotificationSound" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="notificationsShowContent" type="Bool">
+      <label>Show prompt and question text in desktop notifications</label>
+      <default>false</default>
+    </entry>
     <entry name="customIcon" type="String">
       <default>dialog-messages</default>
     </entry>

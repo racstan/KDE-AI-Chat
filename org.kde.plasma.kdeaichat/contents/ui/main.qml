@@ -8,6 +8,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.workspace.dbus as DBus
 import QtCore
 import "Security.js" as Sec
@@ -133,6 +134,19 @@ PlasmoidItem {
     property var noticeAction: null
     // A cleared or deleted chat that can still be restored with Undo.
     property var undoSnapshot: null
+    property string lastExportPath: ""
+    // A reply or question arrived while the popup was closed.
+    property bool replyWaiting: false
+    Plasmoid.status: replyWaiting ? PlasmaCore.Types.NeedsAttentionStatus : PlasmaCore.Types.ActiveStatus
+    toolTipMainText: Plasmoid.title
+    toolTipSubText: {
+        if (root.loading)
+            return i18n("Writing a reply…");
+        if (root.replyWaiting)
+            return i18n("New reply in “%1”", root.displayTitle(root.currentSessionTitle));
+        var dest = root.chatDestination();
+        return dest.model ? i18nc("provider · model", "%1 · %2", dest.name, dest.model) : dest.name;
+    }
     property var walletApiKeys: ({})
     property bool _initialLoadDone: false
     property string sessionHistoryLoadError: ""
@@ -156,10 +170,11 @@ PlasmoidItem {
         }
 
         onErrorOccurred: function(errorText) {
-            console.error("Voice Error: " + errorText);
-            // Optionally show a notification
-            let message = Sec.sanitizeForShell(errorText || "Unknown voice error");
-            root.fileReaderDs.connectSource("notify-send -i dialog-error " + Sec.quoteForShell("Voice Error") + " " + Sec.quoteForShell(message) + " #voice-error");
+            var message = errorText || i18n("The voice engine stopped with an error.");
+            if (root.expanded)
+                root.showNotice(message, "error");
+            else
+                root.sendNotification(i18n("Voice input or read-aloud failed"), message, "dialog-error", "voice-error");
         }
     }
 
@@ -1965,12 +1980,12 @@ PlasmoidItem {
                     if (!root.userScrolledUp)
                         Qt.callLater(scrollToBottom);
 
-                    // Send desktop notification so user sees the question even if plasmoid is collapsed
-                    if (plasmoid.configuration.playNotificationSound) {
-                        var shortQText = qText.length > 80 ? qText.substring(0, 77) + "..." : qText;
-                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u normal -i dialog-question \"OpenCode needs your input\" " + Sec.quoteForShell(shortQText) + " #opencode-question-notify");
-                        triggerNotificationSound();
+                    // Tell the user even when the popup is closed.
+                    if (!root.expanded) {
+                        root.replyWaiting = true;
+                        sendNotification(i18n("OpenCode needs your answer"), i18n("In “%1”", displayTitle(root.currentSessionTitle)), "dialog-question", "opencode-question", qText);
                     }
+                    playAlertSound();
                 }
             }
         } else if (eventObj.type === "question.replied") {
@@ -3682,10 +3697,36 @@ PlasmoidItem {
         }
     }
 
-    function triggerNotificationSound() {
-        if (plasmoid.configuration.playNotificationSound) {
-            soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
+    function playAlertSound() {
+        if (!plasmoid.configuration.playNotificationSound)
+            return;
+        // A unique tag per call: the data source ignores a source name it
+        // is already running, which made the sound play only once.
+        soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant #alert-sound-" + Date.now());
+    }
+
+    // Desktop notification. Titles are content-free; the body only carries
+    // chat or prompt text when the user turned on "show message text in
+    // notifications" (callers pass that text as privateBody).
+    function sendNotification(title, body, iconName, tag, privateBody) {
+        var text = body || "";
+        if (privateBody && plasmoid.configuration.notificationsShowContent === true) {
+            var excerpt = String(privateBody);
+            text = excerpt.length > 200 ? excerpt.substring(0, 199) + "…" : excerpt;
         }
+        var cmd = "notify-send --app-name=" + Sec.quoteForShell(Plasmoid.title || i18n("KDE AI Chat"))
+            + " --icon=" + Sec.quoteForShell(iconName || "dialog-messages")
+            + " --hint=string:desktop-entry:org.kde.plasmashell"
+            + " -- " + Sec.quoteForShell(title) + " " + Sec.quoteForShell(text);
+        soundDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #notify-" + (tag || "message") + "-" + Date.now());
+    }
+
+    // A reply finished: sound, attention on the panel icon when the popup is
+    // closed, read-aloud if enabled, then check whether to compact.
+    function triggerNotificationSound() {
+        playAlertSound();
+        if (!root.expanded)
+            root.replyWaiting = true;
 
         if (voiceManager && voiceManager.enabled && voiceManager.ttsAuto) {
             // Find the last assistant message
@@ -4490,10 +4531,9 @@ PlasmoidItem {
             showNotice(i18n("This chat is too large to export. Remove older messages and try again."), "error");
             return;
         }
-        var cmd = "python3 " + Sec.quoteForShell(helper) + " export_chat " + Sec.rawShellSnippetQuote(encoded)
-            + " && (notify-send -i document-export " + Sec.quoteForShell("KDE AI Chat") + " "
-            + Sec.quoteForShell("Chat session successfully exported to " + safePath) + " || true)";
-        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #export-chat-save");
+        var cmd = "python3 " + Sec.quoteForShell(helper) + " export_chat " + Sec.rawShellSnippetQuote(encoded);
+        root.lastExportPath = safePath;
+        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #export-chat-save-" + Date.now());
     }
 
     function initSystemPrompt() {
@@ -4566,7 +4606,7 @@ PlasmoidItem {
         }
     }
 
-    Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
+    Plasmoid.title: plasmoid.configuration.appDisplayName || i18n("KDE AI Chat")
     preferredRepresentation: compactRepresentation
     onHistoryOnlyModeChanged: {
         if (!historyOnlyMode) {
@@ -4576,6 +4616,7 @@ PlasmoidItem {
     }
     onExpandedChanged: {
         if (expanded) {
+            root.replyWaiting = false;
             root.triggerInitialLoad();
             root.focusInput();
             deferredScrollTimer.restart();
@@ -4772,6 +4813,9 @@ PlasmoidItem {
 
         engine: "executable"
         connectedSources: []
+        onNewData: function(sourceName, data) {
+            disconnectSource(sourceName);
+        }
     }
 
     P5Support.DataSource {
@@ -4939,6 +4983,8 @@ PlasmoidItem {
             if (sourceName.indexOf("#export-chat-save") !== -1) {
                 if (exitCode !== 0)
                     showNotice(i18n("The chat couldn't be exported."), "error");
+                else
+                    showNotice(i18n("Chat exported to %1", root.lastExportPath), "positive");
                 disconnectSource(sourceName);
                 return ;
             }
@@ -5209,12 +5255,12 @@ PlasmoidItem {
                     for (let i = 0; i < pending.length; i++) {
                         let p = pending[i];
                         if (root.enqueueSchedulerTrigger(p)) {
-                            console.log("Scheduler trigger:", p.name, "-> chatId:", p.chatId);
                             if (p.notify) {
-                                root.triggerNotificationSound();
-                                let escMsg = String(p.name || "Scheduled task") + ": " + String(p.message);
-                                let notifyCmd = "notify-send -i dialog-messages 'KDE AI Chat - Scheduler' " + Sec.quoteForShell(escMsg);
-                                soundDs.connectSource(notifyCmd + " #sched-notify-" + Date.now());
+                                root.playAlertSound();
+                                let chatIdx = root.sessionIndexById(String(p.chatId));
+                                let chatTitle = chatIdx >= 0 ? root.displayTitle(root.sessions[chatIdx].text) : "";
+                                root.sendNotification(i18n("Scheduled prompt “%1” started", String(p.name || i18n("Scheduled prompt"))),
+                                                      chatTitle ? i18n("In “%1”", chatTitle) : "", "chronometer", "schedule", String(p.message || ""));
                             }
                         }
                     }
@@ -5283,7 +5329,18 @@ PlasmoidItem {
     }
 
     compactRepresentation: MouseArea {
-        onClicked: root.expanded = !root.expanded
+        id: compactRoot
+
+        // Remember the state at press time: clicking the icon while the
+        // popup is open must close it, not close and immediately reopen.
+        property bool wasExpanded: false
+
+        hoverEnabled: true
+        Accessible.name: Plasmoid.title
+        Accessible.description: root.toolTipSubText
+        Accessible.role: Accessible.Button
+        onPressed: wasExpanded = root.expanded
+        onClicked: root.expanded = !wasExpanded
 
         // Custom image icons (including animated GIFs) are rendered with an
         // Image element; KDE icon names fall back to Kirigami.Icon.
@@ -5305,6 +5362,7 @@ PlasmoidItem {
             width: Math.min(parent.width, parent.height) * 0.8
             height: width
             visible: !root.customIconIsImage()
+            active: compactRoot.containsMouse
             source: (plasmoid && plasmoid.configuration && plasmoid.configuration.customIcon)
                 ? plasmoid.configuration.customIcon : "dialog-messages"
         }
