@@ -106,6 +106,10 @@ PlasmoidItem {
     property int mcpToolRound: 0
     property var mcpPendingOperations: ({})
     property int mcpOperationCounter: 0
+    // What tools did during the current reply, shown with the reply.
+    property var mcpToolLog: []
+    // The tool running right now, shown in the status line.
+    property string mcpActivity: ""
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
@@ -660,6 +664,30 @@ PlasmoidItem {
         fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " " + token);
     }
 
+    // How a tool call is described to the user, e.g. in the "Used 2 tools"
+    // list under a reply. running: wording for the status line.
+    function mcpToolLabel(toolName, args, running) {
+        args = args || {};
+        if (toolName === "web_search") {
+            var q = String(args.query || "").substring(0, 120);
+            return running ? i18n("Searching the web (DuckDuckGo) for “%1”…", q)
+                           : i18n("Web search (DuckDuckGo): “%1”", q);
+        }
+        var servers = _mcpServers();
+        for (var i = 0; i < servers.length; i++) {
+            var server = servers[i] || {};
+            var tools = Array.isArray(server.tools) ? server.tools : [];
+            for (var j = 0; j < tools.length; j++) {
+                if (_mcpFunctionName(server.id || server.name, tools[j].name) === toolName) {
+                    var serverName = String(server.name || server.id || "");
+                    return running ? i18n("Running %1 (%2)…", tools[j].name, serverName)
+                                   : i18n("Tool: %1 (%2)", tools[j].name, serverName);
+                }
+            }
+        }
+        return running ? i18n("Running %1…", toolName) : i18n("Tool: %1", toolName);
+    }
+
     function executeMcpTool(toolName, argumentsObject, callback) {
         var args = argumentsObject || {};
         if (toolName === "web_search") {
@@ -715,6 +743,7 @@ PlasmoidItem {
 
     function invalidateActiveRequest(processQueue) {
         var cancelledSessionId = root.activeRequestSessionId;
+        root.mcpActivity = "";
         root.requestGeneration++;
         var piRequests = root.pendingPiRequests || {};
         var piKeys = Object.keys(piRequests);
@@ -800,7 +829,10 @@ PlasmoidItem {
             } catch (e) {
                 parsedArgs = {};
             }
+            root.mcpActivity = mcpToolLabel(fn.name || "", parsedArgs, true);
+            root.mcpToolLog = root.mcpToolLog.concat([mcpToolLabel(fn.name || "", parsedArgs, false)]);
             executeMcpTool(fn.name || "", parsedArgs, function(resultText) {
+                root.mcpActivity = "";
                 results.push({
                     "role": "tool",
                     "tool_call_id": call.id || ("mcp-call-" + index),
@@ -2770,6 +2802,8 @@ PlasmoidItem {
         // their protocol messages remain intact.
         root.mcpFollowupMessages = [];
         root.mcpToolRound = 0;
+        root.mcpToolLog = [];
+        root.mcpActivity = "";
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
         root.currentStreamReasoning = "";
@@ -3388,6 +3422,8 @@ PlasmoidItem {
                             "model": modelLabel || model || ""
                         };
                         if (displayReasoning !== "") resMsg.reasoning = displayReasoning;
+                        if (root.mcpToolLog.length > 0)
+                            resMsg.contextItems = root.mcpToolLog.slice();
                         if (respObj.usage) {
                             resMsg.tokens = {
                                 "input": respObj.usage.prompt_tokens || respObj.usage.input_tokens || 0,

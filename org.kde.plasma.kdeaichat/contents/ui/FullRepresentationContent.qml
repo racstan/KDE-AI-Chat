@@ -858,7 +858,8 @@ Item {
                                                                 }
                                                             }
 
-                                                            text: blockData.text
+                                                            // Never let message text load remote images or HTML.
+                                                            text: Sec.sanitizeMarkdown(blockData.text)
                                                          }
                                                      }
 
@@ -1507,6 +1508,8 @@ Item {
 
                         PC3.Label {
                             text: {
+                                if (root.loading && root.mcpActivity)
+                                    return root.mcpActivity;
                                 if (root.loading)
                                     return root.streamingResponse ? i18n("Writing a reply…") : i18n("Thinking…");
                                 if (root.voiceManagerRef)
