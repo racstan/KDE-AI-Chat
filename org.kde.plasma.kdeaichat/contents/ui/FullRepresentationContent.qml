@@ -755,7 +755,7 @@ Item {
                                                             }
 
                                                             Connections {
-                                                                target: repRoot
+                                                                target: root
                                                                 function onPlayingMessageIndexChanged() {
                                                                     if (root.playingMessageIndex === index) {
                                                                         if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
@@ -942,7 +942,7 @@ Item {
 
                                                 Flow {
                                                     width: parent.width
-                                                    visible: modelData.attachments && modelData.attachments.length > 0
+                                                    visible: !!(modelData.attachments && modelData.attachments.length > 0)
                                                     spacing: Kirigami.Units.smallSpacing
 
                                                     Repeater {
@@ -995,8 +995,9 @@ Item {
 
                                                             MouseArea {
                                                                 anchors.fill: parent
+                                                                hoverEnabled: true
                                                                 cursorShape: Qt.PointingHandCursor
-                                                                QQC2.ToolTip.visible: hovered
+                                                                QQC2.ToolTip.visible: containsMouse
                                                                 QQC2.ToolTip.text: "Open: " + modelData.path
                                                                 onClicked: {
                                                                     var safePath = Sec.validateFilePath(modelData.path || "");
@@ -1090,7 +1091,7 @@ Item {
                                                             Flow {
                                                                 width: parent.width
                                                                 spacing: Kirigami.Units.smallSpacing
-                                                                visible: modelData.options && modelData.options.length > 0
+                                                                visible: !!(modelData.options && modelData.options.length > 0)
 
                                                                 Repeater {
                                                                     model: modelData.options || []
@@ -1144,7 +1145,7 @@ Item {
 
                                                             // Separator between questions
                                                             Rectangle {
-                                                                visible: index < (parent.model ? parent.model.length - 1 : 0)
+                                                                visible: index < questionCol.qQuestions.length - 1
                                                                 width: parent.width
                                                                 height: 1
                                                                 color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
@@ -1233,7 +1234,7 @@ Item {
 
                                                 // Context items (tool invocations) display
                                                 Column {
-                                                    visible: modelData.role === "assistant" && modelData.contextItems !== undefined && modelData.contextItems.length > 0
+                                                    visible: modelData.role === "assistant" && !!(modelData.contextItems && modelData.contextItems.length > 0)
                                                     width: parent.width
                                                     spacing: 2
 
@@ -1375,7 +1376,7 @@ Item {
                                                             anchors.centerIn: parent
                                                             width: parent.width * 0.8
                                                             height: parent.height * 0.8
-                                                            running: root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
+                                                            running: !!(root.voiceManagerRef && root.voiceManagerRef.ttsGenerating && root.playingMessageIndex === index)
                                                             visible: running
                                                         }
                                                     }
@@ -1495,30 +1496,25 @@ Item {
                     }
 
                     RowLayout {
-                        visible: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "")
+                        visible: root.loading || !!(root.voiceManagerRef && root.voiceManagerRef.phase !== "")
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.BusyIndicator {
-                            running: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused" && !root.voiceManagerRef.callModeActive)
+                            running: root.loading || !!(root.voiceManagerRef && (root.voiceManagerRef.sttBusy || root.voiceManagerRef.ttsGenerating))
                             visible: running
-                            width: 16
-                            height: 16
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.small
                         }
 
                         PC3.ToolButton {
-                            icon.name: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-start" : "media-playback-stop"
-                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive)
+                            icon.name: "media-playback-stop"
+                            visible: !root.loading && !!(root.voiceManagerRef && root.voiceManagerRef.isPlaying)
                             display: PC3.AbstractButton.IconOnly
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "Call Mode Active" : "Stop reading"
+                            QQC2.ToolTip.text: "Stop reading"
                             onClicked: {
-                                if (root.voiceManagerRef) {
-                                    if (root.voiceManagerRef.callModeActive) {
-                                        root.voiceManagerRef.stopCallMode();
-                                    } else {
-                                        root.voiceManagerRef.stopTTS();
-                                    }
-                                }
+                                if (root.voiceManagerRef)
+                                    root.voiceManagerRef.stopTTS();
                                 root.playingMessageIndex = -1;
                             }
                         }
@@ -1559,7 +1555,7 @@ Item {
                                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
                                     border.width: 1
                                     border.color: modelData.error !== "" ? Kirigami.Theme.negativeTextColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                                    QQC2.ToolTip.visible: fileMouseArea.hovered && modelData.error !== ""
+                                    QQC2.ToolTip.visible: fileMouseArea.containsMouse && modelData.error !== ""
                                     QQC2.ToolTip.text: modelData.error
 
                                     MouseArea {
@@ -1639,9 +1635,6 @@ Item {
                         QQC2.TextArea {
                             id: msgInput
 
-                            // Dual-stage focus mechanism for Plasma 6
-                            property alias focusTimerRef: focusTimer
-
                             Layout.fillWidth: true
                             Layout.minimumHeight: Kirigami.Units.gridUnit * 3
                             Layout.maximumHeight: Kirigami.Units.gridUnit * 7
@@ -1711,6 +1704,10 @@ Item {
 
                                 }
 
+                                function onFocusInputRequested() {
+                                    focusTimer.start();
+                                }
+
                                 target: root
                             }
 
@@ -1744,7 +1741,7 @@ Item {
                                 anchors.centerIn: parent
                                 width: parent.width * 0.6
                                 height: parent.height * 0.6
-                                running: root.voiceManagerRef && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
+                                running: !!(root.voiceManagerRef && root.voiceManagerRef.sttBusy)
                                 visible: running
                             }
                         }

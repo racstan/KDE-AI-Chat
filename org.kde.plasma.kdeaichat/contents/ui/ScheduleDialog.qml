@@ -37,16 +37,10 @@ import org.kde.plasma.plasma5support as P5Support
             target: page
             ignoreUnknownSignals: true
             function onSchedulerListChanged() {
-                console.log("ScheduleDialog: page.schedulerList changed, count =", page ? page.schedulerList.length : "null");
-                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1 && !scheduleDialog.hasUnsavedChanges) {
+                if (scheduleDialog.opened && scheduleDialog.editingIndex === -1 && !scheduleDialog.hasUnsavedChanges)
                     scheduleDialog.localActiveList = page.schedulerList.slice();
-                    console.log("ScheduleDialog: updated localActiveList to count =", scheduleDialog.localActiveList.length);
-                } else {
-                    console.log("ScheduleDialog: skip localActiveList update (opened=" + scheduleDialog.opened + ", editingIndex=" + scheduleDialog.editingIndex + ", hasUnsavedChanges=" + scheduleDialog.hasUnsavedChanges + ")");
-                }
             }
             function onSchedulerArchivedListChanged() {
-                console.log("ScheduleDialog: page.schedulerArchivedList changed, count =", page ? page.schedulerArchivedList.length : "null");
                 if (scheduleDialog.opened && scheduleDialog.editingIndex === -1 && !scheduleDialog.hasUnsavedChanges) {
                     scheduleDialog.localArchivedList = page.schedulerArchivedList.slice();
                 }
@@ -227,13 +221,11 @@ import org.kde.plasma.plasma5support as P5Support
         height: Kirigami.Units.gridUnit * 46
         standardButtons: QQC2.Dialog.NoButton
         onOpened: {
-            console.log("ScheduleDialog: onOpened triggered, current page.schedulerList count =", page ? page.schedulerList.length : "null");
             if (page) {
                 page.schedLoadSchedules();
                 scheduleDialog.hasUnsavedChanges = false;
                 localActiveList = page.schedulerList.slice();
                 localArchivedList = page.schedulerArchivedList.slice();
-                console.log("ScheduleDialog: onOpened initialized lists: localActiveList count =", localActiveList.length);
             }
             if (editingIndex !== -2 && editingIndex < 0) {
                 editingIndex = -1;

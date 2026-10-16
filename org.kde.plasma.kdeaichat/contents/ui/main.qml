@@ -125,6 +125,9 @@ PlasmoidItem {
     property bool sessionHistoryLoadBlocked: false
 
     signal clearChatInput()
+    // The input field lives inside the popup's Loader, so root can't reach it
+    // directly; the chat view listens for this and focuses the input.
+    signal focusInputRequested()
 
     VoiceManager {
         id: voiceManager
@@ -162,14 +165,7 @@ PlasmoidItem {
     }
 
     function focusInput() {
-        Qt.callLater(function() {
-            if (typeof msgInput !== "undefined" && msgInput) {
-                msgInput.forceActiveFocus();
-                if (typeof msgInput.focusTimerRef !== "undefined" && msgInput.focusTimerRef)
-                    msgInput.focusTimerRef.start();
-
-            }
-        });
+        root.focusInputRequested();
     }
 
     function fetchPiModels(callback) {
@@ -3447,7 +3443,7 @@ PlasmoidItem {
             soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
         }
 
-        if (voiceManager && voiceManager.enabled && (voiceManager.ttsAuto || voiceManager.callModeActive)) {
+        if (voiceManager && voiceManager.enabled && voiceManager.ttsAuto) {
             // Find the last assistant message
             for (var i = root.messages.length - 1; i >= 0; i--) {
                 if (root.messages[i].role === "assistant") {
@@ -5094,10 +5090,8 @@ PlasmoidItem {
             source: "FullRepresentationContent.qml"
 
             onStatusChanged: {
-                console.log("Loader status changed:", status, (status === Loader.Error ? "ERROR!" : ""));
-                if (status === Loader.Error) {
-                    console.log("Error string:", sourceComponent ? sourceComponent.errorString() : "No sourceComponent");
-                }
+                if (status === Loader.Error)
+                    console.warn("KDE AI Chat: failed to load the chat view.");
             }
         }
 
