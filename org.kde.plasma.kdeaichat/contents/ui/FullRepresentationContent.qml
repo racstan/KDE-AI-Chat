@@ -1866,7 +1866,8 @@ Item {
                                     icon.name: "mail-attachment"
                                     display: PC3.AbstractButton.IconOnly
                                     down: addMenu.visible
-                                    QQC2.ToolTip.text: text
+                                    // Attachments travel with the message, so say where to.
+                                    QQC2.ToolTip.text: text + "\n" + root.chatDestinationDescription(headerRow.destination)
                                     QQC2.ToolTip.visible: hovered && !addMenu.visible
                                     QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                                     onPressed: addMenu.visible ? addMenu.close() : addMenu.popup(addButton, 0, -addMenu.implicitHeight)
