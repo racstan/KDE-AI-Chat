@@ -572,8 +572,12 @@ function isHttpUrlAllowed(url) {
     return authority !== "" && !/[\s<>"'`]/.test(authority) && authority.indexOf("@") < 0;
 }
 
-function fetchModelsForProvider(providerId, configuration, onSuccess, onError) {
+// apiKeyOverride: a key held outside the configuration (e.g. loaded from
+// KWallet); it wins over the configured key.
+function fetchModelsForProvider(providerId, configuration, onSuccess, onError, apiKeyOverride) {
     let cfg = getProviderConfig(providerId, configuration);
+    if (apiKeyOverride)
+        cfg.apiKey = String(apiKeyOverride).trim();
     let apiKeyKey = getApiKeyConfigKey(providerId);
     if (apiKeyKey && (!cfg.apiKey || cfg.apiKey.trim() === "")) {
         if (onError) onError("API key missing for " + getProviderDisplayName(providerId));

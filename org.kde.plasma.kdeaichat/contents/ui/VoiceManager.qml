@@ -9,7 +9,29 @@ Item {
     property bool isPlaying: false
     property string playingText: ""
     property string currentPlayingChunk: ""
-    property string statusText: ""
+    // What the voice engine is doing right now. UI code must check this
+    // (or the helpers below), never the translated statusText.
+    // One of: "", "starting", "loading", "recording", "transcribing",
+    // "processing", "generating", "speaking", "paused".
+    property string phase: ""
+    property string device: ""
+    readonly property bool sttBusy: phase === "starting" || phase === "loading" || phase === "transcribing" || phase === "processing"
+    readonly property bool ttsGenerating: isPlaying && (phase === "generating" || phase === "loading")
+    readonly property bool ttsSpeaking: isPlaying && (phase === "speaking" || phase === "paused")
+    readonly property string statusText: {
+        var dev = device ? " · " + device.toUpperCase() : "";
+        switch (phase) {
+        case "starting": return i18n("Starting microphone…");
+        case "loading": return i18n("Loading speech model…") + dev;
+        case "recording": return i18n("Listening…") + dev;
+        case "transcribing": return i18n("Transcribing…") + dev;
+        case "processing": return i18n("Processing…");
+        case "generating": return i18n("Preparing speech…");
+        case "speaking": return i18n("Reading aloud…");
+        case "paused": return i18n("Paused");
+        }
+        return "";
+    }
     property string lastRecognizedText: ""
     readonly property string defaultSttModel: "small"
     property string httpToken: ""
@@ -93,10 +115,14 @@ Item {
                     if (xhr.status === 200) {
                         try {
                             let resp = JSON.parse(xhr.responseText);
-                            if (resp.status === "recording") {
-                                root.statusText = "Recording... [" + (resp.stt_device ? resp.stt_device.toUpperCase() : "CPU") + "]";
+                            if (resp.stt_device)
+                                root.device = resp.stt_device;
+                            if (resp.status === "loading_model") {
+                                root.phase = "loading";
+                            } else if (resp.status === "recording") {
+                                root.phase = "recording";
                             } else if (resp.status === "transcribing") {
-                                root.statusText = "Transcribing... [" + (resp.stt_device ? resp.stt_device.toUpperCase() : "CPU") + "]";
+                                root.phase = "transcribing";
                             } else if (resp.status === "idle" && root.isRecording) {
                                 // Likely finished or errored
                                 if (resp.stt_result && (resp.stt_result.type === "stt_result" || resp.stt_result.type === "stt_error"))
@@ -128,17 +154,17 @@ Item {
                             let resp = JSON.parse(xhr.responseText);
                             if (resp.status === "playing") {
                                 if (resp.chunk) root.currentPlayingChunk = resp.chunk;
-                                root.statusText = "Reading aloud...";
+                                root.phase = "speaking";
                             } else if (resp.status === "synthesizing") {
                                 root.currentPlayingChunk = "";
-                                root.statusText = "Generating speech...";
+                                root.phase = "generating";
                             } else if (resp.status === "idle" && root.isPlaying) {
                                 if (resp.tts_result && (resp.tts_result.type === "tts_error" || resp.tts_result.type === "error"))
                                     handleResponse(resp.tts_result, "http_poll");
                                 else {
                                     root.isPlaying = false;
                                     root.currentPlayingChunk = "";
-                                    root.statusText = "";
+                                    root.phase = "";
                                 }
                             }
                         } catch(e) {}
@@ -193,63 +219,64 @@ Item {
         } else if (resp.type === "setup_status") {
             root.setupStatus(resp.status);
         } else if (resp.type === "stt_status") {
-            let devTag = resp.device ? " [" + resp.device.toUpperCase() + "]" : "";
-            if (resp.status === "loading_model") root.statusText = "Loading model..." + devTag;
-            else if (resp.status === "recording") root.statusText = "Listening..." + devTag;
-            else if (resp.status === "transcribing") root.statusText = "Transcribing..." + devTag;
+            if (resp.device)
+                root.device = resp.device;
+            if (resp.status === "loading_model") root.phase = "loading";
+            else if (resp.status === "recording") root.phase = "recording";
+            else if (resp.status === "transcribing") root.phase = "transcribing";
         } else if (resp.type === "stt_result") {
             root.isRecording = false;
-            root.statusText = "";
+            root.phase = "";
             root.lastRecognizedText = resp.text || "";
             if (root.lastRecognizedText) {
                 root.textRecognized(root.lastRecognizedText);
             }
         } else if (resp.type === "stt_error") {
             root.isRecording = false;
-            root.statusText = "";
-            root.errorOccurred(resp.error || "Unknown STT error");
+            root.phase = "";
+            root.errorOccurred(resp.error || i18n("Speech recognition failed."));
         } else if (resp.type === "tts_done") {
             root.isPlaying = false;
             root.currentPlayingChunk = "";
-            root.statusText = "";
+            root.phase = "";
         } else if (resp.type === "tts_error") {
             root.isPlaying = false;
             root.currentPlayingChunk = "";
-            root.statusText = "";
-            root.errorOccurred(resp.error || "Unknown TTS error");
+            root.phase = "";
+            root.errorOccurred(resp.error || i18n("Reading aloud failed."));
         } else if (resp.type === "tts_status") {
             if (resp.status === "playing") {
                 root.isPlaying = true;
-                root.statusText = "Reading aloud...";
+                root.phase = "speaking";
                 if (resp.chunk) {
                     root.currentPlayingChunk = resp.chunk;
                 }
             } else if (resp.status === "synthesizing") {
                 root.isPlaying = true;
-                root.statusText = "Generating speech...";
+                root.phase = "generating";
             } else if (resp.status === "stopping") {
-                root.statusText = "";
+                root.phase = "";
             } else if (resp.status === "paused") {
-                root.statusText = "Paused";
+                root.phase = "paused";
             }
         } else if (resp.type === "tts_started") {
             root.isPlaying = true;
-            root.statusText = "Generating speech...";
+            root.phase = "generating";
         } else if (resp.type === "error") {
             root.isRecording = false;
             root.isPlaying = false;
             root.currentPlayingChunk = "";
-            root.statusText = "";
-            root.errorOccurred(resp.error || "Voice command failed");
+            root.phase = "";
+            root.errorOccurred(resp.error || i18n("The voice engine did not respond."));
         } else if (resp.type === "stt_started") {
             root.isRecording = true;
         } else if (resp.type === "stt_stopped") {
             root.isRecording = false;
-            root.statusText = "";
+            root.phase = "";
         } else if (resp.type === "tts_stopped") {
             root.isPlaying = false;
             root.currentPlayingChunk = "";
-            root.statusText = "";
+            root.phase = "";
         }
     }
 
@@ -374,7 +401,7 @@ Item {
 
     function startRecording() {
         root.isRecording = true;
-        root.statusText = "Recording...";
+        root.phase = "starting";
         let lang = plasmoid.configuration.voiceLanguage || "en";
         let model = plasmoid.configuration.voiceSttModel || root.defaultSttModel;
         let modelPath = plasmoid.configuration.voiceSttModelPath || "";
@@ -383,7 +410,7 @@ Item {
     }
 
     function stopRecording() {
-        root.statusText = "Processing...";
+        root.phase = "processing";
         sendHttpCommand(JSON.stringify({cmd: "stop_stt"}), 9015);
     }
 
@@ -402,5 +429,8 @@ Item {
         sendHttpCommand(JSON.stringify({cmd: "stop_tts"}), 9016);
         root.isPlaying = false;
         root.playingText = "";
+        root.currentPlayingChunk = "";
+        if (!root.isRecording)
+            root.phase = "";
     }
 }

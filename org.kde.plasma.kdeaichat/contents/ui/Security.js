@@ -291,3 +291,78 @@ function base64Encode(str) {
     return out;
 }
 
+
+/**
+ * Make model output safe to show with Text.MarkdownText.
+ *
+ * Qt's Markdown renderer passes raw HTML through and loads images by
+ * itself, so a reply containing ![](https://host/?q=<chat text>) or
+ * <img src="..."> would contact that host without any click. This:
+ *  - turns images into ordinary links (opened only when clicked, and
+ *    those clicks go through validateUrl()),
+ *  - turns <https://...> autolinks into [url](url),
+ *  - escapes every other "<" that could start an HTML tag.
+ * Inline code spans are left untouched so code still reads correctly.
+ *
+ * @param {string} text  Markdown from the model.
+ * @returns {string}     Markdown without remote resources or raw HTML.
+ */
+function sanitizeMarkdown(text) {
+    const s = String(text || "");
+    let out = "";
+    let i = 0;
+    while (i < s.length) {
+        const tick = s.indexOf("`", i);
+        if (tick < 0) {
+            out += _sanitizeMarkdownProse(s.substring(i));
+            break;
+        }
+        out += _sanitizeMarkdownProse(s.substring(i, tick));
+        let run = 0;
+        while (s.charAt(tick + run) === "`")
+            run++;
+        const fence = s.substr(tick, run);
+        // A code span ends at the next backtick run of the same length.
+        let search = tick + run;
+        let close = -1;
+        while (true) {
+            const next = s.indexOf(fence, search);
+            if (next < 0)
+                break;
+            if (s.charAt(next + run) !== "`" && s.charAt(next - 1) !== "`") {
+                close = next;
+                break;
+            }
+            search = next + 1;
+            while (s.charAt(search) === "`")
+                search++;
+        }
+        if (close < 0) {
+            // No closing run: the backticks are literal text.
+            out += fence;
+            i = tick + run;
+        } else {
+            out += s.substring(tick, close + run);
+            i = close + run;
+        }
+    }
+    return out;
+}
+
+function _sanitizeMarkdownProse(prose) {
+    return prose
+        // ![alt](url "title") -> [alt](url)
+        .replace(/!\[([^\]]*)\]\(\s*<?([^)\s>]*)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g, function(m, alt, url) {
+            return "[" + (alt.trim() || "image") + "](" + url + ")";
+        })
+        // ![alt][ref] and ![ref] -> link forms
+        .replace(/!\[([^\]]*)\](\[[^\]]*\])?/g, function(m, alt, ref) {
+            return "[" + alt + "]" + (ref || "");
+        })
+        // <https://example.org> -> [https://example.org](https://example.org)
+        .replace(/<((?:https?|mailto):[^>\s]+)>/gi, function(m, url) {
+            return "[" + url + "](" + url + ")";
+        })
+        // Anything else that could open an HTML tag, comment or declaration.
+        .replace(/<(?=[A-Za-z\/!?])/g, "&lt;");
+}

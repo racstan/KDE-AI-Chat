@@ -107,10 +107,6 @@ KCM.SimpleKCM {
     readonly property string schedulerScriptPath: dataDirPath + "/kde-ai-scheduler.py"
 
     // Helper functions
-    function translate(text) {
-        return i18n(text);
-    }
-
     function getHelperPath() {
         let urlStr = String(Qt.resolvedUrl("kde_ai_helper.py"));
         if (urlStr.indexOf("file://") === 0)
@@ -755,33 +751,7 @@ KCM.SimpleKCM {
                 highlighted: true
                 Layout.fillWidth: true
                 onClicked: {
-                    let now = new Date();
-                    now.setMinutes(now.getMinutes() + 5);
-                    now.setSeconds(0);
-                    now.setMilliseconds(0);
-                    let chats = configPage.scheduleDialog.getChatsList();
-                    let firstChatId = (chats.length > 0) ? chats[0].id : "";
-                    let firstChatName = (chats.length > 0) ? chats[0].name : "";
-                    configPage.scheduleDialog.draft = {
-                        "id": configPage.schedMakeUuid(),
-                        "name": "",
-                        "enabled": true,
-                        "chatId": firstChatId,
-                        "chatName": firstChatName,
-                        "message": "",
-                        "taskType": "single",
-                        "startDate": now.toISOString(),
-                        "schedType": "days",
-                        "schedEvery": 1,
-                        "schedTime": "09:00",
-                        "schedDays": [1],
-                        "schedDayOfMonth": 1,
-                        "limitEnabled": false,
-                        "limitCount": 5,
-                        "notify": true,
-                        "createdAt": new Date().toISOString()
-                    };
-                    configPage.scheduleDialog.editingIndex = -2;
+                    configPage.scheduleDialog.startNewSchedule();
                     configPage.scheduleDialog.open();
                 }
             }
