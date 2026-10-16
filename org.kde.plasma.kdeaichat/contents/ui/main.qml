@@ -260,7 +260,8 @@ PlasmoidItem {
                     "host": urlHost(ocUrl), "local": isLoopbackHost(urlHost(ocUrl))};
         }
         if (root.piMode)
-            return {"kind": "pi", "name": i18n("Pi agent"), "model": String(plasmoid.configuration.piModel || ""),
+            return {"kind": "pi", "name": i18n("Pi agent"),
+                    "model": String(getSessionProperty(sid, "chatModel", plasmoid.configuration.piModel || "") || ""),
                     "host": "", "local": false};
         var providerId = getEffectiveProvider(sid);
         var cfg = getProviderConfig(providerId, sid);

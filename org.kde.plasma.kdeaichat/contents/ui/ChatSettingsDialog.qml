@@ -6,14 +6,17 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "ProviderService.js" as ProviderService
 
-// A non-modal right-side drawer. It stays attached to the chat instead of
+// A non-modal right-side panel. It stays attached to the chat instead of
 // covering the whole conversation, and owns a draft until Apply is pressed.
+// In a narrow popup it overlays the chat instead of squeezing it.
 Rectangle {
     id: page
 
     property var rootRef: null
     property Item hostItem: null
     property bool sidebarOpen: false
+    // True when the panel is narrow enough that it covers the chat.
+    readonly property bool overlaysChat: parent ? parent.width < Kirigami.Units.gridUnit * 38 : false
     property string _sessionId: ""
     property string _sessionTitle: ""
     property string _mode: "provider"
@@ -36,8 +39,18 @@ Rectangle {
     property int _generation: 0
     property bool _busy: false
     property string _status: ""
+    // "information", "positive" or "error"; drives the status message type.
+    property string _statusKind: "information"
     property bool _draftDirty: false
     property bool _loadingDraft: false
+    readonly property string _defaultAgentText: i18n("(Default agent)")
+    readonly property string _defaultProviderText: i18n("(Default provider)")
+    readonly property string _defaultModelText: i18n("(Default model)")
+
+    function _withoutSentinel(text, sentinel) {
+        var t = String(text || "").trim();
+        return t === sentinel ? "" : t;
+    }
 
     function _get(key, fallback) {
         if (rootRef && typeof rootRef.getSessionProperty === "function")
@@ -45,10 +58,15 @@ Rectangle {
         return fallback;
     }
 
+    function _setStatus(text, kind) {
+        _status = text || "";
+        _statusKind = kind || "information";
+    }
+
     function _invalidate() {
         _generation += 1;
         _busy = false;
-        _status = "";
+        _setStatus("");
     }
 
     function _requestToken() {
@@ -60,10 +78,15 @@ Rectangle {
         return token && token.generation === _generation && token.sessionId === _sessionId;
     }
 
+    function _markDirty() {
+        if (!_loadingDraft)
+            _draftDirty = true;
+    }
+
     function _providerEntries() {
         var cfg = rootRef && rootRef.plasmoid ? rootRef.plasmoid.configuration : null;
         var global = cfg ? (cfg.provider || "openai") : "openai";
-        var result = [{ text: "Default · " + ProviderService.getProviderDisplayName(global, cfg), value: "" }];
+        var result = [{ text: i18nc("@item:inlistbox %1 is the default provider", "Default (%1)", ProviderService.getProviderDisplayName(global, cfg)), value: "" }];
         var configured = ProviderService.getConfiguredProviders(cfg);
         var walletKeys = rootRef ? (rootRef.walletApiKeys || {}) : {};
         var supported = ProviderService.getSupportedProviders(cfg);
@@ -76,6 +99,7 @@ Rectangle {
         return result;
     }
 
+    // The first entry (sentinel) stands for "use the default".
     function _names(items, sentinel) {
         var result = [sentinel];
         for (var i = 0; i < (items || []).length; i++) {
@@ -98,12 +122,12 @@ Rectangle {
         }
         modelCombo.model = _modelCandidates;
         modelCombo.editText = _model;
-        agentCombo.model = _names(rootRef ? rootRef.openCodeAgentsList : [], "(default agent)");
-        agentCombo.editText = _ocAgent || "";
-        ocProviderCombo.model = _names(rootRef ? rootRef.openCodeProvidersList : [], "(default provider)");
-        ocProviderCombo.editText = _ocProvider || "";
-        ocModelCombo.model = _names(rootRef ? rootRef.openCodeModelsList : [], "(default model)");
-        ocModelCombo.editText = _ocModel || "";
+        agentCombo.model = _names(rootRef ? rootRef.openCodeAgentsList : [], _defaultAgentText);
+        agentCombo.editText = _ocAgent || _defaultAgentText;
+        ocProviderCombo.model = _names(rootRef ? rootRef.openCodeProvidersList : [], _defaultProviderText);
+        ocProviderCombo.editText = _ocProvider || _defaultProviderText;
+        ocModelCombo.model = _names(rootRef ? rootRef.openCodeModelsList : [], _defaultModelText);
+        ocModelCombo.editText = _ocModel || _defaultModelText;
     }
 
     function _load(sessionId) {
@@ -112,7 +136,7 @@ Rectangle {
         var source = _get("source", "");
         if (!source)
             source = rootRef && rootRef.openCodeMode ? "opencode" : "provider";
-        _sessionTitle = rootRef && rootRef.currentSessionTitle ? rootRef.currentSessionTitle : "Current Chat";
+        _sessionTitle = rootRef ? rootRef.displayTitle(rootRef.currentSessionTitle) : "";
         _mode = source;
         _provider = _get("chatProvider", "");
         _model = _get("chatModel", "");
@@ -165,12 +189,29 @@ Rectangle {
         open();
     }
 
-    function open() { sidebarOpen = true; }
-    function close() { sidebarOpen = false; }
+    function open() {
+        sidebarOpen = true;
+        Qt.callLater(function() { modeProviderButton.forceActiveFocus(); });
+    }
+
+    // Closes without asking. Use requestClose() for user-initiated closing.
+    function close() {
+        sidebarOpen = false;
+        if (rootRef)
+            rootRef.focusInput();
+    }
+
+    // Asks what to do with unapplied changes before closing.
+    function requestClose() {
+        if (_draftDirty)
+            unsavedDialog.open();
+        else
+            close();
+    }
 
     function toggleForSession(sessionId) {
         if (visible && _sessionId === sessionId) {
-            close();
+            requestClose();
             return;
         }
         openForSession(sessionId);
@@ -188,7 +229,9 @@ Rectangle {
         var provider = _selectedProvider();
         var token = _requestToken();
         if (showStatus)
-            _status = "Refreshing models…";
+            _setStatus(i18n("Loading models…"));
+        // Keys stored in KWallet are only in memory, not in the config.
+        var walletKey = rootRef.walletApiKeys ? String(rootRef.walletApiKeys[provider] || "") : "";
         ProviderService.fetchModelsForProvider(provider, rootRef.plasmoid.configuration,
             function(models) {
                 if (!_current(token)) return;
@@ -198,27 +241,33 @@ Rectangle {
                 if (!_model && _modelCandidates.length > 0)
                     _model = _modelCandidates[0];
                 modelCombo.editText = _model;
-                _status = _modelCandidates.length > 0 ? ("Loaded " + _modelCandidates.length + " models") : "No models returned";
+                if (_modelCandidates.length > 0)
+                    _setStatus(showStatus ? i18np("Found %1 model.", "Found %1 models.", _modelCandidates.length) : "", "positive");
+                else
+                    _setStatus(i18n("The provider didn't list any models. You can still type a model name."), "information");
             },
             function(errorText) {
                 if (!_current(token)) return;
                 _busy = false;
-                _status = "Model refresh failed: " + errorText;
-            });
+                _setStatus(i18n("Couldn't load the model list: %1", errorText), "error");
+            },
+            walletKey);
     }
 
     function _refreshAgents() {
         if (_busy || !rootRef || typeof rootRef.fetchOpenCodeAgents !== "function")
             return;
         var token = _requestToken();
-        _status = "Refreshing agents…";
+        _setStatus(i18n("Loading OpenCode agents…"));
         rootRef.fetchOpenCodeAgents(function() {
             if (!_current(token)) return;
             _busy = false;
             _applyLists();
-            _status = (rootRef.openCodeAgentsList || []).length > 0
-                ? ("Loaded " + rootRef.openCodeAgentsList.length + " agent(s)")
-                : "No agents reported by OpenCode";
+            var count = (rootRef.openCodeAgentsList || []).length;
+            if (count > 0)
+                _setStatus(i18np("Found %1 agent.", "Found %1 agents.", count), "positive");
+            else
+                _setStatus(i18n("OpenCode didn't report any agents."), "information");
         });
     }
 
@@ -228,16 +277,16 @@ Rectangle {
             return;
         }
         var token = _requestToken();
-        _status = "Refreshing OpenCode providers…";
+        _setStatus(i18n("Loading OpenCode providers and models…"));
         rootRef.fetchOpenCodeProvidersAndModels(function() {
             if (!_current(token)) return;
             _busy = false;
             _applyLists();
             var providerCount = (rootRef.openCodeProvidersList || []).length;
-            var modelCount = (rootRef.openCodeModelsList || []).length;
-            _status = providerCount > 0
-                ? ("Loaded " + providerCount + " provider(s), " + modelCount + " model(s)")
-                : "OpenCode returned no providers or models";
+            if (providerCount > 0)
+                _setStatus("", "information");
+            else
+                _setStatus(i18n("OpenCode didn't report any providers or models. Is the OpenCode server running?"), "error");
             if (done) done();
         });
     }
@@ -246,14 +295,17 @@ Rectangle {
         if (_busy || !rootRef || typeof rootRef.fetchPiModels !== "function")
             return;
         var token = _requestToken();
-        _status = "Refreshing Pi providers and models…";
+        _setStatus(i18n("Loading Pi providers and models…"));
         rootRef.fetchPiModels(function(providers, modelMap) {
             if (!_current(token)) return;
             _piProviders = providers || [];
             var models = modelMap || {};
             _piModels = models[_piProvider] || [];
             _busy = false;
-            _status = _piProviders.length > 0 ? ("Loaded " + _piProviders.length + " Pi providers") : "Pi returned no providers";
+            if (_piProviders.length > 0)
+                _setStatus("", "information");
+            else
+                _setStatus(i18n("Pi didn't report any providers. Is the pi command installed and set up?"), "error");
         });
     }
 
@@ -263,20 +315,14 @@ Rectangle {
             close();
             return;
         }
-        var agent = agentCombo.editText.trim();
-        var ocProvider = ocProviderCombo.editText.trim();
-        var ocModel = ocModelCombo.editText.trim();
-        if (agent === "(default agent)") agent = "";
-        if (ocProvider === "(default provider)") ocProvider = "";
-        if (ocModel === "(default model)") ocModel = "";
         var selected = _selectedProvider();
         var overrides = {
             source: _mode,
             chatProvider: _mode === "pi" ? _piProvider : (selected === (rootRef.plasmoid.configuration.provider || "openai") ? "" : selected),
             chatModel: _mode === "pi" ? _piModel : modelCombo.editText.trim(),
-            openCodeAgent: agent,
-            openCodeProvider: ocProvider,
-            openCodeModel: ocModel,
+            openCodeAgent: _withoutSentinel(agentCombo.editText, _defaultAgentText),
+            openCodeProvider: _withoutSentinel(ocProviderCombo.editText, _defaultProviderText),
+            openCodeModel: _withoutSentinel(ocModelCombo.editText, _defaultModelText),
             openCodeWorkspaceCwd: cwdField.text.trim(),
             chatMemoryEnabled: memoryCheck.checked,
             chatMemory: memoryArea.text,
@@ -290,15 +336,11 @@ Rectangle {
             for (var key in overrides)
                 rootRef.setSessionProperty(_sessionId, key, overrides[key]);
         }
-        if (_mode === "pi" && rootRef.plasmoid && rootRef.plasmoid.configuration) {
-            rootRef.plasmoid.configuration.piProvider = _piProvider;
-            rootRef.plasmoid.configuration.piModel = _piModel;
-        }
         _draftDirty = false;
         close();
     }
 
-    function _reset() {
+    function _discardChanges() {
         _invalidate();
         _load(_sessionId);
     }
@@ -308,7 +350,7 @@ Rectangle {
         _invalidate();
         _mode = mode;
         _modelCandidates = [];
-        _draftDirty = true;
+        _markDirty();
         _applyLists();
         if (mode === "opencode")
             _refreshOpenCode(function() { _refreshAgents(); });
@@ -323,193 +365,376 @@ Rectangle {
     anchors.top: parent ? parent.top : undefined
     anchors.right: parent ? parent.right : undefined
     anchors.bottom: parent ? parent.bottom : undefined
-    width: Math.min(410, Math.max(340, (parent ? parent.width : 760) * 0.44))
+    width: overlaysChat
+        ? (parent ? parent.width : Kirigami.Units.gridUnit * 20)
+        : Math.min(Kirigami.Units.gridUnit * 22, Math.max(Kirigami.Units.gridUnit * 18, (parent ? parent.width : Kirigami.Units.gridUnit * 40) * 0.44))
     color: Kirigami.Theme.backgroundColor
-    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.45)
+    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.16)
     border.width: 1
+    radius: Kirigami.Units.cornerRadius || Kirigami.Units.smallSpacing
     focus: sidebarOpen
-    Keys.onEscapePressed: page.close()
+    Keys.onEscapePressed: page.requestClose()
     onSidebarOpenChanged: if (!sidebarOpen) page._invalidate()
+
+    // A request that never answers must not leave Apply disabled forever.
+    Timer {
+        interval: 20000
+        running: page._busy
+        onTriggered: {
+            page._busy = false;
+            page._generation += 1;
+            page._setStatus(i18n("No answer yet. Check the connection and try Refresh again."), "error");
+        }
+    }
 
     Connections {
         target: page.rootRef
         function onCurrentSessionIdChanged() {
-            if (page.visible && page.rootRef && page.rootRef.currentSessionId !== page._sessionId)
+            if (page.visible && page.rootRef && page.rootRef.currentSessionId !== page._sessionId) {
+                if (page._draftDirty)
+                    page.rootRef.showNotice(i18n("Unapplied Chat Settings changes for “%1” were discarded.", page._sessionTitle), "warning");
                 page._load(page.rootRef.currentSessionId);
+            }
         }
     }
 
     FolderDialog {
         id: folderDialog
-        title: "Select OpenCode workspace"
+        title: i18n("Choose OpenCode Workspace")
         onAccepted: {
             var path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0) path = path.substring(7);
+            if (path.indexOf("file://") === 0) path = decodeURIComponent(path.substring(7));
             cwdField.text = path;
-            if (!page._loadingDraft) page._draftDirty = true;
+            page._markDirty();
         }
+    }
+
+    Kirigami.PromptDialog {
+        id: unsavedDialog
+
+        title: i18n("Apply Changes?")
+        subtitle: i18n("You changed the settings for “%1” but haven't applied them.", page._sessionTitle)
+        standardButtons: Kirigami.Dialog.NoButton
+        customFooterActions: [
+            Kirigami.Action {
+                text: i18n("Apply")
+                icon.name: "dialog-ok-apply"
+                onTriggered: {
+                    unsavedDialog.close();
+                    page._save();
+                }
+            },
+            Kirigami.Action {
+                text: i18n("Discard")
+                icon.name: "edit-delete"
+                onTriggered: {
+                    unsavedDialog.close();
+                    page._draftDirty = false;
+                    page.close();
+                }
+            },
+            Kirigami.Action {
+                text: i18n("Cancel")
+                icon.name: "dialog-cancel"
+                onTriggered: unsavedDialog.close()
+            }
+        ]
+    }
+
+    // A checkable mode button whose checked state always follows
+    // currentMode (clicking a checkable button would otherwise break the
+    // binding).
+    component ModeButton: PC3.Button {
+        id: modeButton
+
+        property string mode
+        property string currentMode
+        signal chosen(string mode)
+
+        Layout.fillWidth: true
+        checkable: true
+        checked: currentMode === mode
+        onClicked: {
+            modeButton.chosen(mode);
+            checked = Qt.binding(function() { return modeButton.currentMode === modeButton.mode; });
+        }
+    }
+
+    // Caption above a field in this narrow panel.
+    component FieldLabel: PC3.Label {
+        Layout.fillWidth: true
+        Layout.topMargin: Kirigami.Units.smallSpacing
+        wrapMode: Text.Wrap
+    }
+
+    component Hint: PC3.Label {
+        Layout.fillWidth: true
+        wrapMode: Text.Wrap
+        font: Kirigami.Theme.smallFont
+        color: Kirigami.Theme.disabledTextColor
     }
 
     ColumnLayout {
         anchors.fill: parent
+        anchors.margins: 1
         spacing: 0
 
-        Rectangle {
+        RowLayout {
             Layout.fillWidth: true
-            implicitHeight: 72
-            color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.14)
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 16
-                spacing: 10
-                Kirigami.Icon { source: "preferences-other"; implicitWidth: 25; implicitHeight: 25 }
-                ColumnLayout {
+            Layout.margins: Kirigami.Units.largeSpacing
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Icon {
+                source: "document-properties"
+                Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+                Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+
+                Kirigami.Heading {
                     Layout.fillWidth: true
-                    spacing: 2
-                    PC3.Label { text: "Chat settings"; font.family: Kirigami.Theme.defaultFont.family; font.bold: true; font.pointSize: Kirigami.Theme.defaultFont.pointSize; Layout.fillWidth: true }
-                    PC3.Label { text: page._sessionTitle; font.family: Kirigami.Theme.defaultFont.family; opacity: 0.65; elide: Text.ElideRight; Layout.fillWidth: true }
+                    level: 4
+                    text: i18n("Chat Settings")
                 }
-                PC3.ToolButton {
-                    icon.name: "window-close"
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: "Close sidebar"
-                    onClicked: page.close()
+
+                PC3.Label {
+                    Layout.fillWidth: true
+                    text: page._sessionTitle
+                    font: Kirigami.Theme.smallFont
+                    color: Kirigami.Theme.disabledTextColor
+                    elide: Text.ElideRight
                 }
+            }
+
+            PC3.ToolButton {
+                text: i18n("Close")
+                icon.name: "window-close"
+                display: PC3.AbstractButton.IconOnly
+                QQC2.ToolTip.text: i18nc("@info:tooltip %1 is an action name", "%1 (Esc)", text)
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                onClicked: page.requestClose()
             }
         }
 
-        QQC2.ScrollView {
+        Kirigami.Separator {
+            Layout.fillWidth: true
+        }
+
+        PC3.ScrollView {
+            id: settingsScroll
+
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            ColumnLayout {
-                width: Math.max(0, page.width - 28)
-                anchors.margins: 14
-                spacing: 12
+            contentWidth: availableWidth
 
-                PC3.Label {
-                    text: "RESPONSE MODE"
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                    font.bold: true
-                    opacity: 0.62
+            ColumnLayout {
+                width: settingsScroll.availableWidth
+                spacing: Kirigami.Units.smallSpacing
+
+                Item {
+                    implicitHeight: Kirigami.Units.smallSpacing
+                }
+
+                Kirigami.Heading {
                     Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    level: 5
+                    text: i18n("Answer with")
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 6
-                    PC3.Button { text: "Provider"; checkable: true; checked: page._mode === "provider"; Layout.fillWidth: true; onClicked: page._setMode("provider") }
-                    PC3.Button { text: "OpenCode"; checkable: true; checked: page._mode === "opencode"; Layout.fillWidth: true; onClicked: page._setMode("opencode") }
-                    PC3.Button { text: "Pi"; checkable: true; checked: page._mode === "pi"; Layout.fillWidth: true; onClicked: page._setMode("pi") }
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    ModeButton {
+                        id: modeProviderButton
+                        mode: "provider"
+                        currentMode: page._mode
+                        text: i18n("AI Provider")
+                        onChosen: function(mode) { page._setMode(mode); }
+                    }
+                    ModeButton {
+                        mode: "opencode"
+                        currentMode: page._mode
+                        text: i18n("OpenCode")
+                        onChosen: function(mode) { page._setMode(mode); }
+                    }
+                    ModeButton {
+                        mode: "pi"
+                        currentMode: page._mode
+                        text: i18n("Pi Agent")
+                        onChosen: function(mode) { page._setMode(mode); }
+                    }
                 }
 
-                Rectangle {
+                // Provider
+                ColumnLayout {
                     visible: page._mode === "provider"
                     Layout.fillWidth: true
-                    implicitHeight: providerColumn.implicitHeight + 24
-                    radius: 8
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
-                    ColumnLayout {
-                        id: providerColumn
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 8
-                        PC3.Label { text: "Provider and model"; font.bold: true }
-                        QQC2.ComboBox {
-                            id: providerCombo
-                            Layout.fillWidth: true
-                            textRole: "text"
-                            valueRole: "value"
-                            onActivated: {
-                                page._provider = currentValue || "";
-                                page._model = "";
-                                page._modelCandidates = [];
-                                if (!page._loadingDraft) page._draftDirty = true;
-                                page._refreshModels(true);
-                            }
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    FieldLabel {
+                        text: i18n("Provider:")
+                    }
+                    PC3.ComboBox {
+                        id: providerCombo
+                        Layout.fillWidth: true
+                        textRole: "text"
+                        valueRole: "value"
+                        Accessible.name: i18n("Provider")
+                        onActivated: {
+                            page._provider = currentValue || "";
+                            page._model = "";
+                            page._modelCandidates = [];
+                            page._markDirty();
+                            page._refreshModels(true);
                         }
-                        RowLayout {
+                    }
+
+                    FieldLabel {
+                        text: i18n("Model:")
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        PC3.ComboBox {
+                            id: modelCombo
                             Layout.fillWidth: true
-                            spacing: 6
-                            QQC2.ComboBox {
-                                id: modelCombo
-                                Layout.fillWidth: true
-                                editable: true
-                                onActivated: { page._model = currentText; if (!page._loadingDraft) page._draftDirty = true; }
-                                onEditTextChanged: { if (activeFocus) { page._model = editText; if (!page._loadingDraft) page._draftDirty = true; } }
-                            }
-                            PC3.ToolButton {
-                                icon.name: "view-refresh"
-                                enabled: !page._busy
-                                onClicked: page._refreshModels(true)
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: "Refresh models"
-                            }
+                            editable: true
+                            Accessible.name: i18n("Model")
+                            onActivated: { page._model = currentText; page._markDirty(); }
+                            onEditTextChanged: { if (activeFocus) { page._model = editText; page._markDirty(); } }
                         }
-                        PC3.Label {
-                            text: "Choose a configured provider, then select or type its model."
-                            wrapMode: Text.WordWrap
-                            opacity: 0.62
-                            Layout.fillWidth: true
+                        PC3.ToolButton {
+                            text: i18n("Refresh Model List")
+                            icon.name: "view-refresh"
+                            display: PC3.AbstractButton.IconOnly
+                            enabled: !page._busy
+                            onClicked: page._refreshModels(true)
+                            QQC2.ToolTip.text: text
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                         }
+                    }
+                    Hint {
+                        text: i18n("Pick from the list or type a model name. Providers are set up under Configure KDE AI Chat.")
                     }
                 }
 
-                Rectangle {
+                // OpenCode
+                ColumnLayout {
                     visible: page._mode === "opencode"
                     Layout.fillWidth: true
-                    implicitHeight: openCodeColumn.implicitHeight + 24
-                    radius: 8
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
-                    ColumnLayout {
-                        id: openCodeColumn
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 8
-                        RowLayout {
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    FieldLabel {
+                        text: i18n("Agent:")
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        PC3.ComboBox {
+                            id: agentCombo
                             Layout.fillWidth: true
-                            PC3.Label { text: "OpenCode"; font.bold: true; Layout.fillWidth: true }
-                            PC3.ToolButton { icon.name: "view-refresh"; enabled: !page._busy; onClicked: page._refreshOpenCode(function() { page._refreshAgents(); }) }
+                            editable: true
+                            Accessible.name: i18n("OpenCode agent")
+                            onEditTextChanged: { page._ocAgent = editText; page._markDirty(); }
                         }
-                        QQC2.Label { text: "Provider"; opacity: 0.7 }
-                        QQC2.ComboBox { id: ocProviderCombo; Layout.fillWidth: true; editable: true; onEditTextChanged: { page._ocProvider = editText; if (!page._loadingDraft) page._draftDirty = true; } }
-                        QQC2.Label { text: "Model"; opacity: 0.7 }
-                        QQC2.ComboBox { id: ocModelCombo; Layout.fillWidth: true; editable: true; onEditTextChanged: { page._ocModel = editText; if (!page._loadingDraft) page._draftDirty = true; } }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            QQC2.Label { text: "Agent"; opacity: 0.7; Layout.fillWidth: true }
-                            PC3.ToolButton { icon.name: "view-refresh"; enabled: !page._busy; onClicked: page._refreshAgents() }
+                        PC3.ToolButton {
+                            text: i18n("Reload from OpenCode")
+                            icon.name: "view-refresh"
+                            display: PC3.AbstractButton.IconOnly
+                            enabled: !page._busy
+                            onClicked: page._refreshOpenCode(function() { page._refreshAgents(); })
+                            QQC2.ToolTip.text: text
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                         }
-                        QQC2.ComboBox { id: agentCombo; Layout.fillWidth: true; editable: true; onEditTextChanged: { page._ocAgent = editText; if (!page._loadingDraft) page._draftDirty = true; } }
-                        QQC2.Label { text: "Workspace"; opacity: 0.7 }
-                        RowLayout {
+                    }
+
+                    FieldLabel {
+                        text: i18n("Provider:")
+                    }
+                    PC3.ComboBox {
+                        id: ocProviderCombo
+                        Layout.fillWidth: true
+                        editable: true
+                        Accessible.name: i18n("OpenCode provider")
+                        onEditTextChanged: { page._ocProvider = editText; page._markDirty(); }
+                    }
+
+                    FieldLabel {
+                        text: i18n("Model:")
+                    }
+                    PC3.ComboBox {
+                        id: ocModelCombo
+                        Layout.fillWidth: true
+                        editable: true
+                        Accessible.name: i18n("OpenCode model")
+                        onEditTextChanged: { page._ocModel = editText; page._markDirty(); }
+                    }
+                    Hint {
+                        text: i18n("An agent with its own model in opencode.json uses that model.")
+                    }
+
+                    FieldLabel {
+                        text: i18n("Workspace folder:")
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        PC3.TextField {
+                            id: cwdField
                             Layout.fillWidth: true
-                            QQC2.TextField { id: cwdField; Layout.fillWidth: true; maximumLength: 4096; placeholderText: "/absolute/path"; onTextChanged: { page._ocCwd = text; if (!page._loadingDraft) page._draftDirty = true; } }
-                            PC3.ToolButton { icon.name: "folder"; onClicked: folderDialog.open() }
+                            maximumLength: 4096
+                            placeholderText: i18n("Same as the default")
+                            Accessible.name: i18n("Workspace folder")
+                            onTextChanged: { page._ocCwd = text; page._markDirty(); }
+                        }
+                        PC3.ToolButton {
+                            text: i18n("Choose Folder…")
+                            icon.name: "document-open-folder"
+                            display: PC3.AbstractButton.IconOnly
+                            onClicked: folderDialog.open()
+                            QQC2.ToolTip.text: text
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                         }
                     }
                 }
 
-                Rectangle {
+                // Pi
+                ColumnLayout {
                     visible: page._mode === "pi"
                     Layout.fillWidth: true
-                    implicitHeight: piColumn.implicitHeight + 24
-                    radius: 8
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
-                    ColumnLayout { id: piColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
-                        RowLayout { Layout.fillWidth: true
-                            PC3.Label { text: "Pi Agent"; font.bold: true; Layout.fillWidth: true }
-                            PC3.ToolButton { icon.name: "view-refresh"; enabled: !page._busy; onClicked: page._refreshPi(); QQC2.ToolTip.visible: hovered; QQC2.ToolTip.text: "Refresh Pi providers and models" }
-                        }
-                        QQC2.Label { text: "Provider"; opacity: 0.7 }
-                        QQC2.ComboBox {
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    FieldLabel {
+                        text: i18n("Provider:")
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        PC3.ComboBox {
                             id: piProviderCombo
                             Layout.fillWidth: true
                             model: page._piProviders
                             textRole: "text"
                             valueRole: "value"
+                            Accessible.name: i18n("Pi provider")
                             currentIndex: {
                                 for (var i = 0; i < model.length; i++) if (model[i].value === page._piProvider) return i;
                                 return -1;
@@ -518,82 +743,173 @@ Rectangle {
                                 page._piProvider = currentValue || currentText;
                                 page._piModels = rootRef && rootRef.piProviderModelMap ? (rootRef.piProviderModelMap[page._piProvider] || []) : [];
                                 page._piModel = page._piModels.length > 0 ? page._piModels[0] : "";
-                                page._draftDirty = true;
+                                page._markDirty();
                             }
                         }
-                        QQC2.Label { text: "Model"; opacity: 0.7 }
-                        QQC2.ComboBox {
-                            id: piModelCombo
-                            Layout.fillWidth: true
-                            editable: true
-                            model: page._piModels
-                            editText: page._piModel
-                            onActivated: { page._piModel = currentText; page._draftDirty = true; }
-                            onEditTextChanged: { if (activeFocus) { page._piModel = editText; page._draftDirty = true; } }
+                        PC3.ToolButton {
+                            text: i18n("Reload from Pi")
+                            icon.name: "view-refresh"
+                            display: PC3.AbstractButton.IconOnly
+                            enabled: !page._busy
+                            onClicked: page._refreshPi()
+                            QQC2.ToolTip.text: text
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                         }
-                        PC3.Label { text: "Pi settings are applied to the Pi CLI when you press Apply."; wrapMode: Text.WordWrap; opacity: 0.62; Layout.fillWidth: true }
                     }
-                }
 
-                PC3.Label {
-                    visible: page._status.length > 0
-                    text: page._status
-                    color: page._status.indexOf("failed") >= 0 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.highlightColor
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: memoryColumn.implicitHeight + 24
-                    radius: 8
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
-                    ColumnLayout { id: memoryColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
-                        RowLayout { Layout.fillWidth: true
-                            PC3.Label { text: "Chat memory"; font.bold: true; Layout.fillWidth: true }
-                            QQC2.CheckBox { id: memoryCheck; text: "On"; onCheckedChanged: { page._memoryEnabled = checked; if (!page._loadingDraft) page._draftDirty = true; } }
-                        }
-                        QQC2.TextArea { id: memoryArea; Layout.fillWidth: true; Layout.preferredHeight: 80; maximumLength: 100000; enabled: memoryCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Notes retained for this chat"; onTextChanged: { page._memory = text; if (!page._loadingDraft) page._draftDirty = true; } }
+                    FieldLabel {
+                        text: i18n("Model:")
                     }
-                }
-
-                Rectangle {
-                    visible: page._mode !== "opencode"
-                    Layout.fillWidth: true
-                    implicitHeight: systemColumn.implicitHeight + 24
-                    radius: 8
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
-                    ColumnLayout { id: systemColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
-                        RowLayout { Layout.fillWidth: true
-                            PC3.Label { text: "System instructions"; font.bold: true; Layout.fillWidth: true }
-                            QQC2.CheckBox { id: systemCheck; text: "On"; onCheckedChanged: { page._systemEnabled = checked; if (!page._loadingDraft) page._draftDirty = true; } }
-                        }
-                        QQC2.TextArea { id: systemArea; Layout.fillWidth: true; Layout.preferredHeight: 96; maximumLength: 100000; enabled: systemCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Instructions for this chat"; onTextChanged: { page._system = text; if (!page._loadingDraft) page._draftDirty = true; } }
+                    PC3.ComboBox {
+                        id: piModelCombo
+                        Layout.fillWidth: true
+                        editable: true
+                        model: page._piModels
+                        editText: page._piModel
+                        Accessible.name: i18n("Pi model")
+                        onActivated: { page._piModel = currentText; page._markDirty(); }
+                        onEditTextChanged: { if (activeFocus) { page._piModel = editText; page._markDirty(); } }
+                    }
+                    Hint {
+                        text: i18n("Applies to this chat only.")
                     }
                 }
 
                 RowLayout {
-                    visible: page._mode !== "opencode"
+                    visible: page._busy || page._status.length > 0
                     Layout.fillWidth: true
-                    PC3.Label { text: "Response length"; Layout.fillWidth: true }
-                    QQC2.ComboBox { id: responseLengthCombo; model: ["Default", "Short", "Balanced", "Detailed", "Comprehensive"]; onActivated: if (!page._loadingDraft) page._draftDirty = true }
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    PC3.BusyIndicator {
+                        visible: page._busy
+                        running: page._busy
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                    }
+
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        visible: page._status.length > 0
+                        text: page._status
+                        type: page._statusKind === "error" ? Kirigami.MessageType.Error
+                            : page._statusKind === "positive" ? Kirigami.MessageType.Positive
+                            : Kirigami.MessageType.Information
+                    }
                 }
-                Item { implicitHeight: 10 }
+
+                Kirigami.Separator {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Kirigami.Units.largeSpacing
+                }
+
+                Kirigami.Heading {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    Layout.topMargin: Kirigami.Units.smallSpacing
+                    level: 5
+                    text: i18n("Instructions for this chat")
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    PC3.CheckBox {
+                        id: systemCheck
+                        visible: page._mode !== "opencode"
+                        Layout.fillWidth: true
+                        text: i18n("Use system instructions")
+                        onCheckedChanged: { page._systemEnabled = checked; page._markDirty(); }
+                    }
+                    PC3.TextArea {
+                        id: systemArea
+                        visible: page._mode !== "opencode"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+                        maximumLength: 100000
+                        enabled: systemCheck.checked
+                        wrapMode: Text.WordWrap
+                        placeholderText: i18n("Leave empty to use the instructions from Settings")
+                        Accessible.name: i18n("System instructions")
+                        onTextChanged: { page._system = text; page._markDirty(); }
+                    }
+
+                    PC3.CheckBox {
+                        id: memoryCheck
+                        Layout.fillWidth: true
+                        text: i18n("Use memory")
+                        onCheckedChanged: { page._memoryEnabled = checked; page._markDirty(); }
+                    }
+                    PC3.TextArea {
+                        id: memoryArea
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+                        maximumLength: 100000
+                        enabled: memoryCheck.checked
+                        wrapMode: Text.WordWrap
+                        placeholderText: i18n("Facts the assistant should remember in this chat")
+                        Accessible.name: i18n("Memory")
+                        onTextChanged: { page._memory = text; page._markDirty(); }
+                    }
+                    Hint {
+                        text: i18n("Instructions and memory are sent with every message in this chat. Don't put passwords here.")
+                    }
+
+                    RowLayout {
+                        visible: page._mode !== "opencode"
+                        Layout.fillWidth: true
+                        Layout.topMargin: Kirigami.Units.smallSpacing
+                        spacing: Kirigami.Units.smallSpacing
+
+                        PC3.Label {
+                            Layout.fillWidth: true
+                            text: i18n("Answer length:")
+                        }
+                        PC3.ComboBox {
+                            id: responseLengthCombo
+                            model: [i18nc("@item:inlistbox answer length", "Default"), i18nc("@item:inlistbox answer length", "Short"), i18nc("@item:inlistbox answer length", "Balanced"), i18nc("@item:inlistbox answer length", "Detailed"), i18nc("@item:inlistbox answer length", "Comprehensive")]
+                            Accessible.name: i18n("Answer length")
+                            onActivated: page._markDirty()
+                        }
+                    }
+                }
+
+                Item {
+                    implicitHeight: Kirigami.Units.largeSpacing
+                }
             }
         }
 
-        Rectangle {
+        Kirigami.Separator {
             Layout.fillWidth: true
-            implicitHeight: 66
-            color: Kirigami.Theme.backgroundColor
-            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
-            RowLayout { anchors.fill: parent; anchors.margins: 12; spacing: 8
-                PC3.Button { text: "Reset"; icon.name: "edit-undo"; onClicked: page._reset() }
-                Item { Layout.fillWidth: true }
-                PC3.Label { visible: page._draftDirty; text: "Unsaved"; opacity: 0.62 }
-                PC3.Button { text: "Apply"; highlighted: true; enabled: !page._busy; onClicked: page._save() }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.margins: Kirigami.Units.largeSpacing
+            spacing: Kirigami.Units.smallSpacing
+
+            PC3.Button {
+                text: i18n("Discard Changes")
+                icon.name: "edit-undo"
+                enabled: page._draftDirty
+                onClicked: page._discardChanges()
+            }
+            Item {
+                Layout.fillWidth: true
+            }
+            PC3.Button {
+                text: i18n("Apply")
+                icon.name: "dialog-ok-apply"
+                highlighted: true
+                enabled: !page._busy
+                onClicked: page._save()
             }
         }
     }

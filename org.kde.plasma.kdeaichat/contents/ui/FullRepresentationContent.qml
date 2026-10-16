@@ -114,7 +114,7 @@ Item {
         id: mainContentColumn
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
-        anchors.rightMargin: chatSettingsDialog.visible ? chatSettingsDialog.width + Kirigami.Units.smallSpacing : Kirigami.Units.smallSpacing
+        anchors.rightMargin: chatSettingsDialog.visible && !chatSettingsDialog.overlaysChat ? chatSettingsDialog.width + Kirigami.Units.smallSpacing : Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
         // Header: chat list, title with where messages go, chat actions.
@@ -2127,7 +2127,7 @@ Item {
             if (root.loading)
                 root.stopStreaming();
             else if (chatSettingsDialog.visible)
-                chatSettingsDialog.close();
+                chatSettingsDialog.requestClose();
             else
                 root.historyOnlyMode = false;
         }
