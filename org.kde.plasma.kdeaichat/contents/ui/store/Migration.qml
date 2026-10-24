@@ -10,6 +10,7 @@
 // widget's config is written to per-chat files, read back to verify, backed
 // up inside the private chats folder, and only then cleared from the config.
 import QtQuick
+import "../ProviderService.js" as ProviderService
 
 QtObject {
     id: migration
@@ -144,6 +145,19 @@ QtObject {
                     callback(0);
             });
         });
+    }
+
+    // Builds the provider list from the pre-1.4.0 provider settings, once.
+    // Needs the KWallet keys: a built-in provider is kept if it has one.
+    // Runs after migrateKeys, so custom provider keys are already out of the
+    // JSON it reads. Returns true when the list was created.
+    function migrateProviders() {
+        if (!configuration || ProviderService.parseProviders(configuration).length > 0 || !wallet || !wallet.usable)
+            return false;
+        var list = ProviderService.legacyProviders(configuration, wallet.keys);
+        configuration.providersJson = ProviderService.serializeProviders(list);
+        console.info("KDE AI Chat: provider list created with", list.length, "providers");
+        return true;
     }
 
     // Writes chats loaded from the old config entry to the chat store.

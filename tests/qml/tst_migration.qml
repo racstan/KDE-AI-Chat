@@ -162,4 +162,24 @@ TestCase {
         verify(!ok);
         compare(config.chatSessionsJson, JSON.stringify(sessions));
     }
+
+    function test_provider_list_is_built_once_from_old_settings() {
+        var config = makeConfig({providersJson: "", provider: "nvidia", nvidiaModel: "meta/llama", openRouterModel: "", mistralModel: "",
+                                 customProvidersJson: JSON.stringify([{id: "custom_9", name: "Mine", type: "anthropic", baseUrl: "https://a/v1", model: "c"}])});
+        var env = setup(config, {"openrouter": "or-key"});
+        verify(env.migration.migrateProviders());
+        var ids = JSON.parse(config.providersJson).map(function(p) { return p.id; }).sort();
+        compare(ids, ["custom_9", "nvidia", "openrouter"]);
+        // Already migrated: nothing changes.
+        config.nvidiaModel = "changed";
+        verify(!env.migration.migrateProviders());
+        verify(config.providersJson.indexOf("changed") === -1);
+    }
+
+    function test_provider_list_waits_for_wallet() {
+        var config = makeConfig({providersJson: "", provider: "openai", customProvidersJson: "[]"});
+        var env = setup(config, {}, "disabled");
+        verify(!env.migration.migrateProviders());
+        compare(config.providersJson, "");
+    }
 }

@@ -60,7 +60,7 @@ Item {
         if (_keyMigrationDone || !walletStore.usable)
             return;
         _keyMigrationDone = true;
-        migration.migrateKeys(null);
+        migration.migrateKeys(function() { migration.migrateProviders(); });
     }
 
     Wallet {

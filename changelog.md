@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **📜 License**: KDE AI Chat is now licensed under the GNU GPL v3.0 or later (previously GPL-2.0 or later). The full text is in `LICENSE`.
 
 ### Added
+- **🧩 Providers as a simple list**: Settings → General now shows your providers as one list. Add one from a preset (OpenAI, Anthropic, OpenRouter, Gemini, Groq, DeepSeek, Mistral, xAI, NVIDIA, Ollama, LM Studio, llama.cpp, LiteLLM, any OpenAI-compatible server…), edit its URL, key and model, fetch its model list, or make it the default. Your existing providers are carried over automatically.
+- **⚡ Anthropic replies stream** as they're written, like other providers.
 - **🔀 Per-chat provider & model switching**: Open the chat settings panel to change provider, model or mode for the current chat without touching your other chats. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 - **🔌 Multiple custom providers**: Add as many OpenAI-compatible providers as you like, each with its own name, URL and key — including several of the same type. Keys are stored in KWallet. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 - **🧰 MCP tool support (opt-in)**: Built-in web search plus your own MCP servers, configured under Settings → Other. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
@@ -30,9 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automatic migration**: On first start, plaintext keys (and keys in the old `KaiChat` wallet folder) move to the **KDEAIChat** wallet folder, and chats move to their own files with a backup kept. Plaintext copies are removed only after the move is confirmed.
 
 ### Removed
+- **MCP tools in direct mode, system-information injection, the memory manager and automatic context compaction.** Use OpenCode or Pi mode for tools; the system prompt and message limit remain.
+- **Image-generation providers**, which never worked in chat.
 - **PlasmaShell auto-restart watchdog**: The widget no longer starts a background monitor that restarted your desktop shell, or spawns a heartbeat process every 5 seconds. Any monitor left running by an earlier version is stopped automatically.
 
 ### Fixed
+- **OpenRouter "HTTP 402: requires more credits"**: requests now ask for at most 4,096 output tokens by default instead of the model's maximum.
+- A reply could be built from the chat on screen instead of the chat it belonged to.
 - Closing the settings page before keys had loaded could delete them from KWallet.
 - The Save buttons for DeepSeek, MiniMax and OpenRouter keys didn't work.
 - The Settings → Other page and model search in Settings → General failed to load or threw errors.

@@ -1,12 +1,19 @@
 {
   "org.kde.plasma.kdeaichat/contents/config/config.qml": 4,
   "org.kde.plasma.kdeaichat/contents/ui/ChatSettingsDialog.qml": 3,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml": 16,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigOther.qml": 6,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigSystemPrompt.qml": 46,
+  "org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/ConfigOther.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/ConfigSystemPrompt.qml": 13,
   "org.kde.plasma.kdeaichat/contents/ui/ConfigVoice.qml": 133,
   "org.kde.plasma.kdeaichat/contents/ui/FullRepresentationContent.qml": 306,
   "org.kde.plasma.kdeaichat/contents/ui/ScheduleDialog.qml": 47,
   "org.kde.plasma.kdeaichat/contents/ui/VoiceManager.qml": 2,
-  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 23
+  "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/config/ProvidersPanel.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 23,
+  "org.kde.plasma.kdeaichat/contents/ui/store/ChatStore.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/store/HelperRunner.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/store/Migration.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/store/Storage.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/store/Wallet.qml": 0
 }

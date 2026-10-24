@@ -31,6 +31,16 @@ Paths are relative to `org.kde.plasma.kdeaichat/contents/ui/`. FRC = `FullRepres
 
 No path leaves the UI stuck on "loading"; every error, timeout and abort resets it.
 
+## PR #7 (draft, Oct 16)
+
+An earlier session's draft PR #7 ("Chat window: consistent, accessible, private") was never tested on a real desktop and conflicts with `master`. Rather than merging it, bring its ideas into this phase piece by piece, each tested with the harness, then close it:
+- follow the Plasma colour scheme/accent; one spacing scale; Breeze icons instead of emoji
+- header with provider/model chip ("leaves the computer" indicator)
+- empty-chat guidance; plain-language errors with Try again / Open settings
+- Undo for clear/delete chat; confirm before regenerate drops later messages
+- keyboard: Ctrl+N, Ctrl+H, Esc stops a reply, Up edits the last message, `/` suggests templates; accessible names on icon buttons
+- `Sec.sanitizeMarkdown`: replies can't load remote images/HTML
+
 ## Design principles
 
 - **Messages are a real model** (`ListModel`) with a stable `id` per message. Streaming changes only the last row's `text` (`setProperty`). Nothing ever replaces the whole list.

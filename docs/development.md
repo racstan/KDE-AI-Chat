@@ -13,6 +13,14 @@ scripts/dev-run.sh [seconds] [screenshot.png]
 
 Your real widget, its settings and your chats are never read or changed. KWallet is the real session wallet, because it's a system service. The sandbox resets every run; use `DEV_KEEP=1` to keep chats between runs.
 
+To send one **real message** through the widget's own send path (in the sandbox):
+
+```bash
+scripts/dev-send.sh openrouter openrouter/auto ["message"]
+```
+
+It copies that provider's key from your KWallet folder `KDEAIChat` into the dev folder `KDEAIChat-dev` inside D-Bus (never printed), delivers the message as a scheduler trigger, prints the conversation, and deletes the dev folder afterwards.
+
 To try the widget on your real panel instead:
 
 ```bash
