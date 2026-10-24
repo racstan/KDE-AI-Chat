@@ -176,6 +176,23 @@ const tests = {
         assert.deepStrictEqual(events[events.length - 1], {type: "done", reason: "aborted"});
     },
 
+    permission_and_question_replies() {
+        const sent = [];
+        const xhrFactory = () => ({open(m, u) { this.m = m; this.u = u; }, setRequestHeader() {},
+            send(body) { sent.push({m: this.m, u: this.u, body: body ? JSON.parse(body) : null}); this.readyState = 4; this.status = 200; this.onreadystatechange(); }});
+        const target = {baseUrl: "http://127.0.0.1:4096", directory: "/w", xhrFactory};
+        let ok = null;
+        OC.replyPermission(target, "per_1", "once", r => { ok = r; });
+        OC.replyQuestion(target, "q 1", [["A"], ["B", "C"]], () => {});
+        OC.replyQuestion(target, "q2", null, () => {});
+        assert.strictEqual(ok, true);
+        assert.deepStrictEqual(plain(sent), [
+            {m: "POST", u: "http://127.0.0.1:4096/permission/per_1/reply?directory=%2Fw", body: {reply: "once"}},
+            {m: "POST", u: "http://127.0.0.1:4096/question/q%201/reply?directory=%2Fw", body: {answers: [["A"], ["B", "C"]]}},
+            {m: "POST", u: "http://127.0.0.1:4096/question/q2/reject?directory=%2Fw", body: null},
+        ]);
+    },
+
     send_reports_unreachable_server() {
         const events = [];
         OC.send({baseUrl: "http://127.0.0.1:1", directory: "", sessionId: "", body: {}, parserFactory: DB.createSseParser,
