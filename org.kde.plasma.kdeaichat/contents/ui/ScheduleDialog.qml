@@ -75,7 +75,7 @@ import org.kde.plasma.plasma5support as P5Support
         }
 
         function getChatsList() {
-            let raw = (typeof page !== "undefined" && page && page.cfg_chatSessionsJson) ? page.cfg_chatSessionsJson : "[]";
+            let raw = (typeof page !== "undefined" && page && page.chatIndexJson) ? page.chatIndexJson : "[]";
             try {
                 let arr = JSON.parse(raw);
                 let list = [];

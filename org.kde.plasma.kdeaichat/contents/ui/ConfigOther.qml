@@ -8,6 +8,7 @@ import org.kde.kcmutils as KCM
 import org.kde.plasma.plasma5support 2.0 as P5Support
 
 import "Security.js" as Sec
+import "store" as Store
 
 KCM.SimpleKCM {
     id: configPage
@@ -26,7 +27,17 @@ KCM.SimpleKCM {
     property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
-    property string cfg_chatSessionsJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]"
+    // Chat list for the schedule dialog, read from the chat store (older
+    // versions kept it in this config entry). Not a cfg_ property, so the
+    // settings dialog can't write a stale copy back.
+    readonly property Store.ChatStore chatIndexStore: Store.ChatStore {
+        directory: {
+            var data = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "");
+            return decodeURIComponent(data) + "/kdeaichat/chats/applet-" + plasmoid.id;
+        }
+    }
+    readonly property string chatIndexJson: chatIndexStore.indexJson()
+        || ((plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]")
     property string cfg_promptTemplates: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.promptTemplates || "[]") : "[]"
 
     // Keep this as a real KCM config alias so the MCP server list is restored

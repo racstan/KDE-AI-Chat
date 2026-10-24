@@ -58,6 +58,9 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/__init__.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/privacy.py",
                       "org.kde.plasma.kdeaichat/contents/ui/store/Wallet.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/store/ChatStore.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/store/HelperRunner.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/chats.py",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py",
                   ]
                   missing = [name for name in required if name not in names]

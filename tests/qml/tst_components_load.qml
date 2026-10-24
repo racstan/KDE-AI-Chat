@@ -20,6 +20,8 @@ TestCase {
             { tag: "ScheduleDialog", url: uiDir + "ScheduleDialog.qml" },
             { tag: "VoiceManager", url: uiDir + "VoiceManager.qml" },
             { tag: "store/Wallet", url: uiDir + "store/Wallet.qml" },
+            { tag: "store/ChatStore", url: uiDir + "store/ChatStore.qml" },
+            { tag: "store/HelperRunner", url: uiDir + "store/HelperRunner.qml" },
             { tag: "ConfigGeneral", url: uiDir + "ConfigGeneral.qml" },
             { tag: "ConfigSystemPrompt", url: uiDir + "ConfigSystemPrompt.qml" },
             { tag: "ConfigVoice", url: uiDir + "ConfigVoice.qml" },

@@ -130,6 +130,21 @@ PlasmoidItem {
         id: wallet
     }
 
+    Store.HelperRunner {
+        id: helperRunner
+        helperPath: root.getHelperPath()
+    }
+
+    // Chats are stored per widget instance, as they were in the config.
+    Store.ChatStore {
+        id: chatStore
+        directory: {
+            var data = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "");
+            return decodeURIComponent(data) + "/kdeaichat/chats/applet-" + plasmoid.id;
+        }
+        runHelper: helperRunner.run
+    }
+
     VoiceManager {
         id: voiceManager
 
@@ -221,17 +236,19 @@ PlasmoidItem {
         return "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
     }
 
-    function parseSessions() {
+    // Normalises `stored` (chats read from the chat store) or, when it is
+    // null, the chat history older versions kept in the widget's config.
+    function parseSessions(stored) {
         root.sessionHistoryLoadError = "";
         root.sessionHistoryLoadBlocked = false;
-        var raw = String(plasmoid.configuration.chatSessionsJson || "[]");
+        var raw = stored ? "" : String(plasmoid.configuration.chatSessionsJson || "[]");
         if (raw.length > 25000000) {
             root.sessionHistoryLoadError = "Stored chat history is too large to load safely.";
             root.sessionHistoryLoadBlocked = true;
             return [];
         }
         try {
-            var arr = JSON.parse(raw);
+            var arr = stored || JSON.parse(raw);
             if (!Array.isArray(arr)) return [];
             var valid = [];
             var seenIds = {};
@@ -277,14 +294,7 @@ PlasmoidItem {
         if (root.sessionHistoryLoadBlocked)
             return;
         try {
-            var encoded = JSON.stringify(root.sessions);
-            if (encoded.length > 25000000) {
-                root.sessionHistoryLoadError = "Chat history is too large to persist safely; older messages should be removed or exported.";
-                console.warn("KDE AI Chat: session history is too large to persist.");
-                return;
-            }
-            root.sessionHistoryLoadError = "";
-            plasmoid.configuration.chatSessionsJson = encoded;
+            chatStore.save(root.sessions);
             plasmoid.configuration.lastSessionId = root.currentSessionId;
         } catch (e) {
             console.error("KDE AI Chat: failed to persist sessions:", e);
@@ -700,7 +710,7 @@ PlasmoidItem {
     }
 
     function loadSessions() {
-        root.sessions = parseSessions();
+        root.sessions = parseSessions(chatStore.loadAll());
         if (root.sessions.length === 0)
             createSession(true);
 
@@ -4258,6 +4268,7 @@ PlasmoidItem {
         // probe will refresh it once its results arrive.
         root.initSystemPrompt();
         root.stopLegacyWatchdog();
+        chatStore.prepare();
     }
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp && !root.responseScrollLocked)

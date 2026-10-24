@@ -6,7 +6,8 @@
 # into a sandbox: XDG_CONFIG_HOME and XDG_DATA_HOME point at build/dev-run/,
 # so the run never reads or writes your real config, chats or widget install.
 # The sandbox is reset each run; set DEV_KEEP=1 to keep chats between runs.
-# KWallet is still the real session wallet (it's a D-Bus service).
+# KWallet is the real session wallet (a D-Bus service), but the dev copy uses
+# its own wallet folder, KaiChat-dev, so your real keys are never touched.
 #
 # Usage: scripts/dev-run.sh [seconds-to-run] [screenshot-path]
 # Exit status: 0 if the run produced no QML warnings, 1 otherwise.
@@ -44,6 +45,12 @@ meta["KPlugin"]["Name"] = meta["KPlugin"]["Name"] + " (dev)"
 with open(path, "w", encoding="utf-8") as f:
     json.dump(meta, f, indent=4)
 PY
+
+# KWallet is the real session wallet, so keep dev keys in their own folder and
+# never read or overwrite the user's real ones.
+sed -i 's/readonly property string folder: "KaiChat"/readonly property string folder: "KaiChat-dev"/' \
+    "$STAGE/$DEV_ID/contents/ui/store/Wallet.qml"
+grep -q '"KaiChat-dev"' "$STAGE/$DEV_ID/contents/ui/store/Wallet.qml" || { echo "could not isolate wallet folder" >&2; exit 2; }
 
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
