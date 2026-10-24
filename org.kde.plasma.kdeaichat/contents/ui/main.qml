@@ -11,6 +11,7 @@ import org.kde.plasma.plasmoid
 import QtCore
 import "Security.js" as Sec
 import "store" as Store
+import "backends/DirectBackend.js" as DirectBackend
 
 PlasmoidItem {
     id: root
@@ -97,13 +98,8 @@ PlasmoidItem {
     property bool restoringResponseScroll: false
     property bool titleGenerationInProgress: false
     property string titleGenerationSessionId: ""
-    // Tool-call context is kept separate from the visible chat model. This
-    // lets an OpenAI-compatible provider complete an MCP round-trip without
-    // rendering protocol messages as ordinary chat bubbles.
-    property var mcpFollowupMessages: []
-    property int mcpToolRound: 0
-    property var mcpPendingOperations: ({})
-    property int mcpOperationCounter: 0
+    // Token counts reported for the reply being streamed.
+    property var currentStreamUsage: ({})
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
@@ -429,110 +425,6 @@ PlasmoidItem {
         return getProviderConfig(getEffectiveProvider(sessionId), sessionId).model || "";
     }
 
-    function _mcpServers() {
-        var raw = String(plasmoid.configuration.mcpServersJson || "");
-        if (!raw || raw.length > 200000)
-            return [];
-        try {
-            var servers = JSON.parse(raw);
-            return Array.isArray(servers) ? servers.slice(0, 32) : [];
-        } catch (e) {
-            return [];
-        }
-    }
-
-    function _mcpFunctionName(serverId, toolName) {
-        return "mcp_" + String(serverId || "server").replace(/[^A-Za-z0-9_-]/g, "_")
-            + "_" + String(toolName || "tool").replace(/[^A-Za-z0-9_-]/g, "_");
-    }
-
-    function mcpToolDefinitions() {
-        if (plasmoid.configuration.enableMcpTools !== true)
-            return [];
-
-        var defs = [{
-            "type": "function",
-            "function": {
-                "name": "web_search",
-                "description": "Search the public web and return a few relevant results.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {"query": {"type": "string", "description": "The search query"}},
-                    "required": ["query"]
-                }
-            }
-        }];
-        var servers = _mcpServers();
-        var totalTools = 0;
-        for (var i = 0; i < servers.length && totalTools < 100; i++) {
-            var server = servers[i] || {};
-            var tools = Array.isArray(server.tools) ? server.tools : [];
-            for (var j = 0; j < tools.length && totalTools < 100; j++) {
-                var tool = tools[j] || {};
-                if (!tool.name)
-                    continue;
-                defs.push({
-                    "type": "function",
-                    "function": {
-                        "name": _mcpFunctionName(server.id || server.name, tool.name),
-                        "description": tool.description || ("MCP tool " + tool.name),
-                        "parameters": tool.inputSchema || tool.parameters || {"type": "object"}
-                    }
-                });
-                totalTools++;
-            }
-        }
-        return defs;
-    }
-
-    function _mcpResultText(data) {
-        var stdout = data && data["stdout"] ? String(data["stdout"]).trim() : "";
-        if (stdout.length > 500000)
-            stdout = stdout.substring(0, 500000) + "\n[tool output truncated]";
-        if (!stdout)
-            return JSON.stringify({"status": "error", "message": String((data && data["stderr"]) || "MCP helper returned no output")});
-        try {
-            return JSON.stringify(JSON.parse(stdout));
-        } catch (e) {
-            return JSON.stringify({"status": "ok", "raw": stdout});
-        }
-    }
-
-    function _startMcpOperation(command, payload, callback) {
-        var token = "#mcp-tool-" + (++root.mcpOperationCounter) + "-" + Date.now();
-        root.mcpPendingOperations[token] = callback;
-        var encoded = Sec.base64Encode(JSON.stringify(payload || {}));
-        var cmd = "python3 " + Sec.quoteForShell(root.getHelperPath()) + " "
-            + command + " " + Sec.rawShellSnippetQuote(encoded);
-        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " " + token);
-    }
-
-    function executeMcpTool(toolName, argumentsObject, callback) {
-        var args = argumentsObject || {};
-        if (toolName === "web_search") {
-            _startMcpOperation("mcp_web_search", {"query": String(args.query || "")}, callback);
-            return;
-        }
-        var servers = _mcpServers();
-        for (var i = 0; i < servers.length; i++) {
-            var server = servers[i] || {};
-            var tools = Array.isArray(server.tools) ? server.tools : [];
-            for (var j = 0; j < tools.length; j++) {
-                var tool = tools[j] || {};
-                if (_mcpFunctionName(server.id || server.name, tool.name) !== toolName)
-                    continue;
-                _startMcpOperation("mcp_query", {
-                    "serverCommand": server.command || "",
-                    "serverArgs": Array.isArray(server.args) ? server.args : [],
-                    "method": "tools/call",
-                    "params": {"name": tool.name, "arguments": args}
-                }, callback);
-                return;
-            }
-        }
-        callback(JSON.stringify({"status": "error", "message": "Unknown MCP tool: " + toolName}));
-    }
-
     function configuredSessionSource() {
         if (plasmoid.configuration.useOpenCode === true)
             return "opencode";
@@ -603,61 +495,6 @@ PlasmoidItem {
         root.activeRequestSessionId = sessionId;
         root.openCodeRequestFinalized = false;
         return root.requestGeneration;
-    }
-
-    function handleMcpToolCalls(toolCalls, requestArgs, assistantMessage) {
-        if (!Array.isArray(toolCalls) || toolCalls.length === 0)
-            return false;
-        toolCalls = toolCalls.slice(0, 20);
-        if (root.mcpToolRound >= 3) {
-            root.mcpFollowupMessages = [];
-            pushErrorMessage("MCP tool-call limit reached; the model did not finish after three tool rounds.");
-            processNextQueuedMessage();
-            return true;
-        }
-
-        root.loading = true;
-        var results = [];
-        var next = function(index) {
-            if (!requestIsCurrent(requestArgs.sessionId, requestArgs.generation)) {
-                root.mcpFollowupMessages = [];
-                return;
-            }
-            if (index >= toolCalls.length) {
-                root.mcpFollowupMessages = root.mcpFollowupMessages.concat([{
-                    "role": "assistant",
-                    "content": assistantMessage.content || "",
-                    "tool_calls": toolCalls
-                }]);
-                for (var r = 0; r < results.length; r++)
-                    root.mcpFollowupMessages.push(results[r]);
-                root.mcpToolRound++;
-                doOpenAICompatRequest(requestArgs.baseUrl, requestArgs.apiKey, requestArgs.model,
-                    requestArgs.extraHeaders, requestArgs.modelLabel, requestArgs.sessionId, requestArgs.generation);
-                return;
-            }
-            var call = toolCalls[index] || {};
-            var fn = call.function || {};
-            var parsedArgs = {};
-            try {
-                if (typeof fn.arguments === "string" && fn.arguments.length <= 200000)
-                    parsedArgs = JSON.parse(fn.arguments);
-                else if (typeof fn.arguments !== "string")
-                    parsedArgs = fn.arguments || {};
-            } catch (e) {
-                parsedArgs = {};
-            }
-            executeMcpTool(fn.name || "", parsedArgs, function(resultText) {
-                results.push({
-                    "role": "tool",
-                    "tool_call_id": call.id || ("mcp-call-" + index),
-                    "content": resultText
-                });
-                next(index + 1);
-            });
-        };
-        next(0);
-        return true;
     }
 
     function createSession(switchToNew) {
@@ -2487,11 +2324,6 @@ PlasmoidItem {
     }
 
     function sendMessageByIndex(index) {
-        // A normal user message starts a fresh MCP exchange.  Follow-up
-        // requests from handleMcpToolCalls call the provider directly so
-        // their protocol messages remain intact.
-        root.mcpFollowupMessages = [];
-        root.mcpToolRound = 0;
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
         root.currentStreamReasoning = "";
@@ -2536,11 +2368,7 @@ PlasmoidItem {
             return ;
         }
         var provider = root.getEffectiveProvider(requestSessionId);
-        var providerCfg = getProviderConfig(provider, requestSessionId);
-        if (providerCfg.type === "anthropic")
-            doAnthropicRequest(providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model, providerCfg.headers, requestSessionId, requestGeneration);
-        else
-            doOpenAICompatRequest(providerCfg.baseUrl, providerCfg.apiKey, providerCfg.model, providerCfg.headers, providerCfg.model, requestSessionId, requestGeneration);
+        doDirectRequest(getProviderConfig(provider, requestSessionId), requestSessionId, requestGeneration);
     }
 
     function processNextQueuedMessage() {
@@ -2883,567 +2711,118 @@ PlasmoidItem {
         return list.slice(firstKept);
     }
 
-    function buildOpenAICompatPayload(sessionId) {
-        var targetSessionId = sessionId || root.currentSessionId;
-        var arr = [];
-        var effectiveSystem = buildEffectiveSystemPrompt(targetSessionId);
-        var effectiveMemory = buildEffectiveMemoryBlock(targetSessionId);
-        if (effectiveSystem)
-            arr.push({"role": "system", "content": effectiveSystem});
-        if (effectiveMemory)
-            arr.push({"role": "system", "content": effectiveMemory});
-
-        var messageRoles = [];
-        var latestCompactedContent = "";
-        
-        for (var i = 0; i < root.messages.length; i++) {
-            var m = root.messages[i];
-            if (m.role === "system_compacted") {
-                latestCompactedContent = m.content;
-                messageRoles = []; // clear earlier messages!
-            } else if (m.role === "user" || m.role === "assistant") {
-                messageRoles.push(m);
-            }
-        }
-        
-        if (latestCompactedContent) {
-            arr.push({
-                "role": "system",
-                "content": "Previous conversation summary: " + latestCompactedContent
-            });
-        }
-
-        messageRoles = limitContextMessages(messageRoles);
-
-        for (var j = 0; j < messageRoles.length; j++) {
-            var rm = messageRoles[j];
-            if (rm.role === "user" && rm.attachments && rm.attachments.length > 0) {
-                var payloadContent = buildMessageContent(rm.content, rm.attachments, "openai");
-                arr.push({
-                    "role": rm.role,
-                    "content": payloadContent
-                });
-            } else {
-                arr.push({
-                    "role": rm.role,
-                    "content": rm.content
-                });
-            }
-        }
-        // Tool-call and tool-result messages are protocol context only; do
-        // not add them to the visible chat history.
-        for (var k = 0; k < root.mcpFollowupMessages.length; k++)
-            arr.push(root.mcpFollowupMessages[k]);
-        return arr;
+    // The messages of `sessionId` (not necessarily the chat on screen).
+    function sessionMessages(sessionId) {
+        if (sessionId === root.currentSessionId)
+            return root.messages;
+        var idx = sessionIndexById(sessionId);
+        return idx >= 0 ? (root.sessions[idx].messages || []) : [];
     }
 
-    function buildAnthropicPayload() {
-        var arr = [];
-        var messageRoles = [];
-        for (var i = 0; i < root.messages.length; i++) {
-            var m = root.messages[i];
-            if (m.role === "user" || m.role === "assistant") {
-                messageRoles.push(m);
-            }
-        }
+    // System prompt and conversation for a direct API request.
+    function buildDirectRequestParts(sessionId, apiType) {
+        var systemParts = [];
+        var effectiveSystem = buildEffectiveSystemPrompt(sessionId);
+        var effectiveMemory = buildEffectiveMemoryBlock(sessionId);
+        var compactedSummary = latestCompactedSummary(sessionId);
+        if (effectiveSystem) systemParts.push(effectiveSystem);
+        if (effectiveMemory) systemParts.push(effectiveMemory);
+        if (compactedSummary) systemParts.push("Previous conversation summary: " + compactedSummary);
 
-        messageRoles = limitContextMessages(messageRoles);
-
-        for (var j = 0; j < messageRoles.length; j++) {
-            var rm = messageRoles[j];
-            if (rm.role === "user" && rm.attachments && rm.attachments.length > 0) {
-                var payloadContent = buildMessageContent(rm.content, rm.attachments, "anthropic");
-                arr.push({
-                    "role": rm.role,
-                    "content": payloadContent
-                });
-            } else {
-                arr.push({
-                    "role": rm.role,
-                    "content": rm.content
-                });
-            }
+        var source = sessionMessages(sessionId);
+        var conversation = [];
+        for (var i = 0; i < source.length; i++) {
+            var m = source[i];
+            if (m.role === "system_compacted")
+                conversation = [];
+            else if (m.role === "user" || m.role === "assistant")
+                conversation.push(m);
         }
-        return arr;
+        conversation = limitContextMessages(conversation);
+        var messages = [];
+        for (var j = 0; j < conversation.length; j++) {
+            var rm = conversation[j];
+            var hasAttachments = rm.role === "user" && rm.attachments && rm.attachments.length > 0;
+            messages.push({"role": rm.role, "content": hasAttachments ? buildMessageContent(rm.content, rm.attachments, apiType) : rm.content});
+        }
+        return {"system": systemParts.join("\n\n"), "messages": messages};
     }
 
-    function doOpenAICompatRequest(baseUrl, apiKey, model, extraHeaders, modelLabel, requestSessionId, requestGeneration) {
-        var sessionId = requestSessionId || root.activeRequestSessionId || root.currentSessionId;
-        var generation = requestGeneration !== undefined ? requestGeneration : root.requestGeneration;
-        var isCurrent = function() { return requestIsCurrent(sessionId, generation); };
-        var url = (baseUrl || "").replace(/\/$/, "") + "/chat/completions";
-        var xhr = new XMLHttpRequest();
-        var errorHandled = false;
-        var requestFinished = false;
-        if (!isCurrent())
-            return;
-        try {
-            xhr.open("POST", url, true);
-            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
-            xhr.ontimeout = function() {
-                if (errorHandled || requestFinished || !isCurrent())
-                    return ;
-
-                errorHandled = true;
-                requestFinished = true;
-                root.loading = false;
-                root.activeXhr = null;
-                resetProviderStreamingState();
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
-                pushErrorMessage("Request to " + url + " timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
-                processNextQueuedMessage();
-            };
-            xhr.setRequestHeader("Content-Type", "application/json");
-            if (apiKey !== "") {
-                console.log("DEBUG: Sending authenticated request to " + Sec.scrubSecrets(url));
-                xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
-            } else {
-                console.log("DEBUG: Sending request without Authorization header (empty key) to " + Sec.scrubSecrets(url));
-            }
-            if (extraHeaders) {
-                for (var headerName in extraHeaders) {
-                    if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
-                        xhr.setRequestHeader(headerName, extraHeaders[headerName]);
-
-                }
-            }
-        } catch (setupError) {
-            if (isCurrent()) {
-                root.loading = false;
-                root.activeXhr = null;
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
-                pushErrorMessage("Failed to start request: " + setupError);
-                processNextQueuedMessage();
-            }
-            return ;
-        }
+    // Sends a direct API request and applies its events to the chat.
+    function doDirectRequest(cfg, sessionId, generation) {
+        var apiType = cfg.type === "anthropic" ? "anthropic" : "openai";
+        var parts = buildDirectRequestParts(sessionId, apiType);
+        var model = cfg.model || "";
+        root.currentStreamUsage = ({});
         root.loading = true;
-        root.activeXhr = xhr;
-        var mcpTools = mcpToolDefinitions();
-        // Tool calls require the complete assistant message, so keep this
-        // request non-streaming even when normal streaming is enabled.
-        var useStreaming = plasmoid.configuration.disableStreaming !== true && mcpTools.length === 0;
-        var buffer = "";
-        var offset = 0;
-        var fullText = "";
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
-                return ;
-            if (requestFinished || !isCurrent())
-                return;
-
-            if (xhr.status < 200 || xhr.status >= 300) {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (requestFinished || !isCurrent())
-                        return;
-                    root.loading = false;
-                    root.activeXhr = null;
-                    if (errorHandled)
-                        return ;
-
-                    errorHandled = true;
-                    requestFinished = true;
-                    resetProviderStreamingState();
-                    root.activeRequestSessionId = "";
-                    root.requestGeneration++;
-                    var err = "Request to " + url + " failed (HTTP " + xhr.status + ")";
-                    if (xhr.status === 401) {
-                        err = "Authentication Failed (HTTP 401): Please verify that your API key is correct and not missing.";
-                    }
-                    try {
-                        var eobj = JSON.parse(xhr.responseText);
-                        if (eobj.error && eobj.error.message)
-                            err += ": " + eobj.error.message;
-                        else if (eobj.error)
-                            err += ": " + JSON.stringify(eobj.error);
-                        else if (eobj.message)
-                            err += ": " + eobj.message;
-                        else if (eobj.detail)
-                            err += ": " + eobj.detail;
-                    } catch (e) {
-                    }
-                    pushErrorMessage(err);
-                    processNextQueuedMessage();
-                }
-                return ;
+        root.activeXhr = DirectBackend.send({
+            "type": apiType,
+            "baseUrl": cfg.baseUrl,
+            "apiKey": cfg.apiKey,
+            "model": model,
+            "headers": cfg.headers,
+            "system": parts.system,
+            "messages": parts.messages,
+            "maxTokens": responseMaxTokens(sessionId, DirectBackend.DEFAULT_MAX_TOKENS),
+            "stream": plasmoid.configuration.disableStreaming !== true,
+            "timeoutMs": plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0,
+            "xhrFactory": function() { return new XMLHttpRequest(); },
+            "onEvent": function(event) {
+                if (requestIsCurrent(sessionId, generation))
+                    applyDirectEvent(event, model);
             }
-
-            if (!useStreaming) {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (requestFinished || !isCurrent())
-                        return;
-                    root.loading = false;
-                    root.activeXhr = null;
-                    try {
-                        var respObj = JSON.parse(xhr.responseText);
-                        var choices = respObj.choices || [];
-                        var firstChoice = choices[0] || {};
-                        if (mcpTools.length > 0 && firstChoice.message && firstChoice.message.tool_calls) {
-                            handleMcpToolCalls(firstChoice.message.tool_calls, {
-                                "baseUrl": baseUrl,
-                                "apiKey": apiKey,
-                                "model": model,
-                                "extraHeaders": extraHeaders,
-                                "modelLabel": modelLabel,
-                                "sessionId": sessionId,
-                                "generation": generation
-                            }, firstChoice.message);
-                            return;
-                        }
-                        var msgContent = (firstChoice.message ? firstChoice.message.content : "") || "";
-                        var msgReasoning = (firstChoice.message ? (firstChoice.message.reasoning || firstChoice.message.reasoning_content || firstChoice.message.thought || "") : "") || "";
-                        if (typeof msgContent !== "string") msgContent = JSON.stringify(msgContent);
-                        if (typeof msgReasoning !== "string") msgReasoning = JSON.stringify(msgReasoning);
-
-                        var displayReasoning = msgReasoning;
-                        var displayText = msgContent;
-                        var thinkStart = displayText.indexOf("<think>");
-                        while (thinkStart !== -1) {
-                            var thinkEnd = displayText.indexOf("</think>", thinkStart);
-                            if (thinkEnd !== -1) {
-                                var extracted = displayText.substring(thinkStart + 7, thinkEnd);
-                                if (displayReasoning === "") displayReasoning = extracted;
-                                else displayReasoning += "\n" + extracted;
-                                displayText = displayText.substring(0, thinkStart) + displayText.substring(thinkEnd + 8);
-                            } else {
-                                var extracted = displayText.substring(thinkStart + 7);
-                                if (displayReasoning === "") displayReasoning = extracted;
-                                else displayReasoning += "\n" + extracted;
-                                displayText = displayText.substring(0, thinkStart);
-                                break;
-                            }
-                            thinkStart = displayText.indexOf("<think>");
-                        }
-
-                        var ts = Date.now();
-                        if (displayText.length > root.maxMessageChars)
-                            displayText = displayText.substring(0, root.maxMessageChars) + "\n[response truncated]";
-                        if (displayReasoning.length > root.maxMessageChars)
-                            displayReasoning = displayReasoning.substring(0, root.maxMessageChars) + "\n[reasoning truncated]";
-                        var resMsg = {
-                            "role": "assistant",
-                            "content": displayText || "(empty response)",
-                            "time": nowTime(ts),
-                            "at": ts,
-                            "model": modelLabel || model || ""
-                        };
-                        if (displayReasoning !== "") resMsg.reasoning = displayReasoning;
-                        if (respObj.usage) {
-                            resMsg.tokens = {
-                                "input": respObj.usage.prompt_tokens || respObj.usage.input_tokens || 0,
-                                "output": respObj.usage.completion_tokens || respObj.usage.output_tokens || 0
-                            };
-                        }
-                        root.messages = root.messages.concat([resMsg]);
-                        requestFinished = true;
-                        root.activeRequestSessionId = "";
-                        root.requestGeneration++;
-                        if (!root.userScrolledUp) Qt.callLater(scrollToBottom);
-                        try { triggerNotificationSound(); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
-                        try { saveCurrentSessionState(true); } catch (saveErr) { console.error("Session save failed:", saveErr); }
-                        maybeGenerateChatTitle();
-                        processNextQueuedMessage();
-                    } catch (parseErr) {
-                        requestFinished = true;
-                        root.activeRequestSessionId = "";
-                        root.requestGeneration++;
-                        pushErrorMessage("Failed to parse non-streaming response: " + parseErr.toString());
-                        processNextQueuedMessage();
-                    }
-                }
-                return;
-            }
-
-            if (xhr.responseText.length > 20000000) {
-                requestFinished = true;
-                errorHandled = true;
-                root.loading = false;
-                root.activeXhr = null;
-                resetProviderStreamingState();
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
-                try { xhr.abort(); } catch (e) {}
-                pushErrorMessage("Provider response exceeded the safe size limit.");
-                processNextQueuedMessage();
-                return;
-            }
-            var delta = xhr.responseText.slice(offset);
-            offset = xhr.responseText.length;
-            buffer += delta;
-            while (true) {
-                var split = buffer.indexOf("\n");
-                if (split < 0)
-                    break;
-
-                var line = buffer.slice(0, split).trim();
-                buffer = buffer.slice(split + 1);
-                if (line.indexOf("data: ") === 0) {
-                    var dataStr = line.slice(6);
-                    if (dataStr === "[DONE]")
-                        continue;
-
-                    try {
-                        var obj = JSON.parse(dataStr);
-                        if (obj.choices && obj.choices.length > 0 && obj.choices[0].delta) {
-                            var streamDelta = obj.choices[0].delta;
-                            var reasoningDelta = String(streamDelta.reasoning || streamDelta.reasoning_content || streamDelta.thinking || streamDelta.thought || "");
-                            if (reasoningDelta !== "")
-                                root.currentStreamReasoning = (root.currentStreamReasoning + reasoningDelta).substring(0, root.maxMessageChars);
-
-                            if (streamDelta.content) {
-                                fullText += typeof streamDelta.content === "string" ? streamDelta.content : JSON.stringify(streamDelta.content);
-                                if (fullText.length > root.maxMessageChars)
-                                    fullText = fullText.substring(0, root.maxMessageChars) + "\n[response truncated]";
-                            }
-                            
-                            var displayReasoning = "";
-                            var displayText = fullText;
-                            
-                            var thinkStart = displayText.indexOf("<think>");
-                            while (thinkStart !== -1) {
-                                var thinkEnd = displayText.indexOf("</think>", thinkStart);
-                                if (thinkEnd !== -1) {
-                                    var extracted = displayText.substring(thinkStart + 7, thinkEnd);
-                                    if (displayReasoning === "") displayReasoning = extracted;
-                                    else displayReasoning += "\n" + extracted;
-                                    displayText = displayText.substring(0, thinkStart) + displayText.substring(thinkEnd + 8);
-                                } else {
-                                    var extracted = displayText.substring(thinkStart + 7);
-                                    if (displayReasoning === "") displayReasoning = extracted;
-                                    else displayReasoning += "\n" + extracted;
-                                    displayText = displayText.substring(0, thinkStart);
-                                    break;
-                                }
-                                thinkStart = displayText.indexOf("<think>");
-                            }
-
-                            if (streamDelta.content || reasoningDelta !== "") {
-                            if (root.currentStreamIndex < 0) {
-                                var ts = Date.now();
-                                root.messages = root.messages.concat([{
-                                    "role": "assistant",
-                                    "content": "",
-                                    "reasoning": "",
-                                    "time": nowTime(ts),
-                                    "at": ts,
-                                    "model": modelLabel || model || ""
-                                }]);
-                                root.currentStreamIndex = root.messages.length - 1;
-                                root.streamingResponse = true;
-                            }
-                            root.currentStreamText = displayText;
-                            root.currentStreamExtractedReasoning = displayReasoning;
-                            if (!root.userScrolledUp)
-                                Qt.callLater(scrollToBottom);
-
-                            }
-                        }
-                    } catch (e) {
-                    }
-                }
-            }
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (requestFinished || !isCurrent())
-                    return;
-                requestFinished = true;
-                root.loading = false;
-                root.activeXhr = null;
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
-                if (root.currentStreamIndex >= 0) {
-                    var msgs = root.messages.slice();
-                    msgs[root.currentStreamIndex].content = root.currentStreamText;
-                    
-                    var finalReasoning = root.currentStreamReasoning;
-                    if (root.currentStreamExtractedReasoning !== "") {
-                        if (finalReasoning !== "") finalReasoning += "\n" + root.currentStreamExtractedReasoning;
-                        else finalReasoning = root.currentStreamExtractedReasoning;
-                    }
-                    
-                    msgs[root.currentStreamIndex].reasoning = finalReasoning;
-                    root.messages = msgs;
-                } else if (fullText === "" && xhr.status >= 200 && xhr.status < 300) {
-                    pushErrorMessage("The model returned an empty response.");
-                }
-                root.currentStreamIndex = -1;
-                root.currentStreamText = "";
-                root.currentStreamReasoning = "";
-                root.currentStreamExtractedReasoning = "";
-                root.streamingResponse = false;
-                if (!root.userScrolledUp)
-                    Qt.callLater(scrollToBottom);
-
-                try { triggerNotificationSound(); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
-                try { saveCurrentSessionState(true); } catch (saveErr) { console.error("Session save failed:", saveErr); }
-                maybeGenerateChatTitle();
-                processNextQueuedMessage();
-            }
-        };
-        xhr.onerror = function() {
-            if (errorHandled || requestFinished || !isCurrent())
-                return;
-
-            errorHandled = true;
-            requestFinished = true;
-            root.loading = false;
-            root.activeXhr = null;
-            resetProviderStreamingState();
-            root.activeRequestSessionId = "";
-            root.requestGeneration++;
-            pushErrorMessage("Could not reach " + url + ". Check the server URL and whether that endpoint accepts API requests.");
-            processNextQueuedMessage();
-        };
-        try {
-            var requestBody = {
-                "model": model,
-                "messages": buildOpenAICompatPayload(sessionId),
-                "stream": useStreaming
-            };
-            var maxTokens = responseMaxTokens(sessionId, 0);
-            if (maxTokens > 0)
-                requestBody.max_tokens = maxTokens;
-            if (mcpTools.length > 0) {
-                requestBody.tools = mcpTools;
-                requestBody.tool_choice = "auto";
-            }
-            xhr.send(JSON.stringify(requestBody));
-        } catch (sendError) {
-            if (isCurrent() && !requestFinished) {
-                requestFinished = true;
-                root.loading = false;
-                root.activeXhr = null;
-                resetProviderStreamingState();
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
-                pushErrorMessage("Failed to send request: " + sendError);
-                processNextQueuedMessage();
-            }
-        }
+        });
     }
 
-    function doAnthropicRequest(baseUrl, apiKey, model, extraHeaders, requestSessionId, requestGeneration) {
-        var sessionId = requestSessionId || root.activeRequestSessionId || root.currentSessionId;
-        var generation = requestGeneration !== undefined ? requestGeneration : root.requestGeneration;
-        var isCurrent = function() { return requestIsCurrent(sessionId, generation); };
-        if (!apiKey) {
-            if (isCurrent()) {
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
-                pushErrorMessage("Anthropic API key missing in settings.");
-                processNextQueuedMessage();
+    function applyDirectEvent(event, model) {
+        if (event.type === "text_delta" || event.type === "reasoning_delta") {
+            if (root.currentStreamIndex < 0) {
+                var ts = Date.now();
+                root.messages = root.messages.concat([{"role": "assistant", "content": "", "reasoning": "", "time": nowTime(ts), "at": ts, "model": model}]);
+                root.currentStreamIndex = root.messages.length - 1;
+                root.streamingResponse = true;
             }
-            return;
-        }
-        var xhr = new XMLHttpRequest();
-        var errorHandled = false;
-        var requestFinished = false;
-        var endpoint = (baseUrl || "https://api.anthropic.com/v1").replace(/\/$/, "");
-        if (!endpoint.endsWith("/messages"))
-            endpoint += "/messages";
-        var finishError = function(message) {
-            if (errorHandled || requestFinished || !isCurrent()) return;
-            errorHandled = true;
-            requestFinished = true;
+            if (event.type === "text_delta")
+                root.currentStreamText = (root.currentStreamText + event.delta).substring(0, root.maxMessageChars);
+            else
+                root.currentStreamReasoning = (root.currentStreamReasoning + event.delta).substring(0, root.maxMessageChars);
+            if (!root.userScrolledUp)
+                Qt.callLater(scrollToBottom);
+        } else if (event.type === "usage") {
+            var usage = Object.assign({}, root.currentStreamUsage);
+            if (event.input !== undefined) usage.input = event.input;
+            if (event.output !== undefined) usage.output = event.output;
+            root.currentStreamUsage = usage;
+        } else if (event.type === "error") {
+            resetProviderStreamingState();
+            pushErrorMessage(event.message);
+        } else if (event.type === "done") {
+            var completed = event.reason === "complete";
+            if (completed && root.currentStreamIndex >= 0) {
+                var msgs = root.messages.slice();
+                var reply = Object.assign({}, msgs[root.currentStreamIndex]);
+                reply.content = root.currentStreamText || "(empty response)";
+                reply.reasoning = root.currentStreamReasoning;
+                if (root.currentStreamUsage.input !== undefined || root.currentStreamUsage.output !== undefined)
+                    reply.tokens = {"input": root.currentStreamUsage.input || 0, "output": root.currentStreamUsage.output || 0};
+                msgs[root.currentStreamIndex] = reply;
+                root.messages = msgs;
+            } else if (completed) {
+                pushErrorMessage("The model returned an empty response.");
+            }
+            root.currentStreamIndex = -1;
+            resetProviderStreamingState();
             root.loading = false;
             root.activeXhr = null;
-            resetProviderStreamingState();
             root.activeRequestSessionId = "";
             root.requestGeneration++;
-            pushErrorMessage(message);
-            processNextQueuedMessage();
-        };
-        if (!isCurrent()) return;
-        try {
-            xhr.open("POST", endpoint, true);
-            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
-            xhr.ontimeout = function() {
-                finishError("Anthropic request timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
-            };
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.setRequestHeader("x-api-key", apiKey);
-            xhr.setRequestHeader("anthropic-version", "2023-06-01");
-            if (extraHeaders) {
-                for (var headerName in extraHeaders) {
-                    if (Object.prototype.hasOwnProperty.call(extraHeaders, headerName) && extraHeaders[headerName])
-                        xhr.setRequestHeader(headerName, extraHeaders[headerName]);
-                }
-            }
-            root.loading = true;
-            root.activeXhr = xhr;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE || requestFinished || !isCurrent())
-                    return;
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        var obj = JSON.parse(xhr.responseText);
-                        var text = "";
-                        var reasoningText = "";
-                        if (obj.content && obj.content.length) {
-                            for (var i = 0; i < obj.content.length; i++) {
-                                if (obj.content[i].type === "text")
-                                    text += String(obj.content[i].text || "");
-                                else if (obj.content[i].type === "thinking" || obj.content[i].type === "reasoning" || obj.content[i].type === "thought")
-                                    reasoningText += obj.content[i].thinking || obj.content[i].thought || obj.content[i].text || "";
-                            }
-                        }
-                        if (text.length > root.maxMessageChars)
-                            text = text.substring(0, root.maxMessageChars) + "\n[response truncated]";
-                        if (reasoningText.length > root.maxMessageChars)
-                            reasoningText = reasoningText.substring(0, root.maxMessageChars) + "\n[reasoning truncated]";
-                        var ts = Date.now();
-                        var msgObj = {"role": "assistant", "content": text || "(empty response)", "time": nowTime(ts), "at": ts, "model": model || ""};
-                        if (reasoningText !== "") msgObj.reasoning = reasoningText;
-                        if (obj.usage)
-                            msgObj.tokens = {"input": obj.usage.input_tokens || 0, "output": obj.usage.output_tokens || 0};
-                        root.messages = root.messages.concat([msgObj]);
-                    } catch (e) {
-                        finishError("Failed to parse Anthropic response");
-                        return;
-                    }
-                } else {
-                    var err = "Anthropic HTTP " + xhr.status;
-                    try {
-                        var eobj = JSON.parse(xhr.responseText);
-                        if (eobj.error) {
-                            if (typeof eobj.error === "string") err += " | " + eobj.error;
-                            else {
-                                if (eobj.error.message) err = "Anthropic Error (" + xhr.status + "): " + eobj.error.message;
-                                if (eobj.error.type) err = "[" + eobj.error.type + "] " + err;
-                            }
-                        }
-                    } catch (e2) {}
-                    finishError(err);
-                    return;
-                }
-                requestFinished = true;
-                root.loading = false;
-                root.activeXhr = null;
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
+            if (completed) {
                 try { triggerNotificationSound(); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
-                try { saveCurrentSessionState(true); } catch (saveErr) { console.error("Session save failed:", saveErr); }
+            }
+            try { saveCurrentSessionState(true); } catch (saveErr) { console.error("Session save failed:", saveErr); }
+            if (completed)
                 maybeGenerateChatTitle();
-                processNextQueuedMessage();
-            };
-            xhr.onerror = function() {
-                finishError("Could not reach " + endpoint + ". Check network access and API configuration.");
-            };
-            var maxTokens = responseMaxTokens(sessionId, 1024);
-            var anthropicReqBody = {"model": model, "max_tokens": maxTokens, "messages": buildAnthropicPayload(sessionId)};
-            var systemPromptParts = [];
-            var effectiveSystem = buildEffectiveSystemPrompt(sessionId);
-            var effectiveMemory = buildEffectiveMemoryBlock(sessionId);
-            var compactedSummary = latestCompactedSummary(sessionId);
-            if (effectiveSystem) systemPromptParts.push(effectiveSystem);
-            if (effectiveMemory) systemPromptParts.push(effectiveMemory);
-            if (compactedSummary) systemPromptParts.push("Previous conversation summary: " + compactedSummary);
-            if (systemPromptParts.length > 0)
-                anthropicReqBody.system = systemPromptParts.join("\n\n");
-            xhr.send(JSON.stringify(anthropicReqBody));
-        } catch (sendError) {
-            finishError("Failed to send Anthropic request: " + sendError);
+            processNextQueuedMessage();
         }
     }
 
@@ -4479,15 +3858,6 @@ PlasmoidItem {
             if (isNaN(exitCode)) exitCode = 1;
             var stdout = data["stdout"] || "";
             var stderr = data["stderr"] || "";
-            if (sourceName.indexOf("#mcp-tool-") !== -1) {
-                var mcpToken = sourceName.substring(sourceName.indexOf("#mcp-tool-"));
-                var mcpCallback = root.mcpPendingOperations[mcpToken];
-                delete root.mcpPendingOperations[mcpToken];
-                disconnectSource(sourceName);
-                if (mcpCallback)
-                    mcpCallback({"exit code": exitCode, "stdout": stdout, "stderr": stderr});
-                return ;
-            }
             if (sourceName.indexOf("--clipboard") !== -1) {
                 if (exitCode === 0 && stderr.trim() === "") {
                     try {

@@ -22,8 +22,9 @@ def test_main_xml_contains_new_config_entries():
     assert "customIcon" in entries, "customIcon entry missing in main.xml"
     assert "disableStreaming" in entries, "disableStreaming entry missing in main.xml"
     assert "customProvidersJson" in entries, "customProvidersJson entry missing in main.xml"
-    assert "mcpServersJson" in entries, "mcpServersJson entry missing in main.xml"
-    assert "enableMcpTools" in entries, "enableMcpTools entry missing in main.xml"
+    # MCP tools in direct mode were removed in 1.4.0 (harness mode provides tools).
+    assert "mcpServersJson" not in entries
+    assert "enableMcpTools" not in entries
 
 
 def test_provider_service_custom_providers():
@@ -74,29 +75,11 @@ def test_custom_provider_settings_use_custom_endpoint_and_model_storage():
     assert "document-edit" in source
 
 
-def test_kde_ai_helper_mcp_web_search():
-    payload = json.dumps({"query": "python"})
-    import base64
-    b64 = base64.b64encode(payload.encode("utf-8")).decode("utf-8")
-    
-    res = subprocess.run(
-        ["python3", HELPER_PY, "mcp_web_search", b64],
-        capture_output=True, text=True, check=True
-    )
-    data = json.loads(res.stdout)
-    assert data["status"] == "ok"
-    assert data["query"] == "python"
-    assert isinstance(data["results"], list)
-
-
-def test_kde_ai_helper_mcp_uses_initialize_handshake_and_safe_argv():
+def test_mcp_commands_are_gone():
     with open(HELPER_PY, encoding="utf-8") as f:
         source = f.read()
-    assert '"method": "initialize"' in source
-    assert '"method": "notifications/initialized"' in source
-    assert "shlex.split" in source
-    assert "mcp_discover" in source
-    assert "shell=True" not in source[source.index("def cmd_mcp_query"):source.index("def _legacy_watchdog_pids")]
+    for name in ("mcp_web_search", "mcp_query", "mcp_discover"):
+        assert '"%s":' % name not in source
 
 
 def test_touchpad_scroll_handler_in_full_representation():
@@ -117,8 +100,6 @@ def test_feature_settings_are_exposed_and_persisted():
 
     assert "property alias cfg_customIcon: configPage.customIconValue" in config_other
     assert "cfg_disableStreaming: disableStreamingToggle.checked" in config_other
-    assert "cfg_enableMcpTools: enableMcpToolsToggle.checked" in config_other
-    assert "cfg_mcpServersJson: mcpServersField.text" in config_other
     assert "function isCustomIconImage" in config_other
     assert "function customIconImageSource" in config_other
     assert "function applyCustomIcon" in config_other
@@ -127,13 +108,10 @@ def test_feature_settings_are_exposed_and_persisted():
     assert "*.gif" in config_other
     assert "plasmoid.configuration.customIcon = value" in config_other
     assert "plasmoid.configuration.disableStreaming = checked" in config_other
-    assert "plasmoid.configuration.enableMcpTools = checked" in config_other
-    assert "plasmoid.configuration.mcpServersJson = text" in config_other
     assert "Plasmoid.icon:" in main_qml
     assert "function customIconIsImage" in main_qml
     assert "function customIconImageSource" in main_qml
     assert "plasmoid.configuration.disableStreaming !== true" in main_qml
-    assert "plasmoid.configuration.enableMcpTools !== true" in main_qml
     assert "if (plasmoid.configuration.disableStreaming === true)" in main_qml
     assert "root.openCodeEventXhr.abort()" in main_qml
     assert "root.openCodeMode && plasmoid.configuration.disableStreaming !== true" in main_qml

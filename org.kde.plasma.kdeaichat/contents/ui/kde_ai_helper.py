@@ -29,7 +29,6 @@ from kdeaichat import chats, privacy
 
 
 _MAX_FILE_BYTES = 50 * 1024 * 1024
-_MAX_MCP_OUTPUT_BYTES = 2 * 1024 * 1024
 _MAX_SCHEDULE_STORE_BYTES = 5 * 1024 * 1024
 _MAX_CONFIG_BYTES = 5 * 1024 * 1024
 
@@ -825,53 +824,6 @@ def cmd_run_pi(payload: Dict[str, Any]) -> None:
         print(json.dumps({"type": "pi_result", "exitCode": 1, "stdout": "", "stderr": str(exc)}))
 
 
-def cmd_mcp_web_search(payload: Dict[str, Any]) -> None:
-    """Perform a web search using DuckDuckGo HTML search API and print JSON results."""
-    import urllib.request
-    import urllib.parse
-    import re
-    from html import unescape
-
-    query = str(payload.get("query", "")).strip()[:2000]
-    if not query:
-        print(json.dumps({"status": "error", "message": "Empty search query", "results": []}))
-        return
-
-    results: List[Dict[str, str]] = []
-    try:
-        url = "https://html.duckduckgo.com/html/?q=" + urllib.parse.quote(query)
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
-        with urllib.request.urlopen(req, timeout=10) as response:
-            html = response.read().decode("utf-8", errors="ignore")
-
-        raw_matches = re.findall(
-            r'<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?<a[^>]+class="result__snippet"[^>]*>(.*?)</a>',
-            html, re.DOTALL
-        )
-        if not raw_matches:
-            raw_matches = re.findall(
-                r'<a class="result__url"[^>]*href="([^"]+)"[^>]*>\s*(.*?)\s*</a>.*?<a class="result__snippet"[^>]*>(.*?)</a>',
-                html, re.DOTALL
-            )
-
-        for link, title, snippet in raw_matches[:6]:
-            clean_title = unescape(re.sub(r'<[^>]+>', '', title)).strip()
-            clean_snippet = unescape(re.sub(r'<[^>]+>', '', snippet)).strip()
-            link_match = re.search(r'uddg=([^&]+)', link)
-            actual_url = urllib.parse.unquote(link_match.group(1)) if link_match else link
-            if actual_url and clean_title:
-                results.append({
-                    "title": clean_title,
-                    "snippet": clean_snippet,
-                    "url": actual_url
-                })
-        print(json.dumps({"status": "ok", "query": query, "results": results}))
-    except Exception as e:
-        print(json.dumps({"status": "error", "message": str(e), "results": []}))
-
-
 def _terminate_process(proc: subprocess.Popen) -> None:
     """Terminate a helper subprocess and its children when possible."""
     try:
@@ -881,139 +833,6 @@ def _terminate_process(proc: subprocess.Popen) -> None:
         except Exception: pass
     try: proc.wait(timeout=2)
     except Exception: pass
-
-
-def cmd_mcp_query(payload: Dict[str, Any]) -> None:
-    """Run one MCP stdio request using the MCP initialize handshake."""
-    command = payload.get("serverCommand", "")
-    command_args = payload.get("serverArgs", [])
-    method = payload.get("method", "tools/list")
-    params = payload.get("params", {})
-
-    if not command:
-        print(json.dumps({"status": "error", "message": "No server command provided"}))
-        return
-
-    try:
-        argv = shlex.split(command) if isinstance(command, str) else list(command or [])
-        if isinstance(command_args, list):
-            argv.extend(str(arg) for arg in command_args)
-        if not argv:
-            raise ValueError("Empty MCP server command")
-        if len(argv) > 64 or sum(len(str(arg)) for arg in argv) > 8192:
-            raise ValueError("MCP server command is too large")
-        messages = [
-            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
-                "protocolVersion": payload.get("protocolVersion", "2025-06-18"),
-                "capabilities": {}, "clientInfo": {"name": "KDE AI Chat", "version": "1.0"},
-            }},
-            {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
-            {"jsonrpc": "2.0", "id": 2, "method": method, "params": params},
-        ]
-        with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
-            proc = subprocess.Popen(
-                argv,
-                stdin=subprocess.PIPE,
-                stdout=stdout_file,
-                stderr=stderr_file,
-                start_new_session=True,
-            )
-            try:
-                proc.communicate(input="".join(json.dumps(m) + "\n" for m in messages).encode("utf-8"), timeout=15)
-            except subprocess.TimeoutExpired:
-                _terminate_process(proc)
-                raise
-            stdout_file.seek(0)
-            stderr_file.seek(0)
-            stdout_data = stdout_file.read(_MAX_MCP_OUTPUT_BYTES).decode("utf-8", errors="replace")
-            stderr_data = stderr_file.read(_MAX_MCP_OUTPUT_BYTES).decode("utf-8", errors="replace")
-        responses = []
-        for line in stdout_data.splitlines():
-            try:
-                item = json.loads(line)
-                if isinstance(item, dict): responses.append(item)
-            except json.JSONDecodeError:
-                pass
-        result = next((item for item in reversed(responses) if item.get("id") == 2), None)
-        print(json.dumps(result or (responses[-1] if responses else {"status": "error", "message": stderr_data.strip() or "MCP server returned no JSON response"})))
-    except subprocess.TimeoutExpired:
-        print(json.dumps({"status": "error", "message": "MCP server timed out after 15 seconds"}))
-    except Exception as e:
-        print(json.dumps({"status": "error", "message": str(e)}))
-
-
-def cmd_mcp_discover(payload: Dict[str, Any]) -> None:
-    """Discover tools for configured servers using the standard MCP handshake."""
-    results = []
-    for server in payload.get("servers", []):
-        if not isinstance(server, dict) or not server.get("command"):
-            continue
-        request = dict(server)
-        request["method"] = "tools/list"
-        # Capture the same command output without changing the public RPC shape.
-        server_id = str(server.get("id") or server.get("name") or "server")[:128]
-        try:
-            argv = shlex.split(str(server.get("command", "")))
-            argv.extend(str(arg) for arg in server.get("args", []) if isinstance(server.get("args", []), list))
-        except (TypeError, ValueError) as exc:
-            results.append({"id": server_id, "tools": [], "error": "Invalid command: " + str(exc)[:512]})
-            continue
-        if len(argv) > 64 or sum(len(str(arg)) for arg in argv) > 8192:
-            results.append({"id": server_id, "tools": [], "error": "Command is too large"})
-            continue
-        try:
-            messages = [
-                {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "KDE AI Chat", "version": "1.0"}}},
-                {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
-                {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
-            ]
-            with tempfile.TemporaryFile() as output_file, tempfile.TemporaryFile() as error_file:
-                proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=output_file, stderr=error_file, start_new_session=True)
-                try:
-                    proc.communicate("".join(json.dumps(m) + "\n" for m in messages).encode("utf-8"), timeout=15)
-                except subprocess.TimeoutExpired:
-                    _terminate_process(proc)
-                    raise
-                output_file.seek(0)
-                error_file.seek(0)
-                output = output_file.read(_MAX_MCP_OUTPUT_BYTES).decode("utf-8", errors="replace")
-                error = error_file.read(_MAX_MCP_OUTPUT_BYTES).decode("utf-8", errors="replace")
-            response = None
-            for line in reversed(output.splitlines()):
-                try:
-                    item = json.loads(line)
-                    if isinstance(item, dict) and item.get("id") == 2:
-                        response = item; break
-                except json.JSONDecodeError:
-                    pass
-            result_obj = (response or {}).get("result") or {}
-            raw_tools = result_obj.get("tools", []) if isinstance(result_obj, dict) else []
-            safe_tools = []
-            for raw_tool in (raw_tools[:100] if isinstance(raw_tools, list) else []):
-                if not isinstance(raw_tool, dict) or not raw_tool.get("name"):
-                    continue
-                safe_tool = {
-                    "name": str(raw_tool.get("name"))[:128],
-                    "description": str(raw_tool.get("description", ""))[:2000],
-                }
-                schema = raw_tool.get("inputSchema", raw_tool.get("parameters"))
-                if isinstance(schema, dict):
-                    try:
-                        if len(json.dumps(schema, ensure_ascii=False)) <= 20000:
-                            safe_tool["inputSchema"] = schema
-                    except (TypeError, ValueError):
-                        pass
-                safe_tools.append(safe_tool)
-                if len(json.dumps(safe_tools, ensure_ascii=False)) > 100000:
-                    safe_tools.pop()
-                    break
-            server_id = str(server.get("id") or server.get("name") or "server")[:128]
-            results.append({"id": server_id, "tools": safe_tools, "error": "" if response else error.strip()[:2000] or "No tools/list response"})
-        except subprocess.TimeoutExpired:
-            results.append({"id": server.get("id") or server.get("name") or "server", "tools": [], "error": "Timed out"})
-        except Exception as exc:
-            results.append({"id": server.get("id") or server.get("name") or "server", "tools": [], "error": str(exc)})
-    print(json.dumps({"servers": results}))
 
 
 def _legacy_watchdog_pids(helper_name: str = "kde_ai_helper.py") -> List[int]:
@@ -1148,9 +967,6 @@ def main() -> None:
         "export_chat": cmd_export_chat,
         "get_voice_token": cmd_get_voice_token,
         "run_pi": cmd_run_pi,
-        "mcp_web_search": cmd_mcp_web_search,
-        "mcp_query": cmd_mcp_query,
-        "mcp_discover": cmd_mcp_discover,
         "stop_legacy_watchdog": cmd_stop_legacy_watchdog,
         "get_pi_models": cmd_get_pi_models,
     }

@@ -20,7 +20,6 @@ KCM.SimpleKCM {
     property string customIconValue: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "dialog-messages") : "dialog-messages"
     property alias cfg_customIcon: configPage.customIconValue
     property alias cfg_disableStreaming: disableStreamingToggle.checked
-    property alias cfg_enableMcpTools: enableMcpToolsToggle.checked
     property alias cfg_autoNameChats: autoNameChatsToggle.checked
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
@@ -40,14 +39,10 @@ KCM.SimpleKCM {
         || ((plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]")
     property string cfg_promptTemplates: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.promptTemplates || "[]") : "[]"
 
-    // Keep this as a real KCM config alias so the MCP server list is restored
-    // and applied through the same path as the other settings on this page.
-    property alias cfg_mcpServersJson: mcpServersField.text
     property string cfg_uiLanguage: "en"
 
     // Configuration page readiness flag
     property bool pageReady: false
-    property string mcpDiscoveryStatus: ""
 
     // Returns true when the custom icon value points at an image file rather
     // than a KDE icon name.
@@ -129,26 +124,6 @@ KCM.SimpleKCM {
         if (path.endsWith("/contents/ui/kde_ai_helper.py"))
             return path;
         return "";
-    }
-
-    function discoverMcpTools() {
-        var servers = [];
-        try { servers = JSON.parse(mcpServersField.text || "[]"); } catch (e) {
-            mcpDiscoveryStatus = i18n("Invalid MCP server JSON.");
-            return;
-        }
-        if (!Array.isArray(servers) || servers.length === 0) {
-            mcpDiscoveryStatus = i18n("Add at least one MCP server first.");
-            return;
-        }
-        if (!getHelperPath()) {
-            mcpDiscoveryStatus = i18n("MCP helper is unavailable.");
-            return;
-        }
-        mcpDiscoveryStatus = i18n("Discovering MCP tools…");
-        var payload = Sec.base64Encode(JSON.stringify({"servers": servers}));
-        var cmd = "python3 " + Sec.quoteForShell(getHelperPath()) + " mcp_discover " + Sec.rawShellSnippetQuote(payload);
-        utilityDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #mcp-discover-" + Date.now());
     }
 
     function schedAutoSetup() {
@@ -416,29 +391,7 @@ KCM.SimpleKCM {
                 return;
             }
 
-            if (sourceName.indexOf("mcp-discover-") >= 0) {
-                try {
-                    var discovery = JSON.parse(out.trim());
-                    var configured = JSON.parse(mcpServersField.text || "[]");
-                    var found = 0;
-                    for (var di = 0; di < (discovery.servers || []).length; di++) {
-                        var result = discovery.servers[di] || {};
-                        for (var si = 0; si < configured.length; si++) {
-                            if ((configured[si].id || configured[si].name || "server") === result.id) {
-                                configured[si].tools = result.tools || [];
-                                found += (result.tools || []).length;
-                                break;
-                            }
-                        }
-                        if (result.error) mcpDiscoveryStatus = result.id + ": " + result.error;
-                    }
-                    mcpServersField.text = JSON.stringify(configured);
-                    if (!mcpDiscoveryStatus || mcpDiscoveryStatus === i18n("Discovering MCP tools…"))
-                        mcpDiscoveryStatus = i18n("Discovered %1 MCP tool(s).").arg(found);
-                } catch (e) {
-                    mcpDiscoveryStatus = i18n("MCP discovery failed: %1").arg(e);
-                }
-            } else if (sourceName.indexOf("sched-poll-") >= 0) {
+            if (sourceName.indexOf("sched-poll-") >= 0) {
                 configPage.schedulerDaemonRunning = (out.trim() === "SCHED_RUNNING");
                 if (!configPage.schedulerDaemonRunning && configPage.schedulerStatus === "Restarting…")
                     configPage.schedulerStatus = "Stopped";
@@ -890,10 +843,10 @@ KCM.SimpleKCM {
             font.pointSize: Kirigami.Theme.smallFont.pointSize
         }
 
-        // ── Advanced HTTP & MCP Tools ──────────────────────────────────────────
+        // ── Response streaming ─────────────────────────────────────────────
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Response Streaming & MCP Server Tools")
+            Kirigami.FormData.label: i18n("Response Streaming")
         }
 
         QQC2.CheckBox {
@@ -906,59 +859,6 @@ KCM.SimpleKCM {
                     plasmoid.configuration.disableStreaming = checked;
                 }
             }
-        }
-
-        QQC2.CheckBox {
-            id: enableMcpToolsToggle
-            Kirigami.FormData.label: i18n("MCP & Search Tools:")
-            text: i18n("Enable Model Context Protocol (MCP) server & web search tools")
-            checked: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.enableMcpTools === true) : false
-            onCheckedChanged: {
-                if (pageReady && plasmoid && plasmoid.configuration) {
-                    plasmoid.configuration.enableMcpTools = checked;
-                }
-            }
-        }
-
-        QQC2.TextArea {
-            id: mcpServersField
-            Kirigami.FormData.label: i18n("MCP servers:")
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            Layout.preferredHeight: 76
-            wrapMode: Text.Wrap
-            placeholderText: '[{"id":"filesystem","command":"npx","args":["-y","@modelcontextprotocol/server-filesystem","/tmp"],"tools":[]}]'
-            text: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.mcpServersJson || "[]") : "[]"
-            onTextChanged: {
-                if (pageReady && plasmoid && plasmoid.configuration)
-                    plasmoid.configuration.mcpServersJson = text;
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            Kirigami.FormData.label: i18n("MCP discovery:")
-            QQC2.Button {
-                text: i18n("Discover tools")
-                icon.name: "view-refresh"
-                onClicked: configPage.discoverMcpTools()
-            }
-            QQC2.Label {
-                Layout.fillWidth: true
-                text: configPage.mcpDiscoveryStatus
-                elide: Text.ElideRight
-                opacity: 0.75
-            }
-        }
-
-        QQC2.Label {
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            wrapMode: Text.Wrap
-            text: i18n("Use command + args for an MCP stdio server, then click Discover tools. The standard MCP initialize/tools-list handshake fills the tools automatically. Only configure trusted servers: MCP processes run with your user permissions.")
-            opacity: 0.7
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
         }
 
         // ── Misc Settings ──────────────────────────────────────────────────
