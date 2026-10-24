@@ -67,6 +67,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/config/ProvidersPanel.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/chats.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/opencode_server.py",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py",
                   ]
                   missing = [name for name in required if name not in names]

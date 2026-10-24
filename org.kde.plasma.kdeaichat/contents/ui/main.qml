@@ -2192,8 +2192,59 @@ PlasmoidItem {
         return parts;
     }
 
+    // Makes sure an OpenCode server answers at the configured URL; starts one
+    // (via the helper) when the URL is local and nothing is running.
+    // done(ok, message).
+    function ensureOpenCodeServer(baseUrl, directory, done) {
+        var xhr = new XMLHttpRequest();
+        var finished = false;
+        function finish(ok, message) { if (!finished) { finished = true; done(ok, message); } }
+        function notRunning() {
+            var match = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\]):(\d+)/i.exec(baseUrl);
+            if (!match) {
+                finish(false, "OpenCode isn't reachable at " + baseUrl + ".");
+                return;
+            }
+            storage.runHelper("opencode_server_start", {"port": Number(match[2]), "directory": directory}, function(stdout) {
+                var result = {};
+                try { result = JSON.parse(stdout); } catch (e) { result = {}; }
+                if (result.status === "started" || result.status === "already-running")
+                    finish(true, "");
+                else
+                    finish(false, "OpenCode isn't running at " + baseUrl + " and couldn't be started: " + (result.message || "unknown error") + ".");
+            });
+        }
+        try {
+            xhr.open("GET", baseUrl + "/global/health", true);
+            xhr.timeout = 1500;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                if (xhr.status >= 200 && xhr.status < 300) finish(true, "");
+                else notRunning();
+            };
+            xhr.ontimeout = notRunning;
+            xhr.send();
+        } catch (e) {
+            notRunning();
+        }
+    }
+
     function doOpenCodeRequest(sessionId, generation) {
         var target = openCodeTarget(sessionId);
+        root.loading = true;
+        ensureOpenCodeServer(target.baseUrl, target.directory, function(ok, message) {
+            if (!requestIsCurrent(sessionId, generation))
+                return;
+            if (!ok) {
+                applyBackendEvent({"type": "error", "message": message}, "OpenCode");
+                applyBackendEvent({"type": "done", "reason": "error"}, "OpenCode");
+                return;
+            }
+            sendOpenCodePrompt(sessionId, generation, target);
+        });
+    }
+
+    function sendOpenCodePrompt(sessionId, generation, target) {
         var source = sessionMessages(sessionId);
         var providerId = String(getSessionProperty(sessionId, "openCodeProvider", plasmoid.configuration.openCodeProvider || "") || "").trim();
         var modelId = String(getSessionProperty(sessionId, "openCodeModel", plasmoid.configuration.openCodeModel || "") || "").trim();

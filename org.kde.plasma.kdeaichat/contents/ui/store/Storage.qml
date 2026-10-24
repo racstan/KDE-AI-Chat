@@ -30,6 +30,11 @@ Item {
     // Emitted when held-back saves may be written; the widget saves again.
     signal savesReleased()
 
+    // Runs a helper command (kde_ai_helper.py): onDone(stdout, exitCode, stderr).
+    function runHelper(command, payload, onDone) {
+        helper.run(command, payload, onDone);
+    }
+
     function chatsLoaded() {
         _chatsLoaded = true;
         _migrateChatsOnce();

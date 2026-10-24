@@ -25,7 +25,7 @@ import signal
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, List, Tuple
 
-from kdeaichat import chats, privacy
+from kdeaichat import chats, opencode_server, privacy
 
 
 _MAX_FILE_BYTES = 50 * 1024 * 1024
@@ -971,7 +971,7 @@ def main() -> None:
         "get_pi_models": cmd_get_pi_models,
     }
 
-    commands.update({**privacy.COMMANDS, **chats.COMMANDS})
+    commands.update({**privacy.COMMANDS, **chats.COMMANDS, **opencode_server.COMMANDS})
     if command not in commands:
         print(f"Unknown command: {command}")
         sys.exit(1)
