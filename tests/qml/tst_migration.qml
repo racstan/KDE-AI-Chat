@@ -25,7 +25,7 @@ TestCase {
         case "networkWallet": onReply("kdewallet"); break;
         case "open": onReply(1); break;
         case "close": onReply(0); break;
-        case "hasFolder": onReply(args[1] === "KDE AI Chat"); break;
+        case "hasFolder": onReply(args[1] === "KDEAIChat"); break;
         case "createFolder": onReply(true); break;
         case "passwordList": onReply(Object.assign({}, walletFolder)); break;
         case "writePassword":

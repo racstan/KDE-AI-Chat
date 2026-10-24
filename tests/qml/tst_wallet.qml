@@ -51,7 +51,7 @@ TestCase {
     }
 
     function test_load_reads_all_keys_in_one_call() {
-        var fake = makeFake({folders: {"KDE AI Chat": {
+        var fake = makeFake({folders: {"KDEAIChat": {
             "openai": "sk-1",
             "custom_abc": " sk-2 ",
             "empty": "",
@@ -102,13 +102,13 @@ TestCase {
         w.writeMany({"mistral": "m-key", "qwen": "q-key"}, function(result) { ok = result; });
         tryVerify(function() { return ok !== null; });
         verify(ok);
-        compare(fake.folders["KDE AI Chat"]["mistral"], "m-key");
+        compare(fake.folders["KDEAIChat"]["mistral"], "m-key");
         compare(w.keys["qwen"], "q-key");
 
         ok = null;
         w.remove("mistral", function(result) { ok = result; });
         tryVerify(function() { return ok !== null; });
-        verify(!fake.folders["KDE AI Chat"].hasOwnProperty("mistral"));
+        verify(!fake.folders["KDEAIChat"].hasOwnProperty("mistral"));
         verify(!w.keys.hasOwnProperty("mistral"));
         compare(w.keys["qwen"], "q-key");
         compare(fake.opened, fake.closed);
@@ -117,15 +117,15 @@ TestCase {
     function test_legacy_folder_moves_and_is_removed_after_check() {
         var fake = makeFake({folders: {
             "KaiChat": {"kai-chat-openrouter-api-key": "or-old", "kai-chat-mistral-api-key": "m-old", "junk": "x"},
-            "KDE AI Chat": {"mistral": "m-new"}
+            "KDEAIChat": {"mistral": "m-new"}
         }});
         var w = makeWallet(fake);
         var moved = null;
         w.migrateLegacyFolder(function(n) { moved = n; });
         tryVerify(function() { return moved !== null; });
         compare(moved, 1);
-        compare(fake.folders["KDE AI Chat"]["openrouter"], "or-old");
-        compare(fake.folders["KDE AI Chat"]["mistral"], "m-new");
+        compare(fake.folders["KDEAIChat"]["openrouter"], "or-old");
+        compare(fake.folders["KDEAIChat"]["mistral"], "m-new");
         verify(!fake.folders.hasOwnProperty("KaiChat"));
         compare(fake.opened, fake.closed);
     }

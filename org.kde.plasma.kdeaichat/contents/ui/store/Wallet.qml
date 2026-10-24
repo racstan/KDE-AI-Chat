@@ -1,6 +1,6 @@
 // KWallet access for API keys: the only place keys are stored.
 //
-// Keys live in the user's network wallet, folder "KDE AI Chat", one entry per
+// Keys live in the user's network wallet, folder "KDEAIChat", one entry per
 // provider named by its id (e.g. "openrouter", "custom_123"). Versions before
 // 1.4.0 used folder "KaiChat" with entries "kai-chat-<id>-api-key";
 // migrateLegacyFolder() moves those. Used by the widget (read once at startup,
@@ -22,7 +22,7 @@ QtObject {
     // providerId -> key, for the keys found at the last load.
     property var keys: ({})
 
-    readonly property string folder: "KDE AI Chat"
+    readonly property string folder: "KDEAIChat"
     readonly property string legacyFolder: "KaiChat"
     readonly property string appId: "org.kde.plasma.kdeaichat"
 

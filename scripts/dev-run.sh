@@ -7,7 +7,7 @@
 # so the run never reads or writes your real config, chats or widget install.
 # The sandbox is reset each run; set DEV_KEEP=1 to keep chats between runs.
 # KWallet is the real session wallet (a D-Bus service), but the dev copy uses
-# its own wallet folders ("KDE AI Chat (dev)", legacy "KaiChat-dev"), so your
+# its own wallet folders ("KDEAIChat-dev", legacy "KaiChat-dev"), so your
 # real keys are never touched.
 #
 # Usage: scripts/dev-run.sh [seconds-to-run] [screenshot-path]
@@ -50,9 +50,9 @@ PY
 # KWallet is the real session wallet, so keep dev keys in their own folder and
 # never read or overwrite the user's real ones.
 WALLET_QML="$STAGE/$DEV_ID/contents/ui/store/Wallet.qml"
-sed -i -e 's/readonly property string folder: "KDE AI Chat"/readonly property string folder: "KDE AI Chat (dev)"/' \
+sed -i -e 's/readonly property string folder: "KDEAIChat"/readonly property string folder: "KDEAIChat-dev"/' \
        -e 's/readonly property string legacyFolder: "KaiChat"/readonly property string legacyFolder: "KaiChat-dev"/' "$WALLET_QML"
-grep -q '"KDE AI Chat (dev)"' "$WALLET_QML" && grep -q '"KaiChat-dev"' "$WALLET_QML" \
+grep -q '"KDEAIChat-dev"' "$WALLET_QML" && grep -q '"KaiChat-dev"' "$WALLET_QML" \
     || { echo "could not isolate wallet folders" >&2; exit 2; }
 
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true

@@ -443,7 +443,7 @@ Follow the steps below for each provider you want to use.
 ### 8. KWallet Key Storage
 
 **What it does:**
-- API keys are kept only in KDE Wallet (KWallet), in a folder called **KDE AI Chat** (one entry per provider). They are never written to a config file.
+- API keys are kept only in KDE Wallet (KWallet), in a folder called **KDEAIChat** (one entry per provider). They are never written to a config file.
 
 **How to use:**
 1. Open Settings → enter your credentials for any provider.
@@ -635,7 +635,7 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
    systemctl --user start plasma-kwalletd.service
    ```
 
-2. Open KWallet Manager and check that the `KDE AI Chat` folder exists and contains your keys (one entry per provider; versions before 1.4.0 used a `KaiChat` folder, which is moved automatically):
+2. Open KWallet Manager and check that the `KDEAIChat` folder exists and contains your keys (one entry per provider; versions before 1.4.0 used a `KaiChat` folder, which is moved automatically):
    ```bash
    kwalletmanager5
    ```

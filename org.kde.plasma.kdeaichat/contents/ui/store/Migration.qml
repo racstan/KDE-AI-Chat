@@ -1,6 +1,6 @@
 // One-time move of data older versions left in plaintext (1.4.0).
 //
-// Keys: entries in the old "KaiChat" wallet folder move to the "KDE AI Chat"
+// Keys: entries in the old "KaiChat" wallet folder move to the "KDEAIChat"
 // folder. Plaintext API keys in the widget's config (every key setting ever
 // declared), in custom provider JSON and in ~/.config/kdeaichatrc go to
 // KWallet. Plaintext copies are cleared only after KWallet accepted the
@@ -63,7 +63,7 @@ QtObject {
         wallet.migrateLegacyFolder(function(movedFromFolder) {
             console.info("KDE AI Chat: legacy wallet folder: moved", movedFromFolder, "keys (-1 = not removed)");
             if (movedFromFolder > 0)
-                _say(i18n("Moved %1 API keys from the old KaiChat wallet folder to \"KDE AI Chat\".", movedFromFolder)); // qmllint disable unqualified
+                _say(i18n("Moved %1 API keys from the old KaiChat wallet folder to \"KDEAIChat\".", movedFromFolder)); // qmllint disable unqualified
             wallet.load(function() { _migratePlaintextKeys(callback); });
         });
     }

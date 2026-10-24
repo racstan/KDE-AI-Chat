@@ -85,7 +85,7 @@ KDE AI Chat supports **17 different AI engines** out of the box. Key setups are 
 Everything stays on your computer.
 
 ### API keys
-- API keys are kept only in KDE Wallet (KWallet), in a folder called **KDE AI Chat**, one entry per provider. They're never written to a config file.
+- API keys are kept only in KDE Wallet (KWallet), in a folder called **KDEAIChat**, one entry per provider. They're never written to a config file.
 - The settings page saves a key when you edit it; clearing the field removes it from KWallet.
 - If KWallet is turned off, locked, or refuses access, the widget can't read your keys and tells you why in the chat. Turn KWallet on in System Settings → KDE Wallet.
 
@@ -218,7 +218,7 @@ Prompt Templates allow you to save prompts you use frequently and insert them in
 **A**: Ensure that your Plasma global desktop theme doesn't enforce strict application style sheets that override widget layouts. If you want the widget to ignore system-wide rules, go to Settings and change the **Theme Mode** dropdown from "Follow System" to "Strict Dark" or "Strict Light".
 
 ### Q: Where are my keys saved?
-**A**: Only in KDE Wallet (KWallet), in the **KDE AI Chat** folder. You can see them in KDE Wallet Manager. Nothing is stored in plaintext.
+**A**: Only in KDE Wallet (KWallet), in the **KDEAIChat** folder. You can see them in KDE Wallet Manager. Nothing is stored in plaintext.
 
 ### Q: Do I need an API key for Ollama / LM Studio / LiteLLM?
 **A**: No. Ollama, LM Studio, and the local provider are keyless by default. LiteLLM Proxy is also keyless unless your specific proxy configuration requires authentication.
