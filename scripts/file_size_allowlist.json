@@ -2,14 +2,14 @@
   "org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py": 746,
   "org.kde.plasma.kdeaichat/contents/ui/ChatSettingsDialog.qml": 600,
   "org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml": 3658,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigOther.qml": 1281,
+  "org.kde.plasma.kdeaichat/contents/ui/ConfigOther.qml": 1260,
   "org.kde.plasma.kdeaichat/contents/ui/ConfigSystemPrompt.qml": 464,
   "org.kde.plasma.kdeaichat/contents/ui/ConfigVoice.qml": 1048,
   "org.kde.plasma.kdeaichat/contents/ui/FullRepresentationContent.qml": 2040,
   "org.kde.plasma.kdeaichat/contents/ui/ProviderService.js": 653,
   "org.kde.plasma.kdeaichat/contents/ui/ScheduleDialog.qml": 1391,
   "org.kde.plasma.kdeaichat/contents/ui/VoiceManager.qml": 406,
-  "org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py": 1324,
-  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 5109,
+  "org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py": 1231,
+  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 5086,
   "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py": 1536
 }

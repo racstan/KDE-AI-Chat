@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **🖱️ Smoother touchpad scrolling**: Pixel-precise two-finger scrolling with tuned deceleration. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 
+### Removed
+- **PlasmaShell auto-restart watchdog**: The widget no longer starts a background monitor that restarted your desktop shell, or spawns a heartbeat process every 5 seconds. Any monitor left running by an earlier version is stopped automatically.
+
 ### Fixed
 - **⚡ Lower idle CPU use**: The widget no longer starts a shell process every 3 seconds when the scheduler is switched off. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
 - Fixed invalid theme and visibility bindings that logged `Unable to assign [undefined]` warnings in the journal. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
