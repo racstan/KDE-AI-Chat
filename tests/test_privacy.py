@@ -105,3 +105,11 @@ def test_qml_migration_knows_the_same_key_settings():
     block = source[source.index("legacyKeyProviders: ({"):source.index("})", source.index("legacyKeyProviders: ({"))]
     qml_map = dict(re.findall(r'"([A-Za-z]+)": "([a-z_-]+)"', block))
     assert qml_map == privacy.LEGACY_KEY_PROVIDERS
+
+
+def test_plasmawindowed_groups_are_recognised():
+    with tempfile.TemporaryDirectory() as cfg:
+        path = os.path.join(cfg, "plasmawindowedrc")
+        _write(path, f"[Applets][4]\nplugin=org.kde.plasma.kdeaichat\n\n[Applets][4][Configuration][General]\nqwenApiKey={SECRET}\n")
+        found = privacy.scan_appletsrc(path)
+    assert found[0]["live"] is True and found[0]["keyNames"] == ["qwenApiKey"]

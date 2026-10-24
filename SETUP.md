@@ -67,7 +67,7 @@ All 17 providers follow the same pattern:
 
 3. **Enter the API Key:**
    - Paste your API key in the **API Key** field
-   - When KWallet is available, the key is stored in KDE Wallet (encrypted); otherwise it remains in the local plaintext configuration fallback
+   - The key is stored in KDE Wallet (KWallet), never in a config file. KWallet must be enabled
    - Click **Refresh Models** to discover models and verify connection
 
 4. **Configure API Endpoint (optional):**
@@ -440,15 +440,15 @@ Follow the steps below for each provider you want to use.
 
 ---
 
-### 8. KWallet & Plain Config Storage
+### 8. KWallet Key Storage
 
 **What it does:**
-- API keys are securely synced to your **KDE Wallet (KWallet)** via DBus if active, or fall back to standard persistent plain-text configuration saved in your user home config directory.
+- API keys are kept only in KDE Wallet (KWallet), in a folder called **KDE AI Chat** (one entry per provider). They are never written to a config file.
 
 **How to use:**
 1. Open Settings → enter your credentials for any provider.
-2. The widget automatically trims the keys and syncs them to KWallet (if available) or saves them directly in `~/.config/kdeaichatrc`.
-3. Changes are auto-saved in the background immediately.
+2. The key is trimmed and saved to KWallet as soon as you finish editing the field.
+3. If KWallet is turned off or locked, the widget says so instead of sending without a key.
 
 **Manual KWallet inspection:**
 ```bash
@@ -640,7 +640,7 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
    kwalletmanager5
    ```
 
-3. If KWallet is not available on your system, the widget falls back to plaintext keys in the standard local configuration file. Use KWallet when at-rest secret protection is required.
+3. KWallet must be enabled: the widget doesn't store keys anywhere else. Turn it on in System Settings → KDE Wallet.
 
 4. Re-enter your API key in Settings to verify and trigger synchronization.
 

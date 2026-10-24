@@ -31,7 +31,7 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 - **📝 Prompt Templates**: Save prompts you use often in the settings. Type `/<name>` in the chat to insert them instantly.
 - **📅 Task Scheduler**: Set up recurring tasks (like automated code checks or periodic reminders) using simple calendar schedules or cron expressions.
 - **🌳 Edit Messages & Rewind**: Edit any older question to clear the messages after it and restart the conversation from that point.
-- **🔑 Secure API Key Storage**: Safely save your keys. The widget encrypts keys in KDE's secure password manager (KWallet) and falls back to a local config file (`~/.config/kdeaichatrc`) if KWallet is off.
+- **🔑 Secure API Key Storage**: Safely save your keys. Keys are kept only in KDE's secure password manager (KWallet), never in a config file, and chats are stored in private files on your computer.
 - **🔄 15+ AI Providers**: Works with OpenAI, Claude, Groq, DeepSeek, Gemini, OpenRouter, Mistral, Ollama, LM Studio, LiteLLM Proxy, and more.
 - **📤 Export Chats**: Save your chat history as Markdown (`.md`) or plain text (`.txt`) with a single click.
 - **🧭 Quick Navigation**: Easily jump between your questions in a long chat using the Up and Down arrow buttons.

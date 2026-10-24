@@ -22,7 +22,7 @@ KEY FEATURES:
 -> Edit any older question in the thread to automatically clear subsequent history and restart the conversation from that point.
 
 7. Secure Key Storage
--> Safely save your API keys. The widget encrypts keys in KDE's secure password manager (KWallet) and automatically falls back to a local configuration file (~/.config/kdeaichatrc) if KWallet is not running.
+-> Your API keys are kept only in KDE's secure password manager (KWallet), never in a config file. Chats are stored in private files on your computer.
 
 8. 15+ AI Providers
 -> Works out of the box with OpenAI, Claude, Groq, DeepSeek, Gemini, OpenRouter, Mistral, Ollama, LM Studio, LiteLLM Proxy, and more. For other custom providers not listed, you can configure them in OpenCode and access them directly through OpenCode mode.

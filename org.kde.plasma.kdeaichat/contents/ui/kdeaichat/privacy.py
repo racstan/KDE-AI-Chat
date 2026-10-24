@@ -97,7 +97,7 @@ def parse_kconfig(path: str) -> Iterator[Tuple[str, Dict[str, str]]]:
 
 def _applet_prefix(group: str) -> str:
     """'[Containments][3][Applets][40][Configuration][General]' -> '[Containments][3][Applets][40]'."""
-    match = re.match(r"^(\[Containments\]\[\d+\]\[Applets\]\[\d+\])", group)
+    match = re.match(r"^((?:\[Containments\]\[\d+\])?\[Applets\]\[\d+\])", group)
     return match.group(1) if match else ""
 
 
@@ -149,7 +149,7 @@ def scan_kdeaichatrc(path: str) -> Dict[str, Any]:
 def report() -> Dict[str, Any]:
     config = _config_dir()
     applets = []
-    for name in ("plasma-org.kde.plasma.desktop-appletsrc", "plasmawindowed-appletsrc"):
+    for name in ("plasma-org.kde.plasma.desktop-appletsrc", "plasmawindowed-appletsrc", "plasmawindowedrc"):
         applets.extend(scan_appletsrc(os.path.join(config, name)))
     return {"appletConfig": applets, "kdeaichatrc": scan_kdeaichatrc(os.path.join(config, "kdeaichatrc"))}
 
