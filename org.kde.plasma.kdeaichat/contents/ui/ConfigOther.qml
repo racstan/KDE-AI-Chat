@@ -17,7 +17,7 @@ KCM.SimpleKCM {
     // (PNG/JPG/SVG/WEBP/GIF). The value is also written live to the config so
     // the panel icon updates immediately after picking an image.
     property string customIconValue: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "dialog-messages") : "dialog-messages"
-    property alias cfg_customIcon: customIconValue
+    property alias cfg_customIcon: configPage.customIconValue
     property alias cfg_disableStreaming: disableStreamingToggle.checked
     property alias cfg_enableMcpTools: enableMcpToolsToggle.checked
     property alias cfg_autoNameChats: autoNameChatsToggle.checked
