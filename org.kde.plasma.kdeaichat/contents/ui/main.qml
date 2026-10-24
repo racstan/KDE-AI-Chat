@@ -153,7 +153,7 @@ PlasmoidItem {
     function ensureWalletLoaded() {
         if (!keysLoaded) {
             keysLoaded = true;
-            loadKWalletKeysAtStartup();
+            wallet.load();
         }
     }
 
@@ -403,7 +403,7 @@ PlasmoidItem {
 
     function getEffectiveProvider(sessionId) {
         var override = String(getSessionProperty(sessionId, "chatProvider", "") || "").trim();
-        return override || plasmoid.configuration.provider || "openai";
+        return override || plasmoid.configuration.provider || ProviderService.getSupportedProviders(plasmoid.configuration)[0] || "openai";
     }
 
     function getEffectiveModel(sessionId) {
@@ -2533,8 +2533,10 @@ PlasmoidItem {
         if (!cfg)
             return "Provider configuration missing.";
 
-        var missing = [];
         var name = providerDisplayName(providerId);
+        if (cfg.found === false)
+            return "⚠️ The provider \"" + name + "\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.";
+        var missing = [];
         if (!providerId)
             missing.push("provider");
 
@@ -3271,10 +3273,6 @@ PlasmoidItem {
         clipboardHelper.copy();
     }
 
-    function loadKWalletKeysAtStartup() {
-        wallet.load();
-    }
-
     function performExportChat(filePath) {
         var isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown");
         var content = "";
@@ -3435,7 +3433,6 @@ PlasmoidItem {
             root.triggerInitialLoad();
         }
     }
-
 
     Timer {
         id: lazyWalletTimer

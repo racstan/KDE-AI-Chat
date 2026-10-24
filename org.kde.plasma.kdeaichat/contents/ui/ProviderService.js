@@ -1,653 +1,259 @@
+.pragma library
 
+// Providers for direct API mode.
+//
+// The user's providers are one list, stored as JSON in the `providersJson`
+// setting: [{id, name, type, baseUrl, model, headers?}]. `type` is
+// "openai-compat" or "anthropic". API keys are not part of it: each lives in
+// KWallet under the provider's id (see store/Wallet.qml).
+//
+// PRESETS fill in a new provider's URL and type. Versions before 1.4.0 had a
+// fixed set of providers with their own settings (LEGACY); legacyProviders()
+// turns those into list entries with the same ids, so KWallet keys and
+// per-chat provider choices keep working.
 
-/**
- * @typedef {Object} ProviderEntry
- * @property {string} type            `"openai-compat"` or `"anthropic"`.
- * @property {string} configKey       `plasmoid.configuration` key holding the API key (empty if none).
- * @property {string} modelKey        Configuration key holding the model name.
- * @property {string} [baseUrlKey]    Configuration key for a user-editable base URL.
- * @property {string} [defaultBaseUrl]  Fallback base URL if `baseUrlKey` is unset/empty.
- * @property {string} [defaultModel]  Default model name suggestion.
- * @property {boolean} [allowEmptyKey]  If true, requests work without an API key.
- * @property {boolean} [hasHeaders]   If true, the provider needs custom HTTP headers (e.g. OpenRouter).
- */
+var PRESETS = [
+    {"id": "openai", "name": "OpenAI", "type": "openai-compat", "baseUrl": "https://api.openai.com/v1"},
+    {"id": "anthropic", "name": "Anthropic", "type": "anthropic", "baseUrl": "https://api.anthropic.com/v1"},
+    {"id": "openrouter", "name": "OpenRouter", "type": "openai-compat", "baseUrl": "https://openrouter.ai/api/v1", "model": "openrouter/auto",
+     "headers": {"HTTP-Referer": "https://github.com/racstan/KDE-AI-Chat", "X-Title": "KDE AI Chat"}},
+    {"id": "google", "name": "Google Gemini", "type": "openai-compat", "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai"},
+    {"id": "groq", "name": "Groq", "type": "openai-compat", "baseUrl": "https://api.groq.com/openai/v1"},
+    {"id": "deepseek", "name": "DeepSeek", "type": "openai-compat", "baseUrl": "https://api.deepseek.com"},
+    {"id": "mistral", "name": "Mistral", "type": "openai-compat", "baseUrl": "https://api.mistral.ai/v1"},
+    {"id": "xai", "name": "xAI", "type": "openai-compat", "baseUrl": "https://api.x.ai/v1"},
+    {"id": "nvidia", "name": "NVIDIA NIM", "type": "openai-compat", "baseUrl": "https://integrate.api.nvidia.com/v1"},
+    {"id": "fireworks", "name": "Fireworks", "type": "openai-compat", "baseUrl": "https://api.fireworks.ai/inference/v1"},
+    {"id": "huggingface", "name": "Hugging Face", "type": "openai-compat", "baseUrl": "https://router.huggingface.co/v1"},
+    {"id": "perplexity", "name": "Perplexity", "type": "openai-compat", "baseUrl": "https://api.perplexity.ai"},
+    {"id": "minimax", "name": "MiniMax", "type": "openai-compat", "baseUrl": "https://api.minimax.io/v1"},
+    {"id": "qwen", "name": "Qwen", "type": "openai-compat", "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"},
+    {"id": "moonshot", "name": "Moonshot", "type": "openai-compat", "baseUrl": "https://api.moonshot.ai/v1"},
+    {"id": "cloudflare", "name": "Cloudflare Workers AI", "type": "openai-compat", "baseUrl": "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1"},
+    {"id": "ollama", "name": "Ollama (local)", "type": "openai-compat", "baseUrl": "http://localhost:11434/v1", "local": true},
+    {"id": "lmstudio", "name": "LM Studio (local)", "type": "openai-compat", "baseUrl": "http://localhost:1234/v1", "local": true},
+    {"id": "llamacpp", "name": "llama.cpp server (local)", "type": "openai-compat", "baseUrl": "http://localhost:8080/v1", "local": true},
+    {"id": "litellm", "name": "LiteLLM proxy", "type": "openai-compat", "baseUrl": "http://localhost:4000/v1", "local": true},
+    {"id": "custom", "name": "Other OpenAI-compatible", "type": "openai-compat", "baseUrl": ""}
+];
 
-/**
- * @typedef {Object} ProviderConfig
- * @property {string} type            Wire protocol family.
- * @property {string} baseUrl         Resolved base URL.
- * @property {string} apiKey          Resolved (trimmed) API key.
- * @property {string} model           Resolved model name.
- * @property {?Object} headers        Optional extra HTTP headers.
- * @property {boolean} allowEmptyKey  Whether the provider tolerates empty key.
- */
-
-let PROVIDER_CONFIGS = {
-    "anthropic": {
-        type: "anthropic",
-        configKey: "anthropicApiKey",
-        modelKey: "anthropicModel",
-        defaultBaseUrl: "https://api.anthropic.com/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "openai": {
-        type: "openai-compat",
-        configKey: "apiKey",
-        modelKey: "model",
-        defaultBaseUrl: "https://api.openai.com/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "local": {
-        type: "openai-compat",
-        configKey: "",
-        modelKey: "localModel",
-        baseUrlKey: "localBaseUrl",
-        defaultBaseUrl: "http://localhost:11434/v1",
-        defaultModel: "",
-        allowEmptyKey: true
-    },
-    "ollama": {
-        type: "openai-compat",
-        configKey: "",
-        modelKey: "ollamaModel",
-        baseUrlKey: "ollamaBaseUrl",
-        defaultBaseUrl: "http://localhost:11434/v1",
-        defaultModel: "",
-        allowEmptyKey: true
-    },
-    "litellm": {
-        type: "openai-compat",
-        configKey: "litellmApiKey",
-        modelKey: "litellmModel",
-        baseUrlKey: "litellmBaseUrl",
-        defaultBaseUrl: "http://localhost:4000/v1",
-        defaultModel: "",
-        allowEmptyKey: true
-    },
-    "lmstudio": {
-        type: "openai-compat",
-        configKey: "",
-        modelKey: "lmStudioModel",
-        baseUrlKey: "lmStudioBaseUrl",
-        defaultBaseUrl: "http://localhost:1234/v1",
-        defaultModel: "",
-        allowEmptyKey: true
-    },
-    "groq": {
-        type: "openai-compat",
-        configKey: "groqApiKey",
-        modelKey: "groqModel",
-        baseUrlKey: "groqBaseUrl",
-        defaultBaseUrl: "https://api.groq.com/openai/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "deepseek": {
-        type: "openai-compat",
-        configKey: "deepSeekApiKey",
-        modelKey: "deepSeekModel",
-        baseUrlKey: "deepSeekBaseUrl",
-        defaultBaseUrl: "https://api.deepseek.com",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "minimax": {
-        type: "openai-compat",
-        configKey: "miniMaxApiKey",
-        modelKey: "miniMaxModel",
-        baseUrlKey: "miniMaxBaseUrl",
-        defaultBaseUrl: "https://api.minimax.io/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "fireworks": {
-        type: "openai-compat",
-        configKey: "fireworksApiKey",
-        modelKey: "fireworksModel",
-        baseUrlKey: "fireworksBaseUrl",
-        defaultBaseUrl: "https://api.fireworks.ai/inference/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "google": {
-        type: "openai-compat",
-        configKey: "googleApiKey",
-        modelKey: "googleModel",
-        baseUrlKey: "googleBaseUrl",
-        defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "openrouter": {
-        type: "openai-compat",
-        configKey: "openRouterApiKey",
-        modelKey: "openRouterModel",
-        baseUrlKey: "openRouterBaseUrl",
-        defaultBaseUrl: "https://openrouter.ai/api/v1",
-        defaultModel: "",
-        allowEmptyKey: false,
-        hasHeaders: true
-    },
-    "mistral": {
-        type: "openai-compat",
-        configKey: "mistralApiKey",
-        modelKey: "mistralModel",
-        baseUrlKey: "mistralBaseUrl",
-        defaultBaseUrl: "https://api.mistral.ai/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "cloudflare": {
-        type: "openai-compat",
-        configKey: "cloudflareApiKey",
-        modelKey: "cloudflareModel",
-        baseUrlKey: "cloudflareBaseUrl",
-        defaultBaseUrl: "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "nvidia": {
-        type: "openai-compat",
-        configKey: "nvidiaApiKey",
-        modelKey: "nvidiaModel",
-        baseUrlKey: "nvidiaBaseUrl",
-        defaultBaseUrl: "https://integrate.api.nvidia.com/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "huggingface": {
-        type: "openai-compat",
-        configKey: "huggingFaceApiKey",
-        modelKey: "huggingFaceModel",
-        baseUrlKey: "huggingFaceBaseUrl",
-        defaultBaseUrl: "https://router.huggingface.co/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "xai": {
-        type: "openai-compat",
-        configKey: "xaiApiKey",
-        modelKey: "xaiModel",
-        baseUrlKey: "xaiBaseUrl",
-        defaultBaseUrl: "https://api.x.ai/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "qwen": {
-        type: "openai-compat",
-        configKey: "qwenApiKey",
-        modelKey: "qwenModel",
-        baseUrlKey: "qwenBaseUrl",
-        defaultBaseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "moonshot": {
-        type: "openai-compat",
-        configKey: "moonshotApiKey",
-        modelKey: "moonshotModel",
-        baseUrlKey: "moonshotBaseUrl",
-        defaultBaseUrl: "https://api.moonshot.ai/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "mimo": {
-        type: "openai-compat",
-        configKey: "mimoApiKey",
-        modelKey: "mimoModel",
-        baseUrlKey: "mimoBaseUrl",
-        defaultBaseUrl: "https://api.xiaomimimo.com/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "maritaca": {
-        type: "openai-compat",
-        configKey: "maritacaApiKey",
-        modelKey: "maritacaModel",
-        baseUrlKey: "maritacaBaseUrl",
-        defaultBaseUrl: "https://chat.maritaca.ai/api",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "perplexity": {
-        type: "openai-compat",
-        configKey: "perplexityApiKey",
-        modelKey: "perplexityModel",
-        baseUrlKey: "perplexityBaseUrl",
-        defaultBaseUrl: "https://api.perplexity.ai/router/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "pollinations": {
-        type: "image-gen",
-        configKey: "",
-        modelKey: "pollinationsModel",
-        baseUrlKey: "pollinationsBaseUrl",
-        defaultBaseUrl: "https://image.pollinations.ai",
-        defaultModel: "",
-        allowEmptyKey: true
-    },
-    "huggingface-image": {
-        type: "image-gen",
-        configKey: "huggingfaceImageApiKey",
-        modelKey: "huggingfaceImageModel",
-        baseUrlKey: "huggingfaceImageBaseUrl",
-        defaultBaseUrl: "https://api-inference.huggingface.co",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "together-image": {
-        type: "image-gen",
-        configKey: "togetherImageApiKey",
-        modelKey: "togetherImageModel",
-        baseUrlKey: "togetherImageBaseUrl",
-        defaultBaseUrl: "https://api.together.xyz/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "openai-image": {
-        type: "image-gen",
-        configKey: "apiKey",
-        modelKey: "openaiImageModel",
-        baseUrlKey: "baseUrl",
-        defaultBaseUrl: "https://api.openai.com/v1",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "google-image": {
-        type: "image-gen",
-        configKey: "googleApiKey",
-        modelKey: "googleImageModel",
-        baseUrlKey: "googleImageBaseUrl",
-        defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "stability-image": {
-        type: "image-gen",
-        configKey: "stabilityApiKey",
-        modelKey: "stabilityImageModel",
-        baseUrlKey: "stabilityImageBaseUrl",
-        defaultBaseUrl: "https://api.stability.ai",
-        defaultModel: "",
-        allowEmptyKey: false
-    },
-    "replicate-image": {
-        type: "image-gen",
-        configKey: "replicateApiKey",
-        modelKey: "replicateImageModel",
-        baseUrlKey: "replicateImageBaseUrl",
-        defaultBaseUrl: "https://api.replicate.com",
-        defaultModel: "",
-        allowEmptyKey: false
-    }
+// Pre-1.4.0 provider settings: id -> [baseUrl setting, model setting, default URL].
+var LEGACY = {
+    "openai": ["baseUrl", "model", "https://api.openai.com/v1"],
+    "anthropic": ["", "anthropicModel", "https://api.anthropic.com/v1"],
+    "local": ["localBaseUrl", "localModel", "http://localhost:11434/v1"],
+    "ollama": ["ollamaBaseUrl", "ollamaModel", "http://localhost:11434/v1"],
+    "litellm": ["litellmBaseUrl", "litellmModel", "http://localhost:4000/v1"],
+    "lmstudio": ["lmStudioBaseUrl", "lmStudioModel", "http://localhost:1234/v1"],
+    "groq": ["groqBaseUrl", "groqModel", "https://api.groq.com/openai/v1"],
+    "deepseek": ["deepSeekBaseUrl", "deepSeekModel", "https://api.deepseek.com"],
+    "minimax": ["miniMaxBaseUrl", "miniMaxModel", "https://api.minimax.io/v1"],
+    "fireworks": ["fireworksBaseUrl", "fireworksModel", "https://api.fireworks.ai/inference/v1"],
+    "google": ["googleBaseUrl", "googleModel", "https://generativelanguage.googleapis.com/v1beta/openai/"],
+    "openrouter": ["openRouterBaseUrl", "openRouterModel", "https://openrouter.ai/api/v1"],
+    "mistral": ["mistralBaseUrl", "mistralModel", "https://api.mistral.ai/v1"],
+    "cloudflare": ["cloudflareBaseUrl", "cloudflareModel", "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1"],
+    "nvidia": ["nvidiaBaseUrl", "nvidiaModel", "https://integrate.api.nvidia.com/v1"],
+    "huggingface": ["huggingFaceBaseUrl", "huggingFaceModel", "https://router.huggingface.co/v1"],
+    "xai": ["xaiBaseUrl", "xaiModel", "https://api.x.ai/v1"],
+    "qwen": ["qwenBaseUrl", "qwenModel", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"],
+    "moonshot": ["moonshotBaseUrl", "moonshotModel", "https://api.moonshot.ai/v1"],
+    "mimo": ["mimoBaseUrl", "mimoModel", "https://api.xiaomimimo.com/v1"],
+    "maritaca": ["maritacaBaseUrl", "maritacaModel", "https://chat.maritaca.ai/api"],
+    "perplexity": ["perplexityBaseUrl", "perplexityModel", "https://api.perplexity.ai/router/v1"]
 };
+var LEGACY_NAMES = {"local": "Local", "mimo": "MiMo", "maritaca": "Maritaca", "lmstudio": "LM Studio", "ollama": "Ollama", "litellm": "LiteLLM Proxy"};
+var LOCAL_IDS = ["local", "ollama", "lmstudio", "litellm"];
 
-let DISPLAY_NAMES = {
-    "openai": "OpenAI",
-    "anthropic": "Anthropic",
-    "groq": "Groq",
-    "deepseek": "DeepSeek",
-    "minimax": "MiniMax",
-    "fireworks": "Fireworks",
-    "google": "Google Gemini",
-    "openrouter": "OpenRouter",
-    "mistral": "Mistral",
-    "cloudflare": "Cloudflare",
-    "nvidia": "NVIDIA NIM",
-    "huggingface": "Hugging Face",
-    "xai": "xAI",
-    "litellm": "LiteLLM Proxy",
-    "lmstudio": "LM Studio",
-    "local": "Local",
-    "ollama": "Ollama",
-    "qwen": "Qwen",
-    "moonshot": "Moonshot",
-    "mimo": "MiMo",
-    "maritaca": "Maritaca",
-    "perplexity": "Perplexity",
-    "pollinations": "[Image] Pollinations.ai",
-    "huggingface-image": "[Image] HuggingFace Image",
-    "together-image": "[Image] Together AI",
-    "openai-image": "[Image] OpenAI DALL-E",
-    "google-image": "[Image] Google Imagen",
-    "stability-image": "[Image] Stability AI",
-    "replicate-image": "[Image] Replicate"
-};
-
-let API_KEY_CONFIG_MAP = {
-    "openai": "apiKey",
-    "anthropic": "anthropicApiKey",
-    "groq": "groqApiKey",
-    "deepseek": "deepSeekApiKey",
-    "minimax": "miniMaxApiKey",
-    "fireworks": "fireworksApiKey",
-    "google": "googleApiKey",
-    "openrouter": "openRouterApiKey",
-    "mistral": "mistralApiKey",
-    "cloudflare": "cloudflareApiKey",
-    "nvidia": "nvidiaApiKey",
-    "huggingface": "huggingFaceApiKey",
-    "xai": "xaiApiKey",
-    "litellm": "litellmApiKey",
-    "qwen": "qwenApiKey",
-    "moonshot": "moonshotApiKey",
-    "mimo": "mimoApiKey",
-    "maritaca": "maritacaApiKey",
-    "perplexity": "perplexityApiKey",
-    "huggingface-image": "huggingfaceImageApiKey",
-    "together-image": "togetherImageApiKey",
-    "openai-image": "apiKey",
-    "google-image": "googleApiKey",
-    "stability-image": "stabilityApiKey",
-    "replicate-image": "replicateApiKey"
-};
-
-/**
- * ProviderService — data-driven provider configuration registry.
- *
- * Single source of truth for every supported LLM provider. All
- * previously hard-coded if/else chains in main.qml and
- * ConfigGeneral.qml delegate here so adding a new provider only
- * requires editing the `PROVIDER_CONFIGS` map below.
- *
- * @module ProviderService
- */
-
-/**
- * Display name for a provider, falling back to the id and then to a
- * generic label.
- *
- * @param {string} providerId  Provider id (e.g. `"openai"`).
- * @returns {string} Human-readable name, or the id, or `"Selected provider"`.
- */
-function parseCustomProviders(configuration) {
-    if (!configuration || !configuration.customProvidersJson) return [];
-    try {
-        let raw = configuration.customProvidersJson;
-        let list = (typeof raw === "string") ? JSON.parse(raw) : raw;
-        return Array.isArray(list) ? list : [];
-    } catch (e) {
-        return [];
-    }
+function presetById(id) {
+    for (var i = 0; i < PRESETS.length; i++)
+        if (PRESETS[i].id === id) return PRESETS[i];
+    return null;
 }
 
-/**
- * Display name for a provider, falling back to custom provider name, the id, and then to a
- * generic label.
- *
- * @param {string} providerId  Provider id (e.g. `"openai"` or `"custom_123"`).
- * @param {Object} [configuration] Optional configuration map.
- * @returns {string} Human-readable name.
- */
-function getProviderDisplayName(providerId, configuration) {
-    if (DISPLAY_NAMES[providerId]) return DISPLAY_NAMES[providerId];
-    if (configuration) {
-        let customs = parseCustomProviders(configuration);
-        for (let i = 0; i < customs.length; i++) {
-            if (customs[i] && customs[i].id === providerId && customs[i].name) {
-                return "[Custom] " + customs[i].name;
-            }
-        }
-    }
-    return providerId || "Selected provider";
+function _clean(entry) {
+    if (!entry || !entry.id) return null;
+    var type = entry.type === "anthropic" ? "anthropic" : "openai-compat";
+    var out = {"id": String(entry.id), "name": String(entry.name || entry.id), "type": type,
+               "baseUrl": String(entry.baseUrl || "").trim(), "model": String(entry.model || "").trim()};
+    if (entry.headers && typeof entry.headers === "object") out.headers = entry.headers;
+    return out;
 }
 
-/**
- * Build a runtime provider config object by resolving all keys against
- * the user's `plasmoid.configuration` map. Returns a plain object the
- * request layer can consume directly.
- *
- * @param {string} providerId  Provider id.
- * @param {Object} configuration  The user's `plasmoid.configuration` map.
- * @returns {{type: string, baseUrl: string, apiKey: string, model: string, headers: ?Object, allowEmptyKey: boolean}}
- *   Runtime provider config.
- */
+// The user's providers. Empty until the 1.4.0 migration has run.
+function parseProviders(configuration) {
+    var raw = configuration ? String(configuration.providersJson || "") : "";
+    var list = [];
+    try { list = raw ? JSON.parse(raw) : []; } catch (e) { list = []; }
+    var out = [];
+    for (var i = 0; Array.isArray(list) && i < list.length; i++) {
+        var entry = _clean(list[i]);
+        if (entry) out.push(entry);
+    }
+    return out;
+}
+
+function serializeProviders(list) {
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+        var entry = _clean(list[i]);
+        if (entry) out.push(entry);
+    }
+    return JSON.stringify(out);
+}
+
+// A new id for a provider made from `presetId`, unique within `list`.
+function newProviderId(list, presetId) {
+    var base = presetId && presetId !== "custom" ? presetId : "custom";
+    var taken = {};
+    for (var i = 0; i < list.length; i++) taken[list[i].id] = true;
+    if (!taken[base] && base !== "custom") return base;
+    var n = 2;
+    while (taken[base + "_" + n]) n++;
+    return base + "_" + n;
+}
+
+// A provider entry for one pre-1.4.0 provider id, from its old settings.
+function _legacyEntry(id, configuration) {
+    var spec = LEGACY[id];
+    var preset = presetById(id);
+    var baseUrl = (spec[0] && configuration[spec[0]]) || spec[2];
+    var entry = {"id": id, "name": (preset && preset.name) || LEGACY_NAMES[id] || id,
+                 "type": id === "anthropic" ? "anthropic" : "openai-compat",
+                 "baseUrl": String(baseUrl).trim(), "model": String(configuration[spec[1]] || "").trim()};
+    if (id === "openrouter")
+        entry.headers = {"HTTP-Referer": configuration.openRouterReferer || preset.headers["HTTP-Referer"],
+                         "X-Title": configuration.openRouterTitle || preset.headers["X-Title"]};
+    return entry;
+}
+
+// Builds the provider list from pre-1.4.0 settings. A built-in provider is
+// kept if it has a key in KWallet (`walletKeys`), is the selected provider, or
+// had a model set; custom providers are always kept.
+function legacyProviders(configuration, walletKeys) {
+    var list = [];
+    var keys = walletKeys || {};
+    for (var id in LEGACY) {
+        var spec = LEGACY[id];
+        var used = !!keys[id] || configuration.provider === id || String(configuration[spec[1]] || "").trim() !== "";
+        if (used) list.push(_legacyEntry(id, configuration));
+    }
+    var customs = [];
+    try { customs = JSON.parse(configuration.customProvidersJson || "[]"); } catch (e) { customs = []; }
+    for (var i = 0; Array.isArray(customs) && i < customs.length; i++) {
+        var entry = _clean(customs[i]);
+        if (entry) list.push(entry);
+    }
+    return list;
+}
+
+// Runtime settings for a provider id. The API key comes from KWallet, so
+// `apiKey` is always "" here.
 function getProviderConfig(providerId, configuration) {
-    let entry = PROVIDER_CONFIGS[providerId];
-    if (!entry) {
-        let customs = parseCustomProviders(configuration);
-        for (let i = 0; i < customs.length; i++) {
-            let cp = customs[i];
-            if (cp && cp.id === providerId) {
-                return {
-                    "type": cp.type || "openai-compat",
-                    "baseUrl": (cp.baseUrl || "").trim(),
-                    "apiKey": (cp.apiKey || "").trim(),
-                    "model": (cp.model || "").trim(),
-                    "headers": cp.headers || null,
-                    "allowEmptyKey": cp.allowEmptyKey !== false
-                };
-            }
-        }
-        return {
-            "type": "openai-compat",
-            "baseUrl": (configuration.baseUrl || "https://api.openai.com/v1"),
-            "apiKey": (configuration.apiKey || "").trim(),
-            "model": configuration.model || "",
-            "headers": null,
-            "allowEmptyKey": false
-        };
-    }
-
-    let apiKey = "";
-    if (entry.configKey) {
-        apiKey = (configuration[entry.configKey] || "").trim();
-    }
-
-    let model = configuration[entry.modelKey] || entry.defaultModel || "";
-    let baseUrl = "";
-    let baseUrlKey = entry.baseUrlKey || (providerId === "openai" ? "baseUrl" : null);
-    baseUrl = (baseUrlKey ? configuration[baseUrlKey] : "") || entry.defaultBaseUrl || "";
-
-    let headers = null;
-    if (entry.hasHeaders && providerId === "openrouter") {
-        headers = {};
-        let referer = configuration.openRouterReferer || "https://github.com/racstan/KDE-AI-Chat";
-        let title = configuration.openRouterTitle || "KDE AI Chat";
-        headers["HTTP-Referer"] = referer;
-        headers["X-Title"] = title;
-    }
-
-    return {
-        "type": entry.type,
-        "baseUrl": baseUrl,
-        "apiKey": apiKey,
-        "model": model,
-        "headers": headers,
-        "allowEmptyKey": entry.allowEmptyKey
-    };
+    var list = parseProviders(configuration);
+    var entry = null;
+    for (var i = 0; i < list.length; i++)
+        if (list[i].id === providerId) entry = list[i];
+    // Before the migration has run, read the old settings directly.
+    if (!entry && list.length === 0 && LEGACY[providerId])
+        entry = _legacyEntry(providerId, configuration || {});
+    if (!entry)
+        return {"type": "openai-compat", "baseUrl": "", "apiKey": "", "model": "", "headers": null, "allowEmptyKey": false, "found": false};
+    var local = LOCAL_IDS.indexOf(entry.id) >= 0 || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])[:/]/i.test(entry.baseUrl);
+    return {"type": entry.type, "baseUrl": entry.baseUrl, "apiKey": "", "model": entry.model,
+            "headers": entry.headers || null, "allowEmptyKey": local, "found": true};
 }
 
-/**
- * Look up the `plasmoid.configuration` key that holds a given
- * provider's API key.
- *
- * @param {string} targetId  Provider id.
- * @returns {?string} The configuration key, or `null` if the provider
- *   has no separate API key field (e.g. local providers).
- */
-function getApiKeyConfigKey(targetId) {
-    return API_KEY_CONFIG_MAP[targetId] || null;
+function getProviderDisplayName(providerId, configuration) {
+    var list = parseProviders(configuration);
+    for (var i = 0; i < list.length; i++)
+        if (list[i].id === providerId) return list[i].name;
+    var preset = presetById(providerId);
+    return (preset && preset.name) || LEGACY_NAMES[providerId] || providerId || "Selected provider";
 }
 
-/**
- * List all provider ids that have a dedicated API key configuration
- * field. Used by the KWallet bulk reader to know which entries to pull.
- *
- * @returns {string[]} Provider ids (e.g. `["openai", "anthropic", ...]`).
- */
-function getApiKeyProviderIds() {
-    return Object.keys(API_KEY_CONFIG_MAP);
-}
-
-/**
- * List all provider ids known to the registry, including custom remote providers.
- *
- * @param {Object} [configuration] Optional configuration map.
- * @returns {string[]} Provider ids.
- */
+// Provider ids the user can pick from.
 function getSupportedProviders(configuration) {
-    let keys = Object.keys(PROVIDER_CONFIGS);
-    if (configuration) {
-        let customs = parseCustomProviders(configuration);
-        for (let i = 0; i < customs.length; i++) {
-            if (customs[i] && customs[i].id && keys.indexOf(customs[i].id) < 0) {
-                keys.push(customs[i].id);
-            }
-        }
-    }
-    return keys;
+    var list = parseProviders(configuration);
+    if (list.length === 0 && configuration)
+        list = legacyProviders(configuration, {});
+    var ids = [];
+    for (var i = 0; i < list.length; i++) ids.push(list[i].id);
+    return ids;
 }
 
-/**
- * List all provider ids that have a valid configured API key (or don't require an API key).
- * Used by settings and chat header to only show usable providers in Normal mode.
- *
- * @param {Object} configuration User's plasmoid.configuration map.
- * @returns {string[]} Provider ids.
- */
 function getConfiguredProviders(configuration) {
-    let all = getSupportedProviders(configuration);
-    if (!configuration) return all;
-    let configured = [];
-    for (let i = 0; i < all.length; i++) {
-        let pId = all[i];
-        let pConf = getProviderConfig(pId, configuration);
-        if (pConf.allowEmptyKey || (pConf.apiKey && pConf.apiKey.length > 0)) {
-            configured.push(pId);
-        }
-    }
-    return configured.length > 0 ? configured : all;
+    return getSupportedProviders(configuration);
 }
 
-/**
- * Parse model IDs from various provider API response structures.
- *
- * @param {Object} responseObj  Raw JSON object returned by the models endpoint.
- * @returns {string[]} List of unique model ID strings.
- */
+// Model ids from the various shapes of /models responses.
 function parseModelIds(responseObj) {
     var ids = [];
-    function pushId(v) {
-        if (!v) return;
-        if (ids.indexOf(v) < 0) ids.push(v);
-    }
-    if (Array.isArray(responseObj)) {
-        for (let i = 0; i < responseObj.length; i++) {
-            if (typeof responseObj[i] === "string") pushId(responseObj[i]);
-            else if (responseObj[i] && responseObj[i].id) pushId(responseObj[i].id);
-            else if (responseObj[i] && responseObj[i].name) pushId(responseObj[i].name);
-        }
-    } else if (responseObj && Array.isArray(responseObj.data)) {
-        for (let j = 0; j < responseObj.data.length; j++) {
-            if (responseObj.data[j] && responseObj.data[j].id) pushId(responseObj.data[j].id);
-            else if (responseObj.data[j] && responseObj.data[j].name) pushId(responseObj.data[j].name);
-        }
-    } else if (responseObj && Array.isArray(responseObj.models)) {
-        for (let k = 0; k < responseObj.models.length; k++) {
-            if (typeof responseObj.models[k] === "string") pushId(responseObj.models[k]);
-            else if (responseObj.models[k] && responseObj.models[k].id) pushId(responseObj.models[k].id);
-            else if (responseObj.models[k] && responseObj.models[k].name) pushId(responseObj.models[k].name);
-        }
+    var items = Array.isArray(responseObj) ? responseObj
+        : (responseObj && Array.isArray(responseObj.data)) ? responseObj.data
+        : (responseObj && Array.isArray(responseObj.models)) ? responseObj.models : [];
+    for (var i = 0; i < items.length; i++) {
+        var v = typeof items[i] === "string" ? items[i] : (items[i] && (items[i].id || items[i].name));
+        if (v && ids.indexOf(v) < 0) ids.push(String(v).replace(/^models\//, ""));
     }
     return ids;
 }
 
-/**
- * Fetch available model candidate IDs for a specific provider on-the-fly.
- *
- * @param {string} providerId  The provider ID (e.g. "openai", "anthropic", "groq", "ollama").
- * @param {Object} configuration  The user's plasmoid.configuration map.
- * @param {function(string[]):void} onSuccess  Callback invoked with array of model IDs.
- * @param {function(string):void} onError  Callback invoked with error message string.
- */
 function isHttpUrlAllowed(url) {
     if (url === null || url === undefined) return false;
-    let value = String(url).trim();
+    var value = String(url).trim();
     if (!/^(?:http|https):\/\//i.test(value) || /[\u0000-\u001f\u007f]/.test(value)) return false;
-    let authority = value.substring(value.indexOf("://") + 3).split(/[\/?#]/, 1)[0];
+    var authority = value.substring(value.indexOf("://") + 3).split(/[\/?#]/, 1)[0];
     return authority !== "" && !/[\s<>"'`]/.test(authority) && authority.indexOf("@") < 0;
 }
 
-function fetchModelsForProvider(providerId, configuration, onSuccess, onError) {
-    let cfg = getProviderConfig(providerId, configuration);
-    let apiKeyKey = getApiKeyConfigKey(providerId);
-    if (apiKeyKey && (!cfg.apiKey || cfg.apiKey.trim() === "")) {
-        if (onError) onError("API key missing for " + getProviderDisplayName(providerId));
-        return;
-    }
-
-    let headers = {};
-    if (cfg.apiKey) {
-        headers["Authorization"] = "Bearer " + cfg.apiKey;
-    }
-
-    let url = "";
+// {url, headers} for listing a provider's models.
+function modelsRequest(cfg, apiKey) {
+    var base = String(cfg.baseUrl || "").replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
+    var headers = {};
     if (cfg.type === "anthropic") {
-        headers["x-api-key"] = cfg.apiKey;
+        headers["x-api-key"] = apiKey || "";
         headers["anthropic-version"] = "2023-06-01";
-        let base = (cfg.baseUrl || "https://api.anthropic.com/v1").replace(/\/$/, "");
-        url = base.endsWith("/models") ? base : base + "/models";
-    } else {
-        let base = cfg.baseUrl || "";
-        base = base.replace(/\/$/, "");
-        if (base.endsWith("/chat/completions")) {
-            url = base.substring(0, base.length - "/chat/completions".length) + "/models";
-        } else {
-            url = base + "/models";
-        }
+    } else if (apiKey) {
+        headers["Authorization"] = "Bearer " + apiKey;
     }
+    for (var k in (cfg.headers || {}))
+        if (cfg.headers[k]) headers[k] = cfg.headers[k];
+    return {"url": base + "/models", "headers": headers};
+}
 
-    if (cfg.headers) {
-        for (let k in cfg.headers) {
-            if (cfg.headers.hasOwnProperty(k)) {
-                headers[k] = cfg.headers[k];
-            }
-        }
-    }
-
-    if (!isHttpUrlAllowed(url)) {
-        if (onError) onError("Request blocked: only HTTP(S) provider URLs are allowed.");
+// Fetches model ids for a provider. cfg as from getProviderConfig (or an
+// unsaved entry with type/baseUrl/headers); apiKey from KWallet.
+function fetchModels(cfg, apiKey, onSuccess, onError, xhrFactory) {
+    var request = modelsRequest(cfg, apiKey);
+    if (!isHttpUrlAllowed(request.url)) {
+        if (onError) onError("Enter an http(s) URL for this provider first.");
         return;
     }
-    let xhr = new XMLHttpRequest();
+    var xhr = xhrFactory ? xhrFactory() : new XMLHttpRequest();
     try {
-        xhr.open("GET", url, true);
+        xhr.open("GET", request.url, true);
+        xhr.timeout = 8000;
+        for (var h in request.headers) xhr.setRequestHeader(h, request.headers[h]);
     } catch (e) {
         if (onError) onError("Invalid provider URL: " + e);
         return;
     }
-    xhr.responseType = "text";
-    xhr.timeout = 5000; // 5 second timeout — never hang plasmashell
-    for (let h in headers) {
-        if (headers[h]) xhr.setRequestHeader(h, headers[h]);
-    }
     xhr.onreadystatechange = function() {
-        if (xhr.readyState !== XMLHttpRequest.DONE) return;
+        if (xhr.readyState !== 4) return;
         if (xhr.status >= 200 && xhr.status < 300) {
             try {
-                if (xhr.responseText.length > 2000000)
-                    throw new Error("model list response is too large");
-                let parsed = JSON.parse(xhr.responseText);
-                let ids = parseModelIds(parsed);
-                if (onSuccess) onSuccess(ids);
+                if (String(xhr.responseText).length > 2000000) throw new Error("model list response is too large");
+                if (onSuccess) onSuccess(parseModelIds(JSON.parse(xhr.responseText)));
             } catch (e) {
-                if (onError) onError("Parse error: " + e.toString());
+                if (onError) onError("Could not read the model list: " + e);
             }
-        } else {
-            if (onError) onError("HTTP " + xhr.status + " from " + url);
+        } else if (onError) {
+            onError(xhr.status === 401 || xhr.status === 403 ? "The provider rejected the API key (HTTP " + xhr.status + ")."
+                    : "HTTP " + xhr.status + " from " + request.url);
         }
     };
-    xhr.ontimeout = function() {
-        if (onError) onError("Timed out fetching models from " + url);
-    };
-    xhr.onerror = function() {
-        if (onError) onError("Network error requesting " + url);
-    };
-    try { xhr.send(); } catch(e) {
-        if (onError) onError("Send failed: " + e);
-    }
+    xhr.ontimeout = function() { if (onError) onError("Timed out fetching models from " + request.url); };
+    xhr.onerror = function() { if (onError) onError("Could not reach " + request.url); };
+    try { xhr.send(); } catch (e) { if (onError) onError("Send failed: " + e); }
 }

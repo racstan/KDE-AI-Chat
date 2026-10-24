@@ -183,7 +183,7 @@ Rectangle {
         var token = _requestToken();
         if (showStatus)
             _status = "Refreshing models…";
-        ProviderService.fetchModelsForProvider(provider, rootRef.plasmoid.configuration,
+        ProviderService.fetchModels(ProviderService.getProviderConfig(provider, rootRef.plasmoid.configuration), (rootRef.walletApiKeys || {})[provider] || "",
             function(models) {
                 if (!_current(token)) return;
                 _busy = false;

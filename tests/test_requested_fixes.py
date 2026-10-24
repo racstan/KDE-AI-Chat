@@ -27,54 +27,6 @@ def test_main_xml_contains_new_config_entries():
     assert "enableMcpTools" not in entries
 
 
-def test_provider_service_custom_providers():
-    with open(PROVIDER_SERVICE, encoding="utf-8") as f:
-        source = re.sub(r"^\s*\.pragma\s+library\s*\n", "", f.read(), count=1)
-
-    driver = """
-    var cfg = {
-        customProvidersJson: JSON.stringify([
-            { id: "custom_1", name: "My LLM", type: "openai-compat", baseUrl: "https://myllm.org/v1", apiKey: "secret", model: "model-a" },
-            { id: "custom_2", name: "Claude Proxy", type: "anthropic", baseUrl: "https://proxy.org", apiKey: "key2", model: "claude-custom" }
-        ])
-    };
-
-    var supported = getSupportedProviders(cfg);
-    console.log("SUPPORTED:" + JSON.stringify(supported));
-
-    var name1 = getProviderDisplayName("custom_1", cfg);
-    console.log("NAME1:" + name1);
-
-    var conf1 = getProviderConfig("custom_1", cfg);
-    console.log("CONF1:" + JSON.stringify(conf1));
-    """
-
-    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as script:
-        script.write(source)
-        script.write(driver)
-        script_path = script.name
-
-    try:
-        res = subprocess.run(["node", script_path], capture_output=True, text=True, check=True)
-        out = res.stdout
-        assert "custom_1" in out
-        assert "custom_2" in out
-        assert "[Custom] My LLM" in out
-        assert "https://myllm.org/v1" in out
-    finally:
-        os.unlink(script_path)
-
-
-def test_custom_provider_settings_use_custom_endpoint_and_model_storage():
-    with open(os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigGeneral.qml"), encoding="utf-8") as f:
-        source = f.read()
-    assert "function customProviderById(id)" in source
-    assert "setCustomProviderProperty(p, \"model\", modelId || \"\")" in source
-    assert "if (isCustomProviderId(p))" in source
-    assert "text: page.editingCustomProviderId ? i18n(\"Save Provider\")" in source
-    assert "document-edit" in source
-
-
 def test_mcp_commands_are_gone():
     with open(HELPER_PY, encoding="utf-8") as f:
         source = f.read()

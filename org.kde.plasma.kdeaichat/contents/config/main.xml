@@ -289,6 +289,11 @@
     <entry name="disableStreaming" type="Bool">
       <default>false</default>
     </entry>
+    <!-- Direct-mode providers (1.4.0): [{id, name, type, baseUrl, model,
+         headers?}]; keys live in KWallet under the id. See ProviderService.js. -->
+    <entry name="providersJson" type="String">
+      <default></default>
+    </entry>
     <entry name="customProvidersJson" type="String">
       <default>[]</default>
     </entry>

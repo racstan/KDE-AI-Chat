@@ -42,20 +42,31 @@ trap 'wallet clean' EXIT
 # First run creates the sandbox config and an empty chat.
 "$ROOT/scripts/dev-run.sh" 8 >/dev/null || true
 
-python3 - "$SANDBOX" "$PROVIDER" "$MODEL" "$MESSAGE" <<'PY'
+# The provider's preset (URL, type, headers) straight from ProviderService.js.
+PRESET="$(node -e '
+const fs = require("fs"), vm = require("vm"), ctx = {};
+vm.runInNewContext(fs.readFileSync(process.argv[1], "utf8").replace(/^\s*\.pragma\s+library\s*$/m, "") + "\nthis.p = presetById(process_arg);", Object.assign(ctx, {process_arg: process.argv[2]}));
+if (!ctx.p) { console.error("unknown provider preset: " + process.argv[2]); process.exit(1); }
+console.log(JSON.stringify(ctx.p));' "$ROOT/org.kde.plasma.kdeaichat/contents/ui/ProviderService.js" "$PROVIDER")"
+
+python3 - "$SANDBOX" "$PRESET" "$MODEL" "$MESSAGE" <<'PY'
 import json, os, re, sys
-sandbox, provider, model, message = sys.argv[1:]
+sandbox, preset, model, message = sys.argv[1:]
+preset = json.loads(preset)
 index = open(f"{sandbox}/data/kdeaichat/chats/applet-4/index.ini", encoding="utf-8").read()
 raw = re.search(r"^sessions=(.*)$", index, re.M).group(1)
 if raw.startswith('"'):
     raw = raw[1:-1].replace('\\"', '"').replace("\\\\", "\\")
 chat_id = json.loads(raw)[0]["value"]
-model_keys = {"openai": "model", "anthropic": "anthropicModel", "openrouter": "openRouterModel", "groq": "groqModel",
-              "deepseek": "deepSeekModel", "mistral": "mistralModel", "nvidia": "nvidiaModel", "google": "googleModel"}
+entry = {"id": preset["id"], "name": preset["name"], "type": preset["type"], "baseUrl": preset["baseUrl"], "model": model}
+if preset.get("headers"):
+    entry["headers"] = preset["headers"]
+providers = json.dumps([entry]).replace("\\", "\\\\")
 path = f"{sandbox}/config/plasmawindowedrc"
 config = open(path, encoding="utf-8").read()
+config = re.sub(r"^(providersJson|provider|schedulerEnabled)=.*\n", "", config, flags=re.M)
 group = "[Applets][4][Configuration][General]\n"
-config = config.replace(group, group + f"provider={provider}\n{model_keys.get(provider, 'model')}={model}\nschedulerEnabled=true\n")
+config = config.replace(group, group + f"provider={preset['id']}\nprovidersJson={providers}\nschedulerEnabled=true\n")
 open(path, "w", encoding="utf-8").write(config)
 os.makedirs(f"{sandbox}/data/kdeaichat/pending", exist_ok=True)
 with open(f"{sandbox}/data/kdeaichat/pending/dev-send.json", "w") as f:
