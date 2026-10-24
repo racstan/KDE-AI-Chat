@@ -45,7 +45,6 @@ Item {
     }
 
     Kirigami.Theme.inherit: false
-    Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
     Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
     Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
     Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
@@ -55,7 +54,7 @@ Item {
 
     SequentialAnimation {
         id: highlightPulse
-        running: root.voiceManagerRef && root.voiceManagerRef.isPlaying
+        running: !!root.voiceManagerRef && root.voiceManagerRef.isPlaying
         loops: Animation.Infinite
         alwaysRunToEnd: false
         
@@ -1375,7 +1374,7 @@ Item {
                                                             anchors.centerIn: parent
                                                             width: parent.width * 0.8
                                                             height: parent.height * 0.8
-                                                            running: root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
+                                                            running: !!root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
                                                             visible: running
                                                         }
                                                     }
@@ -1495,11 +1494,11 @@ Item {
                     }
 
                     RowLayout {
-                        visible: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "")
+                        visible: root.loading || (!!root.voiceManagerRef && root.voiceManagerRef.statusText !== "")
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.BusyIndicator {
-                            running: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused" && !root.voiceManagerRef.callModeActive)
+                            running: root.loading || (!!root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused" && !root.voiceManagerRef.callModeActive)
                             visible: running
                             width: 16
                             height: 16
@@ -1507,7 +1506,7 @@ Item {
 
                         PC3.ToolButton {
                             icon.name: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-start" : "media-playback-stop"
-                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive)
+                            visible: !root.loading && !!root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive)
                             display: PC3.AbstractButton.IconOnly
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "Call Mode Active" : "Stop reading"
@@ -1744,7 +1743,7 @@ Item {
                                 anchors.centerIn: parent
                                 width: parent.width * 0.6
                                 height: parent.height * 0.6
-                                running: root.voiceManagerRef && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
+                                running: !!root.voiceManagerRef && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
                                 visible: running
                             }
                         }

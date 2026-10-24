@@ -4985,7 +4985,9 @@ PlasmoidItem {
         id: schedulerPollTimer
         interval: 3000
         repeat: true
-        running: true
+        // Only the scheduler daemon writes pending triggers, so don't spawn a
+        // shell every few seconds while the scheduler is switched off.
+        running: plasmoid.configuration.schedulerEnabled === true
         onTriggered: {
             // Don't poll until sessions are loaded so sessionIndexById works
             if (!root._initialLoadDone || root.schedulerPollInFlight)
@@ -5074,7 +5076,6 @@ PlasmoidItem {
             }
         }
         Kirigami.Theme.inherit: false
-        Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
         Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
         Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
         Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
