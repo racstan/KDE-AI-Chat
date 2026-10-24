@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-10-24
 
+### Changed
+- **📜 License**: KDE AI Chat is now licensed under the GNU GPL v3.0 or later (previously GPL-2.0 or later). The full text is in `LICENSE`.
+
 ### Added
 - **🔀 Per-chat provider & model switching**: Open the chat settings panel to change provider, model or mode for the current chat without touching your other chats. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 - **🔌 Multiple custom providers**: Add as many OpenAI-compatible providers as you like, each with its own name, URL and key — including several of the same type. Keys are stored in KWallet. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))

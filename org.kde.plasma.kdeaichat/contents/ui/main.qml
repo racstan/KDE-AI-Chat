@@ -4317,7 +4317,9 @@ PlasmoidItem {
     }
 
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
-    preferredRepresentation: compactRepresentation
+    // Panels and the desktop show the compact icon; standalone hosts such as
+    // plasmawindowed (used by scripts/dev-run.sh) open the chat directly.
+    preferredRepresentation: Qt.application.name === "plasmawindowed" ? fullRepresentation : compactRepresentation
     onHistoryOnlyModeChanged: {
         if (!historyOnlyMode) {
             root.focusInput();

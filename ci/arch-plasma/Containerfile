@@ -1,0 +1,16 @@
+# CI image for the QML job: Qt 6, Kirigami and Plasma 6 QML modules, which
+# Ubuntu images don't have. Used by the local Gitea act_runner (rootless
+# podman) via the `arch-plasma` runner label.
+#
+# Build:  podman build -t localhost/act-arch-plasma:latest ci/arch-plasma
+FROM docker.io/library/archlinux:latest
+
+# act_runner copies actions into /var/run/act; rootless podman refuses to copy
+# through Arch's /var/run -> /run symlink, so make it a real directory.
+RUN rm /var/run && mkdir -p /var/run
+
+RUN pacman -Syu --noconfirm --needed \
+        qt6-declarative kirigami libplasma plasma5support plasma-workspace \
+        kcmutils qqc2-desktop-style \
+        python python-pytest nodejs git \
+    && pacman -Scc --noconfirm
