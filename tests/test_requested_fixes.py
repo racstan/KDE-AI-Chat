@@ -115,7 +115,7 @@ def test_feature_settings_are_exposed_and_persisted():
     with open(MAIN_QML, encoding="utf-8") as f:
         main_qml = f.read()
 
-    assert "property alias cfg_customIcon: customIconValue" in config_other
+    assert "property alias cfg_customIcon: configPage.customIconValue" in config_other
     assert "cfg_disableStreaming: disableStreamingToggle.checked" in config_other
     assert "cfg_enableMcpTools: enableMcpToolsToggle.checked" in config_other
     assert "cfg_mcpServersJson: mcpServersField.text" in config_other
