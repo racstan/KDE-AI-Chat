@@ -1,4 +1,4 @@
-KDE AI Chat (v1.3.1)
+KDE AI Chat (v1.4.0)
 A native, fast, and easy-to-use AI chat assistant widget for the KDE Plasma 6 desktop. Connect to your favorite AI providers, drag and drop files, schedule automated tasks, and securely save your API keys.
 
 KEY FEATURES:
@@ -40,11 +40,16 @@ KEY FEATURES:
 -> Drag the bottom-right corner of the chat popup to resize it exactly how you want.
 
 
-WHAT'S NEW IN VERSION 1.3.1:
+WHAT'S NEW IN VERSION 1.4.0:
 
--> Fixed voice background services autostarting on PC reboot when voice tools are disabled in settings.
--> Automatically disables systemd user units (`kde-ai-stt.service` and `kde-ai-tts.service`) when voice tools or TTS are turned off.
--> Widget startup automatically checks and syncs systemd service state to avoid unnecessary background RAM usage.
+-> Switch provider and model per chat from the chat settings panel.
+-> Add multiple custom OpenAI-compatible providers, each with its own name, URL and key.
+-> Optional MCP tool support, including built-in web search.
+-> Option to disable streaming for providers that reject streamed requests.
+-> Custom widget icon (KDE icon name or image file).
+-> Smoother two-finger touchpad scrolling.
+-> Pi Coding Agent bridge mode alongside OpenCode.
+-> Lower idle CPU use and fixes for freezes when opening chat settings.
 
 
 NOTE TO USERS:
@@ -60,4 +65,4 @@ Home page: https://github.com/racstan/KDE-AI-Chat
 
 QUICK MANUAL INSTALLATION:
 
-kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kdeaichat-v1.3.1.plasmoid
+kpackagetool6 --type Plasma/Applet --install org.kde.plasma.kdeaichat-v1.4.0.plasmoid
