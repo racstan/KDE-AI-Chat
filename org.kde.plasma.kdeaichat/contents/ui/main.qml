@@ -8,9 +8,9 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
-import org.kde.plasma.workspace.dbus as DBus
 import QtCore
 import "Security.js" as Sec
+import "store" as Store
 
 PlasmoidItem {
     id: root
@@ -118,12 +118,17 @@ PlasmoidItem {
         return Qt.styleHints.colorScheme === Qt.Dark;
     }
     property bool keysLoaded: false
-    property var walletApiKeys: ({})
+    // providerId -> API key, read from KWallet (the only place keys are kept).
+    readonly property var walletApiKeys: wallet.keys
     property bool _initialLoadDone: false
     property string sessionHistoryLoadError: ""
     property bool sessionHistoryLoadBlocked: false
 
     signal clearChatInput()
+
+    Store.Wallet {
+        id: wallet
+    }
 
     VoiceManager {
         id: voiceManager
@@ -2732,7 +2737,8 @@ PlasmoidItem {
             missing.push("API key");
 
         if (missing.length > 0)
-            return "⚠️ Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model.";
+            return "⚠️ Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model."
+                + (missing.indexOf("API key") !== -1 && !wallet.usable && wallet.status !== "unknown" ? " " + wallet.statusMessage() : "");
 
         return "";
     }
@@ -2797,9 +2803,10 @@ PlasmoidItem {
         var providerId = provider || getEffectiveProvider(sessionId || root.currentSessionId);
         var cfg = ProviderService.getProviderConfig(providerId, plasmoid.configuration);
         cfg.baseUrl = Sec.validateHttpUrl(cfg.baseUrl);
-        var walletKey = root.walletApiKeys ? String(root.walletApiKeys[providerId] || "").trim() : "";
-        if (walletKey)
-            cfg.apiKey = walletKey;
+        // Keys come from KWallet. A plaintext value left by an older version is
+        // only used while KWallet is unavailable, until it can be migrated.
+        var walletKey = String(root.walletApiKeys[providerId] || "").trim();
+        cfg.apiKey = walletKey || (wallet.usable ? "" : String(cfg.apiKey || "").trim());
         var sessionModel = String(getSessionProperty(sessionId || root.currentSessionId, "chatModel", "") || "").trim();
         if (sessionModel)
             cfg.model = sessionModel;
@@ -4055,86 +4062,8 @@ PlasmoidItem {
         clipboardHelper.copy();
     }
 
-    function walletCall(member, args, resolve, reject) {
-        var reply;
-        try {
-            reply = DBus.SessionBus.asyncCall({
-                "service": "org.kde.kwalletd6",
-                "path": "/modules/kwalletd6",
-                "iface": "org.kde.KWallet",
-                "member": member,
-                "arguments": args
-            });
-        } catch (e) {
-            if (reject) reject(String(e));
-            else console.warn("KDE AI Chat: wallet unavailable:", e);
-            return;
-        }
-        reply.finished.connect(function() {
-            if (reply.isError) {
-                if (reject)
-                    reject(reply.error);
-
-            } else {
-                var val = reply.value;
-                if (val !== null && val !== undefined && val.hasOwnProperty("value"))
-                    val = val.value;
-
-                if (resolve)
-                    resolve(val);
-
-            }
-        });
-    }
-
-    function applyKWalletKeyToMemory(targetId, secretValue) {
-        var strVal = String(secretValue || "");
-        var keys = Object.assign({}, root.walletApiKeys || {});
-        if (strVal)
-            keys[targetId] = strVal;
-        else
-            delete keys[targetId];
-        root.walletApiKeys = keys;
-    }
-
     function loadKWalletKeysAtStartup() {
-        var walletName = "kdewallet";
-        walletCall("wallets", [], function(wallets) {
-            root.walletApiKeys = ({});
-            if (!Array.isArray(wallets) || wallets.indexOf(walletName) === -1)
-                return ;
-
-            walletCall("open", [walletName, new DBus.int64(0), "org.kde.plasma.kdeaichat"], function(handle) {
-                if (handle < 0)
-                    return ;
-
-                walletCall("hasFolder", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(hasFolder) {
-                    if (!hasFolder) {
-                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
-                        return ;
-                    }
-                    walletCall("passwordList", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(passwordsMap) {
-                        if (passwordsMap) {
-                            var targets = ProviderService.getApiKeyProviderIds();
-                            var supported = ProviderService.getSupportedProviders(plasmoid.configuration);
-                            for (var si = 0; si < supported.length; si++) {
-                                var customId = String(supported[si] || "");
-                                if (/^custom_[A-Za-z0-9._:-]{1,100}$/.test(customId) && targets.indexOf(customId) < 0)
-                                    targets.push(customId);
-                            }
-                            for (var i = 0; i < targets.length; i++) {
-                                var targetId = targets[i];
-                                var key = "kai-chat-" + targetId + "-api-key";
-                                if (passwordsMap[key])
-                                    applyKWalletKeyToMemory(targetId, passwordsMap[key]);
-
-                            }
-                        }
-                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
-                    });
-                });
-            });
-        });
+        wallet.load();
     }
 
     function performExportChat(filePath) {
@@ -4474,22 +4403,6 @@ PlasmoidItem {
             initSystemPrompt();
         }
 
-        function onApiKeyChanged() { scheduleWalletReload(); }
-        function onAnthropicApiKeyChanged() { scheduleWalletReload(); }
-        function onGroqApiKeyChanged() { scheduleWalletReload(); }
-        function onDeepSeekApiKeyChanged() { scheduleWalletReload(); }
-        function onMiniMaxApiKeyChanged() { scheduleWalletReload(); }
-        function onFireworksApiKeyChanged() { scheduleWalletReload(); }
-        function onGoogleApiKeyChanged() { scheduleWalletReload(); }
-        function onOpenRouterApiKeyChanged() { scheduleWalletReload(); }
-        function onMistralApiKeyChanged() { scheduleWalletReload(); }
-        function onCloudflareApiKeyChanged() { scheduleWalletReload(); }
-        function onNvidiaApiKeyChanged() { scheduleWalletReload(); }
-        function onHuggingFaceApiKeyChanged() { scheduleWalletReload(); }
-        function onXaiApiKeyChanged() { scheduleWalletReload(); }
-        function onLitellmApiKeyChanged() { scheduleWalletReload(); }
-        function onMaritacaApiKeyChanged() { scheduleWalletReload(); }
-        function onPerplexityApiKeyChanged() { scheduleWalletReload(); }
         function onCustomProvidersJsonChanged() { scheduleWalletReload(); }
         function onWalletKeysRevisionChanged() { scheduleWalletReload(); }
 

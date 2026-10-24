@@ -5,9 +5,9 @@ import QtCore
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support as P5Support
-import org.kde.plasma.workspace.dbus as DBus
 import "ProviderService.js" as ProviderService
 import "Security.js" as Sec
+import "store" as Store
 
 KCM.SimpleKCM {
     id: page
@@ -18,42 +18,29 @@ KCM.SimpleKCM {
     readonly property bool kwalletModeActive: true
     property alias cfg_provider: providerBox.currentValue
     property alias cfg_baseUrl: baseUrlField.text
-    property alias cfg_apiKey: apiKeyField.text
     property alias cfg_model: modelField.text
-    property alias cfg_anthropicApiKey: anthropicApiKeyField.text
     property alias cfg_anthropicModel: anthropicModelField.text
     property alias cfg_groqBaseUrl: groqBaseUrlField.text
-    property alias cfg_groqApiKey: groqApiKeyField.text
     property alias cfg_groqModel: groqModelField.text
     property alias cfg_deepSeekBaseUrl: deepSeekBaseUrlField.text
-    property alias cfg_deepSeekApiKey: deepSeekApiKeyField.text
     property alias cfg_deepSeekModel: deepSeekModelField.text
     property alias cfg_miniMaxBaseUrl: miniMaxBaseUrlField.text
-    property alias cfg_miniMaxApiKey: miniMaxApiKeyField.text
     property alias cfg_miniMaxModel: miniMaxModelField.text
     property alias cfg_fireworksBaseUrl: fireworksBaseUrlField.text
-    property alias cfg_fireworksApiKey: fireworksApiKeyField.text
     property alias cfg_fireworksModel: fireworksModelField.text
     property alias cfg_googleBaseUrl: googleBaseUrlField.text
-    property alias cfg_googleApiKey: googleApiKeyField.text
     property alias cfg_googleModel: googleModelField.text
     property alias cfg_openRouterBaseUrl: openRouterBaseUrlField.text
-    property alias cfg_openRouterApiKey: openRouterApiKeyField.text
     property alias cfg_openRouterModel: openRouterModelField.text
     property alias cfg_mistralBaseUrl: mistralBaseUrlField.text
-    property alias cfg_mistralApiKey: mistralApiKeyField.text
     property alias cfg_mistralModel: mistralModelField.text
     property alias cfg_cloudflareBaseUrl: cloudflareBaseUrlField.text
-    property alias cfg_cloudflareApiKey: cloudflareApiKeyField.text
     property alias cfg_cloudflareModel: cloudflareModelField.text
     property alias cfg_nvidiaBaseUrl: nvidiaBaseUrlField.text
-    property alias cfg_nvidiaApiKey: nvidiaApiKeyField.text
     property alias cfg_nvidiaModel: nvidiaModelField.text
     property alias cfg_huggingFaceBaseUrl: huggingFaceBaseUrlField.text
-    property alias cfg_huggingFaceApiKey: huggingFaceApiKeyField.text
     property alias cfg_huggingFaceModel: huggingFaceModelField.text
     property alias cfg_xaiBaseUrl: xaiBaseUrlField.text
-    property alias cfg_xaiApiKey: xaiApiKeyField.text
     property alias cfg_xaiModel: xaiModelField.text
     property alias cfg_lmStudioBaseUrl: lmStudioBaseUrlField.text
     property alias cfg_lmStudioModel: lmStudioModelField.text
@@ -62,13 +49,10 @@ KCM.SimpleKCM {
     property alias cfg_ollamaBaseUrl: ollamaBaseUrlField.text
     property alias cfg_ollamaModel: ollamaModelField.text
     property alias cfg_litellmBaseUrl: litellmBaseUrlField.text
-    property alias cfg_litellmApiKey: litellmApiKeyField.text
     property alias cfg_litellmModel: litellmModelField.text
     property alias cfg_maritacaBaseUrl: maritacaBaseUrlField.text
-    property alias cfg_maritacaApiKey: maritacaApiKeyField.text
     property alias cfg_maritacaModel: maritacaModelField.text
     property alias cfg_perplexityBaseUrl: perplexityBaseUrlField.text
-    property alias cfg_perplexityApiKey: perplexityApiKeyField.text
     property alias cfg_perplexityModel: perplexityModelField.text
     property alias cfg_useOpenCode: openCodeToggle.checked
     property alias cfg_usePi: piToggle.checked
@@ -89,6 +73,8 @@ KCM.SimpleKCM {
     // are populated after the combo's onCurrentIndexChanged fires).
     property bool pageReady: false
     property bool keyringBusy: false
+    // Custom provider id -> API key, from KWallet. Never written to config.
+    property var customProviderKeys: ({})
     property string keyringStatus: ""
     property var availableWalletNames: []
     property bool openCodeBusy: utilityDs.connectedSources.filter(function(sourceName) {
@@ -117,8 +103,7 @@ KCM.SimpleKCM {
     property int memTts: 0
     property string providerModelSearch: ""
     property string editingCustomProviderId: ""
-    readonly property string walletFolderName: "KaiChat"
-    readonly property string walletAppId: "org.kde.plasma.kdeaichat"
+    readonly property Store.Wallet wallet: Store.Wallet {}
     readonly property bool hasPlasmoidConfig: typeof plasmoid !== 'undefined' && plasmoid !== null && plasmoid.configuration !== undefined
 
     function updateFilteredProviderModels(searchText) {
@@ -242,48 +227,10 @@ KCM.SimpleKCM {
         return "https://api.openai.com/v1";
     }
 
-    function effectiveWalletName() {
-        return "kdewallet";
-    }
-
     function detectWallets() {
         // Native DBus operations are the source of truth. Keep this small
         // compatibility hook for old status callbacks.
         keyringStatus = "KWallet status refreshed.";
-    }
-
-    function walletCall(member, args, resolve, reject) {
-        var reply;
-        try {
-            reply = DBus.SessionBus.asyncCall({
-                service: "org.kde.kwalletd6",
-                path: "/modules/kwalletd6",
-                iface: "org.kde.KWallet",
-                member: member,
-                arguments: args
-            });
-        } catch (e) {
-            if (reject) reject(String(e));
-            else {
-                keyringBusy = false;
-                keyringStatus = "KWallet is unavailable: " + e;
-            }
-            return;
-        }
-        reply.finished.connect(function() {
-            if (reply.isError) {
-                if (reject) reject(reply.error);
-                else {
-                    keyringBusy = false;
-                    keyringStatus = "KWallet error while calling " + member + ".";
-                    console.warn("KDE AI Chat: wallet DBus error:", member, reply.error);
-                }
-            } else {
-                var val = reply.value;
-                if (val !== null && val !== undefined && typeof val === 'object' && val.hasOwnProperty("value")) val = val.value;
-                if (resolve) resolve(val);
-            }
-        });
     }
 
     function setActiveProviderModelValue(value) {
@@ -353,7 +300,7 @@ KCM.SimpleKCM {
             if (cp2.allowEmptyKey === true) return true;
             var u = String(cp2.baseUrl || "").toLowerCase();
             if (u.indexOf("localhost") >= 0 || u.indexOf("127.0.0.1") >= 0) return true;
-            return (cp2.apiKey || "").trim() !== "";
+            return (customProviderKeys[providerId] || "").trim() !== "";
         }
         if (providerId === "anthropic")
             return (anthropicApiKeyField.text || "").trim() !== "";
@@ -597,7 +544,7 @@ KCM.SimpleKCM {
                     "id": p,
                     "type": cp0.type || "openai-compat",
                     "baseUrl": cp0.baseUrl || "",
-                    "apiKey": cp0.apiKey || "",
+                    "apiKey": customProviderKeys[p] || "",
                     "modelField": dummy
                 };
             }
@@ -957,149 +904,33 @@ KCM.SimpleKCM {
         }
     }
 
-    function kwalletStore(targetId, value, isBulk) {
-        if (!value || value.trim() === "")
-            return;
-
-        var walletName = effectiveWalletName();
-        var keyName = "kai-chat-" + targetId + "-api-key";
-        keyringBusy = true;
-        
-        walletCall("wallets", [], function(wallets) {
-            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
-            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
-                if (handle < 0) { keyringBusy = false; return; }
-                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
-                    if (!hasFolder) {
-                        walletCall("createFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function() {
-                            walletCall("writePassword", [new DBus.int32(handle), walletFolderName, keyName, value, walletAppId], function() {
-                                walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                                keyringBusy = false;
-                                if (!isBulk) keyringStatus = "Saved key for " + targetId + " to KWallet.";
-                            });
-                        });
-                    } else {
-                        walletCall("writePassword", [new DBus.int32(handle), walletFolderName, keyName, value, walletAppId], function() {
-                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                            keyringBusy = false;
-                            if (!isBulk) keyringStatus = "Saved key for " + targetId + " to KWallet.";
-                        });
-                    }
-                });
-            });
-        });
-    }
-
     function notifyWalletChanged() {
         if (hasPlasmoidConfig && plasmoid.configuration.walletKeysRevision !== undefined)
             plasmoid.configuration.walletKeysRevision = (Number(plasmoid.configuration.walletKeysRevision) || 0) + 1;
     }
 
-    function clearPlaintextApiKey(targetId) {
-        if (!hasPlasmoidConfig)
-            return;
-        var configKey = ProviderService.getApiKeyConfigKey(targetId);
-        if (configKey && plasmoid.configuration[configKey] !== undefined)
-            plasmoid.configuration[configKey] = "";
-        if (isCustomProviderId(targetId)) {
-            var list = [];
-            try { list = JSON.parse(page.cfg_customProvidersJson || "[]"); } catch (e) { list = []; }
-            var changed = false;
-            for (var i = 0; i < list.length; i++) {
-                if (list[i] && list[i].id === targetId && list[i].apiKey) {
-                    list[i].apiKey = "";
-                    changed = true;
-                    break;
-                }
-            }
-            if (changed) {
-                var json = JSON.stringify(list);
-                page.cfg_customProvidersJson = json;
-                plasmoid.configuration.customProvidersJson = json;
-            }
-        }
-        notifyWalletChanged();
-    }
-
-    function clearPlaintextApiKeys() {
-        var ids = keyTargetIds();
-        for (var i = 0; i < ids.length; i++)
-            clearPlaintextApiKey(ids[i]);
-    }
-
+    // Saves one key to KWallet when its field is edited; an empty value
+    // removes it. Keys are never written to the widget's config.
     function saveKey(targetId, value) {
         var val = (value || "").trim();
-        if (val === "") {
-            kwalletRemove(targetId);
-            return;
-        }
-        kwalletStore(targetId, val, false);
+        keyringBusy = true;
+        wallet.write(targetId, val, function(ok) {
+            keyringBusy = false;
+            if (!ok) {
+                keyringStatus = wallet.statusMessage();
+                return;
+            }
+            keyringStatus = val ? i18n("Saved the %1 key to KWallet.", targetId) : i18n("Removed the %1 key from KWallet.", targetId);
+            notifyWalletChanged();
+        });
+    }
+
+    function kwalletStore(targetId, value) {
+        saveKey(targetId, value);
     }
 
     function kwalletRemove(targetId) {
-        var walletName = effectiveWalletName();
-        var keyName = "kai-chat-" + targetId + "-api-key";
-        keyringBusy = true;
-        walletCall("wallets", [], function(wallets) {
-            if (!wallets || wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
-            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
-                if (handle < 0) { keyringBusy = false; return; }
-                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
-                    if (!hasFolder) {
-                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                        keyringBusy = false;
-                        return;
-                    }
-                    walletCall("hasEntry", [new DBus.int32(handle), walletFolderName, keyName, walletAppId], function(hasEntry) {
-                        if (hasEntry)
-                            walletCall("removeEntry", [new DBus.int32(handle), walletFolderName, keyName, walletAppId], function() {
-                                walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                                keyringBusy = false;
-                                clearPlaintextApiKey(targetId);
-                                keyringStatus = "Removed key for " + targetId + " from KWallet.";
-                            });
-                        else {
-                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                            keyringBusy = false;
-                        }
-                    });
-                });
-            });
-        });
-    }
-
-    function kwalletLoad(targetId, isBulk) {
-        var walletName = effectiveWalletName();
-        var keyName = "kai-chat-" + targetId + "-api-key";
-        keyringBusy = true;
-        
-        walletCall("wallets", [], function(wallets) {
-            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
-            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
-                if (handle < 0) { keyringBusy = false; return; }
-                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
-                    if (!hasFolder) {
-                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                        keyringBusy = false;
-                        return;
-                    }
-                    walletCall("hasEntry", [new DBus.int32(handle), walletFolderName, keyName, walletAppId], function(hasEntry) {
-                        if (hasEntry) {
-                            walletCall("readPassword", [new DBus.int32(handle), walletFolderName, keyName, walletAppId], function(secret) {
-                                applyLoadedKey(targetId, secret);
-                                walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                                keyringBusy = false;
-                                if (!isBulk) keyringStatus = "Loaded key for " + targetId + " from KWallet.";
-                            });
-                        } else {
-                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                            keyringBusy = false;
-                            if (!isBulk) keyringStatus = "No saved key for " + targetId + " in KWallet.";
-                        }
-                    });
-                });
-            });
-        });
+        saveKey(targetId, "");
     }
 
     function applyLoadedKey(targetId, secretValue) {
@@ -1142,7 +973,11 @@ KCM.SimpleKCM {
         else if (targetId === "perplexity")
             perplexityApiKeyField.text = normalized;
         else if (isCustomProviderId(targetId))
-            setCustomProviderProperty(targetId, "apiKey", normalized, false);
+        {
+            var customKeys = Object.assign({}, customProviderKeys);
+            customKeys[targetId] = normalized;
+            customProviderKeys = customKeys;
+        }
         var after = apiKeyForTarget(targetId);
         if (before !== after && providerBox.currentValue === targetId)
             refreshCurrentProviderModels();
@@ -1211,139 +1046,23 @@ KCM.SimpleKCM {
             return perplexityApiKeyField.text;
 
         if (isCustomProviderId(targetId)) {
-            var custom = customProviderById(targetId);
-            return custom ? (custom.apiKey || "") : "";
+            return customProviderKeys[targetId] || "";
         }
         return "";
     }
 
     function kwalletLoadAll() {
-        var walletName = effectiveWalletName();
-        keyringStatus = "Refreshing API keys from KWallet...";
         keyringBusy = true;
-        
-        walletCall("wallets", [], function(wallets) {
-            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
-            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
-                if (handle < 0) { keyringBusy = false; return; }
-                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
-                    if (!hasFolder) {
-                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                        keyringBusy = false;
-                        keyringStatus = "KWallet storage not initialized yet.";
-                        return;
-                    }
-                    var targets = keyTargetIds();
-                    var idx = 0;
-                    function readNext() {
-                        if (idx >= targets.length) {
-                            walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                            keyringBusy = false;
-                            keyringStatus = "Loaded API keys from KWallet.";
-                            return;
-                        }
-                        var targetId = targets[idx++];
-                        var key = "kai-chat-" + targetId + "-api-key";
-                        walletCall("hasEntry", [new DBus.int32(handle), walletFolderName, key, walletAppId], function(hasEntry) {
-                            if (hasEntry) {
-                                walletCall("readPassword", [new DBus.int32(handle), walletFolderName, key, walletAppId], function(secret) {
-                                    applyLoadedKey(targetId, secret);
-                                    readNext();
-                                });
-                            } else {
-                                readNext();
-                            }
-                        });
-                    }
-                    readNext();
-                });
-            });
+        keyringStatus = i18n("Loading API keys from KWallet…");
+        wallet.load(function(ok, keys) {
+            keyringBusy = false;
+            keyringStatus = wallet.statusMessage();
+            if (!ok)
+                return;
+            var ids = keyTargetIds();
+            for (var i = 0; i < ids.length; i++)
+                applyLoadedKey(ids[i], keys[ids[i]] || "");
         });
-    }
-
-    function kwalletStoreAll() {
-        var walletName = effectiveWalletName();
-        var targetsToSave = [];
-        var ids = keyTargetIds();
-        for (var i = 0; i < ids.length; i++) {
-            var value = (apiKeyForTarget(ids[i]) || "").trim();
-            // Include empty fields so keys removed in Settings are also
-            // removed from KWallet rather than silently lingering.
-            targetsToSave.push({id: ids[i], val: value});
-        }
-        
-        if (targetsToSave.length === 0) {
-            keyringStatus = "No API keys to sync.";
-            return;
-        }
-
-        keyringBusy = true;
-        walletCall("wallets", [], function(wallets) {
-            if (wallets.indexOf(walletName) === -1) { keyringBusy = false; return; }
-            walletCall("open", [walletName, new DBus.int64(0), walletAppId], function(handle) {
-                if (handle < 0) { keyringBusy = false; return; }
-                walletCall("hasFolder", [new DBus.int32(handle), walletFolderName, walletAppId], function(hasFolder) {
-                    var proceedToSave = function() {
-                        var idx = 0;
-                        function saveNext() {
-                            if (idx >= targetsToSave.length) {
-                                walletCall("close", [new DBus.int32(handle), new DBus.bool(false), walletAppId]);
-                                keyringBusy = false;
-                                clearPlaintextApiKeys();
-                                keyringStatus = "Synced " + targetsToSave.length + " API keys to KWallet.";
-                                return;
-                            }
-                            var t = targetsToSave[idx++];
-                            var key = "kai-chat-" + t.id + "-api-key";
-                            var member = t.val === "" ? "removeEntry" : "writePassword";
-                            var args = t.val === ""
-                                ? [new DBus.int32(handle), walletFolderName, key, walletAppId]
-                                : [new DBus.int32(handle), walletFolderName, key, t.val, walletAppId];
-                            walletCall("hasEntry", [new DBus.int32(handle), walletFolderName, key, walletAppId], function(hasEntry) {
-                                if (t.val === "" && !hasEntry) { saveNext(); return; }
-                                walletCall(member, args, function() { saveNext(); });
-                            });
-                        }
-                        saveNext();
-                    };
-
-                    if (!hasFolder) {
-                        walletCall("createFolder", [new DBus.int32(handle), walletFolderName, walletAppId], proceedToSave);
-                    } else {
-                        proceedToSave();
-                    }
-                });
-            });
-        });
-    }
-
-    function loadPlaintextApiKeyFallbacks() {
-        if (!hasPlasmoidConfig)
-            return;
-        var fields = {
-            "openai": apiKeyField,
-            "anthropic": anthropicApiKeyField,
-            "groq": groqApiKeyField,
-            "deepseek": deepSeekApiKeyField,
-            "minimax": miniMaxApiKeyField,
-            "fireworks": fireworksApiKeyField,
-            "google": googleApiKeyField,
-            "openrouter": openRouterApiKeyField,
-            "mistral": mistralApiKeyField,
-            "cloudflare": cloudflareApiKeyField,
-            "nvidia": nvidiaApiKeyField,
-            "huggingface": huggingFaceApiKeyField,
-            "xai": xaiApiKeyField,
-            "litellm": litellmApiKeyField,
-            "maritaca": maritacaApiKeyField,
-            "perplexity": perplexityApiKeyField
-        };
-        var ids = Object.keys(fields);
-        for (var i = 0; i < ids.length; i++) {
-            var configKey = ProviderService.getApiKeyConfigKey(ids[i]);
-            if (configKey && !fields[ids[i]].text)
-                fields[ids[i]].text = String(plasmoid.configuration[configKey] || "");
-        }
     }
 
     function clearAllApiKeyFields() {
@@ -1533,19 +1252,15 @@ KCM.SimpleKCM {
         var cmd = "python3 " + quoteForShell(getHelperPath()) + " get_memory_usage";
         utilityDs.connectSource(cmd + " #mem-usage-" + Date.now());
 
-        // Show a legacy plaintext value while KWallet is being queried, then
-        // replace it with the wallet value when available.
-        loadPlaintextApiKeyFallbacks();
-        // Load secrets from KWallet after the form has initialized. The
-        // ordinary KConfig values remain only as a migration fallback; the
-        // live widget prefers its in-memory wallet copy.
+        // Keys are read from KWallet only.
         pageReady = true;
         Qt.callLater(page.kwalletLoadAll);
     }
     Component.onDestruction: {
         saveGeneralSettingsOnly();
-        // Sync the current fields to KWallet before closing.
-        kwalletStoreAll();
+        // Keys are saved as each field is edited. Writing every field here
+        // used to delete keys from KWallet when the page closed before they
+        // had loaded.
     }
 
     WheelHandler {
@@ -2477,7 +2192,7 @@ KCM.SimpleKCM {
                     }
                     
                     onClicked: {
-                        page.saveKey("deepseek", deepseekApiKeyField.text);
+                        page.saveKey("deepseek", deepSeekApiKeyField.text);
                         page.refreshIfActiveProvider("deepseek");
                         saved = true;
                         deepseekSaveTimer.start();
@@ -2552,7 +2267,7 @@ KCM.SimpleKCM {
                     }
                     
                     onClicked: {
-                        page.saveKey("minimax", minimaxApiKeyField.text);
+                        page.saveKey("minimax", miniMaxApiKeyField.text);
                         page.refreshIfActiveProvider("minimax");
                         saved = true;
                         minimaxSaveTimer.start();
@@ -2777,7 +2492,7 @@ KCM.SimpleKCM {
                     }
                     
                     onClicked: {
-                        page.saveKey("openrouter", openrouterApiKeyField.text);
+                        page.saveKey("openrouter", openRouterApiKeyField.text);
                         page.refreshIfActiveProvider("openrouter");
                         saved = true;
                         openrouterSaveTimer.start();
@@ -3516,7 +3231,6 @@ KCM.SimpleKCM {
                                  "name": newCpName.text.trim(),
                                  "type": newCpType.currentText,
                                  "baseUrl": newCpUrl.text.trim(),
-                                 "apiKey": newCpKey.text.trim(),
                                  "model": newCpModel.text.trim()
                              };
                              var replaced = false;
@@ -3529,10 +3243,7 @@ KCM.SimpleKCM {
                             if (plasmoid && plasmoid.configuration) {
                                 plasmoid.configuration.customProvidersJson = JSON.stringify(list);
                             }
-                            if (entry.apiKey)
-                                page.kwalletStore(entry.id, entry.apiKey, false);
-                            else
-                                page.kwalletRemove(entry.id);
+                            page.saveKey(entry.id, newCpKey.text.trim());
                             providerBox.model = page._buildProviderBoxModel();
                             for (var j = 0; j < providerBox.model.length; j++) {
                                 if (providerBox.model[j].value === oldVal) {
@@ -3606,7 +3317,7 @@ KCM.SimpleKCM {
                                      newCpType.currentIndex = newCpType.model.indexOf(modelData.type || "openai-compat");
                                      if (newCpType.currentIndex < 0) newCpType.currentIndex = 0;
                                      newCpUrl.text = modelData.baseUrl || "";
-                                     newCpKey.text = modelData.apiKey || "";
+                                     newCpKey.text = page.customProviderKeys[modelData.id] || "";
                                      newCpModel.text = modelData.model || "";
                                  }
                              }
