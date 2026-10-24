@@ -15,7 +15,6 @@ import base64
 import shutil
 import subprocess
 import shlex
-import configparser
 import fcntl
 import re
 import secrets
@@ -25,6 +24,8 @@ import selectors
 import signal
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, List, Tuple
+
+from kdeaichat import privacy
 
 
 _MAX_FILE_BYTES = 50 * 1024 * 1024
@@ -402,62 +403,6 @@ def cmd_add_schedule(payload: Dict[str, Any]) -> None:
         data = _load_schedules()
         data.setdefault("schedules", []).append(entry)
         _atomic_write_json(_schedules_path(), data)
-
-
-def _load_config(path: str) -> configparser.ConfigParser:
-    """Load a configparser file, preserving key case."""
-    config = configparser.ConfigParser()
-    config.optionxform = str
-    if os.path.exists(path):
-        if os.path.getsize(path) > _MAX_CONFIG_BYTES:
-            raise ValueError("config file is too large")
-        config.read(path)
-    return config
-
-
-def cmd_sync_config_keys(payload: Dict[str, Any]) -> None:
-    """Merge ``payload["keys"]`` into the ``[General]`` section of a config file."""
-    path = _safe_path(payload.get("configPath", ""))
-    data: Dict[str, Any] = payload.get("keys", {})
-    if not isinstance(data, dict):
-        raise ValueError("keys must be an object")
-    config = _load_config(path)
-    if "General" not in config:
-        config["General"] = {}
-    for k, v in data.items():
-        if not isinstance(k, str) or "\n" in k or "\r" in k:
-            raise ValueError("invalid config key")
-        config["General"][k] = str(v)
-    from io import StringIO
-    serialized = StringIO()
-    config.write(serialized)
-    _atomic_write_text(path, serialized.getvalue(), mode=0o600)
-
-
-def cmd_clear_config_keys(payload: Dict[str, Any]) -> None:
-    """Remove ``payload["keys"]`` from the ``[General]`` section."""
-    path = _safe_path(payload.get("configPath", ""))
-    keys: List[str] = payload.get("keys", [])
-    if not isinstance(keys, list):
-        raise ValueError("keys must be a list")
-    config = _load_config(path)
-    if "General" in config:
-        for k in keys:
-            if not isinstance(k, str) or "\n" in k or "\r" in k:
-                raise ValueError("invalid config key")
-            config["General"].pop(k, None)
-        from io import StringIO
-        serialized = StringIO()
-        config.write(serialized)
-        _atomic_write_text(path, serialized.getvalue(), mode=0o600)
-
-
-def cmd_load_config_keys(payload: Dict[str, Any]) -> None:
-    """Dump the ``[General]`` section as a JSON object to stdout."""
-    path: str = _safe_path(payload.get("configPath", "~/.config/kdeaichatrc"))
-    config = _load_config(path)
-    res: Dict[str, str] = dict(config["General"]) if "General" in config else {}
-    print(json.dumps(res))
 
 
 def cmd_setup_scheduler_service(payload: Dict[str, Any]) -> None:
@@ -1193,9 +1138,6 @@ def main() -> None:
         "poll_pending_triggers": cmd_poll_pending_triggers,
         "delete_schedule": cmd_delete_schedule,
         "add_schedule": cmd_add_schedule,
-        "sync_config_keys": cmd_sync_config_keys,
-        "clear_config_keys": cmd_clear_config_keys,
-        "load_config_keys": cmd_load_config_keys,
         "setup_scheduler_service": cmd_setup_scheduler_service,
         "setup_venv_services": cmd_setup_venv_services,
         "setup_voice_services": cmd_setup_venv_services,
@@ -1213,6 +1155,7 @@ def main() -> None:
         "get_pi_models": cmd_get_pi_models,
     }
 
+    commands.update(privacy.COMMANDS)
     if command not in commands:
         print(f"Unknown command: {command}")
         sys.exit(1)

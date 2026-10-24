@@ -112,20 +112,6 @@ class TestKdeAiHelperIPC(unittest.TestCase):
         self.assertEqual(decoded["action"], "load")
         self.assertEqual(base64.b64decode(decoded["content"]).decode("utf-8"), "legacy content")
 
-    def test_save_and_load_config_keys(self):
-        rcfile = os.path.join(self.temp_dir, "kdeaichatrc")
-        out, err, rc = _run_helper("sync_config_keys", {
-            "configPath": rcfile,
-            "keys": {"apiKey": "sk-test123", "model": "gpt-4"},
-        }, self.temp_dir)
-        self.assertEqual(rc, 0, msg=err)
-
-        out, err, rc = _run_helper("load_config_keys", {"configPath": rcfile}, self.temp_dir)
-        self.assertEqual(rc, 0, msg=err)
-        loaded = json.loads(out)
-        self.assertEqual(loaded["apiKey"], "sk-test123")
-        self.assertEqual(loaded["model"], "gpt-4")
-
     def test_export_chat(self):
         dest = os.path.join(self.temp_dir, "exported.md")
         b64 = base64.b64encode(b"# Hello").decode("utf-8")

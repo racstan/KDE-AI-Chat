@@ -13,9 +13,6 @@ from kde_ai_helper import (
     cmd_toggle_schedule,
     cmd_delete_schedule,
     cmd_add_schedule,
-    cmd_sync_config_keys,
-    cmd_clear_config_keys,
-    cmd_load_config_keys,
     cmd_export_chat
 )
 
@@ -79,39 +76,6 @@ class TestKdeAiHelper(unittest.TestCase):
         with open(self.schedules_json_path) as f:
             data = json.load(f)
         self.assertEqual(len(data['schedules']), 0)
-
-    def test_sync_and_load_config_keys(self):
-        keys = {
-            "apiKey": "test-key-123",
-            "anthropicApiKey": "anthropic-456"
-        }
-        cmd_sync_config_keys({
-            "configPath": self.config_rc_path,
-            "keys": keys
-        })
-
-        # Load keys — capture stdout via StringIO instead of fragile mock
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
-            cmd_load_config_keys({"configPath": self.config_rc_path})
-        output = buf.getvalue().strip()
-        loaded = json.loads(output)
-        assert loaded["apiKey"] == "test-key-123"
-        assert loaded["anthropicApiKey"] == "anthropic-456"
-
-        # Clear keys
-        cmd_clear_config_keys({
-            "configPath": self.config_rc_path,
-            "keys": ["apiKey"]
-        })
-
-        buf2 = io.StringIO()
-        with contextlib.redirect_stdout(buf2):
-            cmd_load_config_keys({"configPath": self.config_rc_path})
-        output2 = buf2.getvalue().strip()
-        loaded2 = json.loads(output2)
-        assert loaded2.get("anthropicApiKey") == "anthropic-456"
-        assert "apiKey" not in loaded2
 
     def test_export_chat(self):
         dest_path = os.path.join(self.temp_dir.name, 'exported_chat.md')
