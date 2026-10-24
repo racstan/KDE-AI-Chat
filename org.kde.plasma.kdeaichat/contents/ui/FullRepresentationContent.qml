@@ -753,7 +753,7 @@ Item {
                                                             }
 
                                                             Connections {
-                                                                target: repRoot
+                                                                target: root
                                                                 function onPlayingMessageIndexChanged() {
                                                                     if (root.playingMessageIndex === index) {
                                                                         if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
@@ -940,7 +940,7 @@ Item {
 
                                                 Flow {
                                                     width: parent.width
-                                                    visible: modelData.attachments && modelData.attachments.length > 0
+                                                    visible: !!modelData.attachments && modelData.attachments.length > 0
                                                     spacing: Kirigami.Units.smallSpacing
 
                                                     Repeater {
@@ -1505,7 +1505,7 @@ Item {
 
                         PC3.ToolButton {
                             icon.name: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-start" : "media-playback-stop"
-                            visible: !root.loading && !!root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive)
+                            visible: !root.loading && !!root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive === true)
                             display: PC3.AbstractButton.IconOnly
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "Call Mode Active" : "Stop reading"
