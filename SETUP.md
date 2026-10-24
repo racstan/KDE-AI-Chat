@@ -723,4 +723,4 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
 
 ## License
 
-KDE AI Chat is licensed under the MIT License. See `LICENSE` file for details.
+KDE AI Chat is licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later). See [LICENSE](LICENSE) for details.
