@@ -25,7 +25,15 @@ TestCase {
             case "close": fake.closed++; onReply(0); break;
             case "hasFolder": onReply(fake.folders.hasOwnProperty(args[1])); break;
             case "createFolder": fake.folders[args[1]] = {}; onReply(true); break;
-            case "passwordList": onReply(Object.assign({}, fake.folders[args[1]] || {})); break;
+            case "passwordList": {
+                // Real D-Bus replies aren't plain JS strings; wrap values so
+                // strict comparisons in the code under test fail like they do live.
+                var listed = {};
+                var folder = fake.folders[args[1]] || {};
+                for (var name in folder) listed[name] = new String(folder[name]);
+                onReply(listed);
+                break;
+            }
             case "writePassword": fake.folders[args[1]][args[2]] = args[3]; onReply(0); break;
             case "removeEntry": delete fake.folders[args[1]][args[2]]; onReply(0); break;
             case "removeFolder": delete fake.folders[args[1]]; onReply(true); break;

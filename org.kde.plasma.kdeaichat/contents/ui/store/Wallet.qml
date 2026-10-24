@@ -205,13 +205,21 @@ QtObject {
                             }
                             call("passwordList", [h, folder, appId], function(after) {
                                 after = after || {};
+                                // Values arrive as D-Bus variants; compare as strings.
                                 for (var k = 0; k < ids.length; k++) {
-                                    if (after[ids[k]] !== toCopy[ids[k]]) { done(false); return; }
+                                    if (String(after[ids[k]] || "").trim() !== toCopy[ids[k]]) {
+                                        console.warn("KDE AI Chat: copied key for", ids[k], "did not read back; old folder kept");
+                                        done(false);
+                                        return;
+                                    }
                                 }
                                 call("removeFolder", [h, legacyFolder, appId], function() {
                                     moved = ids.length;
                                     done(true);
-                                }, function() { done(false); });
+                                }, function(error) {
+                                    console.warn("KDE AI Chat: could not remove the old KaiChat wallet folder:", error);
+                                    done(false);
+                                });
                             }, function() { done(false); });
                         }
                         next();
