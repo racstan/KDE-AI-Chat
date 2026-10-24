@@ -11,9 +11,14 @@ from typing import Any, Dict
 _FILE_NAME = re.compile(r"^chat-[A-Za-z0-9._%-]{1,400}\.ini$")
 
 
-def chats_root() -> str:
+def data_root() -> str:
+    """~/.local/share/kdeaichat, honouring XDG_DATA_HOME like the QML side."""
     data = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    return os.path.join(data, "kdeaichat", "chats")
+    return os.path.join(data, "kdeaichat")
+
+
+def chats_root() -> str:
+    return os.path.join(data_root(), "chats")
 
 
 def _chat_dir(payload: Dict[str, Any]) -> str:

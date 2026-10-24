@@ -19,14 +19,16 @@ from kde_ai_helper import (
 class TestKdeAiHelper(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.schedules_json_path = os.path.join(self.temp_dir.name, 'schedules.json')
+        # The helper keeps its data in $XDG_DATA_HOME/kdeaichat.
+        data_dir = os.path.join(self.temp_dir.name, 'kdeaichat')
+        self.schedules_json_path = os.path.join(data_dir, 'schedules.json')
         self.config_rc_path = os.path.join(self.temp_dir.name, 'kdeaichatrc')
-        self.pending_dir = os.path.join(self.temp_dir.name, 'pending')
+        self.pending_dir = os.path.join(data_dir, 'pending')
         os.makedirs(self.pending_dir, exist_ok=True)
-        
-        # Patch the expanduser calls to redirect to our temp dir paths
+
         self.patchers = [
-            patch('os.path.expanduser', self.mock_expanduser)
+            patch('os.path.expanduser', self.mock_expanduser),
+            patch.dict(os.environ, {'XDG_DATA_HOME': self.temp_dir.name}),
         ]
         for p in self.patchers:
             p.start()

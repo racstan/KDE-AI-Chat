@@ -181,15 +181,15 @@ def _schedule_store_lock():
 
 
 def _schedules_path() -> str:
-    return os.path.expanduser('~/.local/share/kdeaichat/schedules.json')
+    return os.path.join(chats.data_root(), 'schedules.json')
 
 
 def _pending_dir() -> str:
-    return os.path.expanduser('~/.local/share/kdeaichat/pending')
+    return os.path.join(chats.data_root(), 'pending')
 
 
 def _results_dir() -> str:
-    return os.path.expanduser('~/.local/share/kdeaichat/results')
+    return os.path.join(chats.data_root(), 'results')
 
 
 def _load_schedules() -> Dict[str, Any]:
