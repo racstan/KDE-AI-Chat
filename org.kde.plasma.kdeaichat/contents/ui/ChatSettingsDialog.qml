@@ -23,8 +23,6 @@ Rectangle {
     property string _ocProvider: ""
     property string _ocModel: ""
     property string _ocCwd: ""
-    property bool _memoryEnabled: true
-    property string _memory: ""
     property bool _systemEnabled: true
     property string _system: ""
     property int _responseLength: 0
@@ -120,8 +118,6 @@ Rectangle {
         _ocProvider = _get("openCodeProvider", "");
         _ocModel = _get("openCodeModel", "");
         _ocCwd = _get("openCodeWorkspaceCwd", "");
-        _memoryEnabled = _get("chatMemoryEnabled", true);
-        _memory = _get("chatMemory", "");
         _systemEnabled = _get("chatSystemPromptEnabled", true);
         _system = _get("chatSystemPrompt", "");
         _responseLength = _get("responseLength", 0) || 0;
@@ -138,8 +134,6 @@ Rectangle {
         _loadingDraft = true;
         _applyLists();
         cwdField.text = _ocCwd;
-        memoryCheck.checked = _memoryEnabled;
-        memoryArea.text = _memory;
         systemCheck.checked = _systemEnabled;
         systemArea.text = _system;
         responseLengthCombo.currentIndex = _responseLength;
@@ -278,8 +272,6 @@ Rectangle {
             openCodeProvider: ocProvider,
             openCodeModel: ocModel,
             openCodeWorkspaceCwd: cwdField.text.trim(),
-            chatMemoryEnabled: memoryCheck.checked,
-            chatMemory: memoryArea.text,
             chatSystemPromptEnabled: systemCheck.checked,
             chatSystemPrompt: systemArea.text,
             responseLength: responseLengthCombo.currentIndex
@@ -541,21 +533,6 @@ Rectangle {
                     color: page._status.indexOf("failed") >= 0 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.highlightColor
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: memoryColumn.implicitHeight + 24
-                    radius: 8
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
-                    ColumnLayout { id: memoryColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
-                        RowLayout { Layout.fillWidth: true
-                            PC3.Label { text: "Chat memory"; font.bold: true; Layout.fillWidth: true }
-                            QQC2.CheckBox { id: memoryCheck; text: "On"; onCheckedChanged: { page._memoryEnabled = checked; if (!page._loadingDraft) page._draftDirty = true; } }
-                        }
-                        QQC2.TextArea { id: memoryArea; Layout.fillWidth: true; Layout.preferredHeight: 80; enabled: memoryCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Notes retained for this chat"; onTextChanged: { page._memory = text; if (!page._loadingDraft) page._draftDirty = true; } }
-                    }
                 }
 
                 Rectangle {

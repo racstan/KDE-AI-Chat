@@ -29,7 +29,6 @@ UI_DIR = os.path.join(
 WATCHED_FILES = (
     "Security.js",
     "ProviderService.js",
-    "api.js",
     "backends/DirectBackend.js",
 )
 
