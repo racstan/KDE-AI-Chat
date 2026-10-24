@@ -1071,146 +1071,53 @@ def cmd_mcp_discover(payload: Dict[str, Any]) -> None:
     print(json.dumps({"servers": results}))
 
 
-def _watchdog_dir() -> str:
-    return os.path.expanduser("~/.local/share/kdeaichat")
+def _legacy_watchdog_pids(helper_name: str = "kde_ai_helper.py") -> List[int]:
+    """PIDs of monitors started by the removed plasmashell watchdog.
 
-
-def _watchdog_paths(payload: Dict[str, Any]) -> Dict[str, str]:
+    Matched by exact command line (``... kde_ai_helper.py plasmashell_watchdog
+    <payload>``) so a reused PID or an unrelated process is never signalled.
+    """
+    pids = []
     try:
-        folder = _safe_path(payload.get("directory") or _watchdog_dir())
-    except ValueError:
-        folder = _safe_path(_watchdog_dir())
-    return {
-        "directory": folder,
-        "heartbeat": os.path.join(folder, "plasmashell-heartbeat"),
-        "pid": os.path.join(folder, "plasmashell-watchdog.pid"),
-        "last_restart": os.path.join(folder, "plasmashell-watchdog.last-restart"),
-    }
-
-
-def _pid_is_alive(pid: int) -> bool:
-    if pid <= 0:
-        return False
-    try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ValueError):
-        return False
-
-
-def _write_heartbeat(path: str) -> None:
-    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
-    with open(path, "a", encoding="utf-8"):
-        os.chmod(path, 0o600)
-        os.utime(path, None)
-
-
-def _watchdog_monitor(payload: Dict[str, Any], paths: Dict[str, str]) -> None:
-    try: requested_timeout = int(payload.get("timeout", 45))
-    except (TypeError, ValueError): requested_timeout = 45
-    try: requested_cooldown = int(payload.get("restartCooldown", 180))
-    except (TypeError, ValueError): requested_cooldown = 180
-    timeout = max(15, min(3600, requested_timeout))
-    cooldown = max(timeout, min(86400, requested_cooldown))
-    monitor_pid = os.getpid()
-    with open(paths["pid"], "w", encoding="utf-8") as pid_file:
-        os.chmod(paths["pid"], 0o600)
-        pid_file.write(str(monitor_pid))
-
-    try:
-        while True:
-            try:
-                heartbeat_age = time.time() - os.path.getmtime(paths["heartbeat"])
-            except OSError:
-                heartbeat_age = timeout + 1
-
-            if heartbeat_age > timeout:
-                try:
-                    last_restart = os.path.getmtime(paths["last_restart"])
-                except OSError:
-                    last_restart = 0
-
-                if time.time() - last_restart >= cooldown:
-                    try:
-                        subprocess.run(
-                            ["systemctl", "--user", "restart", "plasma-plasmashell.service"],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                            timeout=30,
-                            check=False,
-                        )
-                    finally:
-                        _write_heartbeat(paths["heartbeat"])
-                        with open(paths["last_restart"], "w", encoding="utf-8") as marker:
-                            os.chmod(paths["last_restart"], 0o600)
-                            marker.write(str(time.time()))
-            time.sleep(min(5, max(1, timeout // 3)))
-    finally:
+        entries = os.listdir("/proc")
+    except OSError:
+        return pids
+    for entry in entries:
+        if not entry.isdigit() or int(entry) == os.getpid():
+            continue
         try:
-            with open(paths["pid"], encoding="utf-8") as pid_file:
-                if pid_file.read().strip() == str(monitor_pid):
-                    os.unlink(paths["pid"])
+            with open(os.path.join("/proc", entry, "cmdline"), "rb") as f:
+                argv = [part.decode("utf-8", "replace") for part in f.read().split(b"\0") if part]
+        except OSError:
+            continue
+        for i, arg in enumerate(argv[:-1]):
+            if os.path.basename(arg) == helper_name and argv[i + 1] == "plasmashell_watchdog":
+                pids.append(int(entry))
+                break
+    return pids
+
+
+def cmd_stop_legacy_watchdog(payload: Dict[str, Any]) -> None:
+    """Stop a plasmashell watchdog left running by a version before 1.4.0.
+
+    That monitor survives widget upgrades and restarts plasmashell once its
+    heartbeat file goes stale, which it always does now that nothing writes
+    it. Stop it and remove its files.
+    """
+    stopped = []
+    for pid in _legacy_watchdog_pids():
+        try:
+            os.kill(pid, signal.SIGTERM)
+            stopped.append(pid)
         except OSError:
             pass
-
-
-def cmd_plasmashell_watchdog(payload: Dict[str, Any]) -> None:
-    """Start, stop, or heartbeat an external PlasmaShell recovery monitor."""
-    action = payload.get("action", "heartbeat")
-    paths = _watchdog_paths(payload)
-    os.makedirs(paths["directory"], mode=0o700, exist_ok=True)
-
-    if action == "heartbeat":
-        _write_heartbeat(paths["heartbeat"])
-        print(json.dumps({"status": "ok", "action": action}))
-        return
-
-    if action == "stop":
+    folder = os.path.expanduser("~/.local/share/kdeaichat")
+    for name in ("plasmashell-heartbeat", "plasmashell-watchdog.pid", "plasmashell-watchdog.last-restart"):
         try:
-            with open(paths["pid"], encoding="utf-8") as pid_file:
-                pid = int(pid_file.read().strip())
-            if _pid_is_alive(pid):
-                os.kill(pid, 15)
-        except (OSError, ValueError):
-            pass
-        try:
-            os.unlink(paths["pid"])
+            os.unlink(os.path.join(folder, name))
         except OSError:
             pass
-        print(json.dumps({"status": "ok", "action": action}))
-        return
-
-    if action == "monitor":
-        _watchdog_monitor(payload, paths)
-        return
-    if action != "start":
-        raise ValueError("Unknown watchdog action: " + str(action))
-
-    try:
-        with open(paths["pid"], encoding="utf-8") as pid_file:
-            existing_pid = int(pid_file.read().strip())
-        if _pid_is_alive(existing_pid):
-            print(json.dumps({"status": "already-running", "pid": existing_pid}))
-            return
-    except (OSError, ValueError):
-        pass
-
-    _write_heartbeat(paths["heartbeat"])
-    monitor_payload = dict(payload)
-    monitor_payload["action"] = "monitor"
-    encoded = base64.b64encode(json.dumps(monitor_payload).encode("utf-8")).decode("ascii")
-    child = subprocess.Popen(
-        [sys.executable, os.path.abspath(__file__), "plasmashell_watchdog", encoded],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-        close_fds=True,
-    )
-    with open(paths["pid"], "w", encoding="utf-8") as pid_file:
-        os.chmod(paths["pid"], 0o600)
-        pid_file.write(str(child.pid))
-    print(json.dumps({"status": "started", "pid": child.pid}))
+    print(json.dumps({"status": "ok", "stopped": stopped}))
 
 
 def cmd_get_pi_models(payload: Dict[str, Any]) -> None:
@@ -1302,7 +1209,7 @@ def main() -> None:
         "mcp_web_search": cmd_mcp_web_search,
         "mcp_query": cmd_mcp_query,
         "mcp_discover": cmd_mcp_discover,
-        "plasmashell_watchdog": cmd_plasmashell_watchdog,
+        "stop_legacy_watchdog": cmd_stop_legacy_watchdog,
         "get_pi_models": cmd_get_pi_models,
     }
 

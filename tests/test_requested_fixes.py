@@ -96,7 +96,7 @@ def test_kde_ai_helper_mcp_uses_initialize_handshake_and_safe_argv():
     assert '"method": "notifications/initialized"' in source
     assert "shlex.split" in source
     assert "mcp_discover" in source
-    assert "shell=True" not in source[source.index("def cmd_mcp_query"):source.index("def _watchdog_dir")]
+    assert "shell=True" not in source[source.index("def cmd_mcp_query"):source.index("def _legacy_watchdog_pids")]
 
 
 def test_touchpad_scroll_handler_in_full_representation():

@@ -97,7 +97,6 @@ PlasmoidItem {
     property bool restoringResponseScroll: false
     property bool titleGenerationInProgress: false
     property string titleGenerationSessionId: ""
-    property bool plasmaShellWatchdogRunning: false
     // Tool-call context is kept separate from the visible chat model. This
     // lets an OpenAI-compatible provider complete an MCP round-trip without
     // rendering protocol messages as ordinary chat bubbles.
@@ -2675,28 +2674,20 @@ PlasmoidItem {
         }
     }
 
-    function runPlasmaShellWatchdog(action) {
-        if (!getHelperPath()) {
-            plasmaShellWatchdogRunning = false;
+    // The plasmashell watchdog was removed in 1.4.0. A monitor started by an
+    // older version keeps running across upgrades and would restart
+    // plasmashell once heartbeats stop, so stop it once at startup if its
+    // files are still there.
+    function stopLegacyWatchdog() {
+        var helper = getHelperPath();
+        if (!helper)
             return;
-        }
-        var encoded = Sec.base64Encode(JSON.stringify({"action": action}));
-        var token = "#plasmashell-watchdog-" + Date.now();
-        var command = "python3 " + Sec.quoteForShell(getHelperPath())
-            + " plasmashell_watchdog " + Sec.rawShellSnippetQuote(encoded) + " " + token;
-        fileReaderDs.connectSource(command);
-        plasmaShellWatchdogRunning = action !== "stop";
-    }
-
-    function syncPlasmaShellWatchdog() {
-        if (plasmoid.configuration.autoRestartPlasmaShell === true) {
-            runPlasmaShellWatchdog("start");
-            plasmaShellHeartbeatTimer.start();
-        } else {
-            plasmaShellHeartbeatTimer.stop();
-            if (plasmaShellWatchdogRunning)
-                runPlasmaShellWatchdog("stop");
-        }
+        var dataDir = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "");
+        var pidFile = decodeURIComponent(dataDir) + "/kdeaichat/plasmashell-watchdog.pid";
+        var heartbeat = decodeURIComponent(dataDir) + "/kdeaichat/plasmashell-heartbeat";
+        var cmd = "if [ -e " + Sec.quoteForShell(pidFile) + " ] || [ -e " + Sec.quoteForShell(heartbeat) + " ]; then python3 "
+            + Sec.quoteForShell(helper) + " stop_legacy_watchdog; fi";
+        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #plasmashell-watchdog-" + Date.now());
     }
 
     function providerDisplayName(providerId) {
@@ -4337,7 +4328,7 @@ PlasmoidItem {
         // Build a usable prompt immediately; the deferred system-information
         // probe will refresh it once its results arrive.
         root.initSystemPrompt();
-        root.syncPlasmaShellWatchdog();
+        root.stopLegacyWatchdog();
     }
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp && !root.responseScrollLocked)
@@ -4366,20 +4357,6 @@ PlasmoidItem {
         }
     }
 
-    Timer {
-        id: plasmaShellHeartbeatTimer
-        interval: 5000
-        repeat: true
-        running: plasmoid.configuration.autoRestartPlasmaShell === true
-        onTriggered: root.runPlasmaShellWatchdog("heartbeat")
-    }
-
-    Connections {
-        target: plasmoid.configuration
-        function onAutoRestartPlasmaShellChanged() {
-            root.syncPlasmaShellWatchdog();
-        }
-    }
 
     Timer {
         id: lazyWalletTimer

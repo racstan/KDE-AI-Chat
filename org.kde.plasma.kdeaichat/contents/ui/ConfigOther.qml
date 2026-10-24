@@ -21,7 +21,6 @@ KCM.SimpleKCM {
     property alias cfg_disableStreaming: disableStreamingToggle.checked
     property alias cfg_enableMcpTools: enableMcpToolsToggle.checked
     property alias cfg_autoNameChats: autoNameChatsToggle.checked
-    property alias cfg_autoRestartPlasmaShell: autoRestartPlasmaShellToggle.checked
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
     property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked
@@ -981,26 +980,6 @@ KCM.SimpleKCM {
                 if (pageReady && plasmoid && plasmoid.configuration)
                     plasmoid.configuration.autoNameChats = checked;
             }
-        }
-
-        QQC2.CheckBox {
-            id: autoRestartPlasmaShellToggle
-            Kirigami.FormData.label: i18n("Recovery:")
-            text: i18n("Automatically restart PlasmaShell if the widget stops responding")
-            checked: (plasmoid && plasmoid.configuration) ? plasmoid.configuration.autoRestartPlasmaShell === true : false
-            onCheckedChanged: {
-                if (pageReady && plasmoid && plasmoid.configuration)
-                    plasmoid.configuration.autoRestartPlasmaShell = checked;
-            }
-        }
-
-        QQC2.Label {
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            wrapMode: Text.Wrap
-            text: i18n("Recovery uses a background heartbeat monitor. Keep it disabled unless you want PlasmaShell restarted automatically after a prolonged freeze.")
-            opacity: 0.7
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
         }
 
         QQC2.Label {

@@ -298,9 +298,6 @@
     <entry name="autoNameChats" type="Bool">
       <default>true</default>
     </entry>
-    <entry name="autoRestartPlasmaShell" type="Bool">
-      <default>false</default>
-    </entry>
 
     <entry name="sysInfoOS" type="Bool"><default>false</default></entry>
     <entry name="sysInfoShell" type="Bool"><default>false</default></entry>
