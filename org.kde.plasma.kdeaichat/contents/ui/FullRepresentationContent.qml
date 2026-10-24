@@ -700,7 +700,6 @@ Item {
 
                                                     sourceComponent: QQC2.TextArea {
                                                         width: parent ? parent.width : implicitWidth
-                                                        maximumLength: 200000
                                                         text: root.editingDraft
                                                         wrapMode: Text.WordWrap
                                                         onTextChanged: root.editingDraft = text
@@ -1644,7 +1643,6 @@ Item {
                             Layout.fillWidth: true
                             Layout.minimumHeight: Kirigami.Units.gridUnit * 3
                             Layout.maximumHeight: Kirigami.Units.gridUnit * 7
-                            maximumLength: 200000
                             Layout.preferredHeight: Math.min(Layout.maximumHeight, Math.max(Layout.minimumHeight, contentHeight + topPadding + bottomPadding))
                             wrapMode: Text.WordWrap
                             clip: true

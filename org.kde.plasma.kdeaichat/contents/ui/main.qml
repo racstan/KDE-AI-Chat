@@ -5041,7 +5041,7 @@ PlasmoidItem {
             width: Math.min(parent.width, parent.height) * 0.8
             height: width
             visible: root.customIconIsImage()
-            source: root.customIconImageSource()
+            source: root.customIconIsImage() ? root.customIconImageSource() : ""
             sourceSize.width: width * 2
             sourceSize.height: height * 2
             fillMode: Image.PreserveAspectFit
