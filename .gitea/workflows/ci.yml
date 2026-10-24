@@ -60,6 +60,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/store/Wallet.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/store/ChatStore.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/store/HelperRunner.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/store/Migration.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/chats.py",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py",
                   ]

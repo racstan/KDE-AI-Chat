@@ -635,7 +635,7 @@ rm ~/.local/share/plasmoids/org.kde.plasma.kdeaichat/conversations/{sessionId}.j
    systemctl --user start plasma-kwalletd.service
    ```
 
-2. Open KWallet Manager and check that the `KaiChat` folder exists and contains your keys:
+2. Open KWallet Manager and check that the `KDE AI Chat` folder exists and contains your keys (one entry per provider; versions before 1.4.0 used a `KaiChat` folder, which is moved automatically):
    ```bash
    kwalletmanager5
    ```

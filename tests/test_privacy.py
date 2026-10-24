@@ -95,3 +95,13 @@ def test_helper_exposes_privacy_report():
                              capture_output=True, text=True, env=env, check=True).stdout
     assert json.loads(out) == {"appletConfig": [], "kdeaichatrc": {
         "file": os.path.join(cfg, "kdeaichatrc"), "exists": False, "mode": None, "keyNames": []}}
+
+
+def test_qml_migration_knows_the_same_key_settings():
+    import re
+    path = os.path.join(os.path.dirname(HELPER), "store", "Migration.qml")
+    with open(path, encoding="utf-8") as f:
+        source = f.read()
+    block = source[source.index("legacyKeyProviders: ({"):source.index("})", source.index("legacyKeyProviders: ({"))]
+    qml_map = dict(re.findall(r'"([A-Za-z]+)": "([a-z_-]+)"', block))
+    assert qml_map == privacy.LEGACY_KEY_PROVIDERS

@@ -18,7 +18,7 @@ KEY_NAME = re.compile(r"^(apiKey|[A-Za-z]+ApiKey)$")
 MAX_FILE_BYTES = 64 * 1024 * 1024
 
 # Every API-key setting the widget has ever declared, mapped to the provider
-# id its KWallet entry is stored under ("kai-chat-<id>-api-key").
+# id its key is stored under in KWallet (folder "KDE AI Chat").
 LEGACY_KEY_PROVIDERS = {
     "apiKey": "openai",
     "anthropicApiKey": "anthropic",

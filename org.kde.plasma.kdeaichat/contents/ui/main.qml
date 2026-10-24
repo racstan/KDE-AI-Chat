@@ -122,12 +122,38 @@ PlasmoidItem {
     readonly property var walletApiKeys: wallet.keys
     property bool _initialLoadDone: false
     property string sessionHistoryLoadError: ""
+    // One-line notice about the 1.4.0 move of keys and chats.
+    property string privacyNotice: ""
+    // Saves wait until the chat migration has run, so an early save can't
+    // create the chat store first and leave the old history behind.
+    property bool chatMigrationSettled: false
+    property bool chatSavePending: false
+    property bool keyMigrationDone: false
     property bool sessionHistoryLoadBlocked: false
 
     signal clearChatInput()
 
     Store.Wallet {
         id: wallet
+    }
+
+    Store.Migration {
+        id: migration
+        configuration: plasmoid.configuration
+        wallet: wallet
+        chatStore: chatStore
+        runHelper: helperRunner.run
+        onNoticeChanged: root.privacyNotice = notice
+    }
+
+    Connections {
+        target: wallet
+        function onLoaded() { root.migrateKeysOnce(); }
+    }
+
+    Connections {
+        target: chatStore
+        function onReadyChanged() { root.migrateChatsOnce(); }
     }
 
     Store.HelperRunner {
@@ -208,6 +234,7 @@ PlasmoidItem {
         startupTimer.stop(); // Stop background timer if we triggered early
         // Load sessions immediately so UI has chat list / current chat ready
         loadSessions();
+        migrateChatsOnce();
         // Defer wallet and sys info slightly so initial layout/rendering is unblocked
         lazyWalletTimer.start();
         lazySysInfoTimer.start();
@@ -290,9 +317,30 @@ PlasmoidItem {
         }
     }
 
+    function migrateChatsOnce() {
+        if (chatMigrationSettled || !_initialLoadDone || !chatStore.ready)
+            return;
+        chatMigrationSettled = true;
+        if (!sessionHistoryLoadBlocked)
+            migration.migrateChats(root.sessions, null);
+        if (chatSavePending)
+            persistSessions();
+    }
+
+    function migrateKeysOnce() {
+        if (keyMigrationDone || !wallet.usable)
+            return;
+        keyMigrationDone = true;
+        migration.migrateKeys(null);
+    }
+
     function persistSessions() {
         if (root.sessionHistoryLoadBlocked)
             return;
+        if (!chatMigrationSettled) {
+            chatSavePending = true;
+            return;
+        }
         try {
             chatStore.save(root.sessions);
             plasmoid.configuration.lastSessionId = root.currentSessionId;

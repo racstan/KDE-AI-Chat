@@ -28,6 +28,7 @@ TestCase {
             case "passwordList": onReply(Object.assign({}, fake.folders[args[1]] || {})); break;
             case "writePassword": fake.folders[args[1]][args[2]] = args[3]; onReply(0); break;
             case "removeEntry": delete fake.folders[args[1]][args[2]]; onReply(0); break;
+            case "removeFolder": delete fake.folders[args[1]]; onReply(true); break;
             default: onError("unexpected call " + member);
             }
         };
@@ -50,11 +51,11 @@ TestCase {
     }
 
     function test_load_reads_all_keys_in_one_call() {
-        var fake = makeFake({folders: {"KaiChat": {
-            "kai-chat-openai-api-key": "sk-1",
-            "kai-chat-custom_abc-api-key": " sk-2 ",
-            "kai-chat-empty-api-key": "",
-            "unrelated": "x"
+        var fake = makeFake({folders: {"KDE AI Chat": {
+            "openai": "sk-1",
+            "custom_abc": " sk-2 ",
+            "empty": "",
+            "bad name!": "x"
         }}});
         var w = makeWallet(fake);
         var result = null;
@@ -101,15 +102,39 @@ TestCase {
         w.writeMany({"mistral": "m-key", "qwen": "q-key"}, function(result) { ok = result; });
         tryVerify(function() { return ok !== null; });
         verify(ok);
-        compare(fake.folders["KaiChat"]["kai-chat-mistral-api-key"], "m-key");
+        compare(fake.folders["KDE AI Chat"]["mistral"], "m-key");
         compare(w.keys["qwen"], "q-key");
 
         ok = null;
         w.remove("mistral", function(result) { ok = result; });
         tryVerify(function() { return ok !== null; });
-        verify(!fake.folders["KaiChat"].hasOwnProperty("kai-chat-mistral-api-key"));
+        verify(!fake.folders["KDE AI Chat"].hasOwnProperty("mistral"));
         verify(!w.keys.hasOwnProperty("mistral"));
         compare(w.keys["qwen"], "q-key");
         compare(fake.opened, fake.closed);
+    }
+
+    function test_legacy_folder_moves_and_is_removed_after_check() {
+        var fake = makeFake({folders: {
+            "KaiChat": {"kai-chat-openrouter-api-key": "or-old", "kai-chat-mistral-api-key": "m-old", "junk": "x"},
+            "KDE AI Chat": {"mistral": "m-new"}
+        }});
+        var w = makeWallet(fake);
+        var moved = null;
+        w.migrateLegacyFolder(function(n) { moved = n; });
+        tryVerify(function() { return moved !== null; });
+        compare(moved, 1);
+        compare(fake.folders["KDE AI Chat"]["openrouter"], "or-old");
+        compare(fake.folders["KDE AI Chat"]["mistral"], "m-new");
+        verify(!fake.folders.hasOwnProperty("KaiChat"));
+        compare(fake.opened, fake.closed);
+    }
+
+    function test_no_legacy_folder_is_fine() {
+        var w = makeWallet(makeFake({}));
+        var moved = null;
+        w.migrateLegacyFolder(function(n) { moved = n; });
+        tryVerify(function() { return moved !== null; });
+        compare(moved, 0);
     }
 }

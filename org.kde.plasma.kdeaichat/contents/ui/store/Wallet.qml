@@ -1,7 +1,9 @@
 // KWallet access for API keys: the only place keys are stored.
 //
-// Keys live in the user's network wallet, folder "KaiChat", entry
-// "kai-chat-<providerId>-api-key". Used by the widget (read once at startup,
+// Keys live in the user's network wallet, folder "KDE AI Chat", one entry per
+// provider named by its id (e.g. "openrouter", "custom_123"). Versions before
+// 1.4.0 used folder "KaiChat" with entries "kai-chat-<id>-api-key";
+// migrateLegacyFolder() moves those. Used by the widget (read once at startup,
 // reloaded when settings change) and by the settings page (read, write,
 // remove). `status` says why keys are unavailable, so the UI can tell the
 // user instead of failing silently.
@@ -20,7 +22,8 @@ QtObject {
     // providerId -> key, for the keys found at the last load.
     property var keys: ({})
 
-    readonly property string folder: "KaiChat"
+    readonly property string folder: "KDE AI Chat"
+    readonly property string legacyFolder: "KaiChat"
     readonly property string appId: "org.kde.plasma.kdeaichat"
 
     // D-Bus call used for every KWallet request; tests replace it.
@@ -58,10 +61,15 @@ QtObject {
     signal loaded()
 
     function entryName(providerId) {
-        return "kai-chat-" + providerId + "-api-key";
+        return String(providerId);
     }
 
     function providerIdFromEntry(name) {
+        name = String(name || "");
+        return /^[A-Za-z0-9._:-]{1,128}$/.test(name) ? name : "";
+    }
+
+    function legacyProviderId(name) {
         var match = /^kai-chat-(.+)-api-key$/.exec(String(name || ""));
         return match ? match[1] : "";
     }
@@ -166,6 +174,53 @@ QtObject {
             }
             next();
         }, callback);
+    }
+
+    // Copies keys from the pre-1.4.0 folder into `folder` (a key already in
+    // `folder` wins), reads them back, and only then removes the old folder.
+    // callback(movedCount); movedCount is -1 when nothing was removed.
+    function migrateLegacyFolder(callback) {
+        var moved = -1;
+        _withWallet(true, function(h, done) {
+            call("hasFolder", [h, legacyFolder, appId], function(hasLegacy) {
+                if (!hasLegacy) { moved = 0; done(true); return; }
+                call("passwordList", [h, legacyFolder, appId], function(legacy) {
+                    call("passwordList", [h, folder, appId], function(current) {
+                        current = current || {};
+                        var toCopy = {};
+                        var names = legacy ? Object.keys(legacy) : [];
+                        for (var i = 0; i < names.length; i++) {
+                            var id = legacyProviderId(names[i]);
+                            var value = String(legacy[names[i]] || "").trim();
+                            if (id && value && !String(current[id] || "").trim())
+                                toCopy[id] = value;
+                        }
+                        var ids = Object.keys(toCopy);
+                        var n = 0;
+                        function next() {
+                            if (n < ids.length) {
+                                var id = ids[n++];
+                                call("writePassword", [h, folder, id, toCopy[id], appId], function() { next(); }, function() { next(); });
+                                return;
+                            }
+                            call("passwordList", [h, folder, appId], function(after) {
+                                after = after || {};
+                                for (var k = 0; k < ids.length; k++) {
+                                    if (after[ids[k]] !== toCopy[ids[k]]) { done(false); return; }
+                                }
+                                call("removeFolder", [h, legacyFolder, appId], function() {
+                                    moved = ids.length;
+                                    done(true);
+                                }, function() { done(false); });
+                            }, function() { done(false); });
+                        }
+                        next();
+                    }, function() { done(false); });
+                }, function() { done(false); });
+            }, function() { done(false); });
+        }, function() {
+            if (callback) callback(moved);
+        });
     }
 
     function write(providerId, value, callback) {

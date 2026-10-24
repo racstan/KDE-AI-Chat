@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Launch the working-tree widget in its own window, screenshot it and report
-# QML warnings, without touching the installed widget or restarting plasmashell.
+# Launch the working-tree widget in its own window and report QML warnings
+# (optionally screenshot it, see DEV_SCREENSHOT below), without touching the installed widget or restarting plasmashell.
 #
 # The package is installed under a separate id (org.kde.plasma.kdeaichat.dev)
 # into a sandbox: XDG_CONFIG_HOME and XDG_DATA_HOME point at build/dev-run/,
 # so the run never reads or writes your real config, chats or widget install.
 # The sandbox is reset each run; set DEV_KEEP=1 to keep chats between runs.
 # KWallet is the real session wallet (a D-Bus service), but the dev copy uses
-# its own wallet folder, KaiChat-dev, so your real keys are never touched.
+# its own wallet folders ("KDE AI Chat (dev)", legacy "KaiChat-dev"), so your
+# real keys are never touched.
 #
 # Usage: scripts/dev-run.sh [seconds-to-run] [screenshot-path]
 # Exit status: 0 if the run produced no QML warnings, 1 otherwise.
@@ -48,9 +49,11 @@ PY
 
 # KWallet is the real session wallet, so keep dev keys in their own folder and
 # never read or overwrite the user's real ones.
-sed -i 's/readonly property string folder: "KaiChat"/readonly property string folder: "KaiChat-dev"/' \
-    "$STAGE/$DEV_ID/contents/ui/store/Wallet.qml"
-grep -q '"KaiChat-dev"' "$STAGE/$DEV_ID/contents/ui/store/Wallet.qml" || { echo "could not isolate wallet folder" >&2; exit 2; }
+WALLET_QML="$STAGE/$DEV_ID/contents/ui/store/Wallet.qml"
+sed -i -e 's/readonly property string folder: "KDE AI Chat"/readonly property string folder: "KDE AI Chat (dev)"/' \
+       -e 's/readonly property string legacyFolder: "KaiChat"/readonly property string legacyFolder: "KaiChat-dev"/' "$WALLET_QML"
+grep -q '"KDE AI Chat (dev)"' "$WALLET_QML" && grep -q '"KaiChat-dev"' "$WALLET_QML" \
+    || { echo "could not isolate wallet folders" >&2; exit 2; }
 
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
@@ -59,7 +62,11 @@ kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 plasmawindowed "$DEV_ID" >"$LOG" 2>&1 &
 PID=$!
 sleep "$RUN_SECONDS"
-if command -v spectacle >/dev/null; then
+# spectacle can only grab the *active* window, which may be one of the
+# user's own windows if the test window didn't get focus. So screenshots are
+# opt-in (DEV_SCREENSHOT=1, when you know the window will be in front);
+# prefer the offscreen screenshots from tests/qml (HarnessTestCase).
+if [ "${DEV_SCREENSHOT:-0}" = "1" ] && command -v spectacle >/dev/null; then
     spectacle --background --nonotify --activewindow --output "$SHOT" >/dev/null 2>&1 || true
 fi
 kill "$PID" 2>/dev/null || true
@@ -69,7 +76,7 @@ wait "$PID" 2>/dev/null || true
 # hint about callbacks referring to later variables, harmless at runtime.
 WARNINGS="$(grep -E "$DEV_ID/contents/" "$LOG" | grep -v "used before its declaration" || true)"
 
-echo "Screenshot: $SHOT"
+[ "${DEV_SCREENSHOT:-0}" = "1" ] && echo "Screenshot: $SHOT"
 echo "Full log:   $LOG"
 if [ -n "$WARNINGS" ]; then
     echo "QML warnings:"

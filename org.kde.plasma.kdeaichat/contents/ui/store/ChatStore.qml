@@ -82,6 +82,11 @@ Item {
         return directory !== "" && _read("index.ini", "version") !== "";
     }
 
+    // Stores `json` under the key "data" in <directory>/<fileName>.
+    function writeBackup(fileName, json) {
+        _write(fileName, "data", json);
+    }
+
     // Chat metadata (no messages) as JSON, for lists such as the schedule
     // dialog's chat picker. "" when there is no index yet.
     function indexJson() {

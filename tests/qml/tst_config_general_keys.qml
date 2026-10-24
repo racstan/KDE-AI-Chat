@@ -34,6 +34,7 @@ TestCase {
         case "createFolder": onReply(true); break;
         case "passwordList": onReply(Object.assign({}, walletStore)); break;
         case "writePassword": walletStore[args[2]] = args[3]; onReply(0); break;
+        case "removeFolder": onReply(true); break;
         case "removeEntry": delete walletStore[args[2]]; onReply(0); break;
         default: onError("unexpected " + member);
         }
@@ -64,8 +65,8 @@ TestCase {
 
     function test_load_fills_fields_from_wallet() {
         walletStore = {
-            "kai-chat-mistral-api-key": "m-secret",
-            "kai-chat-custom_abc-api-key": "c-secret"
+            "mistral": "m-secret",
+            "custom_abc": "c-secret"
         };
         page.cfg_customProvidersJson = JSON.stringify([{"id": "custom_abc", "name": "Mine", "type": "openai-compat", "baseUrl": "https://example.com/v1"}]);
         page.kwalletLoadAll();
@@ -78,10 +79,10 @@ TestCase {
         walletStore = {};
         page.saveKey("deepseek", " d-secret ");
         tryVerify(function() { return !page.keyringBusy; });
-        compare(walletStore["kai-chat-deepseek-api-key"], "d-secret");
+        compare(walletStore["deepseek"], "d-secret");
 
         page.saveKey("deepseek", "");
         tryVerify(function() { return !page.keyringBusy; });
-        verify(!walletStore.hasOwnProperty("kai-chat-deepseek-api-key"));
+        verify(!walletStore.hasOwnProperty("deepseek"));
     }
 }
