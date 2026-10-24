@@ -11,7 +11,7 @@ import QtCore
 import "Security.js" as Sec
 import "store" as Store
 import "backends/DirectBackend.js" as DirectBackend
-import "backends/OpenCodeBackend.js" as OpenCodeBackend
+import "chat" as Chat
 
 PlasmoidItem {
     id: root
@@ -105,6 +105,7 @@ PlasmoidItem {
     property string privacyNotice: storage.notice
     readonly property var wallet: storage.wallet
     readonly property var chatStore: storage.chatStore
+    readonly property var store: storage
     property bool sessionHistoryLoadBlocked: false
 
     signal clearChatInput()
@@ -118,6 +119,11 @@ PlasmoidItem {
             + "/kdeaichat/chats/applet-" + plasmoid.id
         currentSessions: function() { return root.sessionHistoryLoadBlocked ? null : root.sessions; }
         onSavesReleased: root.persistSessions()
+    }
+
+    Chat.OpenCodeMode {
+        id: openCode
+        chat: root
     }
 
     VoiceManager {
@@ -2169,148 +2175,18 @@ PlasmoidItem {
         }
     }
 
-    // Where a chat's OpenCode requests go.
-    function openCodeTarget(sessionId) {
-        return {"baseUrl": openCodeBaseUrl(), "xhrFactory": function() { return new XMLHttpRequest(); },
-                "directory": String(getSessionProperty(sessionId, "openCodeWorkspaceCwd", root.openCodeWorkspaceCwd || "") || "").trim()};
-    }
-
-    // OpenCode prompt parts for a user message (text, plus images as files).
-    function openCodeParts(message) {
-        if (!message.attachments || message.attachments.length === 0)
-            return [{"type": "text", "text": message.content || ""}];
-        var payload = buildMessageContent(message.content || "", message.attachments, "openai");
-        if (typeof payload === "string")
-            return [{"type": "text", "text": payload}];
-        var parts = [];
-        for (var i = 0; i < payload.length; i++) {
-            if (payload[i].type === "text")
-                parts.push({"type": "text", "text": payload[i].text});
-            else if (payload[i].type === "image_url" && payload[i].image_url && payload[i].image_url.url)
-                parts.push({"type": "file", "mime": payload[i].image_url.url.split(";")[0].split(":")[1] || "image/jpeg", "url": payload[i].image_url.url});
-        }
-        return parts;
-    }
-
-    // Makes sure an OpenCode server answers at the configured URL; starts one
-    // (via the helper) when the URL is local and nothing is running.
-    // done(ok, message).
-    function ensureOpenCodeServer(baseUrl, directory, done) {
-        var xhr = new XMLHttpRequest();
-        var finished = false;
-        function finish(ok, message) { if (!finished) { finished = true; done(ok, message); } }
-        function notRunning() {
-            var match = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\]):(\d+)/i.exec(baseUrl);
-            if (!match) {
-                finish(false, "OpenCode isn't reachable at " + baseUrl + ".");
-                return;
-            }
-            storage.runHelper("opencode_server_start", {"port": Number(match[2]), "directory": directory}, function(stdout) {
-                var result = {};
-                try { result = JSON.parse(stdout); } catch (e) { result = {}; }
-                if (result.status === "started" || result.status === "already-running")
-                    finish(true, "");
-                else
-                    finish(false, "OpenCode isn't running at " + baseUrl + " and couldn't be started: " + (result.message || "unknown error") + ".");
-            });
-        }
-        try {
-            xhr.open("GET", baseUrl + "/global/health", true);
-            xhr.timeout = 1500;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE) return;
-                if (xhr.status >= 200 && xhr.status < 300) finish(true, "");
-                else notRunning();
-            };
-            xhr.ontimeout = notRunning;
-            xhr.send();
-        } catch (e) {
-            notRunning();
-        }
-    }
-
     function doOpenCodeRequest(sessionId, generation) {
-        var target = openCodeTarget(sessionId);
-        root.loading = true;
-        ensureOpenCodeServer(target.baseUrl, target.directory, function(ok, message) {
-            if (!requestIsCurrent(sessionId, generation))
-                return;
-            if (!ok) {
-                applyBackendEvent({"type": "error", "message": message}, "OpenCode");
-                applyBackendEvent({"type": "done", "reason": "error"}, "OpenCode");
-                return;
-            }
-            sendOpenCodePrompt(sessionId, generation, target);
-        });
-    }
-
-    function sendOpenCodePrompt(sessionId, generation, target) {
-        var source = sessionMessages(sessionId);
-        var providerId = String(getSessionProperty(sessionId, "openCodeProvider", plasmoid.configuration.openCodeProvider || "") || "").trim();
-        var modelId = String(getSessionProperty(sessionId, "openCodeModel", plasmoid.configuration.openCodeModel || "") || "").trim();
-        var label = providerId && modelId ? providerId + "/" + modelId : "OpenCode";
-        root.currentStreamUsage = ({});
-        root.loading = true;
-        root.activeXhr = OpenCodeBackend.send({
-            "baseUrl": target.baseUrl,
-            "directory": target.directory,
-            "sessionId": currentOpenCodeSessionId(sessionId),
-            "title": root.currentSessionTitle || "KDE AI Chat",
-            "body": OpenCodeBackend.promptBody({
-                "parts": openCodeParts(source[source.length - 1] || {}),
-                "providerId": providerId,
-                "modelId": modelId,
-                "agent": String(getSessionProperty(sessionId, "openCodeAgent", root.openCodeAgent || "") || "").trim(),
-                "useAgentModel": getSessionProperty(sessionId, "openCodeUseAgentModel", root.openCodeUseAgentModel) !== false,
-                "system": buildEffectiveSystemPrompt(sessionId)
-            }),
-            "xhrFactory": target.xhrFactory,
-            "parserFactory": DirectBackend.createSseParser,
-            "onEvent": function(event) {
-                if (event.type === "session")
-                    setCurrentOpenCodeSessionId(event.id, sessionId);
-                else if (requestIsCurrent(sessionId, generation))
-                    applyBackendEvent(event, label, {"directory": target.directory});
-            }
-        });
+        openCode.send(sessionId, generation);
     }
 
     function respondToPermission(permissionId, approved) {
-        var index = findRequestMessage("permission_request", "permissionId", permissionId);
-        if (index < 0)
-            return;
-        var target = openCodeTarget(root.currentSessionId);
-        target.directory = root.messages[index].openCodeDirectory || target.directory;
-        updateMessageAt(index, function(msg) { msg.status = "answering..."; });
-        OpenCodeBackend.replyPermission(target, permissionId, approved ? "once" : "reject", function(ok, status) {
-            updateMessageAt(findRequestMessage("permission_request", "permissionId", permissionId), function(msg) {
-                msg.status = ok ? (approved ? "allowed" : "denied") : "pending";
-            });
-            if (!ok)
-                pushErrorMessage("OpenCode didn't accept the permission answer (HTTP " + status + ").");
-            saveCurrentSessionState(true);
-        });
+        openCode.respondToPermission(permissionId, approved);
     }
 
-    // answerValue: one string, or one array of labels per question.
     function respondToQuestion(questionId, answerValue, isReject) {
-        var index = findRequestMessage("question_request", "questionId", questionId);
-        if (index < 0)
-            return;
-        var target = openCodeTarget(root.currentSessionId);
-        target.directory = root.messages[index].openCodeDirectory || target.directory;
-        var answers = isReject ? null : (Array.isArray(answerValue) ? answerValue : [[String(answerValue || "")]]);
-        updateMessageAt(index, function(msg) { msg.status = isReject ? "dismissing..." : "answering..."; });
-        OpenCodeBackend.replyQuestion(target, questionId, answers, function(ok, status) {
-            updateMessageAt(findRequestMessage("question_request", "questionId", questionId), function(msg) {
-                msg.status = ok ? (isReject ? "dismissed" : "answered") : "pending";
-                if (ok && !isReject) msg.submittedAnswer = answerValue;
-            });
-            if (!ok)
-                pushErrorMessage("OpenCode didn't accept the answer (HTTP " + status + ").");
-            saveCurrentSessionState(true);
-        });
+        openCode.respondToQuestion(questionId, answerValue, isReject);
     }
+
 
     function triggerNotificationSound() {
         if (plasmoid.configuration.playNotificationSound) {
