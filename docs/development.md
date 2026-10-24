@@ -37,20 +37,29 @@ pytest -q tests/test_qml.py                 # only the QML suite
 
 ## Checks CI runs
 
+CI runs on a **local Gitea** (http://localhost:3000, repo `rachit/KDE-AI-Chat`) with its `act_runner`, not on GitHub Actions. The workflow is `.gitea/workflows/ci.yml` and runs on every push to Gitea:
+
+```bash
+git -c http.extraHeader="Authorization: token $(cat ~/.config/gitea-local/api-token)" push gitea <branch>
+```
+
+The runner's labels map to local podman images:
+- `ubuntu-latest` → `localhost/act-ubuntu`
+- `arch-plasma` → `localhost/act-arch-plasma`, built from `ci/arch-plasma/Containerfile` with `podman build -t localhost/act-arch-plasma:latest ci/arch-plasma`. Rebuild it to pick up newer Plasma or Qt.
+
+
 | Check | Command | Rule |
 |---|---|---|
 | Tests | `pytest -q` | Must pass on Python 3.11–3.13. |
-| QML tests | `REQUIRE_QML_TESTS=1 pytest -q tests/test_qml.py` | Run in an Arch Linux container with Plasma 6, because Ubuntu runners only have Plasma 5. |
+| QML tests | `REQUIRE_QML_TESTS=1 pytest -q tests/test_qml.py` | Run on the `arch-plasma` image (Plasma 6), because Ubuntu only has Plasma 5. |
 | qmllint ratchet | `scripts/qmllint_ratchet.py` | Each QML file's warning count may only go down. After fixing warnings, run with `--update` **inside the CI container** (counts depend on Qt and module versions). |
 | File sizes | `scripts/check_file_sizes.py` | Source files are limited to 400 lines; the big files listed in `scripts/file_size_allowlist.json` may only shrink. Use `--update` after splitting a file. |
 | Package | (inline in `ci.yml`) | The built `.plasmoid` contains the required files. |
 
-To reproduce the CI QML job locally:
+To reproduce the CI QML job without pushing:
 
 ```bash
-podman run --rm -v "$PWD":/src:Z -w /src -e REQUIRE_QML_TESTS=1 docker.io/archlinux:latest bash -c '
-  pacman -Syu --noconfirm --needed qt6-declarative kirigami libplasma plasma5support \
-    plasma-workspace kcmutils qqc2-desktop-style python python-pytest >/dev/null
+podman run --rm -v "$PWD":/src:Z -w /src -e REQUIRE_QML_TESTS=1 localhost/act-arch-plasma:latest bash -c '
   pytest -q tests/test_qml.py && python scripts/qmllint_ratchet.py --qmllint /usr/lib/qt6/bin/qmllint'
 ```
 

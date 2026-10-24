@@ -1,10 +1,13 @@
 name: CI
 
+# Runs on the local Gitea (act_runner with rootless podman), not GitHub
+# Actions. Runner labels map to local images:
+#   ubuntu-latest -> localhost/act-ubuntu
+#   arch-plasma   -> localhost/act-arch-plasma (ci/arch-plasma/Containerfile)
 on:
   push:
-    branches: [ master, perf/streaming-optimization ]
   pull_request:
-    branches: [ master, perf/streaming-optimization ]
+    branches: [ master ]
 
 jobs:
   test:
@@ -60,19 +63,12 @@ jobs:
           print("fresh package manifest verified")
           PY
 
-  # Ubuntu runners only have Plasma 5, so QML checks run in an Arch Linux
-  # container with Qt 6, Kirigami and Plasma 6.
+  # Ubuntu only has Plasma 5, so QML checks run on the Arch image with Qt 6,
+  # Kirigami and Plasma 6 preinstalled.
   qml:
-    runs-on: ubuntu-latest
-    container: archlinux:latest
+    runs-on: arch-plasma
 
     steps:
-      - name: Install Qt 6, Kirigami and Plasma 6 QML modules
-        run: |
-          pacman -Syu --noconfirm --needed qt6-declarative kirigami libplasma \
-            plasma5support plasma-workspace kcmutils qqc2-desktop-style \
-            python python-pytest
-
       - uses: actions/checkout@v4
 
       # Compiles every shipped QML file offscreen and runs component tests;
