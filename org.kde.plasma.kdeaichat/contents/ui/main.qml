@@ -11,6 +11,7 @@ import QtCore
 import "Security.js" as Sec
 import "store" as Store
 import "backends/DirectBackend.js" as DirectBackend
+import "backends/AgentEvents.js" as AgentEvents
 import "chat" as Chat
 
 PlasmoidItem {
@@ -1911,76 +1912,22 @@ PlasmoidItem {
 
     // Applies one backend event (DirectBackend.js / OpenCodeBackend.js / PiBackend.js) to the chat.
     function applyBackendEvent(event, model, extra) {
-        var harness = (extra || {}).harness || "opencode";
-        var harnessName = harness === "pi" ? "Pi" : "OpenCode";
-        if (event.type === "tool_start" || event.type === "tool_update" || event.type === "tool_end") {
+        if (AgentEvents.isReplyEvent(event.type)) {
             // Shown in the reply's Context list until Phase 4's tool cards.
             ensureStreamingMessage(model);
-            updateMessageAt(root.currentStreamIndex, function(msg) {
-                var tools = Object.assign({}, msg.tools || {});
-                var tool = Object.assign({"name": "", "detail": "", "status": "running"}, tools[event.callId] || {});
-                if (event.type === "tool_start") {
-                    var input = event.input || {};
-                    tool.name = event.name;
-                    tool.detail = String(input.filePath || input.path || input.command || input.pattern || input.query || input.url || "").substring(0, 120);
-                } else if (event.type === "tool_update") {
-                    tool.detail = event.title || tool.detail;
-                } else {
-                    tool.status = event.isError ? "error" : "done";
-                    tool.detail = event.title || tool.detail;
-                }
-                tools[event.callId] = tool;
-                msg.tools = tools;
-                var items = (msg.notices || []).slice();
-                for (var id in tools)
-                    items.push((tools[id].status === "done" ? "✓ " : tools[id].status === "error" ? "✗ " : "… ") + tools[id].name + (tools[id].detail ? ": " + tools[id].detail : ""));
-                msg.contextItems = items;
-            });
-        } else if (event.type === "notice") {
-            ensureStreamingMessage(model);
-            updateMessageAt(root.currentStreamIndex, function(msg) {
-                msg.notices = (msg.notices || []).concat([(event.level === "info" ? "ℹ " : "⚠ ") + event.message]).slice(-20);
-                msg.contextItems = (msg.contextItems || []).concat([msg.notices[msg.notices.length - 1]]);
-            });
-        } else if (event.type === "file_changed") {
-            ensureStreamingMessage(model);
-            updateMessageAt(root.currentStreamIndex, function(msg) {
-                var files = (msg.filesChanged || []).slice();
-                if (files.indexOf(event.path) < 0) files.push(event.path);
-                msg.filesChanged = files;
-            });
-        } else if (event.type === "permission_request") {
-            var detail = (event.patterns || []).join("\n");
-            root.messages = root.messages.concat([{"role": "permission_request", "id": "perm-" + event.id, "permissionId": event.id,
-                "tool": event.permission, "arguments": event.patterns, "status": "pending", "at": Date.now(), "model": harnessName,
-                "openCodeDirectory": (extra || {}).directory || "", "harness": harness, "harnessChatId": (extra || {}).chatId || "",
-                "content": harnessName + " asks for permission: **" + event.permission + "**" + (detail ? "\n\n```\n" + detail + "\n```" : "")}]);
+            updateMessageAt(root.currentStreamIndex, function(msg) { AgentEvents.applyToReply(msg, event); });
+        } else if (event.type === "permission_request" || event.type === "question_request") {
+            var isPermission = event.type === "permission_request";
+            if (findRequestMessage(event.type, isPermission ? "permissionId" : "questionId", event.id) >= 0)
+                return;
+            root.messages = root.messages.concat([isPermission ? AgentEvents.permissionMessage(event, extra, Date.now())
+                                                               : AgentEvents.questionMessage(event, extra, Date.now())]);
             triggerNotificationSound();
             saveCurrentSessionState(true);
         } else if (event.type === "permission_resolved") {
             updateMessageAt(findRequestMessage("permission_request", "permissionId", event.id), function(msg) {
                 msg.status = event.reply === "reject" ? "denied" : "allowed";
             });
-        } else if (event.type === "question_request") {
-            var questions = [];
-            var summary = [];
-            var allowCustom = true;
-            for (var q = 0; q < Math.min(20, (event.questions || []).length); q++) {
-                var item = event.questions[q] || {};
-                var custom = item.custom !== false;
-                if (!custom) allowCustom = false;
-                questions.push({"header": String(item.header || ""), "question": String(item.question || ""), "multiple": item.multiple === true, "custom": custom,
-                                "options": (item.options || []).slice(0, 100).map(function(o) { return {"label": String((o || {}).label || ""), "description": String((o || {}).description || "")}; })});
-                summary.push((item.header ? "**" + item.header + "**: " : "") + String(item.question || ""));
-            }
-            if (findRequestMessage("question_request", "questionId", event.id) < 0) {
-                root.messages = root.messages.concat([{"role": "question_request", "id": "question-" + event.id, "questionId": event.id,
-                    "questions": questions, "allowCustom": allowCustom, "status": "pending", "at": Date.now(), "model": harnessName,
-                    "openCodeDirectory": (extra || {}).directory || "", "harness": harness, "harnessChatId": (extra || {}).chatId || "",
-                    "content": harnessName + " is asking:\n\n" + summary.join("\n\n")}]);
-                triggerNotificationSound();
-                saveCurrentSessionState(true);
-            }
         } else if (event.type === "question_resolved") {
             updateMessageAt(findRequestMessage("question_request", "questionId", event.id), function(msg) {
                 if (msg.status !== "answered" && msg.status !== "dismissed") msg.status = event.status;
@@ -2040,8 +1987,9 @@ PlasmoidItem {
         return index >= 0 && root.messages[index].harness === "pi" ? piAgent : openCode;
     }
 
-    function respondToPermission(permissionId, approved) {
-        harnessFor("permission_request", "permissionId", permissionId).respondToPermission(permissionId, approved);
+    // always: also allow it from now on (OpenCode only).
+    function respondToPermission(permissionId, approved, always) {
+        harnessFor("permission_request", "permissionId", permissionId).respondToPermission(permissionId, approved, always === true);
     }
 
     function respondToQuestion(questionId, answerValue, isReject) {

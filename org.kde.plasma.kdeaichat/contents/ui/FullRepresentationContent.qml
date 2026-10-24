@@ -607,7 +607,7 @@ Item {
                                                     spacing: Kirigami.Units.smallSpacing
 
                                                     PC3.Label {
-                                                        text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? "OpenCode Interactive Question" : modelData.role === "permission_request" ? "OpenCode Security Request" : modelData.role === "system_compacted" ? "Context Compacted" : "AI"
+                                                        text: modelData.role === "user" ? "You" : modelData.role === "queued" ? "You (Queued)" : modelData.role === "error" ? "Error" : modelData.role === "question_request" ? (modelData.model || "OpenCode") + " asks a question" : modelData.role === "permission_request" ? (modelData.model || "OpenCode") + " asks for permission" : modelData.role === "system_compacted" ? "Context Compacted" : "AI"
                                                         font.bold: true
                                                     }
 
@@ -996,33 +996,12 @@ Item {
 
                                                 }
 
-                                                Row {
+                                                Chat.PermissionButtons {
                                                     visible: modelData.role === "permission_request"
                                                     width: parent.width
-                                                    spacing: Kirigami.Units.largeSpacing
                                                     Layout.topMargin: Kirigami.Units.smallSpacing
-
-                                                    PC3.Button {
-                                                        visible: modelData.status === "pending"
-                                                        text: "Allow"
-                                                        icon.name: "dialog-ok-apply"
-                                                        onClicked: root.respondToPermission(modelData.permissionId, true)
-                                                    }
-
-                                                    PC3.Button {
-                                                        visible: modelData.status === "pending"
-                                                        text: "Reject"
-                                                        icon.name: "dialog-cancel"
-                                                        onClicked: root.respondToPermission(modelData.permissionId, false)
-                                                    }
-
-                                                    PC3.Label {
-                                                        visible: modelData.status !== "pending"
-                                                        text: modelData.status === "allowed" ? "Approved ✅" : modelData.status === "denied" ? "Rejected ❌" : modelData.status === "allowing..." ? "Approving..." : "Rejecting..."
-                                                        font.bold: true
-                                                        color: modelData.status === "allowed" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                                                    }
-
+                                                    message: modelData
+                                                    onAnswered: (approved, always) => root.respondToPermission(modelData.permissionId, approved, always)
                                                 }
 
                                                 Column {

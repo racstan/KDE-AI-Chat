@@ -116,14 +116,14 @@ QtObject {
         });
     }
 
-    function respondToPermission(permissionId, approved) {
+    function respondToPermission(permissionId, approved, always) {
         var index = chat.findRequestMessage("permission_request", "permissionId", permissionId);
         if (index < 0)
             return;
         var target = mode.openCodeTarget(chat.currentSessionId);
         target.directory = chat.messages[index].openCodeDirectory || target.directory;
         chat.updateMessageAt(index, function(msg) { msg.status = "answering..."; });
-        OpenCodeBackend.replyPermission(target, permissionId, approved ? "once" : "reject", function(ok, status) {
+        OpenCodeBackend.replyPermission(target, permissionId, !approved ? "reject" : always ? "always" : "once", function(ok, status) {
             chat.updateMessageAt(chat.findRequestMessage("permission_request", "permissionId", permissionId), function(msg) {
                 msg.status = ok ? (approved ? "allowed" : "denied") : "pending";
             });
