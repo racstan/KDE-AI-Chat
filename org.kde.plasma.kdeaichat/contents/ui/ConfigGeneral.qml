@@ -95,6 +95,9 @@ KCM.SimpleKCM {
         return sourceName.indexOf("#opencode-") >= 0;
     }).length > 0
     property var providerModelCandidates: []
+    // Model lists narrowed by the search fields.
+    property var filteredProviderModels: []
+    property var filteredOpenCodeModels: []
     property int providerRefreshGeneration: 0
     property bool providerRefreshBusy: false
     property var openCodeProviderCandidates: []
