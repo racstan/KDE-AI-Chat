@@ -23,6 +23,7 @@ TestCase {
             { tag: "store/ChatStore", url: uiDir + "store/ChatStore.qml" },
             { tag: "store/HelperRunner", url: uiDir + "store/HelperRunner.qml" },
             { tag: "store/Migration", url: uiDir + "store/Migration.qml" },
+            { tag: "store/Storage", url: uiDir + "store/Storage.qml" },
             { tag: "chat/NoticeBanner", url: uiDir + "chat/NoticeBanner.qml" },
             { tag: "ConfigGeneral", url: uiDir + "ConfigGeneral.qml" },
             { tag: "ConfigSystemPrompt", url: uiDir + "ConfigSystemPrompt.qml" },
