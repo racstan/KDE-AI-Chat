@@ -773,14 +773,6 @@ PlasmoidItem {
         setCurrentOpenCodeSessionId("");
     }
 
-    function openOpenCodeInTerminal(sessionId) {
-        var sid = Sec.validateRemoteSessionId(sessionId || currentOpenCodeSessionId() || "");
-        var safeSid = Sec.sanitizeForShell(sid);
-        var runCmd = safeSid ? ("opencode --session " + Sec.quoteForShell(safeSid)) : "opencode";
-        var fullTerminalCmd = "konsole -e " + runCmd + " || x-terminal-emulator -e " + runCmd + " || xterm -e " + runCmd;
-        soundDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(fullTerminalCmd) + " #open-terminal-" + Date.now());
-    }
-
     function captureScreenRegion() {
         var timestamp = Date.now();
         var savePath = "/tmp/kdeaichat_shot_" + timestamp + ".png";

@@ -392,13 +392,6 @@ Item {
             }
 
             PC3.ToolButton {
-                icon.name: "utilities-terminal"
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: root.currentOpenCodeSessionId() !== "" ? i18n("Open session in terminal") : i18n("Open OpenCode in terminal")
-                onClicked: root.openOpenCodeInTerminal(root.currentOpenCodeSessionId())
-            }
-
-            PC3.ToolButton {
                 icon.name: "view-refresh"
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: i18n("Sync session history from OpenCode")

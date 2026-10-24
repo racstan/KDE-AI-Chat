@@ -5,7 +5,7 @@
 # (KDEAICHAT_PI_MOCK_FIXTURE picks another); PI_E2E_REAL=1 uses the installed
 # `pi` instead (point PI_CODING_AGENT_DIR at a test config to keep yours out).
 #
-# Usage: scripts/dev-pi-e2e.sh [message] [provider] [model]
+# Usage: scripts/dev-pi-e2e.sh [message] [provider] [model]   (PI_E2E_THINKING=<level> sets the chat's thinking)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -38,6 +38,8 @@ if raw.startswith('"'):
     raw = raw[1:-1].replace('\\"', '"').replace("\\\\", "\\")
 sessions = json.loads(raw)
 sessions[0]["source"] = "pi"
+if os.environ.get("PI_E2E_THINKING"):
+    sessions[0]["piThinking"] = os.environ["PI_E2E_THINKING"]
 encoded = json.dumps(sessions, separators=(",", ":")).replace("\\", "\\\\").replace('"', '\\"')
 open(path, "w", encoding="utf-8").write(index.replace(match.group(0), 'sessions="' + encoded + '"'))
 config = f"{sandbox}/config/plasmawindowedrc"

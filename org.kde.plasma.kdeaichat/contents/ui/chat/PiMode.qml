@@ -35,6 +35,14 @@ QtObject {
         });
     }
 
+    // A per-chat setting, else (for chats from before 1.4.0) its old key, else the default.
+    function setting(sessionId, key, oldKey, fallback) {
+        var value = chat.getSessionProperty(sessionId, key, undefined);
+        if (value === undefined && oldKey)
+            value = chat.getSessionProperty(sessionId, oldKey, undefined);
+        return String(value || fallback || "").trim();
+    }
+
     // The prompt body for a user message: text, plus images as base64.
     function promptBody(sessionId, message) {
         var text = String(message.content || "");
@@ -55,9 +63,11 @@ QtObject {
             }
         }
         return {
-            "directory": String(chat.getSessionProperty(sessionId, "openCodeWorkspaceCwd", chat.openCodeWorkspaceCwd || "") || "").trim(),
-            "provider": String(chat.getSessionProperty(sessionId, "chatProvider", chat.plasmoid.configuration.piProvider || "") || "").trim(),
-            "model": String(chat.getSessionProperty(sessionId, "chatModel", chat.plasmoid.configuration.piModel || "") || "").trim(),
+            // The chat's working folder (shared with OpenCode mode, hence the key).
+            "directory": mode.setting(sessionId, "openCodeWorkspaceCwd", "", chat.openCodeWorkspaceCwd),
+            "provider": mode.setting(sessionId, "piProvider", "chatProvider", chat.plasmoid.configuration.piProvider),
+            "model": mode.setting(sessionId, "piModel", "chatModel", chat.plasmoid.configuration.piModel),
+            "thinking": mode.setting(sessionId, "piThinking", "", ""),
             "message": text,
             "images": images
         };
