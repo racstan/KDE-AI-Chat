@@ -916,7 +916,6 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Layout.maximumWidth: formLayout.fieldMaxWidth
             Layout.preferredHeight: 76
-            maximumLength: 200000
             wrapMode: Text.Wrap
             placeholderText: '[{"id":"filesystem","command":"npx","args":["-y","@modelcontextprotocol/server-filesystem","/tmp"],"tools":[]}]'
             text: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.mcpServersJson || "[]") : "[]"

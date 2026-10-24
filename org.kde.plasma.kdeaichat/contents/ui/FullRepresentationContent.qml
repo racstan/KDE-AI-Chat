@@ -45,7 +45,6 @@ Item {
     }
 
     Kirigami.Theme.inherit: false
-    Kirigami.Theme.colorGroup: root.popupIsDark ? Kirigami.Theme.Dark : Kirigami.Theme.Light
     Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
     Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
     Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
@@ -55,7 +54,7 @@ Item {
 
     SequentialAnimation {
         id: highlightPulse
-        running: root.voiceManagerRef && root.voiceManagerRef.isPlaying
+        running: !!root.voiceManagerRef && root.voiceManagerRef.isPlaying
         loops: Animation.Infinite
         alwaysRunToEnd: false
         
@@ -701,7 +700,6 @@ Item {
 
                                                     sourceComponent: QQC2.TextArea {
                                                         width: parent ? parent.width : implicitWidth
-                                                        maximumLength: 200000
                                                         text: root.editingDraft
                                                         wrapMode: Text.WordWrap
                                                         onTextChanged: root.editingDraft = text
@@ -755,7 +753,7 @@ Item {
                                                             }
 
                                                             Connections {
-                                                                target: repRoot
+                                                                target: root
                                                                 function onPlayingMessageIndexChanged() {
                                                                     if (root.playingMessageIndex === index) {
                                                                         if (savedSelectionStart !== -1 && savedSelectionEnd !== -1) {
@@ -942,7 +940,7 @@ Item {
 
                                                 Flow {
                                                     width: parent.width
-                                                    visible: modelData.attachments && modelData.attachments.length > 0
+                                                    visible: !!modelData.attachments && modelData.attachments.length > 0
                                                     spacing: Kirigami.Units.smallSpacing
 
                                                     Repeater {
@@ -1375,7 +1373,7 @@ Item {
                                                             anchors.centerIn: parent
                                                             width: parent.width * 0.8
                                                             height: parent.height * 0.8
-                                                            running: root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
+                                                            running: !!root.voiceManagerRef && root.voiceManagerRef.isPlaying && root.playingMessageIndex === index && (root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.statusText.indexOf("Loading") !== -1)
                                                             visible: running
                                                         }
                                                     }
@@ -1495,11 +1493,11 @@ Item {
                     }
 
                     RowLayout {
-                        visible: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "")
+                        visible: root.loading || (!!root.voiceManagerRef && root.voiceManagerRef.statusText !== "")
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.BusyIndicator {
-                            running: root.loading || (root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused" && !root.voiceManagerRef.callModeActive)
+                            running: root.loading || (!!root.voiceManagerRef && root.voiceManagerRef.statusText !== "" && root.voiceManagerRef.statusText !== "Reading aloud..." && root.voiceManagerRef.statusText !== "Paused" && !root.voiceManagerRef.callModeActive)
                             visible: running
                             width: 16
                             height: 16
@@ -1507,7 +1505,7 @@ Item {
 
                         PC3.ToolButton {
                             icon.name: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "call-start" : "media-playback-stop"
-                            visible: !root.loading && root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive)
+                            visible: !root.loading && !!root.voiceManagerRef && (root.voiceManagerRef.statusText === "Reading aloud..." || root.voiceManagerRef.statusText === "Generating speech..." || root.voiceManagerRef.callModeActive === true)
                             display: PC3.AbstractButton.IconOnly
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: (root.voiceManagerRef && root.voiceManagerRef.callModeActive) ? "Call Mode Active" : "Stop reading"
@@ -1645,7 +1643,6 @@ Item {
                             Layout.fillWidth: true
                             Layout.minimumHeight: Kirigami.Units.gridUnit * 3
                             Layout.maximumHeight: Kirigami.Units.gridUnit * 7
-                            maximumLength: 200000
                             Layout.preferredHeight: Math.min(Layout.maximumHeight, Math.max(Layout.minimumHeight, contentHeight + topPadding + bottomPadding))
                             wrapMode: Text.WordWrap
                             clip: true
@@ -1744,7 +1741,7 @@ Item {
                                 anchors.centerIn: parent
                                 width: parent.width * 0.6
                                 height: parent.height * 0.6
-                                running: root.voiceManagerRef && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
+                                running: !!root.voiceManagerRef && (root.voiceManagerRef.statusText.indexOf("Loading") !== -1 || root.voiceManagerRef.statusText.indexOf("Transcribing") !== -1 || root.voiceManagerRef.statusText.indexOf("Processing") !== -1)
                                 visible: running
                             }
                         }

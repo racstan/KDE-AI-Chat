@@ -257,7 +257,6 @@ KCM.SimpleKCM {
 
             QQC2.TextArea {
                 id: customPromptArea
-                maximumLength: 100000
                 placeholderText: i18n("Additional instructions for the LLM…")
                 wrapMode: Text.Wrap
                 width: customPromptScroll.width
@@ -347,7 +346,6 @@ KCM.SimpleKCM {
 
             QQC2.TextArea {
                 id: userMemoryArea
-                maximumLength: 100000
                 placeholderText: i18n("Facts or preferences you want the assistant to remember across all chats...")
                 wrapMode: Text.Wrap
                 width: userMemoryScroll.width

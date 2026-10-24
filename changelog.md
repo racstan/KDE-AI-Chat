@@ -7,11 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-24
+
+### Added
+- **🔀 Per-chat provider & model switching**: Open the chat settings panel to change provider, model or mode for the current chat without touching your other chats. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
+- **🔌 Multiple custom providers**: Add as many OpenAI-compatible providers as you like, each with its own name, URL and key — including several of the same type. Keys are stored in KWallet. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
+- **🧰 MCP tool support (opt-in)**: Built-in web search plus your own MCP servers, configured under Settings → Other. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
+- **🚫 Disable streaming option**: For providers that reject streamed requests (HTTP 400). ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
+- **🖼️ Custom widget icon**: Use any KDE icon name or an image file. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
+- **🤖 Pi Coding Agent bridge**: New agent mode alongside OpenCode, with dynamic provider/model loading.
+- OpenCode agent profile selector, workspace directory selector and Git diff inspector.
+
+### Changed
+- **🖱️ Smoother touchpad scrolling**: Pixel-precise two-finger scrolling with tuned deceleration. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
+
 ### Fixed
+- **⚡ Lower idle CPU use**: The widget no longer starts a shell process every 3 seconds when the scheduler is switched off. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
+- Fixed invalid theme and visibility bindings that logged `Unable to assign [undefined]` warnings in the journal. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
+- Fixed QML binding loops and a blocking subprocess that could freeze plasmashell when opening chat settings.
 - Hardened voice daemons with per-user token authentication, loopback/origin checks, bounded requests, private temporary audio, and authenticated systemd setup.
-- Reworked live request/session cancellation, OpenCode/Pi completion handling, MCP follow-up generations, context compaction, attachment correlation, and queued scheduler triggers.
+- Reworked request/session cancellation, OpenCode/Pi completion handling, MCP follow-up generations, context compaction, attachment correlation, and queued scheduler triggers.
 - Added URL/path/session validation, bounded message and scheduler payloads, atomic scheduler writes, KWallet synchronization for custom providers, and temporary attachment cleanup.
-- Added live QML linting, package-manifest verification, and a translation smoke-test compatibility module to CI.
+- Custom Anthropic-compatible endpoints now work.
+- Removed unused JavaScript modules that were no longer loaded by the widget.
+
+---
 
 ## [1.3.1] - 2026-07-22
 

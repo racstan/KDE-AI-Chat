@@ -554,7 +554,7 @@ Rectangle {
                             PC3.Label { text: "Chat memory"; font.bold: true; Layout.fillWidth: true }
                             QQC2.CheckBox { id: memoryCheck; text: "On"; onCheckedChanged: { page._memoryEnabled = checked; if (!page._loadingDraft) page._draftDirty = true; } }
                         }
-                        QQC2.TextArea { id: memoryArea; Layout.fillWidth: true; Layout.preferredHeight: 80; maximumLength: 100000; enabled: memoryCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Notes retained for this chat"; onTextChanged: { page._memory = text; if (!page._loadingDraft) page._draftDirty = true; } }
+                        QQC2.TextArea { id: memoryArea; Layout.fillWidth: true; Layout.preferredHeight: 80; enabled: memoryCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Notes retained for this chat"; onTextChanged: { page._memory = text; if (!page._loadingDraft) page._draftDirty = true; } }
                     }
                 }
 
@@ -570,7 +570,7 @@ Rectangle {
                             PC3.Label { text: "System instructions"; font.bold: true; Layout.fillWidth: true }
                             QQC2.CheckBox { id: systemCheck; text: "On"; onCheckedChanged: { page._systemEnabled = checked; if (!page._loadingDraft) page._draftDirty = true; } }
                         }
-                        QQC2.TextArea { id: systemArea; Layout.fillWidth: true; Layout.preferredHeight: 96; maximumLength: 100000; enabled: systemCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Instructions for this chat"; onTextChanged: { page._system = text; if (!page._loadingDraft) page._draftDirty = true; } }
+                        QQC2.TextArea { id: systemArea; Layout.fillWidth: true; Layout.preferredHeight: 96; enabled: systemCheck.checked; wrapMode: Text.WordWrap; placeholderText: "Instructions for this chat"; onTextChanged: { page._system = text; if (!page._loadingDraft) page._draftDirty = true; } }
                     }
                 }
 
