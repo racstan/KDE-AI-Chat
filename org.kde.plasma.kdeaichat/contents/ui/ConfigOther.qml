@@ -8,6 +8,7 @@ import org.kde.kcmutils as KCM
 import org.kde.plasma.plasma5support 2.0 as P5Support
 
 import "Security.js" as Sec
+import "store" as Store
 
 KCM.SimpleKCM {
     id: configPage
@@ -21,13 +22,22 @@ KCM.SimpleKCM {
     property alias cfg_disableStreaming: disableStreamingToggle.checked
     property alias cfg_enableMcpTools: enableMcpToolsToggle.checked
     property alias cfg_autoNameChats: autoNameChatsToggle.checked
-    property alias cfg_autoRestartPlasmaShell: autoRestartPlasmaShellToggle.checked
     property alias cfg_schedulerEnabled: schedulerMasterSwitch.checked
     property alias cfg_schedulerAutoStart: schedAutoStartToggle.checked
     property alias cfg_executeMissedSchedules: executeMissedSchedulesToggle.checked
     property string cfg_preselectedChatId: ""
     property string cfg_preselectedChatName: ""
-    property string cfg_chatSessionsJson: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]"
+    // Chat list for the schedule dialog, read from the chat store (older
+    // versions kept it in this config entry). Not a cfg_ property, so the
+    // settings dialog can't write a stale copy back.
+    readonly property Store.ChatStore chatIndexStore: Store.ChatStore {
+        directory: {
+            var data = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "");
+            return decodeURIComponent(data) + "/kdeaichat/chats/applet-" + plasmoid.id;
+        }
+    }
+    readonly property string chatIndexJson: chatIndexStore.indexJson()
+        || ((plasmoid && plasmoid.configuration) ? (plasmoid.configuration.chatSessionsJson || "[]") : "[]")
     property string cfg_promptTemplates: (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.promptTemplates || "[]") : "[]"
 
     // Keep this as a real KCM config alias so the MCP server list is restored
@@ -981,26 +991,6 @@ KCM.SimpleKCM {
                 if (pageReady && plasmoid && plasmoid.configuration)
                     plasmoid.configuration.autoNameChats = checked;
             }
-        }
-
-        QQC2.CheckBox {
-            id: autoRestartPlasmaShellToggle
-            Kirigami.FormData.label: i18n("Recovery:")
-            text: i18n("Automatically restart PlasmaShell if the widget stops responding")
-            checked: (plasmoid && plasmoid.configuration) ? plasmoid.configuration.autoRestartPlasmaShell === true : false
-            onCheckedChanged: {
-                if (pageReady && plasmoid && plasmoid.configuration)
-                    plasmoid.configuration.autoRestartPlasmaShell = checked;
-            }
-        }
-
-        QQC2.Label {
-            Layout.fillWidth: true
-            Layout.maximumWidth: formLayout.fieldMaxWidth
-            wrapMode: Text.Wrap
-            text: i18n("Recovery uses a background heartbeat monitor. Keep it disabled unless you want PlasmaShell restarted automatically after a prolonged freeze.")
-            opacity: 0.7
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
         }
 
         QQC2.Label {

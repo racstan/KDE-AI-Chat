@@ -9,7 +9,7 @@ This manual provides an in-depth operations guide, walkthroughs of every feature
 ## 📖 Table of Contents
 1. [Getting Started & Installation](#1-getting-started--installation)
 2. [Configuring Providers & API Keys](#2-configuring-providers--api-keys)
-3. [Secure Storage: KWallet & Plain Configs](#3-secure-storage-kwallet--plain-configs)
+3. [Privacy: Keys and Chats](#3-privacy-keys-and-chats)
 4. [Running Offline Local LLMs (Ollama, LM Studio & LiteLLM)](#4-running-offline-local-llms-ollama-lm-studio--litellm)
 5. [OpenCode Developer Bridge Guide](#5-opencode-developer-bridge-guide)
 6. [Managing Conversations & Chat History](#6-managing-conversations--chat-history)
@@ -80,18 +80,24 @@ KDE AI Chat supports **17 different AI engines** out of the box. Key setups are 
 
 ---
 
-## 3. Secure Storage: KWallet & Plain Configs
+## 3. Privacy: Keys and Chats
 
-KDE AI Chat supports persistent storage of API credentials across desktop sessions. To balance security and usability, the widget integrates two fallback storage mechanisms:
+Everything stays on your computer.
 
-### Secure KWallet Integration *(recommended)*
-- Keys are automatically encrypted and stored inside your system's secure **[KDE Wallet](https://apps.kde.org/kwalletmanager5/)** vault.
-- Communication with KWallet is handled by the widget through KDE's native DBus API.
-- Once stored, credentials are loaded securely on widget startup without exposing keys in plaintext files.
+### API keys
+- API keys are kept only in KDE Wallet (KWallet), in a folder called **KDEAIChat**, one entry per provider. They're never written to a config file.
+- The settings page saves a key when you edit it; clearing the field removes it from KWallet.
+- If KWallet is turned off, locked, or refuses access, the widget can't read your keys and tells you why in the chat. Turn KWallet on in System Settings → KDE Wallet.
 
-### Plain Config Fallback
-- If KWallet is disabled or unavailable on the host system, credentials fall back to plaintext settings stored under your home config directory at **`~/.config/kdeaichatrc`**. Treat this fallback as sensitive and prefer KWallet whenever possible.
-- Values are written persistently under the `[General]` configuration group and automatically reloaded when the widget initializes.
+### Chats
+- Each chat is a file in `~/.local/share/kdeaichat/chats/`, in a folder only you can read (permissions 0700).
+- Deleting a chat deletes its file.
+
+### Upgrading from versions before 1.4.0
+Older versions kept keys in plaintext (in Plasma's widget config and `~/.config/kdeaichatrc`) and all chats inside Plasma's widget config. On first start, 1.4.0 moves them automatically:
+- Keys go into KWallet (including keys from the old `KaiChat` wallet folder), and the plaintext copies are deleted only after KWallet has stored them. If KWallet is unavailable, nothing is changed.
+- Chats are written to their own files and checked; a backup of the old history is kept as `legacy-chat-history-backup.ini` in the chats folder, then the old copy is removed from the widget config.
+- A short notice above the chat tells you what was moved.
 
 ---
 
@@ -212,7 +218,7 @@ Prompt Templates allow you to save prompts you use frequently and insert them in
 **A**: Ensure that your Plasma global desktop theme doesn't enforce strict application style sheets that override widget layouts. If you want the widget to ignore system-wide rules, go to Settings and change the **Theme Mode** dropdown from "Follow System" to "Strict Dark" or "Strict Light".
 
 ### Q: Where are my keys saved?
-**A**: By default, the widget attempts to store keys securely in KDE Wallet (KWallet) via DBus. If KWallet is unavailable, the keys fall back to standard plaintext configurations saved locally at `~/.config/kdeaichatrc`.
+**A**: Only in KDE Wallet (KWallet), in the **KDEAIChat** folder. You can see them in KDE Wallet Manager. Nothing is stored in plaintext.
 
 ### Q: Do I need an API key for Ollama / LM Studio / LiteLLM?
 **A**: No. Ollama, LM Studio, and the local provider are keyless by default. LiteLLM Proxy is also keyless unless your specific proxy configuration requires authentication.

@@ -8,6 +8,7 @@ import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 import "ProviderService.js" as ProviderService
 import "Security.js" as Sec
+import "chat" as Chat
 
 Item {
     id: repRoot
@@ -298,31 +299,17 @@ Item {
 
         }
 
-        Rectangle {
-            visible: root.sessionHistoryLoadError !== ""
-            Layout.fillWidth: true
-            color: Qt.rgba(Kirigami.Theme.negativeTextColor.r, Kirigami.Theme.negativeTextColor.g, Kirigami.Theme.negativeTextColor.b, 0.10)
-            border.color: Kirigami.Theme.negativeTextColor
-            border.width: 1
-            radius: 6
-            implicitHeight: historyWarningRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+        Chat.NoticeBanner {
+            isError: true
+            text: root.sessionHistoryLoadError
+            actionText: "Replace stored history"
+            actionIcon: "edit-clear-all"
+            onActionTriggered: root.resetUnreadableSessionHistory()
+        }
 
-            RowLayout {
-                id: historyWarningRow
-                anchors.fill: parent
-                anchors.margins: Kirigami.Units.smallSpacing
-                QQC2.Label {
-                    Layout.fillWidth: true
-                    wrapMode: Text.Wrap
-                    text: root.sessionHistoryLoadError
-                    color: Kirigami.Theme.negativeTextColor
-                }
-                PC3.Button {
-                    text: "Replace stored history"
-                    icon.name: "edit-clear-all"
-                    onClicked: root.resetUnreadableSessionHistory()
-                }
-            }
+        Chat.NoticeBanner {
+            text: root.privacyNotice
+            onDismissed: root.privacyNotice = ""
         }
 
         RowLayout {

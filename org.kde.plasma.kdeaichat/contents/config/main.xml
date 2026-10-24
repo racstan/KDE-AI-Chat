@@ -201,6 +201,15 @@
     <entry name="perplexityApiKey" type="String">
       <default></default>
     </entry>
+    <!-- Key settings from older versions, declared only so the 1.4.0
+         migration (store/Migration.qml) can move and clear them. -->
+    <entry name="qwenApiKey" type="String"><default></default></entry>
+    <entry name="moonshotApiKey" type="String"><default></default></entry>
+    <entry name="mimoApiKey" type="String"><default></default></entry>
+    <entry name="huggingfaceImageApiKey" type="String"><default></default></entry>
+    <entry name="replicateApiKey" type="String"><default></default></entry>
+    <entry name="stabilityApiKey" type="String"><default></default></entry>
+    <entry name="togetherImageApiKey" type="String"><default></default></entry>
     <entry name="perplexityModel" type="String">
       <default></default>
     </entry>
@@ -297,9 +306,6 @@
     </entry>
     <entry name="autoNameChats" type="Bool">
       <default>true</default>
-    </entry>
-    <entry name="autoRestartPlasmaShell" type="Bool">
-      <default>false</default>
     </entry>
 
     <entry name="sysInfoOS" type="Bool"><default>false</default></entry>

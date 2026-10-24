@@ -24,7 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **🖱️ Smoother touchpad scrolling**: Pixel-precise two-finger scrolling with tuned deceleration. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 
+### Security
+- **🔐 API keys live only in KWallet**: Keys are no longer written to Plasma's widget config (pressing OK/Apply in settings used to copy them there in plaintext) or to `~/.config/kdeaichatrc`. Custom provider keys are no longer stored in the provider list. If KWallet is off or locked, the widget tells you instead of falling back to plaintext.
+- **🗂️ Private chat files**: Chats are stored as one file per chat in `~/.local/share/kdeaichat/chats/` (a folder only you can read) instead of one large entry in Plasma's desktop config. Saving no longer rewrites that config file.
+- **Automatic migration**: On first start, plaintext keys (and keys in the old `KaiChat` wallet folder) move to the **KDEAIChat** wallet folder, and chats move to their own files with a backup kept. Plaintext copies are removed only after the move is confirmed.
+
+### Removed
+- **PlasmaShell auto-restart watchdog**: The widget no longer starts a background monitor that restarted your desktop shell, or spawns a heartbeat process every 5 seconds. Any monitor left running by an earlier version is stopped automatically.
+
 ### Fixed
+- Closing the settings page before keys had loaded could delete them from KWallet.
+- The Save buttons for DeepSeek, MiniMax and OpenRouter keys didn't work.
+- The Settings → Other page and model search in Settings → General failed to load or threw errors.
 - **⚡ Lower idle CPU use**: The widget no longer starts a shell process every 3 seconds when the scheduler is switched off. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
 - Fixed invalid theme and visibility bindings that logged `Unable to assign [undefined]` warnings in the journal. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
 - Fixed QML binding loops and a blocking subprocess that could freeze plasmashell when opening chat settings.

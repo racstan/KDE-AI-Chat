@@ -4,7 +4,8 @@
 A QML, JS or Python file in the widget package may have at most LIMIT lines,
 unless it is listed in scripts/file_size_allowlist.json. Listed files may not
 grow past their recorded size; when one shrinks, the allowlist should be
-tightened (--update), and a file back under the limit is dropped from it.
+tightened with --update, which can only lower limits; a file back under the
+limit is dropped from it.
 
 Usage:
   scripts/check_file_sizes.py [--update]
@@ -42,15 +43,19 @@ def main():
     sizes = {path: line_count(path) for path in source_files()}
     oversized = {path: n for path, n in sizes.items() if n > LIMIT}
 
-    if args.update:
-        with open(ALLOWLIST, "w", encoding="utf-8") as f:
-            json.dump(oversized, f, indent=2, sort_keys=True)
-            f.write("\n")
-        print(f"Allowlist written: {len(oversized)} files over {LIMIT} lines")
-        return 0
-
     with open(ALLOWLIST, encoding="utf-8") as f:
         allowlist = json.load(f)
+
+    if args.update:
+        # Only ever tightens: entries shrink to the current size, files back
+        # under the limit drop out. A file that grew, or a new big file, has
+        # to be split instead; the allowlist can't be raised by --update.
+        tightened = {path: min(n, allowlist[path]) for path, n in oversized.items() if path in allowlist}
+        with open(ALLOWLIST, "w", encoding="utf-8") as f:
+            json.dump(tightened, f, indent=2, sort_keys=True)
+            f.write("\n")
+        print(f"Allowlist tightened: {len(tightened)} files over {LIMIT} lines")
+        allowlist = tightened
 
     failures = []
     for path, n in sorted(oversized.items()):

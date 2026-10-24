@@ -30,6 +30,7 @@ def _run_helper(command: str, payload: dict, temp_dir: str):
     payload_b64 = base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")
     env = os.environ.copy()
     env["HOME"] = temp_dir
+    env["XDG_DATA_HOME"] = os.path.join(temp_dir, ".local", "share")
     r = subprocess.run(
         [sys.executable, HELPER_PATH, command, payload_b64],
         capture_output=True, text=True, env=env, timeout=15,
@@ -111,20 +112,6 @@ class TestKdeAiHelperIPC(unittest.TestCase):
         decoded = json.loads(base64.b64decode(out).decode("utf-8"))
         self.assertEqual(decoded["action"], "load")
         self.assertEqual(base64.b64decode(decoded["content"]).decode("utf-8"), "legacy content")
-
-    def test_save_and_load_config_keys(self):
-        rcfile = os.path.join(self.temp_dir, "kdeaichatrc")
-        out, err, rc = _run_helper("sync_config_keys", {
-            "configPath": rcfile,
-            "keys": {"apiKey": "sk-test123", "model": "gpt-4"},
-        }, self.temp_dir)
-        self.assertEqual(rc, 0, msg=err)
-
-        out, err, rc = _run_helper("load_config_keys", {"configPath": rcfile}, self.temp_dir)
-        self.assertEqual(rc, 0, msg=err)
-        loaded = json.loads(out)
-        self.assertEqual(loaded["apiKey"], "sk-test123")
-        self.assertEqual(loaded["model"], "gpt-4")
 
     def test_export_chat(self):
         dest = os.path.join(self.temp_dir, "exported.md")

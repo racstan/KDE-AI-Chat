@@ -8,9 +8,9 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
-import org.kde.plasma.workspace.dbus as DBus
 import QtCore
 import "Security.js" as Sec
+import "store" as Store
 
 PlasmoidItem {
     id: root
@@ -97,7 +97,6 @@ PlasmoidItem {
     property bool restoringResponseScroll: false
     property bool titleGenerationInProgress: false
     property string titleGenerationSessionId: ""
-    property bool plasmaShellWatchdogRunning: false
     // Tool-call context is kept separate from the visible chat model. This
     // lets an OpenAI-compatible provider complete an MCP round-trip without
     // rendering protocol messages as ordinary chat bubbles.
@@ -119,12 +118,28 @@ PlasmoidItem {
         return Qt.styleHints.colorScheme === Qt.Dark;
     }
     property bool keysLoaded: false
-    property var walletApiKeys: ({})
+    // providerId -> API key, read from KWallet (the only place keys are kept).
+    readonly property var walletApiKeys: wallet.keys
     property bool _initialLoadDone: false
     property string sessionHistoryLoadError: ""
+    // One-line notice about the 1.4.0 move of keys and chats.
+    property string privacyNotice: storage.notice
+    readonly property var wallet: storage.wallet
+    readonly property var chatStore: storage.chatStore
     property bool sessionHistoryLoadBlocked: false
 
     signal clearChatInput()
+
+    Store.Storage {
+        id: storage
+        configuration: plasmoid.configuration
+        helperPath: root.getHelperPath()
+        // Chats are stored per widget instance, as they were in the config.
+        chatDirectory: decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, ""))
+            + "/kdeaichat/chats/applet-" + plasmoid.id
+        currentSessions: function() { return root.sessionHistoryLoadBlocked ? null : root.sessions; }
+        onSavesReleased: root.persistSessions()
+    }
 
     VoiceManager {
         id: voiceManager
@@ -189,6 +204,7 @@ PlasmoidItem {
         startupTimer.stop(); // Stop background timer if we triggered early
         // Load sessions immediately so UI has chat list / current chat ready
         loadSessions();
+        storage.chatsLoaded();
         // Defer wallet and sys info slightly so initial layout/rendering is unblocked
         lazyWalletTimer.start();
         lazySysInfoTimer.start();
@@ -217,17 +233,19 @@ PlasmoidItem {
         return "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
     }
 
-    function parseSessions() {
+    // Normalises `stored` (chats read from the chat store) or, when it is
+    // null, the chat history older versions kept in the widget's config.
+    function parseSessions(stored) {
         root.sessionHistoryLoadError = "";
         root.sessionHistoryLoadBlocked = false;
-        var raw = String(plasmoid.configuration.chatSessionsJson || "[]");
+        var raw = stored ? "" : String(plasmoid.configuration.chatSessionsJson || "[]");
         if (raw.length > 25000000) {
             root.sessionHistoryLoadError = "Stored chat history is too large to load safely.";
             root.sessionHistoryLoadBlocked = true;
             return [];
         }
         try {
-            var arr = JSON.parse(raw);
+            var arr = stored || JSON.parse(raw);
             if (!Array.isArray(arr)) return [];
             var valid = [];
             var seenIds = {};
@@ -273,14 +291,7 @@ PlasmoidItem {
         if (root.sessionHistoryLoadBlocked)
             return;
         try {
-            var encoded = JSON.stringify(root.sessions);
-            if (encoded.length > 25000000) {
-                root.sessionHistoryLoadError = "Chat history is too large to persist safely; older messages should be removed or exported.";
-                console.warn("KDE AI Chat: session history is too large to persist.");
-                return;
-            }
-            root.sessionHistoryLoadError = "";
-            plasmoid.configuration.chatSessionsJson = encoded;
+            storage.save(root.sessions);
             plasmoid.configuration.lastSessionId = root.currentSessionId;
         } catch (e) {
             console.error("KDE AI Chat: failed to persist sessions:", e);
@@ -696,7 +707,7 @@ PlasmoidItem {
     }
 
     function loadSessions() {
-        root.sessions = parseSessions();
+        root.sessions = parseSessions(chatStore.loadAll());
         if (root.sessions.length === 0)
             createSession(true);
 
@@ -2675,28 +2686,20 @@ PlasmoidItem {
         }
     }
 
-    function runPlasmaShellWatchdog(action) {
-        if (!getHelperPath()) {
-            plasmaShellWatchdogRunning = false;
+    // The plasmashell watchdog was removed in 1.4.0. A monitor started by an
+    // older version keeps running across upgrades and would restart
+    // plasmashell once heartbeats stop, so stop it once at startup if its
+    // files are still there.
+    function stopLegacyWatchdog() {
+        var helper = getHelperPath();
+        if (!helper)
             return;
-        }
-        var encoded = Sec.base64Encode(JSON.stringify({"action": action}));
-        var token = "#plasmashell-watchdog-" + Date.now();
-        var command = "python3 " + Sec.quoteForShell(getHelperPath())
-            + " plasmashell_watchdog " + Sec.rawShellSnippetQuote(encoded) + " " + token;
-        fileReaderDs.connectSource(command);
-        plasmaShellWatchdogRunning = action !== "stop";
-    }
-
-    function syncPlasmaShellWatchdog() {
-        if (plasmoid.configuration.autoRestartPlasmaShell === true) {
-            runPlasmaShellWatchdog("start");
-            plasmaShellHeartbeatTimer.start();
-        } else {
-            plasmaShellHeartbeatTimer.stop();
-            if (plasmaShellWatchdogRunning)
-                runPlasmaShellWatchdog("stop");
-        }
+        var dataDir = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "");
+        var pidFile = decodeURIComponent(dataDir) + "/kdeaichat/plasmashell-watchdog.pid";
+        var heartbeat = decodeURIComponent(dataDir) + "/kdeaichat/plasmashell-heartbeat";
+        var cmd = "if [ -e " + Sec.quoteForShell(pidFile) + " ] || [ -e " + Sec.quoteForShell(heartbeat) + " ]; then python3 "
+            + Sec.quoteForShell(helper) + " stop_legacy_watchdog; fi";
+        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #plasmashell-watchdog-" + Date.now());
     }
 
     function providerDisplayName(providerId) {
@@ -2741,7 +2744,8 @@ PlasmoidItem {
             missing.push("API key");
 
         if (missing.length > 0)
-            return "⚠️ Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model.";
+            return "⚠️ Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model."
+                + (missing.indexOf("API key") !== -1 && !wallet.usable && wallet.status !== "unknown" ? " " + wallet.statusMessage() : "");
 
         return "";
     }
@@ -2806,9 +2810,10 @@ PlasmoidItem {
         var providerId = provider || getEffectiveProvider(sessionId || root.currentSessionId);
         var cfg = ProviderService.getProviderConfig(providerId, plasmoid.configuration);
         cfg.baseUrl = Sec.validateHttpUrl(cfg.baseUrl);
-        var walletKey = root.walletApiKeys ? String(root.walletApiKeys[providerId] || "").trim() : "";
-        if (walletKey)
-            cfg.apiKey = walletKey;
+        // Keys come from KWallet. A plaintext value left by an older version is
+        // only used while KWallet is unavailable, until it can be migrated.
+        var walletKey = String(root.walletApiKeys[providerId] || "").trim();
+        cfg.apiKey = walletKey || (wallet.usable ? "" : String(cfg.apiKey || "").trim());
         var sessionModel = String(getSessionProperty(sessionId || root.currentSessionId, "chatModel", "") || "").trim();
         if (sessionModel)
             cfg.model = sessionModel;
@@ -4064,86 +4069,8 @@ PlasmoidItem {
         clipboardHelper.copy();
     }
 
-    function walletCall(member, args, resolve, reject) {
-        var reply;
-        try {
-            reply = DBus.SessionBus.asyncCall({
-                "service": "org.kde.kwalletd6",
-                "path": "/modules/kwalletd6",
-                "iface": "org.kde.KWallet",
-                "member": member,
-                "arguments": args
-            });
-        } catch (e) {
-            if (reject) reject(String(e));
-            else console.warn("KDE AI Chat: wallet unavailable:", e);
-            return;
-        }
-        reply.finished.connect(function() {
-            if (reply.isError) {
-                if (reject)
-                    reject(reply.error);
-
-            } else {
-                var val = reply.value;
-                if (val !== null && val !== undefined && val.hasOwnProperty("value"))
-                    val = val.value;
-
-                if (resolve)
-                    resolve(val);
-
-            }
-        });
-    }
-
-    function applyKWalletKeyToMemory(targetId, secretValue) {
-        var strVal = String(secretValue || "");
-        var keys = Object.assign({}, root.walletApiKeys || {});
-        if (strVal)
-            keys[targetId] = strVal;
-        else
-            delete keys[targetId];
-        root.walletApiKeys = keys;
-    }
-
     function loadKWalletKeysAtStartup() {
-        var walletName = "kdewallet";
-        walletCall("wallets", [], function(wallets) {
-            root.walletApiKeys = ({});
-            if (!Array.isArray(wallets) || wallets.indexOf(walletName) === -1)
-                return ;
-
-            walletCall("open", [walletName, new DBus.int64(0), "org.kde.plasma.kdeaichat"], function(handle) {
-                if (handle < 0)
-                    return ;
-
-                walletCall("hasFolder", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(hasFolder) {
-                    if (!hasFolder) {
-                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
-                        return ;
-                    }
-                    walletCall("passwordList", [new DBus.int32(handle), "KaiChat", "org.kde.plasma.kdeaichat"], function(passwordsMap) {
-                        if (passwordsMap) {
-                            var targets = ProviderService.getApiKeyProviderIds();
-                            var supported = ProviderService.getSupportedProviders(plasmoid.configuration);
-                            for (var si = 0; si < supported.length; si++) {
-                                var customId = String(supported[si] || "");
-                                if (/^custom_[A-Za-z0-9._:-]{1,100}$/.test(customId) && targets.indexOf(customId) < 0)
-                                    targets.push(customId);
-                            }
-                            for (var i = 0; i < targets.length; i++) {
-                                var targetId = targets[i];
-                                var key = "kai-chat-" + targetId + "-api-key";
-                                if (passwordsMap[key])
-                                    applyKWalletKeyToMemory(targetId, passwordsMap[key]);
-
-                            }
-                        }
-                        walletCall("close", [new DBus.int32(handle), new DBus.bool(false), "org.kde.plasma.kdeaichat"]);
-                    });
-                });
-            });
-        });
+        wallet.load();
     }
 
     function performExportChat(filePath) {
@@ -4337,7 +4264,7 @@ PlasmoidItem {
         // Build a usable prompt immediately; the deferred system-information
         // probe will refresh it once its results arrive.
         root.initSystemPrompt();
-        root.syncPlasmaShellWatchdog();
+        root.stopLegacyWatchdog();
     }
     onMessagesChanged: {
         if (!root.historyOnlyMode && !root.userScrolledUp && !root.responseScrollLocked)
@@ -4366,20 +4293,6 @@ PlasmoidItem {
         }
     }
 
-    Timer {
-        id: plasmaShellHeartbeatTimer
-        interval: 5000
-        repeat: true
-        running: plasmoid.configuration.autoRestartPlasmaShell === true
-        onTriggered: root.runPlasmaShellWatchdog("heartbeat")
-    }
-
-    Connections {
-        target: plasmoid.configuration
-        function onAutoRestartPlasmaShellChanged() {
-            root.syncPlasmaShellWatchdog();
-        }
-    }
 
     Timer {
         id: lazyWalletTimer
@@ -4497,22 +4410,6 @@ PlasmoidItem {
             initSystemPrompt();
         }
 
-        function onApiKeyChanged() { scheduleWalletReload(); }
-        function onAnthropicApiKeyChanged() { scheduleWalletReload(); }
-        function onGroqApiKeyChanged() { scheduleWalletReload(); }
-        function onDeepSeekApiKeyChanged() { scheduleWalletReload(); }
-        function onMiniMaxApiKeyChanged() { scheduleWalletReload(); }
-        function onFireworksApiKeyChanged() { scheduleWalletReload(); }
-        function onGoogleApiKeyChanged() { scheduleWalletReload(); }
-        function onOpenRouterApiKeyChanged() { scheduleWalletReload(); }
-        function onMistralApiKeyChanged() { scheduleWalletReload(); }
-        function onCloudflareApiKeyChanged() { scheduleWalletReload(); }
-        function onNvidiaApiKeyChanged() { scheduleWalletReload(); }
-        function onHuggingFaceApiKeyChanged() { scheduleWalletReload(); }
-        function onXaiApiKeyChanged() { scheduleWalletReload(); }
-        function onLitellmApiKeyChanged() { scheduleWalletReload(); }
-        function onMaritacaApiKeyChanged() { scheduleWalletReload(); }
-        function onPerplexityApiKeyChanged() { scheduleWalletReload(); }
         function onCustomProvidersJsonChanged() { scheduleWalletReload(); }
         function onWalletKeysRevisionChanged() { scheduleWalletReload(); }
 
