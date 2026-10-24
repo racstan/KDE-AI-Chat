@@ -24,3 +24,10 @@ audit.md
 ailogo.webp
 
 plasmallm_temp/
+
+# Local AI tooling (Claude Code + Progressor), not part of the project
+.mcp.json
+.claude/
+.progressor/
+AGENTS.md
+CLAUDE.md
