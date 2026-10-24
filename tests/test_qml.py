@@ -2,7 +2,7 @@
 
 Fails if any test fails or if a warning points into the widget's own files.
 Skipped when no Qt 6 qmltestrunner (with the Kirigami/Plasma QML modules) is
-installed.
+installed, unless REQUIRE_QML_TESTS=1.
 """
 import os
 import shutil
@@ -26,10 +26,13 @@ def _qt6_runner():
 
 
 RUNNER = _qt6_runner()
+# CI sets this so a missing runner fails instead of silently skipping.
+REQUIRED = os.environ.get("REQUIRE_QML_TESTS") == "1"
 
 
-@pytest.mark.skipif(RUNNER is None, reason="Qt 6 qmltestrunner not installed")
+@pytest.mark.skipif(RUNNER is None and not REQUIRED, reason="Qt 6 qmltestrunner not installed")
 def test_qml_suite():
+    assert RUNNER, "REQUIRE_QML_TESTS=1 but no Qt 6 qmltestrunner was found"
     os.makedirs(os.path.join(ROOT, "build", "qml-screens"), exist_ok=True)
     # org.kde.desktop renders controls in the Breeze style, so screenshots
     # look like the real widget.

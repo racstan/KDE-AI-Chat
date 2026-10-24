@@ -30,24 +30,9 @@ jobs:
         run: |
           pytest -q
 
-      - name: Install QML tooling
+      - name: Check file sizes
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev-tools
-          echo /usr/lib/qt6/bin >> "$GITHUB_PATH"
-
-      # Advisory until the runner has the Qt Quick, Kirigami and Plasma QML
-      # modules installed; without them qmllint cannot resolve any import.
-      - name: Lint live QML sources
-        continue-on-error: true
-        run: |
-          qmllint org.kde.plasma.kdeaichat/contents/ui/main.qml
-          qmllint org.kde.plasma.kdeaichat/contents/ui/FullRepresentationContent.qml
-          qmllint org.kde.plasma.kdeaichat/contents/ui/VoiceManager.qml
-          qmllint org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml
-          qmllint org.kde.plasma.kdeaichat/contents/ui/ConfigOther.qml
-          qmllint org.kde.plasma.kdeaichat/contents/ui/ConfigVoice.qml
-          qmllint org.kde.plasma.kdeaichat/contents/ui/ScheduleDialog.qml
+          python scripts/check_file_sizes.py
 
       - name: Verify a freshly built package contains the source tree
         run: |
@@ -74,3 +59,39 @@ jobs:
                       raise SystemExit("package is missing: " + ", ".join(missing))
           print("fresh package manifest verified")
           PY
+
+  # Ubuntu runners only have Plasma 5, so QML checks run in an Arch Linux
+  # container with Qt 6, Kirigami and Plasma 6.
+  qml:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+
+    steps:
+      - name: Install Qt 6, Kirigami and Plasma 6 QML modules
+        run: |
+          pacman -Syu --noconfirm --needed qt6-declarative kirigami libplasma \
+            plasma5support plasma-workspace kcmutils qqc2-desktop-style \
+            python python-pytest
+
+      - uses: actions/checkout@v4
+
+      # Compiles every shipped QML file offscreen and runs component tests;
+      # a component that fails to load fails the build.
+      - name: QML tests
+        env:
+          REQUIRE_QML_TESTS: "1"
+        run: |
+          pytest -q tests/test_qml.py -rs
+
+      - name: Upload QML screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qml-screens
+          path: build/qml-screens/
+          if-no-files-found: ignore
+
+      # Warning counts per file may only go down (scripts/qmllint_baseline.json).
+      - name: qmllint ratchet
+        run: |
+          python scripts/qmllint_ratchet.py --qmllint /usr/lib/qt6/bin/qmllint
