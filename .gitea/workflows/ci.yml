@@ -63,6 +63,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/store/Migration.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/store/Storage.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectBackend.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/backends/OpenCodeBackend.js",
                       "org.kde.plasma.kdeaichat/contents/ui/config/ProvidersPanel.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/chats.py",
