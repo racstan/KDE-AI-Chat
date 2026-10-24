@@ -20,12 +20,11 @@ import re
 import secrets
 import tempfile
 import time
-import selectors
 import signal
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List
 
-from kdeaichat import chats, privacy
+from kdeaichat import chats, opencode_server, pi_bridge, privacy
 
 
 _MAX_FILE_BYTES = 50 * 1024 * 1024
@@ -712,129 +711,6 @@ def cmd_get_voice_token(payload: Dict[str, Any]) -> None:
     print(json.dumps({"type": "voice_token", "token": ensure_voice_http_token()}))
 
 
-def _run_pi_process(argv: List[str], env: Dict[str, str], timeout: int) -> Tuple[int, bytes, bytes, bool]:
-    """Run Pi while draining both pipes and retaining bounded output."""
-    proc = subprocess.Popen(
-        argv,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env,
-        start_new_session=True,
-    )
-    limits = (10 * 1024 * 1024, 2 * 1024 * 1024)
-    buffers = [bytearray(), bytearray()]
-    selector = selectors.DefaultSelector()
-    streams = [proc.stdout, proc.stderr]
-    for index, stream in enumerate(streams):
-        selector.register(stream, selectors.EVENT_READ, index)
-
-    timed_out = False
-    deadline = time.monotonic() + timeout
-    try:
-        while selector.get_map():
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                timed_out = True
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                except (OSError, ProcessLookupError):
-                    proc.kill()
-                break
-            for key, _ in selector.select(min(remaining, 0.25)):
-                stream = key.fileobj
-                try:
-                    chunk = os.read(stream.fileno(), 65536)
-                except (OSError, ValueError):
-                    chunk = b""
-                if not chunk:
-                    selector.unregister(stream)
-                    stream.close()
-                    continue
-                index = key.data
-                if len(buffers[index]) < limits[index]:
-                    room = limits[index] - len(buffers[index])
-                    buffers[index].extend(chunk[:room])
-        if timed_out:
-            try: proc.wait(timeout=2)
-            except subprocess.TimeoutExpired: _terminate_process(proc)
-        else:
-            try:
-                proc.wait(timeout=max(1, int(deadline - time.monotonic()) + 1))
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                _terminate_process(proc)
-    finally:
-        selector.close()
-        for stream in streams:
-            try: stream.close()
-            except Exception: pass
-    return (124 if timed_out else proc.returncode), bytes(buffers[0]), bytes(buffers[1]), timed_out
-
-
-def cmd_run_pi(payload: Dict[str, Any]) -> None:
-    """Run one Pi CLI request without putting user text in a shell command."""
-    env = os.environ.copy()
-    extra_path = [
-        os.path.expanduser("~/.npm-global/bin"),
-        os.path.expanduser("~/.local/bin"),
-        os.path.expanduser("~/bin"),
-    ]
-    env["PATH"] = env.get("PATH", "") + os.pathsep + os.pathsep.join(extra_path)
-
-    if payload.get("version"):
-        argv = ["pi", "--version"]
-    else:
-        prompt = str(payload.get("prompt", ""))
-        if not prompt:
-            print(json.dumps({"type": "pi_result", "exitCode": 2, "stdout": "", "stderr": "Pi prompt is empty"}))
-            return
-        if len(prompt) > 100000 or "\x00" in prompt:
-            raise ValueError("Pi prompt is too large or contains an invalid character")
-        session_id = str(payload.get("sessionId", ""))
-        if not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", session_id):
-            raise ValueError("invalid Pi session id")
-        argv = ["pi", "--session-id", session_id, "--mode", "text"]
-        provider = str(payload.get("provider", "")).strip()
-        model = str(payload.get("model", "")).strip()
-        for option_name, option_value in (("provider", provider), ("model", model)):
-            if option_value and (len(option_value) > 256 or option_value.startswith("-") or any(ord(ch) < 0x20 for ch in option_value)):
-                raise ValueError("invalid Pi " + option_name)
-        if provider:
-            argv.extend(["--provider", provider])
-        if model:
-            argv.extend(["--model", model])
-        argv.extend(["-p", prompt])
-
-    try:
-        try:
-            requested_timeout = int(payload.get("timeout", 300))
-        except (TypeError, ValueError):
-            requested_timeout = 300
-        timeout = max(15, min(300, requested_timeout))
-        code, stdout_bytes, stderr_bytes, timed_out = _run_pi_process(argv, env, timeout)
-        stdout = stdout_bytes.decode("utf-8", errors="replace")
-        stderr = stderr_bytes.decode("utf-8", errors="replace")
-        if timed_out:
-            stderr = "Pi request timed out after " + str(timeout) + " seconds"
-        print(json.dumps({"type": "pi_result", "exitCode": code, "stdout": stdout, "stderr": stderr}))
-    except FileNotFoundError:
-        print(json.dumps({"type": "pi_result", "exitCode": 127, "stdout": "", "stderr": "Pi CLI was not found in PATH"}))
-    except Exception as exc:
-        print(json.dumps({"type": "pi_result", "exitCode": 1, "stdout": "", "stderr": str(exc)}))
-
-
-def _terminate_process(proc: subprocess.Popen) -> None:
-    """Terminate a helper subprocess and its children when possible."""
-    try:
-        os.killpg(proc.pid, signal.SIGKILL)
-    except (OSError, ProcessLookupError):
-        try: proc.kill()
-        except Exception: pass
-    try: proc.wait(timeout=2)
-    except Exception: pass
-
-
 def _legacy_watchdog_pids(helper_name: str = "kde_ai_helper.py") -> List[int]:
     """PIDs of monitors started by the removed plasmashell watchdog.
 
@@ -966,12 +842,11 @@ def main() -> None:
         "get_memory_usage": cmd_get_memory_usage,
         "export_chat": cmd_export_chat,
         "get_voice_token": cmd_get_voice_token,
-        "run_pi": cmd_run_pi,
         "stop_legacy_watchdog": cmd_stop_legacy_watchdog,
         "get_pi_models": cmd_get_pi_models,
     }
 
-    commands.update({**privacy.COMMANDS, **chats.COMMANDS})
+    commands.update({**privacy.COMMANDS, **chats.COMMANDS, **opencode_server.COMMANDS, **pi_bridge.COMMANDS})
     if command not in commands:
         print(f"Unknown command: {command}")
         sys.exit(1)

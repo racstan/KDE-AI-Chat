@@ -23,8 +23,6 @@ KCM.SimpleKCM {
     property alias cfg_openCodeUrl: openCodeUrlField.text
     property alias cfg_openCodeModel: openCodeModelValueField.text
     property alias cfg_openCodeProvider: openCodeProviderValueField.text
-    property alias cfg_openCodeStartCommand: openCodeStartCommandField.text
-    property alias cfg_openCodeStopCommand: openCodeStopCommandField.text
     property alias cfg_piProvider: piProviderValueField.text
     property alias cfg_piModel: piModelValueField.text
 
@@ -310,6 +308,14 @@ KCM.SimpleKCM {
         }
     }
 
+    // Starts or stops (only ours) `opencode serve` on the configured port.
+    function runOpenCodeServer(command) {
+        var port = Number((/:(\d+)/.exec(String(openCodeUrlField.text || "").replace(/^[a-z]+:\/\//i, "")) || [0, 4096])[1]);
+        var payload = Sec.base64Encode(JSON.stringify({"port": port}));
+        discoveryStatus = command === "opencode_server_start" ? i18n("Starting OpenCode…") : i18n("Stopping OpenCode…"); // qmllint disable unqualified
+        utilityDs.connectSource("python3 " + quoteForShell(getHelperPath()) + " " + command + " " + Sec.rawShellSnippetQuote(payload) + " #opencode-server");
+    }
+
     function saveGeneralSettingsOnly() {
         if (!hasPlasmoidConfig)
             return;
@@ -323,8 +329,6 @@ KCM.SimpleKCM {
         plasmoid.configuration.openCodeModel = openCodeModelValueField.text; // qmllint disable unqualified
         plasmoid.configuration.piProvider = piProviderValueField.text; // qmllint disable unqualified
         plasmoid.configuration.piModel = piModelValueField.text; // qmllint disable unqualified
-        plasmoid.configuration.openCodeStartCommand = openCodeStartCommandField.text; // qmllint disable unqualified
-        plasmoid.configuration.openCodeStopCommand = openCodeStopCommandField.text; // qmllint disable unqualified
     }
 
     function resetToDefaults() {
@@ -336,8 +340,6 @@ KCM.SimpleKCM {
         openCodeModelValueField.text = "";
         piProviderValueField.text = "";
         piModelValueField.text = "";
-        openCodeStartCommandField.text = "env KDE_AI_CHAT_WIDGET=1 nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.";
-        openCodeStopCommandField.text = "pkill -f opencode >/dev/null 2>&1 && echo OpenCode stop command launched. || echo No OpenCode process matched.";
         openCodeProviderCandidates = [];
         openCodeModelCandidates = [];
         openCodeProviderModelMap = ({});
@@ -368,7 +370,14 @@ KCM.SimpleKCM {
         onNewData: function(sourceName, data) {
             var out = (data["stdout"] || "").trim();
             var err = (data["stderr"] || "").trim();
-            if (sourceName.indexOf("#pi_models_") >= 0) {
+            if (sourceName.indexOf("#opencode-server") >= 0) {
+                var result = {};
+                try { result = JSON.parse(out); } catch (e) { result = {"status": "error", "message": err || out}; }
+                page.discoveryStatus = result.status === "started" ? "OpenCode started." : result.status === "already-running" ? "OpenCode is already running."
+                    : result.status === "stopped" ? "OpenCode stopped." : (result.message || "OpenCode: " + result.status);
+                if (result.status === "started" || result.status === "already-running")
+                    page.refreshOpenCodeDiscovery();
+            } else if (sourceName.indexOf("#pi_models_") >= 0) {
             try {
                 var msg = JSON.parse(out);
                 if (msg.providers && Array.isArray(msg.providers)) {
@@ -535,13 +544,9 @@ KCM.SimpleKCM {
                 spacing: Kirigami.Units.smallSpacing
 
                 QQC2.Button {
-                    text: "Start server"
+                    text: i18n("Start server") // qmllint disable unqualified
                     enabled: !page.openCodeBusy
-                    onClicked: {
-                        page.discoveryStatus = "Running OpenCode start command...";
-                        var cmd = "sh -lc '" + page.shellEscape(openCodeStartCommandField.text || "env KDE_AI_CHAT_WIDGET=1 nohup opencode serve --port 4096 >/tmp/kdeaichat-opencode.log 2>&1 & echo OpenCode start command launched.") + "'";
-                        utilityDs.connectSource(cmd + " #opencode-start");
-                    }
+                    onClicked: page.runOpenCodeServer("opencode_server_start")
                 }
 
                 QQC2.Button {
@@ -557,13 +562,11 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.Button {
-                    text: "Kill server"
+                    text: i18n("Stop server") // qmllint disable unqualified
                     enabled: !page.openCodeBusy
-                    onClicked: {
-                        page.discoveryStatus = "Running OpenCode stop command...";
-                        var cmd = "sh -lc '" + page.shellEscape(openCodeStopCommandField.text || "pkill -f opencode") + "'";
-                        utilityDs.connectSource(cmd + " #opencode-stop");
-                    }
+                    onClicked: page.runOpenCodeServer("opencode_server_stop")
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: i18n("Stops a server started by this widget. Servers you started yourself are left running.") // qmllint disable unqualified
                 }
 
             }
@@ -644,19 +647,6 @@ KCM.SimpleKCM {
                     page.updateFilteredOpenCodeModels(text);
                     page.setOpenCodeModelValue(text);
                 }
-            }
-
-            QQC2.TextField {
-                id: openCodeStartCommandField
-
-                visible: false
-            }
-
-            QQC2.TextField {
-                id: openCodeStopCommandField
-
-                visible: false
-                text: plasmoid.configuration.openCodeStopCommand || "" // qmllint disable unqualified
             }
 
             Kirigami.Separator {

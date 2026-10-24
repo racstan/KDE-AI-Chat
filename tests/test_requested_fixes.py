@@ -64,6 +64,3 @@ def test_feature_settings_are_exposed_and_persisted():
     assert "function customIconIsImage" in main_qml
     assert "function customIconImageSource" in main_qml
     assert "plasmoid.configuration.disableStreaming !== true" in main_qml
-    assert "if (plasmoid.configuration.disableStreaming === true)" in main_qml
-    assert "root.openCodeEventXhr.abort()" in main_qml
-    assert "root.openCodeMode && plasmoid.configuration.disableStreaming !== true" in main_qml

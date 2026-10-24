@@ -11,6 +11,8 @@ import QtCore
 import "Security.js" as Sec
 import "store" as Store
 import "backends/DirectBackend.js" as DirectBackend
+import "backends/AgentEvents.js" as AgentEvents
+import "chat" as Chat
 
 PlasmoidItem {
     id: root
@@ -27,17 +29,8 @@ PlasmoidItem {
     property bool historyOnlyMode: false
     property bool loading: false
     property var activeXhr: null
-    property var openCodeEventXhr: null
-    property string openCodeActiveSessionId: ""
-    property int openCodeAssistantMessageIndex: -1
-    property string openCodeAssistantServerMessageId: ""
-    property string openCodeAssistantModelLabel: "OpenCode"
-    property bool openCodeErrorShownForRequest: false
-    property bool openCodeRequestFinalized: false
     property int requestGeneration: 0
     property string activeRequestSessionId: ""
-    property var pendingPiRequests: ({})
-    property int piRequestCounter: 0
     property var pendingAttachmentRequests: ({})
     property int attachmentRequestCounter: 0
     property bool schedulerPollInFlight: false
@@ -111,6 +104,7 @@ PlasmoidItem {
     property string privacyNotice: storage.notice
     readonly property var wallet: storage.wallet
     readonly property var chatStore: storage.chatStore
+    readonly property var store: storage
     property bool sessionHistoryLoadBlocked: false
 
     signal clearChatInput()
@@ -124,6 +118,16 @@ PlasmoidItem {
             + "/kdeaichat/chats/applet-" + plasmoid.id
         currentSessions: function() { return root.sessionHistoryLoadBlocked ? null : root.sessions; }
         onSavesReleased: root.persistSessions()
+    }
+
+    Chat.OpenCodeMode {
+        id: openCode
+        chat: root
+    }
+
+    Chat.PiMode {
+        id: piAgent
+        chat: root
     }
 
     VoiceManager {
@@ -441,30 +445,12 @@ PlasmoidItem {
     }
 
     function invalidateActiveRequest(processQueue) {
-        var cancelledSessionId = root.activeRequestSessionId;
         root.requestGeneration++;
-        var piRequests = root.pendingPiRequests || {};
-        var piKeys = Object.keys(piRequests);
-        for (var piIndex = 0; piIndex < piKeys.length; piIndex++) {
-            var piEntry = piRequests[piKeys[piIndex]];
-            if (piEntry && piEntry.sessionId === cancelledSessionId) {
-                if (piEntry.source) {
-                    try { piTerminalDs.disconnectSource(piEntry.source); } catch (e) {}
-                }
-                delete piRequests[piKeys[piIndex]];
-            }
-        }
-        root.pendingPiRequests = piRequests;
         root.activeRequestSessionId = "";
         if (root.activeXhr) {
             try { root.activeXhr.abort(); } catch (e) {}
             root.activeXhr = null;
         }
-        root.openCodeActiveSessionId = "";
-        root.openCodeRequestFinalized = true;
-        root.openCodeAssistantMessageIndex = -1;
-        root.openCodeAssistantServerMessageId = "";
-        root.openCodeErrorShownForRequest = false;
         root.resetProviderStreamingState();
         root.loading = false;
         if (processQueue)
@@ -474,7 +460,6 @@ PlasmoidItem {
     function beginRequest(sessionId) {
         root.requestGeneration++;
         root.activeRequestSessionId = sessionId;
-        root.openCodeRequestFinalized = false;
         return root.requestGeneration;
     }
 
@@ -788,14 +773,6 @@ PlasmoidItem {
         setCurrentOpenCodeSessionId("");
     }
 
-    function openOpenCodeInTerminal(sessionId) {
-        var sid = Sec.validateRemoteSessionId(sessionId || currentOpenCodeSessionId() || "");
-        var safeSid = Sec.sanitizeForShell(sid);
-        var runCmd = safeSid ? ("opencode --session " + Sec.quoteForShell(safeSid)) : "opencode";
-        var fullTerminalCmd = "konsole -e " + runCmd + " || x-terminal-emulator -e " + runCmd + " || xterm -e " + runCmd;
-        soundDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(fullTerminalCmd) + " #open-terminal-" + Date.now());
-    }
-
     function captureScreenRegion() {
         var timestamp = Date.now();
         var savePath = "/tmp/kdeaichat_shot_" + timestamp + ".png";
@@ -926,218 +903,6 @@ PlasmoidItem {
                 root.requestGeneration++;
                 pushErrorMessage("Sync failed: " + e);
             }
-        }
-    }
-
-    function extractReadableError(prefix, errObj, fallbackText) {
-        if (errObj) {
-            if (errObj.data && errObj.data.message)
-                return prefix + errObj.data.message;
-
-            if (errObj.message)
-                return prefix + errObj.message;
-
-            if (errObj.name)
-                return prefix + errObj.name;
-
-        }
-        return prefix + (fallbackText || "Unknown error");
-    }
-
-    function beginAssistantStreaming(modelLabel) {
-        if (modelLabel)
-            root.openCodeAssistantModelLabel = modelLabel;
-
-    }
-
-    function updateAssistantStreamingContent(text, modelLabel) {
-        var incoming = String(text || "");
-        if (incoming === "")
-            return ;
-        if (incoming.length > root.maxMessageChars)
-            incoming = incoming.substring(0, root.maxMessageChars);
-
-        if (modelLabel)
-            root.openCodeAssistantModelLabel = modelLabel;
-
-        if (root.openCodeAssistantMessageIndex < 0) {
-            var ts = Date.now();
-            root.messages = root.messages.concat([{
-                "role": "assistant",
-                "content": "",
-                "reasoning": "",
-                "time": nowTime(ts),
-                "at": ts,
-                "model": root.openCodeAssistantModelLabel || "OpenCode"
-            }]);
-            root.openCodeAssistantMessageIndex = root.messages.length - 1;
-            root.currentStreamIndex = root.openCodeAssistantMessageIndex;
-            root.currentStreamText = incoming;
-            root.streamingResponse = true;
-            if (!root.userScrolledUp)
-                Qt.callLater(scrollToBottom);
-
-            return ;
-        }
-        var existing = root.currentStreamText || "";
-        var newText = "";
-        if (incoming.indexOf(existing) === 0)
-            newText = incoming;
-        else if (existing.indexOf(incoming) === 0)
-            newText = existing;
-        else
-            newText = existing + incoming;
-        root.currentStreamText = newText.length > root.maxMessageChars
-            ? newText.substring(0, root.maxMessageChars) + "\n[response truncated]"
-            : newText;
-        root.streamingResponse = root.currentStreamText !== "";
-        if (!root.userScrolledUp)
-            Qt.callLater(scrollToBottom);
-
-    }
-
-    function appendAssistantReasoning(text) {
-        var incoming = String(text || "");
-        if (incoming === "")
-            return;
-        if (incoming.length > root.maxMessageChars)
-            incoming = incoming.substring(0, root.maxMessageChars);
-
-        if (root.openCodeAssistantMessageIndex < 0 && root.currentStreamIndex < 0) {
-            var ts = Date.now();
-            root.messages = root.messages.concat([{
-                "role": "assistant",
-                "content": "",
-                "reasoning": "",
-                "time": nowTime(ts),
-                "at": ts,
-                "model": root.openCodeAssistantModelLabel || ""
-            }]);
-            root.openCodeAssistantMessageIndex = root.messages.length - 1;
-            root.currentStreamIndex = root.openCodeAssistantMessageIndex;
-            root.streamingResponse = true;
-        }
-        root.currentStreamReasoning = (root.currentStreamReasoning + incoming).substring(0, root.maxMessageChars);
-        if (!root.userScrolledUp)
-            Qt.callLater(scrollToBottom);
-    }
-
-    function finishOpenCodeRequest(requestSessionId, requestGeneration) {
-        if (requestSessionId !== undefined && !requestIsCurrent(requestSessionId, requestGeneration))
-            return;
-        if (!root.activeRequestSessionId || root.openCodeRequestFinalized)
-            return;
-        root.openCodeRequestFinalized = true;
-
-        if (root.openCodeAssistantMessageIndex >= 0 && root.currentStreamIndex === root.openCodeAssistantMessageIndex) {
-            var msgs = root.messages.slice();
-            if (msgs[root.openCodeAssistantMessageIndex]) {
-                msgs[root.openCodeAssistantMessageIndex].content = root.currentStreamText;
-                msgs[root.openCodeAssistantMessageIndex].reasoning = root.currentStreamReasoning;
-                root.messages = msgs;
-            }
-            root.currentStreamIndex = -1;
-            root.currentStreamText = "";
-            root.currentStreamReasoning = "";
-            root.currentStreamExtractedReasoning = "";
-        }
-        if (!root.userScrolledUp)
-            Qt.callLater(scrollToBottom);
-
-        root.loading = false;
-        root.activeXhr = null;
-        root.openCodeActiveSessionId = "";
-        root.activeRequestSessionId = "";
-        root.requestGeneration++;
-        root.openCodeAssistantMessageIndex = -1;
-        root.openCodeAssistantServerMessageId = "";
-        root.openCodeErrorShownForRequest = false;
-        root.streamingResponse = false;
-        try { saveCurrentSessionState(true); } catch (e) { console.error("OpenCode cleanup save failed:", e); }
-        try { triggerNotificationSound(); } catch (e) { console.error("OpenCode notification failed:", e); }
-        try { processNextQueuedMessage(); } catch (e) { console.error("OpenCode queue processing failed:", e); }
-    }
-
-    function ensureOpenCodeEventStream() {
-        // OpenCode delivers incremental updates over this side-channel.  When
-        // the user opts out of streaming, rely on the completed /message
-        // response instead and do not keep an SSE connection alive.
-        if (plasmoid.configuration.disableStreaming === true) {
-            if (root.openCodeEventXhr) {
-                root.openCodeEventXhr.abort();
-                root.openCodeEventXhr = null;
-            }
-            return ;
-        }
-
-        if (root.openCodeEventXhr)
-            return ;
-        if (!openCodeBaseUrl())
-            return ;
-
-        var xhr = new XMLHttpRequest();
-        var buffer = "";
-        var offset = 0;
-        var overflowed = false;
-        var url = openCodeBaseUrl() + "/event";
-        root.openCodeEventXhr = xhr;
-        try { xhr.open("GET", url, true); } catch (e) {
-            root.openCodeEventXhr = null;
-            return;
-        }
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.LOADING && xhr.readyState !== XMLHttpRequest.DONE)
-                return ;
-
-            if (xhr.responseText.length > 20000000) {
-                overflowed = true;
-                try { xhr.abort(); } catch (e) {}
-                root.openCodeEventXhr = null;
-                return;
-            }
-            var delta = xhr.responseText.slice(offset);
-            offset = xhr.responseText.length;
-            buffer += delta;
-            if (buffer.length > 1000000) {
-                overflowed = true;
-                buffer = "";
-                try { xhr.abort(); } catch (e) {}
-                root.openCodeEventXhr = null;
-                return;
-            }
-            while (true) {
-                var split = buffer.indexOf("\n\n");
-                if (split < 0)
-                    break;
-
-                var block = buffer.slice(0, split);
-                buffer = buffer.slice(split + 2);
-                var lines = block.split("\n");
-                for (var i = 0; i < lines.length; i++) {
-                    if (lines[i].indexOf("data:") !== 0)
-                        continue;
-
-                    try {
-                        var eventObj = JSON.parse(lines[i].slice(5).trim());
-                        handleOpenCodeEvent(eventObj);
-                    } catch (eventError) {
-                    }
-                }
-            }
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                root.openCodeEventXhr = null;
-                if (!overflowed && root.openCodeMode && plasmoid.configuration.disableStreaming !== true)
-                    Qt.callLater(ensureOpenCodeEventStream);
-
-            }
-        };
-        xhr.onerror = function() {
-            root.openCodeEventXhr = null;
-        };
-        try {
-            xhr.send();
-        } catch (streamError) {
-            root.openCodeEventXhr = null;
         }
     }
 
@@ -1368,620 +1133,6 @@ PlasmoidItem {
         // Uses xsel or xclip as fallback. The result pre-fills the chat input and opens the panel.
         var cmd = "xsel --primary --output 2>/dev/null || xclip -out -selection primary 2>/dev/null #desktop-selection";
         fileReaderDs.connectSource(cmd);
-    }
-
-    function handleOpenCodeEvent(eventObj) {
-        var props = eventObj && eventObj.properties ? eventObj.properties : {
-        };
-        var sessionId = props.sessionID || props.sessionId || "";
-        if (!sessionId || sessionId !== root.openCodeActiveSessionId)
-            return ;
-
-        if (eventObj.type === "message.updated") {
-            var info = props.info || {
-            };
-            if (info.role === "assistant") {
-                root.openCodeAssistantServerMessageId = info.id || root.openCodeAssistantServerMessageId;
-                beginAssistantStreaming((info.providerID && info.modelID) ? (info.providerID + "/" + info.modelID) : (info.modelID || "OpenCode"));
-                if (info.error && !root.openCodeErrorShownForRequest) {
-                    root.openCodeErrorShownForRequest = true;
-                    pushErrorMessage(extractReadableError("OpenCode: ", info.error, "Request failed."));
-                }
-            }
-        } else if (eventObj.type === "message.part.updated") {
-            var part = props.part || {
-            };
-            if (part.type === "text" && root.openCodeAssistantServerMessageId !== "" && part.messageID === root.openCodeAssistantServerMessageId)
-                updateAssistantStreamingContent(part.text || "", "OpenCode");
-
-            if ((part.type === "reasoning" || part.type === "thinking" || part.type === "step-start" || part.type === "step") && root.openCodeAssistantServerMessageId !== "" && part.messageID === root.openCodeAssistantServerMessageId)
-                appendAssistantReasoning(part.text || part.content || part.summary || part.title || "");
-
-            // Track tool invocations as context items on the assistant message
-            if (part.type === "tool-invocation" && root.openCodeAssistantMessageIndex >= 0) {
-                var toolName = part.toolName || part.tool || "";
-                var toolArgs = part.args || part.input || {
-                };
-                var toolState = part.state || "";
-                if (toolName !== "") {
-                    var copy = root.messages.slice();
-                    var item = Object.assign({
-                    }, copy[root.openCodeAssistantMessageIndex]);
-                    var ctx = item.contextItems || [];
-                    // Build a concise description of the tool call
-                    var desc = toolName;
-                    if (toolArgs.filePath || toolArgs.path || toolArgs.file)
-                        desc += ": " + (toolArgs.filePath || toolArgs.path || toolArgs.file);
-                    else if (toolArgs.command)
-                        desc += ": " + String(toolArgs.command).substring(0, 60);
-                    else if (toolArgs.query || toolArgs.pattern)
-                        desc += ": " + (toolArgs.query || toolArgs.pattern);
-                    // Avoid duplicates
-                    var exists = false;
-                    for (var ci = 0; ci < ctx.length; ci++) {
-                        if (ctx[ci] === desc) {
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (!exists) {
-                        ctx = ctx.concat([desc]);
-                        item.contextItems = ctx;
-                        copy[root.openCodeAssistantMessageIndex] = item;
-                        root.messages = copy;
-                    }
-                }
-            }
-        } else if (eventObj.type === "session.error") {
-            if (!root.openCodeErrorShownForRequest) {
-                root.openCodeErrorShownForRequest = true;
-                pushErrorMessage(extractReadableError("OpenCode: ", props.error, "Session error."));
-            }
-        } else if (eventObj.type === "session.status") {
-            var status = props.status || {
-            };
-            if (status.type === "idle")
-                finishOpenCodeRequest();
-
-        } else if (eventObj.type === "session.idle") {
-            finishOpenCodeRequest();
-        } else if (eventObj.type === "permission.asked") {
-            var p = props.permission || {
-            };
-            var permId = String(p.id || "").substring(0, 256);
-            if (permId !== "") {
-                var tool = String(p.tool || "").substring(0, 256);
-                var args = p.arguments || {
-                };
-                var argStr = "";
-                try {
-                    argStr = typeof args === "string" ? args : JSON.stringify(args, null, 2);
-                } catch (e) {
-                    argStr = String(args);
-                }
-                var msg = {
-                    "role": "permission_request",
-                    "content": "OpenCode is asking for permission to run **" + tool + "**:\n\n```json\n" + argStr + "\n```",
-                    "model": "OpenCode Security",
-                    "id": "perm-" + permId,
-                    "permissionId": permId,
-                    "tool": tool,
-                    "arguments": args,
-                    "openCodeSessionId": sessionId,
-                    "status": "pending",
-                    "at": Date.now()
-                };
-                root.messages = root.messages.concat([msg]);
-                saveCurrentSessionState(true);
-                if (!root.userScrolledUp)
-                    Qt.callLater(scrollToBottom);
-
-            }
-        } else if (eventObj.type === "permission.replied") {
-            var pr = props.permission || {
-            };
-            var pId = pr.id || "";
-            var response = pr.response || "";
-            var copy = root.messages.slice();
-            var updated = false;
-            for (var i = copy.length - 1; i >= 0; i--) {
-                if (copy[i].role === "permission_request" && copy[i].permissionId === pId) {
-                    copy[i].status = (response === "allow" ? "allowed" : "denied");
-                    updated = true;
-                    break;
-                }
-            }
-            if (updated) {
-                root.messages = copy;
-                saveCurrentSessionState(true);
-            }
-        } else if (eventObj.type === "session.next.step.ended") {
-            var copy = root.messages.slice();
-            var updated = false;
-            for (var idx = copy.length - 1; idx >= 0; idx--) {
-                if (copy[idx].role === "assistant") {
-                    var item = Object.assign({
-                    }, copy[idx]);
-                    item.tokens = props.tokens;
-                    item.cost = props.cost;
-                    copy[idx] = item;
-                    updated = true;
-                    break;
-                }
-            }
-            if (updated) {
-                root.messages = copy;
-                saveCurrentSessionState(true);
-            }
-        } else if (eventObj.type === "question.asked") {
-            var requestID = String(props.requestID || props.id || eventObj.id || "").substring(0, 256);
-            if (requestID !== "") {
-                // Parse full structured questions array from OpenCode
-                var questions = Array.isArray(props.questions) ? props.questions.slice(0, 20) : [];
-                var qText = "";
-                var parsedQuestions = [];
-                var allowCustom = true;
-                if (questions.length > 0) {
-                    // Structured question(s) with options
-                    var parts = [];
-                    for (var qi = 0; qi < questions.length; qi++) {
-                        var qItem = questions[qi] && typeof questions[qi] === "object" ? questions[qi] : {};
-                        var header = String(qItem.header || "").substring(0, 256);
-                        var questionText = String(qItem.question || "").substring(0, 4000);
-                        var opts = Array.isArray(qItem.options) ? qItem.options.slice(0, 100) : [];
-                        var multiple = qItem.multiple === true;
-                        var custom = qItem.custom !== undefined ? qItem.custom === true : true;
-                        if (!custom)
-                            allowCustom = false;
-
-                        var partText = "";
-                        if (header)
-                            partText += "**" + header + "**: ";
-
-                        partText += questionText;
-                        if (opts.length > 0) {
-                            var optLabels = [];
-                            for (var oi = 0; oi < opts.length; oi++) {
-                                var option = opts[oi] && typeof opts[oi] === "object" ? opts[oi] : {};
-                                optLabels.push(String(option.label || "").substring(0, 512));
-                            }
-                            partText += "\n\nOptions: " + optLabels.join(", ");
-                        }
-                        if (multiple)
-                            partText += " *(select multiple)*";
-
-                        parts.push(partText);
-                        parsedQuestions.push({
-                            "header": header,
-                            "question": questionText,
-                            "options": opts.map(function(option) {
-                                var safeOption = option && typeof option === "object" ? Object.assign({}, option) : {};
-                                safeOption.label = String(safeOption.label || "").substring(0, 512);
-                                safeOption.description = String(safeOption.description || "").substring(0, 1000);
-                                return safeOption;
-                            }),
-                            "multiple": multiple,
-                            "custom": custom
-                        });
-                    }
-                    qText = parts.join("\n\n---\n\n");
-                } else {
-                    // Fallback: legacy format
-                    var q = props.question || {
-                    };
-                    if (typeof props.question === "string")
-                        qText = props.question;
-                    else if (q.text)
-                        qText = q.text;
-                    else if (q.content)
-                        qText = q.content;
-                    else
-                        qText = props.text || props.content || "OpenCode requires clarification.";
-                }
-                var alreadyExists = false;
-                for (var i = 0; i < root.messages.length; i++) {
-                    if (root.messages[i].role === "question_request" && root.messages[i].questionId === requestID) {
-                        alreadyExists = true;
-                        break;
-                    }
-                }
-                if (!alreadyExists) {
-                    var msg = {
-                        "role": "question_request",
-                        "content": "OpenCode is asking a question:\n\n**" + qText + "**",
-                        "model": "OpenCode Question",
-                        "id": "question-" + requestID,
-                        "questionId": requestID,
-                        "questions": parsedQuestions,
-                        "allowCustom": allowCustom,
-                        "openCodeSessionId": sessionId,
-                        "status": "pending",
-                        "at": Date.now()
-                    };
-                    root.messages = root.messages.concat([msg]);
-                    saveCurrentSessionState(true);
-                    if (!root.userScrolledUp)
-                        Qt.callLater(scrollToBottom);
-
-                    // Send desktop notification so user sees the question even if plasmoid is collapsed
-                    if (plasmoid.configuration.playNotificationSound) {
-                        var shortQText = qText.length > 80 ? qText.substring(0, 77) + "..." : qText;
-                        soundDs.connectSource("notify-send --app-name=\"KDE AI Chat\" -u normal -i dialog-question \"OpenCode needs your input\" " + Sec.quoteForShell(shortQText) + " #opencode-question-notify");
-                        triggerNotificationSound();
-                    }
-                }
-            }
-        } else if (eventObj.type === "question.replied") {
-            var qId = props.requestID || props.id || eventObj.id || "";
-            var copy = root.messages.slice();
-            var updated = false;
-            for (var i = copy.length - 1; i >= 0; i--) {
-                if (copy[i].role === "question_request" && copy[i].questionId === qId) {
-                    if (copy[i].status === "pending" || copy[i].status === "answering...") {
-                        copy[i].status = "answered";
-                        updated = true;
-                    }
-                    break;
-                }
-            }
-            if (updated) {
-                root.messages = copy;
-                saveCurrentSessionState(true);
-            }
-        } else if (eventObj.type === "question.rejected" || eventObj.type === "question.cancelled") {
-            var qId = props.requestID || props.id || eventObj.id || "";
-            var copy = root.messages.slice();
-            var updated = false;
-            for (var i = copy.length - 1; i >= 0; i--) {
-                if (copy[i].role === "question_request" && copy[i].questionId === qId) {
-                    if (copy[i].status === "pending" || copy[i].status === "dismissing...") {
-                        copy[i].status = "dismissed";
-                        updated = true;
-                    }
-                    break;
-                }
-            }
-            if (updated) {
-                root.messages = copy;
-                saveCurrentSessionState(true);
-            }
-        }
-    }
-
-    function ensureCurrentOpenCodeSession(successCallback, failureCallback, requestSessionId, requestGeneration) {
-        var sessionId = requestSessionId || root.activeRequestSessionId || root.currentSessionId;
-        var generation = requestGeneration !== undefined ? requestGeneration : root.requestGeneration;
-        var isCurrent = function() { return requestIsCurrent(sessionId, generation); };
-        var existing = currentOpenCodeSessionId(sessionId);
-        if (existing !== "") {
-            if (isCurrent())
-                successCallback(existing);
-            return;
-        }
-        var xhr = new XMLHttpRequest();
-        var finished = false;
-        var fail = function(message) {
-            if (finished || !isCurrent()) return;
-            finished = true;
-            root.activeXhr = null;
-            failureCallback(message);
-        };
-        try {
-            xhr.open("POST", openCodeBaseUrl() + "/session", true);
-            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
-            xhr.ontimeout = function() {
-                fail("OpenCode: session creation timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
-            };
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE || finished)
-                    return;
-                if (!isCurrent()) return;
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        if (xhr.responseText.length > 1000000)
-                            throw new Error("session response is too large");
-                        var obj = JSON.parse(xhr.responseText);
-                        var remoteId = Sec.validateRemoteSessionId(obj.id || "");
-                        if (remoteId === "") {
-                            fail("OpenCode: server created a session without a valid id.");
-                            return;
-                        }
-                        finished = true;
-                        root.activeXhr = null;
-                        setCurrentOpenCodeSessionId(remoteId, sessionId);
-                        successCallback(remoteId);
-                    } catch (parseError) {
-                        fail("OpenCode: could not parse session creation response.");
-                    }
-                } else {
-                    fail("OpenCode: failed to create a server session (HTTP " + xhr.status + ").");
-                }
-            };
-            xhr.onerror = function() {
-                fail("OpenCode: could not reach " + openCodeBaseUrl() + "/session. Check that the server is still running.");
-            };
-            root.activeXhr = xhr;
-            var sessionPayload = {"title": root.currentSessionTitle || "KDE AI Chat"};
-            var cwd = getSessionProperty(sessionId, "openCodeWorkspaceCwd", root.openCodeWorkspaceCwd || "");
-            if (cwd && String(cwd).trim() !== "")
-                sessionPayload.directory = String(cwd).trim();
-            xhr.send(JSON.stringify(sessionPayload));
-        } catch (sendError) {
-            fail("OpenCode: failed to create session: " + sendError);
-        }
-    }
-
-    function doOpenCodeRequest(requestSessionId, requestGeneration) {
-        var sessionId = requestSessionId || root.activeRequestSessionId || root.currentSessionId;
-        var generation = requestGeneration !== undefined ? requestGeneration : root.requestGeneration;
-        var requestFinalized = false;
-        var isCurrent = function() { return requestIsCurrent(sessionId, generation); };
-        function failOpenCodeRequest(message) {
-            if (requestFinalized || !isCurrent())
-                return;
-            requestFinalized = true;
-            if (!root.openCodeErrorShownForRequest) {
-                root.openCodeErrorShownForRequest = true;
-                pushErrorMessage(message);
-            }
-            finishOpenCodeRequest(sessionId, generation);
-        }
-
-        ensureOpenCodeEventStream();
-        if (!isCurrent()) return;
-        root.loading = true;
-        root.streamingResponse = false;
-        root.openCodeAssistantMessageIndex = -1;
-        root.openCodeAssistantServerMessageId = "";
-        root.openCodeErrorShownForRequest = false;
-        ensureCurrentOpenCodeSession(function(remoteSessionId) {
-            if (!isCurrent() || requestFinalized) return;
-            var xhr = new XMLHttpRequest();
-            var modelId = String(getSessionProperty(sessionId, "openCodeModel", plasmoid.configuration.openCodeModel || "") || "").trim();
-            var providerId = String(getSessionProperty(sessionId, "openCodeProvider", plasmoid.configuration.openCodeProvider || "") || "").trim();
-            var agentName = String(getSessionProperty(sessionId, "openCodeAgent", root.openCodeAgent || "") || "").trim();
-            var useAgentModel = getSessionProperty(sessionId, "openCodeUseAgentModel", root.openCodeUseAgentModel) !== false;
-            root.activeXhr = xhr;
-            root.openCodeActiveSessionId = remoteSessionId;
-            try {
-                xhr.open("POST", openCodeBaseUrl() + "/session/" + encodeURIComponent(remoteSessionId) + "/message", true);
-                xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
-                xhr.ontimeout = function() {
-                    failOpenCodeRequest("OpenCode: request timed out" + (xhr.timeout > 0 ? " after " + (xhr.timeout / 1000) + " seconds." : "."));
-                };
-                xhr.setRequestHeader("Content-Type", "application/json");
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState !== XMLHttpRequest.DONE || requestFinalized || !isCurrent())
-                        return;
-                    if (xhr.status < 200 || xhr.status >= 300) {
-                        var suffix = xhr.status > 0 ? ("HTTP " + xhr.status) : "transport error";
-                        failOpenCodeRequest("OpenCode request failed (" + suffix + ") at " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message.");
-                        return;
-                    }
-                    try {
-                        if (xhr.responseText.length > 10000000)
-                            throw new Error("OpenCode response is too large");
-                        var obj = JSON.parse(xhr.responseText);
-                        if (obj.info && obj.info.id)
-                            root.openCodeAssistantServerMessageId = obj.info.id;
-                        if (obj.info && obj.info.error && !root.openCodeErrorShownForRequest) {
-                            root.openCodeErrorShownForRequest = true;
-                            pushErrorMessage(extractReadableError("OpenCode: ", obj.info.error, "Request failed."));
-                        }
-                        if (obj.parts && obj.parts.length > 0) {
-                            var combined = "";
-                            var combinedReasoning = "";
-                            for (var i = 0; i < obj.parts.length; i++) {
-                                if (obj.parts[i].type === "text")
-                                    combined += String(obj.parts[i].text || obj.parts[i].content || "");
-                                else if (obj.parts[i].type === "reasoning" || obj.parts[i].type === "thinking" || obj.parts[i].type === "step")
-                                    combinedReasoning += obj.parts[i].text || obj.parts[i].content || obj.parts[i].summary || "";
-                            }
-                            if (combined.length > root.maxMessageChars)
-                                combined = combined.substring(0, root.maxMessageChars) + "\n[response truncated]";
-                            if (combinedReasoning.length > root.maxMessageChars)
-                                combinedReasoning = combinedReasoning.substring(0, root.maxMessageChars) + "\n[reasoning truncated]";
-                            if (combinedReasoning !== "") appendAssistantReasoning(combinedReasoning);
-                            var responseLabel = providerId && modelId ? providerId + "/" + modelId : "OpenCode";
-                            if (combined !== "") updateAssistantStreamingContent(combined, responseLabel);
-                            else if (!root.openCodeErrorShownForRequest && root.openCodeAssistantMessageIndex < 0)
-                                updateAssistantStreamingContent("(empty response)", responseLabel);
-                        }
-                    } catch (parseResponseError) {
-                        failOpenCodeRequest("OpenCode: could not parse the server response.");
-                        return;
-                    }
-                    requestFinalized = true;
-                    finishOpenCodeRequest(sessionId, generation);
-                };
-                xhr.onerror = function() {
-                    failOpenCodeRequest("OpenCode: request could not reach " + openCodeBaseUrl() + "/session/" + remoteSessionId + "/message. The server is reachable, but this request path failed.");
-                };
-
-                var lastMsg = root.messages[root.messages.length - 1] || {};
-                var parts = [];
-                if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-                    var messagePayload = buildMessageContent(lastMsg.content || "", lastMsg.attachments, "openai");
-                    if (typeof messagePayload === "string") {
-                        parts.push({"type": "text", "text": messagePayload});
-                    } else {
-                        for (var p = 0; p < messagePayload.length; p++) {
-                            var part = messagePayload[p];
-                            if (part.type === "text") {
-                                parts.push({"type": "text", "text": part.text});
-                            } else if (part.type === "image_url" && part.image_url && part.image_url.url) {
-                                var mimeParts = part.image_url.url.split(";")[0].split(":");
-                                parts.push({"type": "file", "mime": mimeParts[1] || "image/jpeg", "url": part.image_url.url});
-                            }
-                        }
-                    }
-                } else {
-                    parts.push({"type": "text", "text": lastMsg.content || ""});
-                }
-                var systemParts = [];
-                var effectiveSystem = buildEffectiveSystemPrompt(sessionId);
-                if (effectiveSystem) systemParts.push(effectiveSystem);
-                var reqPayload = {"parts": parts};
-                if (!agentName || !useAgentModel) {
-                    reqPayload.model = {"providerID": providerId, "modelID": modelId};
-                }
-                if (agentName) reqPayload.agent = agentName;
-                if (systemParts.length > 0) reqPayload.system = systemParts.join("\n\n");
-                xhr.send(JSON.stringify(reqPayload));
-            } catch (sendError) {
-                failOpenCodeRequest("OpenCode: failed to send request: " + sendError);
-            }
-        }, function(errorMessage) {
-            if (!isCurrent() || requestFinalized) return;
-            requestFinalized = true;
-            if (!root.openCodeErrorShownForRequest) {
-                root.openCodeErrorShownForRequest = true;
-                pushErrorMessage(errorMessage);
-            }
-            finishOpenCodeRequest(sessionId, generation);
-        }, sessionId, generation);
-    }
-
-    function finishPiRequest(sessionId, generation) {
-        if (!requestIsCurrent(sessionId, generation))
-            return;
-        root.loading = false;
-        root.activeXhr = null;
-        root.activeRequestSessionId = "";
-        root.streamingResponse = false;
-        root.currentStreamIndex = -1;
-        root.currentStreamText = "";
-        root.currentStreamReasoning = "";
-        root.currentStreamExtractedReasoning = "";
-        root.requestGeneration++;
-        try { saveCurrentSessionState(true); } catch (e) { console.error("Pi session save failed:", e); }
-        try { triggerNotificationSound(); } catch (e) { console.error("Pi notification failed:", e); }
-        try { processNextQueuedMessage(); } catch (e) { console.error("Pi queue processing failed:", e); }
-    }
-
-    function runPiCommand(payload, sessionId, generation, messageId) {
-        if (!requestIsCurrent(sessionId, generation))
-            return;
-        var marker = "pi-request-" + (++root.piRequestCounter) + "-" + Date.now();
-        var pending = Object.assign({}, root.pendingPiRequests || {});
-        pending[marker] = {"sessionId": sessionId, "generation": generation, "messageId": messageId || ""};
-        root.pendingPiRequests = pending;
-        var helper = root.getHelperPath();
-        if (!helper) {
-            delete pending[marker];
-            root.pendingPiRequests = pending;
-            pushErrorMessage("Pi helper is not available in the installed widget.");
-            finishPiRequest(sessionId, generation);
-            return;
-        }
-        var encoded = Sec.base64Encode(JSON.stringify(payload || {}));
-        var command = "python3 " + Sec.quoteForShell(helper) + " run_pi " + Sec.rawShellSnippetQuote(encoded);
-        var source = command + " #" + marker;
-        pending[marker].source = source;
-        root.pendingPiRequests = pending;
-        piTerminalDs.connectSource(source);
-    }
-
-    function runLocalPiCommand(cmdText, sessionId, generation) {
-        var bare = String(cmdText || "").trim();
-        if (bare.charAt(0) === "/") bare = bare.substring(1);
-        var verb = bare.split(/\s+/)[0].toLowerCase();
-        if (verb === "help") {
-            var ts = Date.now();
-            root.messages = root.messages.concat([{"role": "assistant", "content": "**Pi commands:**\n- `/help` — show available commands\n- `/version` — show the installed Pi version", "model": "Pi Agent", "time": nowTime(ts), "at": ts}]);
-            finishPiRequest(sessionId, generation);
-            return;
-        }
-        if (verb === "version") {
-            var id = "pi-version-" + Date.now();
-            var versionTs = Date.now();
-            root.messages = root.messages.concat([{"role": "assistant", "content": "Checking Pi version…", "model": "Pi Agent", "time": nowTime(versionTs), "at": versionTs, "id": id}]);
-            runPiCommand({"version": true}, sessionId, generation, id);
-            return;
-        }
-        pushErrorMessage("Unknown Pi command: `" + String(cmdText || "").trim() + "`\nType `/help` to see available commands.");
-        finishPiRequest(sessionId, generation);
-    }
-
-    function doPiRequest(sessionId, generation) {
-        if (!requestIsCurrent(sessionId, generation))
-            return;
-        var lastMsg = root.messages[root.messages.length - 1] || {};
-        var prompt = String(lastMsg.content || "");
-        if (prompt.trim().charAt(0) === "/") {
-            root.loading = true;
-            runLocalPiCommand(prompt, sessionId, generation);
-            return;
-        }
-        if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-            var attachmentPrompt = buildMessageContent(prompt, lastMsg.attachments, "openai");
-            if (typeof attachmentPrompt === "string") prompt = attachmentPrompt;
-            else {
-                prompt += "\n\n[Image attachments were supplied to the chat; describe them if supported by the Pi provider.]";
-                for (var ai = 0; ai < attachmentPrompt.length; ai++)
-                    if (attachmentPrompt[ai].type === "text") prompt += "\n" + attachmentPrompt[ai].text;
-            }
-        }
-        if (prompt.length > 100000) {
-            pushErrorMessage("Pi prompt is too large. Keep Pi prompts under 100,000 characters.");
-            finishPiRequest(sessionId, generation);
-            return;
-        }
-        var messageId = "pi-response-" + Date.now() + "-" + root.piRequestCounter;
-        var ts = Date.now();
-        root.messages = root.messages.concat([{"role": "assistant", "content": "Thinking…", "model": "Pi Agent", "time": nowTime(ts), "at": ts, "id": messageId}]);
-        root.loading = true;
-        root.streamingResponse = true;
-        saveCurrentSessionState(true);
-        runPiCommand({
-            "sessionId": "kde-ai-chat-" + sessionId,
-            "provider": String(getSessionProperty(sessionId, "chatProvider", plasmoid.configuration.piProvider || "") || "").trim(),
-            "model": String(getSessionProperty(sessionId, "chatModel", plasmoid.configuration.piModel || "") || "").trim(),
-            "prompt": prompt,
-            "timeout": Number(plasmoid.configuration.requestTimeout || 60)
-        }, sessionId, generation, messageId);
-    }
-
-    function handlePiResponse(sourceName, stdout, stderr, exitCode) {
-        var keys = Object.keys(root.pendingPiRequests || {});
-        var marker = "";
-        for (var i = 0; i < keys.length; i++) {
-            if (sourceName.indexOf(keys[i]) !== -1) { marker = keys[i]; break; }
-        }
-        if (!marker)
-            return;
-        var pending = root.pendingPiRequests[marker];
-        var remaining = Object.assign({}, root.pendingPiRequests);
-        delete remaining[marker];
-        root.pendingPiRequests = remaining;
-        var response = {};
-        try { response = JSON.parse(String(stdout || "").trim()); } catch (e) {}
-        var code = response.exitCode !== undefined ? Number(response.exitCode) : Number(exitCode || 0);
-        var out = response.stdout !== undefined ? String(response.stdout || "") : String(stdout || "");
-        var err = response.stderr !== undefined ? String(response.stderr || "") : String(stderr || "");
-        if (!requestIsCurrent(pending.sessionId, pending.generation))
-            return;
-        if (code !== 0) {
-            var failed = root.messages.slice();
-            for (var fi = failed.length - 1; fi >= 0; fi--) {
-                if (failed[fi].id === pending.messageId) { failed.splice(fi, 1); break; }
-            }
-            root.messages = failed;
-            pushErrorMessage("Pi agent failed: " + (err.trim() || out.trim() || ("process exited with code " + code)));
-            finishPiRequest(pending.sessionId, pending.generation);
-            return;
-        }
-        var result = out.trim() || "(empty response)";
-        var updated = root.messages.slice();
-        for (var ui = 0; ui < updated.length; ui++) {
-            if (updated[ui].id === pending.messageId) {
-                updated[ui] = Object.assign({}, updated[ui], {"content": result, "model": "Pi Agent"});
-                break;
-            }
-        }
-        root.messages = updated;
-        finishPiRequest(pending.sessionId, pending.generation);
     }
 
     function resetProviderStreamingState() {
@@ -2339,11 +1490,11 @@ PlasmoidItem {
         setCurrentSessionSource(requestSource);
         var requestGeneration = beginRequest(requestSessionId);
         if (root.openCodeMode) {
-            doOpenCodeRequest(requestSessionId, requestGeneration);
+            openCode.send(requestSessionId, requestGeneration);
             return ;
         }
         if (root.piMode) {
-            doPiRequest(requestSessionId, requestGeneration);
+            piAgent.send(requestSessionId, requestGeneration);
             return ;
         }
         var provider = root.getEffectiveProvider(requestSessionId);
@@ -2718,19 +1869,63 @@ PlasmoidItem {
             "xhrFactory": function() { return new XMLHttpRequest(); },
             "onEvent": function(event) {
                 if (requestIsCurrent(sessionId, generation))
-                    applyDirectEvent(event, model);
+                    applyBackendEvent(event, model);
             }
         });
     }
 
-    function applyDirectEvent(event, model) {
-        if (event.type === "text_delta" || event.type === "reasoning_delta") {
-            if (root.currentStreamIndex < 0) {
-                var ts = Date.now();
-                root.messages = root.messages.concat([{"role": "assistant", "content": "", "reasoning": "", "time": nowTime(ts), "at": ts, "model": model}]);
-                root.currentStreamIndex = root.messages.length - 1;
-                root.streamingResponse = true;
-            }
+    // Starts the reply bubble for the request being streamed, if needed.
+    function ensureStreamingMessage(model) {
+        if (root.currentStreamIndex >= 0)
+            return;
+        var ts = Date.now();
+        root.messages = root.messages.concat([{"role": "assistant", "content": "", "reasoning": "", "time": nowTime(ts), "at": ts, "model": model}]);
+        root.currentStreamIndex = root.messages.length - 1;
+        root.streamingResponse = true;
+    }
+
+    // Updates fields of an existing message: update(copyOfMessage).
+    function updateMessageAt(index, update) {
+        if (index < 0 || index >= root.messages.length)
+            return;
+        var msgs = root.messages.slice();
+        var copy = Object.assign({}, msgs[index]);
+        update(copy);
+        msgs[index] = copy;
+        root.messages = msgs;
+    }
+
+    function findRequestMessage(role, idField, id) {
+        for (var i = root.messages.length - 1; i >= 0; i--)
+            if (root.messages[i].role === role && root.messages[i][idField] === id)
+                return i;
+        return -1;
+    }
+
+    // Applies one backend event (DirectBackend.js / OpenCodeBackend.js / PiBackend.js) to the chat.
+    function applyBackendEvent(event, model, extra) {
+        if (AgentEvents.isReplyEvent(event.type)) {
+            // Shown in the reply's Context list until Phase 4's tool cards.
+            ensureStreamingMessage(model);
+            updateMessageAt(root.currentStreamIndex, function(msg) { AgentEvents.applyToReply(msg, event); });
+        } else if (event.type === "permission_request" || event.type === "question_request") {
+            var isPermission = event.type === "permission_request";
+            if (findRequestMessage(event.type, isPermission ? "permissionId" : "questionId", event.id) >= 0)
+                return;
+            root.messages = root.messages.concat([isPermission ? AgentEvents.permissionMessage(event, extra, Date.now())
+                                                               : AgentEvents.questionMessage(event, extra, Date.now())]);
+            triggerNotificationSound();
+            saveCurrentSessionState(true);
+        } else if (event.type === "permission_resolved") {
+            updateMessageAt(findRequestMessage("permission_request", "permissionId", event.id), function(msg) {
+                msg.status = event.reply === "reject" ? "denied" : "allowed";
+            });
+        } else if (event.type === "question_resolved") {
+            updateMessageAt(findRequestMessage("question_request", "questionId", event.id), function(msg) {
+                if (msg.status !== "answered" && msg.status !== "dismissed") msg.status = event.status;
+            });
+        } else if (event.type === "text_delta" || event.type === "reasoning_delta") {
+            ensureStreamingMessage(model);
             if (event.type === "text_delta")
                 root.currentStreamText = (root.currentStreamText + event.delta).substring(0, root.maxMessageChars);
             else
@@ -2741,6 +1936,7 @@ PlasmoidItem {
             var usage = Object.assign({}, root.currentStreamUsage);
             if (event.input !== undefined) usage.input = event.input;
             if (event.output !== undefined) usage.output = event.output;
+            if (event.cost !== undefined) usage.cost = (usage.cost || 0) + event.cost;
             root.currentStreamUsage = usage;
         } else if (event.type === "error") {
             resetProviderStreamingState();
@@ -2750,10 +1946,12 @@ PlasmoidItem {
             if (completed && root.currentStreamIndex >= 0) {
                 var msgs = root.messages.slice();
                 var reply = Object.assign({}, msgs[root.currentStreamIndex]);
-                reply.content = root.currentStreamText || "(empty response)";
+                reply.content = root.currentStreamText || (reply.tools ? "" : "(empty response)");
                 reply.reasoning = root.currentStreamReasoning;
                 if (root.currentStreamUsage.input !== undefined || root.currentStreamUsage.output !== undefined)
                     reply.tokens = {"input": root.currentStreamUsage.input || 0, "output": root.currentStreamUsage.output || 0};
+                if (root.currentStreamUsage.cost)
+                    reply.cost = root.currentStreamUsage.cost;
                 msgs[root.currentStreamIndex] = reply;
                 root.messages = msgs;
             } else if (completed) {
@@ -2775,6 +1973,21 @@ PlasmoidItem {
         }
     }
 
+    // The agent (OpenCode or Pi) that asked a permission or question.
+    function harnessFor(role, idField, id) {
+        var index = findRequestMessage(role, idField, id);
+        return index >= 0 && root.messages[index].harness === "pi" ? piAgent : openCode;
+    }
+
+    // always: also allow it from now on (OpenCode only).
+    function respondToPermission(permissionId, approved, always) {
+        harnessFor("permission_request", "permissionId", permissionId).respondToPermission(permissionId, approved, always === true);
+    }
+
+    function respondToQuestion(questionId, answerValue, isReject) {
+        harnessFor("question_request", "questionId", questionId).respondToQuestion(questionId, answerValue, isReject);
+    }
+
     function triggerNotificationSound() {
         if (plasmoid.configuration.playNotificationSound) {
             soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
@@ -2793,110 +2006,6 @@ PlasmoidItem {
                 }
             }
         }
-    }
-
-    function respondToPermission(permissionId, approved) {
-        function sendToUrl(url, isRetry) {
-            xhr.open("POST", url, true);
-            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
-            xhr.ontimeout = function() {
-                if (!isRetry) {
-                    sendToUrl(fallbackUrl, true);
-                } else {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                            copy[i].status = "pending";
-                            break;
-                        }
-                    }
-                    root.messages = copy;
-                    pushErrorMessage("OpenCode: permission response timed out.");
-                }
-            };
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE)
-                    return ;
-
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                            copy[i].status = approved ? "allowed" : "denied";
-                            break;
-                        }
-                    }
-                    root.messages = copy;
-                    saveCurrentSessionState(true);
-                } else if (xhr.status === 404 && !isRetry) {
-                    sendToUrl(fallbackUrl, true);
-                } else {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                            copy[i].status = "pending";
-                            break;
-                        }
-                    }
-                    root.messages = copy;
-                    pushErrorMessage("OpenCode: failed to reply to permission (HTTP " + xhr.status + ").");
-                }
-            };
-            xhr.onerror = function() {
-                if (!isRetry) {
-                    sendToUrl(fallbackUrl, true);
-                } else {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                            copy[i].status = "pending";
-                            break;
-                        }
-                    }
-                    root.messages = copy;
-                    pushErrorMessage("OpenCode: could not reach permission reply server endpoint.");
-                }
-            };
-            xhr.send(JSON.stringify({
-                "response": responseValue
-            }));
-        }
-
-        var sessionId = root.openCodeActiveSessionId;
-        var permissionIndex = -1;
-        for (var pi = 0; pi < root.messages.length; pi++) {
-            if (root.messages[pi].role === "permission_request" && root.messages[pi].permissionId === permissionId) {
-                permissionIndex = pi;
-                break;
-            }
-        }
-        if (permissionIndex >= 0 && root.messages[permissionIndex].openCodeSessionId)
-            sessionId = root.messages[permissionIndex].openCodeSessionId;
-        if (!sessionId) {
-            var idx = sessionIndexById(root.currentSessionId);
-            if (idx >= 0)
-                sessionId = root.sessions[idx].openCodeSessionId || "";
-        }
-        sessionId = Sec.validateRemoteSessionId(sessionId);
-        if (!sessionId || !permissionId)
-            return ;
-
-        var copy = root.messages.slice();
-        for (var i = 0; i < copy.length; i++) {
-            if (copy[i].role === "permission_request" && copy[i].permissionId === permissionId) {
-                copy[i].status = approved ? "allowing..." : "denying...";
-                break;
-            }
-        }
-        root.messages = copy;
-        var xhr = new XMLHttpRequest();
-        var safePermissionId = encodeURIComponent(String(permissionId));
-        var encodedSessionId = encodeURIComponent(sessionId);
-        var primaryUrl = openCodeBaseUrl() + "/session/" + encodedSessionId + "/permission/" + safePermissionId;
-        var fallbackUrl = openCodeBaseUrl() + "/session/" + encodedSessionId + "/permissions/" + safePermissionId;
-        var responseValue = approved ? "allow" : "deny";
-        sendToUrl(primaryUrl, false);
     }
 
     function _questionMessageIndex(questionId) {
@@ -2961,110 +2070,6 @@ PlasmoidItem {
         }
         if (hasAnswer)
             respondToQuestion(questionId, answers, false);
-    }
-
-    function respondToQuestion(questionId, answerValue, isReject) {
-        function tryNextUrl() {
-            if (currentUrlIdx >= urls.length) {
-                var copy = root.messages.slice();
-                for (var i = 0; i < copy.length; i++) {
-                    if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-                        copy[i].status = "pending";
-                        break;
-                    }
-                }
-                root.messages = copy;
-                pushErrorMessage("OpenCode: failed to reply to question endpoint.");
-                return ;
-            }
-            var url = urls[currentUrlIdx];
-            currentUrlIdx++;
-            xhr.open("POST", url, true);
-            xhr.timeout = plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0;
-            xhr.ontimeout = function() {
-                tryNextUrl();
-            };
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE)
-                    return ;
-
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-                            copy[i].status = isReject ? "dismissed" : "answered";
-                            copy[i].submittedAnswer = answerValue;
-                            break;
-                        }
-                    }
-                    root.messages = copy;
-                    saveCurrentSessionState(true);
-                } else if (xhr.status === 404) {
-                    tryNextUrl();
-                } else {
-                    var copy = root.messages.slice();
-                    for (var i = 0; i < copy.length; i++) {
-                        if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-                            copy[i].status = "pending";
-                            break;
-                        }
-                    }
-                    root.messages = copy;
-                    pushErrorMessage("OpenCode: failed to reply to question (HTTP " + xhr.status + ").");
-                }
-            };
-            xhr.onerror = function() {
-                tryNextUrl();
-            };
-            try {
-                if (isReject) {
-                    xhr.send(JSON.stringify({
-                    }));
-                } else {
-                    // Send in OpenCode's expected format: { answers: [["label"]] }
-                    var answers = [];
-                    if (typeof answerValue === "object" && Array.isArray(answerValue))
-                        answers = answerValue;
-                    else
-                        answers = [[String(answerValue || "")]];
-                    xhr.send(JSON.stringify({
-                        "answers": answers
-                    }));
-                }
-            } catch (err) {
-                tryNextUrl();
-            }
-        }
-
-        var sessionId = root.openCodeActiveSessionId;
-        var questionIndex = _questionMessageIndex(questionId);
-        if (questionIndex >= 0 && root.messages[questionIndex].openCodeSessionId)
-            sessionId = root.messages[questionIndex].openCodeSessionId;
-        if (!sessionId) {
-            var idx = sessionIndexById(root.currentSessionId);
-            if (idx >= 0)
-                sessionId = root.sessions[idx].openCodeSessionId || "";
-        }
-        sessionId = Sec.validateRemoteSessionId(sessionId);
-        if (!sessionId || !questionId)
-            return ;
-
-        var copy = root.messages.slice();
-        for (var i = 0; i < copy.length; i++) {
-            if (copy[i].role === "question_request" && copy[i].questionId === questionId) {
-                copy[i].status = isReject ? "dismissing..." : "answering...";
-                break;
-            }
-        }
-        root.messages = copy;
-        var xhr = new XMLHttpRequest();
-        var action = isReject ? "reject" : "reply";
-        var safeQuestionId = encodeURIComponent(String(questionId));
-        var encodedSessionId = encodeURIComponent(sessionId);
-        var urls = [openCodeBaseUrl() + "/question/" + safeQuestionId + "/" + action, openCodeBaseUrl() + "/session/" + encodedSessionId + "/question/" + safeQuestionId + "/" + action, openCodeBaseUrl() + "/session/" + encodedSessionId + "/questions/" + safeQuestionId + "/" + action];
-        var currentUrlIdx = 0;
-        tryNextUrl();
     }
 
     function stopStreaming() {
@@ -3470,21 +2475,6 @@ PlasmoidItem {
 
         engine: "executable"
         connectedSources: []
-    }
-
-    P5Support.DataSource {
-        id: piTerminalDs
-
-        engine: "executable"
-        connectedSources: []
-        onNewData: function(sourceName, data) {
-            var exitCode = Number(data["exit code"]);
-            if (isNaN(exitCode)) exitCode = 1;
-            var stdout = data["stdout"] || "";
-            var stderr = data["stderr"] || "";
-            disconnectSource(sourceName);
-            root.handlePiResponse(sourceName, stdout, stderr, exitCode);
-        }
     }
 
     P5Support.DataSource {

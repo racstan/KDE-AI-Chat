@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "ProviderService.js" as ProviderService
+import "chat" as Chat
 
 // A non-modal right-side drawer. It stays attached to the chat instead of
 // covering the whole conversation, and owns a draft until Apply is pressed.
@@ -29,7 +30,8 @@ Rectangle {
     property string _piProvider: ""
     property string _piModel: ""
     property var _piProviders: []
-    property var _piModels: []
+    property var _piModelMap: ({})
+    property string _piThinking: ""
     property var _modelCandidates: []
     property int _generation: 0
     property bool _busy: false
@@ -121,14 +123,13 @@ Rectangle {
         _systemEnabled = _get("chatSystemPromptEnabled", true);
         _system = _get("chatSystemPrompt", "");
         _responseLength = _get("responseLength", 0) || 0;
-        var globalPiProvider = rootRef && rootRef.plasmoid ? (rootRef.plasmoid.configuration.piProvider || "") : "";
-        var globalPiModel = rootRef && rootRef.plasmoid ? (rootRef.plasmoid.configuration.piModel || "") : "";
-        _piProvider = _get("chatProvider", globalPiProvider);
-        if (!_piProvider) _piProvider = globalPiProvider;
-        _piModel = _get("chatModel", globalPiModel);
-        if (!_piModel) _piModel = globalPiModel;
+        // Pi chats used to keep their provider and model in chatProvider/chatModel.
+        var configuration = rootRef && rootRef.plasmoid ? rootRef.plasmoid.configuration : {};
+        _piProvider = _get("piProvider", source === "pi" ? _get("chatProvider", "") : "") || configuration.piProvider || "";
+        _piModel = _get("piModel", source === "pi" ? _get("chatModel", "") : "") || configuration.piModel || "";
+        _piThinking = _get("piThinking", "");
         _piProviders = rootRef ? (rootRef.piProviderCandidates || []) : [];
-        _piModels = rootRef && rootRef.piProviderModelMap ? (rootRef.piProviderModelMap[_piProvider] || []) : [];
+        _piModelMap = rootRef ? (rootRef.piProviderModelMap || {}) : {};
         _modelCandidates = [];
         _draftDirty = false;
         _loadingDraft = true;
@@ -244,8 +245,7 @@ Rectangle {
         rootRef.fetchPiModels(function(providers, modelMap) {
             if (!_current(token)) return;
             _piProviders = providers || [];
-            var models = modelMap || {};
-            _piModels = models[_piProvider] || [];
+            _piModelMap = modelMap || {};
             _busy = false;
             _status = _piProviders.length > 0 ? ("Loaded " + _piProviders.length + " Pi providers") : "Pi returned no providers";
         });
@@ -266,8 +266,11 @@ Rectangle {
         var selected = _selectedProvider();
         var overrides = {
             source: _mode,
-            chatProvider: _mode === "pi" ? _piProvider : (selected === (rootRef.plasmoid.configuration.provider || "openai") ? "" : selected),
-            chatModel: _mode === "pi" ? _piModel : modelCombo.editText.trim(),
+            chatProvider: _mode === "pi" ? _provider : (selected === (rootRef.plasmoid.configuration.provider || "openai") ? "" : selected),
+            chatModel: _mode === "pi" ? _model : modelCombo.editText.trim(),
+            piProvider: _piProvider,
+            piModel: _piModel,
+            piThinking: _piThinking,
             openCodeAgent: agent,
             openCodeProvider: ocProvider,
             openCodeModel: ocModel,
@@ -281,10 +284,6 @@ Rectangle {
         else if (typeof rootRef.setSessionProperty === "function") {
             for (var key in overrides)
                 rootRef.setSessionProperty(_sessionId, key, overrides[key]);
-        }
-        if (_mode === "pi" && rootRef.plasmoid && rootRef.plasmoid.configuration) {
-            rootRef.plasmoid.configuration.piProvider = _piProvider;
-            rootRef.plasmoid.configuration.piModel = _piModel;
         }
         _draftDirty = false;
         close();
@@ -333,7 +332,7 @@ Rectangle {
 
     FolderDialog {
         id: folderDialog
-        title: "Select OpenCode workspace"
+        title: "Select the chat's working folder"
         onAccepted: {
             var path = selectedFolder.toString();
             if (path.indexOf("file://") === 0) path = path.substring(7);
@@ -475,55 +474,43 @@ Rectangle {
                             PC3.ToolButton { icon.name: "view-refresh"; enabled: !page._busy; onClicked: page._refreshAgents() }
                         }
                         QQC2.ComboBox { id: agentCombo; Layout.fillWidth: true; editable: true; onEditTextChanged: { page._ocAgent = editText; if (!page._loadingDraft) page._draftDirty = true; } }
-                        QQC2.Label { text: "Workspace"; opacity: 0.7 }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            QQC2.TextField { id: cwdField; Layout.fillWidth: true; maximumLength: 4096; placeholderText: "/absolute/path"; onTextChanged: { page._ocCwd = text; if (!page._loadingDraft) page._draftDirty = true; } }
-                            PC3.ToolButton { icon.name: "folder"; onClicked: folderDialog.open() }
-                        }
                     }
                 }
 
                 Rectangle {
                     visible: page._mode === "pi"
                     Layout.fillWidth: true
-                    implicitHeight: piColumn.implicitHeight + 24
+                    implicitHeight: piSettings.implicitHeight + 24
                     radius: 8
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
-                    ColumnLayout { id: piColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8
-                        RowLayout { Layout.fillWidth: true
-                            PC3.Label { text: "Pi Agent"; font.bold: true; Layout.fillWidth: true }
-                            PC3.ToolButton { icon.name: "view-refresh"; enabled: !page._busy; onClicked: page._refreshPi(); QQC2.ToolTip.visible: hovered; QQC2.ToolTip.text: "Refresh Pi providers and models" }
+                    Chat.PiChatSettings {
+                        id: piSettings
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        providers: page._piProviders
+                        providerModels: page._piModelMap
+                        provider: page._piProvider
+                        model: page._piModel
+                        thinking: page._piThinking
+                        busy: page._busy
+                        onRefreshRequested: page._refreshPi()
+                        onEdited: {
+                            page._piProvider = provider;
+                            page._piModel = model;
+                            page._piThinking = thinking;
+                            page._draftDirty = true;
                         }
-                        QQC2.Label { text: "Provider"; opacity: 0.7 }
-                        QQC2.ComboBox {
-                            id: piProviderCombo
-                            Layout.fillWidth: true
-                            model: page._piProviders
-                            textRole: "text"
-                            valueRole: "value"
-                            currentIndex: {
-                                for (var i = 0; i < model.length; i++) if (model[i].value === page._piProvider) return i;
-                                return -1;
-                            }
-                            onActivated: {
-                                page._piProvider = currentValue || currentText;
-                                page._piModels = rootRef && rootRef.piProviderModelMap ? (rootRef.piProviderModelMap[page._piProvider] || []) : [];
-                                page._piModel = page._piModels.length > 0 ? page._piModels[0] : "";
-                                page._draftDirty = true;
-                            }
-                        }
-                        QQC2.Label { text: "Model"; opacity: 0.7 }
-                        QQC2.ComboBox {
-                            id: piModelCombo
-                            Layout.fillWidth: true
-                            editable: true
-                            model: page._piModels
-                            editText: page._piModel
-                            onActivated: { page._piModel = currentText; page._draftDirty = true; }
-                            onEditTextChanged: { if (activeFocus) { page._piModel = editText; page._draftDirty = true; } }
-                        }
-                        PC3.Label { text: "Pi settings are applied to the Pi CLI when you press Apply."; wrapMode: Text.WordWrap; opacity: 0.62; Layout.fillWidth: true }
+                    }
+                }
+
+                ColumnLayout {
+                    visible: page._mode === "opencode" || page._mode === "pi"
+                    Layout.fillWidth: true
+                    QQC2.Label { text: "Working folder"; opacity: 0.7 }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        QQC2.TextField { id: cwdField; Layout.fillWidth: true; maximumLength: 4096; placeholderText: "~ (your home folder)"; onTextChanged: { page._ocCwd = text; if (!page._loadingDraft) page._draftDirty = true; } }
+                        PC3.ToolButton { icon.name: "folder"; onClicked: folderDialog.open() }
                     }
                 }
 

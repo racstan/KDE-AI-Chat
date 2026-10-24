@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **🧰 MCP tool support (opt-in)**: Built-in web search plus your own MCP servers, configured under Settings → Other. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 - **🚫 Disable streaming option**: For providers that reject streamed requests (HTTP 400). ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 - **🖼️ Custom widget icon**: Use any KDE icon name or an image file. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
-- **🤖 Pi Coding Agent bridge**: New agent mode alongside OpenCode, with dynamic provider/model loading.
+- **🤖 Pi Coding Agent mode**: Chat with the Pi agent alongside OpenCode. Each chat keeps its own Pi session running in its folder, so replies stream as they're written, tool use shows live, Pi extensions can ask you questions or for permission in the chat, and Stop stops the agent. Idle Pi processes close on their own. Each Pi chat has its own provider, model, thinking level and working folder in the chat settings, which no longer change the defaults for your other chats.
+- **OpenCode server managed safely**: In OpenCode mode the widget starts a local `opencode serve` when none is running, and its Stop button only ever stops a server the widget started. Replies, tool use, permission and question prompts and token use now come from OpenCode's live event stream.
 - OpenCode agent profile selector, workspace directory selector and Git diff inspector.
 
 ### Changed
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - **MCP tools in direct mode, system-information injection, the memory manager and automatic context compaction.** Use OpenCode or Pi mode for tools; the system prompt and message limit remain.
 - **Image-generation providers**, which never worked in chat.
+- **The "Open in terminal" button** in OpenCode mode.
 - **PlasmaShell auto-restart watchdog**: The widget no longer starts a background monitor that restarted your desktop shell, or spawns a heartbeat process every 5 seconds. Any monitor left running by an earlier version is stopped automatically.
 
 ### Fixed

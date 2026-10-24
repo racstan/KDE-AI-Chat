@@ -52,8 +52,9 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
     assert "anchors.right: parent ? parent.right : undefined" in dialog_source
     assert "function toggleForSession(sessionId)" in dialog_source
     assert "property bool _loadingDraft" in dialog_source
-    assert "id: piProviderCombo" in dialog_source
-    assert "id: piModelCombo" in dialog_source
+    assert "Chat.PiChatSettings" in dialog_source
+    assert "piThinking: _piThinking" in dialog_source
+    assert "configuration.piModel =" not in dialog_source, "a chat's settings must not change the global Pi default"
     assert "rootRef.fetchPiModels" in dialog_source
     assert "setSessionOverrides(_sessionId, overrides)" in dialog_source
     assert "saveCurrentSessionState" not in dialog_source
