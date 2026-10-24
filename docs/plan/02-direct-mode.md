@@ -52,7 +52,8 @@ Paths below are relative to `org.kde.plasma.kdeaichat/contents/ui/`.
    - "Add provider" offers presets: OpenAI, Anthropic, Groq, DeepSeek, Gemini, OpenRouter, Mistral, NVIDIA, xAI, Ollama, LM Studio, llama.cpp, LiteLLM, … . A preset just fills in the URL and a default model, so adding a provider never needs a code change.
    - **Fetch models from the provider** (`GET /models`) where supported, with free-text fallback.
    - Delete the 20 hard-coded `*BaseUrl`/`*ApiKey`/`*Model` trios and the `image-gen` entries, and migrate users' existing values into the list.
-4. **System prompt:** keep one system-prompt text field (global plus a per-chat override) and the message limit. Remove the rest (see cut list).
+4. **Default output limit.** Send `max_tokens` (default 4096, configurable per provider and per chat) on every request. Without it, OpenRouter reserves credit for the model's maximum output (131,072 tokens for `openrouter/auto`) and returns HTTP 402 on accounts with a small balance. Found in the live end-to-end test on 2026-10-24.
+5. **System prompt:** keep one system-prompt text field (global plus a per-chat override) and the message limit. Remove the rest (see cut list).
 
 ## Tests
 
