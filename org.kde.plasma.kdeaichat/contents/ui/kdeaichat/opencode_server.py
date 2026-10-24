@@ -12,9 +12,9 @@ import signal
 import subprocess
 import time
 import urllib.request
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from kdeaichat import chats
+from kdeaichat import chats, procs
 
 
 def _state_path() -> str:
@@ -47,14 +47,6 @@ def healthy(port: int, timeout: float = 1.5) -> bool:
         return False
 
 
-def _cmdline(pid: int) -> List[str]:
-    try:
-        with open(f"/proc/{pid}/cmdline", "rb") as f:
-            return [part.decode("utf-8", "replace") for part in f.read().split(b"\0") if part]
-    except OSError:
-        return []
-
-
 def _read_state() -> Dict[str, Any]:
     try:
         with open(_state_path(), encoding="utf-8") as f:
@@ -63,21 +55,10 @@ def _read_state() -> Dict[str, Any]:
         return {}
 
 
-def _ours(state: Dict[str, Any]) -> bool:
-    """True if the recorded process is still the server we started."""
-    pid = int(state.get("pid") or 0)
-    argv = state.get("argv") or []
-    cmdline = _cmdline(pid)
-    # `opencode` may be a launcher (shell/node/python), so the process can show
-    # an interpreter first; the arguments we passed must still end it exactly.
-    return (pid > 0 and len(argv) > 1 and cmdline[-(len(argv) - 1):] == argv[1:]
-            and any(os.path.basename(argv[0]) in os.path.basename(part) for part in cmdline))
-
-
 def cmd_opencode_server_status(payload: Dict[str, Any]) -> None:
     port = _port(payload)
     state = _read_state()
-    print(json.dumps({"running": healthy(port), "ours": _ours(state) and state.get("port") == port,
+    print(json.dumps({"running": healthy(port), "ours": procs.is_ours(state) and state.get("port") == port,
                       "binary": find_binary() or ""}))
 
 
@@ -85,7 +66,7 @@ def cmd_opencode_server_start(payload: Dict[str, Any]) -> None:
     """Starts `opencode serve` on 127.0.0.1:<port> unless something already answers there."""
     port = _port(payload)
     if healthy(port):
-        print(json.dumps({"status": "already-running", "ours": _ours(_read_state())}))
+        print(json.dumps({"status": "already-running", "ours": procs.is_ours(_read_state())}))
         return
     binary = find_binary()
     if not binary:
@@ -118,7 +99,7 @@ def cmd_opencode_server_start(payload: Dict[str, Any]) -> None:
 def cmd_opencode_server_stop(payload: Dict[str, Any]) -> None:
     """Stops the server this widget started, and nothing else."""
     state = _read_state()
-    if not _ours(state):
+    if not procs.is_ours(state):
         print(json.dumps({"status": "not-ours", "message": "No OpenCode server started by the widget is running."}))
         return
     os.kill(int(state["pid"]), signal.SIGTERM)

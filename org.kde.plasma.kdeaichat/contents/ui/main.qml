@@ -30,8 +30,6 @@ PlasmoidItem {
     property var activeXhr: null
     property int requestGeneration: 0
     property string activeRequestSessionId: ""
-    property var pendingPiRequests: ({})
-    property int piRequestCounter: 0
     property var pendingAttachmentRequests: ({})
     property int attachmentRequestCounter: 0
     property bool schedulerPollInFlight: false
@@ -123,6 +121,11 @@ PlasmoidItem {
 
     Chat.OpenCodeMode {
         id: openCode
+        chat: root
+    }
+
+    Chat.PiMode {
+        id: piAgent
         chat: root
     }
 
@@ -441,20 +444,7 @@ PlasmoidItem {
     }
 
     function invalidateActiveRequest(processQueue) {
-        var cancelledSessionId = root.activeRequestSessionId;
         root.requestGeneration++;
-        var piRequests = root.pendingPiRequests || {};
-        var piKeys = Object.keys(piRequests);
-        for (var piIndex = 0; piIndex < piKeys.length; piIndex++) {
-            var piEntry = piRequests[piKeys[piIndex]];
-            if (piEntry && piEntry.sessionId === cancelledSessionId) {
-                if (piEntry.source) {
-                    try { piTerminalDs.disconnectSource(piEntry.source); } catch (e) {}
-                }
-                delete piRequests[piKeys[piIndex]];
-            }
-        }
-        root.pendingPiRequests = piRequests;
         root.activeRequestSessionId = "";
         if (root.activeXhr) {
             try { root.activeXhr.abort(); } catch (e) {}
@@ -1152,147 +1142,6 @@ PlasmoidItem {
         fileReaderDs.connectSource(cmd);
     }
 
-    function finishPiRequest(sessionId, generation) {
-        if (!requestIsCurrent(sessionId, generation))
-            return;
-        root.loading = false;
-        root.activeXhr = null;
-        root.activeRequestSessionId = "";
-        root.streamingResponse = false;
-        root.currentStreamIndex = -1;
-        root.currentStreamText = "";
-        root.currentStreamReasoning = "";
-        root.currentStreamExtractedReasoning = "";
-        root.requestGeneration++;
-        try { saveCurrentSessionState(true); } catch (e) { console.error("Pi session save failed:", e); }
-        try { triggerNotificationSound(); } catch (e) { console.error("Pi notification failed:", e); }
-        try { processNextQueuedMessage(); } catch (e) { console.error("Pi queue processing failed:", e); }
-    }
-
-    function runPiCommand(payload, sessionId, generation, messageId) {
-        if (!requestIsCurrent(sessionId, generation))
-            return;
-        var marker = "pi-request-" + (++root.piRequestCounter) + "-" + Date.now();
-        var pending = Object.assign({}, root.pendingPiRequests || {});
-        pending[marker] = {"sessionId": sessionId, "generation": generation, "messageId": messageId || ""};
-        root.pendingPiRequests = pending;
-        var helper = root.getHelperPath();
-        if (!helper) {
-            delete pending[marker];
-            root.pendingPiRequests = pending;
-            pushErrorMessage("Pi helper is not available in the installed widget.");
-            finishPiRequest(sessionId, generation);
-            return;
-        }
-        var encoded = Sec.base64Encode(JSON.stringify(payload || {}));
-        var command = "python3 " + Sec.quoteForShell(helper) + " run_pi " + Sec.rawShellSnippetQuote(encoded);
-        var source = command + " #" + marker;
-        pending[marker].source = source;
-        root.pendingPiRequests = pending;
-        piTerminalDs.connectSource(source);
-    }
-
-    function runLocalPiCommand(cmdText, sessionId, generation) {
-        var bare = String(cmdText || "").trim();
-        if (bare.charAt(0) === "/") bare = bare.substring(1);
-        var verb = bare.split(/\s+/)[0].toLowerCase();
-        if (verb === "help") {
-            var ts = Date.now();
-            root.messages = root.messages.concat([{"role": "assistant", "content": "**Pi commands:**\n- `/help` — show available commands\n- `/version` — show the installed Pi version", "model": "Pi Agent", "time": nowTime(ts), "at": ts}]);
-            finishPiRequest(sessionId, generation);
-            return;
-        }
-        if (verb === "version") {
-            var id = "pi-version-" + Date.now();
-            var versionTs = Date.now();
-            root.messages = root.messages.concat([{"role": "assistant", "content": "Checking Pi version…", "model": "Pi Agent", "time": nowTime(versionTs), "at": versionTs, "id": id}]);
-            runPiCommand({"version": true}, sessionId, generation, id);
-            return;
-        }
-        pushErrorMessage("Unknown Pi command: `" + String(cmdText || "").trim() + "`\nType `/help` to see available commands.");
-        finishPiRequest(sessionId, generation);
-    }
-
-    function doPiRequest(sessionId, generation) {
-        if (!requestIsCurrent(sessionId, generation))
-            return;
-        var lastMsg = root.messages[root.messages.length - 1] || {};
-        var prompt = String(lastMsg.content || "");
-        if (prompt.trim().charAt(0) === "/") {
-            root.loading = true;
-            runLocalPiCommand(prompt, sessionId, generation);
-            return;
-        }
-        if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-            var attachmentPrompt = buildMessageContent(prompt, lastMsg.attachments, "openai");
-            if (typeof attachmentPrompt === "string") prompt = attachmentPrompt;
-            else {
-                prompt += "\n\n[Image attachments were supplied to the chat; describe them if supported by the Pi provider.]";
-                for (var ai = 0; ai < attachmentPrompt.length; ai++)
-                    if (attachmentPrompt[ai].type === "text") prompt += "\n" + attachmentPrompt[ai].text;
-            }
-        }
-        if (prompt.length > 100000) {
-            pushErrorMessage("Pi prompt is too large. Keep Pi prompts under 100,000 characters.");
-            finishPiRequest(sessionId, generation);
-            return;
-        }
-        var messageId = "pi-response-" + Date.now() + "-" + root.piRequestCounter;
-        var ts = Date.now();
-        root.messages = root.messages.concat([{"role": "assistant", "content": "Thinking…", "model": "Pi Agent", "time": nowTime(ts), "at": ts, "id": messageId}]);
-        root.loading = true;
-        root.streamingResponse = true;
-        saveCurrentSessionState(true);
-        runPiCommand({
-            "sessionId": "kde-ai-chat-" + sessionId,
-            "provider": String(getSessionProperty(sessionId, "chatProvider", plasmoid.configuration.piProvider || "") || "").trim(),
-            "model": String(getSessionProperty(sessionId, "chatModel", plasmoid.configuration.piModel || "") || "").trim(),
-            "prompt": prompt,
-            "timeout": Number(plasmoid.configuration.requestTimeout || 60)
-        }, sessionId, generation, messageId);
-    }
-
-    function handlePiResponse(sourceName, stdout, stderr, exitCode) {
-        var keys = Object.keys(root.pendingPiRequests || {});
-        var marker = "";
-        for (var i = 0; i < keys.length; i++) {
-            if (sourceName.indexOf(keys[i]) !== -1) { marker = keys[i]; break; }
-        }
-        if (!marker)
-            return;
-        var pending = root.pendingPiRequests[marker];
-        var remaining = Object.assign({}, root.pendingPiRequests);
-        delete remaining[marker];
-        root.pendingPiRequests = remaining;
-        var response = {};
-        try { response = JSON.parse(String(stdout || "").trim()); } catch (e) {}
-        var code = response.exitCode !== undefined ? Number(response.exitCode) : Number(exitCode || 0);
-        var out = response.stdout !== undefined ? String(response.stdout || "") : String(stdout || "");
-        var err = response.stderr !== undefined ? String(response.stderr || "") : String(stderr || "");
-        if (!requestIsCurrent(pending.sessionId, pending.generation))
-            return;
-        if (code !== 0) {
-            var failed = root.messages.slice();
-            for (var fi = failed.length - 1; fi >= 0; fi--) {
-                if (failed[fi].id === pending.messageId) { failed.splice(fi, 1); break; }
-            }
-            root.messages = failed;
-            pushErrorMessage("Pi agent failed: " + (err.trim() || out.trim() || ("process exited with code " + code)));
-            finishPiRequest(pending.sessionId, pending.generation);
-            return;
-        }
-        var result = out.trim() || "(empty response)";
-        var updated = root.messages.slice();
-        for (var ui = 0; ui < updated.length; ui++) {
-            if (updated[ui].id === pending.messageId) {
-                updated[ui] = Object.assign({}, updated[ui], {"content": result, "model": "Pi Agent"});
-                break;
-            }
-        }
-        root.messages = updated;
-        finishPiRequest(pending.sessionId, pending.generation);
-    }
-
     function resetProviderStreamingState() {
         if (root.currentStreamIndex >= 0 && root.currentStreamIndex < root.messages.length) {
             var copy = root.messages.slice();
@@ -1648,11 +1497,11 @@ PlasmoidItem {
         setCurrentSessionSource(requestSource);
         var requestGeneration = beginRequest(requestSessionId);
         if (root.openCodeMode) {
-            doOpenCodeRequest(requestSessionId, requestGeneration);
+            openCode.send(requestSessionId, requestGeneration);
             return ;
         }
         if (root.piMode) {
-            doPiRequest(requestSessionId, requestGeneration);
+            piAgent.send(requestSessionId, requestGeneration);
             return ;
         }
         var provider = root.getEffectiveProvider(requestSessionId);
@@ -2060,8 +1909,10 @@ PlasmoidItem {
         return -1;
     }
 
-    // Applies one backend event (DirectBackend.js / OpenCodeBackend.js) to the chat.
+    // Applies one backend event (DirectBackend.js / OpenCodeBackend.js / PiBackend.js) to the chat.
     function applyBackendEvent(event, model, extra) {
+        var harness = (extra || {}).harness || "opencode";
+        var harnessName = harness === "pi" ? "Pi" : "OpenCode";
         if (event.type === "tool_start" || event.type === "tool_update" || event.type === "tool_end") {
             // Shown in the reply's Context list until Phase 4's tool cards.
             ensureStreamingMessage(model);
@@ -2080,10 +1931,16 @@ PlasmoidItem {
                 }
                 tools[event.callId] = tool;
                 msg.tools = tools;
-                var items = [];
+                var items = (msg.notices || []).slice();
                 for (var id in tools)
                     items.push((tools[id].status === "done" ? "✓ " : tools[id].status === "error" ? "✗ " : "… ") + tools[id].name + (tools[id].detail ? ": " + tools[id].detail : ""));
                 msg.contextItems = items;
+            });
+        } else if (event.type === "notice") {
+            ensureStreamingMessage(model);
+            updateMessageAt(root.currentStreamIndex, function(msg) {
+                msg.notices = (msg.notices || []).concat([(event.level === "info" ? "ℹ " : "⚠ ") + event.message]).slice(-20);
+                msg.contextItems = (msg.contextItems || []).concat([msg.notices[msg.notices.length - 1]]);
             });
         } else if (event.type === "file_changed") {
             ensureStreamingMessage(model);
@@ -2095,10 +1952,11 @@ PlasmoidItem {
         } else if (event.type === "permission_request") {
             var detail = (event.patterns || []).join("\n");
             root.messages = root.messages.concat([{"role": "permission_request", "id": "perm-" + event.id, "permissionId": event.id,
-                "tool": event.permission, "arguments": event.patterns, "status": "pending", "at": Date.now(), "model": "OpenCode",
-                "openCodeDirectory": (extra || {}).directory || "",
-                "content": "OpenCode asks for permission: **" + event.permission + "**" + (detail ? "\n\n```\n" + detail + "\n```" : "")}]);
+                "tool": event.permission, "arguments": event.patterns, "status": "pending", "at": Date.now(), "model": harnessName,
+                "openCodeDirectory": (extra || {}).directory || "", "harness": harness, "harnessChatId": (extra || {}).chatId || "",
+                "content": harnessName + " asks for permission: **" + event.permission + "**" + (detail ? "\n\n```\n" + detail + "\n```" : "")}]);
             triggerNotificationSound();
+            saveCurrentSessionState(true);
         } else if (event.type === "permission_resolved") {
             updateMessageAt(findRequestMessage("permission_request", "permissionId", event.id), function(msg) {
                 msg.status = event.reply === "reject" ? "denied" : "allowed";
@@ -2117,10 +1975,11 @@ PlasmoidItem {
             }
             if (findRequestMessage("question_request", "questionId", event.id) < 0) {
                 root.messages = root.messages.concat([{"role": "question_request", "id": "question-" + event.id, "questionId": event.id,
-                    "questions": questions, "allowCustom": allowCustom, "status": "pending", "at": Date.now(), "model": "OpenCode",
-                    "openCodeDirectory": (extra || {}).directory || "",
-                    "content": "OpenCode is asking:\n\n" + summary.join("\n\n")}]);
+                    "questions": questions, "allowCustom": allowCustom, "status": "pending", "at": Date.now(), "model": harnessName,
+                    "openCodeDirectory": (extra || {}).directory || "", "harness": harness, "harnessChatId": (extra || {}).chatId || "",
+                    "content": harnessName + " is asking:\n\n" + summary.join("\n\n")}]);
                 triggerNotificationSound();
+                saveCurrentSessionState(true);
             }
         } else if (event.type === "question_resolved") {
             updateMessageAt(findRequestMessage("question_request", "questionId", event.id), function(msg) {
@@ -2175,18 +2034,19 @@ PlasmoidItem {
         }
     }
 
-    function doOpenCodeRequest(sessionId, generation) {
-        openCode.send(sessionId, generation);
+    // The agent (OpenCode or Pi) that asked a permission or question.
+    function harnessFor(role, idField, id) {
+        var index = findRequestMessage(role, idField, id);
+        return index >= 0 && root.messages[index].harness === "pi" ? piAgent : openCode;
     }
 
     function respondToPermission(permissionId, approved) {
-        openCode.respondToPermission(permissionId, approved);
+        harnessFor("permission_request", "permissionId", permissionId).respondToPermission(permissionId, approved);
     }
 
     function respondToQuestion(questionId, answerValue, isReject) {
-        openCode.respondToQuestion(questionId, answerValue, isReject);
+        harnessFor("question_request", "questionId", questionId).respondToQuestion(questionId, answerValue, isReject);
     }
-
 
     function triggerNotificationSound() {
         if (plasmoid.configuration.playNotificationSound) {
@@ -2675,21 +2535,6 @@ PlasmoidItem {
 
         engine: "executable"
         connectedSources: []
-    }
-
-    P5Support.DataSource {
-        id: piTerminalDs
-
-        engine: "executable"
-        connectedSources: []
-        onNewData: function(sourceName, data) {
-            var exitCode = Number(data["exit code"]);
-            if (isNaN(exitCode)) exitCode = 1;
-            var stdout = data["stdout"] || "";
-            var stderr = data["stderr"] || "";
-            disconnectSource(sourceName);
-            root.handlePiResponse(sourceName, stdout, stderr, exitCode);
-        }
     }
 
     P5Support.DataSource {

@@ -21,6 +21,17 @@ scripts/dev-send.sh openrouter openrouter/auto ["message"]
 
 It copies that provider's key from your KWallet folder `KDEAIChat` into the dev folder `KDEAIChat-dev` inside D-Bus (never printed), delivers the message as a scheduler trigger, prints the conversation, and deletes the dev folder afterwards.
 
+The agent modes have their own end-to-end runs, which need no model credit:
+
+```bash
+scripts/dev-opencode-e2e.sh            # OpenCode mode against scripts/dev-opencode-mock.py
+scripts/dev-pi-e2e.sh ["message"]      # Pi mode; `pi` is scripts/dev-pi-mock.py replaying a real capture
+PI_E2E_REAL=1 PI_E2E_SECONDS=150 PI_CODING_AGENT_DIR=/path/to/test-config \
+    scripts/dev-pi-e2e.sh "message" ollama qwen3:8b   # the real `pi`, e.g. on a local Ollama model
+```
+
+Each prints what the agent was asked and the saved chat. For the real-Pi run, a test config folder with a `models.json` pointing at Ollama keeps your own `~/.pi/agent` out of it (see Pi's `docs/models.md`).
+
 To try the widget on your real panel instead:
 
 ```bash

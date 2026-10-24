@@ -31,6 +31,7 @@ WATCHED_FILES = (
     "ProviderService.js",
     "backends/DirectBackend.js",
     "backends/OpenCodeBackend.js",
+    "backends/PiBackend.js",
 )
 
 # Top-of-file patterns that are legal in a plain .js file.

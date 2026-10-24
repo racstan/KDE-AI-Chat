@@ -64,11 +64,16 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/store/Storage.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectBackend.js",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/OpenCodeBackend.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/backends/PiBackend.js",
                       "org.kde.plasma.kdeaichat/contents/ui/config/ProvidersPanel.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/OpenCodeMode.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/PiMode.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/chats.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/opencode_server.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/pi_bridge.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/pi_bridge_server.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/procs.py",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py",
                   ]
                   missing = [name for name in required if name not in names]

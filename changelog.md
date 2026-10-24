@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **🧰 MCP tool support (opt-in)**: Built-in web search plus your own MCP servers, configured under Settings → Other. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 - **🚫 Disable streaming option**: For providers that reject streamed requests (HTTP 400). ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
 - **🖼️ Custom widget icon**: Use any KDE icon name or an image file. ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3))
-- **🤖 Pi Coding Agent bridge**: New agent mode alongside OpenCode, with dynamic provider/model loading.
+- **🤖 Pi Coding Agent mode**: Chat with the Pi agent alongside OpenCode. Each chat keeps its own Pi session running in its folder, so replies stream as they're written, tool use shows live, Pi extensions can ask you questions or for permission in the chat, and Stop stops the agent. Idle Pi processes close on their own.
+- **OpenCode server managed safely**: In OpenCode mode the widget starts a local `opencode serve` when none is running, and its Stop button only ever stops a server the widget started. Replies, tool use, permission and question prompts and token use now come from OpenCode's live event stream.
 - OpenCode agent profile selector, workspace directory selector and Git diff inspector.
 
 ### Changed
