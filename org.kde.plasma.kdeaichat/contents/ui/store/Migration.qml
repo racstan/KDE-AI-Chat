@@ -63,7 +63,7 @@ QtObject {
         wallet.migrateLegacyFolder(function(movedFromFolder) {
             console.info("KDE AI Chat: legacy wallet folder: moved", movedFromFolder, "keys (-1 = not removed)");
             if (movedFromFolder > 0)
-                _say(i18n("Moved %1 API keys from the old KaiChat wallet folder to \"KDE AI Chat\".", movedFromFolder));
+                _say(i18n("Moved %1 API keys from the old KaiChat wallet folder to \"KDE AI Chat\".", movedFromFolder)); // qmllint disable unqualified
             wallet.load(function() { _migratePlaintextKeys(callback); });
         });
     }
@@ -123,9 +123,9 @@ QtObject {
                 if (fileIds.length > 0)
                     runHelper("remove_legacy_keyfile", {}, null);
                 if (moved > 0)
-                    _say(i18n("Moved %1 API keys into KWallet and removed their plaintext copies.", moved));
+                    _say(i18n("Moved %1 API keys into KWallet and removed their plaintext copies.", moved)); // qmllint disable unqualified
                 else
-                    _say(i18n("Removed plaintext copies of %1 API keys that were already in KWallet.", ids.length));
+                    _say(i18n("Removed plaintext copies of %1 API keys that were already in KWallet.", ids.length)); // qmllint disable unqualified
                 if (callback) callback(moved);
             }
 
@@ -170,7 +170,7 @@ QtObject {
         chatStore.writeBackup("legacy-chat-history-backup.ini", legacy);
         configuration.chatSessionsJson = "";
         console.info("KDE AI Chat: moved", sessions.length, "chats to", chatStore.directory);
-        _say(i18n("Moved %1 chats into private files.", sessions.length));
+        _say(i18n("Moved %1 chats into private files.", sessions.length)); // qmllint disable unqualified
         if (callback) callback(true);
     }
 }

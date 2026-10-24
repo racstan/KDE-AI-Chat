@@ -49,7 +49,7 @@ Rectangle {
             icon.name: "dialog-close"
             onClicked: banner.dismissed()
             QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: i18n("Dismiss")
+            QQC2.ToolTip.text: i18n("Dismiss") // qmllint disable unqualified
         }
     }
 }

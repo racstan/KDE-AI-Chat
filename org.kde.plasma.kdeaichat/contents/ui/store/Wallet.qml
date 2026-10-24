@@ -76,11 +76,11 @@ QtObject {
 
     function statusMessage() {
         switch (status) {
-        case "ready": return i18n("API keys are stored in KWallet.");
-        case "disabled": return i18n("KWallet is turned off, so API keys can't be stored or read. Turn it on in System Settings → KDE Wallet.");
-        case "denied": return i18n("KWallet didn't allow access to the API keys (the wallet may be locked or access was refused).");
-        case "unavailable": return i18n("KWallet isn't running, so API keys can't be read.");
-        default: return i18n("Checking KWallet…");
+        case "ready": return i18n("API keys are stored in KWallet."); // qmllint disable unqualified
+        case "disabled": return i18n("KWallet is turned off, so API keys can't be stored or read. Turn it on in System Settings → KDE Wallet."); // qmllint disable unqualified
+        case "denied": return i18n("KWallet didn't allow access to the API keys (the wallet may be locked or access was refused)."); // qmllint disable unqualified
+        case "unavailable": return i18n("KWallet isn't running, so API keys can't be read."); // qmllint disable unqualified
+        default: return i18n("Checking KWallet…"); // qmllint disable unqualified
         }
     }
 

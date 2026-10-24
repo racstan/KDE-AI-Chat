@@ -155,7 +155,7 @@ Item {
 
         var removed = [];
         for (var id in _written) {
-            if (!written.hasOwnProperty(id))
+            if (!(id in written))
                 removed.push(fileNameForId(id));
         }
         _written = written;
