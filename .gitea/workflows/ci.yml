@@ -81,7 +81,7 @@ jobs:
 
       - name: Upload QML screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3  # v4 is not supported by Gitea
         with:
           name: qml-screens
           path: build/qml-screens/
