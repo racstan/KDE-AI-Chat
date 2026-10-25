@@ -5,10 +5,14 @@ const vm = require("vm");
 const assert = require("assert");
 const path = require("path");
 
-const source = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/backends/DirectBackend.js"), "utf8")
+const read = name => fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/backends/" + name), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const DB = {};
-vm.runInNewContext(source + "\nthis.exports = {createSseParser, createThinkSplitter, buildRequest, errorMessage, send, DEFAULT_MAX_TOKENS};", DB);
+// DirectStream.js (the <think> splitter) is passed to send() as options.thinkFactory in the widget; here it is
+// loaded next to DirectBackend.js and added to every send.
+vm.runInNewContext(read("DirectBackend.js") + "\n" + read("DirectStream.js") + read("DirectTools.js")
+    + "\nconst rawSend = send;\nthis.exports = {createSseParser, createThinkSplitter, buildRequest, errorMessage, rejectsTools, createCollector,"
+    + " send: o => rawSend(Object.assign({thinkFactory: createThinkSplitter}, o)), DEFAULT_MAX_TOKENS};", DB);
 const B = DB.exports;
 // Objects from the vm context have another realm's prototypes; compare plain copies.
 const plain = x => JSON.parse(JSON.stringify(x));

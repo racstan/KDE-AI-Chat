@@ -133,4 +133,19 @@ assert.ok(!md(fixture).includes("**You:**"), "no quotes, nothing added");
 // Default exportedAt when missing is a valid date.
 assert.ok(/- \*\*Exported:\*\* \d{4}-\d\d-\d\d \d\d:\d\d/.test(md({messages: []})));
 
+// A direct-mode reply that asked the user a question (ask_user): the question and the answer are exported
+// with the reply; the question card message itself is left out.
+const asked = {title: "Colours", messages: [
+    {role: "user", content: "Pick a colour for me", at: 1000, time: "09:00"},
+    {role: "assistant", content: "", model: "m1", at: 2000, time: "09:01",
+     tools: {call_1: {name: "ask_user", status: "done", detail: "Which colour?", input: "{\"question\":\"Which colour?\"}", output: "Blue"}},
+     toolRounds: [{text: "", calls: [{id: "call_1", name: "ask_user", args: {question: "Which colour?"}}]}]},
+    {role: "question_request", status: "answered", questionId: "q1", questions: [{question: "Which colour?"}]},
+    {role: "assistant", content: "Blue it is.", model: "m1", at: 3000, time: "09:02"}]};
+const am = md(asked);
+assert.ok(am.includes("ask_user") && am.includes("Which colour?") && am.includes("Blue"), am);
+assert.ok(am.includes("Blue it is."), am);
+assert.ok(!am.includes("question_request"), am);
+assert.strictEqual(json(asked).messages.length, 3);
+
 console.log("chat_export ok");

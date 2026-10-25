@@ -192,5 +192,32 @@ Item {
             }
             screenshot(root, "cards-plain-messages");
         }
+
+        // The name and time show once for a run of messages from one sender: here the AI's tool step,
+        // its question and its answer are one turn, so only the step has a header.
+        function test_9_a_run_of_messages_from_one_sender_has_one_header() {
+            chat.messages = [{role: "user", content: "Pick for me", time: "10:00"},
+                {role: "assistant", model: "nemotron", content: "", time: "10:01", contextItems: ["… ask_user: Which?"],
+                 tools: {c1: {name: "ask_user", detail: "Which?", status: "done", input: "{}", output: "Blue"}}},
+                {role: "question_request", model: "nemotron", status: "answered", questionId: "q1", submittedAnswer: "Blue",
+                 questions: [{question: "Which?", options: [{label: "Red"}, {label: "Blue"}]}], content: "nemotron is asking"},
+                {role: "assistant", model: "nemotron", content: "Blue it is.", time: "10:02"},
+                {role: "user", content: "Thanks", time: "10:03"},
+                {role: "assistant", model: "nemotron", content: "Welcome.", time: "10:04"},
+                {role: "error", content: "Request to https://x failed (HTTP 500)", time: "10:05"}];
+            wait(150);
+            var shown = [];
+            for (var i = 0; i < 7; i++)
+                shown.push(findChild(delegateAt(i), "senderName").visible);
+            compare(shown.join(","), "true,true,false,false,true,true,true");
+            compare(findChild(delegateAt(1), "senderName").text, "nemotron");
+            compare(findChild(delegateAt(0), "senderName").text, "You");
+            // The card's own heading is plain when it opens a run.
+            chat.messages = [{role: "user", content: "x", time: "10:00"}, {role: "question_request", model: "Pi", status: "pending", questionId: "q2",
+                questions: [{question: "Run it?", options: [{label: "Yes"}]}], content: "Pi is asking"}];
+            wait(100);
+            compare(findChild(delegateAt(1), "senderName").text, "Question");
+            screenshot(root, "cards-grouped-run");
+        }
     }
 }

@@ -290,6 +290,9 @@
     <entry name="notifyOnScheduled" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="notifyOnInput" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="customIcon" type="String">
       <default>dialog-messages</default>
     </entry>
@@ -305,6 +308,10 @@
       <default>[]</default>
     </entry>
     <entry name="autoNameChats" type="Bool">
+      <default>true</default>
+    </entry>
+    <!-- Direct mode: offer the model the ask_user tool (chat/DirectToolRounds.qml). -->
+    <entry name="allowAskUser" type="Bool">
       <default>true</default>
     </entry>
 

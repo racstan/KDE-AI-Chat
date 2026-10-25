@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 17:54+0530\n"
+"POT-Creation-Date: 2026-10-25 19:34+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -111,7 +111,7 @@ msgstr ""
 msgid "Clear chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:248 contents/ui/ConfigAppearance.qml:31
+#: contents/ui/chat/ChatHeader.qml:248 contents/ui/ConfigAppearance.qml:32
 msgid "New chat"
 msgstr ""
 
@@ -209,7 +209,7 @@ msgid "Working folder"
 msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:306
-#: contents/ui/chat/WorkspaceBar.qml:88 contents/ui/ConfigChat.qml:93
+#: contents/ui/chat/WorkspaceBar.qml:88 contents/ui/ConfigChat.qml:109
 msgid "No workspace"
 msgstr ""
 
@@ -526,7 +526,7 @@ msgstr ""
 msgid "Queue"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:366
+#: contents/ui/chat/Composer.qml:366 contents/ui/chat/Notifier.qml:194
 msgid "Send"
 msgstr ""
 
@@ -553,12 +553,12 @@ msgid "Stop the reply (Esc)"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:153
+#: contents/ui/chat/MessageDelegate.qml:159
 msgid "Writing…"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:153
+#: contents/ui/chat/MessageDelegate.qml:159
 #: contents/ui/chat/ReasoningBlock.qml:47
 msgid "Thinking…"
 msgstr ""
@@ -708,6 +708,14 @@ msgstr ""
 msgid "Export chat"
 msgstr ""
 
+#: contents/ui/chat/DirectToolRounds.qml:43
+msgid "Stopped: the AI asked for too many tools in a row."
+msgstr ""
+
+#: contents/ui/chat/DirectToolRounds.qml:121
+msgid "The user closed the question without answering."
+msgstr ""
+
 #: contents/ui/chat/MessageActions.qml:108
 #: contents/ui/config/ProviderRow.qml:77
 #: contents/ui/config/TemplatesEditor.qml:87
@@ -772,31 +780,31 @@ msgstr ""
 msgid "Copy"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:126
+#: contents/ui/chat/MessageDelegate.qml:132
 msgid "You"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:127
+#: contents/ui/chat/MessageDelegate.qml:133
 msgid "You · queued"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:128
+#: contents/ui/chat/MessageDelegate.qml:134
 msgid "Something went wrong"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:129
-msgid "%1 asks"
+#: contents/ui/chat/MessageDelegate.qml:135
+msgid "Question"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:130
-msgid "%1 asks for permission"
+#: contents/ui/chat/MessageDelegate.qml:136
+msgid "Permission request"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:131
+#: contents/ui/chat/MessageDelegate.qml:137
 msgid "Assistant"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:200
+#: contents/ui/chat/MessageDelegate.qml:206
 msgid "Saving removes the messages after this one."
 msgstr ""
 
@@ -805,32 +813,52 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:67
+#: contents/ui/chat/Notifier.qml:79
 msgid "The reply is ready."
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:74
+#: contents/ui/chat/Notifier.qml:86
 msgid "%1: request failed"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:74
+#: contents/ui/chat/Notifier.qml:86
 msgid "Something went wrong."
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:82
+#: contents/ui/chat/Notifier.qml:94
 msgid "Scheduled task"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:101
+#: contents/ui/chat/Notifier.qml:104
+msgid "%1: input needed"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:109
+msgid "%1 asks to use %2"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:110 contents/ui/chat/PermissionButtons.qml:22
+msgid "Allow"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:110
+msgid "Deny"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:192
+msgid "Reply…"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:193 contents/ui/chat/QuestionCard.qml:89
+msgid "Type your answer…"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:233 contents/ui/chat/Notifier.qml:247
 msgid "Open chat"
 msgstr ""
 
 #: contents/ui/chat/OwnModelCheck.qml:9
 msgid "Give this chat its own model settings"
-msgstr ""
-
-#: contents/ui/chat/PermissionButtons.qml:22
-msgid "Allow"
 msgstr ""
 
 #: contents/ui/chat/PermissionButtons.qml:30
@@ -859,10 +887,6 @@ msgstr ""
 
 #: contents/ui/chat/QuestionCard.qml:89
 msgid "Or type your own answer…"
-msgstr ""
-
-#: contents/ui/chat/QuestionCard.qml:89
-msgid "Type your answer…"
 msgstr ""
 
 #: contents/ui/chat/QuestionCard.qml:100
@@ -1064,225 +1088,244 @@ msgstr ""
 msgid "No model matches."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:32
+#: contents/ui/ConfigAppearance.qml:33
 msgid "Show or hide the history"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:33
+#: contents/ui/ConfigAppearance.qml:34
 msgid "Show or hide the chat info panel"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:34
+#: contents/ui/ConfigAppearance.qml:35
 msgid "Focus the message input"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:35
+#: contents/ui/ConfigAppearance.qml:36
 msgid "Stop the reply; cancel an edit"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:36
+#: contents/ui/ConfigAppearance.qml:37
 msgid "Regenerate the last reply"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:37
+#: contents/ui/ConfigAppearance.qml:38
 msgid "Copy the last reply"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:38
+#: contents/ui/ConfigAppearance.qml:39
 msgid "Next chat"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:39
+#: contents/ui/ConfigAppearance.qml:40
 msgid "Previous chat"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:40
+#: contents/ui/ConfigAppearance.qml:41
 msgid "Open the settings"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:70
+#: contents/ui/ConfigAppearance.qml:71
 msgid "Choose an Image for the Widget"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:72
+#: contents/ui/ConfigAppearance.qml:73
 msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:79 contents/ui/config/ProviderEditor.qml:48
+#: contents/ui/ConfigAppearance.qml:80 contents/ui/config/ProviderEditor.qml:48
 msgid "Name:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:86
+#: contents/ui/ConfigAppearance.qml:87
 msgid "Icon:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:90 contents/ui/ConfigAppearance.qml:92
+#: contents/ui/ConfigAppearance.qml:91 contents/ui/ConfigAppearance.qml:93
 msgid "Choose the widget icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:115
+#: contents/ui/ConfigAppearance.qml:116
 msgid "Choose Icon…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:124
+#: contents/ui/ConfigAppearance.qml:125
 msgid "Choose Image File…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:129
+#: contents/ui/ConfigAppearance.qml:130
 msgid "Reset to Default Icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:139
+#: contents/ui/ConfigAppearance.qml:140
 msgid "Notifications"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:145
+#: contents/ui/ConfigAppearance.qml:146
 msgid "Notify when:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:146
+#: contents/ui/ConfigAppearance.qml:147
 msgid "A reply finishes while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:152
+#: contents/ui/ConfigAppearance.qml:153
 msgid "A request fails while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:158
-msgid "A scheduled task runs"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:164
-msgid "Sound:"
+#: contents/ui/ConfigAppearance.qml:159
+msgid "The AI needs an answer or permission while the chat is closed"
 msgstr ""
 
 #: contents/ui/ConfigAppearance.qml:165
+msgid "A scheduled task runs"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:171
+msgid "Sound:"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:172
 msgid "Play a sound when a reply is finished"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:170
+#: contents/ui/ConfigAppearance.qml:177
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:191
+#: contents/ui/ConfigAppearance.qml:198
 msgid ""
 "These work while the chat is open. To open the widget from anywhere, set its "
 "global shortcut on the \"Keyboard Shortcuts\" page of this window."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:30 contents/ui/ConfigChat.qml:94
+#: contents/ui/ConfigChat.qml:31 contents/ui/ConfigChat.qml:110
 msgid "Default workspace for new chats"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:42
+#: contents/ui/ConfigChat.qml:43
 msgid "System prompt:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:43
+#: contents/ui/ConfigChat.qml:44
 msgid "Send these instructions before every chat"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:56
+#: contents/ui/ConfigChat.qml:57
 msgid "Instructions for the model…"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:57
+#: contents/ui/ConfigChat.qml:58
 msgid "System prompt"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:63
+#: contents/ui/ConfigChat.qml:64
 msgid "Earlier messages sent:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:68
+#: contents/ui/ConfigChat.qml:69
 msgid "All (up to 100)"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:74
+#: contents/ui/ConfigChat.qml:75
 msgid "Number of earlier messages sent with each request"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:79
+#: contents/ui/ConfigChat.qml:80
 msgid "Chat names:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:80
+#: contents/ui/ConfigChat.qml:81
 msgid "Let the model name new chats"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:84
+#: contents/ui/ConfigChat.qml:87
+msgid "Questions:"
+msgstr ""
+
+#: contents/ui/ConfigChat.qml:88
+msgid "Let the AI ask me questions"
+msgstr ""
+
+#: contents/ui/ConfigChat.qml:96
+msgid ""
+"When it needs a choice or a missing detail, the AI can ask you in the chat "
+"and wait for your answer. Applies to chats with a provider; the agent modes "
+"ask in their own way."
+msgstr ""
+
+#: contents/ui/ConfigChat.qml:100
 msgid "Default workspace for new chats:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:99 contents/ui/ConfigChat.qml:101
+#: contents/ui/ConfigChat.qml:115 contents/ui/ConfigChat.qml:117
 msgid "Choose a folder"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:110
+#: contents/ui/ConfigChat.qml:126
 msgid ""
 "Copied into a chat when it is created. Leave empty for no workspace. Each "
 "chat can change its own in the bar above the chat."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:115
+#: contents/ui/ConfigChat.qml:131
 msgid "Model settings per chat"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:121
+#: contents/ui/ConfigChat.qml:137
 msgid "Chats:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:122
+#: contents/ui/ConfigChat.qml:138
 msgid "Let chats have their own model settings"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:123
+#: contents/ui/ConfigChat.qml:139
 msgid ""
 "When off, every chat uses the model settings from Settings. A chat's own "
 "settings are kept but ignored."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:132
+#: contents/ui/ConfigChat.qml:148
 msgid ""
 "A chat can choose its own mode (provider, OpenCode or Pi), provider and "
 "model in its Chat info panel."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:133
+#: contents/ui/ConfigChat.qml:149
 msgid ""
 "Every chat uses the mode, provider and model from Settings. Any model "
 "settings a chat already has are kept, and come back if you turn this on."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:140
+#: contents/ui/ConfigChat.qml:156
 msgid "When they differ:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:141
+#: contents/ui/ConfigChat.qml:157
 msgid "This chat's settings win"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:150
+#: contents/ui/ConfigChat.qml:166
 msgid "Main settings win"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:162
+#: contents/ui/ConfigChat.qml:178
 msgid ""
 "A chat that has its own settings uses them; anything it leaves empty comes "
 "from the main settings."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:163
+#: contents/ui/ConfigChat.qml:179
 msgid ""
 "The main settings are used. A chat's own settings only fill in what the main "
 "settings leave empty, such as a model."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:168
+#: contents/ui/ConfigChat.qml:184
 msgid "Prompt templates"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:173
+#: contents/ui/ConfigChat.qml:189
 msgid "Insert with /name:"
 msgstr ""
 

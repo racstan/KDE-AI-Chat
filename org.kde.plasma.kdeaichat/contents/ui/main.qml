@@ -1,10 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import "ProviderService.js" as ProviderService
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PC3
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
 import QtCore
@@ -140,6 +138,7 @@ PlasmoidItem {
 
     Chat.Notifier {
         id: notifier
+        chat: root
         popupOpen: root.expanded
         replyEnabled: plasmoid.configuration.notifyOnReply
         errorEnabled: plasmoid.configuration.notifyOnError
@@ -162,7 +161,6 @@ PlasmoidItem {
 
         onErrorOccurred: function(errorText) {
             console.error("Voice Error: " + errorText);
-            // Optionally show a notification
             let message = Sec.sanitizeForShell(errorText || "Unknown voice error");
             root.fileReaderDs.connectSource("notify-send -i dialog-error " + Sec.quoteForShell("Voice Error") + " " + Sec.quoteForShell(message) + " #voice-error");
         }
@@ -239,6 +237,7 @@ PlasmoidItem {
         notifierRef: notifier
         openCodeRef: openCode
         piAgentRef: piAgent
+        directToolsRef: directRequest.toolRounds
     }
 
     Chat.DirectRequest {
@@ -258,6 +257,7 @@ PlasmoidItem {
         chat: root
         openCodeRef: openCode
         piAgentRef: piAgent
+        directToolsRef: directRequest.toolRounds
     }
 
     Chat.ChatNavigation {

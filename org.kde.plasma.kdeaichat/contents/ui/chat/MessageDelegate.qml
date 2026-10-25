@@ -13,6 +13,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "ErrorText.js" as ErrorText
+import "MessageGroups.js" as MessageGroups
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -30,6 +31,8 @@ Item {
     readonly property bool isRequest: role === "permission_request" || role === "question_request"
     readonly property bool streaming: chat.currentStreamIndex === index
     readonly property bool editing: chat.editingMessageIndex === index && role !== "error"
+    // The name and time show on the first message of a run from one sender only (MessageGroups.js).
+    readonly property bool showHeader: showDay || MessageGroups.startsRun(chat.messages, index)
     readonly property bool showDay: index === 0 || chat.messageDayKeyAt(index) !== chat.messageDayKeyAt(index - 1)
     readonly property string reasoning: streaming && (chat.currentStreamReasoning || chat.currentStreamExtractedReasoning)
         ? [chat.currentStreamReasoning, chat.currentStreamExtractedReasoning].filter(function(t) { return !!t; }).join("\n")
@@ -107,6 +110,7 @@ Item {
 
                 RowLayout {
                     id: header
+                    visible: row.showHeader || row.streaming
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
                     layoutDirection: row.mine ? Qt.RightToLeft : Qt.LeftToRight
@@ -123,11 +127,13 @@ Item {
                     }
 
                     PC3.Label {
+                        objectName: "senderName"
+                        visible: row.showHeader
                         text: row.role === "user" ? i18n("You")
                             : row.role === "queued" ? i18n("You · queued")
                             : row.role === "error" ? i18n("Something went wrong")
-                            : row.role === "question_request" ? i18n("%1 asks", row.message.model || "OpenCode")
-                            : row.role === "permission_request" ? i18n("%1 asks for permission", row.message.model || "OpenCode")
+                            : row.role === "question_request" ? i18n("Question")
+                            : row.role === "permission_request" ? i18n("Permission request")
                             : (row.message.model || i18n("Assistant"))
                         font.bold: true
                         elide: Text.ElideRight
@@ -159,7 +165,7 @@ Item {
 
                     PC3.Label {
                         text: row.chat.formatMessageTime(row.message, row.index)
-                        visible: text !== ""
+                        visible: text !== "" && row.showHeader
                         font: Kirigami.Theme.smallFont
                         opacity: 0.6
                     }

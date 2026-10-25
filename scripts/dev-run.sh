@@ -56,6 +56,22 @@ sed -i -e 's/readonly property string folder: "KDEAIChat"/readonly property stri
 grep -q '"KDEAIChat-dev"' "$WALLET_QML" && grep -q '"KaiChat-dev"' "$WALLET_QML" \
     || { echo "could not isolate wallet folders" >&2; exit 2; }
 
+# DEV_AUTO_ANSWER="text": in the staged copy only, the model's ask_user questions
+# (direct mode) are answered with this text right after they are shown, for
+# end-to-end runs without clicking (scripts/dev-send.sh passes it through).
+if [ -n "${DEV_AUTO_ANSWER:-}" ]; then
+    python3 - "$STAGE/$DEV_ID/contents/ui/chat/DirectToolRounds.qml" "$DEV_AUTO_ANSWER" <<'PY'
+import json, sys
+path, answer = sys.argv[1:]
+src = open(path, encoding="utf-8").read()
+marker = "        // DEV_AUTO_ANSWER"
+start = src.index(marker)
+end = src.index("\n", start)
+hook = "        Qt.callLater(function() { rounds.respondToQuestion(questionId, %s, false); });" % json.dumps(answer)
+open(path, "w", encoding="utf-8").write(src[:start] + hook + src[end:])
+PY
+fi
+
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 

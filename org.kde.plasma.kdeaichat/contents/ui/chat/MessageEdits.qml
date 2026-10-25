@@ -10,6 +10,7 @@ QtObject {
     property var chat: null
     property var openCodeRef: null  // chat/OpenCodeMode.qml
     property var piAgentRef: null   // chat/PiMode.qml
+    property var directToolsRef: null  // chat/DirectToolRounds.qml
 
     function deleteMessage(index) {
         var copy = chat.messages.slice();
@@ -107,10 +108,11 @@ QtObject {
         chat.sendMessageByIndex(lastUserIdx);
     }
 
-    // The agent (OpenCode or Pi) that asked a permission or question.
+    // The agent (OpenCode or Pi) or direct-mode model that asked a permission or question.
     function harnessFor(role, idField, id) {
         var index = chat.findRequestMessage(role, idField, id);
-        return index >= 0 && chat.messages[index].harness === "pi" ? edits.piAgentRef : edits.openCodeRef;
+        var harness = index >= 0 ? chat.messages[index].harness : "";
+        return harness === "pi" ? edits.piAgentRef : harness === "direct" ? edits.directToolsRef : edits.openCodeRef;
     }
 
     // always: also allow it from now on (OpenCode only).

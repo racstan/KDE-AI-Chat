@@ -24,6 +24,30 @@ Item {
         soundPlayer: function() { root.sounds++; }
     }
 
+    // The widget root, as far as "input needed" reads and calls it.
+    QtObject {
+        id: fakeChat
+        property var plasmoid: QtObject { property var configuration: QtObject { property bool notifyOnInput: true } }
+        property string currentSessionId: "c1"
+        property var messages: []
+        property var answers: []
+        function respondToQuestion(id, value, reject) { answers = answers.concat([["question", id, value, reject]]); }
+        function respondToPermission(id, approved, always) { answers = answers.concat([["permission", id, approved, always]]); }
+    }
+
+    property var inputs: []
+    property var closed: []
+    Chat.Notifier {
+        id: inputNotifier
+        chat: fakeChat
+        popupOpen: false
+        // A stand-in for the desktop notification: close() is recorded.
+        inputSender: function(spec) {
+            root.inputs.push(spec);
+            return {"close": function() { root.closed.push(spec.id); }};
+        }
+    }
+
     TestCase {
         name: "Notifier"
         when: windowShown
@@ -100,6 +124,114 @@ Item {
             notifier.replyFinished("c1", "  ", "");
             compare(root.sent[0].title, "KDE AI Chat");
             compare(root.sent[0].text, "The reply is ready.");
+        }
+
+        // --- Input needed ---
+
+        readonly property var question: ({role: "question_request", model: "m", status: "pending", questionId: "q1", allowCustom: true,
+            questions: [{question: "Which colour?", options: [{label: "Red"}, {label: "Blue"}]}], content: "m is asking"})
+        readonly property var permission: ({role: "permission_request", model: "OpenCode", status: "pending", permissionId: "p1", tool: "bash",
+            arguments: ["rm -rf build/"], content: "OpenCode asks for permission"})
+
+        function initInput() {
+            root.inputs = [];
+            root.closed = [];
+            fakeChat.answers = [];
+            fakeChat.messages = [];
+            fakeChat.currentSessionId = "c1";
+            inputNotifier.popupOpen = false;
+            inputNotifier.openInputs = ({});
+            fakeChat.plasmoid.configuration.notifyOnInput = true;
+        }
+
+        function test_input_question_has_buttons_and_a_reply_box() {
+            initInput();
+            verify(inputNotifier.inputNeeded("c1", "Colours", question));
+            compare(root.inputs.length, 1);
+            var spec = root.inputs[0];
+            compare(spec.title, "Colours: input needed");
+            verify(spec.text.indexOf("Which colour?") === 0, spec.text);
+            verify(spec.text.indexOf("Red") > 0 && spec.text.indexOf("Blue") > 0);
+            compare(spec.actions.map(function(a) { return a.label; }).join(","), "Red,Blue");
+            compare(spec.typed, true);
+            compare(spec.kind, "question");
+        }
+
+        function test_input_permission_is_allow_or_deny() {
+            initInput();
+            verify(inputNotifier.inputNeeded("c1", "Build", permission));
+            var spec = root.inputs[0];
+            compare(spec.kind, "permission");
+            compare(spec.actions.map(function(a) { return a.label; }).join(","), "Allow,Deny");
+            compare(spec.typed, false);
+            verify(spec.text.indexOf("bash") >= 0 && spec.text.indexOf("rm -rf build/") >= 0, spec.text);
+        }
+
+        function test_input_at_most_three_buttons_and_no_typing_when_not_allowed() {
+            initInput();
+            var q = JSON.parse(JSON.stringify(question));
+            q.questions[0].options = [{label: "A"}, {label: "B"}, {label: "C"}, {label: "D"}];
+            q.allowCustom = false;
+            inputNotifier.inputNeeded("c1", "T", q);
+            compare(root.inputs[0].actions.length, 3);
+            compare(root.inputs[0].typed, false);
+        }
+
+        function test_input_only_when_popup_closed_or_other_chat_and_enabled() {
+            initInput();
+            inputNotifier.popupOpen = true;
+            verify(!inputNotifier.inputNeeded("c1", "T", question), "the open chat shows it itself");
+            verify(inputNotifier.inputNeeded("c2", "Other", permission), "another chat than the open one");
+            inputNotifier.popupOpen = false;
+            fakeChat.plasmoid.configuration.notifyOnInput = false;
+            verify(!inputNotifier.inputNeeded("c1", "T", question), "setting off");
+            compare(root.inputs.length, 1);
+        }
+
+        function test_input_is_sent_once_per_request() {
+            initInput();
+            verify(inputNotifier.inputNeeded("c1", "T", question));
+            verify(!inputNotifier.inputNeeded("c1", "T", question));
+            compare(root.inputs.length, 1);
+        }
+
+        function test_answers_from_the_notification_answer_the_card() {
+            initInput();
+            inputNotifier.inputNeeded("c1", "T", question);
+            verify(inputNotifier.answerInput(root.inputs[0], root.inputs[0].actions[1].value));
+            compare(fakeChat.answers.length, 1);
+            compare(fakeChat.answers[0].join("|"), "question|q1|Blue|false");
+            inputNotifier.inputNeeded("c1", "T", permission);
+            inputNotifier.answerInput(root.inputs[1], false);
+            compare(fakeChat.answers[1].join("|"), "permission|p1|false|false");
+            inputNotifier.inputNeeded("c1", "T", {role: "question_request", questionId: "q3", questions: [{question: "Name?"}], allowCustom: true});
+            inputNotifier.answerInput(root.inputs[2], "Project Dawn");
+            compare(fakeChat.answers[2].join("|"), "question|q3|Project Dawn|false");
+        }
+
+        function test_an_answer_for_another_chat_opens_that_chat_instead() {
+            initInput();
+            var opened = [];
+            var connection = function(id) { opened.push(id); };
+            inputNotifier.openChat.connect(connection);
+            inputNotifier.inputNeeded("c2", "Other", question);
+            verify(!inputNotifier.answerInput(root.inputs[0], "Red"));
+            compare(fakeChat.answers.length, 0);
+            compare(opened.join(","), "c2");
+            inputNotifier.openChat.disconnect(connection);
+        }
+
+        function test_the_notification_closes_when_the_card_is_answered_in_the_widget() {
+            initInput();
+            fakeChat.messages = [{role: "user"}, question];
+            inputNotifier.inputNeeded("c1", "T", question);
+            fakeChat.messages = fakeChat.messages.slice();
+            compare(root.closed.length, 0, "still pending");
+            var answered = JSON.parse(JSON.stringify(question));
+            answered.status = "answered";
+            fakeChat.messages = [{role: "user"}, answered];
+            compare(root.closed.join(","), "q1");
+            compare(Object.keys(inputNotifier.openInputs).length, 0);
         }
 
         function test_preview_strips_markup_and_trims() {

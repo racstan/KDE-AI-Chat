@@ -13,6 +13,7 @@ QtObject {
     property var notifierRef: null   // chat/Notifier.qml
     property var openCodeRef: null   // chat/OpenCodeMode.qml
     property var piAgentRef: null    // chat/PiMode.qml
+    property var directToolsRef: null  // chat/DirectToolRounds.qml
 
     function requestIsCurrent(sessionId, generation) {
         return !!sessionId && chat.currentSessionId === sessionId
@@ -21,6 +22,8 @@ QtObject {
     }
 
     function invalidateActiveRequest(processQueue) {
+        if (sender.directToolsRef)
+            sender.directToolsRef.cancelPending();
         chat.requestGeneration++;
         chat.activeRequestSessionId = "";
         if (chat.activeXhr) {
@@ -154,6 +157,9 @@ QtObject {
             chat.attachedFiles = [];
             chat.chatInputText = "";
             chat.clearChatInput();
+            // Writing instead of answering ends the model's question: the request stops and this message is sent.
+            if (chat.loading && sender.directToolsRef && sender.directToolsRef.hasPendingQuestion())
+                chat.stopStreaming();
             // The quote chips above the box go with this message (and are cleared).
             var quotes = chat.composerRef && chat.composerRef.takeQuotes ? chat.composerRef.takeQuotes() : [];
             if (chat.loading) {

@@ -1,26 +1,21 @@
 .pragma library
 
-// Direct API backend: talks to an OpenAI-compatible or Anthropic endpoint
-// with the user's key and reports progress as backend events.
-//
-// Event contract (shared by every backend; Phase 3 adds tool/permission events):
-//   {type: "start"}
-//   {type: "text_delta", delta}        visible answer text
-//   {type: "reasoning_delta", delta}   model reasoning / <think> content
-//   {type: "usage", input, output, cost?}  as the provider reported it, never an estimate;
-//                                      cost only where it reports one (OpenRouter)
-//   {type: "error", message, status}   the request failed; "done" follows
-//   {type: "done", reason}             "complete" | "aborted" | "error"
-//
+// Direct API backend: talks to an OpenAI-compatible or Anthropic endpoint with the user's key and
+// reports progress as backend events:
+//   {type: "start"} | {type: "text_delta", delta} | {type: "reasoning_delta", delta}
+//   {type: "usage", input, output, cost?}   as the provider reported it, never an estimate
+//   {type: "tool_calls", calls, thinking}   the model asked for tools (DirectTools.js), before "done"
+//   {type: "error", message, status}        the request failed; "done" follows
+//   {type: "done", reason}                  "complete" | "aborted" | "error"
 // Self-contained on purpose (no QML globals, no .import): tests run it in node with a fake XMLHttpRequest.
 
 var DEFAULT_MAX_TOKENS = 4096;
 var MAX_RESPONSE_BYTES = 20000000;
 
-// An OpenAI-style stream only carries token counts when asked (stream_options.include_usage). Every
-// streaming request asks; a server that answers 400/422 naming the field gets the request again without
-// it, and its base URL is remembered so that happens once per session.
+// A server that answers 400/422 naming stream_options (token counts) or tools gets the request again
+// without them, and is remembered so that happens once per session.
 var _rejectsStreamOptions = {};
+var _rejectsToolsFor = {};
 
 // --- Server-sent events -----------------------------------------------------
 
@@ -79,61 +74,38 @@ function createSseParser(onMessage) {
     };
 }
 
-// --- <think> blocks ------------------------------------------------------------
-
-// Splits a text stream into answer and <think>…</think> reasoning, even when a
-// tag is cut across chunks. emit(kind, text) with kind "text" or "reasoning".
-function createThinkSplitter(emit) {
-    var OPEN = "<think>", CLOSE = "</think>";
-    var inside = false;
-    var pending = "";
-
-    function partialTagAt(text, tag) {
-        // Length of the longest suffix of `text` that is a prefix of `tag`.
-        for (var n = Math.min(tag.length - 1, text.length); n > 0; n--) {
-            if (text.substring(text.length - n) === tag.substring(0, n))
-                return n;
-        }
-        return 0;
-    }
-
-    return {
-        "push": function(chunk) {
-            var text = pending + chunk;
-            pending = "";
-            while (text.length > 0) {
-                var tag = inside ? CLOSE : OPEN;
-                var at = text.indexOf(tag);
-                if (at < 0) {
-                    var keep = partialTagAt(text, tag);
-                    var out = text.substring(0, text.length - keep);
-                    if (out) emit(inside ? "reasoning" : "text", out);
-                    pending = text.substring(text.length - keep);
-                    return;
-                }
-                if (at > 0) emit(inside ? "reasoning" : "text", text.substring(0, at));
-                text = text.substring(at + tag.length);
-                inside = !inside;
-            }
-        },
-        "end": function() {
-            if (pending) emit(inside ? "reasoning" : "text", pending);
-            pending = "";
-        }
-    };
-}
-
 // --- Requests -----------------------------------------------------------------
 
 function _trimSlash(url) {
     return String(url || "").replace(/\/+$/, "");
 }
 
+function _toolsKey(options) {
+    return _trimSlash(options.baseUrl) + "|" + options.model;
+}
+
+// True once this model answered a request with tools by refusing them.
+function rejectsTools(options) {
+    return _rejectsToolsFor[_toolsKey(options)] === true;
+}
+
+function _retryReason(status, text, body) {
+    if (status !== 400 && status !== 422)
+        return "";
+    if (body.stream_options && /stream_options|include_usage/i.test(text))
+        return "stream_options";
+    return body.tools && /tool|function/i.test(text) ? "tools" : "";
+}
+
 // Builds {url, headers, body} for one request.
 // options: {type, baseUrl, apiKey, model, headers, system, messages, maxTokens, stream, streamUsage,
-//           variantSend}  (streamUsage: false: no stream_options.include_usage; variantSend: the chosen
-//           model variant's request fragment, Variants.sendFor, {} for none)
+//           variantSend, tools, plainMessages}  (streamUsage: false: no stream_options.include_usage;
+//           variantSend: the chosen model variant's request fragment, Variants.sendFor, {} for none;
+//           tools: DirectTools.toolDefinitions; plainMessages: the messages without tool calls, for a
+//           model that refuses tools)
 function buildRequest(options) {
+    var tools = options.tools && options.tools.length > 0 && !rejectsTools(options) ? options.tools : null;
+    var history = !tools && options.plainMessages ? options.plainMessages : options.messages;
     var headers = {"Content-Type": "application/json"};
     var extra = options.headers || {};
     var maxTokens = options.maxTokens > 0 ? options.maxTokens : DEFAULT_MAX_TOKENS;
@@ -144,14 +116,14 @@ function buildRequest(options) {
             url += "/messages";
         headers["x-api-key"] = options.apiKey || "";
         headers["anthropic-version"] = "2023-06-01";
-        body = {"model": options.model, "max_tokens": maxTokens, "messages": options.messages, "stream": options.stream !== false};
+        body = {"model": options.model, "max_tokens": maxTokens, "messages": history, "stream": options.stream !== false};
         if (options.system)
             body.system = options.system;
     } else {
         url = _trimSlash(options.baseUrl) + "/chat/completions";
         if (options.apiKey)
             headers["Authorization"] = "Bearer " + options.apiKey;
-        var messages = options.messages.slice();
+        var messages = history.slice();
         if (options.system)
             messages.unshift({"role": "system", "content": options.system});
         body = {"model": options.model, "messages": messages, "max_tokens": maxTokens, "stream": options.stream !== false};
@@ -161,6 +133,8 @@ function buildRequest(options) {
         if (/^https?:\/\/([^/]*\.)?openrouter\.ai(\/|$)/i.test(String(options.baseUrl || "")))
             body.usage = {"include": true};
     }
+    if (tools)
+        body.tools = tools;
     // The variant's fragment is merged in, but the request's own fields always win over it. Anthropic
     // wants max_tokens above a thinking budget: the room for the answer is added on top of the budget.
     body = Object.assign({}, options.variantSend || {}, body);
@@ -214,7 +188,7 @@ function _anthropicUsage(usage) {
 
 // Turns one parsed streaming JSON message into events. Returns false if the
 // message signals the end of the stream.
-function _handleStreamMessage(type, sse, think, emit) {
+function _handleStreamMessage(type, sse, think, emit, collector) {
     if (sse.data === "[DONE]")
         return false;
     var obj;
@@ -223,6 +197,8 @@ function _handleStreamMessage(type, sse, think, emit) {
     } catch (e) {
         return true;
     }
+    if (collector)
+        collector.stream(obj);
     if (obj.error) {
         emit({"type": "error", "message": typeof obj.error === "string" ? obj.error : String(obj.error.message || JSON.stringify(obj.error)), "status": 200});
         return false;
@@ -252,7 +228,8 @@ function _handleStreamMessage(type, sse, think, emit) {
 }
 
 // Events for a complete (non-streaming) JSON response.
-function _handleFullResponse(type, obj, think, emit) {
+function _handleFullResponse(type, obj, think, emit, collector) {
+    if (collector) collector.full(obj);
     if (type === "anthropic") {
         var blocks = obj.content || [];
         for (var i = 0; i < blocks.length; i++) {
@@ -271,7 +248,8 @@ function _handleFullResponse(type, obj, think, emit) {
 
 
 // Sends one request. options as for buildRequest, plus:
-//   xhrFactory()  returns a new XMLHttpRequest
+//   xhrFactory()  returns a new XMLHttpRequest;  thinkFactory(emit)  DirectStream.createThinkSplitter
+//   collector     optional, DirectTools.createCollector: reports the model's tool calls
 //   timeoutMs     0 = no timeout
 //   onEvent(event)
 // Returns {abort()}.
@@ -279,7 +257,7 @@ function send(options) {
     var request = buildRequest(options);
     var stream = request.body.stream;
     var xhr;
-    var finished = false, offset = 0, retried = false;
+    var finished = false, offset = 0, retries = 0;
     // OpenAI-style servers may repeat usage in several chunks (cumulative, or
     // only the last one counts): keep the latest and report it once, at the end.
     var usage = null;
@@ -288,7 +266,7 @@ function send(options) {
         if (!finished)
             options.onEvent(event);
     }
-    var think = createThinkSplitter(function(kind, text) {
+    var think = options.thinkFactory(function(kind, text) {
         emit({"type": kind === "text" ? "text_delta" : "reasoning_delta", "delta": text});
     });
     function finish(reason, message, status) {
@@ -296,6 +274,8 @@ function send(options) {
         think.end();
         if (reason === "complete" && usage)
             emit(usage);
+        if (reason === "complete" && options.collector && options.collector.calls().length > 0)
+            emit({"type": "tool_calls", "calls": options.collector.calls(), "thinking": options.collector.thinkingBlocks()});
         if (reason === "error")
             emit({"type": "error", "message": message, "status": status || 0});
         emit({"type": "done", "reason": reason});
@@ -313,7 +293,7 @@ function send(options) {
                 else if (event.type === "usage" && options.type !== "anthropic")
                     usage = Object.assign(usage || {}, event);
                 else emit(event);
-            });
+            }, options.collector);
             if (!more) sseEnded = true;
         });
     }
@@ -338,10 +318,11 @@ function send(options) {
             if (xhr.status < 200 || xhr.status >= 300) {
                 if (xhr.readyState !== 4)
                     return;
-                if (!retried && request.body.stream_options && (xhr.status === 400 || xhr.status === 422)
-                        && /stream_options|include_usage/i.test(xhr.responseText || "")) {
-                    _rejectsStreamOptions[_trimSlash(options.baseUrl)] = true;
-                    retried = true;
+                var why = retries < 2 ? _retryReason(xhr.status, xhr.responseText || "", request.body) : "";
+                if (why) {
+                    if (why === "tools") _rejectsToolsFor[_toolsKey(options)] = true;
+                    else _rejectsStreamOptions[_trimSlash(options.baseUrl)] = true;
+                    retries++;
                     request = buildRequest(options);
                     offset = 0;
                     open(true);
@@ -359,7 +340,7 @@ function send(options) {
             }
             if (xhr.readyState === 4) {
                 try {
-                    _handleFullResponse(options.type, JSON.parse(xhr.responseText), think, emit);
+                    _handleFullResponse(options.type, JSON.parse(xhr.responseText), think, emit, options.collector);
                     finish("complete");
                 } catch (e) {
                     finish("error", "Could not read the provider's response: " + e, xhr.status);

@@ -34,6 +34,8 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 - **📤 Export Chats**: Save your chat history as Markdown (`.md`) or plain text (`.txt`) with a single click.
 - **🧭 Quick Navigation**: Easily jump between your questions in a long chat using the Up and Down arrow buttons.
 - **⚡ Smooth Scrolling**: Enhanced layout scrolling that won't jump or jitter as messages load.
+- **❓ The AI Can Ask You**: In any mode the model or agent can ask you a question in the chat (tap an answer or type one); direct chats do this with a tool call (switch it off in Settings → Chat).
+- **🔔 "Input Needed" Notifications**: With the popup closed, a question or permission request from the AI shows up as a desktop notification you can answer right there (answer buttons, a reply box, or Allow/Deny), or open the chat from it.
 - **🎨 Resizable Widget**: Drag the bottom-right corner of the chat popup to resize it exactly how you want.
 
 > [!TIP]

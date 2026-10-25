@@ -18,7 +18,7 @@ function harnessName(harness) {
 
 function _toolDetail(input) {
     input = input || {};
-    return String(input.filePath || input.path || input.command || input.pattern || input.query || input.url || "").substring(0, 120);
+    return String(input.filePath || input.path || input.command || input.pattern || input.query || input.url || input.question || "").substring(0, 120);
 }
 
 function contextItems(reply) {
@@ -67,11 +67,11 @@ function applyToReply(reply, event) {
     return reply;
 }
 
-// extra: {harness: "opencode"|"pi", directory (OpenCode), chatId (Pi)}.
+// extra: {harness: "opencode"|"pi"|"direct", directory (OpenCode), chatId (Pi), name (who asks; default the agent)}.
 function _request(role, idField, event, extra, now) {
     extra = extra || {};
     var harness = extra.harness || "opencode";
-    var msg = {"role": role, "status": "pending", "at": now, "model": harnessName(harness), "harness": harness,
+    var msg = {"role": role, "status": "pending", "at": now, "model": extra.name || harnessName(harness), "harness": harness,
                "openCodeDirectory": extra.directory || "", "harnessChatId": extra.chatId || ""};
     msg[idField] = event.id;
     return msg;

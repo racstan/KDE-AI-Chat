@@ -19,6 +19,7 @@ KCM.SimpleKCM {
     property alias cfg_systemPrompt: promptArea.text
     property alias cfg_contextMessageLimit: limitSpin.value
     property alias cfg_autoNameChats: autoNameCheck.checked
+    property alias cfg_allowAskUser: askUserCheck.checked
     property alias cfg_promptTemplates: templates.json
     property alias cfg_openCodeWorkspaceCwd: workspaceField.text
     property alias cfg_perChatModelSettings: perChatSwitch.checked
@@ -78,6 +79,21 @@ KCM.SimpleKCM {
             id: autoNameCheck
             Kirigami.FormData.label: i18n("Chat names:")
             text: i18n("Let the model name new chats")
+        }
+
+        QQC2.CheckBox {
+            id: askUserCheck
+            objectName: "askUserCheck"
+            Kirigami.FormData.label: i18n("Questions:")
+            text: i18n("Let the AI ask me questions")
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
+            wrapMode: Text.Wrap
+            color: Kirigami.Theme.disabledTextColor
+            text: i18n("When it needs a choice or a missing detail, the AI can ask you in the chat and wait for your answer. Applies to chats with a provider; the agent modes ask in their own way.")
         }
 
         RowLayout {
