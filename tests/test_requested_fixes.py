@@ -74,7 +74,8 @@ def test_feature_settings_are_exposed_and_persisted():
     assert "Plasmoid.icon:" in main_qml
     assert "function customIconIsImage" in main_qml
     assert "function customIconImageSource" in main_qml
-    assert "plasmoid.configuration.disableStreaming !== true" in main_qml
+    with open(os.path.join(os.path.dirname(MAIN_QML), "chat", "DirectRequest.qml"), encoding="utf-8") as f:
+        assert "plasmoid.configuration.disableStreaming !== true" in f.read()
 
 
 def test_settings_pages_exist_and_cut_settings_are_gone():
