@@ -29,7 +29,7 @@ PlasmoidItem {
     // The view's row-by-row copy of `messages` (see chat/MessageModel.qml).
     property Chat.MessageModel messageModel: Chat.MessageModel {}
     // Stream deltas wait here and reach currentStreamText/Reasoning at most every 33 ms.
-    property var streamPending: ({"text": "", "reasoning": ""})
+    property Chat.StreamBuffer streamBuffer: Chat.StreamBuffer { target: root; maxChars: root.maxMessageChars }
     property var attachedFiles: []
     property bool historyOnlyMode: false
     property bool loading: false
@@ -478,7 +478,7 @@ PlasmoidItem {
         if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
             root.currentStreamIndex = -1;
             root.currentStreamText = "";
-            root.streamPending = {"text": "", "reasoning": ""};
+            root.streamBuffer.clear();
             root.currentStreamReasoning = "";
             root.currentStreamExtractedReasoning = "";
             root.streamingResponse = false;
@@ -590,7 +590,7 @@ PlasmoidItem {
         if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
-        root.streamPending = {"text": "", "reasoning": ""};
+        root.streamBuffer.clear();
         root.currentStreamReasoning = "";
         root.currentStreamExtractedReasoning = "";
         root.streamingResponse = false;
@@ -1120,17 +1120,8 @@ PlasmoidItem {
         fileReaderDs.connectSource(cmd);
     }
 
-    function flushStream() {
-        streamFlushTimer.stop();
-        if (root.streamPending.text)
-            root.currentStreamText = (root.currentStreamText + root.streamPending.text).substring(0, root.maxMessageChars);
-        if (root.streamPending.reasoning)
-            root.currentStreamReasoning = (root.currentStreamReasoning + root.streamPending.reasoning).substring(0, root.maxMessageChars);
-        root.streamPending = {"text": "", "reasoning": ""};
-    }
-
     function resetProviderStreamingState() {
-        flushStream();
+        streamBuffer.flush();
         if (root.currentStreamIndex >= 0 && root.currentStreamIndex < root.messages.length) {
             var copy = root.messages.slice();
             var current = copy[root.currentStreamIndex] = Object.assign({}, copy[root.currentStreamIndex]);
@@ -1413,7 +1404,7 @@ PlasmoidItem {
     function sendMessageByIndex(index) {
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
-        root.streamPending = {"text": "", "reasoning": ""};
+        root.streamBuffer.clear();
         root.currentStreamReasoning = "";
         root.currentStreamExtractedReasoning = "";
         root.streamingResponse = false;
@@ -1882,9 +1873,7 @@ PlasmoidItem {
             });
         } else if (event.type === "text_delta" || event.type === "reasoning_delta") {
             ensureStreamingMessage(model);
-            root.streamPending[event.type === "text_delta" ? "text" : "reasoning"] += event.delta;
-            if (!streamFlushTimer.running)
-                streamFlushTimer.start();
+            root.streamBuffer.add(event.type === "text_delta" ? "text" : "reasoning", event.delta);
         } else if (event.type === "usage") {
             var usage = Object.assign({}, root.currentStreamUsage);
             if (event.input !== undefined) usage.input = event.input;
@@ -1895,7 +1884,7 @@ PlasmoidItem {
             resetProviderStreamingState();
             pushErrorMessage(event.message);
         } else if (event.type === "done") {
-            flushStream();
+            streamBuffer.flush();
             var completed = event.reason === "complete";
             if (completed && root.currentStreamIndex >= 0) {
                 var msgs = root.messages.slice();
@@ -2371,12 +2360,6 @@ PlasmoidItem {
         // The streamed reply keeps its row even if messages before it are removed or added.
         if (root.currentStreamIndex >= 0)
             root.currentStreamIndex = messageModel.indexOfKey(root.currentStreamKey);
-    }
-
-    Timer {
-        id: streamFlushTimer
-        interval: 33
-        onTriggered: root.flushStream()
     }
 
     Timer {

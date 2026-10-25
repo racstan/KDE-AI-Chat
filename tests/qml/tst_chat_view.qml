@@ -83,6 +83,7 @@ Item {
             for (var i = 0; i < 300; i++) chat.currentStreamText += "more text " + i + "\n";
             wait(100);
             compare(view.list.contentY, y, "the user's place is kept");
+            tryVerify(() => !view.list.builder.running, 2000, "the buttons are built");
             screenshot(root, "chat-view-scrolled-up");
             chat.scrollToBottom(true);
             wait(50);
@@ -120,9 +121,12 @@ Item {
             wait(100);
             chat.scrollToBottom(true);
             wait(50);
+            tryVerify(() => !view.list.builder.running, 2000, "the buttons are built");
             screenshot(root, "chat-view-states");
+            chat.userScrolledUp = true;  // as main.qml's jumps do
             view.list.positionViewAtBeginning();
             wait(50);
+            tryVerify(() => !view.list.builder.running, 2000, "the buttons are built");
             screenshot(root, "chat-view-states-top");
         }
     }

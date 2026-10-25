@@ -1,5 +1,7 @@
 // A fenced code block in a message: language label, copy button, and the
 // code in a monospace box that scrolls instead of wrapping.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -12,6 +14,18 @@ Rectangle {
     property var chat: null
     property string language: ""
     property string code: ""
+    // The copy button is built by `builder` after the first frame (see
+    // MessageActions.qml); buttonHeight keeps room for it.
+    property var builder: null
+    property real buttonHeight: 0
+    property bool buttonBuilt: !builder
+
+    function buildStep() {
+        buttonBuilt = true;
+        return false;
+    }
+    Component.onCompleted: if (builder) builder.add(codeBlock)
+    Component.onDestruction: if (builder) builder.remove(codeBlock)
 
     signal selectionMade(string text)
 
@@ -39,22 +53,26 @@ Rectangle {
                 opacity: 0.7
             }
 
-            PC3.ToolButton {
-                icon.name: copied.running ? "checkmark" : "edit-copy"
-                display: PC3.AbstractButton.IconOnly
-                text: copied.running ? i18n("Copied") : i18n("Copy code")
-                Accessible.name: text
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: text
-                onClicked: {
-                    codeBlock.chat.copyTextToClipboard(codeBlock.code);
-                    copied.restart();
+            Loader {
+                active: codeBlock.buttonBuilt
+                Layout.minimumHeight: codeBlock.buttonHeight
+                sourceComponent: PC3.ToolButton {
+                    icon.name: copied.running ? "checkmark" : "edit-copy"
+                    display: PC3.AbstractButton.IconOnly
+                    text: copied.running ? i18n("Copied") : i18n("Copy code")
+                    Accessible.name: text
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: text
+                    onClicked: {
+                        codeBlock.chat.copyTextToClipboard(codeBlock.code);
+                        copied.restart();
+                    }
                 }
+            }
 
-                Timer {
-                    id: copied
-                    interval: 1500
-                }
+            Timer {
+                id: copied
+                interval: 1500
             }
         }
 

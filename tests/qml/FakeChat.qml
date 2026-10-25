@@ -13,6 +13,17 @@ QtObject {
     property int currentStreamIndex: -1
     property string currentStreamText: ""
     property string currentStreamReasoning: ""
+    // main.qml's throttled streaming path: deltas wait in streamBuffer and
+    // reach currentStreamText at most every 33 ms (applyDelta mirrors
+    // main.qml's applyBackendEvent for text_delta/reasoning_delta/done).
+    readonly property int maxMessageChars: 2000000
+    property Chat.StreamBuffer streamBuffer: Chat.StreamBuffer { target: fake; maxChars: fake.maxMessageChars }
+    function applyDelta(event) {
+        if (event.type === "text_delta" || event.type === "reasoning_delta")
+            streamBuffer.add(event.type === "text_delta" ? "text" : "reasoning", event.delta);
+        else if (event.type === "done")
+            streamBuffer.flush();
+    }
     property string currentStreamExtractedReasoning: ""
     property int editingMessageIndex: -1
     property string editingDraft: ""

@@ -55,7 +55,8 @@ Rectangle {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             textFormat: Text.PlainText
-            text: reasoning.text
+            // Collapsed, it doesn't lay out the (streaming, growing) text at all.
+            text: reasoning.expanded ? reasoning.text : ""
             opacity: 0.8
         }
     }

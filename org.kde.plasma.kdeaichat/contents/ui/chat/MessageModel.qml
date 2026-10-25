@@ -17,6 +17,11 @@ ListModel {
     property var byKey: ({})
     property int counter: 0
 
+    // Around replacing every row (a different chat), so a view can let go
+    // of the model and take it back fresh, which lays it out in one go.
+    signal aboutToReplace()
+    signal replaced()
+
     function messageFor(key) {
         return list.byKey[key];
     }
@@ -59,13 +64,20 @@ ListModel {
         for (var k = 0; k < keys.length && !overlap; k++)
             overlap = present[keys[k]] === true;
         if (!overlap) {
-            // A different chat: replace everything at once.
-            list.clear();
-            list.byKey = {};
+            // A different chat: replace everything at once (one insert, so
+            // the view lays out once instead of once per row).
+            var byKey = {};
+            var rows = [];
             for (var a = 0; a < keys.length; a++) {
-                list.byKey[keys[a]] = messages[a];
-                list.append({"msgKey": keys[a], "rev": 0});
+                byKey[keys[a]] = messages[a];
+                rows.push({"msgKey": keys[a], "rev": 0});
             }
+            list.aboutToReplace();
+            list.clear();
+            list.byKey = byKey;
+            if (rows.length > 0)
+                list.append(rows);
+            list.replaced();
             return;
         }
 

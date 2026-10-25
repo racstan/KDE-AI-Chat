@@ -1,6 +1,8 @@
-// A message's text. While the reply streams it's one plain-text block that
-// grows; once done it's split into Markdown text and code blocks, built
+// A message's text. While the reply streams it's plain text that grows
+// (StreamingText.qml); once done it's split into Markdown text and code blocks, built
 // once per change of the message (not per streamed token).
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "MessageBlocks.js" as MessageBlocks
@@ -13,6 +15,12 @@ Column {
     property string text: ""
     property bool streaming: false
     property bool isError: false
+    // The width the text wraps at, set before the layout gives this its
+    // width, so the height is right as soon as it's created.
+    property real textWidth: width
+    // For code blocks' copy buttons (see MessageActions.qml).
+    property var builder: null
+    property real buttonHeight: 0
 
     signal selectionMade(string text)
 
@@ -20,12 +28,11 @@ Column {
 
     readonly property var blocks: streaming ? [] : (isError ? [{"type": "text", "text": body.text}] : MessageBlocks.split(body.text))
 
-    MessageText {
+    StreamingText {
         visible: body.streaming
-        width: body.width
+        width: body.textWidth
         chat: body.chat
         messageIndex: body.messageIndex
-        plain: true
         text: body.streaming ? body.text : ""
     }
 
@@ -34,7 +41,7 @@ Column {
 
         delegate: Loader {
             required property var modelData
-            width: body.width
+            width: body.textWidth
             sourceComponent: modelData.type === "code" ? codeComponent : textComponent
 
             Component {
@@ -52,6 +59,8 @@ Column {
                 id: codeComponent
                 CodeBlock {
                     chat: body.chat
+                    buttonHeight: body.buttonHeight
+                    builder: body.builder
                     language: modelData.language
                     code: modelData.text
                     onSelectionMade: (text) => body.selectionMade(text)

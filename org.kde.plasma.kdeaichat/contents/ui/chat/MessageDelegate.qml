@@ -5,6 +5,8 @@
 //
 // A row of chat.messageModel: `rev` goes up when this message changes, so
 // the delegate updates in place instead of being rebuilt.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -30,6 +32,14 @@ Item {
         ? [chat.currentStreamReasoning, chat.currentStreamExtractedReasoning].filter(function(t) { return !!t; }).join("\n")
         : (message.reasoning || "")
     property string selectedText: ""
+    // From the chat view: builds the buttons after the first frame
+    // (chat/DeferredBuilder.qml), and the height they'll take.
+    readonly property var view: ListView.view
+    readonly property var builder: view ? view.builder : null
+    readonly property real buttonHeight: view ? view.buttonHeight : 0
+    // The bubble's width, known before the layouts run, so a new delegate
+    // has its final height at once and the list doesn't lay out twice.
+    readonly property real bubbleWidth: mine ? Math.min(width * 0.85, Math.max(content.implicitWidthHint, Kirigami.Units.gridUnit * 8)) : width
 
     implicitHeight: column.implicitHeight
     height: implicitHeight
@@ -57,7 +67,7 @@ Item {
             id: bubble
 
             Layout.alignment: row.mine ? Qt.AlignRight : Qt.AlignLeft
-            Layout.preferredWidth: row.mine ? Math.min(row.width * 0.85, Math.max(content.implicitWidthHint, Kirigami.Units.gridUnit * 8)) : row.width
+            Layout.preferredWidth: row.bubbleWidth
             Layout.leftMargin: row.mine ? 0 : Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
             implicitHeight: content.implicitHeight + Kirigami.Units.largeSpacing * 2
@@ -107,11 +117,14 @@ Item {
 
                     Item { Layout.fillWidth: true }
 
-                    PC3.BusyIndicator {
-                        visible: row.streaming
-                        running: visible
+                    Loader {
+                        active: row.streaming
+                        visible: active
                         Layout.preferredWidth: Kirigami.Units.iconSizes.small
                         Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                        sourceComponent: PC3.BusyIndicator {
+                            running: true
+                        }
                     }
                 }
 
@@ -160,6 +173,9 @@ Item {
 
                     visible: !row.editing && (text !== "" || row.streaming)
                     Layout.fillWidth: true
+                    textWidth: row.bubbleWidth - Kirigami.Units.largeSpacing * 2
+                    buttonHeight: row.buttonHeight
+                    builder: row.builder
                     chat: row.chat
                     messageIndex: row.index
                     streaming: row.streaming
@@ -214,6 +230,9 @@ Item {
                     MessageActions {
                         id: actions
                         visible: !row.isRequest
+                        // Room for the buttons, which are built after the first frame.
+                        Layout.minimumHeight: row.buttonHeight
+                        builder: row.builder
                         chat: row.chat
                         message: row.message
                         messageIndex: row.index

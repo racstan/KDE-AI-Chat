@@ -54,14 +54,19 @@ function createSseParser(onMessage) {
     return {
         "push": function(chunk) {
             buffer += chunk;
+            // Walk the lines by index and cut the buffer once: cutting it
+            // per line copies the rest each time (quadratic in a big chunk).
+            var start = 0;
             var newline;
-            while ((newline = buffer.indexOf("\n")) >= 0) {
-                var text = buffer.substring(0, newline);
-                buffer = buffer.substring(newline + 1);
+            while ((newline = buffer.indexOf("\n", start)) >= 0) {
+                var text = buffer.substring(start, newline);
+                start = newline + 1;
                 if (text.charAt(text.length - 1) === "\r")
                     text = text.substring(0, text.length - 1);
                 line(text);
             }
+            if (start > 0)
+                buffer = buffer.substring(start);
         },
         "end": function() {
             if (buffer !== "")
