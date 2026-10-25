@@ -12,7 +12,8 @@
 //   messages               the chat's message list (see below)
 // }
 // A message is {role: user|queued|assistant|error, content, time, at, model,
-// reasoning, attachments: [{name, type, mimeType, size}], tools: {id: {name,
+// reasoning, attachments: [{name, type, mimeType, size}], quotes: [{id, role,
+// text}] (the messages it quoted), tools: {id: {name,
 // detail, status, input, output}}, filesChanged, tokens, cost}. Other roles
 // (permission and question cards) and any UI state are left out.
 //
@@ -23,6 +24,7 @@
 //   {format: "kdeaichat-chat", version: 1, title, exportedAt, createdAt, mode,
 //    provider, model,
 //    messages: [{role: "user"|"assistant"|"error", time, model, text,
+//                quotes?: [{role: "user"|"assistant", text}],
 //                reasoning?, attachments: [{name, type, mimeType, size}],
 //                toolCalls: [{name, status, input, output}], filesChanged,
 //                tokens?, cost?}]}
@@ -123,6 +125,27 @@ function _attachments(m) {
     return out;
 }
 
+// What the message quoted: [{role, speaker, text}], in the order it was sent.
+function _quotes(m) {
+    var out = [];
+    var list = m.quotes || [];
+    for (var i = 0; i < list.length; i++) {
+        var q = list[i] || {};
+        var text = clean(q.text);
+        if (text)
+            out.push({"role": q.role === "assistant" ? "assistant" : "user",
+                      "speaker": q.role === "assistant" ? "Assistant" : "You", "text": text});
+    }
+    return out;
+}
+
+// "> **You:** first line" and the rest of the lines as a Markdown block quote.
+function _quoteMarkdown(q) {
+    var lines = q.text.split("\n").map(function(l) { return l === "" ? ">" : "> " + l; });
+    lines[0] = lines[0].replace(/^>( |$)/, "> **" + q.speaker + ":** ");
+    return lines.join("\n");
+}
+
 function _tools(m) {
     var out = [];
     var tools = m.tools || {};
@@ -151,7 +174,7 @@ function _entries(chat, opts) {
         var e = {"role": role, "speaker": _speaker(m), "when": _when(m), "at": m.at > 0 ? m.at : 0,
                  "model": role === "assistant" ? String(m.model || "") : "",
                  "text": clean(m.content), "reasoning": opts.includeReasoning ? clean(m.reasoning) : "",
-                 "attachments": _attachments(m), "tools": _tools(m),
+                 "attachments": _attachments(m), "quotes": role === "user" ? _quotes(m) : [], "tools": _tools(m),
                  "filesChanged": (m.filesChanged || []).map(function(f) { return _oneLine(f, 300); }),
                  "tokens": m.tokens || null, "cost": m.cost > 0 ? Number(m.cost) : 0};
         if (!e.text && !e.reasoning && e.attachments.length === 0 && e.tools.length === 0 && e.filesChanged.length === 0)
@@ -214,6 +237,8 @@ function toMarkdown(chat, opts) {
     for (var n = 0; n < entries.length; n++) {
         var e = entries[n];
         out.push("## " + _esc(e.speaker) + (e.when ? " · " + e.when : ""), "");
+        for (var qi = 0; qi < e.quotes.length; qi++)
+            out.push(_quoteMarkdown(e.quotes[qi]), "");
         if (e.role === "error")
             out.push(_closeFences(e.text).replace(/^/gm, "> "), "");
         else if (e.text)
@@ -257,6 +282,8 @@ function toText(chat, opts) {
     for (var n = 0; n < entries.length; n++) {
         var e = entries[n];
         out.push(e.speaker + (e.when ? "  [" + e.when + "]" : ""), thin);
+        for (var qi = 0; qi < e.quotes.length; qi++)
+            out.push(e.quotes[qi].text.replace(/^/gm, "> ").replace(/^> /, "> " + e.quotes[qi].speaker + ": "), "");
         if (e.text)
             out.push((e.role === "error" ? "Error: " : "") + _closeFences(e.text));
         if (e.reasoning)
@@ -280,6 +307,8 @@ function toJson(chat, opts) {
         var m = {"role": e.role, "time": _iso(e.at), "model": e.model || null, "text": e.text};
         if (e.reasoning)
             m.reasoning = e.reasoning;
+        if (e.quotes.length > 0)
+            m.quotes = e.quotes.map(function(q) { return {"role": q.role, "text": q.text}; });
         m.attachments = e.attachments;
         m.toolCalls = e.tools.map(function(t) {
             return {"name": t.name, "status": t.status || null, "input": t.input, "output": t.output};

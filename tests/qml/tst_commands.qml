@@ -89,8 +89,8 @@ Item {
             chat.piThinkingModels = ({});
             chat.messages = [{role: "user", content: "First", time: "10:00"}, {role: "assistant", model: "m", content: "Reply", time: "10:00"}];
             chat.promptTemplates = templates;
-            composer.bar.picker.xhrFactory = root.makeXhr;
-            composer.bar.picker.close();
+            composer.picker.xhrFactory = root.makeXhr;
+            composer.picker.close();
             setup({ownModel: true, chatProvider: "nvidia", chatModel: "nemotron-3.5-bolt-e4b"});
             view.list.clearSelection();
             composer.input.text = "";
@@ -147,10 +147,10 @@ Item {
         function test_5_model_alone_opens_the_picker() {
             type("/model");
             keyClick(Qt.Key_Return);
-            tryVerify(() => composer.bar.picker.opened, 2000);
+            tryVerify(() => composer.picker.opened, 2000);
             compare(calls("send").length, 0);
             compare(composer.input.text, "");
-            composer.bar.picker.close();
+            composer.picker.close();
         }
 
         function test_6_model_with_an_argument_lists_the_models_and_applies_the_choice() {

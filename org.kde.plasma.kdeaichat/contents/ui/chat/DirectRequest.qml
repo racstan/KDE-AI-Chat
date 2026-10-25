@@ -99,13 +99,13 @@ QtObject {
         var messages = [], plain = [];
         for (var j = 0; j < conversation.length; j++) {
             var rm = conversation[j];
-            var hasAttachments = rm.role === "user" && rm.attachments && rm.attachments.length > 0;
+            var extras = rm.role === "user" && ((rm.attachments && rm.attachments.length > 0) || (rm.quotes && rm.quotes.length > 0));
             if (rm.role === "assistant" && rm.toolRounds && rm.toolRounds.length > 0) {
                 messages = messages.concat(DirectTools.historyMessages(apiType, rm, withTools));
                 plain = plain.concat(DirectTools.historyMessages(apiType, rm, false));
                 continue;
             }
-            var item = {"role": rm.role, "content": hasAttachments ? MessageContent.build(rm.content, rm.attachments, apiType) : rm.content};
+            var item = {"role": rm.role, "content": extras ? MessageContent.build(rm.content, rm.attachments, apiType, rm.quotes) : rm.content};
             messages.push(item);
             plain.push(item);
         }

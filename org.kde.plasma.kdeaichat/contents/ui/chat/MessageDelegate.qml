@@ -208,6 +208,17 @@ Item {
                     }
                 }
 
+                // What this message quoted (ChatView's list jumps to the original).
+                Loader {
+                    active: (row.message.quotes || []).length > 0
+                    visible: active
+                    Layout.fillWidth: true
+                    sourceComponent: QuoteBlock {
+                        chat: row.chat
+                        quotes: row.message.quotes
+                    }
+                }
+
                 MessageBody {
                     id: body
                     objectName: "messageBody"

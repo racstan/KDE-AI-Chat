@@ -1,6 +1,6 @@
 // The buttons under a message: edit (apply/cancel while editing), read
 // aloud, regenerate (with longer/shorter) or, on your own message, resend,
-// copy, delete.
+// copy, quote (a chip above the message box, Composer.qml) and delete.
 //
 // They show while the message is hovered (`hovered`, from its delegate) or
 // has keyboard focus, and never while it streams. They stay in the layout
@@ -13,6 +13,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "MessageContent.js" as MessageContent
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -82,7 +83,7 @@ RowLayout {
     // the first frame instead of all while the chat opens.
     property var builder: null
     property int built: builder ? 0 : buttonCount
-    readonly property int buttonCount: 8
+    readonly property int buttonCount: 9
 
     // Builds the next button; false once all are built.
     function buildStep() {
@@ -276,6 +277,19 @@ RowLayout {
             icon.name: "edit-copy"
             text: i18n("Copy")
             onClicked: actions.chat.copyTextToClipboard(actions.message.content || "")
+        }
+    }
+
+    // Quote this message in your next one (also Ctrl+Q on a picked message).
+    Optional {
+        order: 8
+        shown: MessageContent.canQuote(actions.message) && !actions.editing
+        sourceComponent: Action {
+            objectName: "quoteButton"
+            enabled: !actions.streaming && !!actions.chat && !!actions.chat.composerRef
+            icon.name: "format-text-blockquote"
+            text: i18n("Quote")
+            onClicked: actions.chat.composerRef.addQuote(actions.message)
         }
     }
 

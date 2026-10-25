@@ -2,6 +2,7 @@
 // per-message usage, and the per-chat settings it still saves.
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Window
 import QtTest
 import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui" as Ui
@@ -336,7 +337,8 @@ Item {
             verify(!visibleIn(find(dialog, "ownModelCheck")), "no per-chat switch in the chat either");
             verify(visibleIn(form.systemArea), "chat instructions are not a model setting");
             verify(visibleIn(form.responseLengthCombo));
-            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+            compare(value("effectiveLine").text, "Direct \u00b7 OpenAI \u00b7 gpt-4o");
+            compare(value("effectiveSource").text, "From main settings");
             verify(value("effectiveNote").visible);
             verify(value("effectiveNote").text.indexOf("Every chat uses the main settings") === 0);
             screenshot(root, "chat-info-main-settings");
@@ -356,7 +358,8 @@ Item {
             verify(visibleIn(form.modelCombo));
             verify(visibleIn(find(dialog, "ownModelCheck")));
             compare(find(dialog, "ownModelCheck").checked, true, "the chat has its own model: legacy chats count");
-            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o-mini (from this chat's settings)");
+            compare(value("effectiveLine").text, "Direct \u00b7 OpenAI \u00b7 gpt-4o-mini");
+            compare(value("effectiveSource").text, "From this chat's settings");
             verify(!value("effectiveNote").visible);
             screenshot(root, "chat-info-chat-settings");
         }
@@ -364,7 +367,8 @@ Item {
         function test_15_main_settings_win_is_said_and_applied() {
             configure({perChatPriority: "main"});
             openPanel();
-            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+            compare(value("effectiveLine").text, "Direct \u00b7 OpenAI \u00b7 gpt-4o");
+            compare(value("effectiveSource").text, "From main settings");
             verify(value("effectiveNote").visible);
             verify(value("effectiveNote").text.indexOf("Main settings win") === 0);
         }
@@ -376,7 +380,8 @@ Item {
             var check = find(dialog, "ownModelCheck");
             compare(check.checked, false, "a source alone is not an override");
             verify(!visibleIn(form.providerCombo));
-            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+            compare(value("effectiveLine").text, "Direct \u00b7 OpenAI \u00b7 gpt-4o");
+            compare(value("effectiveSource").text, "From main settings");
             check.toggled();
             check.checked = true;
             check.toggled();
@@ -388,7 +393,8 @@ Item {
             var o = chat.calls[chat.calls.length - 1].args[1];
             compare(o.ownModel, true);
             compare(o.chatProvider, "ollama");
-            compare(value("effectiveLine").text, "Using Ollama \u00b7 llama3 (from this chat's settings)");
+            compare(value("effectiveLine").text, "Direct \u00b7 Ollama \u00b7 llama3");
+            compare(value("effectiveSource").text, "From this chat's settings");
         }
 
         function test_17_unchecking_keeps_the_settings_but_stops_using_them() {
@@ -401,7 +407,8 @@ Item {
             compare(o.ownModel, false);
             verify(!("chatModel" in o), "the model stays as it was");
             compare(chat.sessions[0].chatModel, "gpt-4o-mini");
-            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+            compare(value("effectiveLine").text, "Direct \u00b7 OpenAI \u00b7 gpt-4o");
+            compare(value("effectiveSource").text, "From main settings");
         }
 
         function test_18_agent_modes_in_the_line_and_the_panel_follows_the_settings() {
@@ -410,15 +417,19 @@ Item {
             chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: active, ownModel: true,
                               source: "pi", piProvider: "openai", piModel: "gpt-y"}];
             openPanel();
-            compare(value("effectiveLine").text, "Using Pi \u00b7 openai \u00b7 gpt-y (from this chat's settings)");
+            compare(value("effectiveLine").text, "Pi \u00b7 openai \u00b7 gpt-y");
+            compare(value("effectiveSource").text, "From this chat's settings");
             configure({perChatPriority: "main"});
-            compare(value("effectiveLine").text, "Using Pi \u00b7 ollama \u00b7 qwen (from main settings)");
+            compare(value("effectiveLine").text, "Pi \u00b7 ollama \u00b7 qwen");
+            compare(value("effectiveSource").text, "From main settings");
             configure({perChatModelSettings: false, perChatPriority: "chat"});
-            compare(value("effectiveLine").text, "Using Pi \u00b7 ollama \u00b7 qwen (from main settings)");
+            compare(value("effectiveLine").text, "Pi \u00b7 ollama \u00b7 qwen");
+            compare(value("effectiveSource").text, "From main settings");
             // The working folder is offered because this is an agent chat.
             verify(visibleIn(findForm().cwdField));
             configure({perChatModelSettings: true});
-            compare(value("effectiveLine").text, "Using Pi \u00b7 openai \u00b7 gpt-y (from this chat's settings)");
+            compare(value("effectiveLine").text, "Pi \u00b7 openai \u00b7 gpt-y");
+            compare(value("effectiveSource").text, "From this chat's settings");
         }
 
         // ── A chat keeps its mode ───────────────────────────────────────────
@@ -611,6 +622,28 @@ Item {
             dialog.draft.load("a");
             wait(20);
             verify(!thinking.visible, "a model Pi does not mark as thinking: no picker");
+        }
+
+        function test_28_change_opens_the_quick_picker_and_the_panel_follows_its_choice() {
+            openPanel();
+            var button = find(dialog, "changeModelButton");
+            verify(button !== null && button.visible, "a Change… button next to the line");
+            var picker = button.parent.parent.picker;
+            mouseClick(button);
+            tryVerify(() => picker.opened, 2000);
+            verify(picker.y > 0, "the picker opens under the line, inside the panel");
+            // The picker is a popup: only a window grab includes it.
+            var shot = screensDir + "chat-info-picker-in-panel.png";
+            var saved = false;
+            verify(root.Window.contentItem.grabToImage(function(result) { saved = result.saveToFile(shot); }));
+            tryVerify(() => saved, 5000);
+            var form = findForm();
+            compare(form.modelCombo.editText, "gpt-4o-mini");
+            picker.choose("model", "gpt-4o-nano");
+            compare(chat.calls[chat.calls.length - 1].args[1].chatModel, "gpt-4o-nano");
+            tryVerify(() => !picker.opened, 2000);
+            tryCompare(form.modelCombo, "editText", "gpt-4o-nano", 2000, "the form's draft was reloaded");
+            compare(value("effectiveLine").text, "Direct \u00b7 OpenAI \u00b7 gpt-4o-nano");
         }
     }
 }

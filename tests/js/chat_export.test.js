@@ -111,6 +111,25 @@ assert.ok(om.includes("- a\\*b\\_c\\`.txt"), om);
 assert.strictEqual(json(odd).messages.length, 3);
 assert.strictEqual(json(odd).messages[2].attachments.length, 1);
 
+// Quotes: Markdown block quotes above the message's text; text and JSON keep them too.
+const quoted = {title: "Q", exportedAt: fixture.exportedAt, messages: [
+    {role: "assistant", id: "m-1", model: "m", content: "Use rsync.\n\nIt is faster.", time: "09:00"},
+    {role: "user", content: "Why?", time: "09:01", quotes: [
+        {id: "m-1", role: "assistant", text: "Use rsync.\n\nIt is faster."},
+        {id: "m-0", role: "user", text: "single line"},
+        {id: "x", role: "user", text: "  "}, null]},
+    {role: "assistant", content: "Answer", time: "09:02", quotes: [{role: "user", text: "ignored on a reply"}]}
+]};
+const qm = md(quoted);
+assert.ok(qm.includes("## You · 09:01\n\n> **Assistant:** Use rsync.\n>\n> It is faster.\n\n> **You:** single line\n\nWhy?"), qm);
+assert.ok(!qm.includes("ignored on a reply"), qm);
+assert.ok(txt(quoted).includes("You  [09:01]\n" + "-".repeat(60) + "\n> Assistant: Use rsync.\n> \n> It is faster.\n\n> You: single line\n\nWhy?"), txt(quoted));
+const qj = json(quoted).messages;
+assert.deepStrictEqual(qj[1].quotes, [{role: "assistant", text: "Use rsync.\n\nIt is faster."}, {role: "user", text: "single line"}]);
+assert.strictEqual(qj[0].quotes, undefined);
+assert.strictEqual(qj[2].quotes, undefined);
+assert.ok(!md(fixture).includes("**You:**"), "no quotes, nothing added");
+
 // Default exportedAt when missing is a valid date.
 assert.ok(/- \*\*Exported:\*\* \d{4}-\d\d-\d\d \d\d:\d\d/.test(md({messages: []})));
 

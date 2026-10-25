@@ -56,9 +56,11 @@ QtObject {
         sender.notifierRef.failed(chat.currentSessionId, chat.currentSessionTitle, text);
     }
 
-    function appendUserMessage(text, role, attachments) {
+    // quotes: the messages quoted with this one ([{id, role, text}], MessageContent.js);
+    // kept on the message, and put in front of its text in every request.
+    function appendUserMessage(text, role, attachments, quotes) {
         var ts = Date.now();
-        chat.messages = chat.messages.concat([{
+        var message = {
             "role": role || "user",
             "content": text,
             "time": TimeFormat.nowTime(ts),
@@ -66,7 +68,10 @@ QtObject {
             "model": "",
             "queueId": role === "queued" ? (++chat.queueCounter) : 0,
             "attachments": attachments || []
-        }]);
+        };
+        if (quotes && quotes.length > 0)
+            message.quotes = quotes;
+        chat.messages = chat.messages.concat([message]);
         if ((role || "user") === "user")
             chat.nameChatFromFirstMessage(text);
         chat.saveCurrentSessionState(true);
@@ -155,11 +160,13 @@ QtObject {
             // Writing instead of answering ends the model's question: the request stops and this message is sent.
             if (chat.loading && sender.directToolsRef && sender.directToolsRef.hasPendingQuestion())
                 chat.stopStreaming();
+            // The quote chips above the box go with this message (and are cleared).
+            var quotes = chat.composerRef && chat.composerRef.takeQuotes ? chat.composerRef.takeQuotes() : [];
             if (chat.loading) {
-                sender.appendUserMessage(text, "queued", attachments);
+                sender.appendUserMessage(text, "queued", attachments, quotes);
                 return ;
             }
-            sender.appendUserMessage(text, "user", attachments);
+            sender.appendUserMessage(text, "user", attachments, quotes);
             sender.sendMessageByIndex(chat.messages.length - 1);
         } catch (err) {
             chat.loading = false;

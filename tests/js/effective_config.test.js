@@ -299,7 +299,7 @@ const tests = {
         assert.strictEqual(E.hasOwnModelSettings({openCodeVariant: "high"}), true);
         assert.strictEqual(E.hasOwnModelSettings({chatVariant: ""}), false);
     },
-    describe_for_the_composer_bar_names_the_mode_and_adds_the_variant() {
+    describe_for_the_chat_info_line_names_the_mode_and_adds_the_variant() {
         const names = id => ({nvidia: "NVIDIA NIM"}[id]);
         const bar = eff => E.describe(eff, names, {directLabel: "Direct", variant: E.variantText(eff, "")});
         assert.strictEqual(bar({mode: "provider", provider: "nvidia", model: "m"}), "Direct · NVIDIA NIM · m");
