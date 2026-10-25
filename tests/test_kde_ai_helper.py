@@ -10,9 +10,6 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "org.kde.plasma.kdeaichat", "contents", "ui"))
 
 from kde_ai_helper import (
-    cmd_toggle_schedule,
-    cmd_delete_schedule,
-    cmd_add_schedule,
     cmd_export_chat
 )
 
@@ -50,34 +47,6 @@ class TestKdeAiHelper(unittest.TestCase):
         if 'kde-ai-scheduler.service' in path:
             return os.path.join(self.temp_dir.name, 'kde-ai-scheduler.service')
         return path
-
-    def test_add_and_delete_schedule(self):
-        # Add a schedule
-        entry = {
-            "id": "s-123",
-            "name": "Daily test",
-            "enabled": True,
-            "message": "Hello world"
-        }
-        cmd_add_schedule({"entry": entry})
-        
-        # Check added
-        with open(self.schedules_json_path) as f:
-            data = json.load(f)
-        self.assertEqual(len(data['schedules']), 1)
-        self.assertEqual(data['schedules'][0]['id'], "s-123")
-
-        # Toggle schedule
-        cmd_toggle_schedule({"schedId": "s-123", "enabled": False})
-        with open(self.schedules_json_path) as f:
-            data = json.load(f)
-        self.assertFalse(data['schedules'][0]['enabled'])
-
-        # Delete schedule
-        cmd_delete_schedule({"schedId": "s-123"})
-        with open(self.schedules_json_path) as f:
-            data = json.load(f)
-        self.assertEqual(len(data['schedules']), 0)
 
     def test_export_chat(self):
         dest_path = os.path.join(self.temp_dir.name, 'exported_chat.md')

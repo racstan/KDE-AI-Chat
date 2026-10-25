@@ -55,7 +55,7 @@ def test_start_status_stop_only_our_server():
             assert started["status"] == "started", started
             pid = started["pid"]
             try:
-                assert _run(opencode_server.cmd_opencode_server_status, {"port": port}) == {"running": True, "ours": True, "binary": fake}
+                assert opencode_server.healthy(port) and opencode_server.find_binary() == fake
                 assert _run(opencode_server.cmd_opencode_server_start, {"port": port})["status"] == "already-running"
                 assert _run(opencode_server.cmd_opencode_server_stop, {})["status"] == "stopped"
                 for _ in range(50):

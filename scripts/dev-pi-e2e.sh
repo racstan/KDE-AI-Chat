@@ -22,7 +22,7 @@ fi
 rm -rf "$SANDBOX" "$WORK" "$KDEAICHAT_PI_MOCK_LOG"
 mkdir -p "$WORK"
 stop_bridge() {
-    XDG_DATA_HOME="$SANDBOX/data" python3 "$ROOT/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py" pi_bridge_stop >/dev/null || true
+    XDG_DATA_HOME="$SANDBOX/data" python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); from kdeaichat import pi_bridge; pi_bridge.cmd_pi_bridge_stop({})' "$ROOT/org.kde.plasma.kdeaichat/contents/ui" >/dev/null || true
 }
 trap stop_bridge EXIT
 "$ROOT/scripts/dev-run.sh" 8 >/dev/null || true
