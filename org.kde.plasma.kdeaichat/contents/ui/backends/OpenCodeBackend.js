@@ -12,13 +12,15 @@
 //   {type: "tool_update", callId, title}
 //   {type: "tool_end", callId, output, title, isError}
 //   {type: "file_changed", path}
+//   {type: "notice", level: "info", message}
 //   {type: "permission_request", id, permission, patterns, metadata}
 //   {type: "permission_resolved", id, reply}
 //   {type: "question_request", id, questions}
 //   {type: "question_resolved", id, status}               "answered" | "dismissed"
 //
-// Self-contained (no QML globals, no .import): the SSE parser and
-// XMLHttpRequest are passed in, so tests run it in node.
+// Self-contained (no QML globals, no .import): the SSE parser, the event
+// mapper (OpenCodeEvents.createEventMapper) and XMLHttpRequest are passed in,
+// so tests run it in node.
 
 function url(baseUrl, path, directory) {
     var base = String(baseUrl || "").replace(/\/+$/, "").replace(/\/v1$/, "");
@@ -35,142 +37,6 @@ function promptBody(options) {
     if (options.system)
         body.system = options.system;
     return body;
-}
-
-function _errorText(error, fallback) {
-    if (!error) return fallback;
-    if (typeof error === "string") return error;
-    var data = error.data || {};
-    return String(data.message || error.message || error.name || fallback);
-}
-
-// Turns OpenCode events for one server session into backend events.
-// emit(event) receives them; handle(eventObj) takes one parsed event (either
-// {type, properties} from /event or {directory, payload} from /global/event).
-function createEventMapper(sessionId, emit) {
-    var roles = {};          // messageID -> "user" | "assistant"
-    var parts = {};          // partID -> {kind: "text"|"reasoning"|..., emitted}
-    var waiting = {};        // messageID -> [events] seen before its role was known
-    var tools = {};          // callID -> last status
-    var busy = false;
-    var errored = false;
-    var finished = false;
-
-    function partFromAssistant(part) {
-        var role = roles[part.messageID];
-        if (role === undefined) {
-            (waiting[part.messageID] = waiting[part.messageID] || []).push(part);
-            return false;
-        }
-        return role === "assistant";
-    }
-
-    function emitText(partId, kind, text) {
-        var state = parts[partId] || (parts[partId] = {"kind": kind, "emitted": 0});
-        state.kind = kind;
-        if (text.length > state.emitted) {
-            emit({"type": kind === "reasoning" ? "reasoning_delta" : "text_delta", "delta": text.substring(state.emitted)});
-            state.emitted = text.length;
-        }
-    }
-
-    function handlePart(part) {
-        if (!partFromAssistant(part))
-            return;
-        if (part.type === "text" || part.type === "reasoning") {
-            emitText(part.id, part.type, String(part.text || ""));
-        } else if (part.type === "tool") {
-            var state = part.state || {};
-            var callId = part.callID || part.id;
-            if (tools[callId] === undefined)
-                emit({"type": "tool_start", "callId": callId, "name": String(part.tool || "tool"), "input": state.input || {}});
-            if (state.status === "running" && state.title && tools[callId] !== "running")
-                emit({"type": "tool_update", "callId": callId, "title": String(state.title)});
-            if ((state.status === "completed" || state.status === "error") && tools[callId] !== "completed" && tools[callId] !== "error") {
-                emit({"type": "tool_end", "callId": callId, "title": String(state.title || ""),
-                      "output": String(state.status === "error" ? (state.error || "") : (state.output || "")).substring(0, 20000),
-                      "isError": state.status === "error"});
-            }
-            tools[callId] = state.status || "pending";
-        } else if (part.type === "step-finish" && part.tokens) {
-            emit({"type": "usage", "input": part.tokens.input || 0, "output": part.tokens.output || 0,
-                  "reasoning": part.tokens.reasoning || 0, "cost": part.cost || 0});
-        } else if (part.type === "patch") {
-            for (var i = 0; i < (part.files || []).length; i++)
-                emit({"type": "file_changed", "path": String(part.files[i])});
-        }
-    }
-
-    function finish() {
-        if (finished) return;
-        finished = true;
-        emit({"type": "done", "reason": errored ? "error" : "complete"});
-    }
-
-    return {
-        "isFinished": function() { return finished; },
-        "markAborted": function() {
-            if (finished) return;
-            finished = true;
-            emit({"type": "done", "reason": "aborted"});
-        },
-        "handle": function(eventObj) {
-            if (finished || !eventObj) return;
-            if (eventObj.payload && !eventObj.properties)
-                eventObj = eventObj.payload;
-            var type = eventObj.type || "";
-            var props = eventObj.properties || {};
-            if (props.sessionID !== undefined && props.sessionID !== sessionId)
-                return;
-            if (type === "message.updated") {
-                var info = props.info || {};
-                if (!info.id) return;
-                var known = roles[info.id] !== undefined;
-                roles[info.id] = info.role;
-                if (!known && waiting[info.id]) {
-                    var queued = waiting[info.id];
-                    delete waiting[info.id];
-                    for (var q = 0; q < queued.length; q++) handlePart(queued[q]);
-                }
-                if (info.role === "assistant" && info.error && !errored) {
-                    errored = true;
-                    emit({"type": "error", "message": "OpenCode: " + _errorText(info.error, "the request failed."), "status": 0});
-                }
-            } else if (type === "message.part.updated") {
-                if (props.part) handlePart(props.part);
-            } else if (type === "message.part.delta") {
-                var state = parts[props.partID];
-                if (props.field === "text" && state && roles[props.messageID] === "assistant") {
-                    emit({"type": state.kind === "reasoning" ? "reasoning_delta" : "text_delta", "delta": String(props.delta || "")});
-                    state.emitted += String(props.delta || "").length;
-                }
-            } else if (type === "file.edited") {
-                if (busy && props.file) emit({"type": "file_changed", "path": String(props.file)});
-            } else if (type === "permission.asked" || type === "permission.v2.asked") {
-                emit({"type": "permission_request", "id": String(props.id || ""), "permission": String(props.permission || props.action || ""),
-                      "patterns": props.patterns || props.resources || [], "metadata": props.metadata || {}});
-            } else if (type === "permission.replied" || type === "permission.v2.replied") {
-                emit({"type": "permission_resolved", "id": String(props.requestID || ""), "reply": String(props.reply || "")});
-            } else if (type === "question.asked" || type === "question.v2.asked") {
-                emit({"type": "question_request", "id": String(props.id || ""), "questions": props.questions || []});
-            } else if (type === "question.replied" || type === "question.v2.replied") {
-                emit({"type": "question_resolved", "id": String(props.requestID || ""), "status": "answered"});
-            } else if (type === "question.rejected" || type === "question.v2.rejected") {
-                emit({"type": "question_resolved", "id": String(props.requestID || ""), "status": "dismissed"});
-            } else if (type === "session.error") {
-                if (!errored) {
-                    errored = true;
-                    emit({"type": "error", "message": "OpenCode: " + _errorText(props.error, "session error."), "status": 0});
-                }
-            } else if (type === "session.status") {
-                var status = (props.status || {}).type;
-                if (status === "busy") busy = true;
-                else if (status === "idle" && busy) finish();
-            } else if (type === "session.idle") {
-                if (busy) finish();
-            }
-        }
-    };
 }
 
 // One HTTP request; calls done(status, responseText).
@@ -192,18 +58,33 @@ function _request(xhrFactory, method, target, body, timeoutMs, done) {
     return xhr;
 }
 
+function _json(status, text, fallback) {
+    if (status < 200 || status >= 300) return fallback;
+    try { return JSON.parse(text); } catch (e) { return fallback; }
+}
+
 // Runs one prompt. options:
 //   baseUrl, directory, sessionId ("" = create one), title, body (promptBody),
 //   xhrFactory(), parserFactory(onMessage) (DirectBackend.createSseParser),
-//   onEvent(event)
+//   mapperFactory(sessionId, emit) (OpenCodeEvents.createEventMapper),
+//   onEvent(event), later(fn, ms) (runs fn after ms; default: right away),
+//   maxReconnects (default 5)
+// A lost event stream is reopened (the reply goes on on the server) and the
+// reply caught up from the session's messages. A session the server doesn't
+// know any more (HTTP 404) is replaced by a new one, once.
 // Returns {abort()}.
 function send(options) {
     var directory = options.directory || "";
+    var later = options.later || function(fn) { fn(); };
+    var maxReconnects = options.maxReconnects === undefined ? 5 : options.maxReconnects;
     var stream = null;
     var sessionId = options.sessionId || "";
     var mapper = null;
     var started = false;
+    var accepted = false;
+    var renewed = false;
     var closed = false;
+    var reconnects = 0;
 
     function emit(event) {
         if (!closed) options.onEvent(event);
@@ -212,7 +93,9 @@ function send(options) {
     function close() {
         if (closed) return;
         closed = true;
-        if (stream) { try { stream.abort(); } catch (e) {} }
+        var old = stream;
+        stream = null;
+        if (old) { try { old.abort(); } catch (e) {} }
     }
     function fail(message) {
         if (closed) return;
@@ -220,60 +103,120 @@ function send(options) {
         options.onEvent({"type": "done", "reason": "error"});
         close();
     }
-    function prompt() {
-        if (started || closed) return;
-        started = true;
-        _request(options.xhrFactory, "POST", url(options.baseUrl, "/session/" + encodeURIComponent(sessionId) + "/prompt_async", directory),
-                 options.body, 30000, function(status, text) {
-            if (status < 200 || status >= 300)
-                fail(status === 0 ? "OpenCode: could not reach the server at " + options.baseUrl + "."
-                     : "OpenCode: the server refused the prompt (HTTP " + status + ")." + (text ? " " + text.substring(0, 300) : ""));
-        });
-    }
-    function openStream() {
-        var offset = 0;
-        var parser = options.parserFactory(function(message) {
-            var obj;
-            try { obj = JSON.parse(message.data); } catch (e) { return; }
-            var type = (obj.payload || obj).type;
-            if (type === "server.connected") prompt();
-            else if (mapper) mapper.handle(obj);
-        });
-        stream = options.xhrFactory();
-        stream.onreadystatechange = function() {
-            if (stream.readyState !== 3 && stream.readyState !== 4) return;
-            var text = stream.responseText || "";
-            parser.push(text.substring(offset));
-            offset = text.length;
-            if (offset > 50000000) { close(); fail("OpenCode: the event stream grew too large."); }
-            if (stream.readyState === 4 && !closed) fail("OpenCode: the server closed the event stream.");
-        };
-        stream.onerror = function() { fail("OpenCode: lost the connection to the server's event stream."); };
-        stream.open("GET", url(options.baseUrl, "/event", directory), true);
-        stream.send();
-    }
-    function begin() {
-        mapper = createEventMapper(sessionId, emit);
-        emit({"type": "start"});
-        openStream();
-    }
-
-    if (sessionId) {
-        begin();
-    } else {
+    function createSession(done) {
         _request(options.xhrFactory, "POST", url(options.baseUrl, "/session", directory), {"title": options.title || "KDE AI Chat"}, 15000,
                  function(status, text) {
-            var id = "";
-            try { id = status >= 200 && status < 300 ? String(JSON.parse(text).id || "") : ""; } catch (e) { id = ""; }
+            if (closed) return;
+            var id = String((_json(status, text, {}) || {}).id || "");
             if (!id) {
                 fail(status === 0 ? "OpenCode: could not reach the server at " + options.baseUrl + ". Is `opencode serve` running?"
                      : "OpenCode: could not create a session (HTTP " + status + ").");
                 return;
             }
             sessionId = id;
+            mapper = options.mapperFactory(sessionId, emit);
             options.onEvent({"type": "session", "id": id});
-            begin();
+            done();
         });
+    }
+    function prompt() {
+        if (started || closed) return;
+        started = true;
+        _request(options.xhrFactory, "POST", url(options.baseUrl, "/session/" + encodeURIComponent(sessionId) + "/prompt_async", directory),
+                 options.body, 30000, function(status, text) {
+            if (closed) return;
+            if (status >= 200 && status < 300) {
+                accepted = true;
+            } else if (status === 404 && !renewed) {
+                renewed = true;
+                createSession(function() {
+                    emit({"type": "notice", "level": "info", "message": "OpenCode no longer had this chat's session; continuing in a new one."});
+                    started = false;
+                    prompt();
+                });
+            } else {
+                fail(status === 0 ? "OpenCode: could not reach the server at " + options.baseUrl + "."
+                     : "OpenCode: the server refused the prompt (HTTP " + status + ")." + (text ? " " + text.substring(0, 300) : ""));
+            }
+        });
+    }
+    // After a reconnect: the reply's messages and open requests, then whether it still runs.
+    function catchUp() {
+        var m = mapper;
+        var get = function(path, done) {
+            _request(options.xhrFactory, "GET", url(options.baseUrl, path, directory), null, 15000, function(status, text) {
+                if (!closed && m === mapper) done(status, text);
+            });
+        };
+        get("/session/" + encodeURIComponent(sessionId) + "/message", function(status, text) {
+            var history = _json(status, text, null);
+            if (Array.isArray(history)) m.replay(history);
+            get("/permission", function(s1, t1) {
+                var asked = _json(s1, t1, []);
+                for (var i = 0; Array.isArray(asked) && i < asked.length; i++) m.handle({"type": "permission.asked", "properties": asked[i]});
+                get("/question", function(s2, t2) {
+                    var questions = _json(s2, t2, []);
+                    for (var j = 0; Array.isArray(questions) && j < questions.length; j++) m.handle({"type": "question.asked", "properties": questions[j]});
+                    get("/session/status", function(s3, t3) {
+                        var states = _json(s3, t3, null);
+                        if (states && typeof states === "object")
+                            m.syncStatus(!!states[sessionId] && states[sessionId].type !== "idle");
+                    });
+                });
+            });
+        });
+    }
+    function lost() {
+        if (closed || (mapper && mapper.isFinished())) return;
+        var old = stream;
+        stream = null;
+        if (old) { try { old.abort(); } catch (e) {} }
+        if (reconnects >= maxReconnects) {
+            fail("OpenCode: lost the connection to the server's event stream.");
+            return;
+        }
+        reconnects++;
+        later(function() { if (!closed) openStream(); }, 500 * Math.pow(2, reconnects - 1));
+    }
+    function openStream() {
+        var offset = 0;
+        var xhr = options.xhrFactory();
+        var resumed = started;
+        var parser = options.parserFactory(function(message) {
+            if (closed || stream !== xhr) return;
+            var obj;
+            try { obj = JSON.parse(message.data); } catch (e) { return; }
+            var type = (obj.payload || obj).type;
+            if (type === "server.connected") {
+                reconnects = 0;
+                if (!started) prompt();
+                else if (resumed && accepted) catchUp();
+            } else if (mapper) {
+                mapper.handle(obj);
+            }
+        });
+        stream = xhr;
+        xhr.onreadystatechange = function() {
+            if (closed || stream !== xhr || (xhr.readyState !== 3 && xhr.readyState !== 4)) return;
+            var text = xhr.responseText || "";
+            parser.push(text.substring(offset));
+            offset = text.length;
+            if (stream === xhr && (xhr.readyState === 4 || offset > 50000000)) lost();
+        };
+        xhr.onerror = function() { if (stream === xhr) lost(); };
+        xhr.open("GET", url(options.baseUrl, "/event", directory), true);
+        xhr.send();
+    }
+    function begin() {
+        emit({"type": "start"});
+        openStream();
+    }
+
+    if (sessionId) {
+        mapper = options.mapperFactory(sessionId, emit);
+        begin();
+    } else {
+        createSession(begin);
     }
 
     return {

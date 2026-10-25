@@ -12,7 +12,8 @@ function load(file, names) {
     vm.runInNewContext(src + "\nthis.exports = {" + names.join(",") + "};", ctx);
     return ctx.exports;
 }
-const OC = load("OpenCodeBackend.js", ["url", "promptBody", "createEventMapper", "send", "replyPermission", "replyQuestion"]);
+const OC = load("OpenCodeBackend.js", ["url", "promptBody", "send", "replyPermission", "replyQuestion"]);
+OC.createEventMapper = load("OpenCodeEvents.js", ["createEventMapper"]).createEventMapper;
 const DB = load("DirectBackend.js", ["createSseParser"]);
 const plain = x => JSON.parse(JSON.stringify(x));
 const SID = "ses_A";
@@ -41,9 +42,12 @@ const SUCCESS = [
     ev("permission.replied", {requestID: "per_1", reply: "once"}),
     ev("message.part.updated", {part: {id: "p_t1", messageID: "msg_a", type: "tool", callID: "c1", tool: "write",
                                        state: {status: "running", input: {filePath: "hello.txt"}, title: "hello.txt", time: {}}}}),
+    // The write tool reports the edit while it runs (file.edited carries no session id).
+    {type: "file.edited", properties: {file: "/work/hello.txt"}},
     ev("message.part.updated", {part: {id: "p_t1", messageID: "msg_a", type: "tool", callID: "c1", tool: "write",
                                        state: {status: "completed", input: {}, output: "Wrote file", title: "hello.txt", metadata: {}, time: {}}}}),
-    {type: "file.edited", properties: {file: "/work/hello.txt"}},
+    // Another session of the same folder edits a file: not this reply's.
+    {type: "file.edited", properties: {file: "/work/other.txt"}},
     ev("message.part.updated", {part: {id: "p_x", messageID: "msg_a", type: "text", text: ""}}),
     ev("message.part.delta", {messageID: "msg_a", partID: "p_x", field: "text", delta: "do"}),
     ev("message.part.delta", {messageID: "msg_a", partID: "p_x", field: "text", delta: "ne"}),
@@ -84,7 +88,7 @@ const tests = {
         assert.deepStrictEqual(out.find(e => e.type === "permission_request"),
                                {type: "permission_request", id: "per_1", permission: "edit", patterns: ["hello.txt"], metadata: {}});
         assert.deepStrictEqual(out.find(e => e.type === "permission_resolved"), {type: "permission_resolved", id: "per_1", reply: "once"});
-        assert.deepStrictEqual(out.find(e => e.type === "file_changed"), {type: "file_changed", path: "/work/hello.txt"});
+        assert.deepStrictEqual(out.filter(e => e.type === "file_changed"), [{type: "file_changed", path: "/work/hello.txt"}]);
         assert.deepStrictEqual(out.find(e => e.type === "usage"), {type: "usage", input: 900, output: 12, reasoning: 5, cost: 0.001});
         assert.deepStrictEqual(out.filter(e => e.type === "done"), [{type: "done", reason: "complete"}]);
     },
@@ -159,7 +163,7 @@ const tests = {
         }
         const events = [];
         const handle = OC.send({baseUrl: "http://127.0.0.1:4096", directory: "/w", sessionId: "", title: "T",
-                                body: {parts: [{type: "text", text: "hi"}]}, xhrFactory, parserFactory: DB.createSseParser,
+                                body: {parts: [{type: "text", text: "hi"}]}, xhrFactory, parserFactory: DB.createSseParser, mapperFactory: OC.createEventMapper,
                                 onEvent: e => events.push(plain(e))});
         assert.deepStrictEqual(events.slice(0, 2), [{type: "session", id: "ses_new"}, {type: "start"}]);
         assert.ok(stream.url.endsWith("/event?directory=%2Fw"));
@@ -195,7 +199,7 @@ const tests = {
 
     send_reports_unreachable_server() {
         const events = [];
-        OC.send({baseUrl: "http://127.0.0.1:1", directory: "", sessionId: "", body: {}, parserFactory: DB.createSseParser,
+        OC.send({baseUrl: "http://127.0.0.1:1", directory: "", sessionId: "", body: {}, parserFactory: DB.createSseParser, mapperFactory: OC.createEventMapper,
                  xhrFactory: () => ({open() {}, setRequestHeader() {}, send() { this.onerror(); }}),
                  onEvent: e => events.push(plain(e))});
         assert.ok(events[0].message.includes("could not reach"), events[0].message);

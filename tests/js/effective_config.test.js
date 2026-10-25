@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveConfig.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode, inferSource, chatMode, isMode, unavailableText};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode, inferSource, chatMode, isMode, unavailableText, agentOwner};", ctx);
 const E = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -237,6 +237,32 @@ const tests = {
         assert.strictEqual(E.forSession({}, chatPi, modelFor).mode, "pi", "empty configuration -> the chat's mode");
         assert.strictEqual(E.forSession(null, null, null).mode, "provider");
         assert.strictEqual(E.mainMode({useOpenCode: true, usePi: true}), "opencode");
+    },
+
+    // The agent picked above an OpenCode chat is stored where resolve() takes
+    // the chat's agent from, so the chat really uses it (it used to always go
+    // to the main settings: ignored for a chat with its own agent, and
+    // changing every other chat).
+    agent_owner_is_where_the_chats_agent_comes_from() {
+        const ownAgent = {source: "opencode", ownModel: true, openCodeAgent: "plan"};
+        const cfg = (perChat, priority, agent) => ({useOpenCode: true, perChatModelSettings: perChat, perChatPriority: priority,
+                                                    openCodeAgent: agent, openCodeProvider: "opencode", openCodeModel: "zen-x"});
+        const cases = [
+            [cfg(false, "chat", "build"), ownAgent, "main"],
+            [cfg(true, "chat", "build"), ownAgent, "chat"],
+            [cfg(true, "main", "build"), ownAgent, "main"],
+            [cfg(true, "main", ""), ownAgent, "chat"],
+            [cfg(true, "chat", "build"), {source: "opencode", ownModel: false, openCodeAgent: "plan"}, "main"],
+            [cfg(true, "chat", "build"), {source: "opencode"}, "main"],
+            [cfg(true, "chat", "build"), null, "main"],
+        ];
+        for (const [config, chat, owner] of cases) {
+            assert.strictEqual(E.agentOwner(config, chat), owner, JSON.stringify([config, chat]));
+            // Storing the pick there makes it the chat's agent.
+            const picked = owner === "chat" ? [config, Object.assign({}, chat, {openCodeAgent: "go"})]
+                                            : [Object.assign({}, config, {openCodeAgent: "go"}), chat];
+            assert.strictEqual(E.forSession(picked[0], picked[1], modelFor).agent, "go", JSON.stringify([config, chat]));
+        }
     },
 
     describe_builds_the_line() {

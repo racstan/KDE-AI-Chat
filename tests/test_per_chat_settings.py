@@ -39,13 +39,19 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
         form_source = f.read()
 
     assert "function setSessionOverrides(sessionId, overrides)" in main_source
-    assert "property var openCodeAgentFetchWaiters" in main_source
-    assert "function _notifyOpenCodeAgentFetchWaiters()" in main_source
-    assert "openCodeAgentFetchWaiters = (root.openCodeAgentFetchWaiters || []).concat([callback])" in main_source
-    assert "function isSubagent(name, metadata)" in main_source
-    assert "sub[-_ ]?agent" in main_source
-    assert '"compaction", "explore", "general", "summary", "title"' in main_source
-    assert "item['name'] = n; item['id'] = n" in main_source
+    # Agent list loading lives in chat/OpenCodeMode.qml (every caller's
+    # callback is answered) and backends/OpenCodeAgents.js (subagents and
+    # hidden agents are left out; tested in tests/js/opencode_stability.test.js).
+    with open(os.path.join(UI_DIR, "chat", "OpenCodeMode.qml"), encoding="utf-8") as f:
+        opencode_source = f.read()
+    with open(os.path.join(UI_DIR, "backends", "OpenCodeAgents.js"), encoding="utf-8") as f:
+        agents_source = f.read()
+    assert "mode._agentWaiters = mode._agentWaiters.concat([callback])" in opencode_source
+    assert "sub[-_ ]?agent" in agents_source
+    assert '"compaction", "explore", "general", "summary", "title"' in agents_source
+    # No second, different agent list read from opencode.json behind the server's back.
+    assert "runFallbackAgentFileFetch" not in main_source
+    assert "#fetch-opencode-agents" not in main_source
     atomic_body = main_source.split("function setSessionOverrides(sessionId, overrides)", 1)[1].split(
         "function getEffectiveProvider", 1
     )[0]

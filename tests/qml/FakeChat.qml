@@ -103,8 +103,15 @@ QtObject {
     property var openCodeAgentsList: []
     property string openCodeAgent: ""
     property string openCodeWorkspaceCwd: ""
+    property var openCodeAgentsDirectory: null
+    property bool fetchingAgentsInProgress: false
+    property int agentFetches: 0
     function currentOpenCodeSessionId() { return "ses_0123456789abcdef"; }
-    function fetchOpenCodeAgents() {}
+    function fetchOpenCodeAgents() { agentFetches++; }
+    function openCodeBaseUrl() { return "http://127.0.0.1:1"; }
+    // main.qml's applySessionSource (chat/ModeSync.qml), when a test sets modeSync.
+    property var modeSync: null
+    function applySessionSource(session) { return modeSync ? modeSync.apply(session) : ""; }
     function syncOpenCodeSessionHistory() {}
     property bool piMode: false
     // Shown above the chat when its mode can't be used (main.qml's modeNotice).
@@ -146,6 +153,16 @@ QtObject {
                 return sessions[i][key] === undefined || sessions[i][key] === null ? fallback : sessions[i][key];
         }
         return fallback;
+    }
+    function setSessionProperty(id, key, value) {
+        var change = {};
+        change[key] = value;
+        var updated = sessions.slice();
+        for (var i = 0; i < updated.length; i++) {
+            if (updated[i].value === id)
+                updated[i] = Object.assign({}, updated[i], change);
+        }
+        sessions = updated;
     }
     function setSessionOverrides(id, overrides) {
         record("overrides", [id, overrides]);

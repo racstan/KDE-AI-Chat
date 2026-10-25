@@ -105,10 +105,7 @@ Item {
             chat: root
             historyFull: body.historyFull
             onWorkspaceRequested: workspaceFolderDialog.open()
-            onAgentChosen: function(value) {
-                root.openCodeAgent = value;
-                plasmoid.configuration.openCodeAgent = value;
-            }
+            onAgentChosen: function(value) { root.chooseOpenCodeAgent(value); }
         }
 
         Chat.RenameRow {

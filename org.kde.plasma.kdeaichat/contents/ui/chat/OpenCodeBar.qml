@@ -7,6 +7,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "../backends/OpenCodeAgents.js" as OpenCodeAgents
 
 RowLayout {
     id: bar
@@ -14,6 +15,8 @@ RowLayout {
     property var chat: null
     // The history takes the whole view (set by FullRepresentationContent).
     property bool historyFull: chat ? chat.historyOnlyMode : false
+    // The agents the selector offers: the server's list plus the chat's own agent.
+    readonly property var agentModel: OpenCodeAgents.comboModel(bar.chat.openCodeAgentsList, bar.chat.openCodeAgent)
 
     signal workspaceRequested()
     signal agentChosen(string value)
@@ -22,13 +25,20 @@ RowLayout {
     visible: !bar.historyFull && bar.chat.openCodeMode
     spacing: Kirigami.Units.smallSpacing
 
-    Component.onCompleted: {
-        if (bar.chat.openCodeMode && bar.chat.openCodeAgentsList.length === 0)
+    // The agent list belongs to a workspace folder: load it when the open
+    // chat's folder isn't the one it was loaded for.
+    function refreshAgents() {
+        if (bar.chat.openCodeMode && bar.chat.openCodeAgentsDirectory !== String(bar.chat.openCodeWorkspaceCwd || "").trim())
             bar.chat.fetchOpenCodeAgents();
     }
+    Component.onCompleted: bar.refreshAgents()
     onVisibleChanged: {
-        if (visible && bar.chat.openCodeAgentsList.length === 0)
-            bar.chat.fetchOpenCodeAgents();
+        if (visible)
+            bar.refreshAgents();
+    }
+    Connections {
+        target: bar.chat
+        function onOpenCodeWorkspaceCwdChanged() { bar.refreshAgents(); }
     }
 
     PC3.ToolButton {
@@ -43,7 +53,7 @@ RowLayout {
         text: {
             var folder = "";
             if (bar.chat.openCodeWorkspaceCwd) {
-                var p = bar.chat.openCodeWorkspaceCwd;
+                const p = bar.chat.openCodeWorkspaceCwd;
                 folder = p.substring(p.lastIndexOf("/") + 1) || p;
             }
             var sess = bar.chat.currentOpenCodeSessionId();
@@ -65,23 +75,18 @@ RowLayout {
         id: agentSelectorCombo
         implicitWidth: Kirigami.Units.gridUnit * 7
         implicitHeight: Kirigami.Units.gridUnit * 1.8
-        // The list is populated from OpenCode's API/configuration.
-        // Never invent agent names locally: an empty list means that
-        // OpenCode has not reported any agents yet.
-        model: bar.chat.openCodeAgentsList
+        // The agents OpenCode reports for the chat's folder (GET /agent),
+        // and always the agent the chat really sends with.
+        model: bar.agentModel
         textRole: "text"
         valueRole: "value"
-        enabled: model.length > 0
-        currentIndex: {
-            var cur = bar.chat.openCodeAgent || "";
-            for (var i = 0; i < model.length; i++) {
-                if (model[i].value === cur) return i;
-            }
-            return 0;
-        }
-        onActivated: {
-            if (!model[currentIndex]) return;
-            bar.agentChosen(model[currentIndex].value);
+        enabled: bar.chat.openCodeAgentsList.length > 0
+        currentIndex: OpenCodeAgents.indexOf(bar.agentModel, bar.chat.openCodeAgent)
+        onActivated: function(index) {
+            if (bar.agentModel[index] && bar.agentModel[index].value !== (bar.chat.openCodeAgent || ""))
+                bar.agentChosen(bar.agentModel[index].value);
+            // Always show the agent the chat really has (picking may not change it).
+            agentSelectorCombo.currentIndex = Qt.binding(function() { return OpenCodeAgents.indexOf(bar.agentModel, bar.chat.openCodeAgent); });
         }
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: "Agent profile — uses model from opencode.json\nCurrently: " + (bar.chat.openCodeAgent || "(default)")
@@ -91,7 +96,7 @@ RowLayout {
     PC3.ToolButton {
         icon.name: "view-list-details"
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Refresh agent list from opencode.json"
+        QQC2.ToolTip.text: "Reload the agent list from OpenCode"
         Accessible.name: QQC2.ToolTip.text
         onClicked: bar.chat.fetchOpenCodeAgents()
     }
