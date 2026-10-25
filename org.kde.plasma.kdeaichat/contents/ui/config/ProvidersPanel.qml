@@ -3,6 +3,10 @@
 // A list (stored as `providersJson`, see ProviderService.js) with add from a
 // preset, edit, remove and "use by default". API keys are written to KWallet
 // under the provider id and never to the config. Changes save immediately.
+//
+// Saving a provider with a new or changed key first checks it with the
+// provider (ProviderChecker.qml): a rejected key is not saved; a model that
+// answers "gone" or a provider that cannot be reached asks for a confirmation.
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -10,7 +14,6 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import "../ProviderService.js" as ProviderService
-import "../components" as Components
 
 ColumnLayout {
     id: panel
@@ -26,10 +29,40 @@ ColumnLayout {
     property bool editingNew: false
     property var draft: ({})
     property string draftKey: ""
-    property var modelCandidates: []
-    property bool fetching: false
+    // The models offered in the editor, and what the provider listed.
+    property var listChat: []
+    property var listAll: []
+    property bool showAll: false
+    readonly property var modelCandidates: candidates(listChat, listAll, showAll, draft.model, checker.deadRevision)
     property string status: ""
+    property string statusKind: "info"
+    // "" | "model" | "unverified": which "go on anyway" button is offered.
+    property string overrideKind: ""
     property int confirmRemoveIndex: -1
+
+    // For tests: replaces XMLHttpRequest.
+    property alias xhrFactory: checker.xhrFactory
+
+    ProviderChecker {
+        id: checker
+    }
+    readonly property var providerChecker: checker
+
+    function setStatus(text, kind) {
+        status = text;
+        statusKind = kind || "info";
+    }
+
+    // [{id, name}] for the model picker: the list (chat models, or all), the
+    // current model first if it is not in it, dead models marked.
+    function candidates(chat, all, showEverything, current, revision) {
+        var ids = (showEverything ? all : chat).slice();
+        if (current && ids.indexOf(current) < 0)
+            ids.unshift(current);
+        return ids.map(function(id) {
+            return {"id": id, "name": checker.deadReason(draft.id, id) !== "" ? i18n("(unavailable)") : ""}; // qmllint disable unqualified
+        });
+    }
 
     function load() {
         var list = ProviderService.parseProviders(configuration);
@@ -54,11 +87,6 @@ ColumnLayout {
         return ProviderService.getProviderConfig(entry.id, {"providersJson": JSON.stringify([entry])}).allowEmptyKey;
     }
 
-    function hostOf(url) {
-        var m = /^[a-z]+:\/\/([^/]+)/i.exec(String(url || ""));
-        return m ? m[1] : "";
-    }
-
     function addFromPreset(presetId) {
         var preset = ProviderService.presetById(presetId) || {};
         var entry = {"id": ProviderService.newProviderId(providers, presetId), "name": preset.name || i18n("New provider"), // qmllint disable unqualified
@@ -69,38 +97,93 @@ ColumnLayout {
     }
 
     function startEdit(index, isNew) {
+        checker.cancel();
         draft = Object.assign({}, providers[index]);
         draftKey = wallet && wallet.keys ? (wallet.keys[draft.id] || "") : "";
-        modelCandidates = draft.model ? [draft.model] : [];
-        status = "";
+        listChat = [];
+        listAll = [];
+        showAll = false;
+        overrideKind = "";
+        setStatus("");
         editingNew = !!isNew;
         editingIndex = index;
         confirmRemoveIndex = -1;
+        // Show the provider's current models without being asked.
+        if (isLocal(draft) || draftKey.trim() !== "")
+            refreshModels(false);
     }
 
     function cancelEdit() {
+        checker.cancel();
         if (editingNew)
             providers = providers.slice(0, editingIndex).concat(providers.slice(editingIndex + 1));
         editingIndex = -1;
         editingNew = false;
     }
 
-    function saveEdit() {
+    // The draft with its text fields cleaned up, as it would be saved.
+    function draftEntry() {
         var entry = Object.assign({}, draft);
         entry.name = String(entry.name || "").trim() || entry.id;
         entry.baseUrl = String(entry.baseUrl || "").trim();
-        if (!ProviderService.isHttpUrlAllowed(entry.baseUrl)) {
-            status = i18n("Enter an http:// or https:// URL."); // qmllint disable unqualified
+        entry.model = String(entry.model || "").trim();
+        return entry;
+    }
+
+    function onFieldEdited(field, value) {
+        overrideKind = "";
+        if (field === "key") {
+            draftKey = value;
             return;
         }
+        var change = {};
+        change[field] = value;
+        draft = Object.assign({}, draft, change);
+        if (field === "baseUrl") {
+            listChat = [];
+            listAll = [];
+        }
+    }
+
+    // Saves the draft. Unless `skipCheck`, a cloud provider whose key, URL or
+    // model changed is checked with the provider first.
+    function saveEdit(skipCheck) {
+        var entry = draftEntry();
+        var key = draftKey.trim();
+        if (!ProviderService.isHttpUrlAllowed(entry.baseUrl)) {
+            setStatus(i18n("Enter an http:// or https:// URL."), "error"); // qmllint disable unqualified
+            return;
+        }
+        var before = providers[editingIndex] || {};
+        var changed = editingNew || (wallet && key !== (wallet.keys[entry.id] || ""))
+            || before.model !== entry.model || before.baseUrl !== entry.baseUrl;
+        if (skipCheck === true || !changed || key === "" || isLocal(entry)) {
+            commit(entry, key);
+            return;
+        }
+        overrideKind = "";
+        setStatus("");
+        checker.verify(entry, key, false, function(result) {
+            if (result.state === "ok" || result.state === "skipped") {
+                commit(entry, key);
+                return;
+            }
+            var shown = checker.describe(entry, result);
+            setStatus(shown.text, shown.kind);
+            overrideKind = result.state === "model_unavailable" ? "model" : result.state === "unverified" ? "unverified" : "";
+        });
+    }
+
+    function commit(entry, key) {
+        checker.cancel();
         var list = providers.slice();
         list[editingIndex] = entry;
         providers = list;
         persist();
-        if (wallet && (draftKey.trim() !== (wallet.keys[entry.id] || "")))
-            wallet.write(entry.id, draftKey.trim(), function(ok) {
+        if (wallet && (key !== (wallet.keys[entry.id] || "")))
+            wallet.write(entry.id, key, function(ok) {
                 if (ok) panel.notifyKeysChanged();
-                else status = wallet.statusMessage();
+                else setStatus(wallet.statusMessage(), "error");
             });
         if (!defaultProvider || ProviderService.getProviderConfig(defaultProvider, configuration).found === false)
             setDefault(entry.id);
@@ -122,16 +205,48 @@ ColumnLayout {
         configuration.provider = id;
     }
 
-    function fetchModels() {
-        fetching = true;
-        status = i18n("Fetching models…"); // qmllint disable unqualified
-        ProviderService.fetchModels(draft, draftKey.trim(), function(ids) {
-            fetching = false;
-            modelCandidates = ids;
-            status = ids.length > 0 ? i18n("%1 models available.", ids.length) : i18n("The provider returned no models."); // qmllint disable unqualified
-        }, function(error) {
-            fetching = false;
-            status = error;
+    // Fetches the draft provider's models; `force` skips the session cache and
+    // tries the saved model again.
+    function refreshModels(force) {
+        var entry = draftEntry();
+        var key = draftKey.trim();
+        if (!ProviderService.isHttpUrlAllowed(entry.baseUrl)) {
+            setStatus(i18n("Enter an http:// or https:// URL."), "error"); // qmllint disable unqualified
+            return;
+        }
+        var id = entry.id;
+        checker.loadModels(entry, key, force, function(result) {
+            if (editingIndex < 0 || draft.id !== id)
+                return;
+            if (!result.ok) {
+                setStatus(result.error === "rejected" ? i18n("The provider rejected the API key (HTTP %1).", result.status) // qmllint disable unqualified
+                          : result.error === "http" ? i18n("The provider answered HTTP %1 for its model list.", result.status) // qmllint disable unqualified
+                          : i18n("Could not fetch models from %1.", checker.hostOf(entry.baseUrl)), "error"); // qmllint disable unqualified
+                return;
+            }
+            listChat = result.chat;
+            listAll = result.all;
+            setStatus(result.all.length > 0 ? i18n("%1 models available.", result.chat.length) : i18n("The provider returned no models."), "info"); // qmllint disable unqualified
+            checkSavedModel(entry, key, force, result);
+        });
+    }
+
+    // Finds out (once per session, or when refreshed) whether the chosen model
+    // still answers; a dead one is flagged here and next to the provider row.
+    function checkSavedModel(entry, key, force, list) {
+        if (entry.model === "")
+            return;
+        if (isLocal(entry)) {
+            checker.markMissing(entry, list.all);
+            return;
+        }
+        if (key === "" || (!force && checker.probed[entry.id + "|" + entry.model]))
+            return;
+        checker.verify(entry, key, false, function(result) {
+            if (editingIndex >= 0 && draft.id === entry.id && (result.state === "key_rejected" || result.state === "model_unavailable")) {
+                let shown = checker.describe(entry, result);
+                setStatus(shown.text, shown.kind);
+            }
         });
     }
 
@@ -187,150 +302,49 @@ ColumnLayout {
     // ── List ──────────────────────────────────────────────────────────────
     Repeater {
         model: panel.providers
-        delegate: ColumnLayout {
-            id: row
-            Layout.fillWidth: true
-            spacing: 0
+        delegate: ProviderRow {
             required property var modelData
             required property int index
-
-            RowLayout {
-                Layout.fillWidth: true
-                visible: panel.editingIndex !== row.index
-                Kirigami.Icon {
-                    source: panel.isLocal(row.modelData) ? "computer" : "network-server"
-                    Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
-                    Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 0
-                    QQC2.Label {
-                        text: row.modelData.name + (row.modelData.id === panel.defaultProvider ? "  · " + i18n("default") : "") // qmllint disable unqualified
-                        font.bold: row.modelData.id === panel.defaultProvider
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                    }
-                    QQC2.Label {
-                        text: (row.modelData.model || i18n("no model set")) + " · " + panel.hostOf(row.modelData.baseUrl) // qmllint disable unqualified
-                            + (!panel.isLocal(row.modelData) && panel.wallet && !panel.wallet.keys[row.modelData.id] ? " · " + i18n("no API key") : "") // qmllint disable unqualified
-                        opacity: 0.7
-                        font: Kirigami.Theme.smallFont
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                    }
-                }
-                QQC2.Button {
-                    visible: row.modelData.id !== panel.defaultProvider && panel.confirmRemoveIndex !== row.index
-                    text: i18n("Use by default") // qmllint disable unqualified
-                    onClicked: panel.setDefault(row.modelData.id)
-                }
-                QQC2.ToolButton {
-                    visible: panel.confirmRemoveIndex !== row.index
-                    icon.name: "document-edit"
-                    enabled: panel.editingIndex < 0
-                    onClicked: panel.startEdit(row.index, false)
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: i18n("Edit") // qmllint disable unqualified
-                    Accessible.name: i18n("Edit %1", row.modelData.name) // qmllint disable unqualified
-                }
-                QQC2.ToolButton {
-                    visible: panel.confirmRemoveIndex !== row.index
-                    icon.name: "edit-delete"
-                    enabled: panel.editingIndex < 0
-                    onClicked: panel.confirmRemoveIndex = row.index
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: i18n("Remove") // qmllint disable unqualified
-                    Accessible.name: i18n("Remove %1", row.modelData.name) // qmllint disable unqualified
-                }
-                QQC2.Label {
-                    visible: panel.confirmRemoveIndex === row.index
-                    text: i18n("Remove this provider and its key?") // qmllint disable unqualified
-                }
-                QQC2.Button {
-                    visible: panel.confirmRemoveIndex === row.index
-                    text: i18n("Remove") // qmllint disable unqualified
-                    icon.name: "edit-delete"
-                    onClicked: panel.removeAt(row.index)
-                }
-                QQC2.Button {
-                    visible: panel.confirmRemoveIndex === row.index
-                    text: i18n("Cancel") // qmllint disable unqualified
-                    onClicked: panel.confirmRemoveIndex = -1
-                }
-            }
-
-            Kirigami.Separator {
-                Layout.fillWidth: true
-                opacity: 0.4
-            }
+            entry: modelData
+            isDefault: modelData.id === panel.defaultProvider
+            local: panel.isLocal(modelData)
+            missingKey: !local && panel.wallet !== null && !panel.wallet.keys[modelData.id]
+            host: checker.hostOf(modelData.baseUrl)
+            unavailable: checker.deadReason(modelData.id, modelData.model)
+            busy: panel.editingIndex >= 0
+            editing: panel.editingIndex === index
+            confirmingRemove: panel.confirmRemoveIndex === index
+            onUseByDefault: panel.setDefault(modelData.id)
+            onEdit: panel.startEdit(index, false)
+            onAskRemove: panel.confirmRemoveIndex = index
+            onConfirmRemove: panel.removeAt(index)
+            onCancelRemove: panel.confirmRemoveIndex = -1
         }
     }
 
     // ── Editor (one, below the list) ──────────────────────────────────
-    Kirigami.FormLayout {
+    ProviderEditor {
         Layout.fillWidth: true
         visible: panel.editingIndex >= 0
-
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Name:") // qmllint disable unqualified
-            text: panel.draft.name || ""
-            onTextEdited: panel.draft.name = text
-        }
-        QQC2.ComboBox {
-            Kirigami.FormData.label: i18n("API type:") // qmllint disable unqualified
-            model: [i18n("OpenAI-compatible"), i18n("Anthropic")] // qmllint disable unqualified
-            currentIndex: panel.draft.type === "anthropic" ? 1 : 0
-            onActivated: panel.draft.type = currentIndex === 1 ? "anthropic" : "openai-compat"
-        }
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Server URL:") // qmllint disable unqualified
-            Layout.fillWidth: true
-            text: panel.draft.baseUrl || ""
-            placeholderText: "https://api.example.com/v1"
-            onTextEdited: panel.draft.baseUrl = text
-        }
-        Kirigami.PasswordField {
-            Kirigami.FormData.label: i18n("API key:") // qmllint disable unqualified
-            Layout.fillWidth: true
-            text: panel.draftKey
-            placeholderText: panel.editingIndex >= 0 && panel.isLocal(panel.draft) ? i18n("Optional for local servers") : i18n("Stored in KWallet") // qmllint disable unqualified
-            onTextEdited: panel.draftKey = text
-        }
-        RowLayout {
-            Kirigami.FormData.label: i18n("Model:") // qmllint disable unqualified
-            Layout.fillWidth: true
-            Components.ModelPicker {
-                Layout.fillWidth: true
-                model: panel.modelCandidates
-                value: panel.draft.model || ""
-                onPicked: function(id) { panel.draft = Object.assign({}, panel.draft, {"model": id}); }
-            }
-            QQC2.Button {
-                text: i18n("Fetch models") // qmllint disable unqualified
-                icon.name: "view-refresh"
-                enabled: !panel.fetching
-                onClicked: panel.fetchModels()
-            }
-        }
-        QQC2.Label {
-            visible: panel.status !== ""
-            text: panel.status
-            wrapMode: Text.Wrap
-            opacity: 0.8
-            Layout.fillWidth: true
-        }
-        RowLayout {
-            QQC2.Button {
-                text: i18n("Save") // qmllint disable unqualified
-                icon.name: "document-save"
-                onClicked: panel.saveEdit()
-            }
-            QQC2.Button {
-                text: i18n("Cancel") // qmllint disable unqualified
-                onClicked: panel.cancelEdit()
-            }
-        }
+        draft: panel.draft
+        draftKey: panel.draftKey
+        local: panel.editingIndex >= 0 && panel.isLocal(panel.draft)
+        models: panel.modelCandidates
+        hiddenCount: panel.listAll.length - panel.listChat.length
+        showAll: panel.showAll
+        listing: checker.listing
+        checking: checker.checking
+        message: panel.status
+        messageKind: panel.statusKind
+        overrideText: panel.overrideKind === "model" ? i18n("Use this model anyway") : panel.overrideKind === "unverified" ? i18n("Save anyway") : "" // qmllint disable unqualified
+        modelWarning: checker.deadReason(panel.draft.id, panel.draft.model || "") !== ""
+            ? i18n("Unavailable: %1", checker.deadReason(panel.draft.id, panel.draft.model)) : "" // qmllint disable unqualified
+        onFieldEdited: function(field, value) { panel.onFieldEdited(field, value); }
+        onRefreshClicked: panel.refreshModels(true)
+        onShowAllToggled: function(on) { panel.showAll = on; }
+        onSaveClicked: panel.saveEdit(false)
+        onOverrideClicked: panel.saveEdit(true)
+        onCancelClicked: panel.cancelEdit()
     }
 
     // Keeps rows at their natural height when the panel is given extra space.

@@ -1,0 +1,155 @@
+// The form for editing one provider (name, type, URL, key, model), shown by
+// ProvidersPanel.qml. It holds no state of its own: the panel gives it the
+// draft and tells it what to show, and every edit or button goes out as a
+// signal.
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls as QQC2
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+import "../components" as Components
+
+// i18n() is provided by Plasma at runtime.
+// qmllint disable unqualified
+
+Kirigami.FormLayout {
+    id: editor
+
+    property var draft: ({})
+    property string draftKey: ""
+    property bool local: false
+    // The models offered: ids or {id, name}.
+    property var models: []
+    // Models hidden by the "chat models only" filter, and whether they are shown.
+    property int hiddenCount: 0
+    property bool showAll: false
+    property bool listing: false
+    property bool checking: false
+    // A message under the form; kind is "info", "ok", "warn" or "error".
+    property string message: ""
+    property string messageKind: "info"
+    // Set when the user may go on anyway: "Use anyway" / "Save anyway".
+    property string overrideText: ""
+    // Why the chosen model is flagged ("" when it is not).
+    property string modelWarning: ""
+
+    signal fieldEdited(string field, var value)
+    signal refreshClicked()
+    signal showAllToggled(bool on)
+    signal saveClicked()
+    signal overrideClicked()
+    signal cancelClicked()
+
+    QQC2.TextField {
+        Kirigami.FormData.label: i18n("Name:")
+        text: editor.draft.name || ""
+        onTextEdited: editor.fieldEdited("name", text)
+    }
+    QQC2.ComboBox {
+        Kirigami.FormData.label: i18n("API type:")
+        model: [i18n("OpenAI-compatible"), i18n("Anthropic")]
+        currentIndex: editor.draft.type === "anthropic" ? 1 : 0
+        onActivated: editor.fieldEdited("type", currentIndex === 1 ? "anthropic" : "openai-compat")
+    }
+    QQC2.TextField {
+        objectName: "urlField"
+        Kirigami.FormData.label: i18n("Server URL:")
+        Layout.fillWidth: true
+        text: editor.draft.baseUrl || ""
+        placeholderText: "https://api.example.com/v1"
+        onTextEdited: editor.fieldEdited("baseUrl", text)
+    }
+    Kirigami.PasswordField {
+        objectName: "keyField"
+        Kirigami.FormData.label: i18n("API key:")
+        Layout.fillWidth: true
+        text: editor.draftKey
+        placeholderText: editor.local ? i18n("Optional for local servers") : i18n("Stored in KWallet")
+        onTextEdited: editor.fieldEdited("key", text)
+    }
+    RowLayout {
+        Kirigami.FormData.label: i18n("Model:")
+        Layout.fillWidth: true
+        Components.ModelPicker {
+            objectName: "modelPicker"
+            Layout.fillWidth: true
+            model: editor.models
+            value: editor.draft.model || ""
+            onPicked: function(id) { editor.fieldEdited("model", id); }
+        }
+        QQC2.Button {
+            objectName: "refreshButton"
+            text: i18n("Refresh")
+            icon.name: "view-refresh"
+            enabled: !editor.listing && !editor.checking
+            onClicked: editor.refreshClicked()
+        }
+    }
+    QQC2.Label {
+        objectName: "modelWarning"
+        visible: editor.modelWarning !== ""
+        text: editor.modelWarning
+        wrapMode: Text.Wrap
+        color: Kirigami.Theme.neutralTextColor
+        Layout.fillWidth: true
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 20   // wraps instead of widening the form
+    }
+    QQC2.CheckBox {
+        objectName: "showAllCheck"
+        visible: editor.hiddenCount > 0 || editor.showAll
+        text: i18n("Show all models (%1 hidden)", editor.hiddenCount)
+        checked: editor.showAll
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: i18n("Chat models only are listed. The rest are embedding, safety, reranking, speech or image models.")
+        onToggled: editor.showAllToggled(checked)
+    }
+    RowLayout {
+        visible: editor.listing || editor.checking
+        Layout.fillWidth: true
+        QQC2.BusyIndicator {
+            objectName: "busy"
+            running: editor.listing || editor.checking
+            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+            Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
+        }
+        QQC2.Label {
+            text: editor.checking ? i18n("Checking the key with the provider…") : i18n("Fetching models…")
+            opacity: 0.8
+        }
+    }
+    QQC2.Label {
+        objectName: "statusLabel"
+        visible: editor.message !== ""
+        text: editor.message
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        color: editor.messageKind === "error" ? Kirigami.Theme.negativeTextColor
+             : editor.messageKind === "warn" ? Kirigami.Theme.neutralTextColor
+             : editor.messageKind === "ok" ? Kirigami.Theme.positiveTextColor
+             : Kirigami.Theme.textColor
+        opacity: editor.messageKind === "info" ? 0.8 : 1
+    }
+    RowLayout {
+        QQC2.Button {
+            objectName: "saveButton"
+            text: i18n("Save")
+            icon.name: "document-save"
+            enabled: !editor.checking
+            onClicked: editor.saveClicked()
+        }
+        QQC2.Button {
+            objectName: "overrideButton"
+            visible: editor.overrideText !== ""
+            text: editor.overrideText
+            enabled: !editor.checking
+            onClicked: editor.overrideClicked()
+        }
+        QQC2.Button {
+            objectName: "cancelButton"
+            text: i18n("Cancel")
+            onClicked: editor.cancelClicked()
+        }
+    }
+}
