@@ -1333,7 +1333,7 @@ import org.kde.plasma.plasma5support as P5Support
                         id: dlgNotify
 
                         checked: scheduleDialog.draft.notify !== false
-                        onCheckedChanged: {
+                        onToggled: {
                             scheduleDialog.updateDraft({"notify": checked});
                         }}
 

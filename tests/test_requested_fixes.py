@@ -10,7 +10,8 @@ MAIN_XML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "conf
 PROVIDER_SERVICE = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ProviderService.js")
 HELPER_PY = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "kde_ai_helper.py")
 FULL_REP_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "FullRepresentationContent.qml")
-CONFIG_OTHER_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigOther.qml")
+CONFIG_APPEARANCE_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigAppearance.qml")
+CONFIG_PROVIDERS_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigProviders.qml")
 MAIN_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "main.qml")
 
 
@@ -46,22 +47,46 @@ def test_touchpad_scroll_handler_in_full_representation():
 
 
 def test_feature_settings_are_exposed_and_persisted():
-    with open(CONFIG_OTHER_QML, encoding="utf-8") as f:
-        config_other = f.read()
+    with open(CONFIG_APPEARANCE_QML, encoding="utf-8") as f:
+        appearance = f.read()
+    with open(CONFIG_PROVIDERS_QML, encoding="utf-8") as f:
+        providers = f.read()
     with open(MAIN_QML, encoding="utf-8") as f:
         main_qml = f.read()
 
-    assert "property alias cfg_customIcon: configPage.customIconValue" in config_other
-    assert "cfg_disableStreaming: disableStreamingToggle.checked" in config_other
-    assert "function isCustomIconImage" in config_other
-    assert "function customIconImageSource" in config_other
-    assert "function applyCustomIcon" in config_other
-    assert "customIconFileDialog" in config_other
-    assert "FileDialog.OpenFile" in config_other
-    assert "*.gif" in config_other
-    assert "plasmoid.configuration.customIcon = value" in config_other
-    assert "plasmoid.configuration.disableStreaming = checked" in config_other
+    # Saved by Plasma on Apply/OK, like every other setting.
+    assert "property string cfg_customIcon" in appearance
+    assert "property bool cfg_disableStreaming" in providers
+    assert "page.cfg_disableStreaming = !checked" in providers
+    assert "function isCustomIconImage" in appearance
+    assert "function customIconImageSource" in appearance
+    assert "FileDialog.OpenFile" in appearance
+    assert "*.gif" in appearance
+    assert "KIconThemes.IconDialog" in appearance
     assert "Plasmoid.icon:" in main_qml
     assert "function customIconIsImage" in main_qml
     assert "function customIconImageSource" in main_qml
     assert "plasmoid.configuration.disableStreaming !== true" in main_qml
+
+
+def test_settings_pages_exist_and_cut_settings_are_gone():
+    package = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents")
+    with open(os.path.join(package, "config", "config.qml"), encoding="utf-8") as f:
+        sources = re.findall(r'source:\s*"([^"]+)"', f.read())
+    assert sources == ["ConfigProviders.qml", "ConfigHarness.qml", "ConfigChat.qml",
+                       "ConfigSchedules.qml", "ConfigVoice.qml", "ConfigAppearance.qml"]
+    for source in sources:
+        assert os.path.isfile(os.path.join(package, "ui", source)), source
+
+    # Cut in Phase 4 (docs/plan/07-cut-list.md): no setting and no reader left.
+    entries = {elem.attrib.get("name") for elem in ET.parse(MAIN_XML).getroot().iter() if elem.tag.endswith("entry")}
+    cut = ("uiLanguage", "appearanceMode", "showInteractiveGuides", "desktopSelectionEnabled")
+    for name in cut:
+        assert name not in entries, name
+    for directory, _dirs, files in os.walk(package):
+        for name in files:
+            if name.endswith((".qml", ".js")):
+                with open(os.path.join(directory, name), encoding="utf-8") as f:
+                    text = f.read()
+                for setting in cut:
+                    assert setting not in text, f"{name} still reads {setting}"
