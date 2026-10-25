@@ -22,7 +22,7 @@ QtObject {
                     current.content = chat.currentStreamText;
                 if (chat.currentStreamReasoning)
                     current.reasoning = chat.currentStreamReasoning;
-                if (!current.content && !current.reasoning)
+                if (!current.content && !current.reasoning && !current.tools)
                     copy.splice(chat.currentStreamIndex, 1);
                 chat.messages = copy;
             }

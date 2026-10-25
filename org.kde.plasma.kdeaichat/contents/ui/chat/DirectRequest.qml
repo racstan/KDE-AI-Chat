@@ -1,10 +1,14 @@
 // Direct mode: builds a provider request (key from KWallet, system prompt,
-// context window, attachments) and sends it through backends/DirectBackend.js.
-// Its events go to chat.applyBackendEvent. `chat` is the widget root (main.qml).
+// context window, attachments, tools) and sends it through backends/DirectBackend.js.
+// Its events go to chat.applyBackendEvent; when the model calls a tool,
+// chat/DirectToolRounds.qml runs it and the request goes on with the result.
+// `chat` is the widget root (main.qml).
 import QtQuick
 import "../ProviderService.js" as ProviderService
 import "../Security.js" as Sec
 import "../backends/DirectBackend.js" as DirectBackend
+import "../backends/DirectStream.js" as DirectStream
+import "../backends/DirectTools.js" as DirectTools
 import "MessageContent.js" as MessageContent
 
 QtObject {
@@ -12,6 +16,9 @@ QtObject {
 
     property var chat: null
     property var directVariantRef: null  // chat/DirectVariant.qml
+    // Replaces XMLHttpRequest in tests.
+    property var xhrFactory: null
+    readonly property var toolRounds: DirectToolRounds { chat: direct.chat; request: direct }
 
     function getProviderConfig(provider, sessionId) {
         var providerId = provider || chat.getEffectiveProvider(sessionId || chat.currentSessionId);
@@ -77,8 +84,10 @@ QtObject {
         return idx >= 0 ? (chat.sessions[idx].messages || []) : [];
     }
 
-    // System prompt and conversation for a direct API request.
-    function buildDirectRequestParts(sessionId, apiType) {
+    // System prompt and conversation for a direct API request. withTools: replies that used
+    // tools go back as tool calls and results; otherwise as text. `plain` is the conversation
+    // as text, for a model that refuses tools (null when nothing used tools).
+    function buildDirectRequestParts(sessionId, apiType, withTools) {
         var source = direct.sessionMessages(sessionId);
         var conversation = [];
         for (var i = 0; i < source.length; i++) {
@@ -86,13 +95,21 @@ QtObject {
                 conversation.push(source[i]);
         }
         conversation = direct.limitContextMessages(conversation);
-        var messages = [];
+        var asText = DirectTools.hasToolRounds(conversation);
+        var messages = [], plain = [];
         for (var j = 0; j < conversation.length; j++) {
             var rm = conversation[j];
             var hasAttachments = rm.role === "user" && rm.attachments && rm.attachments.length > 0;
-            messages.push({"role": rm.role, "content": hasAttachments ? MessageContent.build(rm.content, rm.attachments, apiType) : rm.content});
+            if (rm.role === "assistant" && rm.toolRounds && rm.toolRounds.length > 0) {
+                messages = messages.concat(DirectTools.historyMessages(apiType, rm, withTools));
+                plain = plain.concat(DirectTools.historyMessages(apiType, rm, false));
+                continue;
+            }
+            var item = {"role": rm.role, "content": hasAttachments ? MessageContent.build(rm.content, rm.attachments, apiType) : rm.content};
+            messages.push(item);
+            plain.push(item);
         }
-        return {"system": direct.buildEffectiveSystemPrompt(sessionId), "messages": messages};
+        return {"system": direct.buildEffectiveSystemPrompt(sessionId), "messages": messages, "plain": asText ? plain : null};
     }
 
     // Sends a direct API request and applies its events to the chat.
@@ -107,27 +124,65 @@ QtObject {
 
     function sendDirectRequest(cfg, sessionId, generation, variantSend) {
         var apiType = cfg.type === "anthropic" ? "anthropic" : "openai";
-        var parts = direct.buildDirectRequestParts(sessionId, apiType);
-        var model = cfg.model || "";
+        var tools = DirectTools.toolDefinitions(apiType, {"askUser": false});
+        var withTools = tools.length > 0 && !DirectBackend.rejectsTools({"baseUrl": cfg.baseUrl, "model": cfg.model || ""});
+        var parts = direct.buildDirectRequestParts(sessionId, apiType, withTools);
         chat.currentStreamUsage = ({});
         chat.loading = true;
+        direct.sendRound({"cfg": cfg, "sessionId": sessionId, "generation": generation, "variantSend": variantSend,
+                          "apiType": apiType, "model": cfg.model || "", "system": parts.system, "messages": parts.messages,
+                          "plain": parts.plain, "tools": tools, "round": 0, "roundText": "", "sepPending": false});
+    }
+
+    // Sends one request of a reply: the first, or the next after the tools the model called.
+    function sendRound(ctx) {
+        var collector = ctx.tools.length > 0 ? DirectTools.createCollector(ctx.apiType) : null;
+        var toolCalls = null;
+        ctx.roundText = "";
+        chat.loading = true;
         chat.activeXhr = DirectBackend.send({
-            "type": apiType,
-            "baseUrl": cfg.baseUrl,
-            "apiKey": cfg.apiKey,
-            "model": model,
-            "headers": cfg.headers,
-            "system": parts.system,
-            "messages": parts.messages,
-            "maxTokens": direct.responseMaxTokens(sessionId, DirectBackend.DEFAULT_MAX_TOKENS),
-            "variantSend": variantSend,
+            "type": ctx.apiType,
+            "baseUrl": ctx.cfg.baseUrl,
+            "apiKey": ctx.cfg.apiKey,
+            "model": ctx.model,
+            "headers": ctx.cfg.headers,
+            "system": ctx.system,
+            "messages": ctx.messages,
+            "plainMessages": ctx.plain,
+            "tools": ctx.tools,
+            "collector": collector,
+            "maxTokens": direct.responseMaxTokens(ctx.sessionId, DirectBackend.DEFAULT_MAX_TOKENS),
+            "variantSend": ctx.variantSend,
             "stream": chat.plasmoid.configuration.disableStreaming !== true,
             "timeoutMs": chat.plasmoid.configuration.requestTimeout > 0 ? chat.plasmoid.configuration.requestTimeout * 1000 : 0,
-            "xhrFactory": function() { return new XMLHttpRequest(); },
+            "xhrFactory": direct.xhrFactory || function() { return new XMLHttpRequest(); },
+            "thinkFactory": DirectStream.createThinkSplitter,
             "onEvent": function(event) {
-                if (chat.requestIsCurrent(sessionId, generation))
-                    chat.applyBackendEvent(event, model);
+                if (!chat.requestIsCurrent(ctx.sessionId, ctx.generation))
+                    return;
+                if (event.type === "tool_calls") {
+                    toolCalls = event;
+                    return;
+                }
+                if (event.type === "done" && event.reason === "complete" && toolCalls) {
+                    direct.toolRounds.run(ctx, toolCalls);
+                    return;
+                }
+                if (event.type === "text_delta") {
+                    ctx.roundText += event.delta;
+                    // A reply that goes on after a tool call continues on a new paragraph.
+                    if (ctx.sepPending) {
+                        ctx.sepPending = false;
+                        event = {"type": "text_delta", "delta": "\n\n" + event.delta};
+                    }
+                }
+                chat.applyBackendEvent(event, ctx.model);
             }
         });
+    }
+
+    // Ends the reply without asking the model again.
+    function finishRequest(ctx) {
+        chat.applyBackendEvent({"type": "done", "reason": "complete"}, ctx.model);
     }
 }

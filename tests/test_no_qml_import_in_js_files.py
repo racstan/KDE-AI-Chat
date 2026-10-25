@@ -33,6 +33,8 @@ WATCHED_FILES = (
     "ProviderVariants.js",
     "Variants.js",
     "backends/DirectBackend.js",
+    "backends/DirectStream.js",
+    "backends/DirectTools.js",
     "backends/OpenCodeBackend.js",
     "backends/OpenCodeAgents.js",
     "backends/OpenCodeCatalog.js",

@@ -23,6 +23,7 @@ import QtQuick
 import QtTest
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 import "../../org.kde.plasma.kdeaichat/contents/ui/backends/DirectBackend.js" as DirectBackend
+import "../../org.kde.plasma.kdeaichat/contents/ui/backends/DirectStream.js" as DirectStream
 import "PerfChat.js" as Perf
 
 Item {
@@ -192,7 +193,7 @@ Item {
 
             root.recording = true;
             DirectBackend.send({"type": "openai", "baseUrl": "http://fake", "model": "m", "messages": [],
-                                "timeoutMs": 0, "xhrFactory": server.makeXhr,
+                                "timeoutMs": 0, "xhrFactory": server.makeXhr, "thinkFactory": DirectStream.createThinkSplitter,
                                 "onEvent": function(event) {
                                     chat.applyDelta(event);
                                     if (event.type === "done") root.done = true;
