@@ -118,6 +118,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             onAttachRequested: fileDialog.show()
+            onChatInfoRequested: chatSettingsDialog.openForSession(body.chat.currentSessionId)
         }
 
     }

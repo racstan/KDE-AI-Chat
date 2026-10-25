@@ -101,6 +101,10 @@ QtObject {
     // What chat/EmptyState.qml, ErrorActions and the composer's templates read.
     property bool openCodeMode: false
     property var openCodeAgentsList: []
+    property var openCodeProvidersList: []
+    property var openCodeModelsList: []
+    property var piProviderCandidates: []
+    property var piProviderModelMap: ({})
     property string openCodeAgent: ""
     property string openCodeWorkspaceCwd: ""
     property var openCodeAgentsDirectory: null
@@ -137,7 +141,7 @@ QtObject {
     property string providerBaseUrl: "https://openrouter.ai/api/v1"
     function getEffectiveProvider() { return providerId; }
     function getProviderConfig() { return {"model": providerModel, "baseUrl": providerBaseUrl}; }
-    function providerDisplayName(id) { return {"openrouter": "OpenRouter", "openai": "OpenAI", "ollama": "Ollama"}[id] || id; }
+    function providerDisplayName(id) { return {"openrouter": "OpenRouter", "openai": "OpenAI", "ollama": "Ollama", "nvidia": "NVIDIA NIM"}[id] || id; }
     function openSettings() { record("openSettings", arguments); }
 
     // What chat/ChatBody.qml sets and ChatSettingsDialog.qml (the Chat info panel) reads.

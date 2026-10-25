@@ -24,7 +24,10 @@ ColumnLayout {
     readonly property alias input: msgInput
     readonly property alias suggestions: suggestions
 
+    readonly property alias bar: bar
+
     signal attachRequested()
+    signal chatInfoRequested()
 
     // Starts editing the last message you wrote (Up in an empty input), if
     // there is one and no reply is being written. Returns whether it did.
@@ -86,6 +89,13 @@ ColumnLayout {
             if (composer.chat.expanded)
                 focusTimer.start();
         }
+    }
+
+    // What the chat talks to (click to change the model), then what it is doing.
+    ComposerBar {
+        id: bar
+        chat: composer.chat
+        onChatInfoRequested: composer.chatInfoRequested()
     }
 
     ComposerStatus {

@@ -1,5 +1,5 @@
 // The line above the composer's input: what the widget is doing (thinking,
-// writing, reading aloud, voice status) or, when idle, the keys that work.
+// writing, reading aloud, voice status) or, in a new empty chat, the keys that work.
 // It always takes the same height, so the input never jumps when a reply
 // starts or ends.
 import QtQuick
@@ -18,12 +18,14 @@ RowLayout {
     readonly property var voice: chat ? chat.voiceManagerRef : null
     readonly property string voiceText: voice && voice.statusText ? voice.statusText : ""
     readonly property bool busy: !!chat && (chat.loading || (voiceText !== "" && voiceText !== "Reading aloud..." && voiceText !== "Paused" && !voice.callModeActive))
+    readonly property bool isNewChat: !!chat && (chat.messages || []).length === 0
     readonly property string text: {
         if (chat.loading)
             return (chat.currentStreamIndex >= 0 ? i18n("Writing…") : i18n("Thinking…")) + " " + i18n("Esc stops it.");
         if (voiceText !== "")
             return voiceText;
-        return i18n("Enter sends · Shift+Enter adds a line · / inserts a template");
+        // The keys are explained once, in a new chat; never in one with messages.
+        return status.isNewChat ? i18n("Enter sends · Shift+Enter adds a line · / inserts a template") : "";
     }
 
     Layout.fillWidth: true

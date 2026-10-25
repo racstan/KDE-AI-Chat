@@ -212,9 +212,29 @@ function agentOwner(config, session) {
     return "chat";
 }
 
+// Pi's thinking levels ("" = the model's default), for the settings and the composer bar.
+var PI_THINKING_LEVELS = ["", "off", "minimal", "low", "medium", "high", "xhigh", "max"];
+
+// The chat's "variant" as a short phrase, or "": Pi's thinking level
+// ("thinking high"), OpenCode's agent ("agent build"). `extra` is a variant a
+// direct chat brings itself (shown as is, and it wins).
+function variantText(eff, extra) {
+    if (_s(extra) !== "")
+        return _s(extra);
+    if (eff.mode === "pi" && _s(eff.thinking) !== "")
+        return "thinking " + _s(eff.thinking);
+    if (eff.mode === "opencode" && _s(eff.agent) !== "")
+        return "agent " + _s(eff.agent);
+    return "";
+}
+
 // "Pi · OpenAI · gpt-x" for the Chat info panel; names(providerId) -> display name.
-function describe(eff, names) {
-    var label = eff.mode === "opencode" ? "OpenCode" : (eff.mode === "pi" ? "Pi" : "");
+// opts (the composer bar): {directLabel: "Direct" (names the direct mode too),
+// variant: text for the end of the line, which also stops OpenCode's agent
+// standing in for a missing model}.
+function describe(eff, names, opts) {
+    var o = opts || {};
+    var label = eff.mode === "opencode" ? "OpenCode" : (eff.mode === "pi" ? "Pi" : _s(o.directLabel));
     var parts = [];
     if (label)
         parts.push(label);
@@ -222,7 +242,9 @@ function describe(eff, names) {
         parts.push(typeof names === "function" ? (names(eff.provider) || eff.provider) : eff.provider);
     if (eff.model)
         parts.push(eff.model);
-    else if (eff.mode === "opencode" && eff.agent)
+    else if (eff.mode === "opencode" && eff.agent && o.variant === undefined)
         parts.push(eff.agent);
+    if (_s(o.variant) !== "")
+        parts.push(_s(o.variant));
     return parts.join(" · ");
 }

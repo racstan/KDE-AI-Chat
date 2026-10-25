@@ -134,6 +134,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/DeferredBuilder.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatShortcuts.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ComposerStatus.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/ComposerBar.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/ComposerPicker.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/EmptyState.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ErrorActions.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/MonoBlock.qml",
