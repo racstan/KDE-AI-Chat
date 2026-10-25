@@ -11,6 +11,7 @@
 // detail    the original message (without a leading warning sign), "" if it
 //           says nothing more than `text`
 // settings  true when opening the settings can fix it
+// providerName_ (optional) is the provider's display name, used in the model message.
 // Plain JavaScript on strings, so tests run it in node.
 
 function _clean(raw) {
@@ -32,7 +33,7 @@ function _result(kind, text, detail, settings) {
     return {"kind": kind, "text": text, "detail": detail === text ? "" : detail, "settings": settings === true};
 }
 
-function describe(raw) {
+function describe(raw, providerName_) {
     var msg = _clean(raw);
     var low = msg.toLowerCase();
     var status = _status(msg);
@@ -65,8 +66,22 @@ function describe(raw) {
     if (/could not reach|can't reach|cannot reach|network|offline|connection (refused|reset|closed)|failed to fetch|unreachable|getaddrinfo|name not resolved/.test(low) || (status === 0 && /could not (read|start) the (provider|request)/.test(low)))
         return _result("network", "Can't reach the provider. Check your internet connection and the server address in Settings.", msg, true);
 
-    if ((status === 404 || status === 400 || status === 0) && /model/.test(low) && /not found|does not exist|doesn't exist|not available|unknown|no such|invalid model|not supported/.test(low))
-        return _result("model", "The provider doesn't have this model. Choose another one in this chat's settings.", msg, true);
+    // The chosen model is listed but the account can't use it (NIM: 404 "Function '...': Not found
+    // for account", 410 "has reached its end of life"), or the provider says it doesn't know it.
+    // A bare 404 (wrong URL) says none of this, so it stays "other".
+    var retired = (status === 410 || /model/.test(low)) && /end of life|no longer available|has been (retired|deprecated)|\bretired\b/.test(low);
+    var unknown = /model_not_found/.test(low)
+        || (/\bfunction\b/.test(low) && /not found/.test(low) && (status === 404 || status === 0))
+        || ((status === 404 || status === 400 || status === 0) && /model/.test(low)
+            && /not found|does not exist|doesn't exist|not available|unknown|no such|invalid model|not supported/.test(low));
+    if (retired || unknown) {
+        var who = providerName_ ? "your " + providerName_ + " account" : "your account";
+        var lead = retired ? "This model has been retired and isn't available on " + who + " any more."
+            : "This model isn't available on " + who + " (it may be retired or not enabled).";
+        var body = /\):\s*([\s\S]+)$/.exec(msg);
+        return _result("model", lead + " Pick another model in Settings \u2192 Connection, or in this chat's settings."
+            + (body ? "\n\n" + body[1].trim() : ""), msg, true);
+    }
 
     if (status >= 500 || /server error|overloaded|bad gateway|service unavailable|internal error/.test(low))
         return _result("server", "The provider had a problem on its side. Try again in a moment.", msg, false);
