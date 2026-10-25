@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Settings rebuilt as six small pages**: Providers (providers, time limit, streaming), Harness (direct, OpenCode or Pi, and the agent's default provider and model), Chat (system prompt, earlier messages sent, chat names, prompt templates), Schedules, Voice and Appearance (name, icon, sound). Changes are saved with Apply/OK like other Plasma widgets; prompt templates can now be edited, not only added and removed.
+
+### Removed
+- The guide text blocks in settings, the interface-language override, the light/dark appearance override (light or dark now follows the system), the unused desktop-selection setting, and the process memory panel with its Kill buttons.
+
 ## [1.4.0] - 2026-10-24
 
 ### Changed

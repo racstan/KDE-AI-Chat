@@ -41,10 +41,19 @@ TestCase {
             { tag: "chat/QuestionCard", url: uiDir + "chat/QuestionCard.qml" },
             { tag: "chat/ContextList", url: uiDir + "chat/ContextList.qml" },
             { tag: "chat/MessageActions", url: uiDir + "chat/MessageActions.qml" },
-            { tag: "ConfigGeneral", url: uiDir + "ConfigGeneral.qml" },
-            { tag: "ConfigSystemPrompt", url: uiDir + "ConfigSystemPrompt.qml" },
+            { tag: "ConfigProviders", url: uiDir + "ConfigProviders.qml" },
+            { tag: "ConfigHarness", url: uiDir + "ConfigHarness.qml" },
+            { tag: "ConfigChat", url: uiDir + "ConfigChat.qml" },
+            { tag: "ConfigSchedules", url: uiDir + "ConfigSchedules.qml" },
             { tag: "ConfigVoice", url: uiDir + "ConfigVoice.qml" },
-            { tag: "ConfigOther", url: uiDir + "ConfigOther.qml" },
+            { tag: "ConfigAppearance", url: uiDir + "ConfigAppearance.qml" },
+            { tag: "config/ModelCombo", url: uiDir + "config/ModelCombo.qml" },
+            { tag: "config/OpenCodeSettings", url: uiDir + "config/OpenCodeSettings.qml" },
+            { tag: "config/PiSettings", url: uiDir + "config/PiSettings.qml" },
+            { tag: "config/TemplatesEditor", url: uiDir + "config/TemplatesEditor.qml" },
+            { tag: "config/SchedulerService", url: uiDir + "config/SchedulerService.qml" },
+            { tag: "config/VoiceEngine", url: uiDir + "config/VoiceEngine.qml" },
+            { tag: "config/VoiceStatusGrid", url: uiDir + "config/VoiceStatusGrid.qml" },
             { tag: "config", url: configDir + "config.qml" }
         ];
     }

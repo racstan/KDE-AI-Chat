@@ -68,7 +68,6 @@ PlasmoidItem {
     property bool fetchingAgentsInProgress: false
     property bool fetchingOpenCodeConfig: false
     property var openCodeAgentFetchWaiters: []
-    property bool desktopSelectionEnabled: plasmoid.configuration.desktopSelectionEnabled === true
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
     property string compiledSystemPrompt: ""
@@ -86,16 +85,7 @@ PlasmoidItem {
     property int queueCounter: 0
     property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
     property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
-    readonly property bool popupIsDark: {
-        var mode = plasmoid.configuration.appearanceMode || 0;
-        if (mode === 1)
-            return false;
-
-        if (mode === 2)
-            return true;
-
-        return Qt.styleHints.colorScheme === Qt.Dark;
-    }
+    readonly property bool popupIsDark: Qt.styleHints.colorScheme === Qt.Dark
     property bool keysLoaded: false
     // providerId -> API key, read from KWallet (the only place keys are kept).
     readonly property var walletApiKeys: wallet.keys
@@ -2336,13 +2326,6 @@ PlasmoidItem {
 
     function initSystemPrompt() {
         compiledSystemPrompt = String(plasmoid.configuration.systemPrompt || "").trim().substring(0, 100000);
-        let lang = plasmoid.configuration.uiLanguage || "en";
-        if (lang !== "en") {
-            let langMap = { "zh": "Mandarin Chinese", "hi": "Hindi", "es": "Spanish", "fr": "French", "ru": "Russian", "pt": "Portuguese", "de": "German" };
-            if (langMap[lang]) {
-                compiledSystemPrompt += "\n\nCRITICAL INSTRUCTION: You MUST respond to all user queries in " + langMap[lang] + ", unless the user explicitly requests otherwise.";
-            }
-        }
     }
 
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"

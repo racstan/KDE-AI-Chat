@@ -1,10 +1,6 @@
 {
-  "org.kde.plasma.kdeaichat/contents/config/config.qml": 4,
+  "org.kde.plasma.kdeaichat/contents/config/config.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/ChatSettingsDialog.qml": 3,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigGeneral.qml": 0,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigOther.qml": 0,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigSystemPrompt.qml": 13,
-  "org.kde.plasma.kdeaichat/contents/ui/ConfigVoice.qml": 133,
   "org.kde.plasma.kdeaichat/contents/ui/FullRepresentationContent.qml": 306,
   "org.kde.plasma.kdeaichat/contents/ui/ScheduleDialog.qml": 47,
   "org.kde.plasma.kdeaichat/contents/ui/VoiceManager.qml": 2,
