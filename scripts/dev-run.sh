@@ -59,6 +59,43 @@ grep -q '"KDEAIChat-dev"' "$WALLET_QML" && grep -q '"KaiChat-dev"' "$WALLET_QML"
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 
+# Keep the test window off the user's main monitor: before launching, load a
+# KWin script that moves plasmawindowed windows onto another output as soon
+# as they appear. DEV_OUTPUT names the output; by default the first enabled
+# output whose priority isn't 1 (the main one). With a single monitor, or
+# without qdbus6/kscreen-doctor, the window stays where KWin puts it.
+PLACE_MARK="kdeaichat-dev-place-$$"
+PLACE_JS=""
+DEV_OUTPUT="${DEV_OUTPUT:-$(kscreen-doctor -o 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '
+    /^Output:/ { name = $3; on = 0 } /^[[:space:]]*enabled/ { on = 1 }
+    /priority/ { if (on && $2 != 1 && pick == "") pick = name } END { print pick }')}"
+if [ -n "$DEV_OUTPUT" ] && command -v qdbus6 >/dev/null; then
+    PLACE_JS="$(mktemp --suffix=.js)"
+    cat >"$PLACE_JS" <<JS
+function place(w) {
+    if (w.resourceClass.indexOf("plasmawindowed") === -1) return;
+    for (const o of workspace.screens) {
+        if (o.name !== "$DEV_OUTPUT") continue;
+        const g = o.geometry, f = w.frameGeometry;
+        const width = Math.min(f.width, g.width), height = Math.min(f.height, g.height);
+        print("kdeaichat-dev placed on " + o.name);
+        w.frameGeometry = { x: g.x + (g.width - width) / 2, y: g.y + (g.height - height) / 2,
+                            width: width, height: height };
+    }
+}
+workspace.windowList().forEach(place);
+workspace.windowAdded.connect(place);
+JS
+    if PSID="$(qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript "$PLACE_JS" "$PLACE_MARK" 2>/dev/null)"; then
+        qdbus6 org.kde.KWin "/Scripting/Script$PSID" org.kde.kwin.Script.run >/dev/null 2>&1 || true
+    fi
+fi
+unplace() {
+    qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript "$PLACE_MARK" >/dev/null 2>&1 || true
+    [ -n "$PLACE_JS" ] && rm -f "$PLACE_JS"
+}
+trap 'unplace; rm -rf "$STAGE"' EXIT
+
 # Run windowed, screenshot the active window, then stop it.
 plasmawindowed "$DEV_ID" >"$LOG" 2>&1 &
 PID=$!
