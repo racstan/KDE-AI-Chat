@@ -190,8 +190,18 @@ Item {
 
         // ── Appearance ───────────────────────────────────────────────────────
         function test_appearance_page() {
-            open("ConfigAppearance.qml", {"cfg_customIcon": "dialog-messages", "cfg_appDisplayName": "KDE AI Chat", "cfg_playNotificationSound": true});
+            open("ConfigAppearance.qml", {"cfg_customIcon": "dialog-messages", "cfg_appDisplayName": "KDE AI Chat", "cfg_playNotificationSound": true,
+                                           "cfg_notifyOnReply": true, "cfg_notifyOnError": false, "cfg_notifyOnScheduled": true});
             noSecretSettings();
+            var named = function(name) { return find(page, function(item) { return item.objectName === name; }); };
+            compare(named("notifyReplyCheck").checked, true);
+            compare(named("notifyErrorCheck").checked, false);
+            compare(named("notifyScheduledCheck").checked, true);
+            compare(named("soundCheck").checked, true);
+            mouseClick(named("notifyErrorCheck"));
+            compare(page.cfg_notifyOnError, true);
+            mouseClick(named("notifyReplyCheck"));
+            compare(page.cfg_notifyOnReply, false);
             verify(!page.isCustomIconImage("bot-symbolic"));
             verify(page.isCustomIconImage("/home/me/robot.GIF"));
             compare(page.customIconImageSource("/home/me/robot.gif"), "file:///home/me/robot.gif");

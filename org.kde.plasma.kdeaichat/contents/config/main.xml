@@ -275,6 +275,15 @@
     <entry name="playNotificationSound" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="notifyOnReply" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="notifyOnError" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="notifyOnScheduled" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="customIcon" type="String">
       <default>dialog-messages</default>
     </entry>

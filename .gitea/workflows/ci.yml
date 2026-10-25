@@ -116,6 +116,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveLine.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ModeSync.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/OwnModelCheck.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/Notifier.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ResizeHandle.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/StreamBuffer.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/StreamingText.qml",
