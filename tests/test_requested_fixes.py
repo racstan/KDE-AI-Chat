@@ -30,8 +30,11 @@ def test_main_xml_contains_new_config_entries():
 
 
 def test_mcp_commands_are_gone():
-    with open(HELPER_PY, encoding="utf-8") as f:
-        source = f.read()
+    package = os.path.join(os.path.dirname(HELPER_PY), "kdeaichat")
+    source = ""
+    for path in [HELPER_PY] + [os.path.join(package, n) for n in sorted(os.listdir(package)) if n.endswith(".py")]:
+        with open(path, encoding="utf-8") as f:
+            source += f.read()
     for name in ("mcp_web_search", "mcp_query", "mcp_discover"):
         assert '"%s":' % name not in source
 

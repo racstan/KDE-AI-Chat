@@ -159,6 +159,10 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/pi_models.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/pi_bridge_server.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/procs.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/common.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/schedules.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/voice_services.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/maintenance.py",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py",
                   ]
                   missing = [name for name in required if name not in names]

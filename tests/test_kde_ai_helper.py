@@ -9,7 +9,7 @@ from unittest.mock import patch
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "org.kde.plasma.kdeaichat", "contents", "ui"))
 
-from kde_ai_helper import (
+from kdeaichat.maintenance import (
     cmd_export_chat
 )
 
