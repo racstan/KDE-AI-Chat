@@ -4,7 +4,8 @@
 // binds them and Settings → Appearance lists them. `id` is what
 // ChatShortcuts.qml looks the keys up by; `text` is a plain English label
 // that the callers pass through i18n() (see ConfigAppearance.qml).
-// Up in an empty input and "/" are keys of the input itself (Composer.qml).
+// "/" (templates) is a key of the input itself (Composer.qml); the browsing
+// keys are handled by the message list and the input (ChatView.qml).
 var shortcuts = [
     {id: "newChat", keys: "Ctrl+N", text: "New chat"},
     {id: "history", keys: "Ctrl+H", text: "Show or hide the history"},
@@ -15,7 +16,12 @@ var shortcuts = [
     {id: "copyReply", keys: "Ctrl+Shift+C", text: "Copy the last reply"},
     {id: "nextChat", keys: "Ctrl+PgDown", text: "Next chat"},
     {id: "prevChat", keys: "Ctrl+PgUp", text: "Previous chat"},
-    {id: "settings", keys: "Ctrl+,", text: "Open the settings"}
+    {id: "settings", keys: "Ctrl+,", text: "Open the settings"},
+    {id: "editLast", keys: "Ctrl+E", text: "Edit your last message"},
+    {id: "browseUp", keys: "Up", text: "Previous message (input empty)"},
+    {id: "browseDown", keys: "Down", text: "Next message; past the latest, back to the input"},
+    {id: "firstMessage", keys: "PgUp", text: "Jump to the first message"},
+    {id: "latestMessage", keys: "PgDown", text: "Jump to the latest message"}
 ];
 
 function keysFor(id) {

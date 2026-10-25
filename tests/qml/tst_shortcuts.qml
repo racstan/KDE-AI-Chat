@@ -1,4 +1,4 @@
-// Keyboard: Ctrl+N/H/I/L, Esc, Ctrl+Shift+R/C, Ctrl+PgUp/PgDown, Ctrl+, Up in an empty input, "/" for templates.
+// Keyboard: Ctrl+N/H/I/L/E, Esc, Ctrl+Shift+R/C, Ctrl+PgUp/PgDown, Ctrl+, Up/Down/PgUp/PgDown to browse messages, "/" for templates.
 import QtQuick
 import QtQuick.Window
 import QtTest
@@ -72,11 +72,14 @@ Item {
             chat.promptTemplates = templates;
             chat.sessions = [{value: "a", title: "A"}, {value: "b", title: "B"}, {value: "old", title: "Old", archived: true}, {value: "c", title: "C"}];
             chat.currentSessionId = "a";
+            view.list.clearSelection();
+            chat.userScrolledUp = false;
             infoSpy.clear();
             chat.chatInputText = "";
             composer.input.text = "";
             chat.focusInput();
             tryVerify(() => composer.input.activeFocus, 1000);
+            wait(150); // the focus timer of focusInput()
         }
 
         function test_1_ctrl_n_starts_a_new_chat() {
@@ -109,25 +112,120 @@ Item {
             compare(calls("stop").length, 0);
         }
 
-        function test_5_up_in_an_empty_input_edits_the_last_message() {
-            keyClick(Qt.Key_Up);
+        function test_5_ctrl_e_edits_the_last_message() {
+            keyClick(Qt.Key_E, Qt.ControlModifier);
             compare(chat.editingMessageIndex, 2, "the last message of yours, not the last reply");
             compare(chat.editingDraft, "Last question");
         }
 
-        function test_6_up_does_nothing_with_text_in_the_input_or_a_reply_running() {
-            keyClick("h");
-            keyClick("i");
-            keyClick(Qt.Key_Up);
-            compare(chat.editingMessageIndex, -1, "with text typed, Up moves the cursor");
-            composer.input.text = "";
+        function test_6_ctrl_e_does_nothing_while_a_reply_runs_or_without_messages() {
             chat.loading = true;
-            keyClick(Qt.Key_Up);
+            keyClick(Qt.Key_E, Qt.ControlModifier);
             compare(chat.editingMessageIndex, -1, "not while a reply is being written");
             chat.loading = false;
             chat.messages = [];
-            keyClick(Qt.Key_Up);
+            keyClick(Qt.Key_E, Qt.ControlModifier);
             compare(chat.editingMessageIndex, -1, "nothing to edit");
+        }
+
+        function test_6a_up_in_an_empty_input_selects_the_latest_message_not_an_edit() {
+            keyClick(Qt.Key_Up);
+            compare(view.list.selectedIndex, 3);
+            compare(chat.editingMessageIndex, -1);
+            verify(view.list.activeFocus, "the list has focus now");
+        }
+
+        function test_6b_up_and_down_walk_the_messages() {
+            keyClick(Qt.Key_Up);
+            keyClick(Qt.Key_Up);
+            compare(view.list.selectedIndex, 2);
+            keyClick(Qt.Key_Up);
+            keyClick(Qt.Key_Up);
+            keyClick(Qt.Key_Up);
+            compare(view.list.selectedIndex, 0, "stops at the first");
+            keyClick(Qt.Key_Down);
+            compare(view.list.selectedIndex, 1);
+            var item = view.list.itemAtIndex(1);
+            verify(item && item.selected, "the delegate shows it");
+            verify(item.y + item.height > view.list.contentY && item.y < view.list.contentY + view.list.height, "scrolled into view");
+        }
+
+        function test_6c_down_past_the_latest_returns_to_the_input() {
+            keyClick(Qt.Key_Up);
+            keyClick(Qt.Key_Down);
+            compare(view.list.selectedIndex, -1);
+            tryVerify(() => composer.input.activeFocus, 1000);
+        }
+
+        function test_6d_down_with_nothing_selected_does_nothing() {
+            keyClick(Qt.Key_Down);
+            compare(view.list.selectedIndex, -1);
+            verify(composer.input.activeFocus);
+        }
+
+        function test_6e_up_and_down_with_text_move_the_cursor_only() {
+            composer.input.text = "line one\nline two";
+            composer.input.cursorPosition = composer.input.text.length;
+            keyClick(Qt.Key_Up);
+            compare(view.list.selectedIndex, -1);
+            verify(composer.input.cursorPosition < 9, "cursor moved to the first line");
+            keyClick(Qt.Key_Down);
+            compare(view.list.selectedIndex, -1);
+            verify(composer.input.activeFocus);
+        }
+
+        function test_6f_pageup_jumps_to_the_first_and_pagedown_to_the_latest() {
+            chat.messages = chat.messages.concat(Array.from({length: 20}, (_, i) => ({role: i % 2 ? "assistant" : "user", model: "m", content: "More " + i, time: "10:02"})));
+            tryCompare(view.list, "count", 24);
+            keyClick(Qt.Key_PageUp);
+            compare(view.list.selectedIndex, 0);
+            tryVerify(() => view.list.contentY <= view.list.originY + 1, 1000);
+            keyClick(Qt.Key_PageDown);
+            compare(view.list.selectedIndex, -1);
+            compare(chat.userScrolledUp, false, "follows new messages again");
+            tryVerify(() => view.list.atYEnd, 1000);
+            tryVerify(() => composer.input.activeFocus, 1000);
+        }
+
+        function test_6g_pageup_with_text_jumps_unless_the_input_scrolls() {
+            composer.input.text = "short";
+            keyClick(Qt.Key_PageUp);
+            compare(view.list.selectedIndex, 0, "a short text does not scroll");
+            composer.input.forceActiveFocus();
+            composer.input.text = Array(40).join("a long line\n");
+            tryVerify(() => composer.input.contentHeight > composer.input.height, 1000);
+            view.list.clearSelection();
+            keyClick(Qt.Key_PageUp);
+            compare(view.list.selectedIndex, -1, "a text taller than the box keeps PageUp");
+        }
+
+        function test_6h_escape_clears_the_selection_and_focuses_the_input() {
+            chat.loading = true;
+            keyClick(Qt.Key_Up);
+            compare(view.list.selectedIndex, 3);
+            keyClick(Qt.Key_Escape);
+            compare(view.list.selectedIndex, -1);
+            compare(calls("stop").length, 0, "the first Esc only clears the selection");
+            tryVerify(() => composer.input.activeFocus, 1000);
+            chat.loading = false;
+        }
+
+        function test_6i_typing_returns_to_the_input_with_that_character() {
+            keyClick(Qt.Key_Up);
+            keyClick("x");
+            compare(view.list.selectedIndex, -1);
+            compare(composer.input.text, "x");
+            verify(composer.input.activeFocus);
+        }
+
+        function test_6j_a_selected_message_shows_its_buttons_and_a_highlight() {
+            keyClick(Qt.Key_Up);
+            var item = view.list.itemAtIndex(3);
+            var actions = findChild(item, "messageActions");
+            if (actions)
+                tryVerify(() => actions.shown, 1000);
+            wait(300);
+            screenshot(root.Window.window.contentItem, "shortcuts-browse-selected");
         }
 
         function test_7_slash_suggests_templates_and_enter_picks_one() {
@@ -270,7 +368,11 @@ Item {
                 seen[s.keys] = true;
                 verify(!/^Ctrl\+(C|V|X|Z|A|Y)$/.test(s.keys), s.keys + " clashes with text editing");
             });
-            compare(ShortcutList.shortcuts.length, 10);
+            compare(ShortcutList.shortcuts.length, 15);
+            ["editLast", "browseUp", "browseDown", "firstMessage", "latestMessage"].forEach(function(id) {
+                verify(ShortcutList.keysFor(id) !== "", id);
+            });
+            compare(ShortcutList.keysFor("editLast"), "Ctrl+E");
         }
     }
 }

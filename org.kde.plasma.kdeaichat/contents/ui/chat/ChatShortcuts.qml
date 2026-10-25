@@ -14,10 +14,14 @@
 //   Ctrl+Shift+C    copy the last reply
 //   Ctrl+PgDown/Up  next / previous chat
 //   Ctrl+,          open the settings
+//   Ctrl+E          edit your last message
+//   Up / Down       browse the messages (input empty, or a message selected)
+//   PgUp / PgDown   first / latest message
 //
 // (The history has no search field, so there is no "search chats" key.)
-// Up in an empty input (edit your last message) and "/" (templates) are
-// keys of the input itself, in Composer.qml.
+// Up/Down/PgUp/PgDown (browsing; ChatView.qml and Composer.qml, which read
+// the keys from the list below), Esc on a selected message and "/"
+// (templates) are keys of the list or the input itself.
 //
 // Fills its parent and takes no mouse input; put it once in the popup.
 import QtQuick
@@ -32,6 +36,10 @@ Item {
     // Ctrl+I: the popup owns the info panel, so it listens to this.
     signal chatInfoRequested()
 
+    function _browsing() {
+        var list = shortcuts.chat ? shortcuts.chat.msgListViewRef : null;
+        return !!list && list.selectedIndex >= 0;
+    }
     function _lastReply() {
         return shortcuts.chat ? ShortcutList.lastReplyIndex(shortcuts.chat.messages) : -1;
     }
@@ -60,7 +68,8 @@ Item {
     Shortcut {
         sequence: ShortcutList.keysFor("stop")
         context: Qt.WindowShortcut
-        enabled: !!shortcuts.chat && (shortcuts.chat.loading || shortcuts.chat.editingMessageIndex >= 0)
+        // A selected message takes Esc first (ChatView.qml): it clears the selection.
+        enabled: !!shortcuts.chat && !shortcuts._browsing() && (shortcuts.chat.loading || shortcuts.chat.editingMessageIndex >= 0)
         onActivated: {
             if (shortcuts.chat.loading) {
                 shortcuts.chat.stopStreaming();
@@ -113,6 +122,17 @@ Item {
         sequence: ShortcutList.keysFor("settings")
         context: Qt.WindowShortcut
         onActivated: shortcuts.chat.openSettings()
+    }
+
+    Shortcut {
+        sequence: ShortcutList.keysFor("editLast")
+        context: Qt.WindowShortcut
+        enabled: !!shortcuts.chat && !shortcuts.chat.loading
+        onActivated: {
+            var composer = shortcuts.chat.composerRef;
+            if (composer && composer.editLastMessage() && shortcuts.chat.msgListViewRef)
+                shortcuts.chat.msgListViewRef.clearSelection();
+        }
     }
 
     UndoNotice {
