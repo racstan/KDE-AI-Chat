@@ -86,6 +86,7 @@ def bridge(request):
         os.symlink(os.path.join(ROOT, "scripts", "dev-pi-mock.py"), os.path.join(bindir, "pi"))
         log = os.path.join(tmp, "pi.log")
         env = {"PATH": bindir + os.pathsep + os.environ["PATH"], "XDG_DATA_HOME": os.path.join(tmp, "data"),
+               "PI_CODING_AGENT_DIR": os.path.join(tmp, "pi-agent"),
                "KDEAICHAT_PI_MOCK_LOG": log,
                "KDEAICHAT_PI_MOCK_FIXTURE": os.path.join(FIXTURES, getattr(request, "param", "pi-0.84-ollama-write.jsonl"))}
         with patch.dict(os.environ, env):
@@ -111,6 +112,18 @@ def test_no_directory_runs_pi_in_the_chats_own_folder_not_home(bridge):
     expected = os.path.realpath(os.path.join(bridge.tmp, "data", "kdeaichat", "pi-workspaces", "chat-9"))
     assert _log(bridge)[0]["cwd"] == expected
     assert os.path.realpath(os.path.expanduser("~")) != expected
+
+
+def test_chat_with_pi_history_in_home_stays_there(bridge):
+    # Chats from before 1.4.0 ran Pi in the home folder; Pi files their history by folder.
+    home = os.path.realpath(os.path.expanduser("~"))
+    sessions = os.path.join(bridge.tmp, "pi-agent", "sessions", "--" + home.lstrip("/").replace("/", "-") + "--")
+    os.makedirs(sessions)
+    open(os.path.join(sessions, "2026-10-24T14-58-31-577Z_kde-ai-chat-chat-old.jsonl"), "w").close()
+    q = bridge.events("chat-old")
+    assert bridge.post("/chats/chat-old/prompt", {"provider": "ollama", "model": "m", "thinking": "low", "message": "hi"})[0] == 202
+    _until(q, "agent_settled")
+    assert _log(bridge)[0]["cwd"] == home
 
 
 def test_prompt_streams_pi_events_in_the_chats_folder(bridge):

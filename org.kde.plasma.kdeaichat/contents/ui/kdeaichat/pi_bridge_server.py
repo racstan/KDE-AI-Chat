@@ -150,8 +150,27 @@ def _option(payload, name, limit=256):
     return value
 
 
+def _has_home_history(chat_id, home):
+    """True when Pi already keeps this chat's history for the home folder.
+
+    Before 1.4.0 a chat without a workspace ran Pi in the home folder, and Pi
+    files sessions by working folder (core/session-manager.js), so such a chat
+    must stay there or Pi loses what was said."""
+    agent_dir = os.environ.get("PI_CODING_AGENT_DIR") or os.path.expanduser("~/.pi/agent")
+    folder = os.path.join(agent_dir, "sessions", "--" + re.sub(r"[/\\:]", "-", home.lstrip("/\\")) + "--")
+    suffix = "_kde-ai-chat-" + chat_id + ".jsonl"
+    try:
+        return any(name.endswith(suffix) for name in os.listdir(folder))
+    except OSError:
+        return False
+
+
 def default_directory(chat_id):
-    """The folder of a chat that has no workspace: its own, never the user's home."""
+    """The folder of a chat that has no workspace: its own, never the user's home
+    (except for a chat that already has history there, see _has_home_history)."""
+    home = os.path.realpath(os.path.expanduser("~"))
+    if _has_home_history(chat_id, home):
+        return home
     base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
     path = os.path.join(base, "kdeaichat", "pi-workspaces", chat_id)
     os.makedirs(path, mode=0o700, exist_ok=True)
