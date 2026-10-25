@@ -97,6 +97,12 @@ QtObject {
 
     // What chat/EmptyState.qml, ErrorActions and the composer's templates read.
     property bool openCodeMode: false
+    property var openCodeAgentsList: []
+    property string openCodeAgent: ""
+    property string openCodeWorkspaceCwd: ""
+    function currentOpenCodeSessionId() { return "ses_0123456789abcdef"; }
+    function fetchOpenCodeAgents() {}
+    function syncOpenCodeSessionHistory() {}
     property bool piMode: false
     property var promptTemplates: []
     property string providerId: "openrouter"

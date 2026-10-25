@@ -168,7 +168,7 @@ Item {
             verify(findChild(d, "messageBody").text.indexOf("isn't installed") > 0);
         }
 
-        function test_8_your_messages_are_plain_like_replies() {
+        function test_8_your_messages_are_plain_and_on_the_right() {
             chat.messages = [{role: "user", content: "Hi there", time: "10:00"}, {role: "assistant", model: "m", content: "Hello", time: "10:00"},
                              {role: "queued", content: "Later", time: "10:01"}];
             wait(100);
@@ -176,8 +176,11 @@ Item {
             var reply = findChild(delegateAt(1), "bubble");
             compare(mine.color.a, 0, "no coloured box");
             compare(mine.border.width, 0, "no edge");
-            compare(mine.width, reply.width, "full width, like a reply");
-            compare(mine.mapToItem(view.list, 0, 0).x, reply.mapToItem(view.list, 0, 0).x, "left-aligned, like a reply");
+            verify(mine.width < reply.width, "narrower than a reply");
+            verify(mine.width <= view.list.width * 0.81, "at most about 80% of the view");
+            compare(mine.mapToItem(view.list, mine.width, 0).x, reply.mapToItem(view.list, reply.width, 0).x, "right edge as a reply's right edge: anchored right");
+            compare(findChild(delegateAt(0), "messageBody").alignRight, true, "text right-aligned");
+            compare(findChild(delegateAt(1), "messageBody").alignRight, false);
             compare(findChild(delegateAt(2), "bubble").color.a, 0);
             // Errors and agent requests keep an edge but no fill.
             chat.messages = [permission, {role: "error", content: "Request to https://x failed (HTTP 500)"}];

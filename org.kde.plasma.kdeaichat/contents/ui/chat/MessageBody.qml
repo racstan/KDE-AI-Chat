@@ -21,6 +21,7 @@ Column {
     // For code blocks' copy buttons (see MessageActions.qml).
     property var builder: null
     property real buttonHeight: 0
+    property bool alignRight: false
 
     signal selectionMade(string text)
 
@@ -49,6 +50,7 @@ Column {
                 MessageText {
                     chat: body.chat
                     messageIndex: body.messageIndex
+                    alignRight: body.alignRight
                     text: modelData.text
                     onSelectionMade: (text) => body.selectionMade(text)
                 }

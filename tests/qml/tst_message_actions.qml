@@ -36,7 +36,7 @@ Item {
 
         readonly property var conversation: [
             {role: "user", content: "First question", time: "10:00"},
-            {role: "assistant", model: "m", content: "First answer", time: "10:00"},
+            {role: "assistant", model: "m", content: "First answer", time: "10:00", tokens: {input: 30, output: 212}},
             {role: "user", content: "Second question", time: "10:01"},
             {role: "assistant", model: "m", content: "Second answer", time: "10:01"}
         ]
@@ -166,6 +166,33 @@ Item {
             verify(area, "an edit box");
             compare(area.text, "First question");
             screenshot(root, "message-actions-editing");
+        }
+
+        function test_8_usage_line_is_left_and_shows_with_the_buttons() {
+            var delegate = view.list.itemAtIndex(1);
+            var actions = actionsOf(1);
+            var usage = findChild(delegate, "usageLine");
+            verify(usage, "usage line");
+            compare(usage.text, "30 in · 212 out");
+            tryCompare(usage, "opacity", 0, 2000);
+            var before = delegate.height;
+            var leftEdge = usage.mapToItem(delegate, 0, 0).x;
+            mouseMove(delegate, delegate.width / 2, delegate.height / 2);
+            tryCompare(usage, "opacity", 0.55, 2000);
+            compare(delegate.height, before, "nothing moves");
+            compare(usage.mapToItem(delegate, 0, 0).x, leftEdge);
+            verify(usage.mapToItem(delegate, 0, 0).x >= actions.mapToItem(delegate, actions.width, 0).x, "right after the buttons");
+            verify(usage.x + usage.width < delegate.width / 2, "on the left");
+            // Your own messages have none.
+            verify(!findChild(view.list.itemAtIndex(0), "usageLine").visible);
+        }
+
+        function test_9_your_buttons_are_at_the_right() {
+            var delegate = view.list.itemAtIndex(0);
+            var mineActions = actionsOf(0);
+            var replyActions = actionsOf(1);
+            verify(mineActions.mapToItem(delegate, mineActions.width, 0).x > delegate.width - 40, "right-aligned");
+            verify(replyActions.mapToItem(delegate, 0, 0).x < 40, "a reply's are at the left");
         }
     }
 }

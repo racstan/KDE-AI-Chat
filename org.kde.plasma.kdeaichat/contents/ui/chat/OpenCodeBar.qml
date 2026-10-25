@@ -55,11 +55,10 @@ RowLayout {
         font.bold: true
         opacity: 0.85
         elide: Text.ElideMiddle
-        Layout.maximumWidth: bar.width - 260
-    }
-
-    Item {
+        // Takes the spare room and shortens first. (Never size it from
+        // bar.width: the bar's own width then feeds back into its layout.)
         Layout.fillWidth: true
+        Layout.minimumWidth: 0
     }
 
     QQC2.ComboBox {

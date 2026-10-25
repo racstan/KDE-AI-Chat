@@ -11,6 +11,8 @@ TextEdit {
     property var chat: null
     property int messageIndex: -1
     property bool plain: false
+    // Your messages are right-aligned.
+    property bool alignRight: false
 
     // The user's selection, for "Read selected text".
     signal selectionMade(string text)
@@ -20,6 +22,7 @@ TextEdit {
     selectByMouse: true
     persistentSelection: true
     wrapMode: Text.Wrap
+    horizontalAlignment: alignRight ? Text.AlignRight : Text.AlignLeft
     textFormat: plain ? Text.PlainText : Text.MarkdownText
     // Links take the colour scheme's link colour: TextEdit has no linkColor,
     // its Markdown importer uses the application palette, which Plasma sets

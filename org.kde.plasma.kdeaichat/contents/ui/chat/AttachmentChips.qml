@@ -12,6 +12,10 @@ Flow {
 
     property var chat: null
     property var attachments: []
+    // Your messages' chips sit at the right.
+    property bool alignRight: false
+
+    layoutDirection: alignRight ? Qt.RightToLeft : Qt.LeftToRight
 
     spacing: Kirigami.Units.smallSpacing
 

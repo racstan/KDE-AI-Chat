@@ -49,7 +49,9 @@ Item {
     // Every message fills the row between the bubble's side margins (yours
     // too: no box, only the name line tells them apart), so a card's border
     // isn't cut off at the right edge.
-    readonly property real bubbleWidth: width - Kirigami.Units.smallSpacing * 2
+    // Yours sit at the right and take at most 80% of the row, so the line
+    // lengths stay readable; the others fill it.
+    readonly property real bubbleWidth: mine ? Math.round((width - Kirigami.Units.smallSpacing * 2) * 0.8) : width - Kirigami.Units.smallSpacing * 2
 
     implicitHeight: column.implicitHeight
     height: implicitHeight
@@ -72,7 +74,7 @@ Item {
             id: bubble
             objectName: "bubble"
 
-            Layout.alignment: Qt.AlignLeft
+            Layout.alignment: row.mine ? Qt.AlignRight : Qt.AlignLeft
             Layout.preferredWidth: row.bubbleWidth
             Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
@@ -102,6 +104,7 @@ Item {
                     id: header
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
+                    layoutDirection: row.mine ? Qt.RightToLeft : Qt.LeftToRight
 
                     Loader {
                         active: row.role === "error"
@@ -207,6 +210,7 @@ Item {
                     messageIndex: row.index
                     streaming: row.streaming
                     isError: row.role === "error"
+                    alignRight: row.mine
                     text: row.streaming ? row.chat.currentStreamText : row.role === "error" ? row.errorInfo.text : (row.message.content || "")
                     onSelectionMade: (text) => { if (text.trim() || !actions.keepSelection) row.selectedText = text; }
                 }
@@ -218,6 +222,7 @@ Item {
                     sourceComponent: AttachmentChips {
                         chat: row.chat
                         attachments: row.message.attachments
+                        alignRight: row.mine
                     }
                 }
 
@@ -277,6 +282,7 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
+                    layoutDirection: row.mine ? Qt.RightToLeft : Qt.LeftToRight
 
                     MessageActions {
                         id: actions
@@ -296,15 +302,27 @@ Item {
                         selectedText: row.selectedText
                     }
 
-                    Item { Layout.fillWidth: true }
-
+                    // What the reply used, right after the buttons: shown with
+                    // them, while the message is hovered or has keyboard focus.
                     PC3.Label {
+                        objectName: "usageLine"
                         visible: row.message.tokens !== undefined && !row.mine
+                        Layout.bottomMargin: actions.Layout.bottomMargin
+                        Layout.leftMargin: Kirigami.Units.smallSpacing
                         text: visible ? row.chat.formatTokensUsage(row.message.tokens, row.message.cost) : ""
                         font: Kirigami.Theme.smallFont
-                        opacity: 0.55
+                        opacity: actions.shown ? 0.55 : 0
                         elide: Text.ElideRight
+                        Layout.maximumWidth: content.width - actions.implicitWidth - Kirigami.Units.largeSpacing
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Kirigami.Units.shortDuration
+                            }
+                        }
                     }
+
+                    Item { Layout.fillWidth: true }
                 }
             }
         }
