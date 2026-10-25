@@ -13,6 +13,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "../ProviderCheck.js" as ProviderCheck
 
 ColumnLayout {
     id: form
@@ -179,6 +180,18 @@ ColumnLayout {
                 QQC2.ToolTip.text: i18n("Refresh models")
             }
         }
+    }
+
+    // A model the provider was found to have retired (see the provider settings).
+    PC3.Label {
+        objectName: "deadModelNote"
+        readonly property string reason: ProviderCheck.deadReason(form.draft.effectiveProvider(), form.draft.model)
+        visible: form.draft.modelEditable && form.draft.mode === "provider" && reason !== ""
+        Layout.fillWidth: true
+        text: i18n("This model is not available from the provider: %1", reason) // qmllint disable unqualified
+        color: Kirigami.Theme.neutralTextColor
+        wrapMode: Text.Wrap
+        font: Kirigami.Theme.smallFont
     }
 
     // --- OpenCode ---

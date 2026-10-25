@@ -8,6 +8,7 @@
 // dropped by `_generation`.
 import QtQuick
 import "../ProviderService.js" as ProviderService
+import "../ProviderCheck.js" as ProviderCheck
 import "EffectiveConfig.js" as EffectiveConfig
 
 QtObject {
@@ -40,6 +41,8 @@ QtObject {
     property var piProviders: []
     property var piModelMap: ({})
     property var modelCandidates: []
+    // Replaces XMLHttpRequest in tests.
+    property var xhrFactory: null
     property bool busy: false
     property string status: ""
     property bool statusError: false
@@ -203,21 +206,23 @@ QtObject {
         var token = _requestToken();
         if (showStatus)
             _setStatus(i18n("Refreshing models…"));
-        ProviderService.fetchModels(ProviderService.getProviderConfig(id, _config), (rootRef.walletApiKeys || {})[id] || "",
-            function(models) {
+        // The provider's live list, chat models only (no embeddings, safety
+        // models and the like); the field still takes any typed id.
+        ProviderCheck.listModels(ProviderService.getProviderConfig(id, _config), (rootRef.walletApiKeys || {})[id] || "",
+            function(result) {
                 if (!_current(token)) return;
                 busy = false;
-                modelCandidates = models || [];
+                if (!result.ok) {
+                    _setStatus(i18n("Model refresh failed: %1", result.error === "rejected" ? i18n("the provider rejected the API key (HTTP %1)", result.status)
+                               : result.error === "http" ? i18n("HTTP %1", result.status) : i18n("could not reach the provider")), true);
+                    return;
+                }
+                modelCandidates = result.chat;
                 if (!model && modelCandidates.length > 0)
                     model = modelCandidates[0];
                 listsChanged();
                 _setStatus(modelCandidates.length > 0 ? i18np("Loaded 1 model", "Loaded %1 models", modelCandidates.length) : i18n("No models returned"));
-            },
-            function(errorText) {
-                if (!_current(token)) return;
-                busy = false;
-                _setStatus(i18n("Model refresh failed: %1", errorText), true);
-            });
+            }, {"xhrFactory": xhrFactory});
     }
 
     function refreshAgents() {
