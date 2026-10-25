@@ -6,14 +6,9 @@ import org.kde.plasma.configuration
 
 ConfigModel {
     ConfigCategory {
-        name: i18n("Providers")
-        icon: "network-server"
-        source: "ConfigProviders.qml"
-    }
-    ConfigCategory {
-        name: i18n("Harness")
-        icon: "utilities-terminal"
-        source: "ConfigHarness.qml"
+        name: i18n("Connection")
+        icon: "network-connect"
+        source: "ConfigConnection.qml"
     }
     ConfigCategory {
         name: i18n("Chat")

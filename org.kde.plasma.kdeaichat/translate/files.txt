@@ -1,12 +1,14 @@
 contents/config/config.qml
-contents/ui/ConfigProviders.qml
-contents/ui/ConfigHarness.qml
+contents/ui/ConfigConnection.qml
 contents/ui/ConfigChat.qml
 contents/ui/ConfigSchedules.qml
 contents/ui/ConfigVoice.qml
 contents/ui/ConfigAppearance.qml
 contents/ui/config/ProvidersPanel.qml
 contents/ui/config/OpenCodeSettings.qml
+contents/ui/config/ModeChooser.qml
+contents/ui/config/RequestOptions.qml
+contents/ui/components/ModelPicker.qml
 contents/ui/config/PiSettings.qml
 contents/ui/config/TemplatesEditor.qml
 contents/ui/config/SchedulerService.qml

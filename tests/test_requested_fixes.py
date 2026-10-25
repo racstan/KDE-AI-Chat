@@ -11,7 +11,8 @@ PROVIDER_SERVICE = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents
 HELPER_PY = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "kde_ai_helper.py")
 FULL_REP_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "FullRepresentationContent.qml")
 CONFIG_APPEARANCE_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigAppearance.qml")
-CONFIG_PROVIDERS_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigProviders.qml")
+CONFIG_CONNECTION_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "ConfigConnection.qml")
+REQUEST_OPTIONS_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "config", "RequestOptions.qml")
 MAIN_QML = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "main.qml")
 
 
@@ -49,15 +50,19 @@ def test_touchpad_scroll_handler_in_full_representation():
 def test_feature_settings_are_exposed_and_persisted():
     with open(CONFIG_APPEARANCE_QML, encoding="utf-8") as f:
         appearance = f.read()
-    with open(CONFIG_PROVIDERS_QML, encoding="utf-8") as f:
-        providers = f.read()
+    with open(CONFIG_CONNECTION_QML, encoding="utf-8") as f:
+        connection = f.read()
+    with open(REQUEST_OPTIONS_QML, encoding="utf-8") as f:
+        request_options = f.read()
     with open(MAIN_QML, encoding="utf-8") as f:
         main_qml = f.read()
 
     # Saved by Plasma on Apply/OK, like every other setting.
     assert "property string cfg_customIcon" in appearance
-    assert "property bool cfg_disableStreaming" in providers
-    assert "page.cfg_disableStreaming = !checked" in providers
+    # The Connection page saves the request options through aliases.
+    assert "property alias cfg_disableStreaming: requests.disableStreaming" in connection
+    assert "property alias cfg_requestTimeout: requests.timeout" in connection
+    assert "options.disableStreaming = !checked" in request_options
     assert "function isCustomIconImage" in appearance
     assert "function customIconImageSource" in appearance
     assert "FileDialog.OpenFile" in appearance
@@ -73,7 +78,7 @@ def test_settings_pages_exist_and_cut_settings_are_gone():
     package = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents")
     with open(os.path.join(package, "config", "config.qml"), encoding="utf-8") as f:
         sources = re.findall(r'source:\s*"([^"]+)"', f.read())
-    assert sources == ["ConfigProviders.qml", "ConfigHarness.qml", "ConfigChat.qml",
+    assert sources == ["ConfigConnection.qml", "ConfigChat.qml",
                        "ConfigSchedules.qml", "ConfigVoice.qml", "ConfigAppearance.qml"]
     for source in sources:
         assert os.path.isfile(os.path.join(package, "ui", source)), source
