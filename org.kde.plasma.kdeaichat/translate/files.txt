@@ -23,7 +23,10 @@ contents/ui/chat/Notifier.qml
 contents/ui/chat/OwnModelCheck.qml
 contents/ui/chat/PermissionButtons.qml
 contents/ui/chat/PermissionDetail.qml
+contents/ui/chat/PendingFiles.qml
 contents/ui/chat/QuestionCard.qml
+contents/ui/chat/QuoteBlock.qml
+contents/ui/chat/QuoteChips.qml
 contents/ui/chat/ReasoningBlock.qml
 contents/ui/chat/RenameRow.qml
 contents/ui/chat/SessionList.qml

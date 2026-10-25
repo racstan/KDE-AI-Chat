@@ -133,4 +133,24 @@ TestCase {
         verify(att.attachmentsReadyToSend());
         verify(att.getDocExtractorPath().endsWith("/contents/ui/doc_extractor.py"));
     }
+
+    // A message keeps the messages it quoted when it is edited or sent again.
+    function test_edit_and_resend_keep_the_quotes() {
+        var quotes = [{"id": "m-1", "role": "assistant", "text": "Use rsync."}];
+        chat.sent = 0;
+        chat.messages = [{"role": "user", "content": "first", "quotes": quotes, "at": 1}, {"role": "assistant", "content": "reply", "at": 2}];
+        chat.editingMessageIndex = 0;
+        chat.editingDraft = "first, edited";
+        edits.saveEditedMessage();
+        compare(chat.messages.length, 1, "the reply after it is dropped");
+        compare(chat.messages[0].content, "first, edited");
+        compare(JSON.stringify(chat.messages[0].quotes), JSON.stringify(quotes));
+        compare(chat.sent, 1);
+        chat.messages = chat.messages.concat([{"role": "assistant", "content": "reply again", "at": 3}]);
+        edits.regenerateResponse(0, "");
+        compare(JSON.stringify(chat.messages[0].quotes), JSON.stringify(quotes), "resend: still quoted");
+        compare(chat.sent, 2);
+        chat.sent = 0;
+        chat.messages = [];
+    }
 }

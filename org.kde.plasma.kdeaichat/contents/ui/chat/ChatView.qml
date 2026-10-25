@@ -12,6 +12,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "MessageContent.js" as MessageContent
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -66,6 +67,24 @@ Item {
             positionViewAtIndex(i, ListView.Contain);
             forceActiveFocus();
         }
+        // Ctrl+Q: quotes the picked message for the next one (chips above the
+        // input, which gets the focus). Returns whether it did.
+        function quoteSelected() {
+            var message = chatView.chat && selectedIndex >= 0 ? chatView.chat.messages[selectedIndex] : null;
+            if (!message || !chatView.chat.composerRef || !MessageContent.canQuote(message))
+                return false;
+            chatView.chat.composerRef.addQuote(message);
+            return true;
+        }
+        // Jumps to (picks and shows) the message with this id, e.g. from a
+        // quote: false when it is no longer in the chat.
+        function jumpToMessage(id) {
+            var row = chatView.chat && id !== "" ? chatView.chat.messageModel.indexOfKey(String(id)) : -1;
+            if (row < 0)
+                return false;
+            select(row);
+            return true;
+        }
         // Up (delta -1) or Down (+1) one message. Down past the latest hands
         // focus back to the input. Returns whether it did anything.
         function browse(delta) {
@@ -115,6 +134,9 @@ Item {
                 jumpLatest();
                 if (chatView.chat)
                     chatView.chat.focusInput();
+            } else if (event.key === Qt.Key_Q && selectedIndex >= 0 && (event.modifiers & Qt.ControlModifier) && !(event.modifiers & (Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier))) {
+                if (!quoteSelected())
+                    return;
             } else if (event.key === Qt.Key_Escape && selectedIndex >= 0) {
                 leave();
             } else if (selectedIndex >= 0 && plain && event.text.length === 1 && event.text >= " " && event.text !== "\x7f") {

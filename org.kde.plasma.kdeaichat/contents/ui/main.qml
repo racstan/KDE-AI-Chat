@@ -357,7 +357,7 @@ PlasmoidItem {
     function removeAttachedFile(index) { attachmentList.removeAttachedFile(index); }
     function attachFile(fileUrl) { attachmentList.attachFile(fileUrl); }
     function checkClipboardForAttachments() { attachmentList.checkClipboardForAttachments(); }
-    function buildMessageContent(text, attachments, apiType) { return MessageContent.build(text, attachments, apiType); }
+    function buildMessageContent(text, attachments, apiType, quotes) { return MessageContent.build(text, attachments, apiType, quotes); }
     function writeExportFile(filePath, content) { helperCommands.writeExportFile(filePath, content); }
 
     // The mode, provider and model a chat really uses: the main settings, or the

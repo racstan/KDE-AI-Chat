@@ -84,8 +84,8 @@ QtObject {
         var eff = chat.effectiveConfig(sessionId);
         var text = String(message.content || "");
         var images = [];
-        if (message.attachments && message.attachments.length > 0) {
-            var payload = chat.buildMessageContent(text, message.attachments, "openai");
+        if ((message.attachments && message.attachments.length > 0) || (message.quotes && message.quotes.length > 0)) {
+            var payload = chat.buildMessageContent(text, message.attachments || [], "openai", message.quotes);
             if (typeof payload === "string") {
                 text = payload;
             } else {
