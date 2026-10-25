@@ -4,6 +4,21 @@
 
 Paths are relative to `org.kde.plasma.kdeaichat/contents/ui/`. FRC = `FullRepresentationContent.qml`.
 
+## Progress (branch `feat/gui-rebuild`, as of 2026-10-25)
+
+**Done (committed: 0c33e09, 251d73a):**
+- **Message model** (`chat/MessageModel.qml`): the list is a ListModel of `{msgKey, rev}` rows synced from `root.messages` by id and object identity (identity survives reassignment, verified). Append/edit/delete touch one row; a different chat replaces all rows. Messages without an id get one (saved with the chat). `indexOfKey()` finds a row. Tested in `tests/qml/tst_message_model.qml`.
+- **Throttled streaming**: deltas go to `root.streamPending` and `flushStream()` applies them at most every 33 ms (`streamFlushTimer`); flushed before done/reset.
+- **Streamed reply tracked by id** (`root.currentStreamKey`, recomputed in `onMessagesChanged`), so deletes/inserts mid-stream can't send text to the wrong bubble (problem 6).
+- **One scroll rule** (problem 3, 4): `chat/ChatView.qml` follows new content while `root.userScrolledUp` is false; wheel/drag/scrollbar away from the end stops following; reaching the end or the "Latest"/"New messages" button resumes. Standard attached ScrollBar (drag works). Removed the scroll lock/capture/restore code and timers from main.qml. Touchpad kinetics from issue #3 kept.
+- **Message list split** (problems 1, 2, 8, 9 partly, 10): `chat/ChatView.qml`, `MessageDelegate.qml` (Loaders per role instead of DelegateChooser), `MessageBody.qml` (plain text while streaming, Markdown + code blocks once done, via `MessageBlocks.js`), `MessageText.qml` (read-aloud highlight searches the displayed text), `CodeBlock.qml`, `ReasoningBlock.qml`, `AttachmentChips.qml` (thumbnails decoded at chip size, icons for non-images), `QuestionCard.qml`, `ContextList.qml`, `MessageActions.qml`, plus Phase 3's `PermissionButtons.qml`. FullRepresentationContent.qml went 1999 → 957 lines.
+- **Removed**: unused colour pulse animation, desktop-selection auto-fill, `getEffectiveModel`.
+- **Tests**: `tests/qml/FakeChat.qml` (stand-in for main.qml) + `tests/qml/tst_chat_view.qml`: 2,000 deltas keep the same delegate and stay at the bottom; scrolling up mid-stream keeps the place; editing/deleting one message keeps the other delegates; screenshots `build/qml-screens/chat-view-*.png`. `tests/js/message_blocks.test.js`. 191 tests pass; fake-agent e2e runs (`scripts/dev-pi-e2e.sh`, `scripts/dev-opencode-e2e.sh`) show no QML warnings.
+
+**Next (rest of step 1, components):** split the remaining FullRepresentationContent.qml (957 lines) into `chat/ChatHeader.qml` (toolbar, lines ~92–239), `chat/OpenCodeBar.qml` (~254–340), the rename row, `chat/Composer.qml` (status row, pending attachments, input + buttons, ~412–729; `msgInput` is referenced by the DropArea and `onClearChatInput`) and `chat/SessionList.qml` (history sidebar, ~730–900). Pass `chat: root` explicitly and use `chat.` inside, as ChatView does. FRC still sets a custom dark/light palette (lines 17–21): remove it in the design pass so it follows the Plasma theme.
+
+**Still open:** popup resize jitter (problem 5, resize handle at the end of FRC), `root.focusInput()` (problem 9), the design pass and owner review (step 2, incl. PR #7 ideas and `Sec.sanitizeMarkdown`), performance budget (step 3), settings pages (step 4), remaining cuts (step 5: screen-region capture, language/appearance overrides, guides). `main.qml` is still ~2900 lines.
+
 ## Why the GUI is unstable (audit findings, ranked)
 
 1. **The whole message list is rebuilt on every change.**
