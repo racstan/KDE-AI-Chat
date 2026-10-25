@@ -14,6 +14,7 @@ QtObject {
     property var openCodeRef: null   // chat/OpenCodeMode.qml
     property var piAgentRef: null    // chat/PiMode.qml
     property var directToolsRef: null  // chat/DirectToolRounds.qml
+    property var imageJobsRef: chat && chat.imageStore ? chat.imageStore.jobs : null   // chat/ImageJobs.qml
 
     function requestIsCurrent(sessionId, generation) {
         return !!sessionId && chat.currentSessionId === sessionId
@@ -110,6 +111,9 @@ QtObject {
         var name = chat.providerDisplayName(providerId);
         if (cfg.found === false)
             return "The provider \"" + name + "\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.";
+        // An image service makes pictures from the message: it needs no model or URL, only to be switched on.
+        if (cfg.type === "image")
+            return sender.imageJobsRef.validate(providerId, cfg);
         var missing = [];
         if (!providerId)
             missing.push("provider");
@@ -176,13 +180,17 @@ QtObject {
         }
     }
 
-    function sendMessageByIndex(index) {
+    function resetStream() {
         chat.currentStreamIndex = -1;
         chat.currentStreamText = "";
         chat.streamBuffer.clear();
         chat.currentStreamReasoning = "";
         chat.currentStreamExtractedReasoning = "";
         chat.streamingResponse = false;
+    }
+
+    function sendMessageByIndex(index) {
+        sender.resetStream();
 
         var source = chat.messages[index] || {
         };
@@ -220,7 +228,13 @@ QtObject {
             return ;
         }
         var provider = chat.getEffectiveProvider(requestSessionId);
-        chat.doDirectRequest(chat.getProviderConfig(provider, requestSessionId), requestSessionId, requestGeneration);
+        var cfg = chat.getProviderConfig(provider, requestSessionId);
+        if (cfg.type === "image") {
+            // Every message of a chat with an image service becomes pictures (the chat stays a direct chat).
+            sender.imageJobsRef.send(requestSessionId, requestGeneration, cfg, provider, text);
+            return ;
+        }
+        chat.doDirectRequest(cfg, requestSessionId, requestGeneration);
     }
 
     function processNextQueuedMessage() {

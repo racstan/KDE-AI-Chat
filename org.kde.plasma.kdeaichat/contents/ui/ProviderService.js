@@ -4,7 +4,10 @@
 //
 // The user's providers are one list, stored as JSON in the `providersJson`
 // setting: [{id, name, type, baseUrl, model, variant?, headers?}]. `type` is
-// "openai-compat" or "anthropic". `variant` is the id of the model's variant
+// "openai-compat", "anthropic" or "image". An image provider (AI Horde,
+// Pollinations) makes pictures from the message instead of answering with text:
+// it also has `service` (see IMAGE_SERVICES), `accepted` (the user switched it on
+// after reading what it sends where) and `options` {width, height, steps, n, seed}. `variant` is the id of the model's variant
 // (reasoning / thinking level, Variants.js) chosen for it; only the id is stored.
 // API keys are not part of it: each lives in KWallet under the provider's id
 // (see store/Wallet.qml).
@@ -36,8 +39,19 @@ var PRESETS = [
     {"id": "lmstudio", "name": "LM Studio (local)", "type": "openai-compat", "baseUrl": "http://localhost:1234/v1", "local": true},
     {"id": "llamacpp", "name": "llama.cpp server (local)", "type": "openai-compat", "baseUrl": "http://localhost:8080/v1", "local": true},
     {"id": "litellm", "name": "LiteLLM proxy", "type": "openai-compat", "baseUrl": "http://localhost:4000/v1", "local": true},
-    {"id": "custom", "name": "Other OpenAI-compatible", "type": "openai-compat", "baseUrl": ""}
+    {"id": "custom", "name": "Other OpenAI-compatible", "type": "openai-compat", "baseUrl": ""},
+    // Image services: the chat's messages become pictures. Off until the user switches them on.
+    {"id": "aihorde", "name": "AI Horde (images)", "type": "image", "service": "horde", "baseUrl": "https://aihorde.net/api/v2", "model": ""},
+    {"id": "pollinations", "name": "Pollinations.ai (images, your key)", "type": "image", "service": "pollinations", "baseUrl": "https://gen.pollinations.ai", "model": "z-image-turbo"},
+    {"id": "pollinations_free", "name": "Pollinations.ai (older free service)", "type": "image", "service": "pollinations-legacy", "baseUrl": "https://image.pollinations.ai", "model": "sana"}
 ];
+
+// The image services: display name and whether a key is needed.
+var IMAGE_SERVICES = {
+    "horde": {"name": "AI Horde", "keyRequired": false},
+    "pollinations": {"name": "Pollinations", "keyRequired": true},
+    "pollinations-legacy": {"name": "Pollinations", "keyRequired": false}
+};
 
 // Pre-1.4.0 provider settings: id -> [baseUrl setting, model setting, default URL].
 var LEGACY = {
@@ -73,11 +87,29 @@ function presetById(id) {
     return null;
 }
 
+// Picture settings of an image provider: whole numbers inside what the services allow; anything else is dropped.
+function _imageOptions(options) {
+    var o = options && typeof options === "object" ? options : {};
+    var limits = {"width": [64, 1024], "height": [64, 1024], "steps": [1, 50], "n": [1, 4], "seed": [0, 2147483647]};
+    var out = {};
+    for (var key in limits) {
+        var n = Number(o[key]);
+        if (o[key] !== undefined && o[key] !== null && o[key] !== "" && isFinite(n) && Math.round(n) >= limits[key][0] && Math.round(n) <= limits[key][1])
+            out[key] = Math.round(n);
+    }
+    return out;
+}
+
 function _clean(entry) {
     if (!entry || !entry.id) return null;
-    var type = entry.type === "anthropic" ? "anthropic" : "openai-compat";
+    var type = entry.type === "anthropic" ? "anthropic" : (entry.type === "image" && IMAGE_SERVICES[entry.service] ? "image" : "openai-compat");
     var out = {"id": String(entry.id), "name": String(entry.name || entry.id), "type": type,
                "baseUrl": String(entry.baseUrl || "").trim(), "model": String(entry.model || "").trim()};
+    if (type === "image") {
+        out.service = entry.service;
+        out.accepted = entry.accepted === true;
+        out.options = _imageOptions(entry.options);
+    }
     if (entry.headers && typeof entry.headers === "object") out.headers = entry.headers;
     if (entry.variant !== undefined && String(entry.variant).trim() !== "") out.variant = String(entry.variant).trim();
     return out;
@@ -163,8 +195,31 @@ function getProviderConfig(providerId, configuration) {
     if (!entry)
         return {"type": "openai-compat", "baseUrl": "", "apiKey": "", "model": "", "variant": "", "headers": null, "allowEmptyKey": false, "found": false};
     var local = LOCAL_IDS.indexOf(entry.id) >= 0 || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])[:/]/i.test(entry.baseUrl);
-    return {"type": entry.type, "baseUrl": entry.baseUrl, "apiKey": "", "model": entry.model, "variant": entry.variant || "",
-            "headers": entry.headers || null, "allowEmptyKey": local, "found": true};
+    var config = {"type": entry.type, "baseUrl": entry.baseUrl, "apiKey": "", "model": entry.model, "variant": entry.variant || "",
+                  "headers": entry.headers || null, "allowEmptyKey": local, "found": true};
+    if (entry.type === "image") {
+        // AI Horde works without a key (anonymously), the older free Pollinations service too.
+        config.service = entry.service;
+        config.accepted = entry.accepted === true;
+        config.options = entry.options || {};
+        config.allowEmptyKey = !IMAGE_SERVICES[entry.service].keyRequired;
+    }
+    return config;
+}
+
+// The user's image providers (entries of the provider list).
+function imageProviders(configuration) {
+    return parseProviders(configuration).filter(function(entry) { return entry.type === "image"; });
+}
+
+// The image provider /image uses: the one chosen in the `imageProvider` setting if it still exists,
+// otherwise the first one the user has; "" when there is none.
+function defaultImageProvider(configuration) {
+    var list = imageProviders(configuration);
+    var chosen = configuration ? String(configuration.imageProvider || "") : "";
+    for (var i = 0; i < list.length; i++)
+        if (list[i].id === chosen) return chosen;
+    return list.length > 0 ? list[0].id : "";
 }
 
 function getProviderDisplayName(providerId, configuration) {

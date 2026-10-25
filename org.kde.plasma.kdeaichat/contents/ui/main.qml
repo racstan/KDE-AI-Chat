@@ -256,8 +256,7 @@ PlasmoidItem {
 
     Chat.SchedulerPoller { id: schedulerPoller; chat: root; notifierRef: notifier }
 
-    // Images of replies, kept as files in the chat's folder (chat/ImageStore.qml).
-    Chat.ImageStore { id: images; chat: root }
+    Chat.ImageStore { id: images; chat: root }   // images of replies, kept as files in the chat's folder
     readonly property var imageStore: images
 
     function nowTime(ts) { return TimeFormat.nowTime(ts); }

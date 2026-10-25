@@ -30,8 +30,8 @@ QtObject {
     // How long the files of a removed message or chat are kept (the undo notice lasts 8 s).
     property int deleteDelay: 12000
     property int sweepInterval: 1000
-    // Making new images: queue, progress and the services (chat/ImageJobs.qml); null when there are none.
-    property var jobs: null
+    // Making new images with an image service: its jobs and progress (chat/ImageJobs.qml).
+    readonly property var jobs: ImageJobs { chat: store.chat; imageStore: store }
 
     // Messages being saved right now (id -> count) and the numbers used so far.
     property var _pending: ({})
@@ -119,8 +119,12 @@ QtObject {
                 _adjust(messageId, -1);
                 if (result.ok) {
                     var entry = Object.assign({}, meta || {}, {"path": result.path, "mime": result.mime, "bytes": result.bytes});
-                    if (item.width) entry.width = item.width;
-                    if (item.height) entry.height = item.height;
+                    // What the service reports about this picture (the model that made it, its size and seed).
+                    var facts = ["model", "width", "height", "seed"];
+                    for (var f = 0; f < facts.length; f++) {
+                        if (item[facts[f]] !== undefined && item[facts[f]] !== "")
+                            entry[facts[f]] = item[facts[f]];
+                    }
                     entries.push(entry);
                 } else {
                     errors.push(result);

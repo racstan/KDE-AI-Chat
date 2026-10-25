@@ -307,6 +307,16 @@
     <entry name="customProvidersJson" type="String">
       <default>[]</default>
     </entry>
+    <!-- The image provider /image uses (an id of providersJson with type
+         "image"); empty: the first one. See ProviderService.defaultImageProvider. -->
+    <entry name="imageProvider" type="String">
+      <default></default>
+    </entry>
+    <!-- When the older free Pollinations service may be asked next:
+         {lastAt, blockedUntil} in ms (PollinationsBackend.createPacer). Not secret. -->
+    <entry name="pollinationsFreeState" type="String">
+      <default></default>
+    </entry>
     <entry name="autoNameChats" type="Bool">
       <default>true</default>
     </entry>

@@ -255,6 +255,12 @@ function _isModelGone(status, text) {
 // `error` is "" | "rejected" | "timeout" | "network" | "http" | "parse" | "send" | "url".
 function listModels(cfg, apiKey, cb, opts) {
     var o = opts || {};
+    // An image service has no /models: its models are listed by the settings page (config/ImageModels.qml).
+    if (cfg.type === "image") {
+        var own = cfg.model ? [cfg.model] : [];
+        cb({"ok": true, "status": 200, "error": "", "items": [], "chat": own, "all": own, "hidden": 0, "variants": {}});
+        return;
+    }
     var url = _base(cfg) + "/models";
     _send(o.xhrFactory, "GET", url, _headers(cfg, apiKey, false), null, o.timeout || TIMEOUT_LIST, function(r) {
         var result = {"ok": false, "status": r.status, "error": r.error, "items": [], "chat": [], "all": [], "hidden": 0, "variants": {}};

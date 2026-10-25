@@ -92,4 +92,18 @@ assert.deepStrictEqual(plain(T.suggest("/su", list)).map(t => t.name), ["summari
 assert.deepStrictEqual(plain(T.suggest("/ix", list)).map(t => t.name), ["fix"], "contains also matches, after prefix matches");
 assert.deepStrictEqual(plain(T.suggest("/fix ", list)), []);
 assert.deepStrictEqual(plain(T.suggest("fix", list)), []);
+
+// The image services' own messages are shown as they are, whatever words they contain.
+for (const text of ["AI Horde needs kudos for this size. Pick a smaller picture or fewer steps in Settings \u2192 Connection, or add your own AI Horde key.",
+                    "Pollinations free limit: try again in 12 s.",
+                    "Pollinations says this key has no credit for this model. Pick a free model, or check your balance at pollinations.ai.",
+                    "AI Horde can't be reached. Check your internet connection and try again.",
+                    "Pollinations is limiting requests: try again in 7 s."]) {
+    const r = plain(E.describe("\u26a0\ufe0f " + text, "OpenRouter"));
+    assert.strictEqual(r.kind, "image", text);
+    assert.strictEqual(r.text, text);
+    assert.strictEqual(r.detail, "");
+    assert.strictEqual(r.settings, /Settings/.test(text));
+}
+assert.strictEqual(plain(E.describe("The provider rejected the API key (HTTP 401). Check the key in Settings.")).kind, "auth", "other messages are unchanged");
 console.log("PASS error_text");

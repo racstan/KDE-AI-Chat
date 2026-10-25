@@ -92,7 +92,7 @@ QtObject {
         } else if (event.type === "images") {
             // Images the model sent: saved as files, then added to this reply.
             replies.ensureStreamingMessage(model);
-            chat.imageStore.addFromReply(chat.currentSessionId, chat.currentStreamKey, event.items, {"model": model});
+            chat.imageStore.addFromReply(chat.currentSessionId, chat.currentStreamKey, event.items, Object.assign({"model": model}, event.meta || {}));
         } else if (event.type === "usage") {
             var usage = Object.assign({}, chat.currentStreamUsage);
             if (event.input !== undefined) usage.input = event.input;

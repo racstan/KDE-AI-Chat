@@ -6,7 +6,7 @@
 // https://... failed (HTTP 429): ...") into
 //   {kind, text, detail, settings}
 // kind      auth | missing-key | setup | credit | rate | timeout | network |
-//           model | server | empty | agent-missing | agent-offline | other
+//           model | server | empty | agent-missing | agent-offline | image | other
 // text      one or two plain sentences
 // detail    the original message (without a leading warning sign), "" if it
 //           says nothing more than `text`
@@ -38,6 +38,9 @@ function describe(raw, providerName_) {
     var low = msg.toLowerCase();
     var status = _status(msg);
 
+    // The image services' own messages are already plain words ("AI Horde needs kudos for this size ...").
+    if (/^(AI Horde|Pollinations)\b/.test(msg))
+        return _result("image", msg, "", /Settings/.test(msg));
     if (/isn't installed|is not installed|no `?(opencode|pi)`? command/.test(low))
         return _result("agent-missing", _agentName(msg) + " isn't installed on this computer. Install it, then try again.", msg, true);
     if (/isn't reachable|isn't running|couldn't be started|could not be started|bridge/.test(low) && /opencode|\bpi\b/.test(low))

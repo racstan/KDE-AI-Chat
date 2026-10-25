@@ -14,6 +14,8 @@ ColumnLayout {
     id: row
 
     property var entry: ({})
+    // An image service (AI Horde, Pollinations): its "default" is the one /image uses.
+    readonly property bool imageService: entry.type === "image"
     property bool isDefault: false
     property bool local: false
     property bool missingKey: false
@@ -46,7 +48,7 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 0
             QQC2.Label {
-                text: row.entry.name + (row.isDefault ? "  · " + i18n("default") : "")
+                text: row.entry.name + (row.isDefault ? "  · " + (row.imageService ? i18n("used by /image") : i18n("default")) : "")
                 font.bold: row.isDefault
                 elide: Text.ElideRight
                 Layout.fillWidth: true
@@ -55,6 +57,7 @@ ColumnLayout {
                 objectName: "detailLabel"
                 text: (row.entry.model || i18n("no model set")) + " · " + row.host
                     + (row.missingKey ? " · " + i18n("no API key") : "")
+                    + (row.imageService && row.entry.accepted !== true ? " · " + i18n("switched off") : "")
                     + (row.unavailable !== "" ? " · " + i18n("model unavailable: %1", row.unavailable) : "")
                 color: row.unavailable !== "" ? Kirigami.Theme.neutralTextColor : Kirigami.Theme.textColor
                 opacity: 0.7
@@ -65,7 +68,7 @@ ColumnLayout {
         }
         QQC2.Button {
             visible: !row.isDefault && !row.confirmingRemove
-            text: i18n("Use by default")
+            text: row.imageService ? i18n("Use for /image") : i18n("Use by default")
             onClicked: row.useByDefault()
         }
         QQC2.ToolButton {
