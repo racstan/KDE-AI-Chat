@@ -35,7 +35,8 @@ def test_mcp_commands_are_gone():
 
 
 def test_touchpad_scroll_handler_in_full_representation():
-    with open(FULL_REP_QML, encoding="utf-8") as f:
+    chat_view = os.path.join(os.path.dirname(FULL_REP_QML), "chat", "ChatView.qml")
+    with open(chat_view, encoding="utf-8") as f:
         content = f.read()
 
     assert "boundsBehavior: Flickable.DragAndOvershootBounds" in content

@@ -21,6 +21,14 @@ ListModel {
         return list.byKey[key];
     }
 
+    // The row of a message id, or -1.
+    function indexOfKey(key) {
+        for (var i = list.count - 1; i >= 0; i--)
+            if (list.get(i).msgKey === key)
+                return i;
+        return -1;
+    }
+
     // Gives msg an id unless it has one that's unused in this sync.
     function _key(msg, seen) {
         var key = msg.id !== undefined && msg.id !== null && msg.id !== "" ? String(msg.id) : "";

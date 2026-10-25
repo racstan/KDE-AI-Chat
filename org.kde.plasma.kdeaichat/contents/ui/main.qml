@@ -25,6 +25,7 @@ PlasmoidItem {
     property string currentSessionId: ""
     property string currentSessionTitle: ""
     property var messages: []
+    property string currentStreamKey: ""
     // The view's row-by-row copy of `messages` (see chat/MessageModel.qml).
     property Chat.MessageModel messageModel: Chat.MessageModel {}
     // Stream deltas wait here and reach currentStreamText/Reasoning at most every 33 ms.
@@ -408,13 +409,6 @@ PlasmoidItem {
     function getEffectiveProvider(sessionId) {
         var override = String(getSessionProperty(sessionId, "chatProvider", "") || "").trim();
         return override || plasmoid.configuration.provider || ProviderService.getSupportedProviders(plasmoid.configuration)[0] || "openai";
-    }
-
-    function getEffectiveModel(sessionId) {
-        var override = String(getSessionProperty(sessionId, "chatModel", "") || "").trim();
-        if (override)
-            return override;
-        return getProviderConfig(getEffectiveProvider(sessionId), sessionId).model || "";
     }
 
     function configuredSessionSource() {
@@ -1125,13 +1119,6 @@ PlasmoidItem {
             + "agents = list(unique.values()); "
             + "print(json.dumps({'agents': agents, 'default': default}))"
             + "\" #fetch-opencode-agents";
-        fileReaderDs.connectSource(cmd);
-    }
-
-    function fetchDesktopSelection() {
-        // Read the X11 primary selection (currently selected text on desktop)
-        // Uses xsel or xclip as fallback. The result pre-fills the chat input and opens the panel.
-        var cmd = "xsel --primary --output 2>/dev/null || xclip -out -selection primary 2>/dev/null #desktop-selection";
         fileReaderDs.connectSource(cmd);
     }
 
@@ -1849,7 +1836,8 @@ PlasmoidItem {
         if (root.currentStreamIndex >= 0)
             return;
         var ts = Date.now();
-        root.messages = root.messages.concat([{"role": "assistant", "content": "", "reasoning": "", "time": nowTime(ts), "at": ts, "model": model}]);
+        root.currentStreamKey = "m-stream-" + ts;
+        root.messages = root.messages.concat([{"id": root.currentStreamKey, "role": "assistant", "content": "", "reasoning": "", "time": nowTime(ts), "at": ts, "model": model}]);
         root.currentStreamIndex = root.messages.length - 1;
         root.streamingResponse = true;
     }
@@ -2380,7 +2368,12 @@ PlasmoidItem {
         root.initSystemPrompt();
         root.stopLegacyWatchdog();
     }
-    onMessagesChanged: messageModel.sync(root.messages)
+    onMessagesChanged: {
+        messageModel.sync(root.messages);
+        // The streamed reply keeps its row even if messages before it are removed or added.
+        if (root.currentStreamIndex >= 0)
+            root.currentStreamIndex = messageModel.indexOfKey(root.currentStreamKey);
+    }
 
     Timer {
         id: streamFlushTimer
@@ -2575,17 +2568,6 @@ PlasmoidItem {
             if (sourceName.indexOf("#export-chat-save") !== -1) {
                 if (exitCode !== 0)
                     pushErrorMessage("Export failed: " + (stderr.trim() || stdout.trim() || ("helper exited with code " + exitCode)));
-                disconnectSource(sourceName);
-                return ;
-            }
-            if (sourceName.indexOf("#desktop-selection") !== -1) {
-                if (exitCode === 0 && stdout.trim() !== "") {
-                    var selText = stdout.trim();
-                    if (selText !== "") {
-                        root.chatInputText = selText;
-                        plasmoid.expanded = true;
-                    }
-                }
                 disconnectSource(sourceName);
                 return ;
             }

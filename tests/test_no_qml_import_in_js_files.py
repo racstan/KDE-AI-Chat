@@ -33,6 +33,7 @@ WATCHED_FILES = (
     "backends/OpenCodeBackend.js",
     "backends/PiBackend.js",
     "backends/AgentEvents.js",
+    "chat/MessageBlocks.js",
 )
 
 # Top-of-file patterns that are legal in a plain .js file.

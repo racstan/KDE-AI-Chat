@@ -88,7 +88,17 @@ Item {
             verify(model.messageFor(msgs[0].id) === undefined, "old chat's messages are forgotten");
         }
 
-        function test_4_reorder_still_matches() {
+        function test_4_streamed_reply_is_found_after_a_delete() {
+            var msgs = [{content: "a"}, {content: "b"}, {id: "m-stream-1", role: "assistant", content: ""}];
+            model.sync(msgs);
+            compare(model.indexOfKey("m-stream-1"), 2);
+            model.sync([msgs[1], msgs[2]]);
+            compare(model.indexOfKey("m-stream-1"), 1, "the streaming row moved up with the delete");
+            model.sync([msgs[1]]);
+            compare(model.indexOfKey("m-stream-1"), -1);
+        }
+
+        function test_5_reorder_still_matches() {
             var msgs = [{content: "a"}, {content: "b"}, {content: "c"}];
             model.sync(msgs);
             var swapped = [msgs[2], msgs[0], msgs[1]];
