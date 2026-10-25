@@ -8,7 +8,7 @@ const path = require("path");
 const source = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/ProviderService.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(source + "\nthis.exports = {PRESETS, LEGACY, parseProviders, serializeProviders, newProviderId, legacyProviders, getProviderConfig, getProviderDisplayName, getSupportedProviders, parseModelIds, modelsRequest, fetchModels};", ctx);
+vm.runInNewContext(source + "\nthis.exports = {PRESETS, LEGACY, parseProviders, serializeProviders, newProviderId, legacyProviders, getProviderConfig, getProviderDisplayName, getSupportedProviders, defaultFirstOrder, sortDefaultFirst, parseModelIds, modelsRequest, fetchModels};", ctx);
 const P = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -84,6 +84,18 @@ const tests = {
         assert.deepStrictEqual(plain(P.parseModelIds({data: [{id: "a"}, {id: "b"}, {id: "a"}]})), ["a", "b"]);
         assert.deepStrictEqual(plain(P.parseModelIds({models: [{name: "models/gemini-pro"}]})), ["gemini-pro"]);
         assert.deepStrictEqual(plain(P.parseModelIds(["x", {id: "y"}])), ["x", "y"]);
+    },
+
+    default_provider_sorts_first() {
+        const list = [{id: "a"}, {id: "b"}, {id: "c"}];
+        assert.deepStrictEqual(plain(P.defaultFirstOrder(list, "c")), [2, 0, 1]);
+        assert.deepStrictEqual(plain(P.sortDefaultFirst(["a", "b", "c"], "b")), ["b", "a", "c"]);
+        assert.deepStrictEqual(plain(P.defaultFirstOrder(list, "zzz")), [0, 1, 2]);
+        assert.deepStrictEqual(plain(P.defaultFirstOrder(list, "")), [0, 1, 2]);
+        assert.deepStrictEqual(plain(P.defaultFirstOrder(null, "a")), []);
+        const cfg = {provider: "b", providersJson: JSON.stringify(list)};
+        assert.deepStrictEqual(plain(P.getSupportedProviders(cfg)), ["b", "a", "c"]);
+        assert.strictEqual(cfg.providersJson, JSON.stringify(list));
     },
 
     models_request_headers() {

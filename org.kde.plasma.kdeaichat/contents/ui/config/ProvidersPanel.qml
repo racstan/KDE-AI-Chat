@@ -300,21 +300,26 @@ ColumnLayout {
     }
 
     // ── List ──────────────────────────────────────────────────────────────
+    // Shown with the default first; `index` is the position in `providers`.
     Repeater {
-        model: panel.providers
+        id: providerList
+        objectName: "providerList"
+        model: ProviderService.defaultFirstOrder(panel.providers, panel.defaultProvider)
         delegate: ProviderRow {
-            required property var modelData
-            required property int index
-            entry: modelData
-            isDefault: modelData.id === panel.defaultProvider
-            local: panel.isLocal(modelData)
-            missingKey: !local && panel.wallet !== null && !panel.wallet.keys[modelData.id]
-            host: checker.hostOf(modelData.baseUrl)
-            unavailable: checker.deadReason(modelData.id, modelData.model)
+            id: providerRow
+            required property int modelData
+            readonly property int index: modelData
+            readonly property var item: panel.providers[modelData] || ({"id": "", "name": ""})  // briefly stale while rows are rebuilt
+            entry: providerRow.item
+            isDefault: providerRow.item.id === panel.defaultProvider
+            local: panel.isLocal(providerRow.item)
+            missingKey: !local && panel.wallet !== null && !panel.wallet.keys[providerRow.item.id]
+            host: checker.hostOf(providerRow.item.baseUrl)
+            unavailable: checker.deadReason(providerRow.item.id, providerRow.item.model)
             busy: panel.editingIndex >= 0
             editing: panel.editingIndex === index
             confirmingRemove: panel.confirmRemoveIndex === index
-            onUseByDefault: panel.setDefault(modelData.id)
+            onUseByDefault: panel.setDefault(providerRow.item.id)
             onEdit: panel.startEdit(index, false)
             onAskRemove: panel.confirmRemoveIndex = index
             onConfirmRemove: panel.removeAt(index)

@@ -113,6 +113,7 @@ QtObject {
             if (walletKeys[supported[w]] && configured.indexOf(supported[w]) < 0)
                 configured.push(supported[w]);
         }
+        configured = ProviderService.sortDefaultFirst(configured, global);
         for (var i = 0; i < configured.length; i++)
             result.push({"text": ProviderService.getProviderDisplayName(configured[i], _config), "value": configured[i]});
         return result;

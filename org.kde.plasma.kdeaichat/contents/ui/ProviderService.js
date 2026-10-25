@@ -172,14 +172,32 @@ function getProviderDisplayName(providerId, configuration) {
     return (preset && preset.name) || LEGACY_NAMES[providerId] || providerId || "Selected provider";
 }
 
-// Provider ids the user can pick from.
+// Indexes into `list` (entries with `id`, or plain ids) with the default
+// first; the rest keep their order. The saved list is never reordered.
+function defaultFirstOrder(list, defaultId) {
+    var first = [];
+    var rest = [];
+    for (var i = 0; i < (list || []).length; i++) {
+        var id = list[i] && typeof list[i] === "object" ? list[i].id : list[i];
+        if (defaultId && id === defaultId && first.length === 0) first.push(i);
+        else rest.push(i);
+    }
+    return first.concat(rest);
+}
+
+// `list` (entries or plain ids) as a new array with the default first.
+function sortDefaultFirst(list, defaultId) {
+    return defaultFirstOrder(list, defaultId).map(function(i) { return list[i]; });
+}
+
+// Provider ids the user can pick from, the default provider first.
 function getSupportedProviders(configuration) {
     var list = parseProviders(configuration);
     if (list.length === 0 && configuration)
         list = legacyProviders(configuration, {});
     var ids = [];
     for (var i = 0; i < list.length; i++) ids.push(list[i].id);
-    return ids;
+    return sortDefaultFirst(ids, configuration ? String(configuration.provider || "") : "");
 }
 
 function getConfiguredProviders(configuration) {
