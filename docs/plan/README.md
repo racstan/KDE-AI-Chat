@@ -27,6 +27,7 @@ A Plasma widget that does six things well, and nothing else:
 | 6 | [06-voice.md](06-voice.md) | Read aloud via Qt's built-in TTS (zero setup); dictation as an on-demand service with no torch. | M |
 | 7 | [07-cut-list.md](07-cut-list.md) | Final removal of everything on the cut list, migration of old settings, docs and screenshots. | S |
 | — | [modularisation.md](modularisation.md) | Split every 1,000+-line file into small modules, phase by phase; CI size guard. | — |
+| — | [dead-code.md](dead-code.md) | List of dead and obsolete code found after phase 4, for review before anything is removed. | — |
 | — | [suggestions.md](suggestions.md) | New features after the fixes: customisation, KDE integration, ACP, voice, privacy. | — |
 | — | [variants-sources.md](variants-sources.md) | Research: where per-model reasoning variants can be fetched, and how each is sent. | — |
 
