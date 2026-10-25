@@ -26,6 +26,7 @@ Item {
         property string nvidiaModel: "meta/llama"
         property string mistralModel: ""
         property string openRouterModel: ""
+        property int walletKeysRevision: 0
     }
 
     Store.Wallet {
@@ -88,6 +89,8 @@ Item {
             var groq = saved.filter(function(p) { return p.id === "groq"; })[0];
             compare(groq.model, "llama-3.3-70b");
             verify(config.providersJson.indexOf("gsk-test") === -1, "the key must not be stored in the config");
+            // The running widget re-reads the wallet when this changes.
+            tryVerify(function() { return config.walletKeysRevision === 1; });
         }
 
         function test_3_cancel_new_provider_discards_it() {
@@ -106,12 +109,22 @@ Item {
             panel.cancelEdit();
         }
 
+        function test_4b_saving_without_a_key_change_keeps_the_revision() {
+            var index = panel.providers.map(function(p) { return p.id; }).indexOf("nvidia");
+            var before = config.walletKeysRevision;
+            panel.startEdit(index);
+            panel.saveEdit();
+            wait(50);
+            compare(config.walletKeysRevision, before);
+        }
+
         function test_5_default_and_remove() {
             panel.setDefault("groq");
             compare(config.provider, "groq");
             var index = panel.providers.map(function(p) { return p.id; }).indexOf("groq");
             panel.removeAt(index);
             tryVerify(function() { return walletFolder["groq"] === undefined; });
+            tryVerify(function() { return config.walletKeysRevision === 2; });
             verify(config.provider !== "groq");
             verify(config.providersJson.indexOf("\"groq\"") === -1);
         }

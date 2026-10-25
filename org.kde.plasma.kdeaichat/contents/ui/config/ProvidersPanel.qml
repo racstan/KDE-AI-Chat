@@ -43,6 +43,13 @@ ColumnLayout {
         configuration.providersJson = ProviderService.serializeProviders(providers);
     }
 
+    // Tells the running widget to read the keys again (main.qml reloads the
+    // wallet when walletKeysRevision changes); otherwise it keeps the old key.
+    function notifyKeysChanged() {
+        if (configuration && configuration.walletKeysRevision !== undefined)
+            configuration.walletKeysRevision = (Number(configuration.walletKeysRevision) || 0) + 1;
+    }
+
     function isLocal(entry) {
         return ProviderService.getProviderConfig(entry.id, {"providersJson": JSON.stringify([entry])}).allowEmptyKey;
     }
@@ -92,7 +99,8 @@ ColumnLayout {
         persist();
         if (wallet && (draftKey.trim() !== (wallet.keys[entry.id] || "")))
             wallet.write(entry.id, draftKey.trim(), function(ok) {
-                if (!ok) status = wallet.statusMessage();
+                if (ok) panel.notifyKeysChanged();
+                else status = wallet.statusMessage();
             });
         if (!defaultProvider || ProviderService.getProviderConfig(defaultProvider, configuration).found === false)
             setDefault(entry.id);
@@ -104,7 +112,7 @@ ColumnLayout {
         var id = providers[index].id;
         providers = providers.slice(0, index).concat(providers.slice(index + 1));
         persist();
-        if (wallet) wallet.remove(id, null);
+        if (wallet) wallet.remove(id, function(ok) { if (ok) panel.notifyKeysChanged(); });
         if (defaultProvider === id)
             setDefault(providers.length > 0 ? providers[0].id : "");
         confirmRemoveIndex = -1;
