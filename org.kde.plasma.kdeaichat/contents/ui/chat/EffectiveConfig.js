@@ -3,28 +3,36 @@
 // Which mode (provider / OpenCode / Pi), provider and model a chat really
 // uses. Plain JavaScript on purpose (tested with node): no QML globals.
 //
-// Two settings decide (Settings -> Chat):
-//   perChatModelSettings  false: every chat uses the main settings. A chat's
-//                         own model settings stay in storage but are ignored.
+// A CHAT KEEPS ITS MODE. The mode is stored on the chat as `source`
+// ("provider" = direct, "opencode" or "pi") when the chat is created, from the
+// main mode of that moment, and never changes afterwards: not by the main
+// settings, not by the two settings below, not by the Chat info panel. Changing
+// the main mode only affects chats created later. A chat that was saved
+// without a valid `source` (very old chats) gets one once, from inferSource(),
+// and that is stored like any other.
+//
+// The two settings below (Settings -> Chat) only decide which provider, model,
+// agent and thinking level the chat uses WITHIN its mode:
+//   perChatModelSettings  false: every chat uses the main settings for those. A
+//                         chat's own model settings stay in storage but are
+//                         ignored.
 //   perChatPriority       "chat" or "main": when a chat has its own model
 //                         settings, which side wins.
 //
 // A chat "has its own model settings" when `ownModel` is true (set by Apply in
 // the Chat info panel, which asks for it explicitly). Chats saved before that
 // flag existed (ownModel undefined) count as having their own settings when
-// any model field is filled in. `source` alone never counts: it is also
-// written on every send as "what this chat last used".
+// any model field is filled in. `source` never counts as a model setting.
 //
-// Decision table (M = main settings, C = this chat's own settings):
+// Decision table for the fields of the chat's mode (M = the main settings'
+// value for that mode, C = this chat's own):
 //   switch off                          -> M for everything
 //   switch on, chat has no own settings -> M for everything
-//   switch on, own settings, "chat"     -> mode from C; every field of that
-//                                          mode from C, or from M where C
-//                                          left it empty
-//   switch on, own settings, "main"     -> mode from M; every field from M, or
-//                                          from C only where M left it empty
-//                                          (typically: no model chosen in the
-//                                          main settings)
+//   switch on, own settings, "chat"     -> every field from C, or from M where
+//                                          C left it empty
+//   switch on, own settings, "main"     -> every field from M, or from C only
+//                                          where M left it empty (typically:
+//                                          no model chosen in the main settings)
 // Each mode keeps its own fields (direct: provider + model; OpenCode:
 // provider + model + agent; Pi: provider + model + thinking), so a fallback
 // always belongs to the mode in use. A chat's direct model is only used with
@@ -43,6 +51,43 @@ function mainMode(main) {
     if (main && main.usePi === true)
         return "pi";
     return "provider";
+}
+
+// A stored mode name is one of MODES.
+function isMode(value) {
+    return MODES.indexOf(_s(value)) >= 0;
+}
+
+// The mode of a chat saved without one: an OpenCode session id means OpenCode,
+// a message that came from a Pi dialog (harnessChatId) means Pi, otherwise a
+// direct chat. Used once, when the chat is loaded; the result is stored.
+function inferSource(chat) {
+    if (chat && _s(chat.openCodeSessionId) !== "")
+        return "opencode";
+    var messages = chat && Array.isArray(chat.messages) ? chat.messages : [];
+    for (var i = 0; i < messages.length; i++) {
+        if (messages[i] && _s(messages[i].harnessChatId) !== "")
+            return "pi";
+    }
+    return "provider";
+}
+
+// The mode a chat is in: its stored one, or (not stored yet) the inferred one.
+function chatMode(chat) {
+    return isMode(chat && chat.source) ? _s(chat.source) : inferSource(chat);
+}
+
+var MODE_NAMES = {"provider": "direct provider", "opencode": "OpenCode", "pi": "Pi"};
+
+// What to tell the user when a chat's mode can't be used right now. The chat
+// stays in that mode; it is never switched to another one to get an answer.
+function unavailableText(mode, reason) {
+    var name = MODE_NAMES[mode] || MODE_NAMES.provider;
+    var detail = _s(reason);
+    if (detail !== "" && !/[.!?]$/.test(detail))
+        detail += ".";
+    return "This is " + (mode === "opencode" ? "an " : "a ") + name + " chat and it can't answer right now. " + (detail || "Its mode isn't available.")
+        + " It stays in " + name + " mode (a chat never switches mode). Fix that and send again, or start a new chat in another mode.";
 }
 
 // True when the chat carries its own model settings (see above).
@@ -76,7 +121,8 @@ function _firstOf(candidates) {
 // chat: the stored chat ({source, chatProvider, chatModel, openCodeProvider, openCodeModel,
 //       openCodeAgent, piProvider, piModel, piThinking, ownModel}) or null
 // opts: {perChat: bool, priority: "chat" | "main"}
-// Returns {mode, provider, model, agent, thinking, source: "main" | "chat",
+// Returns {mode (always the chat's own), provider, model, agent, thinking,
+//          source: "main" | "chat" (where those fields come from),
 //          direct: {provider, model}}; provider/model/agent/thinking are those
 // of `mode`, and `direct` is always the direct-provider pair (used for things
 // that always call a provider, such as naming a chat).
@@ -89,7 +135,7 @@ function resolve(main, chat, opts) {
     var mainModeValue = mainMode(main);
 
     // Pi chats before 1.4.0 kept their provider and model in chatProvider/chatModel.
-    var legacyPi = useChat && chat.piProvider === undefined && chat.piModel === undefined && _s(chat.source) === "pi";
+    var legacyPi = useChat && chat.piProvider === undefined && chat.piModel === undefined && chatMode(chat) === "pi";
 
     // Candidates for one field, in priority order.
     function field(mainValue, chatValue) {
@@ -100,12 +146,8 @@ function resolve(main, chat, opts) {
         return _firstOf(chatFirst ? [c, m] : [m, c]);
     }
 
-    var mode = mainModeValue;
-    var modeFromChat = false;
-    if (useChat && chatFirst && MODES.indexOf(_s(chat.source)) >= 0) {
-        mode = _s(chat.source);
-        modeFromChat = mode !== mainModeValue;
-    }
+    // The mode is the chat's own, always; without a chat there is only the main mode.
+    var mode = chat ? chatMode(chat) : mainModeValue;
 
     // Direct: the provider, then the model for it.
     var provider = field(mainDirect, legacyPi ? "" : (useChat ? chat.chatProvider : ""));
@@ -116,9 +158,9 @@ function resolve(main, chat, opts) {
 
     var result = {"mode": mode, "provider": provider.value, "model": model.value, "agent": "", "thinking": "",
                   "direct": {"provider": provider.value, "model": model.value}};
-    var fromChat = modeFromChat;
+    var fromChat = false;
     if (mode === "provider") {
-        fromChat = fromChat || directFromChat;
+        fromChat = directFromChat;
     } else if (mode === "opencode") {
         var ocProvider = field(main.openCodeProvider, useChat ? chat.openCodeProvider : "");
         var ocModel = field(main.openCodeModel, useChat ? chat.openCodeModel : "");
@@ -126,7 +168,7 @@ function resolve(main, chat, opts) {
         result.provider = ocProvider.value;
         result.model = ocModel.value;
         result.agent = ocAgent.value;
-        fromChat = fromChat || ocProvider.from === "chat" || ocModel.from === "chat" || ocAgent.from === "chat";
+        fromChat = ocProvider.from === "chat" || ocModel.from === "chat" || ocAgent.from === "chat";
     } else {
         var piProvider = field(main.piProvider, useChat ? (legacyPi ? chat.chatProvider : chat.piProvider) : "");
         var piModel = field(main.piModel, useChat ? (legacyPi ? chat.chatModel : chat.piModel) : "");
@@ -134,7 +176,7 @@ function resolve(main, chat, opts) {
         result.provider = piProvider.value;
         result.model = piModel.value;
         result.thinking = piThinking.value;
-        fromChat = fromChat || piProvider.from === "chat" || piModel.from === "chat" || piThinking.from === "chat";
+        fromChat = piProvider.from === "chat" || piModel.from === "chat" || piThinking.from === "chat";
     }
     result.source = useChat && fromChat ? "chat" : "main";
     return result;

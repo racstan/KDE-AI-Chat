@@ -57,8 +57,11 @@ PlasmoidItem {
     property string editingSessionDraft: ""
     property bool renamingCurrentChat: false
     property string currentChatRenameDraft: ""
-    property bool openCodeMode: plasmoid.configuration.useOpenCode
-    property bool piMode: plasmoid.configuration.usePi
+    // The open chat's mode (set by modeSync; a chat keeps the mode it was started in).
+    property bool openCodeMode: false
+    property bool piMode: false
+    // Shown above the chat when its mode can't be used; the chat stays in that mode.
+    property string modeNotice: ""
     property string openCodeAgent: plasmoid.configuration.openCodeAgent || ""
     property string openCodeWorkspaceCwd: plasmoid.configuration.openCodeWorkspaceCwd || ""
     property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel !== false
@@ -100,6 +103,8 @@ PlasmoidItem {
     readonly property var chatStore: storage.chatStore
     readonly property var store: storage
     property bool sessionHistoryLoadBlocked: false
+    // A loaded chat had no mode and was given one (stored by loadSessions).
+    property bool sessionSourceInferred: false
 
     signal clearChatInput()
     // A chat was deleted (chat/UndoNotice.qml offers to bring it back).
@@ -257,8 +262,10 @@ PlasmoidItem {
                     return message && typeof message === "object";
                 });
                 if (session.archived === undefined) session.archived = false;
-                if (["provider", "opencode", "pi"].indexOf(session.source) < 0)
-                    session.source = session.openCodeSessionId ? "opencode" : "provider";
+                if (!EffectiveConfig.isMode(session.source)) {
+                    session.source = EffectiveConfig.inferSource(session);
+                    root.sessionSourceInferred = true;
+                }
                 for (var j = 0; j < session.messages.length; j++) {
                     var message = session.messages[j];
                     if (message.content === undefined || message.content === null)
@@ -340,15 +347,13 @@ PlasmoidItem {
 
     function setSessionProperty(sessionId, key, value) {
         var idx = sessionIndexById(sessionId || root.currentSessionId);
-        if (idx < 0)
+        if (idx < 0 || key === "source")
             return;
         var updated = root.sessions.slice();
         var session = Object.assign({}, updated[idx]);
         session[key] = value;
         updated[idx] = session;
         root.sessions = updated;
-        if (session.value === root.currentSessionId && key === "source")
-            applySessionSource(session);
         persistSessions();
     }
 
@@ -363,10 +368,10 @@ PlasmoidItem {
 
         var updated = root.sessions.slice();
         var session = Object.assign({}, updated[idx]);
-        var previousSource = session.source || "provider";
         var changed = false;
         for (var key in overrides) {
-            if (!Object.prototype.hasOwnProperty.call(overrides, key))
+            // A chat's mode (source) is set when it is created and never changes.
+            if (!Object.prototype.hasOwnProperty.call(overrides, key) || key === "source")
                 continue;
             if (session[key] !== overrides[key])
                 changed = true;
@@ -374,8 +379,6 @@ PlasmoidItem {
         }
         if (!changed)
             return true;
-        if (session.source !== "opencode" && previousSource === "opencode")
-            session.openCodeSessionId = "";
         if (session.value === root.currentSessionId) {
             session.messages = root.messages.slice();
             session.text = root.currentSessionTitle || session.text;
@@ -405,31 +408,17 @@ PlasmoidItem {
         return effectiveConfig(sessionId).direct.provider || ProviderService.getSupportedProviders(plasmoid.configuration)[0] || "openai";
     }
 
-    // Re-applies the chat's mode when the main mode or the per-chat settings change.
+    // Puts the widget in the chat's own mode, and re-reads its provider/model
+    // when the settings change. A chat never changes mode (chat/ModeSync.qml).
     Chat.ModeSync {
+        id: modeSync
         chat: root
     }
 
     // New chats start in the mode the main settings select.
-    function configuredSessionSource() {
-        if (plasmoid.configuration.useOpenCode === true)
-            return "opencode";
-        if (plasmoid.configuration.usePi === true)
-            return "pi";
-        return "provider";
-    }
+    function configuredSessionSource() { return modeSync.newChatMode(); }
 
-    // Puts the widget in the mode the chat effectively uses (see effectiveConfig).
-    function applySessionSource(session) {
-        var eff = effectiveConfig(session ? session.value : "");
-        var source = eff.mode;
-        root.openCodeMode = source === "opencode";
-        root.piMode = source === "pi";
-        root.openCodeAgent = source === "opencode" ? eff.agent : String(plasmoid.configuration.openCodeAgent || "");
-        root.openCodeWorkspaceCwd = session && session.openCodeWorkspaceCwd !== undefined
-            ? String(session.openCodeWorkspaceCwd || "") : String(plasmoid.configuration.openCodeWorkspaceCwd || "");
-        return source;
-    }
+    function applySessionSource(session) { return modeSync.apply(session); }
 
     function requestIsCurrent(sessionId, generation) {
         return !!sessionId && root.currentSessionId === sessionId
@@ -516,6 +505,8 @@ PlasmoidItem {
         root.messages = root.sessions[idx].messages || [];
         applySessionSource(root.sessions[idx]);
         sortSessionsByUpdated();
+        if (root.sessionSourceInferred)
+            persistSessions();
     }
 
     function saveCurrentSessionState(touchUpdatedAt) {
@@ -538,14 +529,15 @@ PlasmoidItem {
         persistSessions();
     }
 
-    function setCurrentSessionSource(source) {
+    // Un-archives the open chat when it is used; its mode (source) stays as it is.
+    function setCurrentSessionSource() {
         var idx = sessionIndexById(root.currentSessionId);
         if (idx < 0)
             return ;
 
         var updated = root.sessions.slice();
         var item = Object.assign({}, updated[idx]);
-        item.source = source || "provider";
+        item.source = EffectiveConfig.chatMode(item);
         item.archived = false;
         updated[idx] = item;
         root.sessions = updated;
@@ -1423,8 +1415,7 @@ PlasmoidItem {
             saveCurrentSessionState(true);
         }
         var requestSessionId = root.currentSessionId;
-        var requestSource = root.openCodeMode ? "opencode" : (root.piMode ? "pi" : "provider");
-        setCurrentSessionSource(requestSource);
+        setCurrentSessionSource();
         var requestGeneration = beginRequest(requestSessionId);
         if (root.openCodeMode) {
             openCode.send(requestSessionId, requestGeneration);

@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveConfig.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode, inferSource, chatMode, isMode, unavailableText};", ctx);
 const E = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -27,13 +27,14 @@ const on = (priority) => ({perChat: true, priority});
 const off = {perChat: false, priority: "chat"};
 
 const tests = {
-    switch_off_ignores_the_chat_completely() {
+    switch_off_ignores_the_chats_model_settings_but_not_its_mode() {
         for (const priority of ["chat", "main"]) {
+            // A Pi chat under OpenCode main settings: still Pi, with the main settings' Pi provider and model.
             const r = plain(E.resolve(mainOC, chatPi, {perChat: false, priority}));
-            assert.strictEqual(r.mode, "opencode");
-            assert.strictEqual(r.provider, "opencode");
-            assert.strictEqual(r.model, "zen-x");
-            assert.strictEqual(r.agent, "build");
+            assert.strictEqual(r.mode, "pi");
+            assert.strictEqual(r.provider, "ollama");
+            assert.strictEqual(r.model, "qwen");
+            assert.strictEqual(r.thinking, "");
             assert.strictEqual(r.source, "main");
         }
         assert.strictEqual(E.resolve(mainOC, chatPi, undefined).source, "main");
@@ -50,13 +51,65 @@ const tests = {
         assert.strictEqual(r.source, "chat");
     },
 
-    owner_example_main_wins() {
+    owner_example_main_wins_within_the_chats_mode() {
+        // "main" priority decides provider/model, not the mode: the chat is a Pi chat.
         const r = plain(E.resolve(mainOC, chatPi, on("main")));
-        assert.strictEqual(r.mode, "opencode");
-        assert.strictEqual(r.provider, "opencode");
-        assert.strictEqual(r.model, "zen-x");
-        assert.strictEqual(r.agent, "build");
-        assert.strictEqual(r.source, "main");
+        assert.strictEqual(r.mode, "pi");
+        assert.strictEqual(r.provider, "ollama");
+        assert.strictEqual(r.model, "qwen");
+        assert.strictEqual(r.agent, "");
+        assert.strictEqual(r.thinking, "high", "main has no thinking level, so the chat's fills in");
+        assert.strictEqual(r.source, "chat");
+    },
+
+    a_chat_keeps_its_mode_whatever_the_settings_say() {
+        const mains = {provider: mainDirect, opencode: mainOC, pi: mainPi};
+        const chats = {provider: {source: "provider"}, opencode: {source: "opencode"}, pi: {source: "pi"}};
+        for (const chatMode of Object.keys(chats)) {
+            for (const mainName of Object.keys(mains)) {
+                for (const opts of [off, on("chat"), on("main"), {}, undefined]) {
+                    for (const own of [{}, {ownModel: true}, {ownModel: false}, {chatModel: "x"}, {openCodeModel: "y"}, {piModel: "z"}]) {
+                        const chat = Object.assign({}, chats[chatMode], own);
+                        assert.strictEqual(E.resolve(mains[mainName], chat, opts).mode, chatMode, JSON.stringify([chatMode, mainName, opts, own]));
+                    }
+                }
+            }
+        }
+        // Even when the chat's own fields name another mode's settings.
+        const r = plain(E.resolve(mainPi, {ownModel: true, source: "provider", chatProvider: "anthropic", chatModel: "claude-y",
+                                           piProvider: "openai", piModel: "gpt-y"}, on("chat")));
+        assert.deepStrictEqual([r.mode, r.provider, r.model], ["provider", "anthropic", "claude-y"]);
+    },
+
+    a_chat_without_a_stored_mode_gets_the_inferred_one_not_the_main_mode() {
+        assert.strictEqual(E.resolve(mainPi, {text: "old"}, off).mode, "provider");
+        assert.strictEqual(E.resolve(mainDirect, {openCodeSessionId: "ses_1"}, off).mode, "opencode");
+        assert.strictEqual(E.resolve(mainDirect, {source: "weird", openCodeSessionId: "ses_1"}, on("main")).mode, "opencode");
+    },
+
+    infer_source_for_old_chats() {
+        assert.strictEqual(E.inferSource({}), "provider");
+        assert.strictEqual(E.inferSource(null), "provider");
+        assert.strictEqual(E.inferSource({openCodeSessionId: "ses_abc"}), "opencode");
+        assert.strictEqual(E.inferSource({openCodeSessionId: "  "}), "provider");
+        assert.strictEqual(E.inferSource({messages: [{role: "user"}, {role: "question_request", harnessChatId: "c1"}]}), "pi");
+        assert.strictEqual(E.inferSource({messages: [{role: "user"}], piModel: "x", chatModel: "y"}), "provider",
+                           "stale model fields do not decide the mode");
+        assert.strictEqual(E.inferSource({openCodeSessionId: "ses_1", messages: [{harnessChatId: "c"}]}), "opencode");
+        assert.strictEqual(E.chatMode({source: "pi", openCodeSessionId: "ses_1"}), "pi", "a stored mode wins");
+        assert.strictEqual(E.chatMode({source: "nope", openCodeSessionId: "ses_1"}), "opencode");
+        assert.strictEqual(E.isMode("pi"), true);
+        assert.strictEqual(E.isMode("Pi"), false);
+        assert.strictEqual(E.isMode(undefined), false);
+    },
+
+    unavailable_text_names_the_mode_and_says_it_stays() {
+        const t = E.unavailableText("opencode", "OpenCode isn't reachable at http://127.0.0.1:4096.");
+        assert.ok(t.indexOf("an OpenCode chat") >= 0 && t.indexOf("isn't reachable at http://127.0.0.1:4096.") >= 0, t);
+        assert.ok(t.indexOf("stays in OpenCode mode") >= 0, t);
+        const p = E.unavailableText("pi", "Pi: the Pi bridge didn't start");
+        assert.ok(p.indexOf("a Pi chat") >= 0 && p.indexOf("bridge didn't start.") >= 0 && p.indexOf("stays in Pi mode") >= 0, p);
+        assert.ok(E.unavailableText("provider", "").indexOf("stays in direct provider mode") >= 0);
     },
 
     priority_defaults_to_chat() {
@@ -65,14 +118,18 @@ const tests = {
     },
 
     missing_overrides_use_main_in_every_combination() {
-        for (const chat of [null, undefined, {}, {source: "pi"}, {ownModel: true}, {ownModel: false, chatModel: "z"}, {text: "x", messages: []}]) {
-            for (const opts of [off, on("chat"), on("main")]) {
-                for (const main of [mainOC, mainDirect, mainPi]) {
+        // No chat at all: the main settings, including the main mode.
+        for (const opts of [off, on("chat"), on("main")]) {
+            for (const main of [mainOC, mainDirect, mainPi]) {
+                for (const chat of [null, undefined]) {
+                    assert.deepStrictEqual(plain(E.resolve(main, chat, opts)), plain(E.resolve(main, null, off)));
+                }
+                // A chat with no model settings of its own: the main settings' fields for the chat's mode.
+                for (const chat of [{source: "provider"}, {source: "provider", ownModel: true}, {source: "provider", ownModel: false, chatModel: "z"}, {text: "x", messages: []}]) {
                     const r = plain(E.resolve(main, chat, opts));
-                    const expected = plain(E.resolve(main, null, off));
-                    // {ownModel: true} with nothing filled in: the mode is the chat's own choice, i.e. none -> main's.
-                    assert.deepStrictEqual(r, expected, JSON.stringify([chat, opts]));
+                    assert.strictEqual(r.mode, "provider");
                     assert.strictEqual(r.source, "main");
+                    assert.deepStrictEqual([r.provider, r.model], [main.provider, modelFor(main.provider)]);
                 }
             }
         }
@@ -110,7 +167,7 @@ const tests = {
         assert.deepStrictEqual([r.provider, r.model, r.source], ["openai", "", "main"]);
         // OpenCode: main has no model, the chat has one.
         const ocNoModel = Object.assign({}, mainOC, {openCodeModel: ""});
-        r = plain(E.resolve(ocNoModel, {ownModel: true, source: "pi", openCodeModel: "chat-m"}, on("main")));
+        r = plain(E.resolve(ocNoModel, {ownModel: true, source: "opencode", openCodeModel: "chat-m"}, on("main")));
         assert.deepStrictEqual([r.mode, r.provider, r.model, r.source], ["opencode", "opencode", "chat-m", "chat"]);
     },
 
@@ -140,7 +197,8 @@ const tests = {
         // send() stores source on every chat; that must not freeze a chat against the main settings.
         assert.strictEqual(E.hasOwnModelSettings({source: "opencode"}), false);
         const r = plain(E.resolve(mainPi, {source: "opencode", openCodeSessionId: "ses_1"}, on("chat")));
-        assert.strictEqual(r.mode, "pi");
+        assert.strictEqual(r.mode, "opencode", "the chat's mode, not the main mode");
+        assert.strictEqual(r.provider, "opencode", "the main settings' OpenCode provider");
         assert.strictEqual(r.source, "main");
     },
 
@@ -162,18 +220,21 @@ const tests = {
         assert.deepStrictEqual(r.direct, {provider: "openai", model: "gpt-main"}, "not mistaken for a direct override");
     },
 
-    invalid_chat_source_falls_back_to_the_main_mode() {
+    invalid_chat_source_is_inferred_not_taken_from_the_main_mode() {
         const r = plain(E.resolve(mainOC, {ownModel: true, source: "weird", chatModel: "x"}, on("chat")));
-        assert.strictEqual(r.mode, "opencode");
+        assert.strictEqual(r.mode, "provider");
+        assert.strictEqual(r.model, "x");
     },
 
     for_session_reads_the_two_settings_from_the_configuration() {
         const config = {useOpenCode: true, provider: "openai", openCodeProvider: "opencode", openCodeModel: "zen-x",
                         perChatModelSettings: true, perChatPriority: "chat"};
-        assert.strictEqual(E.forSession(config, chatPi, modelFor).mode, "pi");
-        assert.strictEqual(E.forSession(Object.assign({}, config, {perChatPriority: "main"}), chatPi, modelFor).mode, "opencode");
-        assert.strictEqual(E.forSession(Object.assign({}, config, {perChatModelSettings: false}), chatPi, modelFor).mode, "opencode");
-        assert.strictEqual(E.forSession({}, chatPi, modelFor).mode, "provider", "empty configuration -> defaults");
+        assert.deepStrictEqual(["pi", "openai", "gpt-y"], [E.forSession(config, chatPi, modelFor)].map(r => [r.mode, r.provider, r.model])[0]);
+        for (const changed of [{perChatPriority: "main"}, {perChatModelSettings: false}, {useOpenCode: false, usePi: true}, {useOpenCode: false}]) {
+            assert.strictEqual(E.forSession(Object.assign({}, config, changed), chatPi, modelFor).mode, "pi", JSON.stringify(changed));
+        }
+        assert.strictEqual(E.forSession(config, null, modelFor).mode, "opencode", "no chat: the main mode");
+        assert.strictEqual(E.forSession({}, chatPi, modelFor).mode, "pi", "empty configuration -> the chat's mode");
         assert.strictEqual(E.forSession(null, null, null).mode, "provider");
         assert.strictEqual(E.mainMode({useOpenCode: true, usePi: true}), "opencode");
     },
@@ -181,7 +242,8 @@ const tests = {
     describe_builds_the_line() {
         const names = id => ({openai: "OpenAI", opencode: "OpenCode Zen"}[id]);
         assert.strictEqual(E.describe(E.resolve(mainOC, chatPi, on("chat")), names), "Pi · OpenAI · gpt-y");
-        assert.strictEqual(E.describe(E.resolve(mainOC, chatPi, off), names), "OpenCode · OpenCode Zen · zen-x");
+        assert.strictEqual(E.describe(E.resolve(mainOC, chatPi, off), names), "Pi · ollama · qwen");
+        assert.strictEqual(E.describe(E.resolve(mainOC, null, off), names), "OpenCode · OpenCode Zen · zen-x");
         assert.strictEqual(E.describe(E.resolve(mainDirect, null, off), names), "OpenAI · gpt-main");
         assert.strictEqual(E.describe({mode: "provider", provider: "x", model: ""}), "x");
     },

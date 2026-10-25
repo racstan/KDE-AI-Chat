@@ -108,6 +108,15 @@ ColumnLayout {
         }
     }
 
+    // A chat keeps the mode it was started in: shown, not editable.
+    PC3.Label {
+        objectName: "modeLabel"
+        Layout.fillWidth: true
+        wrapMode: Text.Wrap
+        text: i18n("Mode: %1 (set when the chat was started)", form.draft.mode === "opencode" ? "OpenCode"
+              : form.draft.mode === "pi" ? "Pi" : i18n("direct provider"))
+    }
+
     OwnModelCheck {
         id: ownModelCheck
         objectName: "ownModelCheck"
@@ -116,38 +125,6 @@ ColumnLayout {
         onToggled: form.draft.setOwnModel(checked)
     }
 
-    Field {
-        visible: form.draft.modelEditable
-        label: i18n("Replies from")
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
-            uniformCellSizes: true
-
-            PC3.Button {
-                text: i18n("Provider")
-                checkable: true
-                checked: form.draft.mode === "provider"
-                Layout.fillWidth: true
-                onClicked: form.draft.setMode("provider")
-            }
-            PC3.Button {
-                text: i18n("OpenCode")
-                checkable: true
-                checked: form.draft.mode === "opencode"
-                Layout.fillWidth: true
-                onClicked: form.draft.setMode("opencode")
-            }
-            PC3.Button {
-                text: i18n("Pi")
-                checkable: true
-                checked: form.draft.mode === "pi"
-                Layout.fillWidth: true
-                onClicked: form.draft.setMode("pi")
-            }
-        }
-    }
 
     // --- Provider ---
 
@@ -282,7 +259,7 @@ ColumnLayout {
     // --- Both agents ---
 
     Field {
-        visible: form.draft.shownMode === "opencode" || form.draft.shownMode === "pi"
+        visible: form.draft.mode === "opencode" || form.draft.mode === "pi"
         label: i18n("Working folder")
 
         RowLayout {
@@ -321,12 +298,12 @@ ColumnLayout {
     // --- Instructions and length (not for OpenCode, which has its own) ---
 
     Kirigami.Separator {
-        visible: form.draft.shownMode !== "opencode"
+        visible: form.draft.mode !== "opencode"
         Layout.fillWidth: true
     }
 
     Field {
-        visible: form.draft.shownMode !== "opencode"
+        visible: form.draft.mode !== "opencode"
         label: i18n("Instructions")
 
         PC3.CheckBox {
@@ -352,7 +329,7 @@ ColumnLayout {
     }
 
     Field {
-        visible: form.draft.shownMode !== "opencode"
+        visible: form.draft.mode !== "opencode"
         label: i18n("Response length")
 
         QQC2.ComboBox {

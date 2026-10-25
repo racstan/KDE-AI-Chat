@@ -73,6 +73,16 @@ const tests = {
         assert.deepStrictEqual(plain(r.body.messages[0]), {role: "system", content: "be brief"});
     },
 
+    an_empty_system_prompt_sends_no_system_message() {
+        for (const type of ["openai", "anthropic"]) {
+            for (const system of ["", undefined, null]) {
+                const r = B.buildRequest({type, baseUrl: "https://x.test/v1", model: "m", system, messages: [{role: "user", content: "hi"}]});
+                assert.ok(!("system" in r.body), type);
+                assert.deepStrictEqual(plain(r.body.messages), [{role: "user", content: "hi"}], type);
+            }
+        }
+    },
+
     openai_without_key_sends_no_authorization() {
         const r = B.buildRequest({type: "openai", baseUrl: "http://localhost:11434/v1", model: "m", messages: []});
         assert.ok(!("Authorization" in r.headers));

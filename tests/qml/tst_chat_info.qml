@@ -185,7 +185,7 @@ Item {
             compare(call.name, "overrides");
             compare(call.args[0], "a");
             var o = call.args[1];
-            compare(o.source, "provider");
+            verify(!("source" in o), "the panel never writes a chat's mode");
             compare(o.chatProvider, "ollama");
             compare(o.chatModel, "llama3.2");
             compare(o.chatSystemPrompt, "Answer in French.");
@@ -219,26 +219,27 @@ Item {
         }
 
         function test_09_agent_modes_keep_their_settings() {
+            chat.sessions = [{value: "a", text: "Trip planning", source: "opencode"}];
             openPanel();
             var form = findForm();
-            dialog.draft.setMode("opencode");
-            wait(20);
+            compare(dialog.draft.mode, "opencode");
             verify(!form.systemArea.visible, "OpenCode has its own instructions");
             verify(form.cwdField.visible);
             form.cwdField.text = "/home/me/project";
             dialog._save();
             var o = chat.calls[chat.calls.length - 1].args[1];
-            compare(o.source, "opencode");
+            verify(!("source" in o));
             compare(o.openCodeWorkspaceCwd, "/home/me/project");
-            compare(o.openCodeAgent, "");
+            chat.sessions = [{value: "a", text: "Trip planning", source: "pi", ownModel: true, piModel: "qwen"}];
             openPanel();
-            dialog.draft.setMode("pi");
+            dialog.draft.load("a");
             wait(20);
+            compare(dialog.draft.mode, "pi");
             verify(form.cwdField.visible);
             dialog.draft.piThinking = "high";
             dialog._save();
             o = chat.calls[chat.calls.length - 1].args[1];
-            compare(o.source, "pi");
+            verify(!("source" in o));
             compare(o.piThinking, "high");
         }
 
@@ -366,20 +367,112 @@ Item {
         }
 
         function test_18_agent_modes_in_the_line_and_the_panel_follows_the_settings() {
-            // Main settings: OpenCode + OpenCode Zen; this chat: Pi + OpenAI.
-            configure({useOpenCode: true, openCodeProvider: "opencode", openCodeModel: "zen-x"});
+            // Main settings: OpenCode + OpenCode Zen; this chat: Pi + OpenAI. The chat stays a Pi chat.
+            configure({useOpenCode: true, openCodeProvider: "opencode", openCodeModel: "zen-x", piProvider: "ollama", piModel: "qwen"});
             chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: active, ownModel: true,
                               source: "pi", piProvider: "openai", piModel: "gpt-y"}];
             openPanel();
             compare(value("effectiveLine").text, "Using Pi \u00b7 openai \u00b7 gpt-y (from this chat's settings)");
             configure({perChatPriority: "main"});
-            compare(value("effectiveLine").text, "Using OpenCode \u00b7 opencode \u00b7 zen-x (from main settings)");
+            compare(value("effectiveLine").text, "Using Pi \u00b7 ollama \u00b7 qwen (from main settings)");
             configure({perChatModelSettings: false, perChatPriority: "chat"});
-            compare(value("effectiveLine").text, "Using OpenCode \u00b7 opencode \u00b7 zen-x (from main settings)");
-            // With the main mode an agent, the working folder is still offered.
+            compare(value("effectiveLine").text, "Using Pi \u00b7 ollama \u00b7 qwen (from main settings)");
+            // The working folder is offered because this is an agent chat.
             verify(visibleIn(findForm().cwdField));
             configure({perChatModelSettings: true});
             compare(value("effectiveLine").text, "Using Pi \u00b7 openai \u00b7 gpt-y (from this chat's settings)");
+        }
+
+        // ── A chat keeps its mode ───────────────────────────────────────────
+
+        function test_19_the_mode_is_shown_read_only() {
+            for (const m of [["provider", "direct provider"], ["opencode", "OpenCode"], ["pi", "Pi"]]) {
+                chat.sessions = [{value: "a", text: "Trip planning", source: m[0]}];
+                configure({useOpenCode: m[0] !== "opencode"});
+                openPanel();
+                dialog.draft.load("a");
+                wait(20);
+                compare(value("modeLabel").text, "Mode: " + m[1] + " (set when the chat was started)");
+                verify(visibleIn(value("modeLabel")));
+                compare(dialog.draft.mode, m[0], "the main mode does not decide it");
+                if (m[0] === "pi")
+                    screenshot(root, "chat-info-mode-readonly");
+                dialog._save();
+                verify(!("source" in chat.calls[chat.calls.length - 1].args[1]), "save never writes the mode");
+            }
+            // Even when a draft's mode were changed, saving does not write it.
+            chat.sessions = [{value: "a", text: "Trip planning", source: "pi", ownModel: true}];
+            openPanel();
+            dialog.draft.mode = "provider";
+            dialog._save();
+            verify(!("source" in chat.calls[chat.calls.length - 1].args[1]));
+        }
+
+        // ── Empty instructions are off ──────────────────────────────────────
+
+        function test_20_a_chat_without_instructions_has_the_box_unchecked() {
+            openPanel();
+            for (const text of [undefined, "", "   \n "]) {
+                chat.sessions = [{value: "a", text: "Trip planning", source: "provider", chatSystemPrompt: text}];
+                dialog.draft.load("a");
+                wait(20);
+                var form = findForm();
+                compare(form.systemCheck.checked, false, JSON.stringify(text));
+                verify(!form.systemArea.enabled, "the text box waits for the box");
+            }
+            screenshot(root, "chat-info-no-instructions");
+            chat.sessions = [{value: "a", text: "Trip planning", source: "provider", chatSystemPrompt: "Be brief.", chatSystemPromptEnabled: true}];
+            dialog.draft.load("a");
+            wait(20);
+            compare(findForm().systemCheck.checked, true);
+            chat.sessions = [{value: "a", text: "Trip planning", source: "provider", chatSystemPrompt: "Be brief.", chatSystemPromptEnabled: false}];
+            dialog.draft.load("a");
+            wait(20);
+            compare(findForm().systemCheck.checked, false, "switched off by the user, text kept");
+            compare(findForm().systemArea.text, "Be brief.");
+        }
+
+        function test_21_turning_it_on_with_no_text_sends_and_saves_nothing() {
+            chat.sessions = [{value: "a", text: "Trip planning", source: "provider"}];
+            openPanel();
+            var form = findForm();
+            form.systemCheck.checked = true;
+            verify(dialog.draft.systemEnabled);
+            verify(form.systemArea.enabled);
+            wait(50);
+            screenshot(root, "chat-info-instructions-on-empty");
+            dialog._save();
+            var o = chat.calls[chat.calls.length - 1].args[1];
+            verify(!("chatSystemPrompt" in o) && !("chatSystemPromptEnabled" in o), "no override saved: " + JSON.stringify(o));
+            // Blank text counts as empty.
+            openPanel();
+            form = findForm();
+            form.systemCheck.checked = true;
+            form.systemArea.text = "  \n ";
+            dialog._save();
+            o = chat.calls[chat.calls.length - 1].args[1];
+            verify(!("chatSystemPrompt" in o) && !("chatSystemPromptEnabled" in o), JSON.stringify(o));
+            // Real text is saved and switched on.
+            openPanel();
+            form = findForm();
+            form.systemCheck.checked = true;
+            form.systemArea.text = "Be formal.";
+            dialog._save();
+            o = chat.calls[chat.calls.length - 1].args[1];
+            compare(o.chatSystemPrompt, "Be formal.");
+            compare(o.chatSystemPromptEnabled, true);
+        }
+
+        function test_22_clearing_the_instructions_saves_them_as_empty_and_leaves_the_flag() {
+            chat.sessions = [{value: "a", text: "Trip planning", source: "provider", chatSystemPrompt: "Old.", chatSystemPromptEnabled: true}];
+            openPanel();
+            var form = findForm();
+            compare(form.systemCheck.checked, true);
+            form.systemArea.text = "";
+            dialog._save();
+            var o = chat.calls[chat.calls.length - 1].args[1];
+            compare(o.chatSystemPrompt, "");
+            compare(o.chatSystemPromptEnabled, true, "the default; nothing special is switched");
         }
     }
 }

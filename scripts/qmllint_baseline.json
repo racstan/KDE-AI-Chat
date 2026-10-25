@@ -13,7 +13,7 @@
   "org.kde.plasma.kdeaichat/contents/ui/chat/ChatBody.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ChatHeader.qml": 9,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ChatInfoSummary.qml": 14,
-  "org.kde.plasma.kdeaichat/contents/ui/chat/ChatOverridesForm.qml": 27,
+  "org.kde.plasma.kdeaichat/contents/ui/chat/ChatOverridesForm.qml": 25,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ChatSettingsDraft.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ChatShortcuts.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ChatView.qml": 0,

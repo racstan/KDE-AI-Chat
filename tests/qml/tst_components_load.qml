@@ -27,6 +27,7 @@ TestCase {
             { tag: "chat/NoticeBanner", url: uiDir + "chat/NoticeBanner.qml" },
             { tag: "config/ProvidersPanel", url: uiDir + "config/ProvidersPanel.qml" },
             { tag: "chat/OpenCodeMode", url: uiDir + "chat/OpenCodeMode.qml" },
+            { tag: "chat/ModeSync", url: uiDir + "chat/ModeSync.qml" },
             { tag: "chat/PiMode", url: uiDir + "chat/PiMode.qml" },
             { tag: "chat/PermissionButtons", url: uiDir + "chat/PermissionButtons.qml" },
             { tag: "chat/PiChatSettings", url: uiDir + "chat/PiChatSettings.qml" },
