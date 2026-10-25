@@ -12,6 +12,7 @@ import "Security.js" as Sec
 import "store" as Store
 import "backends/DirectBackend.js" as DirectBackend
 import "backends/AgentEvents.js" as AgentEvents
+import "chat/ChatTitle.js" as ChatTitle
 import "chat" as Chat
 
 PlasmoidItem {
@@ -77,8 +78,7 @@ PlasmoidItem {
     property var msgListViewRef: null
     property var composerRef: null
     property bool userScrolledUp: false
-    property bool titleGenerationInProgress: false
-    property string titleGenerationSessionId: ""
+    property var titleRequested: ({})
     // Token counts reported for the reply being streamed.
     property var currentStreamUsage: ({})
     property int queueCounter: 0
@@ -1352,8 +1352,9 @@ PlasmoidItem {
             "queueId": role === "queued" ? (++root.queueCounter) : 0,
             "attachments": attachments || []
         }]);
+        if ((role || "user") === "user")
+            nameChatFromFirstMessage(text);
         saveCurrentSessionState(true);
-
     }
 
     function validateCurrentSendTarget() {
@@ -1396,6 +1397,7 @@ PlasmoidItem {
             queued.time = nowTime(queued.at);
             copy[index] = queued;
             root.messages = copy;
+            nameChatFromFirstMessage(queued.content);
             saveCurrentSessionState(true);
         }
         var requestSessionId = root.currentSessionId;
@@ -1452,108 +1454,62 @@ PlasmoidItem {
         root.schedulerResumeSessionId = "";
     }
 
-    function _cleanGeneratedTitle(value) {
-        var title = String(value || "").replace(/```[\s\S]*?```/g, "").trim();
-        title = title.replace(/^['"`]+|['"`]+$/g, "").replace(/\s+/g, " ").trim();
-        if (title.length > 80)
-            title = title.substring(0, 77).replace(/\s+\S*$/, "") + "…";
-        return title;
+    // Chat names (chat/ChatTitle.js). A chat gets an instant name from its first
+    // message (session.autoTitle remembers it), then, after the first reply, a
+    // model-written one. Only a title still equal to autoTitle (or the default)
+    // is replaced, so a manual rename always wins.
+    function nameChatFromFirstMessage(text) {
+        var title = ChatTitle.instantTitle(text);
+        if (!title || !ChatTitle.isDefaultTitle(root.currentSessionTitle) || firstUserText() !== String(text).trim())
+            return;
+        applyAutoTitle(root.currentSessionId, title);
+    }
+
+    function firstUserText() {
+        for (var i = 0; i < root.messages.length; i++)
+            if (root.messages[i].role === "user" || root.messages[i].role === "queued")
+                return String(root.messages[i].content || "").trim();
+        return "";
+    }
+
+    // Sets `title` on chat `sessionId` if its name is still automatic.
+    function applyAutoTitle(sessionId, title, final) {
+        var idx = sessionIndexById(sessionId);
+        if (idx < 0)
+            return false;
+        var isCurrent = sessionId === root.currentSessionId;
+        var current = isCurrent ? root.currentSessionTitle : root.sessions[idx].text;
+        if (!ChatTitle.isDefaultTitle(current) && !(root.sessions[idx].autoTitle && current === root.sessions[idx].autoTitle))
+            return false;
+        var updated = root.sessions.slice();
+        updated[idx] = Object.assign({}, updated[idx], {"text": title, "autoTitle": final ? "" : title});
+        root.sessions = updated;
+        if (isCurrent)
+            root.currentSessionTitle = title;
+        persistSessions();
+        return true;
     }
 
     function maybeGenerateChatTitle() {
-        if (plasmoid.configuration.autoNameChats === false || root.openCodeMode
-                || root.titleGenerationInProgress || !root.currentSessionId)
-            return;
-        var currentTitle = (root.currentSessionTitle || "").trim().toLowerCase();
-        if (currentTitle !== "" && currentTitle !== "new chat")
-            return;
-
-        var firstUser = "";
-        var assistantCount = 0;
-        for (var i = 0; i < root.messages.length; i++) {
-            if (!firstUser && root.messages[i].role === "user")
-                firstUser = String(root.messages[i].content || "").trim();
-            if (root.messages[i].role === "assistant")
-                assistantCount++;
-        }
-        if (!firstUser || assistantCount === 0)
-            return;
-
         var sessionId = root.currentSessionId;
-        var cfg = getProviderConfig(root.getEffectiveProvider(sessionId), sessionId);
-        if (!cfg || !cfg.model || !cfg.baseUrl || (!cfg.allowEmptyKey && !cfg.apiKey))
+        var idx = sessionIndexById(sessionId);
+        if (plasmoid.configuration.autoNameChats === false || idx < 0 || root.titleRequested[sessionId])
             return;
-        root.titleGenerationInProgress = true;
-        root.titleGenerationSessionId = sessionId;
-
-        var xhr = new XMLHttpRequest();
-        var endpoint = String(cfg.baseUrl).replace(/\/$/, "");
-        var isAnthropic = cfg.type === "anthropic";
-        if (isAnthropic) {
-            if (!endpoint.endsWith("/messages")) endpoint += "/messages";
-        } else {
-            endpoint += "/chat/completions";
-        }
-        var finished = false;
-        function finish() {
-            if (finished) return;
-            finished = true;
-            root.titleGenerationInProgress = false;
-            root.titleGenerationSessionId = "";
-        }
-        xhr.timeout = 8000;
-        xhr.ontimeout = finish;
-        xhr.onerror = finish;
-        try {
-            xhr.open("POST", endpoint, true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            if (isAnthropic) {
-                xhr.setRequestHeader("x-api-key", cfg.apiKey);
-                xhr.setRequestHeader("anthropic-version", "2023-06-01");
-            } else if (cfg.apiKey) {
-                xhr.setRequestHeader("Authorization", "Bearer " + cfg.apiKey);
-            }
-            if (cfg.headers) {
-                for (var headerName in cfg.headers)
-                    if (Object.prototype.hasOwnProperty.call(cfg.headers, headerName) && cfg.headers[headerName])
-                        xhr.setRequestHeader(headerName, cfg.headers[headerName]);
-            }
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE) return;
-                if (xhr.status >= 200 && xhr.status < 300 && root.currentSessionId === sessionId) {
-                    try {
-                        if (xhr.responseText.length > 1000000)
-                            throw new Error("title response is too large");
-                        var response = JSON.parse(xhr.responseText);
-                        var raw = isAnthropic
-                            ? ((response.content && response.content[0] && response.content[0].text) || "")
-                            : (((response.choices || [])[0] || {}).message || {}).content || "";
-                        var title = _cleanGeneratedTitle(raw);
-                        if (title && (root.currentSessionTitle || "New Chat").trim().toLowerCase() === "new chat") {
-                            root.currentSessionTitle = title;
-                            saveCurrentSessionState(false);
-                        }
-                    } catch (e) {}
-                }
-                finish();
-            };
-            var prompt = "Create a concise 3-6 word title for this conversation. Return only the title, no quotes or punctuation.\n\nUser message:\n" + firstUser.substring(0, 1200);
-            var body = isAnthropic ? {
-                model: cfg.model,
-                max_tokens: 32,
-                messages: [{ role: "user", content: prompt }]
-            } : {
-                model: cfg.model,
-                stream: false,
-                messages: [
-                    { role: "system", content: "You name chats concisely." },
-                    { role: "user", content: prompt }
-                ]
-            };
-            xhr.send(JSON.stringify(body));
-        } catch (e) {
-            finish();
-        }
+        var current = root.currentSessionTitle;
+        if (!ChatTitle.isDefaultTitle(current) && !(root.sessions[idx].autoTitle && current === root.sessions[idx].autoTitle))
+            return;
+        var firstUser = firstUserText();
+        // Agent chats use the default direct provider, if it has a key.
+        var cfg = getProviderConfig(root.getEffectiveProvider(sessionId), sessionId);
+        if (!firstUser || !cfg || !cfg.model || !cfg.baseUrl || (!cfg.allowEmptyKey && !cfg.apiKey))
+            return;
+        root.titleRequested[sessionId] = true;
+        ChatTitle.request(cfg, firstUser, function() { return new XMLHttpRequest(); }, function(title, error) {
+            if (title)
+                applyAutoTitle(sessionId, title, true);
+            else
+                console.warn("KDE AI Chat: couldn't name the chat with the model (" + error + "); keeping its first-message name");
+        });
     }
 
     // The plasmashell watchdog was removed in 1.4.0. A monitor started by an
