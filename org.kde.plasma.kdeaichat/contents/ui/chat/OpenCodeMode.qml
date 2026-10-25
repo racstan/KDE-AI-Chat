@@ -87,8 +87,9 @@ QtObject {
 
     function sendOpenCodePrompt(sessionId, generation, target) {
         var source = chat.sessionMessages(sessionId);
-        var providerId = String(chat.getSessionProperty(sessionId, "openCodeProvider", chat.plasmoid.configuration.openCodeProvider || "") || "").trim();
-        var modelId = String(chat.getSessionProperty(sessionId, "openCodeModel", chat.plasmoid.configuration.openCodeModel || "") || "").trim();
+        var eff = chat.effectiveConfig(sessionId);
+        var providerId = eff.provider;
+        var modelId = eff.model;
         var label = providerId && modelId ? providerId + "/" + modelId : "OpenCode";
         chat.currentStreamUsage = ({});
         chat.loading = true;
@@ -101,7 +102,7 @@ QtObject {
                 "parts": mode.openCodeParts(source[source.length - 1] || {}),
                 "providerId": providerId,
                 "modelId": modelId,
-                "agent": String(chat.getSessionProperty(sessionId, "openCodeAgent", chat.openCodeAgent || "") || "").trim(),
+                "agent": eff.agent,
                 "useAgentModel": chat.getSessionProperty(sessionId, "openCodeUseAgentModel", chat.openCodeUseAgentModel) !== false,
                 "system": chat.buildEffectiveSystemPrompt(sessionId)
             }),

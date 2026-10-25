@@ -2,6 +2,8 @@
 // for testing chat/ChatView.qml and its delegates offscreen.
 import QtQuick
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
+import "../../org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveConfig.js" as EffectiveConfig
+import "../../org.kde.plasma.kdeaichat/contents/ui/ProviderService.js" as ProviderService
 
 QtObject {
     id: fake
@@ -110,13 +112,24 @@ QtObject {
     property string providerBaseUrl: "https://openrouter.ai/api/v1"
     function getEffectiveProvider() { return providerId; }
     function getProviderConfig() { return {"model": providerModel, "baseUrl": providerBaseUrl}; }
-    function providerDisplayName(id) { return id === "openrouter" ? "OpenRouter" : id; }
+    function providerDisplayName(id) { return {"openrouter": "OpenRouter", "openai": "OpenAI", "ollama": "Ollama"}[id] || id; }
     function openSettings() { record("openSettings", arguments); }
 
     // What chat/ChatBody.qml sets and ChatSettingsDialog.qml (the Chat info panel) reads.
     property bool historySidePanel: false
     property var walletApiKeys: ({})
     property var plasmoid: ({configuration: {}})
+    // main.qml's effectiveConfig, on this fake's sessions and plasmoid.configuration.
+    function effectiveConfig(id) {
+        var session = null;
+        for (var i = 0; i < sessions.length; i++) {
+            if (sessions[i].value === (id || currentSessionId))
+                session = sessions[i];
+        }
+        return EffectiveConfig.forSession(plasmoid.configuration, session, function(providerId) {
+            return ProviderService.getProviderConfig(providerId, plasmoid.configuration).model;
+        });
+    }
     function getSessionProperty(id, key, fallback) {
         for (var i = 0; i < sessions.length; i++) {
             if (sessions[i].value === id)

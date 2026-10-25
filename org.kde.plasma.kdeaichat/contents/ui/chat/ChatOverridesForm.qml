@@ -108,7 +108,16 @@ ColumnLayout {
         }
     }
 
+    OwnModelCheck {
+        id: ownModelCheck
+        objectName: "ownModelCheck"
+        visible: form.draft.perChat
+        checked: form.draft.ownModel
+        onToggled: form.draft.setOwnModel(checked)
+    }
+
     Field {
+        visible: form.draft.modelEditable
         label: i18n("Replies from")
 
         RowLayout {
@@ -143,7 +152,7 @@ ColumnLayout {
     // --- Provider ---
 
     Field {
-        visible: form.draft.mode === "provider"
+        visible: form.draft.modelEditable && form.draft.mode === "provider"
         label: i18n("Provider")
 
         QQC2.ComboBox {
@@ -162,7 +171,7 @@ ColumnLayout {
     }
 
     Field {
-        visible: form.draft.mode === "provider"
+        visible: form.draft.modelEditable && form.draft.mode === "provider"
         label: i18n("Model")
 
         RowLayout {
@@ -198,7 +207,7 @@ ColumnLayout {
     // --- OpenCode ---
 
     Field {
-        visible: form.draft.mode === "opencode"
+        visible: form.draft.modelEditable && form.draft.mode === "opencode"
         label: i18n("Provider")
 
         QQC2.ComboBox {
@@ -213,7 +222,7 @@ ColumnLayout {
     }
 
     Field {
-        visible: form.draft.mode === "opencode"
+        visible: form.draft.modelEditable && form.draft.mode === "opencode"
         label: i18n("Model")
 
         QQC2.ComboBox {
@@ -228,7 +237,7 @@ ColumnLayout {
     }
 
     Field {
-        visible: form.draft.mode === "opencode"
+        visible: form.draft.modelEditable && form.draft.mode === "opencode"
         label: i18n("Agent")
 
         QQC2.ComboBox {
@@ -243,7 +252,7 @@ ColumnLayout {
     }
 
     PC3.Button {
-        visible: form.draft.mode === "opencode"
+        visible: form.draft.modelEditable && form.draft.mode === "opencode"
         icon.name: "view-refresh"
         text: i18n("Refresh providers and agents")
         enabled: !form.draft.busy
@@ -253,7 +262,7 @@ ColumnLayout {
     // --- Pi ---
 
     PiChatSettings {
-        visible: form.draft.mode === "pi"
+        visible: form.draft.modelEditable && form.draft.mode === "pi"
         Layout.fillWidth: true
         providers: form.draft.piProviders
         providerModels: form.draft.piModelMap
@@ -273,7 +282,7 @@ ColumnLayout {
     // --- Both agents ---
 
     Field {
-        visible: form.draft.mode === "opencode" || form.draft.mode === "pi"
+        visible: form.draft.shownMode === "opencode" || form.draft.shownMode === "pi"
         label: i18n("Working folder")
 
         RowLayout {
@@ -301,7 +310,7 @@ ColumnLayout {
     }
 
     PC3.Label {
-        visible: form.draft.status.length > 0
+        visible: form.draft.modelEditable && form.draft.status.length > 0
         Layout.fillWidth: true
         text: form.draft.status
         color: form.draft.statusError ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.disabledTextColor
@@ -312,12 +321,12 @@ ColumnLayout {
     // --- Instructions and length (not for OpenCode, which has its own) ---
 
     Kirigami.Separator {
-        visible: form.draft.mode !== "opencode"
+        visible: form.draft.shownMode !== "opencode"
         Layout.fillWidth: true
     }
 
     Field {
-        visible: form.draft.mode !== "opencode"
+        visible: form.draft.shownMode !== "opencode"
         label: i18n("Instructions")
 
         PC3.CheckBox {
@@ -343,7 +352,7 @@ ColumnLayout {
     }
 
     Field {
-        visible: form.draft.mode !== "opencode"
+        visible: form.draft.shownMode !== "opencode"
         label: i18n("Response length")
 
         QQC2.ComboBox {

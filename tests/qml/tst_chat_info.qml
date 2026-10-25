@@ -45,6 +45,8 @@ Item {
             chat.openCodeMode = false;
             chat.plasmoid = {configuration: {
                 provider: "openai",
+                perChatModelSettings: true,
+                perChatPriority: "chat",
                 providersJson: JSON.stringify([
                     {id: "openai", name: "OpenAI", type: "openai-compat", baseUrl: "", model: "gpt-4o"},
                     {id: "ollama", name: "Ollama", type: "openai-compat", baseUrl: "", model: "llama3"}
@@ -268,6 +270,116 @@ Item {
             tryVerify(() => dialog.draft.status !== "");
             verify(dialog.draft.statusError, "no server URL: " + dialog.draft.status);
             compare(form.modelCombo.editText, "gpt-4o-mini");
+        }
+
+        // ── Per-chat model settings are opt-in ───────────────────────────────
+
+        function configure(extra) {
+            var c = Object.assign({}, chat.plasmoid.configuration, extra);
+            chat.plasmoid = {configuration: c};
+            wait(20);
+        }
+
+        function visibleIn(item) {
+            // Visible all the way up to the panel.
+            for (var n = item; n && n !== dialog; n = n.parent) {
+                if (!n.visible) return false;
+            }
+            return true;
+        }
+
+        function test_13_the_default_hides_the_model_controls_and_shows_main_settings() {
+            configure({perChatModelSettings: false});
+            openPanel();
+            var form = findForm();
+            verify(!visibleIn(form.providerCombo), "no provider choice");
+            verify(!visibleIn(form.modelCombo), "no model choice");
+            verify(!visibleIn(find(dialog, "ownModelCheck")), "no per-chat switch in the chat either");
+            verify(visibleIn(form.systemArea), "chat instructions are not a model setting");
+            verify(visibleIn(form.responseLengthCombo));
+            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+            verify(value("effectiveNote").visible);
+            verify(value("effectiveNote").text.indexOf("Every chat uses the main settings") === 0);
+            screenshot(root, "chat-info-main-settings");
+            // Apply keeps the model settings the chat has, and writes none.
+            form.systemArea.text = "Only this changed.";
+            dialog._save();
+            var o = chat.calls[chat.calls.length - 1].args[1];
+            compare(o.chatSystemPrompt, "Only this changed.");
+            verify(!("chatModel" in o) && !("source" in o) && !("chatProvider" in o) && !("ownModel" in o), JSON.stringify(Object.keys(o)));
+            compare(chat.sessions[0].chatModel, "gpt-4o-mini", "kept in storage");
+        }
+
+        function test_14_switch_on_shows_the_chats_own_settings_and_where_they_come_from() {
+            openPanel();
+            var form = findForm();
+            verify(visibleIn(form.providerCombo));
+            verify(visibleIn(form.modelCombo));
+            verify(visibleIn(find(dialog, "ownModelCheck")));
+            compare(find(dialog, "ownModelCheck").checked, true, "the chat has its own model: legacy chats count");
+            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o-mini (from this chat's settings)");
+            verify(!value("effectiveNote").visible);
+            screenshot(root, "chat-info-chat-settings");
+        }
+
+        function test_15_main_settings_win_is_said_and_applied() {
+            configure({perChatPriority: "main"});
+            openPanel();
+            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+            verify(value("effectiveNote").visible);
+            verify(value("effectiveNote").text.indexOf("Main settings win") === 0);
+        }
+
+        function test_16_a_chat_without_own_settings_can_opt_in() {
+            chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: active, source: "provider"}];
+            openPanel();
+            var form = findForm();
+            var check = find(dialog, "ownModelCheck");
+            compare(check.checked, false, "a source alone is not an override");
+            verify(!visibleIn(form.providerCombo));
+            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+            check.toggled();
+            check.checked = true;
+            check.toggled();
+            tryVerify(() => visibleIn(form.providerCombo));
+            verify(dialog.draft.dirty);
+            form.providerCombo.currentIndex = 2;
+            form.providerCombo.activated(2);
+            dialog._save();
+            var o = chat.calls[chat.calls.length - 1].args[1];
+            compare(o.ownModel, true);
+            compare(o.chatProvider, "ollama");
+            compare(value("effectiveLine").text, "Using Ollama \u00b7 llama3 (from this chat's settings)");
+        }
+
+        function test_17_unchecking_keeps_the_settings_but_stops_using_them() {
+            openPanel();
+            var check = find(dialog, "ownModelCheck");
+            check.checked = false;
+            check.toggled();
+            dialog._save();
+            var o = chat.calls[chat.calls.length - 1].args[1];
+            compare(o.ownModel, false);
+            verify(!("chatModel" in o), "the model stays as it was");
+            compare(chat.sessions[0].chatModel, "gpt-4o-mini");
+            compare(value("effectiveLine").text, "Using OpenAI \u00b7 gpt-4o (from main settings)");
+        }
+
+        function test_18_agent_modes_in_the_line_and_the_panel_follows_the_settings() {
+            // Main settings: OpenCode + OpenCode Zen; this chat: Pi + OpenAI.
+            configure({useOpenCode: true, openCodeProvider: "opencode", openCodeModel: "zen-x"});
+            chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: active, ownModel: true,
+                              source: "pi", piProvider: "openai", piModel: "gpt-y"}];
+            openPanel();
+            compare(value("effectiveLine").text, "Using Pi \u00b7 openai \u00b7 gpt-y (from this chat's settings)");
+            configure({perChatPriority: "main"});
+            compare(value("effectiveLine").text, "Using OpenCode \u00b7 opencode \u00b7 zen-x (from main settings)");
+            configure({perChatModelSettings: false, perChatPriority: "chat"});
+            compare(value("effectiveLine").text, "Using OpenCode \u00b7 opencode \u00b7 zen-x (from main settings)");
+            // With the main mode an agent, the working folder is still offered.
+            verify(visibleIn(findForm().cwdField));
+            configure({perChatModelSettings: true});
+            compare(value("effectiveLine").text, "Using Pi \u00b7 openai \u00b7 gpt-y (from this chat's settings)");
         }
     }
 }

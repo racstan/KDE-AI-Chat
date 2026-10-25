@@ -13,6 +13,7 @@ import "store" as Store
 import "backends/DirectBackend.js" as DirectBackend
 import "backends/AgentEvents.js" as AgentEvents
 import "chat/ChatTitle.js" as ChatTitle
+import "chat/EffectiveConfig.js" as EffectiveConfig
 import "chat/PromptTemplates.js" as PromptTemplates
 import "chat" as Chat
 
@@ -335,13 +336,8 @@ PlasmoidItem {
         session[key] = value;
         updated[idx] = session;
         root.sessions = updated;
-        if (session.value === root.currentSessionId) {
-            // Keep the live mode in sync with a setting saved in the dialog.
-            if (key === "source") {
-                root.openCodeMode = value === "opencode";
-                root.piMode = value === "pi";
-            }
-        }
+        if (session.value === root.currentSessionId && key === "source")
+            applySessionSource(session);
         persistSessions();
     }
 
@@ -376,21 +372,34 @@ PlasmoidItem {
 
         updated[idx] = session;
         root.sessions = updated;
-        if (session.value === root.currentSessionId) {
-            root.openCodeMode = session.source === "opencode";
-            root.piMode = session.source === "pi";
-            root.openCodeAgent = session.openCodeAgent || "";
-            root.openCodeWorkspaceCwd = session.openCodeWorkspaceCwd || "";
-        }
+        if (session.value === root.currentSessionId)
+            applySessionSource(session);
         persistSessions();
         return true;
     }
 
-    function getEffectiveProvider(sessionId) {
-        var override = String(getSessionProperty(sessionId, "chatProvider", "") || "").trim();
-        return override || plasmoid.configuration.provider || ProviderService.getSupportedProviders(plasmoid.configuration)[0] || "openai";
+    // The mode, provider and model a chat really uses: the main settings, or the
+    // chat's own, per the two "per chat" settings (chat/EffectiveConfig.js has
+    // the rules). Everything that sends, validates or shows a mode/provider/model
+    // goes through this.
+    function effectiveConfig(sessionId) {
+        var idx = sessionIndexById(sessionId || root.currentSessionId);
+        return EffectiveConfig.forSession(plasmoid.configuration, idx < 0 ? null : root.sessions[idx], function(id) {
+            return ProviderService.getProviderConfig(id, plasmoid.configuration).model;
+        });
     }
 
+    // The provider for requests that always go to a provider (direct chats, naming a chat).
+    function getEffectiveProvider(sessionId) {
+        return effectiveConfig(sessionId).direct.provider || ProviderService.getSupportedProviders(plasmoid.configuration)[0] || "openai";
+    }
+
+    // Re-applies the chat's mode when the main mode or the per-chat settings change.
+    Chat.ModeSync {
+        chat: root
+    }
+
+    // New chats start in the mode the main settings select.
     function configuredSessionSource() {
         if (plasmoid.configuration.useOpenCode === true)
             return "opencode";
@@ -399,14 +408,13 @@ PlasmoidItem {
         return "provider";
     }
 
+    // Puts the widget in the mode the chat effectively uses (see effectiveConfig).
     function applySessionSource(session) {
-        var source = session && session.source ? String(session.source) : configuredSessionSource();
-        if (source !== "opencode" && source !== "pi")
-            source = "provider";
+        var eff = effectiveConfig(session ? session.value : "");
+        var source = eff.mode;
         root.openCodeMode = source === "opencode";
         root.piMode = source === "pi";
-        root.openCodeAgent = session && session.openCodeAgent !== undefined
-            ? String(session.openCodeAgent || "") : String(plasmoid.configuration.openCodeAgent || "");
+        root.openCodeAgent = source === "opencode" ? eff.agent : String(plasmoid.configuration.openCodeAgent || "");
         root.openCodeWorkspaceCwd = session && session.openCodeWorkspaceCwd !== undefined
             ? String(session.openCodeWorkspaceCwd || "") : String(plasmoid.configuration.openCodeWorkspaceCwd || "");
         return source;
@@ -505,8 +513,7 @@ PlasmoidItem {
             return ;
 
         var updated = root.sessions.slice();
-        var s = Object.assign({
-        }, updated[idx]);
+        var s = Object.assign({}, updated[idx]);
         s.text = root.currentSessionTitle || "New Chat";
         s.messages = root.messages;
         if (touchUpdatedAt !== false)
@@ -526,8 +533,7 @@ PlasmoidItem {
             return ;
 
         var updated = root.sessions.slice();
-        var item = Object.assign({
-        }, updated[idx]);
+        var item = Object.assign({}, updated[idx]);
         item.source = source || "provider";
         item.archived = false;
         updated[idx] = item;
@@ -541,8 +547,7 @@ PlasmoidItem {
             return ;
 
         var updated = root.sessions.slice();
-        var item = Object.assign({
-        }, updated[idx]);
+        var item = Object.assign({}, updated[idx]);
         item.archived = !!archived;
         item.updatedAt = Date.now();
         updated[idx] = item;
@@ -621,8 +626,7 @@ PlasmoidItem {
             title = "New Chat";
 
         var updated = root.sessions.slice();
-        var s = Object.assign({
-        }, updated[idx]);
+        var s = Object.assign({}, updated[idx]);
         s.text = title;
         s.updatedAt = Date.now();
         updated[idx] = s;
@@ -693,8 +697,7 @@ PlasmoidItem {
         var role = root.messages[i].role || "";
         var isQueued = role === "queued";
         var copy = isQueued ? root.messages.slice() : root.messages.slice(0, i + 1);
-        var item = Object.assign({
-        }, copy[i]);
+        var item = Object.assign({}, copy[i]);
         item.content = root.editingDraft;
         item.at = Date.now();
         item.time = nowTime(item.at);
@@ -732,8 +735,7 @@ PlasmoidItem {
             return ;
 
         var updated = root.sessions.slice();
-        var item = Object.assign({
-        }, updated[idx]);
+        var item = Object.assign({}, updated[idx]);
         item.openCodeSessionId = Sec.validateRemoteSessionId(remoteSessionId || "");
         updated[idx] = item;
         root.sessions = updated;
@@ -1392,6 +1394,7 @@ PlasmoidItem {
         if (!text && !hasAttachments)
             return ;
 
+        applySessionSource(root.sessions[sessionIndexById(root.currentSessionId)]);
         var validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             pushErrorMessage(validationError);
@@ -1399,8 +1402,7 @@ PlasmoidItem {
         }
         if ((source.role || "") === "queued") {
             var copy = root.messages.slice();
-            var queued = Object.assign({
-            }, copy[index]);
+            var queued = Object.assign({}, copy[index]);
             queued.role = "user";
             queued.at = Date.now();
             queued.time = nowTime(queued.at);
@@ -1545,9 +1547,8 @@ PlasmoidItem {
         var missing = [];
         if (!openCodeBaseUrl())
             missing.push("a valid OpenCode HTTP(S) URL");
-        var provider = String(getSessionProperty(sessionId, "openCodeProvider", plasmoid.configuration.openCodeProvider || "") || "").trim();
-        var model = String(getSessionProperty(sessionId, "openCodeModel", plasmoid.configuration.openCodeModel || "") || "").trim();
-        var agent = String(getSessionProperty(sessionId, "openCodeAgent", root.openCodeAgent || "") || "").trim();
+        var eff = effectiveConfig(sessionId);
+        var provider = eff.provider, model = eff.model, agent = eff.agent;
         if (!provider && !agent)
             missing.push("OpenCode provider or agent");
         if (!model && !agent)
@@ -1633,9 +1634,9 @@ PlasmoidItem {
         // only used while KWallet is unavailable, until it can be migrated.
         var walletKey = String(root.walletApiKeys[providerId] || "").trim();
         cfg.apiKey = walletKey || (wallet.usable ? "" : String(cfg.apiKey || "").trim());
-        var sessionModel = String(getSessionProperty(sessionId || root.currentSessionId, "chatModel", "") || "").trim();
-        if (sessionModel)
-            cfg.model = sessionModel;
+        var eff = effectiveConfig(sessionId || root.currentSessionId).direct;
+        if (eff.model && eff.provider === providerId)
+            cfg.model = eff.model;
         return cfg;
     }
 
@@ -2472,8 +2473,7 @@ PlasmoidItem {
                 disconnectSource(sourceName);
                 return;
             }
-            var fileObj = Object.assign({
-            }, files[matchedIndex]);
+            var fileObj = Object.assign({}, files[matchedIndex]);
             fileObj.loading = false;
             if (exitCode !== 0 || stderr.trim() !== "") {
                 fileObj.error = stderr.trim() || ("Command exited with code " + exitCode);

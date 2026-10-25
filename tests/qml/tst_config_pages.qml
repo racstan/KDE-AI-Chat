@@ -126,6 +126,34 @@ Item {
         }
 
         // ── Chat ─────────────────────────────────────────────────────────────
+        function test_chat_page_per_chat_model_settings_are_opt_in() {
+            open("ConfigChat.qml", {"cfg_enableSystemPrompt": true, "cfg_systemPrompt": "", "cfg_contextMessageLimit": -1,
+                                    "cfg_autoNameChats": true, "cfg_promptTemplates": "[]",
+                                    "cfg_perChatModelSettings": false, "cfg_perChatPriority": "chat"});
+            noSecretSettings();
+            var named = function(name) { return find(page, function(item) { return item.objectName === name; }); };
+            var sw = named("perChatSwitch");
+            verify(sw !== null, "the switch exists");
+            compare(sw.text, "Let chats have their own model settings");
+            compare(sw.checked, false);
+            verify(!named("chatWinsRadio").visible, "the priority choice is hidden while off");
+            verify(!named("mainWinsRadio").visible);
+            mouseClick(sw);
+            wait(50);
+            compare(page.cfg_perChatModelSettings, true);
+            verify(named("chatWinsRadio").visible);
+            verify(named("mainWinsRadio").visible);
+            compare(named("chatWinsRadio").text, "This chat's settings win");
+            compare(named("mainWinsRadio").text, "Main settings win");
+            compare(named("chatWinsRadio").checked, true, "chat wins by default");
+            mouseClick(named("mainWinsRadio"));
+            compare(page.cfg_perChatPriority, "main");
+            compare(named("chatWinsRadio").checked, false);
+            mouseClick(named("chatWinsRadio"));
+            compare(page.cfg_perChatPriority, "chat");
+            shot("config-chat-per-chat");
+        }
+
         function test_chat_page_edits_templates() {
             open("ConfigChat.qml", {"cfg_enableSystemPrompt": true, "cfg_systemPrompt": "You are a helpful assistant.",
                                     "cfg_contextMessageLimit": -1, "cfg_autoNameChats": true,

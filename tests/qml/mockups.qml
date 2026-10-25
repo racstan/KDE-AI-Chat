@@ -317,7 +317,8 @@ Item {
                     {value: "a", text: "Trip planning", count: 4, updatedAt: now},
                     {value: "b", text: "OpenCode refactor", source: "opencode", count: 14, updatedAt: now - 86400000},
                     {value: "c", text: "Shell one-liners", source: "pi", count: 9, updatedAt: now - 5 * 86400000},
-                    {value: "d", text: "Old chat", archived: true, count: 3, updatedAt: now - 40 * 86400000}
+                    {value: "d", text: "Old chat", archived: true, count: 3, updatedAt: now - 40 * 86400000},
+                    {value: "e", text: "A very long title that someone typed as their first message and that goes on well past the edge of the panel", count: 2, updatedAt: now - 2 * 86400000}
                 ];
                 chat.historyOnlyMode = true;
             });
@@ -327,7 +328,7 @@ Item {
         function test_10_chat_info() {
             shoot("chat-info", function() {
                 var created = Date.now() - 5 * 86400000;
-                chat.plasmoid = {configuration: {provider: "openrouter", providersJson: JSON.stringify([
+                chat.plasmoid = {configuration: {provider: "openrouter", perChatModelSettings: true, perChatPriority: "chat", providersJson: JSON.stringify([
                     {id: "openrouter", name: "OpenRouter", type: "openai-compat", baseUrl: "", model: "openrouter/auto"},
                     {id: "ollama", name: "Ollama", type: "openai-compat", baseUrl: "", model: "llama3"}])}};
                 chat.messages = [
@@ -336,10 +337,29 @@ Item {
                     {role: "user", content: "Great, thanks. Can you make it 4 days?", time: "10:03", at: created + 2000},
                     {role: "assistant", model: "anthropic/claude-sonnet-4.5", content: "Sure, add a **beach day** at Cascais.", time: "10:03", at: created + 3000, tokens: {input: 1260, output: 14}, cost: 0.00471}
                 ];
-                chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: Date.now(), chatModel: "openrouter/auto",
+                chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: Date.now(), chatModel: "openrouter/auto", ownModel: true,
                                   chatSystemPromptEnabled: true, chatSystemPrompt: "You are a concise travel planner.", responseLength: 2}];
                 infoPanel.toggleForSession("a");
                 // The fake provider has no server to list models from; don't show that failure.
+                wait(60);
+                infoPanel.draft.invalidate();
+            });
+            verify(infoPanel.visible);
+        }
+
+        // The same panel with "Let chats have their own model settings" off (the default).
+        function test_10b_chat_info_main_settings() {
+            shoot("chat-info-main", function() {
+                var created = Date.now() - 5 * 86400000;
+                chat.plasmoid = {configuration: {provider: "openrouter", providersJson: JSON.stringify([
+                    {id: "openrouter", name: "OpenRouter", type: "openai-compat", baseUrl: "", model: "openrouter/auto"}])}};
+                chat.messages = [
+                    {role: "user", content: "Where should we go in May?", time: "10:01", at: created},
+                    {role: "assistant", model: "openrouter/auto", content: "Somewhere **warm**.", time: "10:01", at: created + 1000, tokens: {input: 30, output: 212}, cost: 0.00132}
+                ];
+                chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: Date.now(), chatModel: "claude-x", ownModel: true,
+                                  chatSystemPromptEnabled: true, chatSystemPrompt: "You are a concise travel planner.", responseLength: 2}];
+                infoPanel.toggleForSession("a");
                 wait(60);
                 infoPanel.draft.invalidate();
             });

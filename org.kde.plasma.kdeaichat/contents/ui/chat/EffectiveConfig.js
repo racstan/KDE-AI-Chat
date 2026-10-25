@@ -1,0 +1,173 @@
+.pragma library
+
+// Which mode (provider / OpenCode / Pi), provider and model a chat really
+// uses. Plain JavaScript on purpose (tested with node): no QML globals.
+//
+// Two settings decide (Settings -> Chat):
+//   perChatModelSettings  false: every chat uses the main settings. A chat's
+//                         own model settings stay in storage but are ignored.
+//   perChatPriority       "chat" or "main": when a chat has its own model
+//                         settings, which side wins.
+//
+// A chat "has its own model settings" when `ownModel` is true (set by Apply in
+// the Chat info panel, which asks for it explicitly). Chats saved before that
+// flag existed (ownModel undefined) count as having their own settings when
+// any model field is filled in. `source` alone never counts: it is also
+// written on every send as "what this chat last used".
+//
+// Decision table (M = main settings, C = this chat's own settings):
+//   switch off                          -> M for everything
+//   switch on, chat has no own settings -> M for everything
+//   switch on, own settings, "chat"     -> mode from C; every field of that
+//                                          mode from C, or from M where C
+//                                          left it empty
+//   switch on, own settings, "main"     -> mode from M; every field from M, or
+//                                          from C only where M left it empty
+//                                          (typically: no model chosen in the
+//                                          main settings)
+// Each mode keeps its own fields (direct: provider + model; OpenCode:
+// provider + model + agent; Pi: provider + model + thinking), so a fallback
+// always belongs to the mode in use. A chat's direct model is only used with
+// the provider it was chosen for.
+
+var MODES = ["provider", "opencode", "pi"];
+
+function _s(value) {
+    return value === undefined || value === null ? "" : String(value).trim();
+}
+
+// The mode the main settings select.
+function mainMode(main) {
+    if (main && main.useOpenCode === true)
+        return "opencode";
+    if (main && main.usePi === true)
+        return "pi";
+    return "provider";
+}
+
+// True when the chat carries its own model settings (see above).
+function hasOwnModelSettings(chat) {
+    if (!chat)
+        return false;
+    if (chat.ownModel === true)
+        return true;
+    if (chat.ownModel === false)
+        return false;
+    var keys = ["chatProvider", "chatModel", "openCodeProvider", "openCodeModel", "openCodeAgent", "piProvider", "piModel", "piThinking"];
+    for (var i = 0; i < keys.length; i++) {
+        if (_s(chat[keys[i]]) !== "")
+            return true;
+    }
+    return false;
+}
+
+// The first non-empty candidate: {value, from}. candidates: [{from, value}].
+function _firstOf(candidates) {
+    for (var i = 0; i < candidates.length; i++) {
+        var v = _s(candidates[i].value);
+        if (v !== "")
+            return {"value": v, "from": candidates[i].from};
+    }
+    return {"value": "", "from": "main"};
+}
+
+// main: {useOpenCode, usePi, provider, openCodeProvider, openCodeModel, openCodeAgent,
+//        piProvider, piModel, modelFor(providerId) -> that provider's configured model}
+// chat: the stored chat ({source, chatProvider, chatModel, openCodeProvider, openCodeModel,
+//       openCodeAgent, piProvider, piModel, piThinking, ownModel}) or null
+// opts: {perChat: bool, priority: "chat" | "main"}
+// Returns {mode, provider, model, agent, thinking, source: "main" | "chat",
+//          direct: {provider, model}}; provider/model/agent/thinking are those
+// of `mode`, and `direct` is always the direct-provider pair (used for things
+// that always call a provider, such as naming a chat).
+function resolve(main, chat, opts) {
+    main = main || {};
+    var modelFor = typeof main.modelFor === "function" ? main.modelFor : function() { return ""; };
+    var chatFirst = !(opts && opts.priority === "main");
+    var useChat = !!(opts && opts.perChat === true) && hasOwnModelSettings(chat);
+    var mainDirect = _s(main.provider) || "openai";
+    var mainModeValue = mainMode(main);
+
+    // Pi chats before 1.4.0 kept their provider and model in chatProvider/chatModel.
+    var legacyPi = useChat && chat.piProvider === undefined && chat.piModel === undefined && _s(chat.source) === "pi";
+
+    // Candidates for one field, in priority order.
+    function field(mainValue, chatValue) {
+        var m = {"from": "main", "value": mainValue};
+        if (!useChat)
+            return _firstOf([m]);
+        var c = {"from": "chat", "value": chatValue};
+        return _firstOf(chatFirst ? [c, m] : [m, c]);
+    }
+
+    var mode = mainModeValue;
+    var modeFromChat = false;
+    if (useChat && chatFirst && MODES.indexOf(_s(chat.source)) >= 0) {
+        mode = _s(chat.source);
+        modeFromChat = mode !== mainModeValue;
+    }
+
+    // Direct: the provider, then the model for it.
+    var provider = field(mainDirect, legacyPi ? "" : (useChat ? chat.chatProvider : ""));
+    var chatDirectProvider = useChat && !legacyPi ? (_s(chat.chatProvider) || mainDirect) : "";
+    var chatModel = useChat && !legacyPi && chatDirectProvider === provider.value ? chat.chatModel : "";
+    var model = field(modelFor(provider.value), chatModel);
+    var directFromChat = provider.from === "chat" || model.from === "chat";
+
+    var result = {"mode": mode, "provider": provider.value, "model": model.value, "agent": "", "thinking": "",
+                  "direct": {"provider": provider.value, "model": model.value}};
+    var fromChat = modeFromChat;
+    if (mode === "provider") {
+        fromChat = fromChat || directFromChat;
+    } else if (mode === "opencode") {
+        var ocProvider = field(main.openCodeProvider, useChat ? chat.openCodeProvider : "");
+        var ocModel = field(main.openCodeModel, useChat ? chat.openCodeModel : "");
+        var ocAgent = field(main.openCodeAgent, useChat ? chat.openCodeAgent : "");
+        result.provider = ocProvider.value;
+        result.model = ocModel.value;
+        result.agent = ocAgent.value;
+        fromChat = fromChat || ocProvider.from === "chat" || ocModel.from === "chat" || ocAgent.from === "chat";
+    } else {
+        var piProvider = field(main.piProvider, useChat ? (legacyPi ? chat.chatProvider : chat.piProvider) : "");
+        var piModel = field(main.piModel, useChat ? (legacyPi ? chat.chatModel : chat.piModel) : "");
+        var piThinking = field("", useChat ? chat.piThinking : "");
+        result.provider = piProvider.value;
+        result.model = piModel.value;
+        result.thinking = piThinking.value;
+        fromChat = fromChat || piProvider.from === "chat" || piModel.from === "chat" || piThinking.from === "chat";
+    }
+    result.source = useChat && fromChat ? "chat" : "main";
+    return result;
+}
+
+// Builds the main-settings object for resolve() from plasmoid.configuration.
+// modelFor(providerId) gives that provider's configured model (ProviderService).
+function mainFromConfig(config, modelFor) {
+    config = config || {};
+    return {"useOpenCode": config.useOpenCode === true, "usePi": config.usePi === true,
+            "provider": config.provider, "openCodeProvider": config.openCodeProvider,
+            "openCodeModel": config.openCodeModel, "openCodeAgent": config.openCodeAgent,
+            "piProvider": config.piProvider, "piModel": config.piModel, "modelFor": modelFor};
+}
+
+// resolve() for a stored chat, with the two settings read from the configuration.
+function forSession(config, session, modelFor) {
+    config = config || {};
+    return resolve(mainFromConfig(config, modelFor), session,
+                   {"perChat": config.perChatModelSettings === true, "priority": config.perChatPriority});
+}
+
+// "Pi · OpenAI · gpt-x" for the Chat info panel; names(providerId) -> display name.
+function describe(eff, names) {
+    var label = eff.mode === "opencode" ? "OpenCode" : (eff.mode === "pi" ? "Pi" : "");
+    var parts = [];
+    if (label)
+        parts.push(label);
+    if (eff.provider)
+        parts.push(typeof names === "function" ? (names(eff.provider) || eff.provider) : eff.provider);
+    if (eff.model)
+        parts.push(eff.model);
+    else if (eff.mode === "opencode" && eff.agent)
+        parts.push(eff.agent);
+    return parts.join(" · ");
+}
