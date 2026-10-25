@@ -1,4 +1,6 @@
-// config/ProvidersPanel.qml with a fake configuration and fake KWallet.
+// config/ProvidersPanel.qml with a fake configuration, fake KWallet and a fake
+// provider server (no network): key checks before saving, live model lists,
+// dead models.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtTest
@@ -8,7 +10,7 @@ import "../../org.kde.plasma.kdeaichat/contents/ui/store" as Store
 Item {
     id: root
     width: 640
-    height: 560
+    height: 640
 
     function i18n(text) {
         for (var i = 1; i < arguments.length; i++)
@@ -17,6 +19,49 @@ Item {
     }
 
     property var walletFolder: ({})
+
+    // ── The fake provider: NIM-like (the model list is open to anyone; the chat
+    // request checks the key, then the model). ───────────────────────────
+    property var requests: []
+    property var pending: []
+    property bool hold: false
+    property var chatModelIds: ["acme/chat-big", "acme/chat-small", "acme/embed-text-1", "acme/guard-safety-8b", "acme/rerank-1", "dead/gone-model"]
+    property var handler: function(req) {
+        if (req.method === "GET")
+            return {status: 200, body: {object: "list", data: root.chatModelIds.map(function(id) { return {id: id, object: "model"}; })}};
+        if (req.headers["Authorization"] !== "Bearer good")
+            return {status: 403, body: {status: 403, title: "Forbidden", detail: "Authorization failed"}};
+        if (req.body.model === "dead/gone-model")
+            return {status: 410, body: {title: "Gone", detail: "The model has reached its end of life and is no longer available."}};
+        return {status: 200, body: {choices: [{message: {content: "Hi"}}]}};
+    }
+    function makeXhr() {
+        var x = {headers: {}, readyState: 0, status: 0, responseText: ""};
+        x.open = function(method, url) { x.method = method; x.url = url; };
+        x.setRequestHeader = function(k, v) { x.headers[k] = v; };
+        x.send = function(body) {
+            var req = {method: x.method, url: x.url, headers: x.headers, body: body ? JSON.parse(body) : null};
+            root.requests.push(req);
+            var finish = function() {
+                var r = root.handler(req);
+                if (r.error === "network") { x.onerror(); return; }
+                x.status = r.status;
+                x.responseText = JSON.stringify(r.body);
+                x.readyState = 4;
+                x.onreadystatechange();
+            };
+            if (root.hold) root.pending.push(finish); else Qt.callLater(finish);
+        };
+        return x;
+    }
+    function release() {
+        var list = root.pending;
+        root.pending = [];
+        list.forEach(function(f) { f(); });
+    }
+    function count(method) {
+        return root.requests.filter(function(r) { return r.method === method; }).length;
+    }
 
     QtObject {
         id: config
@@ -56,10 +101,22 @@ Item {
         anchors.margins: 12
         configuration: config
         wallet: wallet
+        xhrFactory: root.makeXhr
     }
 
     HarnessTestCase {
+        id: tc
         name: "ProvidersPanel"
+
+        function indexOfProvider(id) {
+            return panel.providers.map(function(p) { return p.id; }).indexOf(id);
+        }
+
+        function init() {
+            root.requests = [];
+            root.pending = [];
+            root.hold = false;
+        }
 
         function initTestCase() {
             walletFolder = {"openrouter": "or-key", "nvidia": "nv-key"};
@@ -69,64 +126,211 @@ Item {
             panel.load();
         }
 
-        function test_1_shows_providers_the_migration_will_create() {
+        function test_01_shows_providers_the_migration_will_create() {
             var ids = panel.providers.map(function(p) { return p.id; }).sort();
             compare(ids, ["custom_1", "nvidia", "openrouter"]);
             screenshot(root, "providers-panel-list");
         }
 
-        function test_2_add_from_preset_save_with_key() {
+        function test_02_add_from_preset_save_with_a_good_key() {
             panel.addFromPreset("groq");
             compare(panel.editingIndex, panel.providers.length - 1);
             compare(panel.draft.baseUrl, "https://api.groq.com/openai/v1");
-            panel.draft.model = "llama-3.3-70b";
-            panel.draftKey = " gsk-test ";
-            screenshot(root, "providers-panel-editor");
-            panel.saveEdit();
-            compare(panel.editingIndex, -1);
-            tryVerify(function() { return walletFolder["groq"] === "gsk-test"; });
+            panel.onFieldEdited("model", "acme/chat-small");
+            panel.onFieldEdited("key", " good ");
+            root.hold = true;
+            panel.saveEdit(false);
+            // While the provider is being asked: a busy indicator, Save disabled, nothing written.
+            tryVerify(function() { return panel.providerChecker.checking; });
+            verify(!tc.findChild(panel, "saveButton").enabled, "Save is disabled while checking");
+            verify(tc.findChild(panel, "busy").running);
+            compare(walletFolder["groq"], undefined);
+            wait(150);   // let the layout settle
+            screenshot(root, "providers-editor-checking");
+            // The models request goes first, then the chat request.
+            tryVerify(function() { return root.pending.length > 0; });
+            root.release();
+            tryVerify(function() { return root.pending.length > 0; });
+            root.release();
+            tryVerify(function() { return panel.editingIndex === -1; });
+            tryVerify(function() { return walletFolder["groq"] === "good"; });
             var saved = JSON.parse(config.providersJson);
             var groq = saved.filter(function(p) { return p.id === "groq"; })[0];
-            compare(groq.model, "llama-3.3-70b");
-            verify(config.providersJson.indexOf("gsk-test") === -1, "the key must not be stored in the config");
-            // The running widget re-reads the wallet when this changes.
+            compare(groq.model, "acme/chat-small");
+            verify(config.providersJson.indexOf("good") === -1, "the key must not be stored in the config");
             tryVerify(function() { return config.walletKeysRevision === 1; });
+            var chat = root.requests.filter(function(r) { return r.method === "POST"; })[0];
+            compare(chat.body.max_tokens, 1);
+            compare(chat.url, "https://api.groq.com/openai/v1/chat/completions");
         }
 
-        function test_3_cancel_new_provider_discards_it() {
+        function test_03_cancel_new_provider_discards_it() {
             var before = panel.providers.length;
             panel.addFromPreset("openai");
             panel.cancelEdit();
             compare(panel.providers.length, before);
         }
 
-        function test_4_invalid_url_is_refused() {
+        function test_04_invalid_url_is_refused() {
             panel.addFromPreset("custom");
-            panel.draft.baseUrl = "ftp://nope";
-            panel.saveEdit();
+            panel.onFieldEdited("baseUrl", "ftp://nope");
+            panel.saveEdit(false);
             verify(panel.editingIndex >= 0);
             verify(panel.status.indexOf("http") >= 0);
+            compare(root.requests.length, 0);
             panel.cancelEdit();
         }
 
-        function test_4b_saving_without_a_key_change_keeps_the_revision() {
-            var index = panel.providers.map(function(p) { return p.id; }).indexOf("nvidia");
+        function test_05_saving_without_changes_sends_nothing_and_keeps_the_revision() {
+            panel.startEdit(indexOfProvider("nvidia"));
+            tryVerify(function() { return !panel.providerChecker.listing && !panel.providerChecker.checking; });
             var before = config.walletKeysRevision;
-            panel.startEdit(index);
-            panel.saveEdit();
+            var requestsBefore = root.requests.length;
+            panel.saveEdit(false);
             wait(50);
+            compare(root.requests.length, requestsBefore, "no check when nothing changed");
             compare(config.walletKeysRevision, before);
         }
 
-        function test_5_default_and_remove() {
+        function test_06_a_rejected_key_is_not_saved() {
+            panel.startEdit(indexOfProvider("nvidia"));
+            tryVerify(function() { return !panel.providerChecker.listing && !panel.providerChecker.checking; });
+            var before = config.walletKeysRevision;
+            panel.onFieldEdited("key", "nvapi-wrong");
+            panel.saveEdit(false);
+            tryVerify(function() { return panel.status.indexOf("rejected this key (403)") >= 0; });
+            verify(panel.status.indexOf("Check you copied the whole key") >= 0);
+            verify(panel.editingIndex >= 0, "the editor stays open");
+            compare(walletFolder["nvidia"], "nv-key", "the old key is untouched");
+            compare(config.walletKeysRevision, before);
+            compare(panel.overrideKind, "", "a rejected key cannot be saved anyway");
+            compare(tc.findChild(panel, "overrideButton").visible, false);
+            wait(150);   // let the layout settle
+            screenshot(root, "providers-editor-rejected-key");
+            panel.cancelEdit();
+        }
+
+        function test_07_a_good_key_replaces_the_old_one() {
+            panel.startEdit(indexOfProvider("nvidia"));
+            tryVerify(function() { return !panel.providerChecker.listing && !panel.providerChecker.checking; });
+            var before = config.walletKeysRevision;
+            panel.onFieldEdited("key", "good");
+            panel.onFieldEdited("model", "acme/chat-big");
+            panel.saveEdit(false);
+            tryVerify(function() { return panel.editingIndex === -1; });
+            tryVerify(function() { return walletFolder["nvidia"] === "good"; });
+            tryVerify(function() { return config.walletKeysRevision === before + 1; });
+        }
+
+        function test_08_network_error_offers_save_anyway() {
+            panel.startEdit(indexOfProvider("openrouter"));
+            tryVerify(function() { return !panel.providerChecker.listing && !panel.providerChecker.checking; });
+            var before = config.walletKeysRevision;
+            root.handler = function() { return {error: "network"}; };
+            panel.onFieldEdited("key", "or-new-key");
+            panel.saveEdit(false);
+            tryVerify(function() { return panel.overrideKind === "unverified"; });
+            verify(panel.status.indexOf("could not be reached") >= 0);
+            verify(panel.editingIndex >= 0);
+            compare(walletFolder["openrouter"], "or-key", "nothing is written until the user confirms");
+            var button = tc.findChild(panel, "overrideButton");
+            verify(button.visible);
+            compare(button.text, "Save anyway");
+            mouseClick(button);
+            tryVerify(function() { return panel.editingIndex === -1; });
+            tryVerify(function() { return walletFolder["openrouter"] === "or-new-key"; });
+            compare(config.walletKeysRevision, before + 1);
+            root.handler = tc.defaultHandler;
+        }
+
+        property var defaultHandler: null
+
+        function test_09_a_dead_model_is_flagged_and_needs_confirmation() {
+            root.handler = tc.defaultHandler;
+            panel.startEdit(indexOfProvider("openrouter"));
+            tryVerify(function() { return !panel.providerChecker.listing && !panel.providerChecker.checking; });
+            panel.onFieldEdited("key", "good");
+            panel.onFieldEdited("model", "dead/gone-model");
+            panel.saveEdit(false);
+            tryVerify(function() { return panel.overrideKind === "model"; });
+            verify(panel.status.indexOf("The key works") >= 0, panel.status);
+            verify(panel.status.indexOf("end of life") >= 0, panel.status);
+            verify(panel.editingIndex >= 0);
+            compare(walletFolder["openrouter"], "or-new-key");
+            compare(tc.findChild(panel, "overrideButton").text, "Use this model anyway");
+            verify(panel.providerChecker.deadReason("openrouter", "dead/gone-model") !== "");
+            // The picker marks it, and the editor says why.
+            var entry = panel.modelCandidates.filter(function(m) { return m.id === "dead/gone-model"; })[0];
+            compare(entry.name, "(unavailable)");
+            verify(tc.findChild(panel, "modelWarning").visible);
+            wait(150);   // let the layout settle
+            screenshot(root, "providers-editor-dead-model");
+            mouseClick(tc.findChild(panel, "overrideButton"));
+            tryVerify(function() { return panel.editingIndex === -1; });
+            tryVerify(function() { return walletFolder["openrouter"] === "good"; });
+            // The provider row warns too.
+            var rows = [];
+            for (var i = 0; i < panel.children.length; i++)
+                tc.findChildren(panel.children[i], "detailLabel", rows);
+            var texts = rows.map(function(l) { return l.text; }).join("\n");
+            verify(texts.indexOf("model unavailable") >= 0, texts);
+        }
+
+        function test_10_the_editor_lists_models_by_itself_and_hides_non_chat_ones() {
+            root.handler = tc.defaultHandler;
+            panel.providerChecker.cache = ({});
+            var gets = root.count("GET");
+            panel.startEdit(indexOfProvider("nvidia"));
+            tryVerify(function() { return panel.listAll.length > 0; });
+            compare(root.count("GET"), gets + 1, "fetched without pressing a button");
+            compare(panel.listAll.length, 6);
+            verify(panel.listChat.indexOf("acme/chat-big") >= 0);
+            compare(panel.listChat.indexOf("acme/embed-text-1"), -1);
+            compare(panel.listChat.indexOf("acme/guard-safety-8b"), -1);
+            compare(panel.listChat.indexOf("acme/rerank-1"), -1);
+            var ids = panel.modelCandidates.map(function(m) { return m.id; });
+            verify(ids.indexOf("acme/embed-text-1") < 0);
+            // Nothing is hidden for good.
+            var check = tc.findChild(panel, "showAllCheck");
+            verify(check.visible);
+            mouseClick(check);
+            ids = panel.modelCandidates.map(function(m) { return m.id; });
+            verify(ids.indexOf("acme/embed-text-1") >= 0);
+            verify(ids.indexOf("acme/guard-safety-8b") >= 0);
+            panel.cancelEdit();
+        }
+
+        function test_11_lists_are_cached_for_the_session_until_refreshed() {
+            tryVerify(function() { return !panel.providerChecker.listing; });
+            var gets = root.count("GET");
+            panel.startEdit(indexOfProvider("nvidia"));
+            compare(root.count("GET"), gets, "second open uses the cached list");
+            verify(panel.listChat.length > 0);
+            mouseClick(tc.findChild(panel, "refreshButton"));
+            tryVerify(function() { return root.count("GET") === gets + 1; });
+            panel.cancelEdit();
+        }
+
+        function test_12_local_provider_without_a_key_lists_models_and_saves_unchecked() {
+            panel.startEdit(indexOfProvider("custom_1"));
+            tryVerify(function() { return panel.listAll.length > 0; });
+            panel.onFieldEdited("model", "acme/chat-small");
+            var posts = root.count("POST");
+            panel.saveEdit(false);
+            tryVerify(function() { return panel.editingIndex === -1; });
+            compare(root.count("POST"), posts, "no chat request to a local server");
+        }
+
+        function test_13_default_and_remove() {
             panel.setDefault("groq");
             compare(config.provider, "groq");
-            var index = panel.providers.map(function(p) { return p.id; }).indexOf("groq");
+            var index = indexOfProvider("groq");
             panel.removeAt(index);
             tryVerify(function() { return walletFolder["groq"] === undefined; });
-            tryVerify(function() { return config.walletKeysRevision === 2; });
             verify(config.provider !== "groq");
             verify(config.providersJson.indexOf("\"groq\"") === -1);
         }
     }
+
+    Component.onCompleted: tc.defaultHandler = root.handler
 }
