@@ -94,36 +94,7 @@ Item {
                     verify(!/apikey|token|password|sessions|messages/i.test(name), name + " would be saved by the settings dialog");
         }
 
-        // ── Harness ──────────────────────────────────────────────────────────
-        function test_harness_modes_are_exclusive() {
-            open("ConfigHarness.qml", {"cfg_useOpenCode": false, "cfg_usePi": false, "cfg_openCodeUrl": "http://127.0.0.1:9/v1",
-                                        "cfg_openCodeProvider": "", "cfg_openCodeModel": "", "cfg_piProvider": "ollama", "cfg_piModel": "qwen3:8b"});
-            noSecretSettings();
-            shot("config-harness");
-            click(byText(QQC2.RadioButton, "Through OpenCode"));
-            verify(page.cfg_useOpenCode && !page.cfg_usePi);
-            verify(!byText(QQC2.RadioButton, "Directly to a provider").checked);
-            compare(page.cfg_openCodeUrl, "http://127.0.0.1:9/v1");
-            shot("config-harness-opencode");
-
-            var pi = find(page, function(item) { return item.hasOwnProperty("modelsByProvider") && !item.hasOwnProperty("url"); });
-            verify(pi !== null, "PiSettings not found");
-            pi.helper = {"run": function(command, payload, done) {
-                testCase.shellLog.push(command);
-                done(JSON.stringify({"providers": [{"id": "ollama", "models": ["llama3.2", "qwen3:8b"]}, {"id": "opencode", "models": ["big-pickle"]}]}), 0, "");
-            }};
-            click(byText(QQC2.RadioButton, "Through Pi"));
-            verify(page.cfg_usePi && !page.cfg_useOpenCode);
-            compare(shellLog[shellLog.length - 1], "get_pi_models");
-            compare(page.cfg_piProvider, "ollama");
-            compare(page.cfg_piModel, "qwen3:8b");
-            pi.choose("opencode", "");
-            compare(page.cfg_piModel, "big-pickle");
-            shot("config-harness-pi");
-
-            click(byText(QQC2.RadioButton, "Directly to a provider"));
-            verify(!page.cfg_usePi && !page.cfg_useOpenCode);
-        }
+        // The Connection page (modes, providers, model pickers) is tested in tst_config_connection.qml.
 
         // ── Chat ─────────────────────────────────────────────────────────────
         function test_chat_page_edits_templates() {

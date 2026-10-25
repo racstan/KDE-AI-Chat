@@ -38,6 +38,7 @@ WATCHED_FILES = (
     "chat/ChatTitle.js",
     "chat/ErrorText.js",
     "chat/PromptTemplates.js",
+    "components/ModelFilter.js",
 )
 
 # Top-of-file patterns that are legal in a plain .js file.

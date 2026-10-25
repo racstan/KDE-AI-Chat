@@ -10,6 +10,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import "../ProviderService.js" as ProviderService
+import "../components" as Components
 
 ColumnLayout {
     id: panel
@@ -291,13 +292,11 @@ ColumnLayout {
         RowLayout {
             Kirigami.FormData.label: i18n("Model:") // qmllint disable unqualified
             Layout.fillWidth: true
-            QQC2.ComboBox {
+            Components.ModelPicker {
                 Layout.fillWidth: true
-                editable: true
                 model: panel.modelCandidates
-                editText: panel.draft.model || ""
-                onEditTextChanged: if (activeFocus) panel.draft.model = editText
-                onActivated: panel.draft.model = currentText
+                value: panel.draft.model || ""
+                onPicked: function(id) { panel.draft = Object.assign({}, panel.draft, {"model": id}); }
             }
             QQC2.Button {
                 text: i18n("Fetch models") // qmllint disable unqualified

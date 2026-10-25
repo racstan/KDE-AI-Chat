@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import "../components" as Components
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -89,12 +90,12 @@ Kirigami.FormLayout {
         }
     }
 
-    ModelCombo {
+    Components.ModelPicker {
         Kirigami.FormData.label: i18n("Model:")
         Layout.fillWidth: true
         model: pi.modelsByProvider[pi.provider] || []
         value: pi.model
-        onPicked: function(value) { pi.model = value; }
+        onPicked: function(id) { pi.model = id; }
     }
 
     QQC2.Label {
