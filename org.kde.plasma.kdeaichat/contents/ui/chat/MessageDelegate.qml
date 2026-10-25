@@ -1,7 +1,8 @@
 // One message in the chat view: a day divider when the day changes, then a
 // bubble with the header, thinking, text, attachments, the agent's
-// question or permission request, activity and the action buttons. Parts a
-// message doesn't need aren't created.
+// question or permission request, activity, an error's buttons and the
+// action buttons (shown while the message is hovered). Parts a message
+// doesn't need aren't created.
 //
 // A row of chat.messageModel: `rev` goes up when this message changes, so
 // the delegate updates in place instead of being rebuilt.
@@ -11,6 +12,9 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "ErrorText.js" as ErrorText
+// i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
+// qmllint disable unqualified
 
 Item {
     id: row
@@ -31,6 +35,10 @@ Item {
         ? [chat.currentStreamReasoning, chat.currentStreamExtractedReasoning].filter(function(t) { return !!t; }).join("\n")
         : (message.reasoning || "")
     property string selectedText: ""
+    // An error in plain language, with what can be done about it.
+    readonly property var errorInfo: role === "error" ? ErrorText.describe(message.content) : ({})
+    // Agent requests show their own content (what is asked, the questions).
+    readonly property bool ownsBody: role === "permission_request" || (role === "question_request" && (message.questions || []).length > 0)
     // From the chat view: builds the buttons after the first frame
     // (chat/DeferredBuilder.qml), and the height they'll take.
     readonly property var view: ListView.view
@@ -38,15 +46,13 @@ Item {
     readonly property real buttonHeight: view ? view.buttonHeight : 0
     // The bubble's width, known before the layouts run, so a new delegate
     // has its final height at once and the list doesn't lay out twice.
-    readonly property real bubbleWidth: mine ? Math.min(width * 0.85, Math.max(content.implicitWidthHint, Kirigami.Units.gridUnit * 8)) : width
+    // Every message fills the row between the bubble's side margins (yours
+    // too: no box, only the name line tells them apart), so a card's border
+    // isn't cut off at the right edge.
+    readonly property real bubbleWidth: width - Kirigami.Units.smallSpacing * 2
 
     implicitHeight: column.implicitHeight
     height: implicitHeight
-
-    FontMetrics {
-        id: metrics
-        font: Kirigami.Theme.defaultFont
-    }
 
     ColumnLayout {
         id: column
@@ -64,26 +70,27 @@ Item {
 
         Rectangle {
             id: bubble
+            objectName: "bubble"
 
-            Layout.alignment: row.mine ? Qt.AlignRight : Qt.AlignLeft
+            Layout.alignment: Qt.AlignLeft
             Layout.preferredWidth: row.bubbleWidth
-            Layout.leftMargin: row.mine ? 0 : Kirigami.Units.smallSpacing
+            Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
             implicitHeight: content.implicitHeight + Kirigami.Units.largeSpacing * 2
             radius: Kirigami.Units.cornerRadius
-            // Errors: a neutral card with a red edge (red text on red was hard to read).
-            color: row.mine ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, row.role === "queued" ? 0.08 : 0.16)
-                 : row.role === "error" ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
-                 : row.isRequest ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.1)
-                 : "transparent"
+            // No fill for any message: a colour only where it means something,
+            // and then only as an edge (errors red, agent requests orange).
+            color: "transparent"
+            opacity: row.role === "queued" ? 0.7 : 1
             border.width: row.role === "error" || row.isRequest ? 1 : 0
             border.color: row.role === "error" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
 
+            HoverHandler {
+                id: hover
+            }
+
             ColumnLayout {
                 id: content
-
-                // Width a short message of mine needs, so its bubble hugs the text.
-                readonly property real implicitWidthHint: Math.max(header.implicitWidth, body.longestLine) + Kirigami.Units.largeSpacing * 2
 
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -95,6 +102,17 @@ Item {
                     id: header
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
+
+                    Loader {
+                        active: row.role === "error"
+                        visible: active
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                        sourceComponent: Kirigami.Icon {
+                            source: "dialog-error"
+                            color: Kirigami.Theme.negativeTextColor
+                        }
+                    }
 
                     PC3.Label {
                         text: row.role === "user" ? i18n("You")
@@ -108,6 +126,29 @@ Item {
                         Layout.maximumWidth: content.width * 0.7
                     }
 
+                    // Next to the name while the reply is being written.
+                    Loader {
+                        active: row.streaming
+                        visible: active
+                        sourceComponent: RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            PC3.BusyIndicator {
+                                objectName: "streamSpinner"
+                                running: true
+                                Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                                Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                            }
+
+                            PC3.Label {
+                                objectName: "streamStatus"
+                                text: row.chat.currentStreamText === "" ? i18n("Thinking…") : i18n("Writing…")
+                                font: Kirigami.Theme.smallFont
+                                opacity: 0.7
+                            }
+                        }
+                    }
+
                     PC3.Label {
                         text: row.chat.formatMessageTime(row.message, row.index)
                         visible: text !== ""
@@ -116,16 +157,6 @@ Item {
                     }
 
                     Item { Layout.fillWidth: true }
-
-                    Loader {
-                        active: row.streaming
-                        visible: active
-                        Layout.preferredWidth: Kirigami.Units.iconSizes.small
-                        Layout.preferredHeight: Kirigami.Units.iconSizes.small
-                        sourceComponent: PC3.BusyIndicator {
-                            running: true
-                        }
-                    }
                 }
 
                 Loader {
@@ -165,13 +196,9 @@ Item {
 
                 MessageBody {
                     id: body
+                    objectName: "messageBody"
 
-                    // The longest line, measured roughly, for sizing my bubbles.
-                    readonly property real longestLine: row.mine
-                        ? Math.max.apply(null, String(row.message.content || "").split("\n").slice(0, 50).map(function(l) { return l.length; }).concat([0])) * metrics.averageCharacterWidth
-                        : 0
-
-                    visible: !row.editing && (text !== "" || row.streaming)
+                    visible: !row.editing && !row.ownsBody && (text !== "" || row.streaming)
                     Layout.fillWidth: true
                     textWidth: row.bubbleWidth - Kirigami.Units.largeSpacing * 2
                     buttonHeight: row.buttonHeight
@@ -180,7 +207,7 @@ Item {
                     messageIndex: row.index
                     streaming: row.streaming
                     isError: row.role === "error"
-                    text: row.streaming ? row.chat.currentStreamText : (row.message.content || "")
+                    text: row.streaming ? row.chat.currentStreamText : row.role === "error" ? row.errorInfo.text : (row.message.content || "")
                     onSelectionMade: (text) => { if (text.trim() || !actions.keepSelection) row.selectedText = text; }
                 }
 
@@ -191,6 +218,27 @@ Item {
                     sourceComponent: AttachmentChips {
                         chat: row.chat
                         attachments: row.message.attachments
+                    }
+                }
+
+                Loader {
+                    active: row.role === "permission_request"
+                    visible: active
+                    Layout.fillWidth: true
+                    sourceComponent: PermissionDetail {
+                        message: row.message
+                    }
+                }
+
+                Loader {
+                    active: row.role === "error"
+                    visible: active
+                    Layout.fillWidth: true
+                    sourceComponent: ErrorActions {
+                        info: row.errorInfo
+                        onRetryRequested: row.chat.retryFailedMessage(row.index)
+                        onSettingsRequested: row.chat.openSettings()
+                        onDeleteRequested: row.chat.deleteMessage(row.index)
                     }
                 }
 
@@ -220,6 +268,9 @@ Item {
                     Layout.fillWidth: true
                     sourceComponent: ContextList {
                         items: row.message.contextItems
+                        tools: row.message.tools || ({})
+                        notices: row.message.notices || []
+                        files: row.message.filesChanged || []
                     }
                 }
 
@@ -229,7 +280,7 @@ Item {
 
                     MessageActions {
                         id: actions
-                        visible: !row.isRequest
+                        visible: !row.isRequest && row.role !== "error"
                         // Room for the buttons, which are built after the first frame.
                         Layout.minimumHeight: row.buttonHeight
                         builder: row.builder
@@ -238,6 +289,7 @@ Item {
                         messageIndex: row.index
                         streaming: row.streaming
                         editing: row.editing
+                        hovered: hover.hovered
                         selectedText: row.selectedText
                     }
 

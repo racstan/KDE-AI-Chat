@@ -4,11 +4,13 @@
 // TextEdit holding the whole reply gets slower with every update as the
 // reply grows. Here the text is kept in pieces of about `pieceChars`,
 // split at line breaks: finished pieces never change, and each update only
-// sets the last one. Stacked without spacing, the pieces look the same as
+// sets the last one (with the simple Markdown markers hidden, see
+// MessageBlocks.stripEmphasis). Stacked without spacing, the pieces look the same as
 // one block of text.
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import "MessageBlocks.js" as MessageBlocks
 
 Column {
     id: stream
@@ -37,11 +39,11 @@ Column {
                 cut = rest.indexOf("\n", pieceChars);
             if (cut < 0)
                 break;
-            pieces.append({"piece": rest.substring(0, cut)});
+            pieces.append({"piece": MessageBlocks.stripEmphasis(rest.substring(0, cut))});
             frozenLength += cut + 1;
             rest = rest.substring(cut + 1);
         }
-        tail.text = rest;
+        tail.text = MessageBlocks.stripEmphasis(rest);
         shown = text;
     }
 
