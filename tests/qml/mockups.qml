@@ -224,7 +224,7 @@ Item {
                 chat.sessions = [
                     {value: "a", text: "Trip planning", count: 4, updatedAt: now},
                     {value: "b", text: "OpenCode refactor", source: "opencode", count: 14, updatedAt: now - 86400000},
-                    {value: "c", text: "Shell one-liners", count: 9, updatedAt: now - 5 * 86400000},
+                    {value: "c", text: "Shell one-liners", source: "pi", count: 9, updatedAt: now - 5 * 86400000},
                     {value: "d", text: "Old chat", archived: true, count: 3, updatedAt: now - 40 * 86400000}
                 ];
                 chat.historyOnlyMode = true;

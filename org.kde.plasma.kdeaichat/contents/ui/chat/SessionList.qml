@@ -112,21 +112,14 @@ Rectangle {
                 anchors.rightMargin: Kirigami.Units.smallSpacing
                 spacing: Kirigami.Units.smallSpacing
 
-                Rectangle {
-                    visible: row.modelData.source === "opencode"
-                    implicitWidth: badgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
-                    implicitHeight: badgeText.implicitHeight + Kirigami.Units.smallSpacing
-                    radius: Kirigami.Units.cornerRadius
-                    color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
-
-                    PC3.Label {
-                        id: badgeText
-
-                        anchors.centerIn: parent
-                        text: "OC"
-                        font.bold: true
-                        color: Kirigami.Theme.textColor
-                    }
+                // Agent chats are marked with a plain tag: OC for OpenCode, PI for Pi.
+                PC3.Label {
+                    visible: text !== ""
+                    text: row.modelData.source === "opencode" ? "OC" : (row.modelData.source === "pi" ? "PI" : "")
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    opacity: 0.7
+                    Accessible.name: row.modelData.source === "pi" ? i18n("Pi chat") : i18n("OpenCode chat")
                 }
 
                 PC3.Label {
