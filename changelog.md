@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Chat history rows no longer spill out of the popup: long or markup-looking titles are cut to one line, and rows stay clear of the scroll bar.
+- **OpenCode mode is steadier.** The agent list is read from the OpenCode server for the chat's own workspace folder (so the folder's own agents appear) and offers only agents that can run a chat; it no longer switches to a different list read from `opencode.json` when the server is slow, and loading it never changes the chat's agent. The agent picked above a chat is the one the chat uses (stored on the chat when the chat has its own agent setting), and the selector always shows the agent the chat really sends with. A lost event stream is reopened and the reply caught up instead of ending in an error; a chat whose OpenCode session the server no longer has continues in a new one instead of failing on every message; a subagent's permission and question requests are shown; files edited by other sessions in the same folder are no longer listed under a reply; stopping while a session is being created no longer leaves an event stream open; "Sync session history" keeps message times, tool calls, token counts and errors and merges a reply's steps into one message.
 
 ### Removed
 - The guide text blocks in settings, the interface-language override, the light/dark appearance override (light or dark now follows the system), the unused desktop-selection setting, and the process memory panel with its Kill buttons.

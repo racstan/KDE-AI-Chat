@@ -1,15 +1,34 @@
 // OpenCode mode: sends a chat's prompt to an `opencode serve` (starting a
-// local one if needed) through backends/OpenCodeBackend.js, and answers
-// permission and question cards. `chat` is the widget root (main.qml).
+// local one if needed) through backends/OpenCodeBackend.js, answers
+// permission and question cards, loads the agent list, and syncs a chat from
+// its OpenCode session. `chat` is the widget root (main.qml).
 import QtQuick
+import "../backends/AgentEvents.js" as AgentEvents
 import "../backends/DirectBackend.js" as DirectBackend
+import "../backends/OpenCodeAgents.js" as OpenCodeAgents
 import "../backends/OpenCodeBackend.js" as OpenCodeBackend
+import "../backends/OpenCodeEvents.js" as OpenCodeEvents
+import "../backends/OpenCodeHistory.js" as OpenCodeHistory
 import "EffectiveConfig.js" as EffectiveConfig
 
 QtObject {
     id: mode
 
     property var chat: null
+    property int _agentsRequest: 0
+    property var _agentWaiters: []
+    property Component _timer: Component { Timer {} }
+
+    // Runs fn after ms (the backend's reconnect delay).
+    function later(fn, ms) {
+        var timer = mode._timer.createObject(mode, {"interval": ms});
+        timer.triggered.connect(function() { timer.destroy(); fn(); });
+        timer.start();
+    }
+
+    function _openSession() {
+        return chat.sessions[chat.sessionIndexById(chat.currentSessionId)] || null;
+    }
 
     // Where a chat's OpenCode requests go.
     function openCodeTarget(sessionId) {
@@ -86,6 +105,8 @@ QtObject {
                 chat.applyBackendEvent({"type": "done", "reason": "error"}, "OpenCode");
                 return;
             }
+            if (chat.openCodeAgentsList.length === 0)
+                mode.fetchAgents();
             mode.sendOpenCodePrompt(sessionId, generation, target);
         });
     }
@@ -113,6 +134,8 @@ QtObject {
             }),
             "xhrFactory": target.xhrFactory,
             "parserFactory": DirectBackend.createSseParser,
+            "mapperFactory": OpenCodeEvents.createEventMapper,
+            "later": function(fn, ms) { mode.later(fn, ms); },
             "onEvent": function(event) {
                 if (event.type === "session")
                     chat.setCurrentOpenCodeSessionId(event.id, sessionId);
@@ -157,5 +180,122 @@ QtObject {
                 chat.pushErrorMessage("OpenCode didn't accept the answer (HTTP " + status + ").");
             chat.saveCurrentSessionState(true);
         });
+    }
+
+    // Loads the agents that can run the open chat, for its workspace folder
+    // (OpenCode also lists the folder's own agents). A failed load keeps the
+    // list there was; a newer load replaces an older one still running.
+    function fetchAgents(callback) {
+        if (callback)
+            mode._agentWaiters = mode._agentWaiters.concat([callback]);
+        var request = ++mode._agentsRequest;
+        var directory = String(chat.openCodeWorkspaceCwd || "").trim();
+        var baseUrl = chat.openCodeBaseUrl();
+        chat.fetchingAgentsInProgress = true;
+        function finish(list) {
+            if (request !== mode._agentsRequest)
+                return;
+            if (list !== null) {
+                chat.openCodeAgentsList = list;
+                chat.openCodeAgentsDirectory = directory;
+            }
+            chat.fetchingAgentsInProgress = false;
+            var waiters = mode._agentWaiters;
+            mode._agentWaiters = [];
+            for (var i = 0; i < waiters.length; i++)
+                waiters[i]();
+        }
+        if (!baseUrl) {
+            finish(null);
+            return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return;
+            var list = null;
+            if (xhr.status >= 200 && xhr.status < 300 && xhr.responseText.length < 2000000) {
+                try { list = OpenCodeAgents.normalize(JSON.parse(xhr.responseText)); } catch (e) { list = null; }
+            }
+            finish(list);
+        };
+        xhr.ontimeout = function() { finish(null); };
+        try {
+            xhr.open("GET", OpenCodeBackend.url(baseUrl, "/agent", directory), true);
+            xhr.timeout = 5000;
+            xhr.send();
+        } catch (e) {
+            finish(null);
+        }
+    }
+
+    // The agent picked above the chat: stored where the open chat takes its
+    // agent from (its own settings or the main ones), so it is the one used.
+    function chooseAgent(value) {
+        if (EffectiveConfig.agentOwner(chat.plasmoid.configuration, mode._openSession()) === "chat")
+            chat.setSessionProperty(chat.currentSessionId, "openCodeAgent", value);
+        else
+            chat.plasmoid.configuration.openCodeAgent = value;
+        chat.applySessionSource(mode._openSession());
+    }
+
+    // The folder picked above the chat: the chat's own when it has one.
+    function chooseWorkspace(path) {
+        var session = mode._openSession();
+        if (session && session.openCodeWorkspaceCwd !== undefined && session.openCodeWorkspaceCwd !== null)
+            chat.setSessionProperty(chat.currentSessionId, "openCodeWorkspaceCwd", path);
+        else
+            chat.plasmoid.configuration.openCodeWorkspaceCwd = path;
+        chat.applySessionSource(mode._openSession());
+    }
+
+    // Replaces the open chat's messages with its OpenCode session's history.
+    function syncHistory() {
+        var sessionId = chat.currentSessionId;
+        var remoteId = chat.currentOpenCodeSessionId(sessionId);
+        if (!remoteId)
+            return;
+        var target = mode.openCodeTarget(sessionId);
+        var generation = chat.beginRequest(sessionId);
+        var xhr = new XMLHttpRequest();
+        chat.loading = true;
+        chat.activeXhr = xhr;
+        function end(error) {
+            chat.loading = false;
+            chat.activeXhr = null;
+            chat.activeRequestSessionId = "";
+            chat.requestGeneration++;
+            if (error)
+                chat.pushErrorMessage("Sync failed: " + error);
+        }
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || !chat.requestIsCurrent(sessionId, generation))
+                return;
+            if (xhr.status < 200 || xhr.status >= 300) {
+                end(xhr.status === 0 ? "could not reach OpenCode at " + target.baseUrl + "." : "OpenCode returned HTTP " + xhr.status + ".");
+                return;
+            }
+            var history = null;
+            try { history = xhr.responseText.length > 10000000 ? null : JSON.parse(xhr.responseText); } catch (e) { history = null; }
+            if (!Array.isArray(history)) {
+                end("OpenCode's answer couldn't be read.");
+                return;
+            }
+            end("");
+            var messages = OpenCodeHistory.toMessages(history.slice(-500), {
+                "createEventMapper": OpenCodeEvents.createEventMapper, "applyToReply": AgentEvents.applyToReply,
+                "formatTime": function(ms) { return chat.nowTime(ms); }, "sessionId": remoteId, "maxChars": chat.maxMessageChars, "now": Date.now()});
+            if (messages.length === 0)
+                return;
+            chat.messages = messages;
+            chat.saveCurrentSessionState(true);
+            chat.scrollToBottom();
+        };
+        try {
+            xhr.open("GET", OpenCodeBackend.url(target.baseUrl, "/session/" + encodeURIComponent(remoteId) + "/message", target.directory), true);
+            xhr.send();
+        } catch (e) {
+            end("invalid OpenCode endpoint.");
+        }
     }
 }

@@ -199,6 +199,19 @@ function forSession(config, session, modelFor) {
                    {"perChat": config.perChatModelSettings === true, "priority": config.perChatPriority});
 }
 
+// Where an OpenCode agent picked for an open chat (the agent selector above the
+// chat) has to be stored so that the chat then really uses it: "chat" (the
+// chat's own openCodeAgent) when the chat's own agent decides, else "main"
+// (Settings -> OpenCode). Same rules as resolve().
+function agentOwner(config, session) {
+    config = config || {};
+    if (config.perChatModelSettings !== true || !hasOwnModelSettings(session))
+        return "main";
+    if (config.perChatPriority === "main" && _s(config.openCodeAgent) !== "")
+        return "main";
+    return "chat";
+}
+
 // "Pi · OpenAI · gpt-x" for the Chat info panel; names(providerId) -> display name.
 function describe(eff, names) {
     var label = eff.mode === "opencode" ? "OpenCode" : (eff.mode === "pi" ? "Pi" : "");

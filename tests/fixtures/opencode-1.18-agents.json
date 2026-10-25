@@ -1,0 +1,68 @@
+[
+ {
+  "name": "build",
+  "mode": "primary",
+  "native": true,
+  "hidden": null
+ },
+ {
+  "name": "architect",
+  "mode": "primary",
+  "native": false,
+  "hidden": null
+ },
+ {
+  "name": "compaction",
+  "mode": "primary",
+  "native": true,
+  "hidden": true
+ },
+ {
+  "name": "explore",
+  "mode": "subagent",
+  "native": true,
+  "hidden": null
+ },
+ {
+  "name": "general",
+  "mode": "subagent",
+  "native": true,
+  "hidden": null
+ },
+ {
+  "name": "go",
+  "mode": "primary",
+  "native": false,
+  "hidden": null
+ },
+ {
+  "name": "helper",
+  "mode": "subagent",
+  "native": false,
+  "hidden": null
+ },
+ {
+  "name": "plan",
+  "mode": "primary",
+  "native": true,
+  "hidden": null
+ },
+ {
+  "name": "review",
+  "mode": "subagent",
+  "native": false,
+  "hidden": null
+ },
+ {
+  "name": "summary",
+  "mode": "primary",
+  "native": true,
+  "hidden": true
+ },
+ {
+  "name": "title",
+  "mode": "primary",
+  "native": true,
+  "hidden": true
+ }
+]

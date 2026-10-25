@@ -66,6 +66,8 @@ PlasmoidItem {
     property string openCodeWorkspaceCwd: plasmoid.configuration.openCodeWorkspaceCwd || ""
     property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel !== false
     property var openCodeAgentsList: []
+    // The workspace folder openCodeAgentsList was loaded for (null: not loaded yet).
+    property var openCodeAgentsDirectory: null
     property var openCodeProvidersList: []
     property var openCodeModelsList: []
     property var piProviderCandidates: []
@@ -74,7 +76,6 @@ PlasmoidItem {
     property var piModelFetchWaiters: []
     property bool fetchingAgentsInProgress: false
     property bool fetchingOpenCodeConfig: false
-    property var openCodeAgentFetchWaiters: []
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
     property string compiledSystemPrompt: ""
@@ -752,259 +753,10 @@ PlasmoidItem {
         setCurrentOpenCodeSessionId("");
     }
 
-    function syncOpenCodeSessionHistory() {
-        var sessionId = root.currentSessionId;
-        var generation = beginRequest(sessionId);
-        var remoteSessionId = currentOpenCodeSessionId(sessionId);
-        if (!remoteSessionId) {
-            root.activeRequestSessionId = "";
-            root.requestGeneration++;
-            return;
-        }
-        root.loading = true;
-        var xhr = new XMLHttpRequest();
-        root.activeXhr = xhr;
-        try { xhr.open("GET", openCodeBaseUrl() + "/session/" + encodeURIComponent(remoteSessionId) + "/message", true); } catch (e) {
-            root.loading = false;
-            root.activeXhr = null;
-            root.activeRequestSessionId = "";
-            root.requestGeneration++;
-            pushErrorMessage("Sync failed: invalid OpenCode endpoint.");
-            return;
-        }
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE)
-                return;
-            if (!requestIsCurrent(sessionId, generation))
-                return;
-            root.loading = false;
-            root.activeXhr = null;
-            root.activeRequestSessionId = "";
-            root.requestGeneration++;
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    if (xhr.responseText.length > 10000000)
-                        throw new Error("OpenCode history response is too large");
-                    var arr = JSON.parse(xhr.responseText);
-                    if (Array.isArray(arr)) {
-                        var newMsgs = [];
-                        for (var i = 0; i < Math.min(arr.length, 500); i++) {
-                            var item = arr[i] || {};
-                            var info = item.info || {};
-                            var parts = item.parts || [];
-                            var role = info.role || "user";
-                            var modelLabel = (info.providerID && info.modelID) ? (info.providerID + "/" + info.modelID) : (info.modelID || "OpenCode");
-                            var combinedText = "";
-                            var ctx = [];
-                            for (var p = 0; p < parts.length; p++) {
-                                var part = parts[p] || {};
-                                if (part.type === "text") {
-                                    combinedText += part.text || part.content || "";
-                                } else if (part.type === "tool-invocation") {
-                                    var toolName = part.toolName || part.tool || "";
-                                    var toolArgs = part.args || part.input || {};
-                                    if (toolName !== "") {
-                                        var desc = toolName;
-                                        if (toolArgs.filePath || toolArgs.path || toolArgs.file)
-                                            desc += ": " + (toolArgs.filePath || toolArgs.path || toolArgs.file);
-                                        else if (toolArgs.command)
-                                            desc += ": " + String(toolArgs.command).substring(0, 60);
-                                        ctx.push(desc);
-                                    }
-                                }
-                            }
-                            if (combinedText.length > root.maxMessageChars)
-                                combinedText = combinedText.substring(0, root.maxMessageChars) + "\n[history message truncated]";
-                            var normalizedTokens = {};
-                            if (item.tokens) {
-                                var rawTokens = item.tokens || {};
-                                normalizedTokens.input = rawTokens.input !== undefined ? rawTokens.input : (rawTokens.prompt_tokens !== undefined ? rawTokens.prompt_tokens : (rawTokens.input_tokens !== undefined ? rawTokens.input_tokens : undefined));
-                                normalizedTokens.output = rawTokens.output !== undefined ? rawTokens.output : (rawTokens.completion_tokens !== undefined ? rawTokens.completion_tokens : (rawTokens.output_tokens !== undefined ? rawTokens.output_tokens : undefined));
-                                if (rawTokens.reasoning !== undefined) normalizedTokens.reasoning = rawTokens.reasoning;
-                                if (rawTokens.cache !== undefined) normalizedTokens.cache = rawTokens.cache;
-                            }
-                            var ts = info.createdAt ? new Date(info.createdAt).getTime() : Date.now();
-                            newMsgs.push({
-                                "role": role,
-                                "content": combinedText || "(empty)",
-                                "model": role === "user" ? "You" : modelLabel,
-                                "id": info.id || ("msg-" + i),
-                                "at": ts,
-                                "time": nowTime(ts),
-                                "contextItems": ctx,
-                                "tokens": normalizedTokens.input !== undefined ? normalizedTokens : undefined,
-                                "cost": item.cost || undefined,
-                                "openCodeSessionId": remoteSessionId
-                            });
-                        }
-                        if (newMsgs.length > 0) {
-                            var idx = sessionIndexById(root.currentSessionId);
-                            if (idx >= 0) {
-                                root.messages = newMsgs;
-                                var updated = root.sessions.slice();
-                                var sItem = Object.assign({}, updated[idx]);
-                                sItem.messages = newMsgs;
-                                updated[idx] = sItem;
-                                root.sessions = updated;
-                                saveCurrentSessionState(true);
-                                scrollToBottom();
-                            }
-                        }
-                    }
-                } catch (err) {
-                    pushErrorMessage("Failed to parse synced messages: " + err);
-                }
-            } else {
-                pushErrorMessage("Sync failed: OpenCode returned HTTP " + xhr.status);
-            }
-        };
-        xhr.onerror = function() {
-            if (!requestIsCurrent(sessionId, generation)) return;
-            root.loading = false;
-            root.activeXhr = null;
-            root.activeRequestSessionId = "";
-            root.requestGeneration++;
-            pushErrorMessage("Sync failed: Could not reach OpenCode server at " + openCodeBaseUrl());
-        };
-        try { xhr.send(); } catch (e) {
-            if (requestIsCurrent(sessionId, generation)) {
-                root.loading = false;
-                root.activeXhr = null;
-                root.activeRequestSessionId = "";
-                root.requestGeneration++;
-                pushErrorMessage("Sync failed: " + e);
-            }
-        }
-    }
-
-    function _notifyOpenCodeAgentFetchWaiters() {
-        var waiters = root.openCodeAgentFetchWaiters || [];
-        root.openCodeAgentFetchWaiters = [];
-        for (var i = 0; i < waiters.length; i++) {
-            if (waiters[i])
-                Qt.callLater(waiters[i]);
-        }
-    }
-
-    function normalizeOpenCodeAgents(payload) {
-        var values = [];
-        function isSubagent(name, metadata) {
-            var mode = metadata && (metadata.mode || metadata.agentMode || metadata.type || metadata.kind);
-            if (mode && /sub[-_ ]?agent|internal/i.test(String(mode)))
-                return true;
-            if (metadata && (metadata.hidden === true || metadata.internal === true || metadata.isSubagent === true))
-                return true;
-            // OpenCode exposes these implementation agents through /agent as
-            // well. They are not selectable top-level agent profiles.
-            return ["compaction", "explore", "general", "summary", "title"].indexOf(String(name).toLowerCase()) >= 0;
-        }
-        function add(value, keyName) {
-            var name = typeof value === "string" ? value : (value && (value.id || value.name || value.value || value.text));
-            name = name || keyName || "";
-            if (isSubagent(name, value))
-                return;
-            if (name && typeof name === "string" && name.length <= 128 && values.indexOf(name) < 0 && values.length < 100)
-                values.push(name);
-        }
-        function read(value) {
-            if (!value)
-                return;
-            if (Array.isArray(value)) {
-                for (var i = 0; i < value.length; i++) add(value[i]);
-                return;
-            }
-            if (typeof value !== "object") {
-                add(value);
-                return;
-            }
-            var known = ["agents", "agent", "data", "items", "all", "connected"];
-            var found = false;
-            for (var k = 0; k < known.length; k++) {
-                if (value[known[k]] !== undefined) {
-                    read(value[known[k]]);
-                    found = true;
-                }
-            }
-            if (!found) {
-                var keys = Object.keys(value);
-                for (var j = 0; j < keys.length; j++) {
-                    if (keys[j] !== "default" && keys[j] !== "default_agent")
-                        add(value[keys[j]], keys[j]);
-                }
-            }
-        }
-        read(payload);
-        var result = [];
-        for (var n = 0; n < values.length; n++)
-            result.push({ "text": values[n], "value": values[n] });
-        return result;
-    }
-
-    function _finishOpenCodeAgents(list, defaultAgent) {
-        root.openCodeAgentsList = list || [];
-        var selectedAgent = "";
-        for (var i = 0; i < root.openCodeAgentsList.length; i++) {
-            if (root.openCodeAgentsList[i].value === defaultAgent || root.openCodeAgentsList[i].value === root.openCodeAgent) {
-                selectedAgent = root.openCodeAgentsList[i].value;
-                break;
-            }
-        }
-        if (!selectedAgent && root.openCodeAgentsList.length > 0)
-            selectedAgent = root.openCodeAgentsList[0].value;
-        if (selectedAgent)
-            root.openCodeAgent = selectedAgent;
-        root.fetchingAgentsInProgress = false;
-        _notifyOpenCodeAgentFetchWaiters();
-    }
-
-    function fetchOpenCodeAgents(callback) {
-        if (root.fetchingAgentsInProgress) {
-            if (callback)
-                root.openCodeAgentFetchWaiters = (root.openCodeAgentFetchWaiters || []).concat([callback]);
-            return null;
-        }
-        root.fetchingAgentsInProgress = true;
-        root.openCodeAgentFetchWaiters = callback ? [callback] : [];
-
-        var baseUrl = openCodeBaseUrl();
-        if (!baseUrl) {
-            _finishOpenCodeAgents([], "");
-            return null;
-        }
-        var agentEndpoint = baseUrl + "/agent";
-
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", agentEndpoint, true);
-        xhr.timeout = 1000;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return;
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    if (xhr.responseText.length > 2000000)
-                        throw new Error("agent response is too large");
-                    var data = JSON.parse(xhr.responseText);
-                    var agentList = normalizeOpenCodeAgents(data);
-                    if (agentList.length > 0) {
-                        _finishOpenCodeAgents(agentList, data.default_agent || data.default || "");
-                        return;
-                    }
-                } catch (e) {}
-            }
-            runFallbackAgentFileFetch();
-        };
-        xhr.ontimeout = function() {
-            runFallbackAgentFileFetch();
-        };
-        xhr.onerror = function() {
-            runFallbackAgentFileFetch();
-        };
-        try {
-            xhr.send();
-        } catch (err) {
-            runFallbackAgentFileFetch();
-        }
-    }
+    // OpenCode work lives in chat/OpenCodeMode.qml.
+    function syncOpenCodeSessionHistory() { openCode.syncHistory(); }
+    function fetchOpenCodeAgents(callback) { openCode.fetchAgents(callback); }
+    function chooseOpenCodeAgent(value) { openCode.chooseAgent(value); }
 
     function fetchOpenCodeProvidersAndModels(callback) {
         // Treat every refresh as a snapshot. Keeping the previous arrays when
@@ -1072,32 +824,6 @@ PlasmoidItem {
             try { xhr.send(); } catch (e) { finish(false); }
         }
         requestNext();
-    }
-
-    function runFallbackAgentFileFetch() {
-        var cmd = "python3 -c \""
-            + "import json, os, glob; "
-            + "paths = [os.path.expanduser('~/.config/opencode/opencode.json'), './opencode.json']; "
-            + "agents = []; default = ''; "
-            + "for p in paths:\n"
-            + "    if os.path.exists(p):\n"
-            + "        try:\n"
-            + "            d = json.load(open(p))\n"
-            + "            ag = d.get('agent', {})\n"
-            + "            if isinstance(ag, dict):\n"
-            + "                for n, spec in ag.items():\n"
-            + "                    item = dict(spec) if isinstance(spec, dict) else {}\n"
-            + "                    item['name'] = n; item['id'] = n; agents.append(item)\n"
-            + "            if d.get('default_agent'): default = d.get('default_agent')\n"
-            + "        except Exception: pass\n"
-            + "unique = {}; "
-            + "for item in agents:\n"
-            + "    key = item.get('id') or item.get('name') if isinstance(item, dict) else item\n"
-            + "    if key and key not in unique: unique[key] = item\n"
-            + "agents = list(unique.values()); "
-            + "print(json.dumps({'agents': agents, 'default': default}))"
-            + "\" #fetch-opencode-agents";
-        fileReaderDs.connectSource(cmd);
     }
 
     function resetProviderStreamingState() {
@@ -2339,22 +2065,6 @@ PlasmoidItem {
                 disconnectSource(sourceName);
                 return ;
             }
-            if (sourceName.indexOf("#fetch-opencode-agents") !== -1) {
-                var fallbackAgents = [];
-                var fallbackDefault = "";
-                if (exitCode === 0 && stdout.trim() !== "") {
-                    try {
-                        var agentData = JSON.parse(stdout.trim());
-                        fallbackAgents = normalizeOpenCodeAgents(agentData);
-                        fallbackDefault = agentData.default || agentData.default_agent || "";
-                    } catch (e) {
-                        console.log("Failed to parse opencode agents: " + e);
-                    }
-                }
-                _finishOpenCodeAgents(fallbackAgents, fallbackDefault);
-                disconnectSource(sourceName);
-                return ;
-            }
             if (sourceName.indexOf("#plasmashell-watchdog-") !== -1) {
                 disconnectSource(sourceName);
                 return ;
@@ -2440,8 +2150,7 @@ PlasmoidItem {
             if (path.indexOf("file://") === 0)
                 path = decodeURIComponent(path.slice(7));
 
-            root.openCodeWorkspaceCwd = path;
-            plasmoid.configuration.openCodeWorkspaceCwd = path;
+            openCode.chooseWorkspace(path);
         }
     }
 
