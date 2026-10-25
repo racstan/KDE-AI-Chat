@@ -4,8 +4,11 @@
 // The widget reaches the input only through this component: it registers
 // itself as chat.composerRef, and chat.focusInput() calls focusInput() here.
 //
-// Keys in the input: Enter sends, Shift+Enter adds a line, Up in an empty
-// input edits your last message, "/" at the start suggests prompt templates.
+// Keys in the input: Enter sends, Shift+Enter adds a line, "/" at the start
+// suggests prompt templates. While the input is empty, Up/Down browse the
+// messages (ChatView.qml); PageUp/PageDown jump to the first/latest message,
+// also with text unless the input itself scrolls. Ctrl+E (ChatShortcuts.qml)
+// edits your last message.
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -29,7 +32,7 @@ ColumnLayout {
     signal attachRequested()
     signal chatInfoRequested()
 
-    // Starts editing the last message you wrote (Up in an empty input), if
+    // Starts editing the last message you wrote (Ctrl+E), if
     // there is one and no reply is being written. Returns whether it did.
     function editLastMessage() {
         if (composer.chat.loading)
@@ -54,6 +57,31 @@ ColumnLayout {
         if (msgInput.enabled && msgInput.visible)
             msgInput.forceActiveFocus();
         focusTimer.start();
+    }
+
+    // A character typed while a message was selected: back into the input.
+    function typeText(text) {
+        msgInput.forceActiveFocus();
+        msgInput.insert(msgInput.cursorPosition, text);
+    }
+
+    // Up/Down/PageUp/PageDown for browsing the messages; true if used.
+    function browseKey(event) {
+        var list = composer.chat.msgListViewRef;
+        if (!list || (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier)))
+            return false;
+        var empty = msgInput.text === "";
+        if (event.key === Qt.Key_Up && empty)
+            return list.browse(-1);
+        if (event.key === Qt.Key_Down && empty)
+            return list.browse(1);
+        // With text, PageUp/PageDown keep scrolling the input when it overflows.
+        var scrolls = !empty && msgInput.contentHeight > msgInput.height - msgInput.topPadding - msgInput.bottomPadding;
+        if (event.key === Qt.Key_PageUp && !scrolls)
+            return list.jumpFirst();
+        if (event.key === Qt.Key_PageDown && !scrolls)
+            return list.jumpLatest();
+        return false;
     }
 
     Layout.fillWidth: true
@@ -215,15 +243,18 @@ ColumnLayout {
             focus: true
 
             onActiveFocusChanged: {
-                if (activeFocus)
+                if (activeFocus) {
                     composer.chat.ensureWalletLoaded();
+                    if (composer.chat.msgListViewRef && composer.chat.msgListViewRef.clearSelection)
+                        composer.chat.msgListViewRef.clearSelection();
+                }
             }
             // Mirrored into chat.chatInputText so the widget's functions can read/clear it
             onTextChanged: composer.chat.chatInputText = text
             Keys.onPressed: function(event) {
                 if (suggestions.active && suggestions.handleKey(event.key)) {
                     event.accepted = true;
-                } else if (event.key === Qt.Key_Up && msgInput.text === "" && composer.editLastMessage()) {
+                } else if (composer.browseKey(event)) {
                     event.accepted = true;
                 } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
                     event.accepted = true;

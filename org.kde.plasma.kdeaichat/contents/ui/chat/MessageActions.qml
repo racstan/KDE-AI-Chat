@@ -29,6 +29,8 @@ RowLayout {
     property string selectedText: ""
     // The pointer is over the message.
     property bool hovered: false
+    // The message is picked with Up/Down (ChatView.qml).
+    property bool selected: false
     // Keyboard focus is on one of the buttons.
     readonly property Item focusItem: Window.window ? Window.window.activeFocusItem : null
     readonly property bool focusWithin: {
@@ -40,7 +42,7 @@ RowLayout {
         }
         return false;
     }
-    readonly property bool shown: !streaming && (hovered || focusWithin || editing)
+    readonly property bool shown: !streaming && (hovered || focusWithin || editing || selected)
     // True while the pointer is on the read-aloud button (clicking it clears the selection).
     readonly property bool keepSelection: (readAloud.item as PC3.ToolButton)?.hovered ?? false
 

@@ -3,6 +3,11 @@
 // The one scroll rule: the list follows new content while chat.userScrolledUp
 // is false. Scrolling away from the end (wheel, drag, scrollbar) stops
 // following; reaching the end again, or pressing "Latest", resumes it.
+//
+// Browsing by keyboard: list.selectedIndex is the message picked with
+// Up/Down (-1: none). The input (Composer.qml) calls browse()/jumpFirst()/
+// jumpLatest() through chat.msgListViewRef while it is empty; once a message
+// is selected the list itself has focus and handles the keys below.
 import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
@@ -20,6 +25,7 @@ Item {
     // (Positioning at the end while the list applies a big insert makes it
     // build delegates one by one up from the end.)
     property bool replacing: false
+    onReplacingChanged: if (replacing) chatView.list.clearSelection()
 
     Connections {
         target: chatView.chat ? chatView.chat.messageModel : null
@@ -46,6 +52,81 @@ Item {
         flickDeceleration: 1800
         maximumFlickVelocity: 6000
         pixelAligned: false
+        keyNavigationEnabled: false
+
+        // The message picked with the keyboard, or -1.
+        property int selectedIndex: -1
+        function clearSelection() { selectedIndex = -1; }
+        function select(i) {
+            if (i < 0 || i >= count)
+                return;
+            selectedIndex = i;
+            if (chatView.chat)
+                chatView.chat.userScrolledUp = i < count - 1;
+            positionViewAtIndex(i, ListView.Contain);
+            forceActiveFocus();
+        }
+        // Up (delta -1) or Down (+1) one message. Down past the latest hands
+        // focus back to the input. Returns whether it did anything.
+        function browse(delta) {
+            if (count === 0)
+                return false;
+            if (selectedIndex < 0) {
+                if (delta > 0)
+                    return false;
+                select(count - 1);
+            } else if (selectedIndex + delta >= count) {
+                leave();
+            } else {
+                select(Math.max(0, selectedIndex + delta));
+            }
+            return true;
+        }
+        function leave() {
+            clearSelection();
+            if (chatView.chat)
+                chatView.chat.focusInput();
+        }
+        function jumpFirst() {
+            if (count === 0)
+                return false;
+            select(0);
+            return true;
+        }
+        // The latest message: no selection, and the list follows again.
+        function jumpLatest() {
+            if (count === 0)
+                return false;
+            clearSelection();
+            if (chatView.chat)
+                chatView.chat.scrollToBottom(true);
+            return true;
+        }
+
+        Keys.onPressed: function(event) {
+            var plain = !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier));
+            if (event.key === Qt.Key_Up && plain && selectedIndex >= 0) {
+                browse(-1);
+            } else if (event.key === Qt.Key_Down && plain && selectedIndex >= 0) {
+                browse(1);
+            } else if (event.key === Qt.Key_PageUp && plain) {
+                jumpFirst();
+            } else if (event.key === Qt.Key_PageDown && plain) {
+                jumpLatest();
+                if (chatView.chat)
+                    chatView.chat.focusInput();
+            } else if (event.key === Qt.Key_Escape && selectedIndex >= 0) {
+                leave();
+            } else if (selectedIndex >= 0 && plain && event.text.length === 1 && event.text >= " " && event.text !== "\x7f") {
+                // Typing goes to the input, with this character.
+                clearSelection();
+                if (chatView.chat && chatView.chat.composerRef)
+                    chatView.chat.composerRef.typeText(event.text);
+            } else {
+                return;
+            }
+            event.accepted = true;
+        }
 
         delegate: MessageDelegate {
             width: list.width - (scrollBar.visible ? scrollBar.width : 0)
@@ -64,7 +145,11 @@ Item {
 
         onContentHeightChanged: follow()
         onHeightChanged: follow()
-        onCountChanged: follow()
+        onCountChanged: {
+            if (selectedIndex >= count)
+                selectedIndex = -1;
+            follow();
+        }
         onMovementEnded: userMoved()
         onDraggingChanged: if (!dragging) userMoved()
         Component.onCompleted: if (chatView.chat) chatView.chat.msgListViewRef = list

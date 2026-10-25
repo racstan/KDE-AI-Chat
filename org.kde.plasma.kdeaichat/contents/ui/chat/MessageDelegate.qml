@@ -35,6 +35,8 @@ Item {
         ? [chat.currentStreamReasoning, chat.currentStreamExtractedReasoning].filter(function(t) { return !!t; }).join("\n")
         : (message.reasoning || "")
     property string selectedText: ""
+    // Picked with Up/Down (ChatView.qml).
+    readonly property bool selected: !!view && view.selectedIndex === index
     readonly property string errorProvider: role === "error" && !chat.openCodeMode && !chat.piMode
         ? chat.providerDisplayName(chat.getEffectiveProvider(chat.currentSessionId)) : ""
     // An error in plain language, with what can be done about it.
@@ -84,10 +86,11 @@ Item {
             radius: Kirigami.Units.cornerRadius
             // No fill for any message: a colour only where it means something,
             // and then only as an edge (errors red, agent requests orange).
-            color: "transparent"
+            color: row.selected ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14) : "transparent"
             opacity: row.role === "queued" ? 0.7 : 1
-            border.width: row.role === "error" || row.isRequest ? 1 : 0
-            border.color: row.role === "error" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
+            border.width: row.role === "error" || row.isRequest || row.selected ? 1 : 0
+            border.color: row.role === "error" ? Kirigami.Theme.negativeTextColor
+                : row.isRequest ? Kirigami.Theme.neutralTextColor : Qt.alpha(Kirigami.Theme.highlightColor, 0.5)
 
             HoverHandler {
                 id: hover
@@ -302,6 +305,7 @@ Item {
                         streaming: row.streaming
                         editing: row.editing
                         hovered: hover.hovered
+                        selected: row.selected
                         selectedText: row.selectedText
                     }
 
