@@ -180,23 +180,45 @@ Item {
             tryVerify(() => !find(r, "deleteButton").visible);
         }
 
+        // Click a row button once the row's layout has settled: toggling
+        // rename shows/hides sibling buttons and moves the others on the next
+        // polish, so a click at once could hit stale geometry (flaky).
+        function clickRowButton(r, name, shown) {
+            var b = find(r, name);
+            tryCompare(b, "visible", shown);
+            tryVerify(() => b.width > 0 && b.height > 0);
+            // A fresh or re-laid-out row sits at its initial position until the
+            // RowLayout polishes: the action buttons belong in the row's right
+            // half. Then wait until the position holds still across frames.
+            tryVerify(() => b.mapToItem(r, 0, 0).x > r.width / 2);
+            var last = null;
+            tryVerify(function() {
+                waitForRendering(r);
+                var p = b.mapToItem(root, 0, 0);
+                var same = last !== null && last.x === p.x && last.y === p.y;
+                last = p;
+                return same;
+            });
+            mouseClick(b);
+        }
+
         function test_08_actions_rename_archive_delete() {
             open();
+            tryCompare(body.historyPane, "width", body.panelWidth + Kirigami.Units.smallSpacing);
             var r = row(1);
             mouseMove(r, r.width / 2, r.height / 2);
-            tryVerify(() => find(r, "renameButton").visible && find(r, "renameButton").width > 0);
-            wait(50);
-            mouseClick(find(r, "renameButton"));
-            compare(chat.editingSessionId, "b");
+            tryVerify(() => r.showActions);
+            clickRowButton(r, "renameButton", true);
+            tryCompare(chat, "editingSessionId", "b");
             // While renaming the row keeps its buttons: save, cancel.
             verify(r.showActions);
-            mouseClick(find(r, "deleteButton"));
-            compare(chat.editingSessionId, "");
-            mouseClick(find(r, "archiveButton"));
+            clickRowButton(r, "deleteButton", true);
+            tryCompare(chat, "editingSessionId", "");
+            clickRowButton(r, "archiveButton", true);
             compare(chat.calls[chat.calls.length - 1].name, "archive");
             compare(chat.calls[chat.calls.length - 1].args[0], "b");
             compare(chat.calls[chat.calls.length - 1].args[1], true);
-            mouseClick(find(r, "deleteButton"));
+            clickRowButton(r, "deleteButton", true);
             compare(chat.calls[chat.calls.length - 1].name, "deleteSession");
             compare(chat.calls[chat.calls.length - 1].args[0], "b");
         }
