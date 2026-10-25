@@ -73,7 +73,10 @@ QtObject {
     property string editingSessionId: ""
     property string editingSessionDraft: ""
     property var sessions: []
-    function historySessionTint(s) { return s.value === currentSessionId ? "#e3edf7" : "#f5f7fa"; }
+    // Translucent like main.qml's, so the row suits a light or a dark popup.
+    function historySessionTint(s) {
+        return s.value === currentSessionId ? Qt.rgba(0.24, 0.68, 0.91, 0.18) : Qt.rgba(0.5, 0.5, 0.5, 0.1);
+    }
     function sessionSubtitle(s) { return (s.count || 0) + " messages"; }
     function switchSession(id) { record("switch", arguments); currentSessionId = id; }
     function renameCurrentSession() { record("renameCurrent", arguments); }
