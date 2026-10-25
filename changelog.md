@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Neater chat export**: Export chat… saves Markdown, plain text or JSON (pick the type in the save dialog; the file gets its extension). Files start with the chat title and details (dates, mode, provider, model), have clear speaker headings with times, keep code in fenced blocks and list attachments and tool calls readably. Reasoning, internal markers and HTML wrappers are left out.
 - **Settings rebuilt as six small pages**: Providers (providers, time limit, streaming), Harness (direct, OpenCode or Pi, and the agent's default provider and model), Chat (system prompt, earlier messages sent, chat names, prompt templates), Schedules, Voice and Appearance (name, icon, sound). Changes are saved with Apply/OK like other Plasma widgets; prompt templates can now be edited, not only added and removed.
 - **The chat window follows your Plasma colour scheme and accent colour**, light or dark, instead of its own blue-and-grey palette: the message box is dark in a dark theme, links use the scheme's link colour, and the controls are Plasma's own. Breeze icons replace the emoji on answered permission requests, delete buttons are no longer red, and errors are a neutral card with a red edge instead of red text on red.
 

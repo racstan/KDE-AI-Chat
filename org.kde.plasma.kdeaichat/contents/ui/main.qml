@@ -2135,81 +2135,8 @@ PlasmoidItem {
         clipboardHelper.copy();
     }
 
-    function performExportChat(filePath) {
-        var isMarkdown = filePath.toLowerCase().endsWith(".md") || filePath.toLowerCase().endsWith(".markdown");
-        var content = "";
-        var sessionTitle = root.currentSessionTitle || "Untitled Session";
-        var now = new Date();
-        var dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString();
-        if (isMarkdown) {
-            content += "# 💬 KDE AI Chat: " + sessionTitle + "\n";
-            content += "*Exported on " + dateStr + "*\n\n";
-            content += "---\n\n";
-            for (var i = 0; i < root.messages.length; i++) {
-                var m = root.messages[i];
-                if (m.role === "user") {
-                    content += "<div align=\"right\">\n\n";
-                    content += "### 👤 **User** (" + (m.time || "") + ")\n";
-                    content += m.content + "\n\n";
-                    content += "</div>\n\n";
-                    content += "---\n\n";
-                } else if (m.role === "assistant") {
-                    var modelName = m.model || plasmoid.configuration.model || "Assistant";
-                    content += "<div align=\"left\">\n\n";
-                    content += "### 🤖 **" + modelName + "** (" + (m.time || "") + ")\n";
-                    content += m.content + "\n\n";
-                    content += "</div>\n\n";
-                    content += "---\n\n";
-                } else if (m.role === "error") {
-                    content += "<div align=\"left\">\n\n";
-                    content += "### ❌ **System Error** (" + (m.time || "") + ")\n";
-                    content += "> " + m.content + "\n\n";
-                    content += "</div>\n\n";
-                    content += "---\n\n";
-                }
-            }
-        } else {
-            content += "==================================================\n";
-            content += "💬 KDE AI Chat: " + sessionTitle + "\n";
-            content += "Exported on: " + dateStr + "\n";
-            content += "==================================================\n\n";
-            var rightAlignTxt = function rightAlignTxt(text, width) {
-                if (!width)
-                    width = 80;
-
-                var lines = text.split("\n");
-                for (var j = 0; j < lines.length; j++) {
-                    var trimmed = lines[j].trim();
-                    if (trimmed.length === 0) {
-                        lines[j] = "";
-                        continue;
-                    }
-                    if (trimmed.length >= width)
-                        lines[j] = trimmed;
-                    else
-                        lines[j] = " ".repeat(width - trimmed.length) + trimmed;
-                }
-                return lines.join("\n");
-            };
-            for (var i = 0; i < root.messages.length; i++) {
-                var m = root.messages[i];
-                if (m.role === "user") {
-                    var userHeader = "👤 User (" + (m.time || "") + "):";
-                    content += " ".repeat(Math.max(0, 80 - userHeader.length)) + userHeader + "\n";
-                    content += rightAlignTxt(m.content, 80) + "\n\n";
-                    content += "--------------------------------------------------\n\n";
-                } else if (m.role === "assistant") {
-                    var modelName = m.model || plasmoid.configuration.model || "Assistant";
-                    content += "🤖 " + modelName + " (" + (m.time || "") + "):\n";
-                    content += m.content + "\n\n";
-                    content += "--------------------------------------------------\n\n";
-                } else if (m.role === "error") {
-                    content += "❌ System Error (" + (m.time || "") + "):\n";
-                    content += "ERROR: " + m.content + "\n\n";
-                    content += "--------------------------------------------------\n\n";
-                }
-            }
-        }
+    // Saves export text (built by chat/ExportDialog.qml) through the helper.
+    function writeExportFile(filePath, content) {
         var safePath = Sec.validateFilePath(filePath);
         var helper = getHelperPath();
         if (!safePath || !helper) {
@@ -2508,21 +2435,6 @@ PlasmoidItem {
             for (var i = 0; i < selectedFiles.length; i++) {
                 root.attachFile(selectedFiles[i]);
             }
-        }
-    }
-
-    FileDialog {
-        id: exportFileDialog
-
-        title: "Export Chat Session"
-        fileMode: FileDialog.SaveFile
-        nameFilters: ["Markdown files (*.md)", "Plain text files (*.txt)"]
-        onAccepted: {
-            var path = selectedFile.toString();
-            if (path.indexOf("file://") === 0)
-                path = decodeURIComponent(path.slice(7));
-
-            root.performExportChat(path);
         }
     }
 

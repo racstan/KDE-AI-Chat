@@ -84,8 +84,7 @@ Item {
             onSettingsRequested: Plasmoid.internalAction("configure").trigger()
             onChatControlsRequested: chatSettingsDialog.toggleForSession(root.currentSessionId)
             onExportRequested: function(suggestedFile) {
-                exportFileDialog.currentFile = suggestedFile;
-                exportFileDialog.open();
+                exportDialog.openWith(suggestedFile);
             }
         }
 
@@ -141,6 +140,11 @@ Item {
         anchors.bottom: growsUp ? undefined : parent.bottom
         anchors.top: growsUp ? parent.top : undefined
         z: 10
+    }
+
+    Chat.ExportDialog {
+        id: exportDialog
+        chat: root
     }
 
     ChatSettingsDialog {

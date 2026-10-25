@@ -111,6 +111,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatOverridesForm.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatSettingsDraft.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatStats.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/ChatExport.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/ExportDialog.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveConfig.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatTitle.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveLine.qml",
