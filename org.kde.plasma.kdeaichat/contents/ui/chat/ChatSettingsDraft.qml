@@ -2,7 +2,8 @@
 // (ChatSettingsDialog.qml). load() reads the chat's overrides, the form
 // edits the properties, save() writes them back in one go through
 // rootRef.setSessionOverrides, and nothing else in the widget changes until
-// then. It also fetches the provider / OpenCode / Pi model lists the form
+// then. A chat keeps the mode it was started in, so `mode` is read-only here
+// and save() never writes `source`. It also fetches the provider / OpenCode / Pi model lists the form
 // offers; answers that arrive after the chat (or the panel) changed are
 // dropped by `_generation`.
 import QtQuick
@@ -19,8 +20,9 @@ QtObject {
 
     property string sessionId: ""
     property string sessionTitle: ""
-    property string mode: "provider"          // "provider" | "opencode" | "pi"
-    // This chat has its own model settings (mode, provider, model). Only
+    // The chat's mode, "provider" | "opencode" | "pi": fixed when the chat was started.
+    property string mode: "provider"
+    // This chat has its own model settings (provider, model, agent). Only
     // meaningful while "Let chats have their own model settings" is on.
     property bool ownModel: false
     property string provider: ""              // "" = the global default provider
@@ -59,12 +61,8 @@ QtObject {
 
     // The settings page's "Let chats have their own model settings".
     readonly property bool perChat: _config ? _config.perChatModelSettings === true : false
-    // The panel edits mode/provider/model only when chats may have their own and this one does.
+    // The panel edits provider/model/agent only when chats may have their own and this one does.
     readonly property bool modelEditable: perChat && ownModel
-    // The mode the main settings select (what a chat without its own settings uses).
-    readonly property string mainMode: EffectiveConfig.mainMode(EffectiveConfig.mainFromConfig(_config, null))
-    // The mode whose other settings (working folder, instructions) the form shows.
-    readonly property string shownMode: modelEditable ? mode : mainMode
 
     function _session() {
         var list = rootRef ? (rootRef.sessions || []) : [];
@@ -132,20 +130,19 @@ QtObject {
     function load(id) {
         invalidate();
         sessionId = id || "";
-        var source = _get("source", "");
-        if (!source)
-            source = rootRef && rootRef.openCodeMode ? "opencode" : "provider";
+        var source = EffectiveConfig.chatMode(_session());
         sessionTitle = rootRef && rootRef.currentSessionTitle ? rootRef.currentSessionTitle : i18n("Current Chat");
         ownModel = EffectiveConfig.hasOwnModelSettings(_session());
-        mode = ownModel ? source : mainMode;
+        mode = source;
         provider = _get("chatProvider", "");
         model = _get("chatModel", "");
         ocAgent = _get("openCodeAgent", "");
         ocProvider = _get("openCodeProvider", "");
         ocModel = _get("openCodeModel", "");
         ocCwd = _get("openCodeWorkspaceCwd", "");
-        systemEnabled = _get("chatSystemPromptEnabled", true);
+        // A chat without instructions has the box unchecked; it is only on for real text.
         system = _get("chatSystemPrompt", "");
+        systemEnabled = system.trim() !== "" && _get("chatSystemPromptEnabled", true) !== false;
         responseLength = _get("responseLength", 0) || 0;
         // Pi chats used to keep their provider and model in chatProvider/chatModel.
         var configuration = _config || {};
@@ -191,22 +188,6 @@ QtObject {
         else if (mode === "pi")
             refreshPi();
         else
-            refreshModels(false);
-    }
-
-    function setMode(newMode) {
-        if (mode === newMode)
-            return;
-        invalidate();
-        mode = newMode;
-        modelCandidates = [];
-        dirty = true;
-        listsChanged();
-        if (newMode === "opencode")
-            refreshOpenCode(function() { refreshAgents(); });
-        else if (newMode === "pi")
-            refreshPi();
-        else if (newMode === "provider")
             refreshModels(false);
     }
 
@@ -300,16 +281,21 @@ QtObject {
         var globalProvider = _config ? (_config.provider || "openai") : "openai";
         var overrides = {
             "openCodeWorkspaceCwd": ocCwd.trim(),
-            "chatSystemPromptEnabled": systemEnabled,
-            "chatSystemPrompt": system,
             "responseLength": responseLength
         };
+        // Instructions: only real text is saved. An empty (or blank) box saves no
+        // text, and turns nothing on or off: the chat sends no instructions.
+        if (system.trim() !== "" || _get("chatSystemPrompt", "") !== "") {
+            var hasText = system.trim() !== "";
+            overrides.chatSystemPrompt = hasText ? system : "";
+            overrides.chatSystemPromptEnabled = hasText ? systemEnabled : _get("chatSystemPromptEnabled", true) !== false;
+        }
         // The model settings are only written while they are editable; otherwise
-        // what the chat has stays as it is (kept, not used).
+        // what the chat has stays as it is (kept, not used). The mode (source)
+        // is never written: a chat keeps the mode it was started in.
         if (perChat)
             overrides.ownModel = ownModel;
         if (modelEditable) {
-            overrides.source = mode;
             overrides.chatProvider = mode === "pi" ? provider : (effectiveProvider() === globalProvider ? "" : effectiveProvider());
             overrides.chatModel = mode === "pi" ? model : model.trim();
             overrides.piProvider = piProvider;

@@ -4,6 +4,7 @@
 import QtQuick
 import "../backends/DirectBackend.js" as DirectBackend
 import "../backends/PiBackend.js" as PiBackend
+import "EffectiveConfig.js" as EffectiveConfig
 
 QtObject {
     id: mode
@@ -67,15 +68,23 @@ QtObject {
         };
     }
 
+    // The Pi bridge can't be reached: say so, and stay in Pi mode (no fallback to another mode).
+    function reportUnavailable(message, label) {
+        var text = EffectiveConfig.unavailableText("pi", message);
+        chat.modeNotice = text;
+        chat.applyBackendEvent({"type": "error", "message": text}, label);
+        chat.applyBackendEvent({"type": "done", "reason": "error"}, label);
+    }
+
     function send(sessionId, generation) {
         chat.loading = true;
+        chat.modeNotice = "";
         chat.currentStreamUsage = ({});
         mode.withBridge(false, function(ok, message) {
             if (!chat.requestIsCurrent(sessionId, generation))
                 return;
             if (!ok) {
-                chat.applyBackendEvent({"type": "error", "message": message}, "Pi");
-                chat.applyBackendEvent({"type": "done", "reason": "error"}, "Pi");
+                mode.reportUnavailable(message, "Pi");
                 return;
             }
             mode.sendPrompt(sessionId, generation, true);
@@ -105,8 +114,7 @@ QtObject {
                     if (ok) {
                         mode.sendPrompt(sessionId, generation, false);
                     } else {
-                        chat.applyBackendEvent({"type": "error", "message": message}, label);
-                        chat.applyBackendEvent({"type": "done", "reason": "error"}, label);
+                        mode.reportUnavailable(message, label);
                     }
                 });
                 return;

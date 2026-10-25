@@ -4,6 +4,7 @@
 import QtQuick
 import "../backends/DirectBackend.js" as DirectBackend
 import "../backends/OpenCodeBackend.js" as OpenCodeBackend
+import "EffectiveConfig.js" as EffectiveConfig
 
 QtObject {
     id: mode
@@ -73,11 +74,15 @@ QtObject {
     function send(sessionId, generation) {
         var target = mode.openCodeTarget(sessionId);
         chat.loading = true;
+        chat.modeNotice = "";
         mode.ensureOpenCodeServer(target.baseUrl, target.directory, function(ok, message) {
             if (!chat.requestIsCurrent(sessionId, generation))
                 return;
             if (!ok) {
-                chat.applyBackendEvent({"type": "error", "message": message}, "OpenCode");
+                // The chat stays an OpenCode chat; it never falls back to another mode.
+                var text = EffectiveConfig.unavailableText("opencode", message);
+                chat.modeNotice = text;
+                chat.applyBackendEvent({"type": "error", "message": text}, "OpenCode");
                 chat.applyBackendEvent({"type": "done", "reason": "error"}, "OpenCode");
                 return;
             }

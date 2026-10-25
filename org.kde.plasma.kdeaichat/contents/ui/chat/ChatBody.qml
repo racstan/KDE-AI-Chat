@@ -83,6 +83,15 @@ Item {
             visible: !body.historyFull
             spacing: Kirigami.Units.smallSpacing
 
+            // The chat's mode (OpenCode / Pi) can't be used right now; the chat stays in it.
+            NoticeBanner {
+                objectName: "modeNotice"
+                isError: true
+                dismissible: true
+                text: body.chat.modeNotice || ""
+                onDismissed: body.chat.modeNotice = ""
+            }
+
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true

@@ -59,6 +59,20 @@ Item {
             chat.renamingCurrentChat = false;
         }
 
+        function test_1b_a_notice_about_the_chats_mode_shows_above_the_chat() {
+            var notice = findChild(body, "modeNotice");
+            verify(notice !== null && !notice.visible, "no notice normally");
+            chat.modeNotice = "This is a Pi chat and it can't answer right now. Pi: the Pi bridge didn't start. It stays in Pi mode (a chat never switches mode). Fix that and send again, or start a new chat in another mode.";
+            wait(50);
+            verify(notice.visible);
+            verify(notice.height > 0 && notice.y < body.chatView.y + body.chatView.parent.y + 1, "above the messages");
+            screenshot(root, "chat-layout-mode-notice");
+            notice.dismissed();
+            compare(chat.modeNotice, "");
+            wait(30);
+            verify(!notice.visible);
+        }
+
         function test_2_history() {
             chat.sessions = [
                 {value: "a", text: "Trip planning", count: 2},

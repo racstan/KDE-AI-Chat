@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **A chat keeps the mode it was started in** (direct provider, OpenCode or Pi). Changing the mode in the main settings, or the per-chat settings, only affects new chats; it no longer moves a chat you have open (or a reply that is streaming) to another mode. The per-chat settings still choose the provider, model, agent and thinking level inside the chat's mode, and the Chat info panel shows the mode as fixed. Older chats without a stored mode are given one once. If a chat's mode isn't available (OpenCode or Pi not reachable), the chat says so in a notice instead of switching.
+- **Empty chat instructions are off**: the "Give this chat system instructions" box is unchecked for a chat without instructions, and turning it on with no text sends and saves nothing.
+### Changed
 - **Settings rebuilt as six small pages**: Providers (providers, time limit, streaming), Harness (direct, OpenCode or Pi, and the agent's default provider and model), Chat (system prompt, earlier messages sent, chat names, prompt templates), Schedules, Voice and Appearance (name, icon, sound). Changes are saved with Apply/OK like other Plasma widgets; prompt templates can now be edited, not only added and removed.
 - **The chat window follows your Plasma colour scheme and accent colour**, light or dark, instead of its own blue-and-grey palette: the message box is dark in a dark theme, links use the scheme's link colour, and the controls are Plasma's own. Breeze icons replace the emoji on answered permission requests, delete buttons are no longer red, and errors are a neutral card with a red edge instead of red text on red.
 

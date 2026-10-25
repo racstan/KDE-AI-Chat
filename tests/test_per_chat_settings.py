@@ -67,7 +67,9 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
         assert "saveCurrentSessionState" not in source
     assert "rootRef.fetchPiModels" in draft_source
     assert "setSessionOverrides(sessionId, overrides)" in draft_source
-    assert "visible: form.draft.shownMode !== \"opencode\"" in form_source
+    assert "visible: form.draft.mode !== \"opencode\"" in form_source
+    assert "setMode" not in form_source and "setMode" not in draft_source, "a chat's mode is not editable"
+    assert "overrides.source" not in draft_source, "the panel never writes a chat's mode"
     assert "chatSettingsDialog.toggleForSession(root.currentSessionId)" in open(os.path.join(UI_DIR, "FullRepresentationContent.qml"), encoding="utf-8").read()
 
 

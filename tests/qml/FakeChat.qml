@@ -106,6 +106,15 @@ QtObject {
     function fetchOpenCodeAgents() {}
     function syncOpenCodeSessionHistory() {}
     property bool piMode: false
+    // Shown above the chat when its mode can't be used (main.qml's modeNotice).
+    property string modeNotice: ""
+    function sessionIndexById(id) {
+        for (var i = 0; i < sessions.length; i++) {
+            if (sessions[i].value === id)
+                return i;
+        }
+        return -1;
+    }
     property var promptTemplates: []
     property string providerId: "openrouter"
     property string providerModel: "openrouter/auto"
