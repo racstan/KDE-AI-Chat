@@ -194,5 +194,62 @@ Item {
             verify(mineActions.mapToItem(delegate, mineActions.width, 0).x > delegate.width - 40, "right-aligned");
             verify(replyActions.mapToItem(delegate, 0, 0).x < 40, "a reply's are at the left");
         }
+
+        function buttonNamed(actions, name) {
+            for (var i = 0; i < actions.children.length; i++) {
+                var item = actions.children[i].item;
+                if (item && item.text === name)
+                    return item;
+            }
+            return null;
+        }
+
+        function test_9_resend_is_on_your_messages_only() {
+            verify(buttonNamed(actionsOf(0), "Resend"), "user message has Resend");
+            verify(buttonNamed(actionsOf(2), "Resend"), "so does the second one");
+            verify(!buttonNamed(actionsOf(1), "Resend"), "a reply doesn't");
+            verify(buttonNamed(actionsOf(1), "Regenerate"), "it has Regenerate");
+            verify(!buttonNamed(actionsOf(0), "Regenerate"), "a user message doesn't");
+            var delegate = view.list.itemAtIndex(2);
+            mouseMove(delegate, delegate.width / 2, delegate.height / 2);
+            tryCompare(actionsOf(2), "opacity", 1, 2000);
+            screenshot(root, "message-actions-resend");
+        }
+
+        function test_a_resend_asks_when_later_messages_would_go() {
+            var actions = actionsOf(0);
+            compare(actions.laterMessages, 3);
+            mouseClick(buttonNamed(actions, "Resend"));
+            var confirm = null;
+            tryVerify(() => (confirm = findChild(QQC2.Overlay.overlay, "regenerateConfirmButton")) !== null, 2000);
+            compare(confirm.text, "Resend");
+            compare(chat.calls.length, 0, "nothing is dropped before the answer");
+            screenshot(root, "message-actions-resend-confirm");
+            mouseClick(confirm);
+            compare(chat.calls.length, 1);
+            compare(chat.calls[0].name, "regenerate");
+            compare(chat.calls[0].args, [0, ""]);
+        }
+
+        function test_b_resend_of_the_last_message_needs_no_question() {
+            chat.messages = conversation.slice(0, 3);
+            wait(50);
+            var actions = actionsOf(2);
+            compare(actions.laterMessages, 0);
+            actions.regenerate("");
+            compare(chat.calls.length, 1);
+            compare(chat.calls[0].args, [2, ""]);
+        }
+
+        function test_c_resend_is_disabled_while_replying() {
+            tryCompare(actionsOf(0), "built", actionsOf(0).buttonCount, 3000);
+            var button = buttonNamed(actionsOf(0), "Resend");
+            verify(button.enabled);
+            chat.currentStreamIndex = 3;
+            chat.loading = true;
+            tryVerify(() => !button.enabled, 2000);
+            chat.currentStreamIndex = -1;
+            chat.loading = false;
+        }
     }
 }

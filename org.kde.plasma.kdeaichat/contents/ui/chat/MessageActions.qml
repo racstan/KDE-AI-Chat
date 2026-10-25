@@ -1,5 +1,6 @@
 // The buttons under a message: edit (apply/cancel while editing), read
-// aloud, regenerate (with longer/shorter), copy, delete.
+// aloud, regenerate (with longer/shorter) or, on your own message, resend,
+// copy, delete.
 //
 // They show while the message is hovered (`hovered`, from its delegate) or
 // has keyboard focus, and never while it streams. They stay in the layout
@@ -79,7 +80,7 @@ RowLayout {
     // the first frame instead of all while the chat opens.
     property var builder: null
     property int built: builder ? 0 : buttonCount
-    readonly property int buttonCount: 7
+    readonly property int buttonCount: 8
 
     // Builds the next button; false once all are built.
     function buildStep() {
@@ -107,6 +108,19 @@ RowLayout {
                 actions.chat.editingMessageIndex = actions.messageIndex;
                 actions.chat.editingDraft = actions.message.content || "";
             }
+        }
+    }
+
+    // Ask again from your own message: its replies are dropped and it is sent anew.
+    Optional {
+        order: 7
+        shown: actions.role === "user" && !actions.editing
+        sourceComponent: Action {
+            objectName: "resendButton"
+            enabled: !actions.streaming && !(actions.chat && actions.chat.loading)
+            icon.name: "view-refresh"
+            text: i18n("Resend")
+            onClicked: actions.regenerate("")
         }
     }
 
@@ -203,7 +217,9 @@ RowLayout {
                 PC3.Label {
                     Layout.maximumWidth: Kirigami.Units.gridUnit * 18
                     wrapMode: Text.Wrap
-                    text: i18np("Regenerating removes this reply and the %1 message after it.", "Regenerating removes this reply and the %1 messages after it.", actions.laterMessages)
+                    text: actions.isReply
+                        ? i18np("Regenerating removes this reply and the %1 message after it.", "Regenerating removes this reply and the %1 messages after it.", actions.laterMessages)
+                        : i18np("Resending removes the %1 message after this one.", "Resending removes the %1 messages after this one.", actions.laterMessages)
                 }
 
                 RowLayout {
@@ -218,7 +234,7 @@ RowLayout {
 
                     PrimaryButton {
                         objectName: "regenerateConfirmButton"
-                        text: i18n("Regenerate")
+                        text: actions.isReply ? i18n("Regenerate") : i18n("Resend")
                         icon.name: "view-refresh"
                         onClicked: {
                             confirm.close();

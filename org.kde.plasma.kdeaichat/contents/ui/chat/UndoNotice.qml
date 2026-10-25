@@ -19,7 +19,8 @@ Rectangle {
     property int timeout: 8000
 
     // What can be undone: {kind: "clear", messages, count} or
-    // {kind: "delete", session, index, wasCurrent}.
+    // {kind: "delete", session, index, wasCurrent} or
+    // {kind: "restore", sessionId, messages} (after regenerating).
     property var undoable: null
     property string text: ""
 
@@ -45,7 +46,16 @@ Rectangle {
         dismiss();
         if (!what || !chat)
             return;
-        if (what.kind === "clear") {
+        if (what.kind === "restore") {
+            // Regenerate: stop the new answer and bring the old messages back.
+            if (chat.currentSessionId === what.sessionId) {
+                chat.stopStreaming();
+                chat.messages = what.messages;
+                if (chat.clearCurrentOpenCodeSessionIfNeeded)
+                    chat.clearCurrentOpenCodeSessionIfNeeded();
+                chat.saveCurrentSessionState(true);
+            }
+        } else if (what.kind === "clear") {
             // Only into the same chat, and only if it is still empty.
             if (chat.currentSessionId === what.sessionId && (chat.messages || []).length === 0) {
                 chat.messages = what.messages;
@@ -80,6 +90,11 @@ Rectangle {
         function onSessionDeleted(session, index) {
             notice.show({"kind": "delete", "session": session, "index": index, "wasCurrent": notice.chat.currentSessionId === session.value},
                         i18n("Chat “%1” deleted", session.text || i18n("New Chat")));
+        }
+        function onMessagesDropped(sessionId, messages) {
+            var dropped = messages.length - (notice.chat.messages || []).length;
+            notice.show({"kind": "restore", "sessionId": sessionId, "messages": messages},
+                        i18np("%1 message removed", "%1 messages removed", dropped));
         }
         function onMessagesChanged() {
             var now = notice.chat.messages || [];

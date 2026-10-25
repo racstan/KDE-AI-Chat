@@ -132,5 +132,30 @@ Item {
                 buttons.push(findChild(notice, "undoText").parent.children[i]);
             verify(buttons.some(function(b) { return b.Accessible && b.Accessible.name === "Dismiss"; }));
         }
+
+        function test_9_regenerating_can_be_undone() {
+            var before = [{role: "user", content: "Q1"}, {role: "assistant", content: "A1"}, {role: "user", content: "Q2"}];
+            chat.messages = before;
+            chat.messages = before.slice(0, 1);
+            chat.messagesDropped("a", before);
+            verify(notice.visible);
+            compare(findChild(notice, "undoText").text, "2 messages removed");
+            chat.calls = [];
+            mouseClick(findChild(notice, "undoButton"));
+            compare(chat.messages, before);
+            compare(chat.calls[0].name, "stop", "the new answer is stopped first");
+            verify(!notice.visible);
+        }
+
+        function test_a_undoing_a_regenerate_is_for_the_same_chat_only() {
+            var before = [{role: "user", content: "Q1"}, {role: "assistant", content: "A1"}];
+            chat.messages = before.slice(0, 1);
+            chat.messagesDropped("a", before);
+            chat.currentSessionId = "b";
+            chat.messages = [{role: "user", content: "other"}];
+            notice.undo();
+            compare(chat.messages.length, 1);
+            compare(chat.messages[0].content, "other");
+        }
     }
 }
