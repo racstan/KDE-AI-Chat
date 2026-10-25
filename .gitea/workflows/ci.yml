@@ -151,6 +151,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/UndoNotice.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ErrorText.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PromptTemplates.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/Commands.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/CommandRunner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/chats.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/opencode_server.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/pi_bridge.py",

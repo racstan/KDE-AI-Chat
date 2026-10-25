@@ -5,7 +5,8 @@
 // itself as chat.composerRef, and chat.focusInput() calls focusInput() here.
 //
 // Keys in the input: Enter sends, Shift+Enter adds a line, "/" at the start
-// suggests prompt templates. While the input is empty, Up/Down browse the
+// lists the slash commands (Commands.js, run by CommandRunner.qml) and then the
+// prompt templates; Enter on a command runs it instead of sending. While the input is empty, Up/Down browse the
 // messages (ChatView.qml); PageUp/PageDown jump to the first/latest message,
 // also with text unless the input itself scrolls. Ctrl+E (ChatShortcuts.qml)
 // edits your last message.
@@ -16,7 +17,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
-import "PromptTemplates.js" as PromptTemplates
+import "Commands.js" as Commands
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -128,6 +129,14 @@ ColumnLayout {
 
     ComposerStatus {
         chat: composer.chat
+        notice: runner.notice
+    }
+
+    CommandRunner {
+        id: runner
+        chat: composer.chat
+        picker: bar.picker
+        input: msgInput
     }
 
     // Files waiting to be sent
@@ -250,7 +259,10 @@ ColumnLayout {
                 }
             }
             // Mirrored into chat.chatInputText so the widget's functions can read/clear it
-            onTextChanged: composer.chat.chatInputText = text
+            onTextChanged: {
+                composer.chat.chatInputText = text;
+                runner.track(text);
+            }
             Keys.onPressed: function(event) {
                 if (suggestions.active && suggestions.handleKey(event.key)) {
                     event.accepted = true;
@@ -258,7 +270,8 @@ ColumnLayout {
                     event.accepted = true;
                 } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
                     event.accepted = true;
-                    composer.chat.sendMessage();
+                    if (!runner.run(msgInput.text))
+                        composer.chat.sendMessage();
                 } else if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
                     composer.chat.checkClipboardForAttachments();
                     event.accepted = false;
@@ -273,26 +286,9 @@ ColumnLayout {
             TemplateSuggestions {
                 id: suggestions
                 objectName: "templateSuggestions"
-                templates: PromptTemplates.suggest(msgInput.text, composer.chat.promptTemplates || [])
-                onChosen: (template) => {
-                    msgInput.text = "/" + template.name + " ";
-                    msgInput.cursorPosition = msgInput.length;
-                }
-
-                // Arrow keys move, Enter/Tab picks, Esc hides (until the text changes).
-                function handleKey(key) {
-                    if (key === Qt.Key_Down)
-                        next();
-                    else if (key === Qt.Key_Up)
-                        previous();
-                    else if (key === Qt.Key_Return || key === Qt.Key_Enter || key === Qt.Key_Tab)
-                        accept();
-                    else if (key === Qt.Key_Escape)
-                        dismissed = true;
-                    else
-                        return false;
-                    return true;
-                }
+                entries: Commands.suggest(msgInput.text, composer.chat.promptTemplates || [], runner.context)
+                onChosen: (entry) => runner.complete(entry)
+                onActivated: (entry) => runner.activate(entry, msgInput.text)
             }
 
             Connections {
@@ -375,7 +371,10 @@ ColumnLayout {
             Accessible.name: text
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.text: composer.chat.loading ? i18n("Send this after the current reply finishes") : i18n("Send message")
-            onClicked: composer.chat.sendMessage()
+            onClicked: {
+                if (!runner.run(msgInput.text))
+                    composer.chat.sendMessage();
+            }
         }
 
         PC3.Button {

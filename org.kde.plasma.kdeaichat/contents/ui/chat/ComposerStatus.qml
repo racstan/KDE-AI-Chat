@@ -14,6 +14,8 @@ RowLayout {
     id: status
 
     property var chat: null
+    // What a slash command just did (CommandRunner.qml); wins over the key hint.
+    property string notice: ""
 
     readonly property var voice: chat ? chat.voiceManagerRef : null
     readonly property string voiceText: voice && voice.statusText ? voice.statusText : ""
@@ -24,8 +26,10 @@ RowLayout {
             return (chat.currentStreamIndex >= 0 ? i18n("Writing…") : i18n("Thinking…")) + " " + i18n("Esc stops it.");
         if (voiceText !== "")
             return voiceText;
+        if (notice !== "")
+            return notice;
         // The keys are explained once, in a new chat; never in one with messages.
-        return status.isNewChat ? i18n("Enter sends · Shift+Enter adds a line · / inserts a template") : "";
+        return status.isNewChat ? i18n("Enter sends · Shift+Enter adds a line · / for commands and templates") : "";
     }
 
     Layout.fillWidth: true
@@ -65,6 +69,6 @@ RowLayout {
         text: status.text
         elide: Text.ElideRight
         font: Kirigami.Theme.smallFont
-        opacity: status.busy || status.voiceText !== "" ? 0.85 : 0.55
+        opacity: status.busy || status.voiceText !== "" || status.notice !== "" ? 0.85 : 0.55
     }
 }
