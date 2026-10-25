@@ -1,12 +1,16 @@
 // Harness settings for OpenCode: the server address, starting/stopping a
 // server the widget owns, and the default provider and model, read from the
-// server's /config/providers.
+// server's /config/providers, and the model's variant when the server reports
+// any for it (only the variant NAMES are read from that answer: it also carries
+// the user's API keys, which are never kept).
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import "../components" as Components
 import "../Security.js" as Sec
+import "../Variants.js" as Variants
+import "../backends/OpenCodeCatalog.js" as OpenCodeCatalog
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -17,11 +21,14 @@ Kirigami.FormLayout {
     property string url: ""
     property string provider: ""
     property string model: ""
+    property string variant: ""      // the variant's name ("" = none)
     property var helper: null        // store/HelperRunner.qml
     property bool active: false      // loads the server's providers when true
 
     property var providers: []
     property var modelsByProvider: ({})
+    property var variantsByModel: ({})   // "provider/model" -> variant names
+    readonly property var variants: Variants.fromOpenCodeNames(variantsByModel[provider + "/" + model])
     property string status: ""
     property bool busy: false
 
@@ -60,6 +67,8 @@ Kirigami.FormLayout {
         var next = preferredModel || model;
         if (models.length > 0 && models.indexOf(next) < 0)
             next = models[0];
+        if (providerId !== provider || (next || "") !== model)
+            variant = "";
         provider = providerId;
         model = next || "";
     }
@@ -76,6 +85,7 @@ Kirigami.FormLayout {
             map[id] = modelIds(list[i]);
         }
         modelsByProvider = map;
+        variantsByModel = OpenCodeCatalog.parse(obj).variants;
         providers = ids;
         if (ids.length === 0) {
             status = i18n("The server answered but has no providers configured.");
@@ -185,7 +195,16 @@ Kirigami.FormLayout {
         Layout.fillWidth: true
         model: oc.modelsByProvider[oc.provider] || []
         value: oc.model
-        onPicked: function(id) { oc.model = id; }
+        onPicked: function(id) { oc.variant = ""; oc.model = id; }
+    }
+
+    Components.VariantPicker {
+        objectName: "variantPicker"
+        Kirigami.FormData.label: i18n("Variant:")
+        Layout.fillWidth: true
+        variants: oc.variants
+        value: oc.variant
+        onPicked: function(id) { oc.variant = id; }
     }
 
     QQC2.Label {

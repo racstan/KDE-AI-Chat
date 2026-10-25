@@ -2,7 +2,7 @@
   "org.kde.plasma.kdeaichat/contents/scripts/kde-ai-scheduler.py": 746,
   "org.kde.plasma.kdeaichat/contents/ui/ScheduleDialog.qml": 1391,
   "org.kde.plasma.kdeaichat/contents/ui/VoiceManager.qml": 406,
-  "org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py": 865,
-  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 2353,
+  "org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py": 829,
+  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 2283,
   "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py": 1536
 }

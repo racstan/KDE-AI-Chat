@@ -4,6 +4,7 @@
 // texts shown to the user. Nothing here touches KWallet or the config.
 import QtQuick
 import "../ProviderCheck.js" as ProviderCheck
+import "../ProviderVariants.js" as ProviderVariants
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -17,7 +18,9 @@ QtObject {
     property bool listing: false
     property bool checking: false
 
-    // Model lists fetched in this settings session, by provider id and URL.
+    // Model lists fetched in this settings session, by provider id and URL. A
+    // list carries the variants its models report (result.variants), so they
+    // are cached with it.
     property var cache: ({})
     // Providers whose model has been tried this session (id|model), so opening
     // the editor again does not send the request again.
@@ -67,9 +70,19 @@ QtObject {
                 let next = Object.assign({}, cache);
                 next[cacheKey(entry)] = result;
                 cache = next;
+                ProviderVariants.remember(entry, result);
             }
             cb(result);
         }, _opts());
+    }
+
+    // The variants of the entry's model, from the cached list (no request),
+    // or fetched if the provider has not been listed (ProviderVariants.js). cb(variants).
+    function variantsFor(entry, key, model, cb) {
+        var known = cache[cacheKey(entry)];
+        if (known)
+            ProviderVariants.remember(entry, known);
+        ProviderVariants.forModel(entry, key, model, ProviderCheck.listModels, cb, _opts());
     }
 
     // Checks the key and model with the provider. cb(result), see

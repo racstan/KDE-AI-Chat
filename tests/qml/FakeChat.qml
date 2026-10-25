@@ -103,8 +103,12 @@ QtObject {
     property var openCodeAgentsList: []
     property var openCodeProvidersList: []
     property var openCodeModelsList: []
+    property var openCodeVariants: ({})
+    property var piThinkingModels: ({})
     property var piProviderCandidates: []
     property var piProviderModelMap: ({})
+    property bool piModelsFetching: false
+    property var piModelFetchWaiters: []
     property string openCodeAgent: ""
     property string openCodeWorkspaceCwd: ""
     property var openCodeAgentsDirectory: null
@@ -157,6 +161,8 @@ QtObject {
         }
         return EffectiveConfig.forSession(plasmoid.configuration, session, function(providerId) {
             return ProviderService.getProviderConfig(providerId, plasmoid.configuration).model;
+        }, function(providerId) {
+            return ProviderService.getProviderConfig(providerId, plasmoid.configuration).variant;
         });
     }
     function getSessionProperty(id, key, fallback) {

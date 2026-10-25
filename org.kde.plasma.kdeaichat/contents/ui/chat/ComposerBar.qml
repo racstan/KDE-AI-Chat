@@ -23,11 +23,13 @@ Item {
     objectName: "composerBar"
 
     property var chat: null
-    // A variant the chat's mode brings (a direct chat's, later); shown when
-    // not empty, and wins over Pi's thinking level / OpenCode's agent.
+    // Text to show at the end of the line instead of the chat's own variant
+    // (the effective config's: a direct chat's or OpenCode's variant, Pi's
+    // thinking level, OpenCode's agent); shown when not empty, and wins.
     property string variant: ""
 
     readonly property alias picker: picker
+    readonly property alias tooltip: tip
 
     // Asks the widget to open the Chat info panel.
     signal chatInfoRequested()
@@ -125,9 +127,14 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onClicked: picker.opened ? picker.close() : picker.open()
 
-        QQC2.ToolTip.visible: containsMouse && !picker.opened
-        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-        QQC2.ToolTip.text: bar.fullText + "\n" + i18n("Click to change the model for this chat.")
+        QQC2.ToolTip {
+            id: tip
+            objectName: "composerBarTip"
+            // Never over the open picker: it would be drawn on top of its list.
+            visible: mouse.containsMouse && !mouse.pressed && !picker.visible
+            delay: Kirigami.Units.toolTipDelay
+            text: bar.fullText + "\n" + i18n("Click to change the model for this chat.")
+        }
     }
 
     ComposerPicker {

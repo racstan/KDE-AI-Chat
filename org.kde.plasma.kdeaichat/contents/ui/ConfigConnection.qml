@@ -5,8 +5,10 @@
 //
 //   Directly to a provider: the provider list (keys in KWallet, never in the
 //     config), time limit, streaming.
-//   Through OpenCode: server address and controls, provider and model.
-//   Through Pi: provider and model.
+//   Through OpenCode: server address and controls, provider, model and variant.
+//   Through Pi: provider, model and thinking level.
+// A model's variant (reasoning level) has a picker only when the model has
+// variants; the direct providers' variants are chosen in the provider editor.
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kcmutils as KCM
@@ -25,8 +27,10 @@ KCM.SimpleKCM {
     property alias cfg_openCodeUrl: openCode.url
     property alias cfg_openCodeProvider: openCode.provider
     property alias cfg_openCodeModel: openCode.model
+    property alias cfg_openCodeVariant: openCode.variant
     property alias cfg_piProvider: pi.provider
     property alias cfg_piModel: pi.model
+    property alias cfg_piThinking: pi.thinking
     // 0 means no time limit.
     property alias cfg_requestTimeout: requests.timeout
     property alias cfg_disableStreaming: requests.disableStreaming

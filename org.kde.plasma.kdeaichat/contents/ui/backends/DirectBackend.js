@@ -3,27 +3,23 @@
 // Direct API backend: talks to an OpenAI-compatible or Anthropic endpoint
 // with the user's key and reports progress as backend events.
 //
-// Event contract (shared by every backend; Phase 3 adds tool/permission
-// events):
+// Event contract (shared by every backend; Phase 3 adds tool/permission events):
 //   {type: "start"}
 //   {type: "text_delta", delta}        visible answer text
 //   {type: "reasoning_delta", delta}   model reasoning / <think> content
-//   {type: "usage", input, output, cost?}  as the provider reported it, never an
-//                                      estimate; cost only where it reports one
-//                                      (OpenRouter); one per OpenAI-style request
+//   {type: "usage", input, output, cost?}  as the provider reported it, never an estimate;
+//                                      cost only where it reports one (OpenRouter)
 //   {type: "error", message, status}   the request failed; "done" follows
 //   {type: "done", reason}             "complete" | "aborted" | "error"
 //
-// Self-contained on purpose: no QML globals and no .import, so tests run it
-// in node with a fake XMLHttpRequest.
+// Self-contained on purpose (no QML globals, no .import): tests run it in node with a fake XMLHttpRequest.
 
 var DEFAULT_MAX_TOKENS = 4096;
 var MAX_RESPONSE_BYTES = 20000000;
 
-// An OpenAI-style stream only carries token counts when asked
-// (stream_options.include_usage). Every streaming request asks; a server that
-// answers 400/422 naming the field gets the request again without it, and
-// its base URL is remembered so that happens once per session.
+// An OpenAI-style stream only carries token counts when asked (stream_options.include_usage). Every
+// streaming request asks; a server that answers 400/422 naming the field gets the request again without
+// it, and its base URL is remembered so that happens once per session.
 var _rejectsStreamOptions = {};
 
 // --- Server-sent events -----------------------------------------------------
@@ -134,8 +130,9 @@ function _trimSlash(url) {
 }
 
 // Builds {url, headers, body} for one request.
-// options: {type, baseUrl, apiKey, model, headers, system, messages, maxTokens, stream,
-//           streamUsage}  (streamUsage: false leaves out stream_options.include_usage)
+// options: {type, baseUrl, apiKey, model, headers, system, messages, maxTokens, stream, streamUsage,
+//           variantSend}  (streamUsage: false: no stream_options.include_usage; variantSend: the chosen
+//           model variant's request fragment, Variants.sendFor, {} for none)
 function buildRequest(options) {
     var headers = {"Content-Type": "application/json"};
     var extra = options.headers || {};
@@ -164,6 +161,11 @@ function buildRequest(options) {
         if (/^https?:\/\/([^/]*\.)?openrouter\.ai(\/|$)/i.test(String(options.baseUrl || "")))
             body.usage = {"include": true};
     }
+    // The variant's fragment is merged in, but the request's own fields always win over it. Anthropic
+    // wants max_tokens above a thinking budget: the room for the answer is added on top of the budget.
+    body = Object.assign({}, options.variantSend || {}, body);
+    var budget = body.thinking && body.thinking.type === "enabled" ? Number(body.thinking.budget_tokens) : 0;
+    if (budget > 0 && body.max_tokens <= budget) body.max_tokens += budget;
     for (var name in extra) {
         if (Object.prototype.hasOwnProperty.call(extra, name) && extra[name])
             headers[name] = String(extra[name]);

@@ -215,6 +215,9 @@
     <entry name="piModel" type="String">
       <default></default>
     </entry>
+    <entry name="piThinking" type="String">
+      <default></default>
+    </entry>
 
     <entry name="useOpenCode" type="Bool">
       <default>false</default>
@@ -229,6 +232,9 @@
       <default></default>
     </entry>
     <entry name="openCodeAgent" type="String">
+      <default></default>
+    </entry>
+    <entry name="openCodeVariant" type="String">
       <default></default>
     </entry>
     <entry name="openCodeWorkspaceCwd" type="String">

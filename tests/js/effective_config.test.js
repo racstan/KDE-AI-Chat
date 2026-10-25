@@ -137,7 +137,7 @@ const tests = {
 
     main_direct_resolves_the_providers_own_model() {
         const r = plain(E.resolve(mainDirect, null, off));
-        assert.deepStrictEqual(r, {mode: "provider", provider: "openai", model: "gpt-main", agent: "", thinking: "", source: "main",
+        assert.deepStrictEqual(r, {mode: "provider", provider: "openai", model: "gpt-main", agent: "", thinking: "", variant: "", source: "main",
                                    direct: {provider: "openai", model: "gpt-main"}});
         assert.strictEqual(plain(E.resolve({}, null, off)).provider, "openai", "no provider set -> openai");
     },
@@ -273,6 +273,32 @@ const tests = {
         assert.strictEqual(E.describe(E.resolve(mainDirect, null, off), names), "OpenAI · gpt-main");
         assert.strictEqual(E.describe({mode: "provider", provider: "x", model: ""}), "x");
     },
+    variant_follows_the_per_chat_priority_in_every_mode() {
+        const withMain = Object.assign({}, mainDirect, {variantFor: id => ({openai: "medium"}[id] || ""), openCodeVariant: "low", piThinking: "minimal"});
+        // Direct: the provider's own variant is the main value.
+        assert.strictEqual(E.resolve(withMain, null, off).variant, "medium");
+        assert.strictEqual(E.resolve(withMain, {source: "provider", ownModel: true, chatVariant: "high"}, on("chat")).variant, "high");
+        assert.strictEqual(E.resolve(withMain, {source: "provider", ownModel: true, chatVariant: "high"}, on("main")).variant, "medium");
+        assert.strictEqual(E.resolve(withMain, {source: "provider", ownModel: true, chatVariant: "high"}, off).variant, "medium", "switch off: main");
+        assert.strictEqual(E.resolve(withMain, {source: "provider", ownModel: true}, on("chat")).variant, "medium", "chat left it empty: main");
+        // A chat's direct variant belongs to the provider it was chosen for.
+        assert.strictEqual(E.resolve(withMain, {source: "provider", ownModel: true, chatProvider: "anthropic", chatVariant: "high"}, on("chat")).variant, "high");
+        assert.strictEqual(E.resolve(withMain, {source: "provider", ownModel: true, chatProvider: "anthropic"}, on("chat")).variant, "", "anthropic's own variant is empty");
+        // OpenCode and Pi: their own fields.
+        assert.strictEqual(E.resolve(Object.assign({}, withMain, {useOpenCode: true}), null, off).variant, "low");
+        assert.strictEqual(E.resolve(withMain, {source: "opencode", ownModel: true, openCodeVariant: "max"}, on("chat")).variant, "max");
+        assert.strictEqual(E.resolve(withMain, {source: "opencode", ownModel: true, openCodeVariant: "max"}, on("main")).variant, "low");
+        const pi = E.resolve(withMain, {source: "pi", ownModel: true, piThinking: "high"}, on("chat"));
+        assert.deepStrictEqual([pi.thinking, pi.variant], ["high", "high"]);
+        assert.deepStrictEqual([E.resolve(withMain, {source: "pi", ownModel: true}, on("chat")).thinking], ["minimal"], "the main Pi level");
+        // Another mode's variant never leaks in.
+        assert.strictEqual(E.resolve(withMain, {source: "provider", ownModel: true, openCodeVariant: "max", piThinking: "high"}, on("chat")).variant, "medium");
+    },
+    a_variant_alone_counts_as_the_chats_own_model_settings_when_the_flag_is_missing() {
+        assert.strictEqual(E.hasOwnModelSettings({chatVariant: "high"}), true);
+        assert.strictEqual(E.hasOwnModelSettings({openCodeVariant: "high"}), true);
+        assert.strictEqual(E.hasOwnModelSettings({chatVariant: ""}), false);
+    },
     describe_for_the_composer_bar_names_the_mode_and_adds_the_variant() {
         const names = id => ({nvidia: "NVIDIA NIM"}[id]);
         const bar = eff => E.describe(eff, names, {directLabel: "Direct", variant: E.variantText(eff, "")});
@@ -284,6 +310,11 @@ const tests = {
         assert.strictEqual(E.describe({mode: "provider", provider: "nvidia", model: "m"}, names, {directLabel: "Direct", variant: "fast"}), "Direct · NVIDIA NIM · m · fast");
         assert.strictEqual(E.variantText({mode: "pi", thinking: "low"}, "fast"), "fast", "a direct variant wins");
         assert.strictEqual(E.variantText({mode: "provider"}, ""), "");
+        assert.strictEqual(E.variantText({mode: "provider", variant: "high"}, ""), "variant high");
+        assert.strictEqual(E.variantText({mode: "opencode", agent: "build", variant: "max"}, ""), "agent build · variant max");
+        assert.strictEqual(E.variantText({mode: "opencode", agent: "", variant: "max"}, ""), "variant max");
+        assert.strictEqual(E.variantText({mode: "pi", thinking: "low", variant: "low"}, ""), "thinking low");
+        assert.strictEqual(bar({mode: "provider", provider: "nvidia", model: "m", variant: "high"}), "Direct · NVIDIA NIM · m · variant high");
         assert.strictEqual(E.PI_THINKING_LEVELS[0], "");
     },
 };

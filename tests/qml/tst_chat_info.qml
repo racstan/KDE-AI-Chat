@@ -5,6 +5,7 @@ import QtQuick.Controls as QQC2
 import QtTest
 import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui" as Ui
+import "../../org.kde.plasma.kdeaichat/contents/ui/ProviderVariants.js" as ProviderVariants
 
 Item {
     id: root
@@ -19,6 +20,25 @@ Item {
     function i18np(one, many, n) { return (n === 1 ? one : many).replace("%1", n); }
 
     FakeChat { id: chat }
+
+    // The provider's /models answer for the variant tests.
+    property var listBody: ({data: [
+        {id: "gpt-5", reasoning: {supported_efforts: ["low", "medium", "high"]}},
+        {id: "gpt-4o"}]})
+    function makeXhr() {
+        var x = {headers: {}, readyState: 0, status: 0, responseText: ""};
+        x.open = function(method, url) { x.method = method; x.url = url; };
+        x.setRequestHeader = function(k, v) { x.headers[k] = v; };
+        x.send = function() {
+            Qt.callLater(function() {
+                x.status = 200;
+                x.responseText = JSON.stringify(root.listBody);
+                x.readyState = 4;
+                x.onreadystatechange();
+            });
+        };
+        return x;
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -39,6 +59,10 @@ Item {
 
         function init() {
             dialog.close();
+            ProviderVariants.clear();
+            chat.openCodeVariants = ({});
+            chat.piThinkingModels = ({});
+            dialog.draft.xhrFactory = null;
             chat.calls = [];
             chat.currentSessionId = "a";
             chat.currentSessionTitle = "Trip planning";
@@ -487,6 +511,106 @@ Item {
             var o = chat.calls[chat.calls.length - 1].args[1];
             compare(o.chatSystemPrompt, "");
             compare(o.chatSystemPromptEnabled, true, "the default; nothing special is switched");
+        }
+        // --- Variants (reasoning levels): a picker only when the model has any ---
+
+        function variantSetup(session) {
+            configure({providersJson: JSON.stringify([
+                {id: "openai", name: "OpenAI", type: "openai-compat", baseUrl: "https://oa.example/v1", model: "gpt-4o"}])});
+            chat.walletApiKeys = {"openai": "k"};
+            dialog.draft.xhrFactory = root.makeXhr;
+            chat.sessions = [Object.assign({value: "a", text: "Trip planning"}, session)];
+        }
+
+        function test_23_a_direct_model_with_variants_gets_a_picker_and_the_choice_is_saved() {
+            variantSetup({source: "provider", ownModel: true, chatModel: "gpt-5"});
+            openPanel();
+            var form = findForm();
+            tryVerify(function() { return form.variantPicker.visible; }, 3000, "gpt-5 reports low, medium, high");
+            compare(form.variantPicker.count, 4, "Default and the three levels");
+            compare(form.variantPicker.currentText, "Default");
+            form.variantPicker.currentIndex = 3;
+            form.variantPicker.activated(3);
+            compare(dialog.draft.variant, "high");
+            verify(dialog.draft.dirty);
+            // (Earlier tests clicked this box, which detaches its binding; show the draft's state.)
+            find(dialog, "ownModelCheck").checked = dialog.draft.ownModel;
+            screenshot(root, "chat-info-variant");
+            dialog._save();
+            var o = chat.calls[chat.calls.length - 1].args[1];
+            compare(o.chatVariant, "high");
+            compare(o.chatModel, "gpt-5");
+            // Reopened, the stored id is what the picker shows.
+            openPanel();
+            form = findForm();
+            tryVerify(function() { return form.variantPicker.visible && form.variantPicker.currentText === "High"; }, 3000);
+        }
+
+        function test_24_a_model_without_variants_has_no_picker_and_another_model_drops_the_variant() {
+            variantSetup({source: "provider", ownModel: true, chatModel: "gpt-4o", chatVariant: "high"});
+            openPanel();
+            var form = findForm();
+            tryVerify(function() { return dialog.draft.modelCandidates.length > 0; }, 3000);
+            wait(50);
+            verify(!form.variantPicker.visible, "gpt-4o reports none: no picker");
+            // Typing a model that has variants shows the picker, with no variant chosen.
+            form.modelCombo.forceActiveFocus();
+            form.modelCombo.editText = "gpt-5";
+            tryVerify(function() { return form.variantPicker.visible; }, 3000);
+            compare(dialog.draft.variant, "", "the old model's variant is not kept");
+            dialog._save();
+            compare(chat.calls[chat.calls.length - 1].args[1].chatVariant, "");
+        }
+
+        function test_25_a_provider_that_reports_nothing_never_shows_a_picker() {
+            root.listBody = {data: [{id: "gpt-5"}, {id: "gpt-4o"}]};
+            variantSetup({source: "provider", ownModel: true, chatModel: "gpt-5"});
+            openPanel();
+            var form = findForm();
+            tryVerify(function() { return dialog.draft.modelCandidates.length > 0; }, 3000);
+            wait(50);
+            verify(!form.variantPicker.visible);
+            root.listBody = {data: [{id: "gpt-5", reasoning: {supported_efforts: ["low", "medium", "high"]}}, {id: "gpt-4o"}]};
+        }
+
+        function test_26_opencode_variants_come_from_the_servers_catalogue() {
+            variantSetup({source: "opencode", ownModel: true, openCodeProvider: "openrouter", openCodeModel: "auto", openCodeVariant: "low"});
+            chat.openCodeVariants = {"openrouter/auto": ["low", "high"], "openrouter/free": ["low"]};
+            openPanel();
+            var form = findForm();
+            verify(form.variantPicker.visible);
+            compare(form.variantPicker.count, 3);
+            compare(form.variantPicker.currentText, "Low");
+            form.variantPicker.currentIndex = 2;
+            form.variantPicker.activated(2);
+            dialog._save();
+            var o = chat.calls[chat.calls.length - 1].args[1];
+            compare(o.openCodeVariant, "high");
+            compare(o.chatVariant, "", "another mode's field is not touched");
+            // A model the catalogue gives no variants for: no picker.
+            chat.openCodeVariants = {"openrouter/free": ["low"]};
+            dialog.draft.load("a");
+            wait(20);
+            verify(!form.variantPicker.visible);
+        }
+
+        function test_27_pi_thinking_picker_only_for_a_thinking_model() {
+            variantSetup({source: "pi", ownModel: true, piProvider: "openai", piModel: "gpt-5", piThinking: "high"});
+            chat.piThinkingModels = {"openai/gpt-5": true};
+            openPanel();
+            var form = findForm();
+            var thinking = find(dialog, "thinkingPicker");
+            verify(thinking !== null && thinking.visible, "gpt-5 thinks");
+            compare(thinking.currentText, "High");
+            compare(thinking.count, 8, "Default and Pi's seven levels");
+            thinking.currentIndex = 4;
+            thinking.activated(4);
+            dialog._save();
+            compare(chat.calls[chat.calls.length - 1].args[1].piThinking, "medium");
+            chat.piThinkingModels = {};
+            dialog.draft.load("a");
+            wait(20);
+            verify(!thinking.visible, "a model Pi does not mark as thinking: no picker");
         }
     }
 }

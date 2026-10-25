@@ -34,6 +34,9 @@ ColumnLayout {
     property var listAll: []
     property bool showAll: false
     readonly property var modelCandidates: candidates(listChat, listAll, showAll, draft.model, checker.deadRevision)
+    // The draft model's variants, when the provider reports any (Variants.js).
+    property var draftVariants: []
+    property int _variantGeneration: 0
     property string status: ""
     property string statusKind: "info"
     // "" | "model" | "unverified": which "go on anyway" button is offered.
@@ -102,6 +105,7 @@ ColumnLayout {
         draftKey = wallet && wallet.keys ? (wallet.keys[draft.id] || "") : "";
         listChat = [];
         listAll = [];
+        draftVariants = [];
         showAll = false;
         overrideKind = "";
         setStatus("");
@@ -138,11 +142,31 @@ ColumnLayout {
         }
         var change = {};
         change[field] = value;
+        // A variant belongs to its model: another model starts without one.
+        if (field === "model")
+            change.variant = "";
         draft = Object.assign({}, draft, change);
         if (field === "baseUrl") {
             listChat = [];
             listAll = [];
+            draftVariants = [];
         }
+        if (field === "model" || field === "baseUrl")
+            loadVariants();
+    }
+
+    // Looks up the draft model's variants: from the list already fetched, so
+    // normally without a request.
+    function loadVariants() {
+        var entry = draftEntry();
+        var generation = ++_variantGeneration;
+        draftVariants = [];
+        if (entry.model === "" || !ProviderService.isHttpUrlAllowed(entry.baseUrl) || (draftKey.trim() === "" && !isLocal(entry)))
+            return;
+        checker.variantsFor(entry, draftKey.trim(), entry.model, function(variants) {
+            if (generation === _variantGeneration && editingIndex >= 0 && draft.id === entry.id)
+                draftVariants = variants;
+        });
     }
 
     // Saves the draft. Unless `skipCheck`, a cloud provider whose key, URL or
@@ -226,6 +250,7 @@ ColumnLayout {
             }
             listChat = result.chat;
             listAll = result.all;
+            loadVariants();
             setStatus(result.all.length > 0 ? i18n("%1 models available.", result.chat.length) : i18n("The provider returned no models."), "info"); // qmllint disable unqualified
             checkSavedModel(entry, key, force, result);
         });
@@ -335,6 +360,7 @@ ColumnLayout {
         draftKey: panel.draftKey
         local: panel.editingIndex >= 0 && panel.isLocal(panel.draft)
         models: panel.modelCandidates
+        variants: panel.draftVariants
         hiddenCount: panel.listAll.length - panel.listChat.length
         showAll: panel.showAll
         listing: checker.listing

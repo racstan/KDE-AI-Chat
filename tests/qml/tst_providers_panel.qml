@@ -6,6 +6,7 @@ import QtQuick.Controls as QQC2
 import QtTest
 import "../../org.kde.plasma.kdeaichat/contents/ui/config" as Config
 import "../../org.kde.plasma.kdeaichat/contents/ui/store" as Store
+import "../../org.kde.plasma.kdeaichat/contents/ui/ProviderVariants.js" as ProviderVariants
 
 Item {
     id: root
@@ -319,6 +320,68 @@ Item {
             panel.saveEdit(false);
             tryVerify(function() { return panel.editingIndex === -1; });
             compare(root.count("POST"), posts, "no chat request to a local server");
+        }
+
+        // --- Variants: a picker next to the model only when the provider reports some for it ---
+
+        function variantHandler(req) {
+            if (req.method === "GET")
+                return {status: 200, body: {object: "list", data: [
+                    {id: "acme/chat-big", reasoning: {supported_efforts: ["low", "high"]}},
+                    {id: "acme/chat-small", reasoning: {mandatory: false}},
+                    {id: "acme/plain"}]}};
+            return tc.defaultHandler(req);
+        }
+
+        function test_14_a_model_with_variants_gets_a_picker_and_the_choice_is_saved() {
+            root.handler = tc.variantHandler;
+            panel.providerChecker.cache = ({});
+            ProviderVariants.clear();
+            panel.startEdit(indexOfProvider("nvidia"));
+            tryVerify(function() { return panel.listAll.length === 3; });
+            var picker = tc.findChild(panel, "variantPicker");
+            verify(picker !== null);
+            panel.onFieldEdited("model", "meta/llama");
+            verify(!picker.visible, "a model that is not in the list has no variants");
+            panel.onFieldEdited("model", "acme/chat-big");
+            tryVerify(function() { return picker.visible; });
+            compare(picker.count, 3, "Default, low, high: as the provider reports them");
+            compare(picker.currentText, "Default");
+            picker.currentIndex = 2;
+            picker.activated(2);
+            compare(panel.draft.variant, "high");
+            screenshot(root, "providers-panel-variant");
+            panel.saveEdit(true);
+            tryVerify(function() { return panel.editingIndex === -1; });
+            var saved = JSON.parse(config.providersJson).filter(function(p) { return p.id === "nvidia"; })[0];
+            compare(saved.model, "acme/chat-big");
+            compare(saved.variant, "high", "only the id is stored");
+            compare(Object.keys(saved).sort().join(), "baseUrl,id,model,name,type,variant");
+            // Opening it again shows the stored choice.
+            panel.startEdit(indexOfProvider("nvidia"));
+            tryVerify(function() { return picker.visible && picker.currentText === "High"; });
+            panel.cancelEdit();
+        }
+
+        function test_15_a_model_without_variants_has_no_picker_and_clears_the_variant() {
+            root.handler = tc.variantHandler;
+            panel.providerChecker.cache = ({});
+            ProviderVariants.clear();
+            panel.startEdit(indexOfProvider("nvidia"));
+            tryVerify(function() { return panel.listAll.length === 3; });
+            var picker = tc.findChild(panel, "variantPicker");
+            tryVerify(function() { return picker.visible; });
+            panel.onFieldEdited("model", "acme/plain");
+            verify(!picker.visible, "acme/plain reports nothing");
+            compare(panel.draft.variant, "", "another model starts without a variant");
+            panel.onFieldEdited("model", "acme/chat-small");
+            wait(50);
+            verify(!picker.visible, "reasoning without levels is not a variant");
+            panel.saveEdit(true);
+            tryVerify(function() { return panel.editingIndex === -1; });
+            var saved = JSON.parse(config.providersJson).filter(function(p) { return p.id === "nvidia"; })[0];
+            verify(!("variant" in saved), "nothing stored for a model without variants");
+            root.handler = tc.defaultHandler;
         }
 
         function test_13_default_and_remove() {

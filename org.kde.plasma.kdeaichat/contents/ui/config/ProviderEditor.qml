@@ -33,6 +33,9 @@ Kirigami.FormLayout {
     property string overrideText: ""
     // Why the chosen model is flagged ("" when it is not).
     property string modelWarning: ""
+    // The chosen model's variants (reasoning levels) when its provider reports
+    // any: [{id, label}]. Empty: no picker.
+    property var variants: []
 
     signal fieldEdited(string field, var value)
     signal refreshClicked()
@@ -85,6 +88,14 @@ Kirigami.FormLayout {
             enabled: !editor.listing && !editor.checking
             onClicked: editor.refreshClicked()
         }
+    }
+    Components.VariantPicker {
+        objectName: "variantPicker"
+        Kirigami.FormData.label: i18n("Variant:")
+        Layout.fillWidth: true
+        variants: editor.variants
+        value: editor.draft.variant || ""
+        onPicked: function(id) { editor.fieldEdited("variant", id); }
     }
     QQC2.Label {
         objectName: "modelWarning"

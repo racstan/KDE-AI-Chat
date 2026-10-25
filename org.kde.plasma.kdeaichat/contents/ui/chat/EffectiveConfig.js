@@ -12,7 +12,7 @@
 // and that is stored like any other.
 //
 // The two settings below (Settings -> Chat) only decide which provider, model,
-// agent and thinking level the chat uses WITHIN its mode:
+// agent and variant (reasoning / thinking level) the chat uses WITHIN its mode:
 //   perChatModelSettings  false: every chat uses the main settings for those. A
 //                         chat's own model settings stay in storage but are
 //                         ignored.
@@ -34,9 +34,11 @@
 //                                          where M left it empty (typically:
 //                                          no model chosen in the main settings)
 // Each mode keeps its own fields (direct: provider + model; OpenCode:
-// provider + model + agent; Pi: provider + model + thinking), so a fallback
-// always belongs to the mode in use. A chat's direct model is only used with
-// the provider it was chosen for.
+// provider + model + agent + variant; Pi: provider + model + thinking), so a
+// fallback always belongs to the mode in use. A chat's direct model (and its
+// variant) is only used with the provider it was chosen for. A variant is
+// stored as its id only (Variants.js); whether it is still offered by the model
+// is checked when the request is built, not here.
 
 var MODES = ["provider", "opencode", "pi"];
 
@@ -98,7 +100,7 @@ function hasOwnModelSettings(chat) {
         return true;
     if (chat.ownModel === false)
         return false;
-    var keys = ["chatProvider", "chatModel", "openCodeProvider", "openCodeModel", "openCodeAgent", "piProvider", "piModel", "piThinking"];
+    var keys = ["chatProvider", "chatModel", "chatVariant", "openCodeProvider", "openCodeModel", "openCodeAgent", "openCodeVariant", "piProvider", "piModel", "piThinking"];
     for (var i = 0; i < keys.length; i++) {
         if (_s(chat[keys[i]]) !== "")
             return true;
@@ -117,18 +119,22 @@ function _firstOf(candidates) {
 }
 
 // main: {useOpenCode, usePi, provider, openCodeProvider, openCodeModel, openCodeAgent,
-//        piProvider, piModel, modelFor(providerId) -> that provider's configured model}
-// chat: the stored chat ({source, chatProvider, chatModel, openCodeProvider, openCodeModel,
-//       openCodeAgent, piProvider, piModel, piThinking, ownModel}) or null
+//        openCodeVariant, piProvider, piModel, piThinking,
+//        modelFor(providerId) -> that provider's configured model,
+//        variantFor(providerId) -> that provider's configured variant id}
+// chat: the stored chat ({source, chatProvider, chatModel, chatVariant, openCodeProvider, openCodeModel,
+//       openCodeAgent, openCodeVariant, piProvider, piModel, piThinking, ownModel}) or null
 // opts: {perChat: bool, priority: "chat" | "main"}
-// Returns {mode (always the chat's own), provider, model, agent, thinking,
+// Returns {mode (always the chat's own), provider, model, agent, thinking, variant,
 //          source: "main" | "chat" (where those fields come from),
-//          direct: {provider, model}}; provider/model/agent/thinking are those
-// of `mode`, and `direct` is always the direct-provider pair (used for things
+//          direct: {provider, model}}; provider/model/agent/thinking/variant are those
+// of `mode` (variant: the variant id of the mode; for Pi it is the thinking
+// level), and `direct` is always the direct-provider pair (used for things
 // that always call a provider, such as naming a chat).
 function resolve(main, chat, opts) {
     main = main || {};
     var modelFor = typeof main.modelFor === "function" ? main.modelFor : function() { return ""; };
+    var variantFor = typeof main.variantFor === "function" ? main.variantFor : function() { return ""; };
     var chatFirst = !(opts && opts.priority === "main");
     var useChat = !!(opts && opts.perChat === true) && hasOwnModelSettings(chat);
     var mainDirect = _s(main.provider) || "openai";
@@ -154,9 +160,11 @@ function resolve(main, chat, opts) {
     var chatDirectProvider = useChat && !legacyPi ? (_s(chat.chatProvider) || mainDirect) : "";
     var chatModel = useChat && !legacyPi && chatDirectProvider === provider.value ? chat.chatModel : "";
     var model = field(modelFor(provider.value), chatModel);
-    var directFromChat = provider.from === "chat" || model.from === "chat";
+    var chatVariant = useChat && !legacyPi && chatDirectProvider === provider.value ? chat.chatVariant : "";
+    var variant = field(variantFor(provider.value), chatVariant);
+    var directFromChat = provider.from === "chat" || model.from === "chat" || variant.from === "chat";
 
-    var result = {"mode": mode, "provider": provider.value, "model": model.value, "agent": "", "thinking": "",
+    var result = {"mode": mode, "provider": provider.value, "model": model.value, "agent": "", "thinking": "", "variant": variant.value,
                   "direct": {"provider": provider.value, "model": model.value}};
     var fromChat = false;
     if (mode === "provider") {
@@ -168,14 +176,17 @@ function resolve(main, chat, opts) {
         result.provider = ocProvider.value;
         result.model = ocModel.value;
         result.agent = ocAgent.value;
-        fromChat = ocProvider.from === "chat" || ocModel.from === "chat" || ocAgent.from === "chat";
+        var ocVariant = field(main.openCodeVariant, useChat ? chat.openCodeVariant : "");
+        result.variant = ocVariant.value;
+        fromChat = ocProvider.from === "chat" || ocModel.from === "chat" || ocAgent.from === "chat" || ocVariant.from === "chat";
     } else {
         var piProvider = field(main.piProvider, useChat ? (legacyPi ? chat.chatProvider : chat.piProvider) : "");
         var piModel = field(main.piModel, useChat ? (legacyPi ? chat.chatModel : chat.piModel) : "");
-        var piThinking = field("", useChat ? chat.piThinking : "");
+        var piThinking = field(main.piThinking, useChat ? chat.piThinking : "");
         result.provider = piProvider.value;
         result.model = piModel.value;
         result.thinking = piThinking.value;
+        result.variant = piThinking.value;
         fromChat = piProvider.from === "chat" || piModel.from === "chat" || piThinking.from === "chat";
     }
     result.source = useChat && fromChat ? "chat" : "main";
@@ -183,19 +194,20 @@ function resolve(main, chat, opts) {
 }
 
 // Builds the main-settings object for resolve() from plasmoid.configuration.
-// modelFor(providerId) gives that provider's configured model (ProviderService).
-function mainFromConfig(config, modelFor) {
+// modelFor / variantFor(providerId) give that provider's configured model / variant id (ProviderService).
+function mainFromConfig(config, modelFor, variantFor) {
     config = config || {};
     return {"useOpenCode": config.useOpenCode === true, "usePi": config.usePi === true,
             "provider": config.provider, "openCodeProvider": config.openCodeProvider,
             "openCodeModel": config.openCodeModel, "openCodeAgent": config.openCodeAgent,
-            "piProvider": config.piProvider, "piModel": config.piModel, "modelFor": modelFor};
+            "openCodeVariant": config.openCodeVariant, "piProvider": config.piProvider, "piModel": config.piModel,
+            "piThinking": config.piThinking, "modelFor": modelFor, "variantFor": variantFor};
 }
 
 // resolve() for a stored chat, with the two settings read from the configuration.
-function forSession(config, session, modelFor) {
+function forSession(config, session, modelFor, variantFor) {
     config = config || {};
-    return resolve(mainFromConfig(config, modelFor), session,
+    return resolve(mainFromConfig(config, modelFor, variantFor), session,
                    {"perChat": config.perChatModelSettings === true, "priority": config.perChatPriority});
 }
 
@@ -216,16 +228,20 @@ function agentOwner(config, session) {
 var PI_THINKING_LEVELS = ["", "off", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 // The chat's "variant" as a short phrase, or "": Pi's thinking level
-// ("thinking high"), OpenCode's agent ("agent build"). `extra` is a variant a
-// direct chat brings itself (shown as is, and it wins).
+// ("thinking high"), OpenCode's agent and variant ("agent build · variant high"),
+// a direct chat's variant ("variant high"). `extra` is text the caller brings
+// itself (shown as is, and it wins).
 function variantText(eff, extra) {
     if (_s(extra) !== "")
         return _s(extra);
     if (eff.mode === "pi" && _s(eff.thinking) !== "")
         return "thinking " + _s(eff.thinking);
+    var parts = [];
     if (eff.mode === "opencode" && _s(eff.agent) !== "")
-        return "agent " + _s(eff.agent);
-    return "";
+        parts.push("agent " + _s(eff.agent));
+    if (eff.mode !== "pi" && _s(eff.variant) !== "")
+        parts.push("variant " + _s(eff.variant));
+    return parts.join(" · ");
 }
 
 // "Pi · OpenAI · gpt-x" for the Chat info panel; names(providerId) -> display name.

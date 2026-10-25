@@ -36,6 +36,10 @@ function promptBody(options) {
         body.model = {"providerID": options.providerId, "modelID": options.modelId};
     if (options.system)
         body.system = options.system;
+    // The model's variant, by name (Variants.fromOpenCodeNames): OpenCode merges
+    // that variant's options itself. Only this one key is taken from the fragment.
+    if (options.variantSend && options.variantSend.variant)
+        body.variant = String(options.variantSend.variant);
     return body;
 }
 
