@@ -17,6 +17,7 @@
 //                               the model has variants)
 //   /new                        start a new chat
 //   /mode <direct|opencode|pi>  the mode of NEW chats only; the open chat keeps its mode
+//   /image <prompt>             make a picture with the default image service (direct chats only)
 
 var MODES = ["direct", "opencode", "pi"];
 
@@ -26,7 +27,8 @@ var COMMANDS = [
     {"name": "model", "args": "[name]", "description": "Change this chat's model"},
     {"name": "variant", "args": "[name]", "description": "Change this chat's variant (reasoning level)", "needsVariants": true},
     {"name": "new", "args": "", "description": "Start a new chat"},
-    {"name": "mode", "args": "<direct|opencode|pi>", "description": "Mode for NEW chats only; this chat keeps its mode"}
+    {"name": "mode", "args": "<direct|opencode|pi>", "description": "Mode for NEW chats only; this chat keeps its mode"},
+    {"name": "image", "args": "<prompt>", "description": "Make a picture with the default image service"}
 ];
 
 function find(name) {

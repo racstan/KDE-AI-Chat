@@ -72,6 +72,20 @@ open(path, "w", encoding="utf-8").write(src[:start] + hook + src[end:])
 PY
 fi
 
+# DEV_IMAGE_PROMPT="text": in the staged copy only, the widget runs "/image text" once,
+# a few seconds after it starts, through root.sendImageCommand (what the composer's
+# /image calls after its own checks). scripts/dev-image.sh passes it through.
+if [ -n "${DEV_IMAGE_PROMPT:-}" ]; then
+    python3 - "$STAGE/$DEV_ID/contents/ui/main.qml" "$DEV_IMAGE_PROMPT" <<'PY'
+import json, sys
+path, prompt = sys.argv[1:]
+src = open(path, encoding="utf-8").read()
+end = src.rstrip().rindex("}")
+hook = "    Timer { interval: 5000; running: true; onTriggered: root.sendImageCommand(%s) }\n" % json.dumps(prompt)
+open(path, "w", encoding="utf-8").write(src[:end] + hook + src[end:])
+PY
+fi
+
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 

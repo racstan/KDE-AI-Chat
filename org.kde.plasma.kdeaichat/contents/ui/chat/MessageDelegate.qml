@@ -156,7 +156,7 @@ Item {
 
                             PC3.Label {
                                 objectName: "streamStatus"
-                                text: row.chat.currentStreamText === "" ? i18n("Thinking…") : i18n("Writing…")
+                                text: row.message.imageJob ? i18n("Making a picture…") : row.chat.currentStreamText === "" ? i18n("Thinking…") : i18n("Writing…")
                                 font: Kirigami.Theme.smallFont
                                 opacity: 0.7
                             }
@@ -216,6 +216,18 @@ Item {
                     sourceComponent: QuoteBlock {
                         chat: row.chat
                         quotes: row.message.quotes
+                    }
+                }
+
+                // A picture being made: the queue place and wait time, or the countdown, and Stop.
+                Loader {
+                    active: !!row.message.imageJob
+                    visible: active
+                    Layout.fillWidth: true
+                    sourceComponent: ImageJobCard {
+                        job: row.message.imageJob
+                        live: row.streaming
+                        onStopRequested: row.chat.stopStreaming()
                     }
                 }
 

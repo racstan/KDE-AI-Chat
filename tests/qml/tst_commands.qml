@@ -106,7 +106,7 @@ Item {
         function test_1_slash_lists_commands_before_templates() {
             keyClick("/");
             tryVerify(() => composer.suggestions.visible, 1000);
-            compare(names().join(" "), "command:model command:new command:mode template:fix template:summarize", "/variant is not offered: no variants");
+            compare(names().join(" "), "command:model command:new command:mode command:image template:fix template:summarize", "/variant is not offered: no variants");
             wait(300);
             screenshot(root.Window.window.contentItem, "commands-list");
         }
@@ -266,6 +266,30 @@ Item {
             mouseClick(findChild(composer, "sendButton"));
             compare(calls("create").length, 1);
             compare(calls("send").length, 0);
+        }
+
+        function test_17_image_makes_a_picture_and_is_not_sent() {
+            type("/image a red fox in the snow");
+            keyClick(Qt.Key_Return);
+            compare(calls("image").length, 1);
+            compare(calls("image")[0].args[0], "a red fox in the snow");
+            compare(calls("send").length, 0);
+            compare(composer.input.text, "");
+        }
+
+        function test_18_image_needs_a_prompt_and_an_image_service() {
+            type("/image");
+            keyClick(Qt.Key_Return);
+            compare(calls("image").length, 0);
+            compare(notice(), "Write what to draw, like /image a red fox in the snow.");
+            composer.input.text = "";
+            chat.imageCommandResult = {"ok": false, "code": "none", "problem": ""};
+            type("/image a fox");
+            keyClick(Qt.Key_Return);
+            compare(composer.input.text, "/image a fox", "kept, to try again after adding a service");
+            verify(notice().indexOf("Add an image service first") === 0, notice());
+            compare(calls("send").length, 0);
+            chat.imageCommandResult = {"ok": true, "code": "", "problem": ""};
         }
     }
 }

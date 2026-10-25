@@ -22,6 +22,7 @@ QtObject {
                     current.content = chat.currentStreamText;
                 if (chat.currentStreamReasoning)
                     current.reasoning = chat.currentStreamReasoning;
+                delete current.imageJob;
                 if (!current.content && !current.reasoning && !current.tools && !chat.imageStore.hasImages(current))
                     copy.splice(chat.currentStreamIndex, 1);
                 chat.messages = copy;
@@ -93,6 +94,10 @@ QtObject {
             // Images the model sent: saved as files, then added to this reply.
             replies.ensureStreamingMessage(model);
             chat.imageStore.addFromReply(chat.currentSessionId, chat.currentStreamKey, event.items, Object.assign({"model": model}, event.meta || {}));
+        } else if (event.type === "image_job") {
+            // An image service is working: the reply shows its progress (chat/ImageJobCard.qml) until the pictures come.
+            replies.ensureStreamingMessage(model);
+            replies.updateMessageAt(chat.currentStreamIndex, function(msg) { msg.imageJob = event.job; });
         } else if (event.type === "usage") {
             var usage = Object.assign({}, chat.currentStreamUsage);
             if (event.input !== undefined) usage.input = event.input;
@@ -110,6 +115,7 @@ QtObject {
                 var reply = Object.assign({}, msgs[chat.currentStreamIndex]);
                 reply.content = chat.currentStreamText || (reply.tools || chat.imageStore.hasImages(reply) ? "" : "(empty response)");
                 reply.reasoning = chat.currentStreamReasoning;
+                delete reply.imageJob;
                 reply = chat.imageStore.takeInlineImages(chat.currentSessionId, reply);
                 if (chat.currentStreamUsage.input !== undefined || chat.currentStreamUsage.output !== undefined)
                     reply.tokens = {"input": chat.currentStreamUsage.input || 0, "output": chat.currentStreamUsage.output || 0};

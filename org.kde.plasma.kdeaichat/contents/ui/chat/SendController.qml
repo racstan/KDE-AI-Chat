@@ -3,6 +3,7 @@
 // (direct, OpenCode or Pi). Also tracks which request is current, so a reply
 // never writes into another chat. `chat` is the widget root (main.qml).
 import QtQuick
+import "../ProviderService.js" as ProviderService
 import "PromptTemplates.js" as PromptTemplates
 import "TimeFormat.js" as TimeFormat
 
@@ -187,6 +188,25 @@ QtObject {
         chat.currentStreamReasoning = "";
         chat.currentStreamExtractedReasoning = "";
         chat.streamingResponse = false;
+    }
+
+    // "/image <prompt>": makes a picture with the default image service as the reply to this message.
+    // Returns {ok, code, problem}: code "none" when there is no image service yet, "invalid" with
+    // `problem` (plain words) when the default one can't be used now.
+    function sendImageCommand(prompt) {
+        var providerId = ProviderService.defaultImageProvider(chat.plasmoid.configuration);
+        if (providerId === "")
+            return {"ok": false, "code": "none", "problem": ""};
+        var cfg = chat.getProviderConfig(providerId, chat.currentSessionId);
+        var problem = sender.imageJobsRef.validate(providerId, cfg);
+        if (problem !== "")
+            return {"ok": false, "code": "invalid", "problem": problem};
+        sender.appendUserMessage("/image " + prompt, "user", [], []);
+        sender.resetStream();
+        var sessionId = chat.currentSessionId;
+        chat.setCurrentSessionSource();
+        sender.imageJobsRef.send(sessionId, sender.beginRequest(sessionId), cfg, providerId, prompt);
+        return {"ok": true, "code": "", "problem": ""};
     }
 
     function sendMessageByIndex(index) {

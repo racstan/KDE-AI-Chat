@@ -47,6 +47,7 @@ TestCase {
             { tag: "chat/ImageViewer", url: uiDir + "chat/ImageViewer.qml" },
             { tag: "chat/ImageStore", url: uiDir + "chat/ImageStore.qml" },
             { tag: "chat/ImageJobs", url: uiDir + "chat/ImageJobs.qml" },
+            { tag: "chat/ImageJobCard", url: uiDir + "chat/ImageJobCard.qml" },
             { tag: "config/ImageProvidersPanel", url: uiDir + "config/ImageProvidersPanel.qml" },
             { tag: "config/ImageProviderEditor", url: uiDir + "config/ImageProviderEditor.qml" },
             { tag: "config/ImageModels", url: uiDir + "config/ImageModels.qml" },

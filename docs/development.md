@@ -21,6 +21,14 @@ scripts/dev-send.sh openrouter openrouter/auto ["message"]
 
 It copies that provider's key from your KWallet folder `KDEAIChat` into the dev folder `KDEAIChat-dev` inside D-Bus (never printed), delivers the message as a scheduler trigger, prints the conversation, and deletes the dev folder afterwards.
 
+To make **one real picture** with AI Horde (anonymous, no key) through the `/image` path:
+
+```bash
+scripts/dev-image.sh ["prompt"] [seconds]
+```
+
+It switches AI Horde on in the sandbox, runs `/image` once, then prints the chat and the saved image files. Each run is a real job on a community service (the prompt is seen by a volunteer and anonymous images are shared with LAION), so use a harmless prompt and keep runs rare.
+
 The agent modes have their own end-to-end runs, which need no model credit:
 
 ```bash

@@ -294,6 +294,7 @@ PlasmoidItem {
     function beginRequest(sessionId) { return sender.beginRequest(sessionId); }
     function pushErrorMessage(text) { sender.pushErrorMessage(text); }
     function sendMessage() { sender.sendMessage(); }
+    function sendImageCommand(prompt) { return sender.sendImageCommand(prompt); }
     function sendMessageByIndex(index) { sender.sendMessageByIndex(index); }
     function processNextQueuedMessage() { sender.processNextQueuedMessage(); }
     function stopStreaming() { sender.stopStreaming(); }

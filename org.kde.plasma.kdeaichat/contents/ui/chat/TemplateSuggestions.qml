@@ -32,6 +32,7 @@ QQC2.Popup {
         return entry.name === "model" ? i18n("Change this chat's model")
             : entry.name === "variant" ? i18n("Change this chat's variant (reasoning level)")
             : entry.name === "new" ? i18n("Start a new chat")
+            : entry.name === "image" ? i18n("Make a picture with the default image service")
             : entry.name === "mode" ? i18n("Mode for NEW chats only; this chat keeps its mode") : entry.description;
     }
 

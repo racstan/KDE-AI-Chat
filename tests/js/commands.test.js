@@ -28,12 +28,19 @@ assert.strictEqual(C.resolve("/etc/hosts?"), null);
 assert.strictEqual(C.resolve("/fix this"), null);
 assert.strictEqual(C.resolve("/new\nand more text"), null);
 assert.strictEqual(C.resolve("hello /new"), null);
+assert.deepStrictEqual(plain(C.resolve("/image a red fox in the snow").arg), "a red fox in the snow");
+assert.strictEqual(C.resolve("/image").command.name, "image");
+assert.strictEqual(C.resolve("/image").arg, "");
+assert.strictEqual(C.resolve("/image a fox\nand more"), null);
 
 // "/" lists commands first, then templates; /variant only with variants
-assert.deepStrictEqual(names(C.suggest("/", templates, {})), ["command:model", "command:new", "command:mode", "template:fix", "template:modeling", "template:new-year"]);
+assert.deepStrictEqual(names(C.suggest("/", templates, {})), ["command:model", "command:new", "command:mode", "command:image", "template:fix", "template:modeling", "template:new-year"]);
 assert.ok(names(C.suggest("/", templates, {hasVariants: true})).indexOf("command:variant") === 1);
 assert.deepStrictEqual(names(C.suggest("/mo", templates, {})), ["command:model", "command:mode", "template:modeling"]);
 assert.deepStrictEqual(names(C.suggest("/new", templates, {})), ["command:new", "template:new-year"]);
+assert.deepStrictEqual(names(C.suggest("/im", templates, {})), ["command:image"]);
+assert.strictEqual(C.suggest("/im", [], {})[0].insert, "/image ");
+assert.strictEqual(C.suggest("/im", [], {})[0].usage, "<prompt>");
 assert.strictEqual(C.suggest("hello", templates, {}).length, 0);
 assert.strictEqual(C.suggest("/zzz", templates, {}).length, 0);
 
@@ -52,5 +59,6 @@ assert.deepStrictEqual(names(C.suggest("/variant h", [], ctx2)), ["option:high"]
 assert.deepStrictEqual(names(C.suggest("/mode p", [], ctx2)), ["option:pi", "option:opencode"]);
 assert.deepStrictEqual(names(C.suggest("/mode ", [], ctx2)), ["option:direct", "option:opencode", "option:pi"]);
 assert.strictEqual(C.suggest("/new x", [], ctx2).length, 0);
+assert.strictEqual(C.suggest("/image a fox", [], ctx2).length, 0, "the prompt is free text");
 assert.strictEqual(C.suggest("/fix some text", templates, ctx2).length, 0);
 console.log("ok");
