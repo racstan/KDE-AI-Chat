@@ -8,6 +8,12 @@ Item {
     width: 480
     height: 80
 
+    function i18n(text) {
+        for (var i = 1; i < arguments.length; i++)
+            text = text.replace("%" + i, arguments[i]);
+        return text;
+    }
+
     Chat.PermissionButtons {
         id: buttons
         message: ({"status": "pending", "canAlways": true})

@@ -83,7 +83,29 @@ QtObject {
     function saveSessionRename() { record("saveRename", arguments); editingSessionId = ""; }
     function cancelSessionRename() { editingSessionId = ""; }
     function setSessionArchived() { record("archive", arguments); }
-    function deleteSession() { record("deleteSession", arguments); }
+    function deleteSession(id) {
+        record("deleteSession", arguments);
+        var index = sessions.findIndex(function(x) { return x.value === id; });
+        if (index < 0) return;
+        var rest = sessions.slice();
+        var removed = rest.splice(index, 1)[0];
+        sessions = rest;
+        sessionDeleted(removed, index);
+    }
+    function persistSessions() { record("persist", arguments); }
+    signal sessionDeleted(var session, int index)
+
+    // What chat/EmptyState.qml, ErrorActions and the composer's templates read.
+    property bool openCodeMode: false
+    property bool piMode: false
+    property var promptTemplates: []
+    property string providerId: "openrouter"
+    property string providerModel: "openrouter/auto"
+    property string providerBaseUrl: "https://openrouter.ai/api/v1"
+    function getEffectiveProvider() { return providerId; }
+    function getProviderConfig() { return {"model": providerModel, "baseUrl": providerBaseUrl}; }
+    function providerDisplayName(id) { return id === "openrouter" ? "OpenRouter" : id; }
+    function openSettings() { record("openSettings", arguments); }
 
     function messageDayKeyAt(i) { return "2026-10-25"; }
     function dayDividerLabelForIndex(i) { return "Today"; }

@@ -1,10 +1,14 @@
-// An agent's question (a question_request message): option buttons per
-// question, an optional typed answer, Submit / Dismiss, then the outcome.
+// An agent's question (a question_request message): each question with its
+// option buttons, an optional typed answer, Submit / Dismiss, then the
+// outcome. It shows the questions itself, so the message's own text (which
+// repeats them) is not shown above it.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+// i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
+// qmllint disable unqualified
 
 ColumnLayout {
     id: card
@@ -20,7 +24,7 @@ ColumnLayout {
     spacing: Kirigami.Units.smallSpacing
 
     Repeater {
-        model: card.pending ? card.questions : []
+        model: card.questions
 
         delegate: ColumnLayout {
             id: question
@@ -32,15 +36,26 @@ ColumnLayout {
             spacing: Kirigami.Units.smallSpacing
 
             PC3.Label {
-                visible: (question.modelData.header || "") !== ""
+                objectName: "questionHeader"
+                visible: (question.modelData.header || "") !== "" && question.modelData.header !== question.modelData.question
                 text: question.modelData.header || ""
+                font: Kirigami.Theme.smallFont
+                opacity: 0.7
+            }
+
+            PC3.Label {
+                objectName: "questionText"
+                visible: text !== ""
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: question.modelData.question || question.modelData.header || ""
                 font.bold: true
             }
 
             Flow {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
-                visible: (question.modelData.options || []).length > 0
+                visible: card.pending && (question.modelData.options || []).length > 0
 
                 Repeater {
                     model: question.modelData.options || []
@@ -72,6 +87,7 @@ ColumnLayout {
         visible: card.pending && card.message.allowCustom !== false
         Layout.fillWidth: true
         placeholderText: card.questions.length > 0 ? i18n("Or type your own answer…") : i18n("Type your answer…")
+        Accessible.name: placeholderText
         onAccepted: if (text.trim() !== "") card.chat.respondToQuestion(card.questionId, text, false)
     }
 
@@ -79,7 +95,8 @@ ColumnLayout {
         visible: card.pending
         spacing: Kirigami.Units.smallSpacing
 
-        PC3.Button {
+        PrimaryButton {
+            objectName: "submitButton"
             text: i18n("Submit")
             icon.name: "mail-send"
             onClicked: card.chat.submitQuestionAnswer(card.questionId, card.questions, customAnswer)
@@ -92,13 +109,26 @@ ColumnLayout {
         }
     }
 
-    PC3.Label {
+    RowLayout {
         visible: !card.pending
         Layout.fillWidth: true
-        wrapMode: Text.Wrap
-        text: card.status === "answered" ? i18n("Answered: %1", String(card.message.submittedAnswer || ""))
-            : card.status === "dismissed" ? i18n("Dismissed") : i18n("Sending answer…")
-        color: card.status === "answered" ? Kirigami.Theme.positiveTextColor
-             : card.status === "dismissed" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+        spacing: Kirigami.Units.smallSpacing
+
+        Kirigami.Icon {
+            visible: card.status === "answered"
+            source: "dialog-ok-apply"
+            color: Kirigami.Theme.positiveTextColor
+            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+            Layout.preferredHeight: Kirigami.Units.iconSizes.small
+        }
+
+        PC3.Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            text: card.status === "answered" ? i18n("Answered: %1", String(card.message.submittedAnswer || ""))
+                : card.status === "dismissed" ? i18n("Dismissed") : i18n("Sending answer…")
+            color: card.status === "answered" ? Kirigami.Theme.positiveTextColor
+                 : card.status === "dismissed" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+        }
     }
 }
