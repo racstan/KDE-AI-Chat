@@ -102,6 +102,7 @@ QtObject {
             "header": "", "question": q.question, "multiple": false, "custom": q.allowTyped,
             "options": q.options.map(function(label) { return {"label": label, "description": ""}; })}]},
             ctx.model, {"harness": "direct", "name": ctx.model});
+        // DEV_AUTO_ANSWER (scripts/dev-run.sh replaces this line in its staged copy only)
     }
 
     // An answer from the question card or the notification: one string, or one array of labels per question.

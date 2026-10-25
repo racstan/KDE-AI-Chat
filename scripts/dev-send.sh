@@ -9,6 +9,7 @@
 # the dev folder "KDEAIChat-dev" inside D-Bus (never printed or put on a
 # command line) and that folder is deleted afterwards, even on failure.
 # The message is delivered as a scheduler trigger, so no clicking is needed.
+# DEV_AUTO_ANSWER="Tea" answers the model's ask_user questions with that text (see dev-run.sh).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -87,4 +88,8 @@ for path in glob.glob(f"{sys.argv[1]}/data/kdeaichat/chats/applet-4/chat-*.ini")
             for m in json.loads(raw):
                 extra = f" model={m.get('model')} tokens={m.get('tokens')}" if m.get("role") == "assistant" else ""
                 print(f"[{m.get('role')}]{extra}: {str(m.get('content', ''))[:400]}")
+                for call_id, tool in (m.get("tools") or {}).items():
+                    print(f"    tool {tool.get('name')} [{tool.get('status')}] {tool.get('detail', '')!r} -> {str(tool.get('output', ''))[:120]!r}")
+                if m.get("role") == "question_request":
+                    print(f"    question [{m.get('status')}] answer={m.get('submittedAnswer')!r}")
 PY

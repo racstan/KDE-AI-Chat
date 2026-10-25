@@ -124,7 +124,7 @@ QtObject {
 
     function sendDirectRequest(cfg, sessionId, generation, variantSend) {
         var apiType = cfg.type === "anthropic" ? "anthropic" : "openai";
-        var tools = DirectTools.toolDefinitions(apiType, {"askUser": false});
+        var tools = DirectTools.toolDefinitions(apiType, {"askUser": chat.plasmoid.configuration.allowAskUser !== false});
         var withTools = tools.length > 0 && !DirectBackend.rejectsTools({"baseUrl": cfg.baseUrl, "model": cfg.model || ""});
         var parts = direct.buildDirectRequestParts(sessionId, apiType, withTools);
         chat.currentStreamUsage = ({});

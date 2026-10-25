@@ -307,6 +307,10 @@
     <entry name="autoNameChats" type="Bool">
       <default>true</default>
     </entry>
+    <!-- Direct mode: offer the model the ask_user tool (chat/DirectToolRounds.qml). -->
+    <entry name="allowAskUser" type="Bool">
+      <default>true</default>
+    </entry>
 
     
 
