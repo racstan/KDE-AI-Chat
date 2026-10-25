@@ -1,7 +1,8 @@
-// Keyboard: Ctrl+N, Ctrl+H, Esc, Up in an empty input, "/" for templates.
+// Keyboard: Ctrl+N/H/I/L, Esc, Ctrl+Shift+R/C, Ctrl+PgUp/PgDown, Ctrl+, Up in an empty input, "/" for templates.
 import QtQuick
 import QtQuick.Window
 import QtTest
+import "../../org.kde.plasma.kdeaichat/contents/ui/chat/ShortcutList.js" as ShortcutList
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 
 Item {
@@ -45,6 +46,12 @@ Item {
         chat: chat
     }
 
+    SignalSpy {
+        id: infoSpy
+        target: shortcuts
+        signalName: "chatInfoRequested"
+    }
+
     HarnessTestCase {
         name: "Shortcuts"
 
@@ -63,6 +70,9 @@ Item {
             chat.messages = [{role: "user", content: "First", time: "10:00"}, {role: "assistant", model: "m", content: "Reply", time: "10:00"},
                              {role: "user", content: "Last question", time: "10:01"}, {role: "assistant", model: "m", content: "Last reply", time: "10:01"}];
             chat.promptTemplates = templates;
+            chat.sessions = [{value: "a", title: "A"}, {value: "b", title: "B"}, {value: "old", title: "Old", archived: true}, {value: "c", title: "C"}];
+            chat.currentSessionId = "a";
+            infoSpy.clear();
             chat.chatInputText = "";
             composer.input.text = "";
             chat.focusInput();
@@ -180,6 +190,87 @@ Item {
             keyClick("k");
             keyClick(Qt.Key_Return);
             compare(calls("send").length, 1);
+        }
+
+        function test_12_ctrl_i_asks_for_the_info_panel() {
+            keyClick(Qt.Key_I, Qt.ControlModifier);
+            compare(infoSpy.count, 1);
+        }
+
+        function test_13_ctrl_l_focuses_the_input() {
+            composer.input.focus = false;
+            chat.composerRef = composer;
+            keyClick(Qt.Key_L, Qt.ControlModifier);
+            tryVerify(() => composer.input.activeFocus, 1000);
+        }
+
+        function test_14_regenerate_the_last_reply() {
+            keyClick(Qt.Key_R, Qt.ControlModifier | Qt.ShiftModifier);
+            compare(calls("regenerate").length, 1);
+            compare(calls("regenerate")[0].args[0], 3, "the last reply");
+            chat.loading = true;
+            keyClick(Qt.Key_R, Qt.ControlModifier | Qt.ShiftModifier);
+            compare(calls("regenerate").length, 1, "not while one is being written");
+        }
+
+        function test_15_copy_the_last_reply() {
+            keyClick(Qt.Key_C, Qt.ControlModifier | Qt.ShiftModifier);
+            compare(calls("copy").length, 1);
+            compare(calls("copy")[0].args[0], "Last reply");
+            chat.messages = [];
+            keyClick(Qt.Key_C, Qt.ControlModifier | Qt.ShiftModifier);
+            compare(calls("copy").length, 1, "nothing to copy");
+        }
+
+        function test_16_ctrl_pgdown_and_pgup_switch_chats_skipping_archived() {
+            keyClick(Qt.Key_PageDown, Qt.ControlModifier);
+            compare(chat.currentSessionId, "b");
+            keyClick(Qt.Key_PageDown, Qt.ControlModifier);
+            compare(chat.currentSessionId, "c", "the archived chat is skipped");
+            keyClick(Qt.Key_PageDown, Qt.ControlModifier);
+            compare(chat.currentSessionId, "a", "wraps around");
+            keyClick(Qt.Key_PageUp, Qt.ControlModifier);
+            compare(chat.currentSessionId, "c");
+        }
+
+        function test_17_ctrl_comma_opens_the_settings() {
+            keyClick(Qt.Key_Comma, Qt.ControlModifier);
+            compare(calls("openSettings").length, 1);
+        }
+
+        function test_18_text_editing_keys_still_edit_the_input() {
+            keyClick("a");
+            keyClick("b");
+            keyClick("c");
+            keyClick(Qt.Key_A, Qt.ControlModifier);
+            keyClick(Qt.Key_C, Qt.ControlModifier);
+            keyClick(Qt.Key_Right);
+            keyClick(Qt.Key_V, Qt.ControlModifier);
+            keyClick(Qt.Key_V, Qt.ControlModifier);
+            compare(composer.input.text.indexOf("abc") === 0, true);
+            compare(calls("copy").length, 0, "Ctrl+C is not Copy last reply");
+            compare(calls("regenerate").length, 0);
+            keyClick(Qt.Key_Z, Qt.ControlModifier);
+            keyClick(Qt.Key_A, Qt.ControlModifier);
+            keyClick(Qt.Key_X, Qt.ControlModifier);
+            compare(composer.input.text, "", "select all + cut");
+            keyClick("q");
+            keyClick("r");
+            keyClick(Qt.Key_Left, Qt.ControlModifier);
+            keyClick("x");
+            compare(composer.input.text, "xqr", "Ctrl+Left moves by word");
+            compare(chat.currentSessionId, "a");
+            compare(infoSpy.count, 0);
+        }
+
+        function test_19_the_list_has_unique_keys_and_ids() {
+            var seen = {};
+            ShortcutList.shortcuts.forEach(function(s) {
+                verify(!seen[s.keys], "duplicate " + s.keys);
+                seen[s.keys] = true;
+                verify(!/^Ctrl\+(C|V|X|Z|A|Y)$/.test(s.keys), s.keys + " clashes with text editing");
+            });
+            compare(ShortcutList.shortcuts.length, 10);
         }
     }
 }

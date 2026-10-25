@@ -38,6 +38,7 @@ WATCHED_FILES = (
     "chat/ChatStats.js",
     "chat/EffectiveConfig.js",
     "chat/ChatTitle.js",
+    "chat/ShortcutList.js",
     "chat/ErrorText.js",
     "chat/PromptTemplates.js",
     "components/ModelFilter.js",

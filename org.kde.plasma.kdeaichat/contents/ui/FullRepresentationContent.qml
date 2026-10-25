@@ -126,7 +126,12 @@ Item {
 
     }
 
-    Chat.ChatShortcuts { chat: root } // qmllint disable unqualified
+    // qmllint disable unqualified
+    Chat.ChatShortcuts {
+        chat: root
+        onChatInfoRequested: chatSettingsDialog.toggleForSession(root.currentSessionId)
+    }
+    // qmllint enable unqualified
 
     // In the corner away from the panel, so dragging it grows the popup
     // towards the mouse.

@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.iconthemes as KIconThemes
+import "chat/ShortcutList.js" as ShortcutList
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -23,6 +24,23 @@ KCM.SimpleKCM {
     property alias cfg_notifyOnScheduled: scheduledCheck.checked
 
     readonly property string defaultIcon: "dialog-messages"
+
+    // The labels as literal i18n() calls, so they get extracted for translation.
+    function shortcutLabel(id) {
+        var labels = {
+            "newChat": i18n("New chat"),
+            "history": i18n("Show or hide the history"),
+            "info": i18n("Show or hide the chat info panel"),
+            "focusInput": i18n("Focus the message input"),
+            "stop": i18n("Stop the reply; cancel an edit"),
+            "regenerate": i18n("Regenerate the last reply"),
+            "copyReply": i18n("Copy the last reply"),
+            "nextChat": i18n("Next chat"),
+            "prevChat": i18n("Previous chat"),
+            "settings": i18n("Open the settings")
+        };
+        return labels[id] || id;
+    }
 
     function isCustomIconImage(value) {
         var v = String(value || "").trim().toLowerCase();
@@ -145,6 +163,32 @@ KCM.SimpleKCM {
             objectName: "soundCheck"
             Kirigami.FormData.label: i18n("Sound:")
             text: i18n("Play a sound when a reply is finished")
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Keyboard shortcuts")
+        }
+
+        Repeater {
+            model: ShortcutList.shortcuts
+            delegate: QQC2.Label {
+                required property var modelData
+                objectName: "shortcutRow"
+                Kirigami.FormData.label: modelData.keys
+                text: page.shortcutLabel(modelData.id)
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+        }
+
+        QQC2.Label {
+            objectName: "shortcutNote"
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+            wrapMode: Text.WordWrap
+            opacity: 0.7
+            text: i18n("These work while the chat is open. To open the widget from anywhere, set its global shortcut on the \"Keyboard Shortcuts\" page of this window.")
         }
     }
 }
