@@ -69,8 +69,10 @@ PlasmoidItem {
     property var openCodeAgentsDirectory: null
     property var openCodeProvidersList: []
     property var openCodeModelsList: []
+    property var openCodeVariants: ({})   // "provider/model" -> variant names (OpenCodeMode.fetchCatalog)
     property var piProviderCandidates: []
     property var piProviderModelMap: ({})
+    property var piThinkingModels: ({})   // "provider/model" -> true for models Pi marks as thinking
     property bool piModelsFetching: false
     property var piModelFetchWaiters: []
     property bool fetchingAgentsInProgress: false
@@ -134,6 +136,11 @@ PlasmoidItem {
 
     Chat.PiMode {
         id: piAgent
+        chat: root
+    }
+
+    Chat.DirectVariant {
+        id: directVariant
         chat: root
     }
 
@@ -398,9 +405,9 @@ PlasmoidItem {
     // goes through this.
     function effectiveConfig(sessionId) {
         var idx = sessionIndexById(sessionId || root.currentSessionId);
-        return EffectiveConfig.forSession(plasmoid.configuration, idx < 0 ? null : root.sessions[idx], function(id) {
-            return ProviderService.getProviderConfig(id, plasmoid.configuration).model;
-        });
+        var providerOf = function(id) { return ProviderService.getProviderConfig(id, plasmoid.configuration); };
+        return EffectiveConfig.forSession(plasmoid.configuration, idx < 0 ? null : root.sessions[idx],
+                                          function(id) { return providerOf(id).model; }, function(id) { return providerOf(id).variant; });
     }
 
     // The provider for requests that always go to a provider (direct chats, naming a chat).
@@ -759,73 +766,7 @@ PlasmoidItem {
     function chooseOpenCodeAgent(value) { openCode.chooseAgent(value); }
     function chooseWorkspace(path) { modeSync.chooseWorkspace(path); }
 
-    function fetchOpenCodeProvidersAndModels(callback) {
-        // Treat every refresh as a snapshot. Keeping the previous arrays when
-        // the server returns an empty/error response made the sidebar claim a
-        // refresh while visibly showing stale provider/model choices.
-        root.openCodeProvidersList = [];
-        root.openCodeModelsList = [];
-        var baseUrl = openCodeBaseUrl();
-        if (!baseUrl) {
-            root.openCodeProvidersList = [];
-            root.openCodeModelsList = [];
-            root.fetchingOpenCodeConfig = false;
-            if (callback) callback();
-            return;
-        }
-        var endpoints = [baseUrl + "/config/providers", baseUrl + "/provider"];
-        var endpointIndex = 0;
-        function requestNext() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", endpoints[endpointIndex], true);
-            xhr.timeout = 2000;
-            var requestFinished = false;
-            var finish = function(success) {
-                if (requestFinished) return;
-                requestFinished = true;
-                if (success || endpointIndex >= endpoints.length - 1) {
-                    if (callback) callback();
-                    return;
-                }
-                endpointIndex++;
-                requestNext();
-            };
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE) return;
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        if (xhr.responseText.length > 2000000)
-                            throw new Error("provider response is too large");
-                        var data = JSON.parse(xhr.responseText);
-                        var allProvs = data.providers || data.all || data.connected || [];
-                        var provList = [];
-                        var modelList = [];
-                        for (var i = 0; i < allProvs.length; i++) {
-                            var p = allProvs[i];
-                            var providerId = p && (p.id || p.name);
-                            if (providerId) {
-                                provList.push({ "id": providerId, "name": p.name || providerId });
-                                if (p.models && typeof p.models === "object") {
-                                    var mKeys = Object.keys(p.models);
-                                    for (var j = 0; j < mKeys.length; j++)
-                                        modelList.push(providerId + "/" + mKeys[j]);
-                                }
-                            }
-                        }
-                        root.openCodeProvidersList = provList;
-                        root.openCodeModelsList = modelList;
-                        finish(provList.length > 0);
-                        return;
-                    } catch (e) {}
-                }
-                finish(false);
-            };
-            xhr.ontimeout = function() { finish(false); };
-            xhr.onerror = function() { finish(false); };
-            try { xhr.send(); } catch (e) { finish(false); }
-        }
-        requestNext();
-    }
+    function fetchOpenCodeProvidersAndModels(callback) { openCode.fetchCatalog(callback); }
 
     function resetProviderStreamingState() {
         streamBuffer.flush();
@@ -1439,6 +1380,15 @@ PlasmoidItem {
 
     // Sends a direct API request and applies its events to the chat.
     function doDirectRequest(cfg, sessionId, generation) {
+        root.loading = true;
+        // The chat's variant (reasoning level), if it has one and the model still offers it.
+        directVariant.resolve(sessionId, cfg, function(variantSend) {
+            if (requestIsCurrent(sessionId, generation))
+                sendDirectRequest(cfg, sessionId, generation, variantSend);
+        });
+    }
+
+    function sendDirectRequest(cfg, sessionId, generation, variantSend) {
         var apiType = cfg.type === "anthropic" ? "anthropic" : "openai";
         var parts = buildDirectRequestParts(sessionId, apiType);
         var model = cfg.model || "";
@@ -1453,6 +1403,7 @@ PlasmoidItem {
             "system": parts.system,
             "messages": parts.messages,
             "maxTokens": responseMaxTokens(sessionId, DirectBackend.DEFAULT_MAX_TOKENS),
+            "variantSend": variantSend,
             "stream": plasmoid.configuration.disableStreaming !== true,
             "timeoutMs": plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0,
             "xhrFactory": function() { return new XMLHttpRequest(); },
@@ -1970,29 +1921,8 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function(sourceName, data) {
-            var stdout = data["stdout"] || "";
-            var providers = [];
-            var modelMap = {};
-            try {
-                var payload = JSON.parse(stdout);
-                var rows = payload.providers || [];
-                for (var i = 0; i < rows.length; i++) {
-                    var row = rows[i] || {};
-                    var id = row.id || row.provider || "";
-                    if (!id) continue;
-                    var models = Array.isArray(row.models) ? row.models : [];
-                    providers.push({"text": id, "value": id});
-                    modelMap[id] = models;
-                }
-            } catch (e) {}
-            root.piProviderCandidates = providers;
-            root.piProviderModelMap = modelMap;
-            root.piModelsFetching = false;
+            piAgent.applyDiscovery(data["stdout"] || "");
             disconnectSource(sourceName);
-            var waiters = root.piModelFetchWaiters || [];
-            root.piModelFetchWaiters = [];
-            for (var w = 0; w < waiters.length; w++)
-                if (waiters[w]) waiters[w](providers, modelMap);
         }
     }
 

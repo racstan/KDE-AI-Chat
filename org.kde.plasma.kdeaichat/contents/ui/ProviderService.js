@@ -3,9 +3,11 @@
 // Providers for direct API mode.
 //
 // The user's providers are one list, stored as JSON in the `providersJson`
-// setting: [{id, name, type, baseUrl, model, headers?}]. `type` is
-// "openai-compat" or "anthropic". API keys are not part of it: each lives in
-// KWallet under the provider's id (see store/Wallet.qml).
+// setting: [{id, name, type, baseUrl, model, variant?, headers?}]. `type` is
+// "openai-compat" or "anthropic". `variant` is the id of the model's variant
+// (reasoning / thinking level, Variants.js) chosen for it; only the id is stored.
+// API keys are not part of it: each lives in KWallet under the provider's id
+// (see store/Wallet.qml).
 //
 // PRESETS fill in a new provider's URL and type. Versions before 1.4.0 had a
 // fixed set of providers with their own settings (LEGACY); legacyProviders()
@@ -77,6 +79,7 @@ function _clean(entry) {
     var out = {"id": String(entry.id), "name": String(entry.name || entry.id), "type": type,
                "baseUrl": String(entry.baseUrl || "").trim(), "model": String(entry.model || "").trim()};
     if (entry.headers && typeof entry.headers === "object") out.headers = entry.headers;
+    if (entry.variant !== undefined && String(entry.variant).trim() !== "") out.variant = String(entry.variant).trim();
     return out;
 }
 
@@ -158,9 +161,9 @@ function getProviderConfig(providerId, configuration) {
     if (!entry && list.length === 0 && LEGACY[providerId])
         entry = _legacyEntry(providerId, configuration || {});
     if (!entry)
-        return {"type": "openai-compat", "baseUrl": "", "apiKey": "", "model": "", "headers": null, "allowEmptyKey": false, "found": false};
+        return {"type": "openai-compat", "baseUrl": "", "apiKey": "", "model": "", "variant": "", "headers": null, "allowEmptyKey": false, "found": false};
     var local = LOCAL_IDS.indexOf(entry.id) >= 0 || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])[:/]/i.test(entry.baseUrl);
-    return {"type": entry.type, "baseUrl": entry.baseUrl, "apiKey": "", "model": entry.model,
+    return {"type": entry.type, "baseUrl": entry.baseUrl, "apiKey": "", "model": entry.model, "variant": entry.variant || "",
             "headers": entry.headers || null, "allowEmptyKey": local, "found": true};
 }
 

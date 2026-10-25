@@ -1,10 +1,13 @@
 // Harness settings for Pi: the default provider and model, read from
-// `pi --list-models` through the helper.
+// `pi --list-models` through the helper, and the thinking level for models that
+// Pi marks as thinking (Pi's own level names; other models get no picker).
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import "../components" as Components
+import "../Variants.js" as Variants
+import "../chat/EffectiveConfig.js" as EffectiveConfig
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -14,11 +17,14 @@ Kirigami.FormLayout {
 
     property string provider: ""
     property string model: ""
+    property string thinking: ""     // the thinking level ("" = the model's default)
     property var helper: null        // store/HelperRunner.qml
     property bool active: false      // loads Pi's models when true
 
     property var providers: []
     property var modelsByProvider: ({})
+    property var thinkingModels: ({})    // "provider/model" -> true when Pi marks it as thinking
+    readonly property var variants: Variants.fromPi(EffectiveConfig.PI_THINKING_LEVELS, thinkingModels[provider + "/" + model] === true)
     property string status: ""
     property bool busy: false
 
@@ -30,6 +36,8 @@ Kirigami.FormLayout {
         var next = preferredModel || model;
         if (models.length > 0 && models.indexOf(next) < 0)
             next = models[0];
+        if (providerId !== provider || (next || "") !== model)
+            thinking = "";
         provider = providerId;
         model = next || "";
     }
@@ -38,14 +46,18 @@ Kirigami.FormLayout {
         var list = (reply && reply.providers) || [];
         var ids = [];
         var map = {};
+        var thinks = {};
         for (var i = 0; i < list.length; i++) {
             var id = list[i] && list[i].id;
             if (!id || ids.indexOf(id) >= 0)
                 continue;
             ids.push(id);
             map[id] = Array.isArray(list[i].models) ? list[i].models : [];
+            for (var t = 0; Array.isArray(list[i].thinking) && t < list[i].thinking.length; t++)
+                thinks[id + "/" + list[i].thinking[t]] = true;
         }
         modelsByProvider = map;
+        thinkingModels = thinks;
         providers = ids;
         if (ids.length === 0) {
             status = reply && (reply.message || reply.error) ? String(reply.message || reply.error)
@@ -95,7 +107,16 @@ Kirigami.FormLayout {
         Layout.fillWidth: true
         model: pi.modelsByProvider[pi.provider] || []
         value: pi.model
-        onPicked: function(id) { pi.model = id; }
+        onPicked: function(id) { pi.thinking = ""; pi.model = id; }
+    }
+
+    Components.VariantPicker {
+        objectName: "variantPicker"
+        Kirigami.FormData.label: i18n("Thinking:")
+        Layout.fillWidth: true
+        variants: pi.variants
+        value: pi.thinking
+        onPicked: function(id) { pi.thinking = id; }
     }
 
     QQC2.Label {

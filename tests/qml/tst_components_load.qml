@@ -77,6 +77,8 @@ TestCase {
             { tag: "config/ModeChooser", url: uiDir + "config/ModeChooser.qml" },
             { tag: "config/RequestOptions", url: uiDir + "config/RequestOptions.qml" },
             { tag: "components/ModelPicker", url: uiDir + "components/ModelPicker.qml" },
+            { tag: "components/VariantPicker", url: uiDir + "components/VariantPicker.qml" },
+            { tag: "chat/DirectVariant", url: uiDir + "chat/DirectVariant.qml" },
             { tag: "config/OpenCodeSettings", url: uiDir + "config/OpenCodeSettings.qml" },
             { tag: "config/PiSettings", url: uiDir + "config/PiSettings.qml" },
             { tag: "config/TemplatesEditor", url: uiDir + "config/TemplatesEditor.qml" },

@@ -3,7 +3,9 @@
 import QtQuick
 import QtQuick.Window
 import QtTest
+import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
+import "../../org.kde.plasma.kdeaichat/contents/ui/ProviderVariants.js" as ProviderVariants
 
 Item {
     id: root
@@ -18,6 +20,8 @@ Item {
     function i18np(one, many, n) { return (n === 1 ? one : many).replace("%1", n); }
 
     property var requests: []
+    // What the fake provider's /models answers (tests that need variants replace it).
+    property var listBody: ({data: [{id: "acme/chat-big"}, {id: "acme/embed-text-1"}, {id: "acme/chat-small"}, {id: "nemotron-3.5-bolt-e4b"}]})
     function makeXhr() {
         var x = {headers: {}, readyState: 0, status: 0, responseText: ""};
         x.open = function(method, url) { x.method = method; x.url = url; };
@@ -26,7 +30,7 @@ Item {
             root.requests.push({method: x.method, url: x.url});
             Qt.callLater(function() {
                 x.status = 200;
-                x.responseText = JSON.stringify({data: [{id: "acme/chat-big"}, {id: "acme/embed-text-1"}, {id: "acme/chat-small"}, {id: "nemotron-3.5-bolt-e4b"}]});
+                x.responseText = JSON.stringify(root.listBody);
                 x.readyState = 4;
                 x.onreadystatechange();
             });
@@ -87,6 +91,10 @@ Item {
         function init() {
             bar.picker.close();
             tryVerify(function() { return !bar.picker.visible; });
+            ProviderVariants.clear();
+            root.listBody = {data: [{id: "acme/chat-big"}, {id: "acme/embed-text-1"}, {id: "acme/chat-small"}, {id: "nemotron-3.5-bolt-e4b"}]};
+            chat.openCodeVariants = ({});
+            chat.piThinkingModels = ({});
             bar.variant = "";
             root.barWidth = 500;
             root.requests = [];
@@ -180,6 +188,7 @@ Item {
             compare(root.requests[0].url, "https://nim.example/v1/models");
             compare(inPicker("pickerMode").text.indexOf("Mode: Direct") === 0, true);
             wait(100);
+            verify(!bar.tooltip.visible, "the bar's hover tip is not drawn over the open picker");
             windowShot("composer-picker-direct");
             var target = null;
             for (var i = 0; i < rows().length; i++)
@@ -225,6 +234,7 @@ Item {
         function test_10_pi_chat_picks_model_and_thinking() {
             setup(piChat());
             chat.piProviderModelMap = {"openai": ["gpt-5", "gpt-5-mini"]};
+            chat.piThinkingModels = {"openai/gpt-5": true, "openai/gpt-5-mini": true};
             open();
             tryVerify(function() { return rows().length === 2; }, 3000);
             var choices = findChildren(bar.picker.contentItem, "variantChoice");
@@ -232,7 +242,7 @@ Item {
             windowShot("composer-picker-pi");
             var low = null;
             for (var i = 0; i < choices.length; i++)
-                if (choices[i].text === "low")
+                if (choices[i].text === "Low")
                     low = choices[i];
             verify(low);
             mouseClick(low);
@@ -262,7 +272,7 @@ Item {
             compare(bar.fullText, "OpenCode · openrouter · free · agent build");
             open();
             var plan = null;
-            var choices = findChildren(bar.picker.contentItem, "variantChoice");
+            var choices = findChildren(bar.picker.contentItem, "agentChoice");
             for (var i = 0; i < choices.length; i++)
                 if (choices[i].text === "plan")
                     plan = choices[i];
@@ -273,7 +283,113 @@ Item {
 
         function test_12_a_direct_chat_has_no_variant_choices() {
             open();
-            compare(findChildren(bar.picker.contentItem, "variantChoice").length, 0);
+            tryVerify(function() { return rows().length === 3; }, 3000);
+            wait(50);
+            compare(findChildren(bar.picker.contentItem, "variantChoice").length, 0, "this provider reports no variants: no chips");
+            verify(!inPicker("variantChoices").visible);
+        }
+
+        // --- Variants (reasoning levels), only where the source reports them ---
+
+        function test_19_a_pi_model_that_does_not_think_has_no_thinking_chips() {
+            setup(piChat());
+            chat.piProviderModelMap = {"openai": ["gpt-5", "gpt-5-mini"]};
+            chat.piThinkingModels = {"openai/gpt-5-mini": true};
+            open();
+            tryVerify(function() { return rows().length === 2; }, 3000);
+            compare(findChildren(bar.picker.contentItem, "variantChoice").length, 0, "gpt-5 is not marked as thinking");
+            verify(!inPicker("variantChoices").visible);
+        }
+
+        function test_1a_a_direct_model_that_reports_variants_gets_chips_and_the_choice_is_saved() {
+            root.listBody = {data: [{id: "acme/chat-big", reasoning: {supported_efforts: ["low", "high"]}}, {id: "acme/chat-small"}, {id: "nemotron-3.5-bolt-e4b"}]};
+            setup(directChat({chatModel: "acme/chat-big"}));
+            compare(bar.fullText, "Direct · NVIDIA NIM · acme/chat-big");
+            open();
+            tryVerify(function() { return findChildren(bar.picker.contentItem, "variantChoice").length === 3; }, 3000, "default, low, high");
+            var choices = findChildren(bar.picker.contentItem, "variantChoice");
+            compare(choices[0].text, "default");
+            compare(choices[1].text, "Low");
+            verify(choices[0].checked, "nothing chosen yet");
+            windowShot("composer-picker-variants-direct");
+            mouseClick(choices[2]);
+            compare(chat.calls[0].args[1].chatVariant, "high");
+            compare(chat.calls[0].args[1].chatModel, "acme/chat-big", "the model is kept");
+            compare(bar.fullText, "Direct · NVIDIA NIM · acme/chat-big · variant high");
+            compare(bar.variantText, "variant high");
+            tryVerify(function() { return !bar.picker.opened; });
+            // Choosing another model starts without a variant (variants belong to a model).
+            open();
+            tryVerify(function() { return rows().length === 3; }, 3000);
+            for (var i = 0; i < rows().length; i++)
+                if (rows()[i].modelData.id === "acme/chat-small")
+                    mouseClick(rows()[i]);
+            compare(chat.calls[1].args[1].chatModel, "acme/chat-small");
+            compare(chat.calls[1].args[1].chatVariant, "");
+            compare(bar.fullText, "Direct · NVIDIA NIM · acme/chat-small");
+        }
+
+        function test_1b_a_stored_direct_variant_shows_in_the_bar_and_is_checked_in_the_picker() {
+            root.listBody = {data: [{id: "acme/chat-big", reasoning: {supported_efforts: ["low", "high"]}}]};
+            setup(directChat({chatModel: "acme/chat-big", chatVariant: "low"}));
+            compare(bar.fullText, "Direct · NVIDIA NIM · acme/chat-big · variant low");
+            open();
+            tryVerify(function() { return findChildren(bar.picker.contentItem, "variantChoice").length === 3; }, 3000);
+            var choices = findChildren(bar.picker.contentItem, "variantChoice");
+            verify(choices[1].checked && !choices[0].checked && !choices[2].checked);
+        }
+
+        function test_1c_opencode_variants_are_chips_next_to_the_agents() {
+            setup(openCodeChat());
+            chat.openCodeModelsList = ["openrouter/auto", "openrouter/free"];
+            chat.openCodeAgentsList = ["build", "plan"];
+            chat.openCodeVariants = {"openrouter/auto": ["low", "high"]};
+            open();
+            tryVerify(function() { return rows().length === 2; }, 3000);
+            compare(findChildren(bar.picker.contentItem, "agentChoice").length, 2);
+            var choices = findChildren(bar.picker.contentItem, "variantChoice");
+            compare(choices.length, 3, "default, low, high");
+            windowShot("composer-picker-variants-opencode");
+            mouseClick(choices[2]);
+            compare(chat.calls[0].args[1].openCodeVariant, "high");
+            compare(chat.calls[0].args[1].openCodeAgent, "build", "the agent is kept");
+            compare(bar.fullText, "OpenCode · openrouter · auto · agent build · variant high");
+            open();
+            tryVerify(function() { return rows().length === 2; }, 3000);
+            mouseClick(rows()[1]);
+            compare(chat.calls[1].args[1].openCodeModel, "free");
+            compare(chat.calls[1].args[1].openCodeVariant, "", "another model: no variant");
+            compare(bar.fullText, "OpenCode · openrouter · free · agent build");
+            open();
+            tryVerify(function() { return rows().length === 2; }, 3000);
+            compare(findChildren(bar.picker.contentItem, "variantChoice").length, 0, "openrouter/free reports none: no chips");
+        }
+
+        function test_1d_the_tooltip_is_never_shown_over_the_open_picker() {
+            var button = findChild(bar, "composerBarButton");
+            // Clicking the bar opens the picker; the tip must not flash up while it opens.
+            mouseMove(root, 5, 5);
+            wait(100);
+            mouseClick(button);
+            for (var n = 0; n < (Kirigami.Units.toolTipDelay + 400) / 20; n++) {
+                wait(20);
+                verify(!bar.tooltip.visible, "tooltip visible while the picker opens (sample " + n + ")");
+            }
+            tryVerify(function() { return bar.picker.opened; }, 2000);
+            bar.picker.close();
+            tryVerify(function() { return !bar.picker.visible; });
+            mouseMove(button, 5, 5);
+            mouseMove(button, 20, 8);
+            tryVerify(function() { return bar.tooltip.visible; }, 3000, "hovering shows the tip");
+            open();
+            tryVerify(function() { return !bar.tooltip.visible; }, 3000, "gone once the picker opens");
+            wait(Kirigami.Units.toolTipDelay + 300);
+            verify(!bar.tooltip.visible, "and it does not come back while the picker is open");
+            windowShot("composer-picker-direct-no-tooltip");
+            bar.picker.close();
+            tryVerify(function() { return !bar.picker.visible; });
+            mouseMove(button, 30, 8);
+            tryVerify(function() { return bar.tooltip.visible; }, 3000, "after the picker closes it can show again");
         }
 
         function test_13_with_per_chat_settings_off_the_picker_explains_and_offers_the_settings() {

@@ -9,6 +9,8 @@
 import QtQuick
 import "../ProviderService.js" as ProviderService
 import "../ProviderCheck.js" as ProviderCheck
+import "../ProviderVariants.js" as ProviderVariants
+import "../Variants.js" as Variants
 import "EffectiveConfig.js" as EffectiveConfig
 
 QtObject {
@@ -31,6 +33,15 @@ QtObject {
     property string ocAgent: ""
     property string ocProvider: ""
     property string ocModel: ""
+    // The model's variant (reasoning level) id, per mode: direct and OpenCode here, Pi's is piThinking.
+    property string variant: ""
+    property string ocVariant: ""
+    // The direct model's variants, as the provider reports them (refreshVariants).
+    property var directVariants: []
+    // Set by the quick picker: the model the variants are looked up for, when it
+    // is not the draft's own (the main settings can win over the chat's).
+    property string variantProvider: ""
+    property string variantModel: ""
     property string ocCwd: ""
     property bool systemEnabled: true
     property string system: ""
@@ -41,6 +52,17 @@ QtObject {
     property var piProviders: []
     property var piModelMap: ({})
     property var modelCandidates: []
+    // The variants of the model this draft would use, in the chat's mode: from
+    // the source's own report only (empty = no picker), see Variants.js.
+    readonly property var variantList: {
+        var cfg = _config || {};
+        if (mode === "opencode")
+            return Variants.fromOpenCodeNames(((rootRef && rootRef.openCodeVariants) || {})[(_clean(ocProvider, defaultProviderText) || cfg.openCodeProvider || "") + "/" + (_clean(ocModel, defaultModelText) || cfg.openCodeModel || "")]);
+        if (mode === "pi")
+            return Variants.fromPi(EffectiveConfig.PI_THINKING_LEVELS, ((rootRef && rootRef.piThinkingModels) || {})[piProvider + "/" + piModel] === true);
+        return directVariants;
+    }
+    readonly property string variantId: mode === "opencode" ? ocVariant : mode === "pi" ? piThinking : variant
     // Replaces XMLHttpRequest in tests.
     property var xhrFactory: null
     property bool busy: false
@@ -85,6 +107,29 @@ QtObject {
     function _setStatus(text, isError) {
         status = text;
         statusError = isError === true;
+    }
+
+    function _clean(value, sentinel) {
+        var text = String(value || "").trim();
+        return text === sentinel ? "" : text;
+    }
+
+    function setVariantId(id) {
+        if (mode === "opencode") ocVariant = id;
+        else if (mode === "pi") piThinking = id;
+        else variant = id;
+    }
+
+    // Sets the direct / OpenCode model. A model the user typed or chose
+    // (`byUser`) starts without a variant, since variants belong to a model.
+    function changeModel(value, byUser) {
+        var current = mode === "opencode" ? ocModel : model;
+        if (byUser && value !== current)
+            setVariantId("");
+        if (mode === "opencode") ocModel = value;
+        else model = value;
+        if (mode === "provider" && byUser)
+            refreshVariants();
     }
 
     function invalidate() {
@@ -143,6 +188,9 @@ QtObject {
         ocAgent = _get("openCodeAgent", "");
         ocProvider = _get("openCodeProvider", "");
         ocModel = _get("openCodeModel", "");
+        variant = _get("chatVariant", "");
+        ocVariant = _get("openCodeVariant", "");
+        directVariants = [];
         ocCwd = _get("openCodeWorkspaceCwd", "");
         // A chat without instructions has the box unchecked; it is only on for real text.
         system = _get("chatSystemPrompt", "");
@@ -221,9 +269,29 @@ QtObject {
                 modelCandidates = result.chat;
                 if (!model && modelCandidates.length > 0)
                     model = modelCandidates[0];
+                ProviderVariants.remember(ProviderService.getProviderConfig(id, _config), result);
+                refreshVariants();
                 listsChanged();
                 _setStatus(modelCandidates.length > 0 ? i18np("Loaded 1 model", "Loaded %1 models", modelCandidates.length) : i18n("No models returned"));
             }, {"xhrFactory": xhrFactory});
+    }
+
+    // Looks up the variants of the direct model (`modelId`, else the draft's, else
+    // the provider's configured one) in `providerId` (else the draft's), from the
+    // provider's own report: the cached model list, or the list fetched now. A
+    // chosen variant the model does not offer is dropped.
+    function refreshVariants(providerId, modelId) {
+        var id = providerId || variantProvider || effectiveProvider();
+        var cfg = ProviderService.getProviderConfig(id, _config);
+        var chosen = modelId || variantModel || model.trim() || cfg.model;
+        var token = {"generation": _generation, "sessionId": sessionId};
+        ProviderVariants.forModel(cfg, ((rootRef && rootRef.walletApiKeys) || {})[id] || "", chosen, ProviderCheck.listModels, function(list) {
+            if (!_current(token) || (mode !== "provider"))
+                return;
+            directVariants = list;
+            if (list.length > 0 && variant !== "" && !Variants.isValid(list, variant))
+                variant = "";
+        }, {"xhrFactory": xhrFactory});
     }
 
     function refreshAgents() {
@@ -304,6 +372,8 @@ QtObject {
         if (modelEditable) {
             overrides.chatProvider = mode === "pi" ? provider : (effectiveProvider() === globalProvider ? "" : effectiveProvider());
             overrides.chatModel = mode === "pi" ? model : model.trim();
+            overrides.chatVariant = variant;
+            overrides.openCodeVariant = ocVariant;
             overrides.piProvider = piProvider;
             overrides.piModel = piModel;
             overrides.piThinking = piThinking;

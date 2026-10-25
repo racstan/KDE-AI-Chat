@@ -7,8 +7,10 @@ import "../backends/AgentEvents.js" as AgentEvents
 import "../backends/DirectBackend.js" as DirectBackend
 import "../backends/OpenCodeAgents.js" as OpenCodeAgents
 import "../backends/OpenCodeBackend.js" as OpenCodeBackend
+import "../backends/OpenCodeCatalog.js" as OpenCodeCatalog
 import "../backends/OpenCodeEvents.js" as OpenCodeEvents
 import "../backends/OpenCodeHistory.js" as OpenCodeHistory
+import "../Variants.js" as Variants
 import "EffectiveConfig.js" as EffectiveConfig
 
 QtObject {
@@ -107,8 +109,83 @@ QtObject {
             }
             if (chat.openCodeAgentsList.length === 0)
                 mode.fetchAgents();
-            mode.sendOpenCodePrompt(sessionId, generation, target);
+            // A variant is only sent when the server offers it for the model, so
+            // the catalogue is needed once per session when a variant is set.
+            if (chat.effectiveConfig(sessionId).variant !== "" && Object.keys(chat.openCodeVariants).length === 0)
+                mode.fetchCatalog(function() {
+                    if (chat.requestIsCurrent(sessionId, generation))
+                        mode.sendOpenCodePrompt(sessionId, generation, target);
+                });
+            else
+                mode.sendOpenCodePrompt(sessionId, generation, target);
         });
+    }
+
+    // The variants OpenCode offers for a model, as Variants.js entries.
+    function variantsOf(providerId, modelId) {
+        return Variants.fromOpenCodeNames(chat.openCodeVariants[providerId + "/" + modelId]);
+    }
+
+    // What to send for the chat's variant: {variant: name}, or {} when none is
+    // chosen or the server does not offer that name for the model (or its list
+    // is not loaded).
+    function variantSend(eff) {
+        return Variants.sendFor(mode.variantsOf(eff.provider, eff.model), eff.variant);
+    }
+
+    // Loads the providers, their models and each model's variant NAMES from the
+    // server (/config/providers, else /provider) into the widget's lists. Every
+    // refresh is a snapshot: a failed one leaves the lists empty rather than
+    // stale. The response carries the user's API keys: only OpenCodeCatalog's
+    // reduced result is kept, and the response itself is never stored or logged.
+    function fetchCatalog(callback) {
+        chat.openCodeProvidersList = [];
+        chat.openCodeModelsList = [];
+        chat.openCodeVariants = ({});
+        var baseUrl = chat.openCodeBaseUrl();
+        if (!baseUrl) {
+            chat.fetchingOpenCodeConfig = false;
+            if (callback) callback();
+            return;
+        }
+        var endpoints = [baseUrl + "/config/providers", baseUrl + "/provider"];
+        var endpointIndex = 0;
+        function requestNext() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", endpoints[endpointIndex], true);
+            xhr.timeout = 2000;
+            var requestFinished = false;
+            var finish = function(success) {
+                if (requestFinished) return;
+                requestFinished = true;
+                if (success || endpointIndex >= endpoints.length - 1) {
+                    if (callback) callback();
+                    return;
+                }
+                endpointIndex++;
+                requestNext();
+            };
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        if (xhr.responseText.length > 2000000)
+                            throw new Error("provider response is too large");
+                        var catalog = OpenCodeCatalog.parse(JSON.parse(xhr.responseText));
+                        chat.openCodeProvidersList = catalog.providers;
+                        chat.openCodeModelsList = catalog.models;
+                        chat.openCodeVariants = catalog.variants;
+                        finish(catalog.providers.length > 0);
+                        return;
+                    } catch (e) {}
+                }
+                finish(false);
+            };
+            xhr.ontimeout = function() { finish(false); };
+            xhr.onerror = function() { finish(false); };
+            try { xhr.send(); } catch (e) { finish(false); }
+        }
+        requestNext();
     }
 
     function sendOpenCodePrompt(sessionId, generation, target) {
@@ -129,6 +206,7 @@ QtObject {
                 "providerId": providerId,
                 "modelId": modelId,
                 "agent": eff.agent,
+                "variantSend": mode.variantSend(eff),
                 "useAgentModel": chat.getSessionProperty(sessionId, "openCodeUseAgentModel", chat.openCodeUseAgentModel) !== false,
                 "system": chat.buildEffectiveSystemPrompt(sessionId)
             }),

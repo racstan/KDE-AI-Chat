@@ -24,7 +24,7 @@ import signal
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, List
 
-from kdeaichat import chats, opencode_server, pi_bridge, privacy
+from kdeaichat import chats, opencode_server, pi_bridge, pi_models, privacy
 
 
 _MAX_FILE_BYTES = 50 * 1024 * 1024
@@ -760,41 +760,6 @@ def cmd_stop_legacy_watchdog(payload: Dict[str, Any]) -> None:
     print(json.dumps({"status": "ok", "stopped": stopped}))
 
 
-def cmd_get_pi_models(payload: Dict[str, Any]) -> None:
-    try:
-        # We source ~/.profile or similar if needed, or rely on pi in PATH or global install
-        # Pi is a globally installed CLI agent
-        env = os.environ.copy()
-        env["PATH"] = env.get("PATH", "") + ":" + os.path.expanduser("~/.npm-global/bin") + ":" + os.path.expanduser("~/.local/bin") + ":" + os.path.expanduser("~/bin")
-        
-        proc = subprocess.run(
-            ["pi", "--list-models"],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=10,
-            env=env
-        )
-        providers_dict = {}
-        lines = proc.stdout.splitlines()[1:]
-        for line in lines:
-            parts = line.split()
-            if len(parts) >= 2:
-                prov = parts[0]
-                model = parts[1]
-                if prov not in providers_dict:
-                    providers_dict[prov] = []
-                providers_dict[prov].append(model)
-        
-        providers_list = []
-        for prov, models in providers_dict.items():
-            providers_list.append({"id": prov, "models": models})
-        print(json.dumps({"providers": providers_list}))
-    except Exception as e:
-        print(json.dumps({"error": str(e)}))
-
-
 def _decode_payload(raw: str) -> Dict[str, Any]:
     """Decode the base64+JSON payload passed as ``argv[2]``.
 
@@ -843,10 +808,9 @@ def main() -> None:
         "export_chat": cmd_export_chat,
         "get_voice_token": cmd_get_voice_token,
         "stop_legacy_watchdog": cmd_stop_legacy_watchdog,
-        "get_pi_models": cmd_get_pi_models,
     }
 
-    commands.update({**privacy.COMMANDS, **chats.COMMANDS, **opencode_server.COMMANDS, **pi_bridge.COMMANDS})
+    commands.update({**privacy.COMMANDS, **chats.COMMANDS, **opencode_server.COMMANDS, **pi_bridge.COMMANDS, **pi_models.COMMANDS})
     if command not in commands:
         print(f"Unknown command: {command}")
         sys.exit(1)

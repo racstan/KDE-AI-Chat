@@ -83,7 +83,8 @@ Item {
         readonly property var saved: ({
             "cfg_useOpenCode": false, "cfg_usePi": false,
             "cfg_openCodeUrl": "http://127.0.0.1:9/v1", "cfg_openCodeProvider": "anthropic", "cfg_openCodeModel": "claude-sonnet",
-            "cfg_piProvider": "ollama", "cfg_piModel": "qwen3:8b",
+            "cfg_openCodeVariant": "",
+            "cfg_piProvider": "ollama", "cfg_piModel": "qwen3:8b", "cfg_piThinking": "",
             "cfg_requestTimeout": 60, "cfg_disableStreaming": false})
 
         function open(overrides) {
@@ -211,6 +212,59 @@ Item {
             pi.choose("opencode", "");
             compare(page.cfg_piModel, "big-pickle");
             shot("pi");
+        }
+
+        // --- Variants: a picker next to the model only when the model has variants ---
+
+        function test_pi_thinking_picker_only_for_a_model_marked_as_thinking() {
+            piReply = {"providers": [{"id": "ollama", "models": ["llama3.2", "qwen3:8b"], "thinking": ["qwen3:8b"]}, {"id": "opencode", "models": ["big-pickle"]}]};
+            open({"cfg_usePi": true});
+            var pi = stubPi();
+            var picker = findChild(pi, "variantPicker");
+            verify(picker !== null);
+            compare(pi.model, "qwen3:8b");
+            verify(picker.visible, "qwen3:8b is a thinking model");
+            // Pi's own levels (EffectiveConfig.PI_THINKING_LEVELS) after "Default".
+            compare(picker.count, 8);
+            compare(picker.currentText, "Default");
+            picker.currentIndex = 5;
+            picker.activated(5);
+            compare(page.cfg_piThinking, "high");
+            compare(picker.currentText, "High");
+            shot("pi-variant");
+            // A model that does not think: no picker, and the level is dropped.
+            pi.choose("ollama", "llama3.2");
+            verify(!picker.visible, "llama3.2 does not think");
+            compare(page.cfg_piThinking, "", "another model starts without a level");
+            pi.choose("ollama", "qwen3:8b");
+            verify(picker.visible);
+        }
+
+        function test_pi_without_thinking_information_shows_no_picker() {
+            open({"cfg_usePi": true});
+            var picker = findChild(stubPi(), "variantPicker");
+            verify(!picker.visible, "the helper reported no thinking models");
+        }
+
+        function test_opencode_variant_picker_only_for_a_model_the_server_gives_variants() {
+            open({"cfg_useOpenCode": true});
+            var oc = section("openCodeSection");
+            var picker = findChild(oc, "variantPicker");
+            verify(picker !== null);
+            // What /config/providers answers; only the variant names are used from it.
+            oc.applyProviders({"providers": [{"id": "anthropic", "name": "Anthropic", "key": "SHOULD-NEVER-BE-KEPT",
+                "models": {"claude-sonnet": {"variants": {"low": {"effort": "low"}, "high": {"effort": "high"}}}, "claude-haiku": {}}}]});
+            compare(oc.model, "claude-sonnet");
+            verify(picker.visible);
+            compare(picker.count, 3, "Default, low, high");
+            picker.currentIndex = 2;
+            picker.activated(2);
+            compare(page.cfg_openCodeVariant, "high");
+            shot("opencode-variant");
+            oc.choose("anthropic", "claude-haiku");
+            verify(!picker.visible, "claude-haiku has no variants");
+            compare(page.cfg_openCodeVariant, "");
+            verify(JSON.stringify(oc.variantsByModel).indexOf("SHOULD-NEVER-BE-KEPT") < 0, "no key is kept");
         }
 
         function test_the_wallet_is_opened_only_for_the_direct_mode() {

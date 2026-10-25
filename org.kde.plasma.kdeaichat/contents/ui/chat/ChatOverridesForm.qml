@@ -14,6 +14,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "../ProviderCheck.js" as ProviderCheck
+import "../components" as Components
 
 ColumnLayout {
     id: form
@@ -46,6 +47,7 @@ ColumnLayout {
     // The inputs, for tests.
     property alias providerCombo: providerCombo
     property alias modelCombo: modelCombo
+    property alias variantPicker: variantPicker
     property alias cwdField: cwdField
     property alias systemCheck: systemCheck
     property alias systemArea: systemArea
@@ -141,6 +143,8 @@ ColumnLayout {
             onActivated: {
                 form.draft.provider = currentValue || "";
                 form.draft.model = "";
+                form.draft.variant = "";
+                form.draft.directVariants = [];
                 form.draft.modelCandidates = [];
                 form.edited();
                 form.draft.refreshModels(true);
@@ -161,12 +165,12 @@ ColumnLayout {
                 Layout.fillWidth: true
                 editable: true
                 onActivated: {
-                    form.draft.model = currentText;
+                    form.draft.changeModel(currentText, true);
                     form.edited();
                 }
                 onEditTextChanged: {
                     if (activeFocus) {
-                        form.draft.model = editText;
+                        form.draft.changeModel(editText, true);
                         form.edited();
                     }
                 }
@@ -192,6 +196,22 @@ ColumnLayout {
         color: Kirigami.Theme.neutralTextColor
         wrapMode: Text.Wrap
         font: Kirigami.Theme.smallFont
+    }
+
+    // The model's variant (reasoning level): only when its source reports any
+    // (direct providers, OpenCode). Pi's thinking level is in PiChatSettings.
+    Field {
+        visible: form.draft.modelEditable && form.draft.mode !== "pi" && form.draft.variantList.length > 0
+        label: i18n("Variant") // qmllint disable unqualified
+
+        Components.VariantPicker {
+            id: variantPicker
+            objectName: "variantPicker"
+            Layout.fillWidth: true
+            variants: form.draft.variantList
+            value: form.draft.variantId
+            onPicked: function(id) { form.draft.setVariantId(id); form.edited(); }
+        }
     }
 
     // --- OpenCode ---
@@ -220,7 +240,7 @@ ColumnLayout {
             Layout.fillWidth: true
             editable: true
             onEditTextChanged: {
-                form.draft.ocModel = editText;
+                form.draft.changeModel(editText, activeFocus);
                 form.edited();
             }
         }
@@ -259,6 +279,7 @@ ColumnLayout {
         provider: form.draft.piProvider
         model: form.draft.piModel
         thinking: form.draft.piThinking
+        variants: form.draft.variantList
         busy: form.draft.busy
         onRefreshRequested: form.draft.refreshPi()
         onEdited: {

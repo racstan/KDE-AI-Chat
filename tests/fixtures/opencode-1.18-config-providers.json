@@ -1,0 +1,213 @@
+{
+  "providers": [
+    {
+      "id": "nvidia",
+      "name": "Nvidia",
+      "models": {
+        "google/diffusiongemma-26b-a4b-it": {
+          "id": "google/diffusiongemma-26b-a4b-it",
+          "name": "DiffusionGemma 26B A4B IT",
+          "variants": {
+            "none": {
+              "reasoningEffort": "none"
+            },
+            "minimal": {
+              "reasoningEffort": "minimal"
+            },
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh"
+            },
+            "max": {
+              "reasoningEffort": "max"
+            }
+          }
+        },
+        "google/gemma-4-31b-it": {
+          "id": "google/gemma-4-31b-it",
+          "name": "Gemma-4-31B-IT",
+          "variants": {
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            }
+          }
+        },
+        "qwen/qwen-image-edit": {
+          "id": "qwen/qwen-image-edit",
+          "name": "Qwen Image Edit"
+        }
+      }
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "models": {
+        "moondream/moondream3.1-9b-a2b": {
+          "id": "moondream/moondream3.1-9b-a2b",
+          "name": "Moondream 3.1",
+          "variants": {
+            "low": {
+              "reasoning": {
+                "effort": "low"
+              }
+            },
+            "medium": {
+              "reasoning": {
+                "effort": "medium"
+              }
+            },
+            "high": {
+              "reasoning": {
+                "effort": "high"
+              }
+            }
+          }
+        },
+        "moondream/moondream3-preview": {
+          "id": "moondream/moondream3-preview",
+          "name": "Moondream 3 Preview",
+          "variants": {
+            "low": {
+              "reasoning": {
+                "effort": "low"
+              }
+            },
+            "medium": {
+              "reasoning": {
+                "effort": "medium"
+              }
+            },
+            "high": {
+              "reasoning": {
+                "effort": "high"
+              }
+            }
+          }
+        },
+        "qwen/qwen3.6-27b": {
+          "id": "qwen/qwen3.6-27b",
+          "name": "Qwen3.6 27B"
+        }
+      }
+    },
+    {
+      "id": "groq",
+      "name": "Groq",
+      "models": {
+        "qwen/qwen3.8-27b": {
+          "id": "qwen/qwen3.8-27b",
+          "name": "Qwen3.8 27B",
+          "variants": {
+            "none": {
+              "reasoningEffort": "none"
+            },
+            "default": {
+              "reasoningEffort": "default"
+            },
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            }
+          }
+        },
+        "openai/gpt-oss-120b": {
+          "id": "openai/gpt-oss-120b",
+          "name": "GPT OSS 120B",
+          "variants": {
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            }
+          }
+        },
+        "whisper-large-v3": {
+          "id": "whisper-large-v3",
+          "name": "Whisper"
+        }
+      }
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "models": {
+        "gemini-3.7-flash": {
+          "id": "gemini-3.7-flash",
+          "name": "Gemini 3.7 Flash",
+          "variants": {
+            "low": {
+              "thinkingConfig": {
+                "includeThoughts": true,
+                "thinkingLevel": "low"
+              }
+            },
+            "medium": {
+              "thinkingConfig": {
+                "includeThoughts": true,
+                "thinkingLevel": "medium"
+              }
+            },
+            "high": {
+              "thinkingConfig": {
+                "includeThoughts": true,
+                "thinkingLevel": "high"
+              }
+            }
+          }
+        },
+        "gemini-flash-latest": {
+          "id": "gemini-flash-latest",
+          "name": "Gemini Flash Latest",
+          "variants": {
+            "low": {
+              "thinkingConfig": {
+                "includeThoughts": true,
+                "thinkingLevel": "low"
+              }
+            },
+            "medium": {
+              "thinkingConfig": {
+                "includeThoughts": true,
+                "thinkingLevel": "medium"
+              }
+            },
+            "high": {
+              "thinkingConfig": {
+                "includeThoughts": true,
+                "thinkingLevel": "high"
+              }
+            }
+          }
+        },
+        "gemini-3-pro-image-preview": {
+          "id": "gemini-3-pro-image-preview",
+          "name": "Nano Banana Pro"
+        }
+      }
+    }
+  ],
+  "default": {}
+}

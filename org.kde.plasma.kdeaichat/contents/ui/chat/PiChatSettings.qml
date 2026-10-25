@@ -1,11 +1,12 @@
 // Pi settings for one chat (in ChatSettingsDialog): provider, model and
-// thinking level. Empty values use Pi's own defaults.
+// thinking level. Empty values use Pi's own defaults. The thinking picker is
+// only there for a model that thinks (`variants` is empty otherwise).
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
-import "EffectiveConfig.js" as EffectiveConfig
+import "../components" as Components
 
 ColumnLayout {
     id: pi
@@ -15,12 +16,12 @@ ColumnLayout {
     property string provider: ""
     property string model: ""
     property string thinking: ""
+    // Pi's thinking levels for the model, [{id, label}] (Variants.fromPi); empty: no picker.
+    property var variants: []
     property bool busy: false
 
     signal edited()
     signal refreshRequested()
-
-    readonly property var thinkingLevels: EffectiveConfig.PI_THINKING_LEVELS
 
     spacing: Kirigami.Units.largeSpacing
     onModelChanged: if (!modelCombo.activeFocus) modelCombo.editText = pi.model
@@ -65,11 +66,13 @@ ColumnLayout {
         onActivated: { pi.model = currentText; pi.edited(); }
         onEditTextChanged: { if (activeFocus) { pi.model = editText; pi.edited(); } }
     }
-    QQC2.Label { text: "Thinking"; opacity: 0.7 }
-    QQC2.ComboBox {
+    QQC2.Label { visible: thinkingPicker.visible; text: "Thinking"; opacity: 0.7 }
+    Components.VariantPicker {
+        id: thinkingPicker
+        objectName: "thinkingPicker"
         Layout.fillWidth: true
-        model: pi.thinkingLevels.map(function(level) { return level || "(model default)"; })
-        currentIndex: Math.max(0, pi.thinkingLevels.indexOf(pi.thinking))
-        onActivated: { pi.thinking = pi.thinkingLevels[currentIndex]; pi.edited(); }
+        variants: pi.variants
+        value: pi.thinking
+        onPicked: function(id) { pi.thinking = id; pi.edited(); }
     }
 }

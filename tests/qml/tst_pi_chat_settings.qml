@@ -9,6 +9,9 @@ Item {
     width: 400
     height: 320
 
+    // i18n() comes from Plasma at runtime.
+    function i18n(text) { return text; }
+
     Chat.PiChatSettings {
         id: pi
         width: 380
@@ -17,6 +20,7 @@ Item {
         provider: "ollama"
         model: "llama3.2"
         thinking: "high"
+        variants: [{"id": "low", "label": "Low", "send": {}}, {"id": "high", "label": "High", "send": {}}]
     }
 
     SignalSpy {
@@ -39,8 +43,9 @@ Item {
             var c = combos();
             compare(c.length, 3);
             compare(c[0].currentText, "ollama");
-            compare(c[1].editText, "llama3.2");
-            compare(c[2].currentText, "high");
+            tryCompare(c[1], "editText", "llama3.2");
+            compare(c[2].currentText, "High");
+            verify(c[2].visible);
             screenshot(root, "pi-chat-settings");
         }
 
@@ -58,7 +63,14 @@ Item {
             c[2].currentIndex = 0;
             c[2].activated(0);
             compare(pi.thinking, "");
-            compare(c[2].currentText, "(model default)");
+            compare(c[2].currentText, "Default");
+        }
+
+        function test_4_a_model_that_does_not_think_has_no_thinking_picker() {
+            pi.variants = [];
+            verify(!combos()[2].visible);
+            pi.variants = [{"id": "low", "label": "Low", "send": {}}];
+            verify(combos()[2].visible);
         }
     }
 }

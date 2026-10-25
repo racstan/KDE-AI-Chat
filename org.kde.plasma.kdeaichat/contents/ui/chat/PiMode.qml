@@ -4,6 +4,7 @@
 import QtQuick
 import "../backends/DirectBackend.js" as DirectBackend
 import "../backends/PiBackend.js" as PiBackend
+import "../Variants.js" as Variants
 import "EffectiveConfig.js" as EffectiveConfig
 
 QtObject {
@@ -36,6 +37,48 @@ QtObject {
         });
     }
 
+    // Takes the output of the helper's get_pi_models (`pi --list-models`): the
+    // providers and their models for the pickers, and which models Pi marks as
+    // thinking (only those get a thinking-level picker, see Variants.fromPi).
+    function applyDiscovery(stdout) {
+        var providers = [];
+        var modelMap = {};
+        var thinking = {};
+        try {
+            var rows = JSON.parse(stdout).providers || [];
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i] || {};
+                var id = row.id || row.provider || "";
+                if (!id) continue;
+                providers.push({"text": id, "value": id});
+                modelMap[id] = Array.isArray(row.models) ? row.models : [];
+                for (var t = 0; Array.isArray(row.thinking) && t < row.thinking.length; t++)
+                    thinking[id + "/" + row.thinking[t]] = true;
+            }
+        } catch (e) {}
+        chat.piProviderCandidates = providers;
+        chat.piProviderModelMap = modelMap;
+        chat.piThinkingModels = thinking;
+        chat.piModelsFetching = false;
+        var waiters = chat.piModelFetchWaiters || [];
+        chat.piModelFetchWaiters = [];
+        for (var w = 0; w < waiters.length; w++)
+            if (waiters[w]) waiters[w](providers, modelMap);
+    }
+
+    // The Pi thinking-level variants of a model (Variants.js): none unless Pi marks it as thinking.
+    function variantsOf(providerId, modelId) {
+        return Variants.fromPi(EffectiveConfig.PI_THINKING_LEVELS, chat.piThinkingModels[providerId + "/" + modelId] === true);
+    }
+
+    // The level to pass to Pi: one of Pi's own levels, and nothing for a model
+    // that Pi's list says does not think (when the list is not loaded, as stored).
+    function thinkingFor(eff) {
+        var known = Object.keys(chat.piThinkingModels).length > 0;
+        var levels = known ? mode.variantsOf(eff.provider, eff.model) : Variants.fromPi(EffectiveConfig.PI_THINKING_LEVELS, true);
+        return Variants.sendFor(levels, eff.thinking).thinking || "";
+    }
+
     // The prompt body for a user message: text, plus images as base64.
     function promptBody(sessionId, message) {
         var eff = chat.effectiveConfig(sessionId);
@@ -62,7 +105,7 @@ QtObject {
             // Provider, model and thinking: the main settings or the chat's own (EffectiveConfig.js).
             "provider": eff.provider,
             "model": eff.model,
-            "thinking": eff.thinking,
+            "thinking": mode.thinkingFor(eff),
             "message": text,
             "images": images
         };

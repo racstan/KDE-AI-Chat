@@ -1,5 +1,6 @@
 // The quick picker behind the composer bar: change this chat's model (and its
-// variant: Pi's thinking level, OpenCode's agent) without opening the Chat
+// variant: the model's reasoning level, which only the models that report
+// variants have; OpenCode's agent) without opening the Chat
 // info panel. It goes through the same machinery as that panel: a
 // ChatSettingsDraft is loaded for the chat, one field is changed, and save()
 // writes it with setSessionOverrides. So the same rules apply: the chat keeps
@@ -18,6 +19,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "EffectiveConfig.js" as EffectiveConfig
+import "../Variants.js" as Variants
 import "../components/ModelFilter.js" as ModelFilter
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
@@ -63,22 +65,35 @@ QQC2.Popup {
     }
     readonly property var matches: ModelFilter.filter(ModelFilter.normalize(modelList), filterText)
 
-    // [{value, text}] of the mode's variant (Pi thinking, OpenCode agent); empty for direct.
-    readonly property var variantOptions: {
+    // [{value, text}] of OpenCode's agents; empty for the other modes.
+    readonly property var agentOptions: {
         var options = [];
-        if (mode === "pi") {
-            for (var i = 0; i < EffectiveConfig.PI_THINKING_LEVELS.length; i++) {
-                var level = EffectiveConfig.PI_THINKING_LEVELS[i];
-                options.push({"value": level, "text": level || i18n("default")});
-            }
-        } else if (mode === "opencode") {
+        if (mode === "opencode") {
             var agents = draft.names(chat ? chat.openCodeAgentsList : [], "").slice(1);
             for (var j = 0; j < agents.length; j++)
                 options.push({"value": agents[j], "text": agents[j]});
         }
         return options;
     }
-    readonly property string currentVariant: mode === "pi" ? (effective.thinking || "") : (effective.agent || "")
+    // The variants of the chat's model, from the mode's own report (Variants.js):
+    // the provider's model list (direct), OpenCode's catalogue, Pi's list (thinking
+    // models only, Pi's own levels). Empty: this model has none, so no chips.
+    readonly property var variantList: {
+        var key = effective.provider + "/" + effective.model;
+        if (mode === "opencode")
+            return Variants.fromOpenCodeNames(((chat && chat.openCodeVariants) || {})[key]);
+        if (mode === "pi")
+            return Variants.fromPi(EffectiveConfig.PI_THINKING_LEVELS, ((chat && chat.piThinkingModels) || {})[key] === true);
+        return draft.directVariants;
+    }
+    // [{value, text}]: "default" (no variant) first, then the model's variants.
+    readonly property var variantOptions: {
+        var options = [];
+        for (var i = 0; i < variantList.length; i++)
+            options.push({"value": variantList[i].id, "text": variantList[i].label});
+        return options.length > 0 ? [{"value": "", "text": i18n("default")}].concat(options) : options;
+    }
+    readonly property string currentVariant: effective.variant || ""
 
     signal chatInfoRequested()
 
@@ -93,6 +108,7 @@ QQC2.Popup {
             draft.ocProvider = e.provider;
             draft.ocModel = e.model;
             draft.ocAgent = e.agent;
+            draft.ocVariant = e.variant;
         } else if (e.mode === "pi") {
             draft.piProvider = e.provider;
             draft.piModel = e.model;
@@ -100,10 +116,14 @@ QQC2.Popup {
         } else {
             draft.provider = e.provider === globalProvider ? "" : e.provider;
             draft.model = e.model;
+            draft.variant = e.variant;
         }
     }
 
     function refresh() {
+        // The variants are looked up for the model the chat really uses.
+        draft.variantProvider = effective.provider;
+        draft.variantModel = effective.model;
         if (mode === "opencode")
             draft.refreshOpenCode(function() { draft.refreshAgents(); });
         else if (mode === "pi")
@@ -112,26 +132,26 @@ QQC2.Popup {
             draft.refreshModels(false);
     }
 
-    // kind: "model" or "variant". Saves, then closes if the chat now uses it.
+    // kind: "model", "variant" or "agent". Saves, then closes if the chat now uses it.
     function choose(kind, value) {
         if (!perChat || !chat)
             return;
         draft.ownModel = true;
         if (kind === "model") {
-            if (mode === "opencode")
-                draft.ocModel = value;
-            else if (mode === "pi")
+            if (mode === "pi") {
                 draft.piModel = value;
-            else
-                draft.model = value;
-        } else if (mode === "pi") {
-            draft.piThinking = value;
-        } else if (mode === "opencode") {
+            } else {
+                draft.variantModel = value;
+                draft.changeModel(value, true);
+            }
+        } else if (kind === "agent") {
             draft.ocAgent = value;
+        } else {
+            draft.setVariantId(value);
         }
         draft.save();
         var after = chat.effectiveConfig(sessionId);
-        var got = kind === "model" ? after.model : (mode === "pi" ? after.thinking : after.agent);
+        var got = kind === "model" ? after.model : kind === "agent" ? after.agent : after.variant;
         if (got !== value) {
             note = i18n("Saved for this chat, but the main settings win over a chat's own (Settings → Chat), so it still uses %1.", got || i18n("the default"));
             return;
@@ -277,11 +297,44 @@ QQC2.Popup {
             }
         }
 
-        // Pi's thinking level / OpenCode's agent. A direct chat has none yet.
+        // OpenCode's agent.
+        PC3.Label {
+            visible: agentFlow.visible
+            Layout.fillWidth: true
+            text: i18n("Agent")
+            font: Kirigami.Theme.smallFont
+            opacity: 0.75
+        }
+
+        Flow {
+            id: agentFlow
+            objectName: "agentChoices"
+            visible: picker.perChat && picker.agentOptions.length > 0
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
+
+            Repeater {
+                model: picker.agentOptions
+
+                delegate: PC3.Button {
+                    required property var modelData
+
+                    objectName: "agentChoice"
+                    text: modelData.text
+                    checkable: true
+                    checked: modelData.value === picker.effective.agent
+                    onClicked: picker.choose("agent", modelData.value)
+                }
+            }
+        }
+
+        // The model's variants (reasoning levels), only when it has any: Pi's
+        // thinking level for a thinking model, OpenCode's and the direct
+        // provider's own list for theirs.
         PC3.Label {
             visible: variantFlow.visible
             Layout.fillWidth: true
-            text: picker.mode === "pi" ? i18n("Thinking") : i18n("Agent")
+            text: picker.mode === "pi" ? i18n("Thinking") : i18n("Variant")
             font: Kirigami.Theme.smallFont
             opacity: 0.75
         }

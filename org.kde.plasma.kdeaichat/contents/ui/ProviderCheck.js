@@ -12,6 +12,12 @@
 // the key is also tried on a tiny chat request (max_tokens 1) to the chosen
 // model. That one request tells apart a rejected key (401/403) from a model
 // that is gone (404/410): the key is fine in the second case.
+//
+// Model variants (reasoning / thinking levels, see Variants.js) are read from
+// the same /models answer, so they cost no extra request: listModels returns
+// them with the list (and so they are cached with it, per provider, in the
+// settings session cache of config/ProviderChecker.qml). Only what the provider
+// reports is offered.
 
 var TIMEOUT_LIST = 10000;
 var TIMEOUT_CHAT = 20000;
@@ -35,6 +41,68 @@ function parseModelItems(responseObj) {
         out.push({"id": id, "raw": raw});
     }
     return out;
+}
+
+// ── Variants ─────────────────────────────────────────────────────────────
+
+// One sensible token budget for "thinking on" on older Claude models, which
+// report thinking support but no levels. The API minimum is 1024 and it must
+// stay below max_tokens (DirectBackend.js raises max_tokens when needed).
+var THINKING_BUDGET_TOKENS = 8000;
+
+function _variant(id, send, label) {
+    return {"id": id, "label": label || id.charAt(0).toUpperCase() + id.substring(1), "send": send};
+}
+
+function _supported(entry) {
+    return !!entry && typeof entry === "object" && entry.supported === true;
+}
+
+// The variants a /models entry reports itself, [] when it reports none:
+//   Anthropic  capabilities.effort: the levels with supported:true, sent as
+//              adaptive thinking + output_config.effort; capabilities.thinking
+//              without levels: "on" (older models: a token budget); and, where
+//              types.disabled is supported, "off"
+//   OpenRouter reasoning.supported_efforts, sent as reasoning: {effort}
+// Any other list (OpenAI, NVIDIA NIM, Groq, Mistral, ...) carries neither, so
+// its models have no variants. Level names and their order are the provider's.
+function variantsFromModel(raw) {
+    var caps = raw && raw.capabilities;
+    var thinking = caps && caps.thinking;
+    var effort = caps && caps.effort;
+    var types = (thinking && thinking.types) || {};
+    var out = [];
+    if (_supported(effort)) {
+        for (var level in effort) {
+            if (level !== "supported" && _supported(effort[level]))
+                out.push(_variant(level, {"thinking": {"type": "adaptive"}, "output_config": {"effort": level}}));
+        }
+    } else if (_supported(thinking)) {
+        if (_supported(types.enabled))
+            out.push(_variant("on", {"thinking": {"type": "enabled", "budget_tokens": THINKING_BUDGET_TOKENS}}, "Thinking on"));
+        else if (_supported(types.adaptive))
+            out.push(_variant("on", {"thinking": {"type": "adaptive"}}, "Thinking on"));
+    }
+    if (out.length > 0 && _supported(types.disabled))
+        out.push(_variant("off", {"thinking": {"type": "disabled"}}, "Thinking off"));
+    var efforts = out.length === 0 && raw && raw.reasoning ? raw.reasoning.supported_efforts : null;
+    for (var i = 0; Array.isArray(efforts) && i < efforts.length; i++) {
+        var id = String(efforts[i]);
+        if (id !== "" && !out.some(function(v) { return v.id === id; }))
+            out.push(_variant(id, {"reasoning": {"effort": id}}));
+    }
+    return out;
+}
+
+// {modelId: [variants]} for the models of a list that have any.
+function variantMap(items) {
+    var map = {};
+    for (var i = 0; i < items.length; i++) {
+        var variants = variantsFromModel(items[i].raw);
+        if (variants.length > 0)
+            map[items[i].id] = variants;
+    }
+    return map;
 }
 
 // Words in a model id that mean it does not do text chat.
@@ -183,13 +251,13 @@ function _isModelGone(status, text) {
     return status === 400 && MODEL_WORDS.test(String(text || ""));
 }
 
-// Lists a provider's models. cb({ok, status, error, items, chat, all, hidden}):
+// Lists a provider's models. cb({ok, status, error, items, chat, all, hidden, variants}):
 // `error` is "" | "rejected" | "timeout" | "network" | "http" | "parse" | "send" | "url".
 function listModels(cfg, apiKey, cb, opts) {
     var o = opts || {};
     var url = _base(cfg) + "/models";
     _send(o.xhrFactory, "GET", url, _headers(cfg, apiKey, false), null, o.timeout || TIMEOUT_LIST, function(r) {
-        var result = {"ok": false, "status": r.status, "error": r.error, "items": [], "chat": [], "all": [], "hidden": 0};
+        var result = {"ok": false, "status": r.status, "error": r.error, "items": [], "chat": [], "all": [], "hidden": 0, "variants": {}};
         if (r.error) { cb(result); return; }
         if (r.status >= 200 && r.status < 300) {
             try {
@@ -201,6 +269,7 @@ function listModels(cfg, apiKey, cb, opts) {
                 result.chat = split.chat;
                 result.all = split.all;
                 result.hidden = split.hidden;
+                result.variants = variantMap(items);
             } catch (e) {
                 result.error = "parse";
             }
