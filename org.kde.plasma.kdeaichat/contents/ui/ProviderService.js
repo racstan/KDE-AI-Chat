@@ -207,74 +207,10 @@ function getConfiguredProviders(configuration) {
     return getSupportedProviders(configuration);
 }
 
-// Model ids from the various shapes of /models responses.
-function parseModelIds(responseObj) {
-    var ids = [];
-    var items = Array.isArray(responseObj) ? responseObj
-        : (responseObj && Array.isArray(responseObj.data)) ? responseObj.data
-        : (responseObj && Array.isArray(responseObj.models)) ? responseObj.models : [];
-    for (var i = 0; i < items.length; i++) {
-        var v = typeof items[i] === "string" ? items[i] : (items[i] && (items[i].id || items[i].name));
-        if (v && ids.indexOf(v) < 0) ids.push(String(v).replace(/^models\//, ""));
-    }
-    return ids;
-}
-
 function isHttpUrlAllowed(url) {
     if (url === null || url === undefined) return false;
     var value = String(url).trim();
     if (!/^(?:http|https):\/\//i.test(value) || /[\u0000-\u001f\u007f]/.test(value)) return false;
     var authority = value.substring(value.indexOf("://") + 3).split(/[\/?#]/, 1)[0];
     return authority !== "" && !/[\s<>"'`]/.test(authority) && authority.indexOf("@") < 0;
-}
-
-// {url, headers} for listing a provider's models.
-function modelsRequest(cfg, apiKey) {
-    var base = String(cfg.baseUrl || "").replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
-    var headers = {};
-    if (cfg.type === "anthropic") {
-        headers["x-api-key"] = apiKey || "";
-        headers["anthropic-version"] = "2023-06-01";
-    } else if (apiKey) {
-        headers["Authorization"] = "Bearer " + apiKey;
-    }
-    for (var k in (cfg.headers || {}))
-        if (cfg.headers[k]) headers[k] = cfg.headers[k];
-    return {"url": base + "/models", "headers": headers};
-}
-
-// Fetches model ids for a provider. cfg as from getProviderConfig (or an
-// unsaved entry with type/baseUrl/headers); apiKey from KWallet.
-function fetchModels(cfg, apiKey, onSuccess, onError, xhrFactory) {
-    var request = modelsRequest(cfg, apiKey);
-    if (!isHttpUrlAllowed(request.url)) {
-        if (onError) onError("Enter an http(s) URL for this provider first.");
-        return;
-    }
-    var xhr = xhrFactory ? xhrFactory() : new XMLHttpRequest();
-    try {
-        xhr.open("GET", request.url, true);
-        xhr.timeout = 8000;
-        for (var h in request.headers) xhr.setRequestHeader(h, request.headers[h]);
-    } catch (e) {
-        if (onError) onError("Invalid provider URL: " + e);
-        return;
-    }
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState !== 4) return;
-        if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-                if (String(xhr.responseText).length > 2000000) throw new Error("model list response is too large");
-                if (onSuccess) onSuccess(parseModelIds(JSON.parse(xhr.responseText)));
-            } catch (e) {
-                if (onError) onError("Could not read the model list: " + e);
-            }
-        } else if (onError) {
-            onError(xhr.status === 401 || xhr.status === 403 ? "The provider rejected the API key (HTTP " + xhr.status + ")."
-                    : "HTTP " + xhr.status + " from " + request.url);
-        }
-    };
-    xhr.ontimeout = function() { if (onError) onError("Timed out fetching models from " + request.url); };
-    xhr.onerror = function() { if (onError) onError("Could not reach " + request.url); };
-    try { xhr.send(); } catch (e) { if (onError) onError("Send failed: " + e); }
 }

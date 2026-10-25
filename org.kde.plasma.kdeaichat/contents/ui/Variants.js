@@ -85,9 +85,3 @@ function fromPi(levels, thinks) {
     }
     return out;
 }
-
-// A model-list entry's variants out of the map a provider's list produced
-// ({modelId: [variants]}); [] when it has none.
-function listed(map, modelId) {
-    return map && Array.isArray(map[modelId]) ? map[modelId] : [];
-}

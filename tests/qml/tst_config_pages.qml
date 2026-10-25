@@ -158,7 +158,7 @@ Item {
         // ── Schedules ────────────────────────────────────────────────────────
         function test_schedules_page_runs_no_real_command() {
             shellLog = [];
-            open("ConfigSchedules.qml", {"cfg_schedulerEnabled": true, "cfg_schedulerAutoStart": false, "cfg_executeMissedSchedules": false,
+            open("ConfigSchedules.qml", {"cfg_schedulerEnabled": true, "cfg_executeMissedSchedules": false,
                                          "runShell": function(script, tag) { testCase.shellLog.push(tag); }});
             noSecretSettings();
             verify(shellLog.indexOf("sched-setup") >= 0, "setup not requested: " + shellLog);
@@ -171,7 +171,8 @@ Item {
             service.handle("sched-poll", "SCHED_RUNNING", "");
             verify(service.running);
             service.handle("sched-setup", "AUTO_ENABLED", "");
-            compare(page.cfg_schedulerAutoStart, true);
+            var autoStart = find(page, function(item) { return item.text === "Start when I log in"; });
+            verify(autoStart && autoStart.checked, "the login checkbox follows the systemd state");
             shot("config-schedules");
         }
 

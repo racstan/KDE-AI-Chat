@@ -112,7 +112,6 @@ QtObject {
     property string openCodeAgent: ""
     property string openCodeWorkspaceCwd: ""
     property var openCodeAgentsDirectory: null
-    property bool fetchingAgentsInProgress: false
     property int agentFetches: 0
     function currentOpenCodeSessionId() { return "ses_0123456789abcdef"; }
     function fetchOpenCodeAgents() { agentFetches++; }

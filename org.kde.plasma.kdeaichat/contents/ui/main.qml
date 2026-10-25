@@ -75,8 +75,6 @@ PlasmoidItem {
     property var piThinkingModels: ({})   // "provider/model" -> true for models Pi marks as thinking
     property bool piModelsFetching: false
     property var piModelFetchWaiters: []
-    property bool fetchingAgentsInProgress: false
-    property bool fetchingOpenCodeConfig: false
     property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
     property string compiledSystemPrompt: ""
@@ -423,7 +421,6 @@ PlasmoidItem {
     }
 
     // New chats start in the mode the main settings select.
-    function configuredSessionSource() { return modeSync.newChatMode(); }
 
     function applySessionSource(session) { return modeSync.apply(session); }
 
@@ -461,7 +458,7 @@ PlasmoidItem {
             "createdAt": Date.now(),
             "updatedAt": Date.now(),
             "archived": false,
-            "source": configuredSessionSource(),
+            "source": modeSync.newChatMode(),
             "openCodeSessionId": "",
             "openCodeWorkspaceCwd": modeSync.newChatWorkspace(),
             "messages": []
