@@ -12,6 +12,7 @@ import "Security.js" as Sec
 import "store" as Store
 import "backends/DirectBackend.js" as DirectBackend
 import "backends/AgentEvents.js" as AgentEvents
+import "chat/PromptTemplates.js" as PromptTemplates
 import "chat" as Chat
 
 PlasmoidItem {
@@ -99,6 +100,13 @@ PlasmoidItem {
     property bool sessionHistoryLoadBlocked: false
 
     signal clearChatInput()
+    // A chat was deleted (chat/UndoNotice.qml offers to bring it back).
+    signal sessionDeleted(var session, int index)
+    readonly property var promptTemplates: PromptTemplates.parse(plasmoid.configuration.promptTemplates)
+
+    function openSettings() {
+        Plasmoid.internalAction("configure").trigger();
+    }
 
     Store.Storage {
         id: storage
@@ -638,8 +646,9 @@ PlasmoidItem {
             return ;
 
         var updated = root.sessions.slice();
-        updated.splice(idx, 1);
+        var removed = updated.splice(idx, 1)[0];
         root.sessions = updated;
+        root.sessionDeleted(removed, idx);
         var helper = getHelperPath();
         if (helper) {
             var deletePayload = Sec.base64Encode(JSON.stringify({"sessionId": sessionId}));
@@ -1598,7 +1607,7 @@ PlasmoidItem {
 
         var name = providerDisplayName(providerId);
         if (cfg.found === false)
-            return "⚠️ The provider \"" + name + "\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.";
+            return "The provider \"" + name + "\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.";
         var missing = [];
         if (!providerId)
             missing.push("provider");
@@ -1616,7 +1625,7 @@ PlasmoidItem {
             missing.push("API key");
 
         if (missing.length > 0)
-            return "⚠️ Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model."
+            return "Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model."
                 + (missing.indexOf("API key") !== -1 && !wallet.usable && wallet.status !== "unknown" ? " " + wallet.statusMessage() : "");
 
         return "";
@@ -1628,25 +1637,7 @@ PlasmoidItem {
             var text = (root.chatInputText || "").trim();
             var attachments = root.attachedFiles || [];
 
-            // Process Prompt Templates
-            if (text.startsWith("/")) {
-                var firstSpaceIndex = text.indexOf(" ");
-                if (firstSpaceIndex === -1) firstSpaceIndex = text.indexOf("\n");
-                var templateName = text.substring(1, firstSpaceIndex > -1 ? firstSpaceIndex : text.length).trim();
-                var templatesStr = plasmoid.configuration.promptTemplates || "[]";
-                try {
-                    var templates = JSON.parse(templatesStr);
-                    for (var i = 0; i < templates.length; i++) {
-                        if (templates[i].name === templateName) {
-                            var restOfText = firstSpaceIndex > -1 ? text.substring(firstSpaceIndex).trim() : "";
-                            text = templates[i].prompt + (restOfText ? "\n\n" + restOfText : "");
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    console.log("Error parsing prompt templates:", e);
-                }
-            }
+            text = PromptTemplates.expand(text, root.promptTemplates);
 
             if (text.length > 200000) {
                 pushErrorMessage("Message is too large. Keep messages under 200,000 characters.");

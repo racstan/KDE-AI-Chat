@@ -34,3 +34,18 @@ function split(content) {
     }
     return blocks;
 }
+
+// A reply that is still streaming is shown as plain text, so Markdown
+// markers would show up as they are. This hides the simple ones (**bold**,
+// *italic*, "## " heading marks, a trailing lone "*" that may become "**")
+// without trying to be a Markdown parser; the finished reply is rendered
+// properly.
+function stripEmphasis(text) {
+    if (!text)
+        return "";
+    return String(text)
+        .replace(/\*\*/g, "")
+        .replace(/(^|[\s(\["'])\*([^\s*][^*\n]*?)\*(?=$|[\s).,;:!?\]"'])/g, "$1$2")
+        .replace(/^#{1,6}[ \t]+/gm, "")
+        .replace(/([^\s*])\*$/, "$1");
+}
