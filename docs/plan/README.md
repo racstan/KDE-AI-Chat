@@ -28,6 +28,7 @@ A Plasma widget that does six things well, and nothing else:
 | 7 | [07-cut-list.md](07-cut-list.md) | Final removal of everything on the cut list, migration of old settings, docs and screenshots. | S |
 | — | [modularisation.md](modularisation.md) | Split every 1,000+-line file into small modules, phase by phase; CI size guard. | — |
 | — | [suggestions.md](suggestions.md) | New features after the fixes: customisation, KDE integration, ACP, voice, privacy. | — |
+| — | [variants-sources.md](variants-sources.md) | Research: where per-model reasoning variants can be fetched, and how each is sent. | — |
 
 Each phase is one or more PRs that leave the widget working.
 
