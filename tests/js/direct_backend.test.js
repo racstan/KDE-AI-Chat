@@ -116,6 +116,156 @@ const tests = {
         assert.strictEqual(events[events.length - 1].reason, "complete");
     },
 
+    // --- usage straight from the provider (never estimated) ---
+
+    openai_streaming_request_asks_for_usage() {
+        const r = B.buildRequest({type: "openai", baseUrl: "https://usage1.test/v1", model: "m", messages: []});
+        assert.deepStrictEqual(plain(r.body.stream_options), {include_usage: true});
+        assert.ok(!("usage" in r.body), "only OpenRouter gets the usage accounting field");
+    },
+
+    non_streaming_and_opted_out_requests_do_not_send_stream_options() {
+        const base = {type: "openai", baseUrl: "https://usage2.test/v1", model: "m", messages: []};
+        assert.ok(!("stream_options" in B.buildRequest(Object.assign({stream: false}, base)).body));
+        assert.ok(!("stream_options" in B.buildRequest(Object.assign({streamUsage: false}, base)).body));
+    },
+
+    anthropic_request_has_no_openai_fields() {
+        const r = B.buildRequest({type: "anthropic", apiKey: "k", model: "c", messages: []});
+        assert.ok(!("stream_options" in r.body) && !("usage" in r.body));
+    },
+
+    openrouter_requests_usage_accounting() {
+        const r = B.buildRequest({type: "openai", baseUrl: "https://openrouter.ai/api/v1", model: "m", messages: []});
+        assert.deepStrictEqual(plain(r.body.usage), {include: true});
+        assert.deepStrictEqual(plain(r.body.stream_options), {include_usage: true});
+        const nonStream = B.buildRequest({type: "openai", baseUrl: "https://openrouter.ai/api/v1", model: "m", messages: [], stream: false});
+        assert.deepStrictEqual(plain(nonStream.body.usage), {include: true});
+    },
+
+    openrouter_final_chunk_gives_tokens_and_cost() {
+        const {events, xhr} = run({type: "openai", baseUrl: "https://openrouter.ai/api/v1", model: "m", messages: []}, 200, [
+            'data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n',
+            ': OPENROUTER PROCESSING\n\n',
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":null}\n\n',
+            'data: {"choices":[],"usage":{"prompt_tokens":12,"completion_tokens":34,"total_tokens":46,"cost":0.000321,"cost_details":{"upstream_inference_cost":0.0003}}}\n\ndata: [DONE]\n\n',
+        ]);
+        xhr.play();
+        const usage = events.filter(e => e.type === "usage");
+        assert.deepStrictEqual(plain(usage), [{type: "usage", input: 12, output: 34, cost: 0.000321}]);
+        // reported once, just before done
+        assert.strictEqual(events[events.length - 2].type, "usage");
+        assert.strictEqual(events[events.length - 1].type, "done");
+    },
+
+    usage_repeated_in_several_chunks_is_reported_once() {
+        // Gemini's OpenAI endpoint (and some proxies) put usage in every chunk.
+        const {events, xhr} = run({type: "openai", baseUrl: "https://usage3.test/v1", model: "m", messages: []}, 200, [
+            'data: {"choices":[{"delta":{"content":"a"}}],"usage":{"prompt_tokens":7,"completion_tokens":1}}\n\n',
+            'data: {"choices":[{"delta":{"content":"b"}}],"usage":{"prompt_tokens":7,"completion_tokens":2}}\n\n',
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":2}}\n\n',
+        ]);
+        xhr.play();
+        assert.deepStrictEqual(plain(events.filter(e => e.type === "usage")), [{type: "usage", input: 7, output: 2}]);
+    },
+
+    ollama_style_usage_chunk_is_captured() {
+        const {events, xhr} = run({type: "openai", baseUrl: "http://localhost:11434/v1", model: "m", messages: []}, 200, [
+            'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
+            'data: {"choices":[],"usage":{"prompt_tokens":26,"completion_tokens":9,"total_tokens":35}}\n\ndata: [DONE]\n\n',
+        ]);
+        xhr.play();
+        assert.deepStrictEqual(plain(events.filter(e => e.type === "usage")), [{type: "usage", input: 26, output: 9}]);
+    },
+
+    usage_is_not_reported_for_an_aborted_or_failed_request() {
+        const {events, xhr, handle} = run({type: "openai", baseUrl: "https://usage4.test/v1", model: "m", messages: []}, 200, [
+            'data: {"choices":[],"usage":{"prompt_tokens":1,"completion_tokens":1}}\n\n',
+        ]);
+        handle.abort();
+        xhr.play();
+        assert.ok(!events.some(e => e.type === "usage"));
+    },
+
+    non_streaming_openrouter_cost() {
+        const {events, xhr} = run({type: "openai", baseUrl: "https://openrouter.ai/api/v1", model: "m", messages: [], stream: false}, 200, [
+            '{"choices":[{"message":{"content":"Answer"}}],"usage":{"prompt_tokens":3,"completion_tokens":4,"cost":0.01}}',
+        ]);
+        xhr.play();
+        assert.deepStrictEqual(plain(events.find(e => e.type === "usage")), {type: "usage", input: 3, output: 4, cost: 0.01});
+    },
+
+    a_missing_or_invalid_cost_is_left_out() {
+        for (const cost of [undefined, null, "n/a", -1]) {
+            const usage = {prompt_tokens: 1, completion_tokens: 1};
+            if (cost !== undefined) usage.cost = cost;
+            const {events, xhr} = run({type: "openai", baseUrl: "https://usage5.test/v1", model: "m", messages: [], stream: false}, 200, [
+                JSON.stringify({choices: [{message: {content: "x"}}], usage})]);
+            xhr.play();
+            assert.ok(!("cost" in events.find(e => e.type === "usage")), "cost " + cost);
+        }
+    },
+
+    anthropic_usage_includes_cached_prompt_tokens() {
+        const {events, xhr} = run({type: "anthropic", apiKey: "k", model: "c", messages: []}, 200, [
+            'event: message_start\ndata: {"type":"message_start","message":{"usage":{"input_tokens":10,"cache_read_input_tokens":200,"cache_creation_input_tokens":30,"output_tokens":1}}}\n\n',
+            'event: message_delta\ndata: {"type":"message_delta","usage":{"output_tokens":42}}\n\nevent: message_stop\ndata: {"type":"message_stop"}\n\n',
+        ]);
+        xhr.play();
+        assert.deepStrictEqual(plain(events.filter(e => e.type === "usage")), [
+            {type: "usage", input: 240, output: 1},
+            {type: "usage", output: 42},
+        ]);
+    },
+
+    stream_options_rejected_with_400_is_retried_once_without_it() {
+        const first = fakeXhr(400, ['{"error":{"message":"Unrecognized request argument supplied: stream_options"}}']);
+        const second = fakeXhr(200, [
+            'data: {"choices":[{"delta":{"content":"fine"}}]}\n\ndata: [DONE]\n\n',
+        ]);
+        const xhrs = [first, second];
+        const events = [];
+        const options = {type: "openai", baseUrl: "https://strict.test/v1", model: "m", messages: [],
+                         xhrFactory: () => xhrs.shift(), onEvent: e => events.push(e)};
+        B.send(options);
+        first.play();
+        assert.deepStrictEqual(plain(first.sent.stream_options), {include_usage: true});
+        assert.ok(second.sent, "retried");
+        assert.ok(!("stream_options" in second.sent));
+        second.play();
+        assert.strictEqual(collect(events, "text_delta"), "fine");
+        assert.deepStrictEqual(plain(events.map(e => e.type).filter(t => t === "start" || t === "error" || t === "done")), ["start", "done"]);
+        assert.strictEqual(events[events.length - 1].reason, "complete");
+        // remembered: the next request to this server leaves it out from the start
+        const next = B.buildRequest(options);
+        assert.ok(!("stream_options" in next.body));
+    },
+
+    a_400_that_is_not_about_stream_options_is_not_retried() {
+        const first = fakeXhr(400, ['{"error":{"message":"max_tokens is too large"}}']);
+        let created = 0;
+        const events = [];
+        B.send({type: "openai", baseUrl: "https://other400.test/v1", model: "m", messages: [],
+                xhrFactory: () => { created++; return first; }, onEvent: e => events.push(e)});
+        first.play();
+        assert.strictEqual(created, 1);
+        const err = events.find(e => e.type === "error");
+        assert.ok(err && err.message.includes("max_tokens is too large"), JSON.stringify(events));
+    },
+
+    a_second_stream_options_rejection_is_an_error() {
+        const a = fakeXhr(400, ['{"error":"stream_options not allowed"}']);
+        const b = fakeXhr(400, ['{"error":"stream_options not allowed"}']);
+        const xhrs = [a, b];
+        const events = [];
+        B.send({type: "openai", baseUrl: "https://stubborn.test/v1", model: "m", messages: [],
+                xhrFactory: () => xhrs.shift(), onEvent: e => events.push(e)});
+        a.play();
+        b.play();
+        assert.strictEqual(events.filter(e => e.type === "error").length, 1);
+        assert.strictEqual(events[events.length - 1].reason, "error");
+    },
+
     error_inside_stream_ends_request() {
         const {events, xhr} = run({type: "openai", baseUrl: "https://x/v1", model: "m", messages: []}, 200, [
             'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n',

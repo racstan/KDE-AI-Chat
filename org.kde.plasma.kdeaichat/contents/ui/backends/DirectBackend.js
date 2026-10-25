@@ -8,7 +8,9 @@
 //   {type: "start"}
 //   {type: "text_delta", delta}        visible answer text
 //   {type: "reasoning_delta", delta}   model reasoning / <think> content
-//   {type: "usage", input, output}     token counts, when the provider reports them
+//   {type: "usage", input, output, cost?}  as the provider reported it, never an
+//                                      estimate; cost only where it reports one
+//                                      (OpenRouter); one per OpenAI-style request
 //   {type: "error", message, status}   the request failed; "done" follows
 //   {type: "done", reason}             "complete" | "aborted" | "error"
 //
@@ -18,13 +20,17 @@
 var DEFAULT_MAX_TOKENS = 4096;
 var MAX_RESPONSE_BYTES = 20000000;
 
+// An OpenAI-style stream only carries token counts when asked
+// (stream_options.include_usage). Every streaming request asks; a server that
+// answers 400/422 naming the field gets the request again without it, and
+// its base URL is remembered so that happens once per session.
+var _rejectsStreamOptions = {};
+
 // --- Server-sent events -----------------------------------------------------
 
 // Feeds raw text chunks; calls onMessage({event, data}) per SSE message.
 function createSseParser(onMessage) {
-    var buffer = "";
-    var eventName = "";
-    var dataLines = [];
+    var buffer = "", eventName = "", dataLines = [];
 
     function dispatch() {
         if (dataLines.length > 0)
@@ -128,13 +134,13 @@ function _trimSlash(url) {
 }
 
 // Builds {url, headers, body} for one request.
-// options: {type, baseUrl, apiKey, model, headers, system, messages, maxTokens, stream}
+// options: {type, baseUrl, apiKey, model, headers, system, messages, maxTokens, stream,
+//           streamUsage}  (streamUsage: false leaves out stream_options.include_usage)
 function buildRequest(options) {
     var headers = {"Content-Type": "application/json"};
     var extra = options.headers || {};
     var maxTokens = options.maxTokens > 0 ? options.maxTokens : DEFAULT_MAX_TOKENS;
-    var body;
-    var url;
+    var body, url;
     if (options.type === "anthropic") {
         url = _trimSlash(options.baseUrl || "https://api.anthropic.com/v1");
         if (!/\/messages$/.test(url))
@@ -152,6 +158,11 @@ function buildRequest(options) {
         if (options.system)
             messages.unshift({"role": "system", "content": options.system});
         body = {"model": options.model, "messages": messages, "max_tokens": maxTokens, "stream": options.stream !== false};
+        if (body.stream && options.streamUsage !== false && !_rejectsStreamOptions[_trimSlash(options.baseUrl)])
+            body.stream_options = {"include_usage": true};
+        // OpenRouter reports the real cost of the request in its usage block.
+        if (/^https?:\/\/([^/]*\.)?openrouter\.ai(\/|$)/i.test(String(options.baseUrl || "")))
+            body.usage = {"include": true};
     }
     for (var name in extra) {
         if (Object.prototype.hasOwnProperty.call(extra, name) && extra[name])
@@ -180,6 +191,25 @@ function errorMessage(status, responseText, url) {
     return "Request to " + url + " failed (HTTP " + status + ")" + (detail ? ": " + detail : "");
 }
 
+// `cost` only when the provider reports one (OpenRouter's usage.cost, USD).
+function _openAiUsage(usage) {
+    var event = {"type": "usage", "input": usage.prompt_tokens || usage.input_tokens || 0,
+                 "output": usage.completion_tokens || usage.output_tokens || 0};
+    if (usage.cost !== undefined && usage.cost !== null && isFinite(Number(usage.cost)) && Number(usage.cost) >= 0)
+        event.cost = Number(usage.cost);
+    return event;
+}
+
+// Anthropic reports cached prompt tokens next to input_tokens; the prompt the
+// model read is all of them. Fields a message doesn't carry stay out of the event.
+function _anthropicUsage(usage) {
+    var event = {"type": "usage"};
+    if (usage.input_tokens !== undefined)
+        event.input = usage.input_tokens + (usage.cache_read_input_tokens || 0) + (usage.cache_creation_input_tokens || 0);
+    if (usage.output_tokens !== undefined) event.output = usage.output_tokens;
+    return event;
+}
+
 // Turns one parsed streaming JSON message into events. Returns false if the
 // message signals the end of the stream.
 function _handleStreamMessage(type, sse, think, emit) {
@@ -197,12 +227,12 @@ function _handleStreamMessage(type, sse, think, emit) {
     }
     if (type === "anthropic") {
         if (obj.type === "message_start" && obj.message && obj.message.usage)
-            emit({"type": "usage", "input": obj.message.usage.input_tokens || 0, "output": obj.message.usage.output_tokens || 0});
+            emit(_anthropicUsage(obj.message.usage));
         else if (obj.type === "content_block_delta" && obj.delta) {
             if (obj.delta.type === "text_delta" && obj.delta.text) think.push(obj.delta.text);
             else if (obj.delta.type === "thinking_delta" && obj.delta.thinking) emit({"type": "reasoning_delta", "delta": obj.delta.thinking});
         } else if (obj.type === "message_delta" && obj.usage)
-            emit({"type": "usage", "output": obj.usage.output_tokens || 0});
+            emit(_anthropicUsage(obj.usage));
         else if (obj.type === "message_stop")
             return false;
         return true;
@@ -215,7 +245,7 @@ function _handleStreamMessage(type, sse, think, emit) {
         if (delta.content) think.push(typeof delta.content === "string" ? delta.content : JSON.stringify(delta.content));
     }
     if (obj.usage)
-        emit({"type": "usage", "input": obj.usage.prompt_tokens || obj.usage.input_tokens || 0, "output": obj.usage.completion_tokens || obj.usage.output_tokens || 0});
+        emit(_openAiUsage(obj.usage));
     return true;
 }
 
@@ -227,15 +257,16 @@ function _handleFullResponse(type, obj, think, emit) {
             if (blocks[i].type === "text") think.push(String(blocks[i].text || ""));
             else if (blocks[i].type === "thinking") emit({"type": "reasoning_delta", "delta": String(blocks[i].thinking || "")});
         }
-        if (obj.usage) emit({"type": "usage", "input": obj.usage.input_tokens || 0, "output": obj.usage.output_tokens || 0});
+        if (obj.usage) emit(_anthropicUsage(obj.usage));
         return;
     }
     var message = (obj.choices && obj.choices[0] && obj.choices[0].message) || {};
     var reasoning = message.reasoning || message.reasoning_content || "";
     if (reasoning) emit({"type": "reasoning_delta", "delta": String(reasoning)});
     if (message.content) think.push(typeof message.content === "string" ? message.content : JSON.stringify(message.content));
-    if (obj.usage) emit({"type": "usage", "input": obj.usage.prompt_tokens || 0, "output": obj.usage.completion_tokens || 0});
+    if (obj.usage) emit(_openAiUsage(obj.usage));
 }
+
 
 // Sends one request. options as for buildRequest, plus:
 //   xhrFactory()  returns a new XMLHttpRequest
@@ -245,9 +276,11 @@ function _handleFullResponse(type, obj, think, emit) {
 function send(options) {
     var request = buildRequest(options);
     var stream = request.body.stream;
-    var xhr = options.xhrFactory();
-    var finished = false;
-    var offset = 0;
+    var xhr;
+    var finished = false, offset = 0, retried = false;
+    // OpenAI-style servers may repeat usage in several chunks (cumulative, or
+    // only the last one counts): keep the latest and report it once, at the end.
+    var usage = null;
 
     function emit(event) {
         if (!finished)
@@ -256,6 +289,8 @@ function send(options) {
     function finish(reason, message, status) {
         if (finished) return;
         think.end();
+        if (reason === "complete" && usage)
+            emit(usage);
         if (reason === "error")
             emit({"type": "error", "message": message, "status": status || 0});
         emit({"type": "done", "reason": reason});
@@ -266,14 +301,21 @@ function send(options) {
         emit({"type": kind === "text" ? "text_delta" : "reasoning_delta", "delta": text});
     });
     var sseEnded = false;
-    var sse = createSseParser(function(message) {
-        if (sseEnded) return;
-        var more = _handleStreamMessage(options.type, message, think, function(event) {
-            if (event.type === "error") finish("error", event.message, event.status);
-            else emit(event);
+    var sse;
+
+    function newSse() {
+        sseEnded = false;
+        sse = createSseParser(function(message) {
+            if (sseEnded) return;
+            var more = _handleStreamMessage(options.type, message, think, function(event) {
+                if (event.type === "error") finish("error", event.message, event.status);
+                else if (event.type === "usage" && options.type !== "anthropic")
+                    usage = Object.assign(usage || {}, event);
+                else emit(event);
+            });
+            if (!more) sseEnded = true;
         });
-        if (!more) sseEnded = true;
-    });
+    }
 
     function consume() {
         var text = xhr.responseText || "";
@@ -286,49 +328,65 @@ function send(options) {
         offset = text.length;
     }
 
-    xhr.onreadystatechange = function() {
-        if (finished || (xhr.readyState !== 3 && xhr.readyState !== 4))
-            return;
-        if (xhr.status < 200 || xhr.status >= 300) {
-            if (xhr.readyState === 4)
-                finish("error", errorMessage(xhr.status, xhr.responseText, request.url), xhr.status);
-            return;
-        }
-        if (stream) {
-            consume();
+    function open(isRetry) {
+        xhr = options.xhrFactory();
+        newSse();
+        xhr.onreadystatechange = function() {
+            if (finished || (xhr.readyState !== 3 && xhr.readyState !== 4))
+                return;
+            if (xhr.status < 200 || xhr.status >= 300) {
+                if (xhr.readyState !== 4)
+                    return;
+                if (!retried && request.body.stream_options && (xhr.status === 400 || xhr.status === 422)
+                        && /stream_options|include_usage/i.test(xhr.responseText || "")) {
+                    _rejectsStreamOptions[_trimSlash(options.baseUrl)] = true;
+                    retried = true;
+                    request = buildRequest(options);
+                    offset = 0;
+                    open(true);
+                } else
+                    finish("error", errorMessage(xhr.status, xhr.responseText, request.url), xhr.status);
+                return;
+            }
+            if (stream) {
+                consume();
+                if (xhr.readyState === 4) {
+                    sse.end();
+                    if (!finished) finish("complete");
+                }
+                return;
+            }
             if (xhr.readyState === 4) {
-                sse.end();
-                if (!finished) finish("complete");
+                try {
+                    _handleFullResponse(options.type, JSON.parse(xhr.responseText), think, emit);
+                    finish("complete");
+                } catch (e) {
+                    finish("error", "Could not read the provider's response: " + e, xhr.status);
+                }
             }
-            return;
-        }
-        if (xhr.readyState === 4) {
-            try {
-                _handleFullResponse(options.type, JSON.parse(xhr.responseText), think, emit);
-                finish("complete");
-            } catch (e) {
-                finish("error", "Could not read the provider's response: " + e, xhr.status);
-            }
-        }
-    };
-    xhr.onerror = function() {
-        finish("error", errorMessage(0, "", request.url), 0);
-    };
-    xhr.ontimeout = function() {
-        finish("error", "Request to " + request.url + " timed out after " + Math.round(options.timeoutMs / 1000) + " seconds.", 0);
-    };
+        };
+        xhr.onerror = function() {
+            finish("error", errorMessage(0, "", request.url), 0);
+        };
+        xhr.ontimeout = function() {
+            finish("error", "Request to " + request.url + " timed out after " + Math.round(options.timeoutMs / 1000) + " seconds.", 0);
+        };
 
-    try {
-        xhr.open("POST", request.url, true);
-        if (options.timeoutMs > 0)
-            xhr.timeout = options.timeoutMs;
-        for (var name in request.headers)
-            xhr.setRequestHeader(name, request.headers[name]);
-        emit({"type": "start"});
-        xhr.send(JSON.stringify(request.body));
-    } catch (e) {
-        finish("error", "Could not start the request: " + e, 0);
+        try {
+            xhr.open("POST", request.url, true);
+            if (options.timeoutMs > 0)
+                xhr.timeout = options.timeoutMs;
+            for (var name in request.headers)
+                xhr.setRequestHeader(name, request.headers[name]);
+            if (!isRetry)
+                emit({"type": "start"});
+            xhr.send(JSON.stringify(request.body));
+        } catch (e) {
+            finish("error", "Could not start the request: " + e, 0);
+        }
     }
+
+    open(false);
 
     return {
         "abort": function() {
