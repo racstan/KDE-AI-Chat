@@ -49,6 +49,8 @@ WATCHED_FILES = (
     "chat/ErrorText.js",
     "chat/PromptTemplates.js",
     "chat/Commands.js",
+    "chat/TimeFormat.js",
+    "chat/MessageContent.js",
     "components/ModelFilter.js",
 )
 

@@ -30,8 +30,11 @@ def test_main_xml_contains_new_config_entries():
 
 
 def test_mcp_commands_are_gone():
-    with open(HELPER_PY, encoding="utf-8") as f:
-        source = f.read()
+    package = os.path.join(os.path.dirname(HELPER_PY), "kdeaichat")
+    source = ""
+    for path in [HELPER_PY] + [os.path.join(package, n) for n in sorted(os.listdir(package)) if n.endswith(".py")]:
+        with open(path, encoding="utf-8") as f:
+            source += f.read()
     for name in ("mcp_web_search", "mcp_query", "mcp_discover"):
         assert '"%s":' % name not in source
 
@@ -71,7 +74,8 @@ def test_feature_settings_are_exposed_and_persisted():
     assert "Plasmoid.icon:" in main_qml
     assert "function customIconIsImage" in main_qml
     assert "function customIconImageSource" in main_qml
-    assert "plasmoid.configuration.disableStreaming !== true" in main_qml
+    with open(os.path.join(os.path.dirname(MAIN_QML), "chat", "DirectRequest.qml"), encoding="utf-8") as f:
+        assert "plasmoid.configuration.disableStreaming !== true" in f.read()
 
 
 def test_settings_pages_exist_and_cut_settings_are_gone():

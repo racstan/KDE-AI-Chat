@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -9,11 +10,10 @@ import org.kde.plasma.plasmoid
 import QtCore
 import "Security.js" as Sec
 import "store" as Store
-import "backends/DirectBackend.js" as DirectBackend
-import "backends/AgentEvents.js" as AgentEvents
-import "chat/ChatTitle.js" as ChatTitle
 import "chat/EffectiveConfig.js" as EffectiveConfig
 import "chat/PromptTemplates.js" as PromptTemplates
+import "chat/MessageContent.js" as MessageContent
+import "chat/TimeFormat.js" as TimeFormat
 import "chat" as Chat
 
 PlasmoidItem {
@@ -39,9 +39,6 @@ PlasmoidItem {
     property var activeXhr: null
     property int requestGeneration: 0
     property string activeRequestSessionId: ""
-    property var pendingAttachmentRequests: ({})
-    property int attachmentRequestCounter: 0
-    property bool schedulerPollInFlight: false
     property string schedulerResumeSessionId: ""
     property bool streamingResponse: false
     property string currentStreamText: ""
@@ -83,7 +80,6 @@ PlasmoidItem {
     property var msgListViewRef: null
     property var composerRef: null
     property bool userScrolledUp: false
-    property var titleRequested: ({})
     // Token counts reported for the reply being streamed.
     property var currentStreamUsage: ({})
     property int queueCounter: 0
@@ -211,191 +207,158 @@ PlasmoidItem {
         _initialLoadDone = true;
         startupTimer.stop(); // Stop background timer if we triggered early
         // Load sessions immediately so UI has chat list / current chat ready
-        loadSessions();
+        sessionManager.loadSessions();
         storage.chatsLoaded();
         // Defer wallet and sys info slightly so initial layout/rendering is unblocked
         lazyWalletTimer.start();
     }
 
-    function pad2(v) {
-        return v < 10 ? ("0" + v) : String(v);
+    // The chat list and its persistence (chat/Sessions.qml), chat names
+    // (chat/SessionTitles.qml), sending and the queue (chat/SendController.qml),
+    // direct-mode requests (chat/DirectRequest.qml), backend events
+    // (chat/ReplyEvents.qml), message edits and agent cards (chat/MessageEdits.qml),
+    // view scrolling and labels (chat/ChatNavigation.qml), attachments
+    // (chat/Attachments.qml), one-off helper commands (chat/HelperCommands.qml)
+    // and scheduled-task polling (chat/SchedulerPoller.qml). The functions below
+    // are the root's API for the chat UI (tests/qml/FakeChat.qml mirrors it).
+    Chat.Sessions {
+        id: sessionManager
+        chat: root
+        modeSyncRef: modeSync
+        helperCommandsRef: helperCommands
     }
 
-    function nowTime(ts) {
-        var d = ts ? new Date(ts) : new Date();
-        return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    Chat.SessionTitles {
+        id: sessionTitles
+        chat: root
     }
 
-    function formatDateTime(ts) {
-        return new Date(ts).toLocaleString(undefined, {
-            "year": "numeric",
-            "month": "short",
-            "day": "2-digit",
-            "hour": "2-digit",
-            "minute": "2-digit"
-        });
+    Chat.SendController {
+        id: sender
+        chat: root
+        notifierRef: notifier
+        openCodeRef: openCode
+        piAgentRef: piAgent
     }
 
-    function makeSessionId() {
-        return "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+    Chat.DirectRequest {
+        id: directRequest
+        chat: root
+        directVariantRef: directVariant
     }
 
-    // Normalises `stored` (chats read from the chat store) or, when it is
-    // null, the chat history older versions kept in the widget's config.
-    function parseSessions(stored) {
-        root.sessionHistoryLoadError = "";
-        root.sessionHistoryLoadBlocked = false;
-        var raw = stored ? "" : String(plasmoid.configuration.chatSessionsJson || "[]");
-        if (raw.length > 25000000) {
-            root.sessionHistoryLoadError = "Stored chat history is too large to load safely.";
-            root.sessionHistoryLoadBlocked = true;
-            return [];
-        }
-        try {
-            var arr = stored || JSON.parse(raw);
-            if (!Array.isArray(arr)) return [];
-            var valid = [];
-            var seenIds = {};
-            for (var i = 0; i < arr.length; i++) {
-                if (!arr[i] || typeof arr[i] !== "object") continue;
-                var session = arr[i];
-                session.value = Sec.validateSessionId(session.value) || makeSessionId();
-                while (seenIds[session.value]) session.value = makeSessionId();
-                seenIds[session.value] = true;
-                if (!Array.isArray(session.messages)) session.messages = [];
-                session.messages = session.messages.filter(function(message) {
-                    return message && typeof message === "object";
-                });
-                if (session.archived === undefined) session.archived = false;
-                if (!EffectiveConfig.isMode(session.source)) {
-                    session.source = EffectiveConfig.inferSource(session);
-                    root.sessionSourceInferred = true;
-                }
-                for (var j = 0; j < session.messages.length; j++) {
-                    var message = session.messages[j];
-                    if (message.content === undefined || message.content === null)
-                        message.content = "";
-                    else if (typeof message.content !== "string")
-                        message.content = String(message.content);
-                    if (message.content.length > root.maxMessageChars) {
-                        message.content = message.content.substring(0, root.maxMessageChars) + "\n[message truncated]";
-                        if (!root.sessionHistoryLoadError)
-                            root.sessionHistoryLoadError = "One or more stored messages exceeded the safe display limit and were truncated.";
-                    }
-                    if (!message.at) message.at = session.updatedAt || session.createdAt || Date.now();
-                    if (!message.time) message.time = nowTime(message.at);
-                }
-                if (!session.updatedAt) session.updatedAt = session.createdAt || Date.now();
-                valid.push(session);
-            }
-            return valid;
-        } catch (e) {
-            root.sessionHistoryLoadError = "Stored chat history could not be parsed. It was left untouched.";
-            root.sessionHistoryLoadBlocked = true;
-            return [];
-        }
+    Chat.ReplyEvents {
+        id: replyEvents
+        chat: root
+        notifierRef: notifier
     }
 
-    function persistSessions() {
-        if (root.sessionHistoryLoadBlocked)
-            return;
-        try {
-            storage.save(root.sessions);
-            plasmoid.configuration.lastSessionId = root.currentSessionId;
-        } catch (e) {
-            console.error("KDE AI Chat: failed to persist sessions:", e);
-        }
+    Chat.MessageEdits {
+        id: messageEdits
+        chat: root
+        openCodeRef: openCode
+        piAgentRef: piAgent
     }
 
-    function sortSessionsByUpdated() {
-        var copy = root.sessions.slice();
-        copy.sort(function(a, b) {
-            if (!!a.archived !== !!b.archived)
-                return a.archived ? 1 : -1;
-
-            return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
-        });
-        root.sessions = copy;
+    Chat.ChatNavigation {
+        id: chatNav
+        chat: root
     }
 
-    function sessionSubtitle(sessionData) {
-        var parts = [];
-        if (sessionData.source === "opencode")
-            parts.push("OpenCode");
-
-        if (sessionData.archived)
-            parts.push("Archived");
-
-        parts.push("Updated " + root.formatDateTime(sessionData.updatedAt || sessionData.createdAt || Date.now()));
-        return parts.join(" · ");
+    Chat.Attachments {
+        id: attachmentList
+        chat: root
     }
 
-    function sessionIndexById(sessionId) {
-        for (var i = 0; i < root.sessions.length; i++) {
-            if (root.sessions[i].value === sessionId)
-                return i;
-
-        }
-        return -1;
+    Chat.HelperCommands {
+        id: helperCommands
+        chat: root
     }
 
-    // Session overrides are deliberately stored on the session object rather
-    // than in global plasmoid configuration.  This makes provider/model
-    // changes apply to the current chat immediately without affecting other
-    // chats.
-    function getSessionProperty(sessionId, key, defaultValue) {
-        var idx = sessionIndexById(sessionId || root.currentSessionId);
-        if (idx < 0 || !root.sessions[idx] || root.sessions[idx][key] === undefined || root.sessions[idx][key] === null)
-            return defaultValue;
-        return root.sessions[idx][key];
+    Chat.SchedulerPoller {
+        id: schedulerPoller
+        chat: root
+        notifierRef: notifier
     }
 
-    function setSessionProperty(sessionId, key, value) {
-        var idx = sessionIndexById(sessionId || root.currentSessionId);
-        if (idx < 0 || key === "source")
-            return;
-        var updated = root.sessions.slice();
-        var session = Object.assign({}, updated[idx]);
-        session[key] = value;
-        updated[idx] = session;
-        root.sessions = updated;
-        persistSessions();
-    }
+    function nowTime(ts) { return TimeFormat.nowTime(ts); }
 
-    // Apply a dialog's complete draft in one model update.  Per-chat settings
-    // are shown in the history sidebar, so assigning root.sessions once is
-    // important: a dozen individual writes otherwise rebuild that ListView
-    // a dozen times and can make plasmashell appear hung.
-    function setSessionOverrides(sessionId, overrides) {
-        var idx = sessionIndexById(sessionId || root.currentSessionId);
-        if (idx < 0 || !overrides)
-            return false;
+    // Chats (chat/Sessions.qml).
+    function persistSessions() { sessionManager.persistSessions(); }
+    function sortSessionsByUpdated() { sessionManager.sortSessionsByUpdated(); }
+    function sessionSubtitle(sessionData) { return sessionManager.sessionSubtitle(sessionData); }
+    function sessionIndexById(sessionId) { return sessionManager.sessionIndexById(sessionId); }
+    function getSessionProperty(sessionId, key, defaultValue) { return sessionManager.getSessionProperty(sessionId, key, defaultValue); }
+    function setSessionProperty(sessionId, key, value) { sessionManager.setSessionProperty(sessionId, key, value); }
+    function setSessionOverrides(sessionId, overrides) { return sessionManager.setSessionOverrides(sessionId, overrides); }
+    function createSession(switchToNew) { sessionManager.createSession(switchToNew); }
+    function resetUnreadableSessionHistory() { sessionManager.resetUnreadableSessionHistory(); }
+    function saveCurrentSessionState(touchUpdatedAt) { sessionManager.saveCurrentSessionState(touchUpdatedAt); }
+    function setCurrentSessionSource() { sessionManager.setCurrentSessionSource(); }
+    function setSessionArchived(sessionId, archived) { sessionManager.setSessionArchived(sessionId, archived); }
+    function switchSession(sessionId) { sessionManager.switchSession(sessionId); }
+    function deleteSession(sessionId) { sessionManager.deleteSession(sessionId); }
+    function currentOpenCodeSessionId(sessionId) { return sessionManager.currentOpenCodeSessionId(sessionId); }
+    function setCurrentOpenCodeSessionId(remoteSessionId, sessionId) { sessionManager.setCurrentOpenCodeSessionId(remoteSessionId, sessionId); }
+    function clearCurrentOpenCodeSessionIfNeeded() { sessionManager.clearCurrentOpenCodeSessionIfNeeded(); }
 
-        var updated = root.sessions.slice();
-        var session = Object.assign({}, updated[idx]);
-        var changed = false;
-        for (var key in overrides) {
-            // A chat's mode (source) is set when it is created and never changes.
-            if (!Object.prototype.hasOwnProperty.call(overrides, key) || key === "source")
-                continue;
-            if (session[key] !== overrides[key])
-                changed = true;
-            session[key] = overrides[key];
-        }
-        if (!changed)
-            return true;
-        if (session.value === root.currentSessionId) {
-            session.messages = root.messages.slice();
-            session.text = root.currentSessionTitle || session.text;
-        }
+    // Chat names (chat/SessionTitles.qml).
+    function renameCurrentSession(newTitle) { sessionTitles.renameCurrentSession(newTitle); }
+    function startSessionRename(sessionId) { sessionTitles.startSessionRename(sessionId); }
+    function cancelSessionRename() { sessionTitles.cancelSessionRename(); }
+    function saveSessionRename(sessionId) { sessionTitles.saveSessionRename(sessionId); }
+    function nameChatFromFirstMessage(text) { sessionTitles.nameChatFromFirstMessage(text); }
+    function maybeGenerateChatTitle() { sessionTitles.maybeGenerateChatTitle(); }
 
-        updated[idx] = session;
-        root.sessions = updated;
-        if (session.value === root.currentSessionId)
-            applySessionSource(session);
-        persistSessions();
-        return true;
-    }
+    // Sending and the queue (chat/SendController.qml).
+    function requestIsCurrent(sessionId, generation) { return sender.requestIsCurrent(sessionId, generation); }
+    function invalidateActiveRequest(processQueue) { sender.invalidateActiveRequest(processQueue); }
+    function beginRequest(sessionId) { return sender.beginRequest(sessionId); }
+    function pushErrorMessage(text) { sender.pushErrorMessage(text); }
+    function sendMessage() { sender.sendMessage(); }
+    function sendMessageByIndex(index) { sender.sendMessageByIndex(index); }
+    function processNextQueuedMessage() { sender.processNextQueuedMessage(); }
+    function stopStreaming() { sender.stopStreaming(); }
+
+    // Direct requests (chat/DirectRequest.qml) and backend events (chat/ReplyEvents.qml).
+    function getProviderConfig(provider, sessionId) { return directRequest.getProviderConfig(provider, sessionId); }
+    function buildEffectiveSystemPrompt(sessionId) { return directRequest.buildEffectiveSystemPrompt(sessionId); }
+    function sessionMessages(sessionId) { return directRequest.sessionMessages(sessionId); }
+    function doDirectRequest(cfg, sessionId, generation) { directRequest.doDirectRequest(cfg, sessionId, generation); }
+    function resetProviderStreamingState() { replyEvents.resetProviderStreamingState(); }
+    function updateMessageAt(index, update) { replyEvents.updateMessageAt(index, update); }
+    function findRequestMessage(role, idField, id) { return replyEvents.findRequestMessage(role, idField, id); }
+    function applyBackendEvent(event, model, extra) { replyEvents.applyBackendEvent(event, model, extra); }
+
+    // Message edits and agent cards (chat/MessageEdits.qml).
+    function deleteMessage(index) { messageEdits.deleteMessage(index); }
+    function saveEditedMessage() { messageEdits.saveEditedMessage(); }
+    function retryFailedMessage(index) { messageEdits.retryFailedMessage(index); }
+    function regenerateResponse(index, promptModifier) { messageEdits.regenerateResponse(index, promptModifier); }
+    function respondToPermission(permissionId, approved, always) { messageEdits.respondToPermission(permissionId, approved, always); }
+    function respondToQuestion(questionId, answerValue, isReject) { messageEdits.respondToQuestion(questionId, answerValue, isReject); }
+    function questionOptionSelected(questionId, questionIndex, label) { return messageEdits.questionOptionSelected(questionId, questionIndex, label); }
+    function toggleQuestionOption(questionId, questionIndex, label, multiple) { messageEdits.toggleQuestionOption(questionId, questionIndex, label, multiple); }
+    function submitQuestionAnswer(questionId, questions, customField) { messageEdits.submitQuestionAnswer(questionId, questions, customField); }
+
+    // The chat view (chat/ChatNavigation.qml).
+    function scrollToBottom(force) { chatNav.scrollToBottom(force); }
+    function messageDayKeyAt(index) { return chatNav.messageDayKeyAt(index); }
+    function dayDividerLabelForIndex(index) { return chatNav.dayDividerLabelForIndex(index); }
+    function formatMessageTime(message, index) { return chatNav.formatMessageTime(message, index); }
+    function jumpOneMessageAbove() { chatNav.jumpOneMessageAbove(); }
+    function jumpOneMessageBelow() { chatNav.jumpOneMessageBelow(); }
+    function formatTokensUsage(tokens, cost) { return chatNav.formatTokensUsage(tokens, cost); }
+
+    // Attachments (chat/Attachments.qml, chat/MessageContent.js) and exports (chat/HelperCommands.qml).
+    function fileIconName(filename) { return attachmentList.fileIconName(filename); }
+    function attachmentsReadyToSend() { return attachmentList.attachmentsReadyToSend(); }
+    function cleanupTemporaryAttachment(path) { attachmentList.cleanupTemporaryAttachment(path); }
+    function removeAttachedFile(index) { attachmentList.removeAttachedFile(index); }
+    function attachFile(fileUrl) { attachmentList.attachFile(fileUrl); }
+    function checkClipboardForAttachments() { attachmentList.checkClipboardForAttachments(); }
+    function buildMessageContent(text, attachments, apiType) { return MessageContent.build(text, attachments, apiType); }
+    function writeExportFile(filePath, content) { helperCommands.writeExportFile(filePath, content); }
 
     // The mode, provider and model a chat really uses: the main settings, or the
     // chat's own, per the two "per chat" settings (chat/EffectiveConfig.js has
@@ -424,337 +387,11 @@ PlasmoidItem {
 
     function applySessionSource(session) { return modeSync.apply(session); }
 
-    function requestIsCurrent(sessionId, generation) {
-        return !!sessionId && root.currentSessionId === sessionId
-            && root.activeRequestSessionId === sessionId
-            && root.requestGeneration === generation;
-    }
-
-    function invalidateActiveRequest(processQueue) {
-        root.requestGeneration++;
-        root.activeRequestSessionId = "";
-        if (root.activeXhr) {
-            try { root.activeXhr.abort(); } catch (e) {}
-            root.activeXhr = null;
-        }
-        root.resetProviderStreamingState();
-        root.loading = false;
-        if (processQueue)
-            processNextQueuedMessage();
-    }
-
-    function beginRequest(sessionId) {
-        root.requestGeneration++;
-        root.activeRequestSessionId = sessionId;
-        return root.requestGeneration;
-    }
-
-    function createSession(switchToNew) {
-        if (switchToNew && root.loading)
-            invalidateActiveRequest(false);
-        var s = {
-            "value": makeSessionId(),
-            "text": "New Chat",
-            "createdAt": Date.now(),
-            "updatedAt": Date.now(),
-            "archived": false,
-            "source": modeSync.newChatMode(),
-            "openCodeSessionId": "",
-            "openCodeWorkspaceCwd": modeSync.newChatWorkspace(),
-            "messages": []
-        };
-        root.sessions = [s].concat(root.sessions);
-        if (switchToNew) {
-            root.currentSessionId = s.value;
-            root.currentSessionTitle = s.text;
-            root.messages = [];
-            applySessionSource(s);
-        root.playingMessageIndex = -1;
-        if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
-            root.currentStreamIndex = -1;
-            root.currentStreamText = "";
-            root.streamBuffer.clear();
-            root.currentStreamReasoning = "";
-            root.currentStreamExtractedReasoning = "";
-            root.streamingResponse = false;
-            root.editingMessageIndex = -1;
-            root.editingDraft = "";
-            root.editingSessionId = ""; root.editingSessionDraft = "";
-            root.renamingCurrentChat = false;
-            root.currentChatRenameDraft = "";
-            root.historyOnlyMode = root.historySidePanel && root.historyOnlyMode;
-            root.focusInput();
-        }
-        persistSessions();
-    }
-
-    function resetUnreadableSessionHistory() {
-        root.sessionHistoryLoadError = "";
-        root.sessionHistoryLoadBlocked = false;
-        root.sessions = [];
-        createSession(true);
-    }
-
-    function loadSessions() {
-        root.sessions = parseSessions(chatStore.loadAll());
-        if (root.sessions.length === 0)
-            createSession(true);
-
-        var preferred = plasmoid.configuration.lastSessionId || "";
-        var idx = sessionIndexById(preferred);
-        if (idx < 0)
-            idx = 0;
-
-        root.currentSessionId = root.sessions[idx].value;
-        root.currentSessionTitle = root.sessions[idx].text;
-        root.messages = root.sessions[idx].messages || [];
-        applySessionSource(root.sessions[idx]);
-        sortSessionsByUpdated();
-        if (root.sessionSourceInferred)
-            persistSessions();
-    }
-
-    function saveCurrentSessionState(touchUpdatedAt) {
-        var idx = sessionIndexById(root.currentSessionId);
-        if (idx < 0)
-            return ;
-
-        var updated = root.sessions.slice();
-        var s = Object.assign({}, updated[idx]);
-        s.text = root.currentSessionTitle || "New Chat";
-        s.messages = root.messages;
-        if (touchUpdatedAt !== false)
-            s.updatedAt = Date.now();
-
-        updated[idx] = s;
-        root.sessions = updated;
-        if (touchUpdatedAt !== false)
-            sortSessionsByUpdated();
-
-        persistSessions();
-    }
-
-    // Un-archives the open chat when it is used; its mode (source) stays as it is.
-    function setCurrentSessionSource() {
-        var idx = sessionIndexById(root.currentSessionId);
-        if (idx < 0)
-            return ;
-
-        var updated = root.sessions.slice();
-        var item = Object.assign({}, updated[idx]);
-        item.source = EffectiveConfig.chatMode(item);
-        item.archived = false;
-        updated[idx] = item;
-        root.sessions = updated;
-        persistSessions();
-    }
-
-    function setSessionArchived(sessionId, archived) {
-        var idx = sessionIndexById(sessionId);
-        if (idx < 0)
-            return ;
-
-        var updated = root.sessions.slice();
-        var item = Object.assign({}, updated[idx]);
-        item.archived = !!archived;
-        item.updatedAt = Date.now();
-        updated[idx] = item;
-        root.sessions = updated;
-        sortSessionsByUpdated();
-        persistSessions();
-    }
-
-    function switchSession(sessionId) {
-        if (!sessionId || sessionId === root.currentSessionId)
-            return ;
-
-        // A response must never be allowed to write into the newly selected
-        // session. Invalidate callbacks before changing the active model.
-        invalidateActiveRequest(false);
-        saveCurrentSessionState(false);
-        var idx = sessionIndexById(sessionId);
-        if (idx < 0)
-            return ;
-
-        root.currentSessionId = root.sessions[idx].value;
-        root.currentSessionTitle = root.sessions[idx].text;
-        root.messages = root.sessions[idx].messages || [];
-        applySessionSource(root.sessions[idx]);
-        root.playingMessageIndex = -1;
-        if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
-        root.currentStreamIndex = -1;
-        root.currentStreamText = "";
-        root.streamBuffer.clear();
-        root.currentStreamReasoning = "";
-        root.currentStreamExtractedReasoning = "";
-        root.streamingResponse = false;
-        root.editingMessageIndex = -1;
-        root.editingDraft = "";
-        root.editingSessionId = "";
-        root.editingSessionDraft = "";
-        root.renamingCurrentChat = false;
-        root.currentChatRenameDraft = "";
-        persistSessions();
-        scrollToBottom(true);
-        root.focusInput();
-        if (!root.loading)
-            Qt.callLater(root.processNextQueuedMessage);
-    }
-
-    function renameCurrentSession(newTitle) {
-        var title = (newTitle || "").trim();
-        if (title === "")
-            title = "New Chat";
-
-        root.currentSessionTitle = title;
-        saveCurrentSessionState(true);
-    }
-
-    function startSessionRename(sessionId) {
-        var idx = sessionIndexById(sessionId);
-        if (idx < 0)
-            return ;
-
-        root.editingSessionId = sessionId;
-        root.editingSessionDraft = root.sessions[idx].text || "";
-    }
-
-    function cancelSessionRename() {
-        root.editingSessionId = "";
-        root.editingSessionDraft = "";
-    }
-
-    function saveSessionRename(sessionId) {
-        var idx = sessionIndexById(sessionId);
-        if (idx < 0)
-            return ;
-
-        var title = (root.editingSessionDraft || "").trim();
-        if (title === "")
-            title = "New Chat";
-
-        var updated = root.sessions.slice();
-        var s = Object.assign({}, updated[idx]);
-        s.text = title;
-        s.updatedAt = Date.now();
-        updated[idx] = s;
-        root.sessions = updated;
-        if (root.currentSessionId === sessionId)
-            root.currentSessionTitle = title;
-
-        sortSessionsByUpdated();
-        persistSessions();
-        cancelSessionRename();
-    }
-
-    function deleteSession(sessionId) {
-        if (root.sessions.length <= 1)
-            return ;
-
-        if (sessionId === root.currentSessionId)
-            invalidateActiveRequest(false);
-        var idx = sessionIndexById(sessionId);
-        if (idx < 0)
-            return ;
-
-        var updated = root.sessions.slice();
-        var removed = updated.splice(idx, 1)[0];
-        root.sessions = updated;
-        root.sessionDeleted(removed, idx);
-        var helper = getHelperPath();
-        if (helper) {
-            var deletePayload = Sec.base64Encode(JSON.stringify({"sessionId": sessionId}));
-            fileReaderDs.connectSource("python3 " + Sec.quoteForShell(helper) + " delete_session_schedules " + Sec.rawShellSnippetQuote(deletePayload) + " #delete-session-schedules-" + Date.now());
-        }
-        if (root.currentSessionId === sessionId) {
-            var next = root.sessions[0];
-            root.currentSessionId = next.value;
-            root.currentSessionTitle = next.text;
-            root.messages = next.messages || [];
-            applySessionSource(next);
-        }
-        cancelSessionRename();
-        persistSessions();
-    }
-
-    function deleteMessage(index) {
-        var copy = root.messages.slice();
-        if (index < 0 || index >= copy.length)
-            return ;
-
-        copy.splice(index, 1);
-        root.messages = copy;
-        root.editingMessageIndex = -1;
-        root.editingDraft = "";
-        clearCurrentOpenCodeSessionIfNeeded();
-        saveCurrentSessionState(true);
-    }
-
-    function saveEditedMessage() {
-        var i = root.editingMessageIndex;
-        if (i < 0 || i >= root.messages.length)
-            return ;
-
-        if ((root.messages[i].role || "") === "error") {
-            root.editingMessageIndex = -1;
-            root.editingDraft = "";
-            return ;
-        }
-        // Cancel any active streaming/loading requests first
-        stopStreaming();
-        var role = root.messages[i].role || "";
-        var isQueued = role === "queued";
-        var copy = isQueued ? root.messages.slice() : root.messages.slice(0, i + 1);
-        var item = Object.assign({}, copy[i]);
-        item.content = root.editingDraft;
-        item.at = Date.now();
-        item.time = nowTime(item.at);
-        copy[i] = item;
-        root.messages = copy;
-        root.editingMessageIndex = -1;
-        root.editingDraft = "";
-        clearCurrentOpenCodeSessionIfNeeded();
-        saveCurrentSessionState(true);
-        // Re-run from edited user prompt so assistant response reflects the new text.
-        if (role === "user") {
-            root.userScrolledUp = false;
-            sendMessageByIndex(i);
-        }
-    }
-
     function openCodeBaseUrl() {
         var raw = String(plasmoid.configuration.openCodeUrl || "http://127.0.0.1:4096/v1").trim();
         var valid = Sec.validateHttpUrl(raw);
         if (!valid) return "";
         return valid.replace(/\/v1\/?$/, "").replace(/\/$/, "");
-    }
-
-    function currentOpenCodeSessionId(sessionId) {
-        var idx = sessionIndexById(sessionId || root.currentSessionId);
-        if (idx < 0)
-            return "";
-
-        return Sec.validateRemoteSessionId(root.sessions[idx].openCodeSessionId || "");
-    }
-
-    function setCurrentOpenCodeSessionId(remoteSessionId, sessionId) {
-        var idx = sessionIndexById(sessionId || root.currentSessionId);
-        if (idx < 0)
-            return ;
-
-        var updated = root.sessions.slice();
-        var item = Object.assign({}, updated[idx]);
-        item.openCodeSessionId = Sec.validateRemoteSessionId(remoteSessionId || "");
-        updated[idx] = item;
-        root.sessions = updated;
-        persistSessions();
-    }
-
-    function clearCurrentOpenCodeSessionIfNeeded() {
-        if (!root.openCodeMode)
-            return ;
-
-        setCurrentOpenCodeSessionId("");
     }
 
     // OpenCode work lives in chat/OpenCodeMode.qml.
@@ -765,761 +402,8 @@ PlasmoidItem {
 
     function fetchOpenCodeProvidersAndModels(callback) { openCode.fetchCatalog(callback); }
 
-    function resetProviderStreamingState() {
-        streamBuffer.flush();
-        if (root.currentStreamIndex >= 0 && root.currentStreamIndex < root.messages.length) {
-            var copy = root.messages.slice();
-            var current = copy[root.currentStreamIndex] = Object.assign({}, copy[root.currentStreamIndex]);
-            if (current && current.role === "assistant") {
-                if (root.currentStreamText)
-                    current.content = root.currentStreamText;
-                if (root.currentStreamReasoning)
-                    current.reasoning = root.currentStreamReasoning;
-                if (!current.content && !current.reasoning)
-                    copy.splice(root.currentStreamIndex, 1);
-                root.messages = copy;
-            }
-        }
-        root.currentStreamIndex = -1;
-        root.currentStreamText = "";
-        root.currentStreamReasoning = "";
-        root.currentStreamExtractedReasoning = "";
-        root.streamingResponse = false;
-    }
-
-    // The one scroll rule: the chat view follows new content while
-    // userScrolledUp is false (see FullRepresentationContent's msgList).
-    // force: jump to the latest message even if the user scrolled up.
-    function scrollToBottom(force) {
-        if (root.userScrolledUp && !force)
-            return;
-        root.userScrolledUp = false;
-        if (root.msgListViewRef)
-            root.msgListViewRef.positionViewAtEnd();
-    }
-
-    function messageTimestampAt(index) {
-        if (index < 0 || index >= root.messages.length)
-            return Date.now();
-
-        var m = root.messages[index] || {
-        };
-        return m.at || Date.now();
-    }
-
-    function messageDayKeyAt(index) {
-        var d = new Date(messageTimestampAt(index));
-        return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-    }
-
-    function dayBucketLabel(ts) {
-        var target = new Date(ts);
-        var now = new Date();
-        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        var targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-        var daysDiff = Math.floor((today.getTime() - targetDay.getTime()) / 8.64e+07);
-        if (daysDiff === 0)
-            return "Today";
-
-        if (daysDiff === 1)
-            return "Yesterday";
-
-        if (daysDiff === 2)
-            return "Day before yesterday";
-
-        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        return months[target.getMonth()] + " " + pad2(target.getDate()) + ", " + target.getFullYear();
-    }
-
-    function countMessagesForDayKey(dayKey) {
-        var count = 0;
-        for (var i = 0; i < root.messages.length; i++) {
-            if (messageDayKeyAt(i) === dayKey)
-                count++;
-
-        }
-        return count;
-    }
-
-    function dayDividerLabelForIndex(index) {
-        var key = messageDayKeyAt(index);
-        return dayBucketLabel(messageTimestampAt(index)) + " (" + countMessagesForDayKey(key) + ")";
-    }
-
-    function formatMessageTime(message, index) {
-        if (message && message.time)
-            return message.time;
-
-        return nowTime(messageTimestampAt(index));
-    }
-
-    function jumpOneMessageAbove() {
-        if (!root.msgListViewRef || root.messages.length === 0)
-            return ;
-
-        var currentTop = -1;
-        for (var offset = 15; offset <= 100; offset += 20) {
-            currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset);
-            if (currentTop >= 0)
-                break;
-
-        }
-        if (currentTop < 0)
-            currentTop = root.messages.length;
-
-        var target = -1;
-        for (var i = currentTop - 1; i >= 0; i--) {
-            var msg = root.messages[i];
-            if (msg && msg.role === "user") {
-                target = i;
-                break;
-            }
-        }
-        if (target >= 0) {
-            root.userScrolledUp = true;
-            root.msgListViewRef.positionViewAtIndex(target, ListView.Beginning);
-        } else {
-            root.userScrolledUp = true;
-            root.msgListViewRef.positionViewAtBeginning();
-        }
-    }
-
-    function jumpOneMessageBelow() {
-        if (!root.msgListViewRef || root.messages.length === 0)
-            return ;
-
-        var currentTop = -1;
-        for (var offset = 15; offset <= 100; offset += 20) {
-            currentTop = root.msgListViewRef.indexAt(30, root.msgListViewRef.contentY + offset);
-            if (currentTop >= 0)
-                break;
-
-        }
-        if (currentTop < 0)
-            currentTop = -1;
-
-        var target = -1;
-        for (var i = currentTop + 1; i < root.messages.length; i++) {
-            var msg = root.messages[i];
-            if (msg && msg.role === "user") {
-                target = i;
-                break;
-            }
-        }
-        if (target >= 0) {
-            var isLastUser = true;
-            for (var j = target + 1; j < root.messages.length; j++) {
-                if (root.messages[j] && root.messages[j].role === "user") {
-                    isLastUser = false;
-                    break;
-                }
-            }
-            if (isLastUser) {
-                if (root.userScrolledUp) {
-                    root.userScrolledUp = false;
-                    root.scrollToBottom();
-                }
-            } else {
-                root.userScrolledUp = true;
-                root.msgListViewRef.positionViewAtIndex(target, ListView.Beginning);
-            }
-        } else {
-            if (root.userScrolledUp) {
-                root.userScrolledUp = false;
-                root.scrollToBottom();
-            }
-        }
-    }
-
-    function formatTokensUsage(tokens, cost) {
-        if (!tokens)
-            return "";
-
-        var parts = [];
-        if (tokens.input !== undefined)
-            parts.push("Input: " + tokens.input);
-
-        if (tokens.output !== undefined)
-            parts.push("Output: " + tokens.output);
-
-        if (tokens.reasoning !== undefined && tokens.reasoning > 0)
-            parts.push("Reasoning: " + tokens.reasoning);
-
-        if (tokens.cache && (tokens.cache.read > 0 || tokens.cache.write > 0))
-            parts.push("Cache R/W: " + tokens.cache.read + "/" + tokens.cache.write);
-
-        var res = parts.join(" | ");
-        if (cost !== undefined && cost > 0)
-            res += " | Cost: $" + cost.toFixed(5);
-
-        return res;
-    }
-
-    function pushErrorMessage(text) {
-        var ts = Date.now();
-        root.messages = root.messages.concat([{
-            "role": "error",
-            "content": text,
-            "time": nowTime(ts),
-            "at": ts,
-            "model": ""
-        }]);
-        scrollToBottom();
-        saveCurrentSessionState(true);
-        notifier.failed(root.currentSessionId, root.currentSessionTitle, text);
-    }
-
-    function retryFailedMessage(index) {
-        if (index < 0 || index >= root.messages.length) return;
-        var role = root.messages[index].role || "";
-        if (role !== "error") return;
-        
-        var lastUserIdx = -1;
-        for (var i = index - 1; i >= 0; i--) {
-            var r = root.messages[i].role || "";
-            if (r === "user" || r === "queued") {
-                lastUserIdx = i;
-                break;
-            }
-        }
-        
-        if (lastUserIdx >= 0) {
-            stopStreaming();
-            var copy = root.messages.slice(0, lastUserIdx + 1);
-            root.messages = copy;
-            clearCurrentOpenCodeSessionIfNeeded();
-            saveCurrentSessionState(true);
-            root.userScrolledUp = false;
-            sendMessageByIndex(lastUserIdx);
-        }
-    }
-
-    // Asks again from the user message at `index` (or before the reply there); later messages are dropped, undoably.
-    function regenerateResponse(index, promptModifier) {
-        if (index < 0 || index >= root.messages.length) return;
-        var role = root.messages[index].role || "";
-        var reply = role === "assistant" || role === "opencode_assistant";
-        var lastUserIdx = reply ? index - 1 : index;
-        var userRole = lastUserIdx >= 0 ? (root.messages[lastUserIdx].role || "") : "";
-        if (userRole !== "user" && userRole !== "queued") return;
-        stopStreaming();
-        var before = root.messages;
-        var copy = before.slice(0, lastUserIdx + 1);
-        if (promptModifier) {
-            var item = Object.assign({}, copy[lastUserIdx]);
-            item.content = item.content + "\n\n" + promptModifier;
-            item.at = Date.now();
-            item.time = nowTime(item.at);
-            copy[lastUserIdx] = item;
-        }
-        root.messages = copy;
-        if (before.length > copy.length) messagesDropped(root.currentSessionId, before);
-        clearCurrentOpenCodeSessionIfNeeded();
-        saveCurrentSessionState(true);
-        root.userScrolledUp = false;
-        sendMessageByIndex(lastUserIdx);
-    }
-
-    function appendUserMessage(text, role, attachments) {
-        var ts = Date.now();
-        root.messages = root.messages.concat([{
-            "role": role || "user",
-            "content": text,
-            "time": nowTime(ts),
-            "at": ts,
-            "model": "",
-            "queueId": role === "queued" ? (++root.queueCounter) : 0,
-            "attachments": attachments || []
-        }]);
-        if ((role || "user") === "user")
-            nameChatFromFirstMessage(text);
-        saveCurrentSessionState(true);
-    }
-
-    function validateCurrentSendTarget() {
-        if (root.openCodeMode)
-            return validateOpenCodeConfig(root.currentSessionId);
-        if (root.piMode)
-            return "";
-
-        var provider = root.getEffectiveProvider ? root.getEffectiveProvider(root.currentSessionId) : (plasmoid.configuration.provider || "openai");
-        var providerCfg = getProviderConfig(provider, root.currentSessionId);
-        return validateProviderConfig(provider, providerCfg);
-    }
-
-    function sendMessageByIndex(index) {
-        root.currentStreamIndex = -1;
-        root.currentStreamText = "";
-        root.streamBuffer.clear();
-        root.currentStreamReasoning = "";
-        root.currentStreamExtractedReasoning = "";
-        root.streamingResponse = false;
-
-        var source = root.messages[index] || {
-        };
-        var text = (source.content || "").trim();
-        var hasAttachments = source.attachments && source.attachments.length > 0;
-        if (!text && !hasAttachments)
-            return ;
-
-        applySessionSource(root.sessions[sessionIndexById(root.currentSessionId)]);
-        var validationError = validateCurrentSendTarget();
-        if (validationError !== "") {
-            pushErrorMessage(validationError);
-            return ;
-        }
-        if ((source.role || "") === "queued") {
-            var copy = root.messages.slice();
-            var queued = Object.assign({}, copy[index]);
-            queued.role = "user";
-            queued.at = Date.now();
-            queued.time = nowTime(queued.at);
-            copy[index] = queued;
-            root.messages = copy;
-            nameChatFromFirstMessage(queued.content);
-            saveCurrentSessionState(true);
-        }
-        var requestSessionId = root.currentSessionId;
-        setCurrentSessionSource();
-        var requestGeneration = beginRequest(requestSessionId);
-        if (root.openCodeMode) {
-            openCode.send(requestSessionId, requestGeneration);
-            return ;
-        }
-        if (root.piMode) {
-            piAgent.send(requestSessionId, requestGeneration);
-            return ;
-        }
-        var provider = root.getEffectiveProvider(requestSessionId);
-        doDirectRequest(getProviderConfig(provider, requestSessionId), requestSessionId, requestGeneration);
-    }
-
-    function processNextQueuedMessage() {
-        if (root.loading)
-            return ;
-
-        for (var i = 0; i < root.messages.length; i++) {
-            if ((root.messages[i].role || "") === "queued") {
-                sendMessageByIndex(i);
-                return ;
-            }
-        }
-        // A scheduled trigger belongs to its target chat even when that chat
-        // is not currently visible. Rotate through scheduled queues only when
-        // the active request is idle; ordinary user queues stay attached to
-        // their original chat and are never cancelled by this scan.
-        for (var s = 0; s < root.sessions.length; s++) {
-            var session = root.sessions[s] || {};
-            if (session.value === root.currentSessionId) continue;
-            var messages = Array.isArray(session.messages) ? session.messages : [];
-            for (var m = 0; m < messages.length; m++) {
-                if (messages[m] && messages[m].role === "queued" && messages[m].scheduled) {
-                    if (!root.schedulerResumeSessionId)
-                        root.schedulerResumeSessionId = root.currentSessionId;
-                    root.switchSession(session.value);
-                    return ;
-                }
-            }
-        }
-        if (root.schedulerResumeSessionId && root.schedulerResumeSessionId !== root.currentSessionId) {
-            var resumeId = root.schedulerResumeSessionId;
-            root.schedulerResumeSessionId = "";
-            if (root.sessionIndexById(resumeId) >= 0) {
-                root.switchSession(resumeId);
-                return ;
-            }
-        }
-        root.schedulerResumeSessionId = "";
-    }
-
-    // Chat names (chat/ChatTitle.js). A chat gets an instant name from its first
-    // message (session.autoTitle remembers it), then, after the first reply, a
-    // model-written one. Only a title still equal to autoTitle (or the default)
-    // is replaced, so a manual rename always wins.
-    function nameChatFromFirstMessage(text) {
-        var title = ChatTitle.instantTitle(text);
-        if (!title || !ChatTitle.isDefaultTitle(root.currentSessionTitle) || firstUserText() !== String(text).trim())
-            return;
-        applyAutoTitle(root.currentSessionId, title);
-    }
-
-    function firstUserText() {
-        for (var i = 0; i < root.messages.length; i++)
-            if (root.messages[i].role === "user" || root.messages[i].role === "queued")
-                return String(root.messages[i].content || "").trim();
-        return "";
-    }
-
-    // Sets `title` on chat `sessionId` if its name is still automatic.
-    function applyAutoTitle(sessionId, title, final) {
-        var idx = sessionIndexById(sessionId);
-        if (idx < 0)
-            return false;
-        var isCurrent = sessionId === root.currentSessionId;
-        var current = isCurrent ? root.currentSessionTitle : root.sessions[idx].text;
-        if (!ChatTitle.isDefaultTitle(current) && !(root.sessions[idx].autoTitle && current === root.sessions[idx].autoTitle))
-            return false;
-        var updated = root.sessions.slice();
-        updated[idx] = Object.assign({}, updated[idx], {"text": title, "autoTitle": final ? "" : title});
-        root.sessions = updated;
-        if (isCurrent)
-            root.currentSessionTitle = title;
-        persistSessions();
-        return true;
-    }
-
-    function maybeGenerateChatTitle() {
-        var sessionId = root.currentSessionId;
-        var idx = sessionIndexById(sessionId);
-        if (plasmoid.configuration.autoNameChats === false || idx < 0 || root.titleRequested[sessionId])
-            return;
-        var current = root.currentSessionTitle;
-        if (!ChatTitle.isDefaultTitle(current) && !(root.sessions[idx].autoTitle && current === root.sessions[idx].autoTitle))
-            return;
-        var firstUser = firstUserText();
-        // Agent chats use the default direct provider, if it has a key.
-        var cfg = getProviderConfig(root.getEffectiveProvider(sessionId), sessionId);
-        if (!firstUser || !cfg || !cfg.model || !cfg.baseUrl || (!cfg.allowEmptyKey && !cfg.apiKey))
-            return;
-        root.titleRequested[sessionId] = true;
-        ChatTitle.request(cfg, firstUser, function() { return new XMLHttpRequest(); }, function(title, error) {
-            if (title)
-                applyAutoTitle(sessionId, title, true);
-            else
-                console.warn("KDE AI Chat: couldn't name the chat with the model (" + error + "); keeping its first-message name");
-        });
-    }
-
-    // The plasmashell watchdog was removed in 1.4.0. A monitor started by an
-    // older version keeps running across upgrades and would restart
-    // plasmashell once heartbeats stop, so stop it once at startup if its
-    // files are still there.
-    function stopLegacyWatchdog() {
-        var helper = getHelperPath();
-        if (!helper)
-            return;
-        var dataDir = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "");
-        var pidFile = decodeURIComponent(dataDir) + "/kdeaichat/plasmashell-watchdog.pid";
-        var heartbeat = decodeURIComponent(dataDir) + "/kdeaichat/plasmashell-heartbeat";
-        var cmd = "if [ -e " + Sec.quoteForShell(pidFile) + " ] || [ -e " + Sec.quoteForShell(heartbeat) + " ]; then python3 "
-            + Sec.quoteForShell(helper) + " stop_legacy_watchdog; fi";
-        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #plasmashell-watchdog-" + Date.now());
-    }
-
     function providerDisplayName(providerId) {
         return ProviderService.getProviderDisplayName(providerId, plasmoid.configuration);
-    }
-
-    function validateOpenCodeConfig(sessionId) {
-        var missing = [];
-        if (!openCodeBaseUrl())
-            missing.push("a valid OpenCode HTTP(S) URL");
-        var eff = effectiveConfig(sessionId);
-        var provider = eff.provider, model = eff.model, agent = eff.agent;
-        if (!provider && !agent)
-            missing.push("OpenCode provider or agent");
-        if (!model && !agent)
-            missing.push("OpenCode model or agent");
-        if (missing.length > 0)
-            return "Cannot send yet. Configure: " + missing.join(", ") + ".";
-        return "";
-    }
-
-    function validateProviderConfig(providerId, cfg) {
-        if (!cfg)
-            return "Provider configuration missing.";
-
-        var name = providerDisplayName(providerId);
-        if (cfg.found === false)
-            return "The provider \"" + name + "\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.";
-        var missing = [];
-        if (!providerId)
-            missing.push("provider");
-
-        if (!cfg.baseUrl && cfg.type !== "anthropic")
-            missing.push("base URL");
-
-        if (!cfg.model)
-            missing.push("model");
-
-        if (cfg.type === "anthropic" && !cfg.apiKey)
-            missing.push("API key");
-
-        if (cfg.type !== "anthropic" && !cfg.allowEmptyKey && !cfg.apiKey)
-            missing.push("API key");
-
-        if (missing.length > 0)
-            return "Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model."
-                + (missing.indexOf("API key") !== -1 && !wallet.usable && wallet.status !== "unknown" ? " " + wallet.statusMessage() : "");
-
-        return "";
-    }
-
-    function sendMessage() {
-        ensureWalletLoaded();
-        try {
-            var text = (root.chatInputText || "").trim();
-            var attachments = root.attachedFiles || [];
-
-            text = PromptTemplates.expand(text, root.promptTemplates);
-
-            if (text.length > 200000) {
-                pushErrorMessage("Message is too large. Keep messages under 200,000 characters.");
-                return;
-            }
-            if (text === "" && attachments.length === 0)
-                return ;
-            if (!attachmentsReadyToSend()) {
-                pushErrorMessage("Please wait for attached files to finish loading before sending.");
-                return;
-            }
-
-            for (var cleanupIndex = 0; cleanupIndex < attachments.length; cleanupIndex++)
-                cleanupTemporaryAttachment(attachments[cleanupIndex].path || "");
-            root.attachedFiles = [];
-            root.chatInputText = "";
-            root.clearChatInput();
-            if (root.loading) {
-                appendUserMessage(text, "queued", attachments);
-                return ;
-            }
-            appendUserMessage(text, "user", attachments);
-            sendMessageByIndex(root.messages.length - 1);
-        } catch (err) {
-            root.loading = false;
-            root.activeXhr = null;
-            pushErrorMessage("Send failed: " + err);
-            processNextQueuedMessage();
-        }
-    }
-
-    function getProviderConfig(provider, sessionId) {
-        var providerId = provider || getEffectiveProvider(sessionId || root.currentSessionId);
-        var cfg = ProviderService.getProviderConfig(providerId, plasmoid.configuration);
-        cfg.baseUrl = Sec.validateHttpUrl(cfg.baseUrl);
-        // Keys come from KWallet. A plaintext value left by an older version is
-        // only used while KWallet is unavailable, until it can be migrated.
-        var walletKey = String(root.walletApiKeys[providerId] || "").trim();
-        cfg.apiKey = walletKey || (wallet.usable ? "" : String(cfg.apiKey || "").trim());
-        var eff = effectiveConfig(sessionId || root.currentSessionId).direct;
-        if (eff.model && eff.provider === providerId)
-            cfg.model = eff.model;
-        return cfg;
-    }
-
-    function buildEffectiveSystemPrompt(sessionId) {
-        var enabled = getSessionProperty(sessionId, "chatSystemPromptEnabled", true) !== false;
-        if (!enabled)
-            return "";
-        var parts = [];
-        if (plasmoid.configuration.enableSystemPrompt !== false && compiledSystemPrompt)
-            parts.push(compiledSystemPrompt);
-        var chatPrompt = String(getSessionProperty(sessionId, "chatSystemPrompt", "") || "").trim();
-        if (chatPrompt)
-            parts.push("--- Chat-specific instructions ---\n" + chatPrompt + "\n--- End chat-specific instructions ---");
-        var responseLength = Number(getSessionProperty(sessionId, "responseLength", 0)) || 0;
-        var instructions = ["", "Keep the response short and focused, around 256 output tokens unless the task requires more.", "Give a balanced response, around 1024 output tokens at most.", "Give a detailed response, around 4096 output tokens at most.", "Give a comprehensive response, up to roughly 8192 output tokens when useful."];
-        if (responseLength > 0 && responseLength < instructions.length)
-            parts.push("Response length preference: " + instructions[responseLength]);
-        return parts.join("\n\n");
-    }
-
-    function responseMaxTokens(sessionId, defaultValue) {
-        var selected = Number(getSessionProperty(sessionId, "responseLength", 0)) || 0;
-        var limits = [defaultValue || 0, 512, 1024, 4096, 8192];
-        return selected >= 0 && selected < limits.length ? limits[selected] : (defaultValue || 0);
-    }
-
-    function limitContextMessages(messageRoles) {
-        var list = Array.isArray(messageRoles) ? messageRoles.slice() : [];
-        var configured = Number(plasmoid.configuration.contextMessageLimit);
-        var maxMessages = configured >= 0 ? Math.min(100, configured + 1) : 100;
-        if (list.length > maxMessages)
-            list = list.slice(list.length - maxMessages);
-        var totalChars = 0;
-        var firstKept = list.length;
-        for (var i = list.length - 1; i >= 0; i--) {
-            var size = 0;
-            try { size = JSON.stringify(list[i]).length; } catch (e) { size = String(list[i].content || "").length; }
-            if (totalChars + size > 6000000 && firstKept < list.length)
-                break;
-            totalChars += size;
-            firstKept = i;
-        }
-        return list.slice(firstKept);
-    }
-
-    // The messages of `sessionId` (not necessarily the chat on screen).
-    function sessionMessages(sessionId) {
-        if (sessionId === root.currentSessionId)
-            return root.messages;
-        var idx = sessionIndexById(sessionId);
-        return idx >= 0 ? (root.sessions[idx].messages || []) : [];
-    }
-
-    // System prompt and conversation for a direct API request.
-    function buildDirectRequestParts(sessionId, apiType) {
-        var source = sessionMessages(sessionId);
-        var conversation = [];
-        for (var i = 0; i < source.length; i++) {
-            if (source[i].role === "user" || source[i].role === "assistant")
-                conversation.push(source[i]);
-        }
-        conversation = limitContextMessages(conversation);
-        var messages = [];
-        for (var j = 0; j < conversation.length; j++) {
-            var rm = conversation[j];
-            var hasAttachments = rm.role === "user" && rm.attachments && rm.attachments.length > 0;
-            messages.push({"role": rm.role, "content": hasAttachments ? buildMessageContent(rm.content, rm.attachments, apiType) : rm.content});
-        }
-        return {"system": buildEffectiveSystemPrompt(sessionId), "messages": messages};
-    }
-
-    // Sends a direct API request and applies its events to the chat.
-    function doDirectRequest(cfg, sessionId, generation) {
-        root.loading = true;
-        // The chat's variant (reasoning level), if it has one and the model still offers it.
-        directVariant.resolve(sessionId, cfg, function(variantSend) {
-            if (requestIsCurrent(sessionId, generation))
-                sendDirectRequest(cfg, sessionId, generation, variantSend);
-        });
-    }
-
-    function sendDirectRequest(cfg, sessionId, generation, variantSend) {
-        var apiType = cfg.type === "anthropic" ? "anthropic" : "openai";
-        var parts = buildDirectRequestParts(sessionId, apiType);
-        var model = cfg.model || "";
-        root.currentStreamUsage = ({});
-        root.loading = true;
-        root.activeXhr = DirectBackend.send({
-            "type": apiType,
-            "baseUrl": cfg.baseUrl,
-            "apiKey": cfg.apiKey,
-            "model": model,
-            "headers": cfg.headers,
-            "system": parts.system,
-            "messages": parts.messages,
-            "maxTokens": responseMaxTokens(sessionId, DirectBackend.DEFAULT_MAX_TOKENS),
-            "variantSend": variantSend,
-            "stream": plasmoid.configuration.disableStreaming !== true,
-            "timeoutMs": plasmoid.configuration.requestTimeout > 0 ? plasmoid.configuration.requestTimeout * 1000 : 0,
-            "xhrFactory": function() { return new XMLHttpRequest(); },
-            "onEvent": function(event) {
-                if (requestIsCurrent(sessionId, generation))
-                    applyBackendEvent(event, model);
-            }
-        });
-    }
-
-    // Starts the reply bubble for the request being streamed, if needed.
-    function ensureStreamingMessage(model) {
-        if (root.currentStreamIndex >= 0)
-            return;
-        var ts = Date.now();
-        root.currentStreamKey = "m-stream-" + ts;
-        root.messages = root.messages.concat([{"id": root.currentStreamKey, "role": "assistant", "content": "", "reasoning": "", "time": nowTime(ts), "at": ts, "model": model}]);
-        root.currentStreamIndex = root.messages.length - 1;
-        root.streamingResponse = true;
-    }
-
-    // Updates fields of an existing message: update(copyOfMessage).
-    function updateMessageAt(index, update) {
-        if (index < 0 || index >= root.messages.length)
-            return;
-        var msgs = root.messages.slice();
-        var copy = Object.assign({}, msgs[index]);
-        update(copy);
-        msgs[index] = copy;
-        root.messages = msgs;
-    }
-
-    function findRequestMessage(role, idField, id) {
-        for (var i = root.messages.length - 1; i >= 0; i--)
-            if (root.messages[i].role === role && root.messages[i][idField] === id)
-                return i;
-        return -1;
-    }
-
-    // Applies one backend event (DirectBackend.js / OpenCodeBackend.js / PiBackend.js) to the chat.
-    function applyBackendEvent(event, model, extra) {
-        if (AgentEvents.isReplyEvent(event.type)) {
-            // Shown in the reply's Context list until Phase 4's tool cards.
-            ensureStreamingMessage(model);
-            updateMessageAt(root.currentStreamIndex, function(msg) { AgentEvents.applyToReply(msg, event); });
-        } else if (event.type === "permission_request" || event.type === "question_request") {
-            var isPermission = event.type === "permission_request";
-            if (findRequestMessage(event.type, isPermission ? "permissionId" : "questionId", event.id) >= 0)
-                return;
-            root.messages = root.messages.concat([isPermission ? AgentEvents.permissionMessage(event, extra, Date.now())
-                                                               : AgentEvents.questionMessage(event, extra, Date.now())]);
-            triggerNotificationSound();
-            saveCurrentSessionState(true);
-        } else if (event.type === "permission_resolved") {
-            updateMessageAt(findRequestMessage("permission_request", "permissionId", event.id), function(msg) {
-                msg.status = event.reply === "reject" ? "denied" : "allowed";
-            });
-        } else if (event.type === "question_resolved") {
-            updateMessageAt(findRequestMessage("question_request", "questionId", event.id), function(msg) {
-                if (msg.status !== "answered" && msg.status !== "dismissed") msg.status = event.status;
-            });
-        } else if (event.type === "text_delta" || event.type === "reasoning_delta") {
-            ensureStreamingMessage(model);
-            root.streamBuffer.add(event.type === "text_delta" ? "text" : "reasoning", event.delta);
-        } else if (event.type === "usage") {
-            var usage = Object.assign({}, root.currentStreamUsage);
-            if (event.input !== undefined) usage.input = event.input;
-            if (event.output !== undefined) usage.output = event.output;
-            if (event.cost !== undefined) usage.cost = (usage.cost || 0) + event.cost;
-            root.currentStreamUsage = usage;
-        } else if (event.type === "error") {
-            resetProviderStreamingState();
-            pushErrorMessage(event.message);
-        } else if (event.type === "done") {
-            streamBuffer.flush();
-            var completed = event.reason === "complete";
-            if (completed && root.currentStreamIndex >= 0) {
-                var msgs = root.messages.slice();
-                var reply = Object.assign({}, msgs[root.currentStreamIndex]);
-                reply.content = root.currentStreamText || (reply.tools ? "" : "(empty response)");
-                reply.reasoning = root.currentStreamReasoning;
-                if (root.currentStreamUsage.input !== undefined || root.currentStreamUsage.output !== undefined)
-                    reply.tokens = {"input": root.currentStreamUsage.input || 0, "output": root.currentStreamUsage.output || 0};
-                if (root.currentStreamUsage.cost)
-                    reply.cost = root.currentStreamUsage.cost;
-                msgs[root.currentStreamIndex] = reply;
-                root.messages = msgs;
-            } else if (completed) {
-                pushErrorMessage("The model returned an empty response.");
-            }
-            root.currentStreamIndex = -1;
-            resetProviderStreamingState();
-            root.loading = false;
-            root.activeXhr = null;
-            root.activeRequestSessionId = "";
-            root.requestGeneration++;
-            if (completed) {
-                try { triggerNotificationSound(); notifier.replyFinished(root.currentSessionId, root.currentSessionTitle, reply ? reply.content : ""); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
-            }
-            try { saveCurrentSessionState(true); } catch (saveErr) { console.error("Session save failed:", saveErr); }
-            if (completed)
-                maybeGenerateChatTitle();
-            processNextQueuedMessage();
-        }
-    }
-
-    // The agent (OpenCode or Pi) that asked a permission or question.
-    function harnessFor(role, idField, id) {
-        var index = findRequestMessage(role, idField, id);
-        return index >= 0 && root.messages[index].harness === "pi" ? piAgent : openCode;
-    }
-
-    // always: also allow it from now on (OpenCode only).
-    function respondToPermission(permissionId, approved, always) {
-        harnessFor("permission_request", "permissionId", permissionId).respondToPermission(permissionId, approved, always === true);
-    }
-
-    function respondToQuestion(questionId, answerValue, isReject) {
-        harnessFor("question_request", "questionId", questionId).respondToQuestion(questionId, answerValue, isReject);
     }
 
     function triggerNotificationSound() {
@@ -1540,264 +424,6 @@ PlasmoidItem {
         }
     }
 
-    function _questionMessageIndex(questionId) {
-        for (var i = 0; i < root.messages.length; i++)
-            if (root.messages[i].role === "question_request" && root.messages[i].questionId === questionId)
-                return i;
-        return -1;
-    }
-
-    function questionOptionSelected(questionId, questionIndex, label) {
-        var idx = _questionMessageIndex(questionId);
-        if (idx < 0) return false;
-        var selected = root.messages[idx].selectedAnswers || [];
-        var row = selected[questionIndex];
-        return Array.isArray(row) && row.indexOf(String(label || "")) >= 0;
-    }
-
-    function toggleQuestionOption(questionId, questionIndex, label, multiple) {
-        var idx = _questionMessageIndex(questionId);
-        if (idx < 0) return;
-        var copy = root.messages.slice();
-        var item = Object.assign({}, copy[idx]);
-        var selected = Array.isArray(item.selectedAnswers) ? item.selectedAnswers.slice() : [];
-        var row = Array.isArray(selected[questionIndex]) ? selected[questionIndex].slice() : [];
-        var value = String(label || "");
-        if (multiple) {
-            var existing = row.indexOf(value);
-            if (existing >= 0) row.splice(existing, 1); else row.push(value);
-        } else {
-            row = [value];
-        }
-        selected[questionIndex] = row;
-        item.selectedAnswers = selected;
-        copy[idx] = item;
-        root.messages = copy;
-        saveCurrentSessionState(true);
-    }
-
-    // Collect selected options from the question UI and submit the answer.
-    function submitQuestionAnswer(questionId, questions, customField) {
-        var idx = _questionMessageIndex(questionId);
-        if (idx < 0) return;
-        var customText = customField ? String(customField.text || "").trim() : "";
-        if (!questions || questions.length === 0) {
-            if (customText) respondToQuestion(questionId, customText, false);
-            return;
-        }
-        var selected = root.messages[idx].selectedAnswers || [];
-        var answers = [];
-        var hasAnswer = false;
-        var firstEmpty = -1;
-        for (var i = 0; i < questions.length; i++) {
-            var row = Array.isArray(selected[i]) ? selected[i].slice() : [];
-            if (row.length > 0) hasAnswer = true;
-            else if (firstEmpty < 0) firstEmpty = i;
-            answers.push(row);
-        }
-        if (customText) {
-            if (firstEmpty >= 0) answers[firstEmpty] = [customText];
-            else if (answers.length > 0) answers[answers.length - 1].push(customText);
-            hasAnswer = true;
-        }
-        if (hasAnswer)
-            respondToQuestion(questionId, answers, false);
-    }
-
-    function stopStreaming() {
-        invalidateActiveRequest(false);
-        try { saveCurrentSessionState(true); } catch (e) { console.error("Stop save failed:", e); }
-        processNextQueuedMessage();
-    }
-
-    function fileIconName(filename) {
-        var ext = filename.split('.').pop().toLowerCase();
-        if (ext === 'pdf')
-            return 'document-pdf';
-
-        if (ext === 'csv')
-            return 'text-csv';
-
-        if (ext === 'docx' || ext === 'doc')
-            return 'document-word';
-
-        if (ext === 'md' || ext === 'txt')
-            return 'text-plain';
-
-        return 'document-text';
-    }
-
-    function attachmentsReadyToSend() {
-        for (var i = 0; i < root.attachedFiles.length; i++) {
-            if (root.attachedFiles[i].loading || root.attachedFiles[i].error)
-                return false;
-        }
-        return true;
-    }
-
-    function cleanupTemporaryAttachment(path) {
-        var value = String(path || "");
-        if (value.indexOf("/tmp/kdeaichat_clip_") !== 0 && value.indexOf("/tmp/kdeaichat_shot_") !== 0)
-            return;
-        var extractor = getDocExtractorPath();
-        var safePath = Sec.validateFilePath(value);
-        if (extractor && safePath)
-            fileReaderDs.connectSource("python3 " + Sec.quoteForShell(extractor) + " --cleanup " + Sec.quoteForShell(safePath) + " #cleanup-attachment-" + Date.now());
-    }
-
-    function removeAttachedFile(index) {
-        var files = root.attachedFiles.slice();
-        if (index < 0 || index >= files.length)
-            return;
-        var removedPath = files[index].path || "";
-        cleanupTemporaryAttachment(removedPath);
-        var pending = Object.assign({}, root.pendingAttachmentRequests || {});
-        var keys = Object.keys(pending);
-        for (var p = 0; p < keys.length; p++) {
-            var entry = pending[keys[p]] || {};
-            var path = typeof entry === "string" ? entry : entry.path;
-            if (path === removedPath) {
-                if (typeof entry === "object" && entry.source) {
-                    try { fileReaderDs.disconnectSource(entry.source); } catch (e) {}
-                }
-                delete pending[keys[p]];
-            }
-        }
-        root.pendingAttachmentRequests = pending;
-        files.splice(index, 1);
-        root.attachedFiles = files;
-    }
-
-    function getDocExtractorPath() {
-        var urlStr = String(Qt.resolvedUrl("doc_extractor.py"));
-        if (urlStr.indexOf("file://") === 0)
-            urlStr = urlStr.substring(7);
-        var path = decodeURIComponent(urlStr);
-        return path.endsWith("/contents/ui/doc_extractor.py") ? path : "";
-    }
-
-    function attachFile(fileUrl) {
-        var localPath = String(fileUrl);
-        if (localPath.indexOf("file://") === 0)
-            localPath = localPath.substring(7);
-
-        localPath = decodeURIComponent(localPath);
-        var files = root.attachedFiles.slice();
-        if (files.length >= 10) {
-            pushErrorMessage("You can attach at most 10 files per message.");
-            return;
-        }
-        for (var i = 0; i < files.length; i++) {
-            if (files[i].path === localPath)
-                return ;
-
-        }
-        var filename = localPath.substring(localPath.lastIndexOf("/") + 1);
-        var newFile = {
-            "path": localPath,
-            "name": filename,
-            "loading": true,
-            "error": "",
-            "type": "",
-            "content": "",
-            "mimeType": "",
-            "size": 0
-        };
-        files.push(newFile);
-        root.attachedFiles = files;
-        var docExtractorPath = getDocExtractorPath();
-        var safePath = Sec.validateFilePath(localPath);
-        if (!docExtractorPath || !safePath) {
-            files.pop();
-            root.attachedFiles = files;
-            pushErrorMessage("Unable to attach this file: unsupported or unsafe path.");
-            return;
-        }
-        var marker = "extract-file-" + (++root.attachmentRequestCounter) + "-" + Date.now();
-        var pending = Object.assign({}, root.pendingAttachmentRequests || {});
-        var cmd = "timeout 60s python3 " + Sec.quoteForShell(docExtractorPath) + " " + Sec.quoteForShell(safePath);
-        var source = cmd + " #" + marker;
-        pending[marker] = {"path": safePath, "source": source};
-        root.pendingAttachmentRequests = pending;
-        fileReaderDs.connectSource(source);
-    }
-
-    function buildMessageContent(text, attachments, apiType) {
-        var docs = [];
-        var imgs = [];
-        var skippedImageCount = 0;
-        var imageChars = 0;
-        for (var i = 0; i < attachments.length; i++) {
-            var att = attachments[i] || {};
-            if (att.type === "image") {
-                var imageSize = String(att.content || "").length;
-                if (imageChars + imageSize <= 20000000) {
-                    imgs.push(att);
-                    imageChars += imageSize;
-                } else {
-                    skippedImageCount++;
-                }
-            } else if (att.type === "text")
-                docs.push(att);
-        }
-        var compiledPrompt = skippedImageCount > 0
-            ? "[" + skippedImageCount + " image attachment(s) omitted because the request image limit was reached.]\n"
-            : "";
-        for (var d = 0; d < docs.length; d++) {
-            if (compiledPrompt.length > 5000000)
-                break;
-            compiledPrompt += "[Attached File: " + String(docs[d].name || "file") + " (" + Math.round((docs[d].size || 0) / 1024) + " KB)]\n";
-            compiledPrompt += "--- START OF FILE CONTENT ---\n";
-            var remainingDocChars = Math.max(0, 5000000 - compiledPrompt.length - 40);
-            var docContent = String(docs[d].content || "");
-            if (docContent.length > remainingDocChars)
-                docContent = docContent.substring(0, remainingDocChars) + "\n[file content truncated]";
-            compiledPrompt += docContent + "\n";
-            compiledPrompt += "--- END OF FILE CONTENT ---\n\n";
-        }
-        compiledPrompt += text;
-        if (imgs.length === 0)
-            return compiledPrompt;
-
-        var contentList = [];
-        if (compiledPrompt.trim() !== "")
-            contentList.push({
-                "type": "text",
-                "text": compiledPrompt
-            });
-
-        for (var imgIdx = 0; imgIdx < imgs.length; imgIdx++) {
-            var image = imgs[imgIdx];
-            if (apiType === "anthropic")
-                contentList.push({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": image.mimeType || "image/jpeg",
-                        "data": image.content
-                    }
-                });
-            else
-                contentList.push({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": "data:" + (image.mimeType || "image/jpeg") + ";base64," + image.content
-                    }
-                });
-        }
-        return contentList;
-    }
-
-    function checkClipboardForAttachments() {
-        var docExtractorPath = getDocExtractorPath();
-        if (!docExtractorPath) {
-            pushErrorMessage("Attachment extractor is not available in the installed widget.");
-            return;
-        }
-        var cmd = "timeout 20s python3 " + Sec.quoteForShell(docExtractorPath) + " --clipboard";
-        fileReaderDs.connectSource(cmd + " #clipboard-attachments");
-    }
-
     function readClipboardText() {
         clipboardHelper.text = "";
         clipboardHelper.paste();
@@ -1808,33 +434,6 @@ PlasmoidItem {
         clipboardHelper.text = textToCopy || "";
         clipboardHelper.selectAll();
         clipboardHelper.copy();
-    }
-
-    // Saves export text (built by chat/ExportDialog.qml) through the helper.
-    function writeExportFile(filePath, content) {
-        var safePath = Sec.validateFilePath(filePath);
-        var helper = getHelperPath();
-        if (!safePath || !helper) {
-            pushErrorMessage("Export cancelled: invalid destination or helper unavailable.");
-            return;
-        }
-        if (content.length > 500000) {
-            pushErrorMessage("This chat is too large to export in one operation. Remove older messages or export a shorter conversation.");
-            return;
-        }
-        var payload = {
-            "filePath": safePath,
-            "b64Content": Sec.base64Encode(content)
-        };
-        var encoded = Sec.base64Encode(JSON.stringify(payload));
-        if (encoded.length > 900000) {
-            pushErrorMessage("This chat is too large to export in one operation. Remove older messages or export a shorter conversation.");
-            return;
-        }
-        var cmd = "python3 " + Sec.quoteForShell(helper) + " export_chat " + Sec.rawShellSnippetQuote(encoded)
-            + " && (notify-send -i document-export " + Sec.quoteForShell("KDE AI Chat") + " "
-            + Sec.quoteForShell("Chat session successfully exported to " + safePath) + " || true)";
-        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #export-chat-save");
     }
 
     function initSystemPrompt() {
@@ -1862,7 +461,7 @@ PlasmoidItem {
         // Build a usable prompt immediately; the deferred system-information
         // probe will refresh it once its results arrive.
         root.initSystemPrompt();
-        root.stopLegacyWatchdog();
+        helperCommands.stopLegacyWatchdog();
     }
     onMessagesChanged: {
         messageModel.sync(root.messages);
@@ -1904,11 +503,11 @@ PlasmoidItem {
 
     Connections {
         function onSystemPromptChanged() {
-            initSystemPrompt();
+            root.initSystemPrompt();
         }
 
-        function onCustomProvidersJsonChanged() { scheduleWalletReload(); }
-        function onWalletKeysRevisionChanged() { scheduleWalletReload(); }
+        function onCustomProvidersJsonChanged() { root.scheduleWalletReload(); }
+        function onWalletKeysRevisionChanged() { root.scheduleWalletReload(); }
 
         target: plasmoid.configuration
     }
@@ -1919,139 +518,6 @@ PlasmoidItem {
         connectedSources: []
         onNewData: function(sourceName, data) {
             piAgent.applyDiscovery(data["stdout"] || "");
-            disconnectSource(sourceName);
-        }
-    }
-
-    P5Support.DataSource {
-        id: fileReaderDs
-
-        engine: "executable"
-        connectedSources: []
-        onNewData: function(sourceName, data) {
-            var exitCode = Number(data["exit code"]);
-            if (isNaN(exitCode)) exitCode = 1;
-            var stdout = data["stdout"] || "";
-            var stderr = data["stderr"] || "";
-            if (sourceName.indexOf("--clipboard") !== -1) {
-                if (exitCode === 0 && stderr.trim() === "") {
-                    try {
-                        var res = JSON.parse(stdout);
-                        if (res.status === "success") {
-                            var currentFiles = root.attachedFiles.slice();
-                            if (res.mode === "files" && res.files) {
-                                for (var f = 0; f < Math.min(res.files.length, 10 - currentFiles.length); f++) {
-                                    var fInfo = res.files[f];
-                                    var exists = false;
-                                    for (var idx = 0; idx < currentFiles.length; idx++) {
-                                        if (currentFiles[idx].path === fInfo.path) {
-                                            exists = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!exists)
-                                        currentFiles.push({
-                                            "name": fInfo.filename || fInfo.name,
-                                            "path": fInfo.path,
-                                            "type": fInfo.type,
-                                            "content": fInfo.content,
-                                            "mimeType": fInfo.mimeType,
-                                            "size": fInfo.size,
-                                            "loading": false,
-                                            "error": ""
-                                        });
-
-                                }
-                            } else if (res.mode === "image" && res.file && currentFiles.length < 10) {
-                                var fInfo = res.file;
-                                var exists = false;
-                                for (var idx = 0; idx < currentFiles.length; idx++) {
-                                    if (currentFiles[idx].path === fInfo.path) {
-                                        exists = true;
-                                        break;
-                                    }
-                                }
-                                if (!exists)
-                                    currentFiles.push({
-                                        "name": fInfo.name,
-                                        "path": fInfo.path,
-                                        "type": fInfo.type,
-                                        "content": fInfo.content,
-                                        "mimeType": fInfo.mimeType,
-                                        "size": fInfo.size,
-                                        "loading": false,
-                                        "error": ""
-                                    });
-
-                            }
-                            root.attachedFiles = currentFiles;
-                        }
-                    } catch (e) {
-                        console.log("Failed to parse clipboard data: " + e);
-                    }
-                }
-                disconnectSource(sourceName);
-                return ;
-            }
-            if (sourceName.indexOf("#plasmashell-watchdog-") !== -1) {
-                disconnectSource(sourceName);
-                return ;
-            }
-            if (sourceName.indexOf("#export-chat-save") !== -1) {
-                if (exitCode !== 0)
-                    pushErrorMessage("Export failed: " + (stderr.trim() || stdout.trim() || ("helper exited with code " + exitCode)));
-                disconnectSource(sourceName);
-                return ;
-            }
-            var matchedIndex = -1;
-            var files = root.attachedFiles.slice();
-            var attachmentPath = "";
-            var requestKeys = Object.keys(root.pendingAttachmentRequests || {});
-            for (var rk = 0; rk < requestKeys.length; rk++) {
-                if (sourceName.indexOf(requestKeys[rk]) !== -1) {
-                    var pendingEntry = root.pendingAttachmentRequests[requestKeys[rk]] || {};
-                    attachmentPath = typeof pendingEntry === "string" ? pendingEntry : (pendingEntry.path || "");
-                    var remainingRequests = Object.assign({}, root.pendingAttachmentRequests);
-                    delete remainingRequests[requestKeys[rk]];
-                    root.pendingAttachmentRequests = remainingRequests;
-                    break;
-                }
-            }
-            if (!attachmentPath) {
-                disconnectSource(sourceName);
-                return;
-            }
-            for (var i = 0; i < files.length; i++) {
-                if (files[i].path === attachmentPath) {
-                    matchedIndex = i;
-                    break;
-                }
-            }
-            if (matchedIndex === -1) {
-                disconnectSource(sourceName);
-                return;
-            }
-            var fileObj = Object.assign({}, files[matchedIndex]);
-            fileObj.loading = false;
-            if (exitCode !== 0 || stderr.trim() !== "") {
-                fileObj.error = stderr.trim() || ("Command exited with code " + exitCode);
-            } else {
-                try {
-                    var res = JSON.parse(stdout);
-                    if (res.status === "success") {
-                        fileObj.type = res.type;
-                        fileObj.content = res.content;
-                        fileObj.mimeType = res.mimeType;
-                        fileObj.size = res.size;
-                    } else {
-                        fileObj.error = res.message || "Failed to extract file contents";
-                    }
-                } catch (e) {
-                    fileObj.error = "Failed to parse extractor output: " + e;
-                }
-            }
-            files[matchedIndex] = fileObj;
-            root.attachedFiles = files;
             disconnectSource(sourceName);
         }
     }
@@ -2080,115 +546,6 @@ PlasmoidItem {
             urlStr = urlStr.substring(7);
         let path = decodeURIComponent(urlStr);
         return path.endsWith("/contents/ui/kde_ai_helper.py") ? path : "";
-    }
-
-    function enqueueSchedulerTrigger(trigger) {
-        if (!trigger || !trigger.chatId || !trigger.message)
-            return false;
-        var idx = root.sessionIndexById(String(trigger.chatId));
-        if (idx < 0) {
-            console.warn("Scheduler trigger: chatId not found in sessions:", trigger.chatId);
-            return false;
-        }
-        if (!root.schedulerResumeSessionId && root.currentSessionId !== String(trigger.chatId))
-            root.schedulerResumeSessionId = root.currentSessionId;
-        var updated = root.sessions.slice();
-        var session = Object.assign({}, updated[idx]);
-        var messages = session.value === root.currentSessionId ? root.messages.slice() : (session.messages || []).slice();
-        var ts = Date.now();
-        messages.push({
-            "role": "queued",
-            "content": String(trigger.message),
-            "time": root.nowTime(ts),
-            "at": ts,
-            "model": "",
-            "queueId": ++root.queueCounter,
-            "attachments": [],
-            "scheduled": true,
-            "scheduleName": String(trigger.name || "Scheduled task")
-        });
-        session.messages = messages;
-        session.updatedAt = ts;
-        updated[idx] = session;
-        root.sessions = updated;
-        if (session.value === root.currentSessionId)
-            root.messages = messages;
-        root.persistSessions();
-        return true;
-    }
-
-    P5Support.DataSource {
-        id: schedulerDs
-
-        engine: "executable"
-        connectedSources: []
-        onNewData: function(sourceName, data) {
-            let out = data["stdout"] ? data["stdout"] : "";
-            if (sourceName.indexOf("poll_pending_triggers") >= 0) {
-                root.schedulerPollInFlight = false;
-                schedulerPollTimeout.stop();
-            }
-
-            schedulerDs.disconnectSource(sourceName);
-
-            if (out.trim() === "")
-                return;
-
-            if (sourceName.indexOf("poll_pending_triggers") >= 0) {
-                try {
-                    let parsed = JSON.parse(out);
-                    let pending = parsed.pending || [];
-                    for (let i = 0; i < pending.length; i++) {
-                        let p = pending[i];
-                        if (root.enqueueSchedulerTrigger(p)) {
-                            console.log("Scheduler trigger:", p.name, "-> chatId:", p.chatId);
-                            if (p.notify) {
-                                root.triggerNotificationSound();
-                                notifier.scheduledRan(p.chatId, p.name, p.message);
-                            }
-                        }
-                    }
-                    if (!root.loading)
-                        root.processNextQueuedMessage();
-                } catch (e) {
-                    console.warn("Failed to parse pending triggers JSON:", e);
-                }
-            }
-        }
-    }
-
-    Timer {
-        id: schedulerPollTimeout
-        interval: 10000
-        repeat: false
-        onTriggered: root.schedulerPollInFlight = false
-    }
-
-    Timer {
-        id: schedulerPollTimer
-        interval: 3000
-        repeat: true
-        // Only the scheduler daemon writes pending triggers, so don't spawn a
-        // shell every few seconds while the scheduler is switched off.
-        running: plasmoid.configuration.schedulerEnabled === true
-        onTriggered: {
-            // Don't poll until sessions are loaded so sessionIndexById works
-            if (!root._initialLoadDone || root.schedulerPollInFlight)
-                return;
-
-            let localShare = String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation));
-            if (localShare.indexOf("file://") === 0) {
-                localShare = localShare.substring(7);
-            }
-            localShare = decodeURIComponent(localShare);
-            let pendingDir = localShare + "/kdeaichat/pending";
-            let helper = root.getHelperPath();
-            if (!helper) return;
-            let cmd = "[ -d " + Sec.quoteForShell(pendingDir) + " ] && [ \"$(ls -A " + Sec.quoteForShell(pendingDir) + " 2>/dev/null)\" ] && python3 " + Sec.quoteForShell(helper) + " poll_pending_triggers";
-            root.schedulerPollInFlight = true;
-            schedulerPollTimeout.restart();
-            schedulerDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #poll_pending_triggers-" + Date.now());
-        }
     }
 
     // True when the custom widget icon is an image file (not a KDE icon name).

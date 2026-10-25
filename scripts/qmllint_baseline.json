@@ -64,7 +64,7 @@
   "org.kde.plasma.kdeaichat/contents/ui/config/TemplatesEditor.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/VoiceEngine.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/VoiceStatusGrid.qml": 0,
-  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 20,
+  "org.kde.plasma.kdeaichat/contents/ui/main.qml": 19,
   "org.kde.plasma.kdeaichat/contents/ui/store/ChatStore.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/store/HelperRunner.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/store/Migration.qml": 0,

@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "org.kde.plasma.kdeaichat", "contents", "ui"))
 
-import kde_ai_helper  # noqa: E402
+from kdeaichat import maintenance  # noqa: E402
 
 SLEEPER = "import time\ntime.sleep(60)\n"
 
@@ -56,7 +56,7 @@ def test_stops_only_the_legacy_monitor_and_removes_its_files():
             time.sleep(0.2)
             out = io.StringIO()
             with patch.dict(os.environ, {"HOME": home}), contextlib.redirect_stdout(out):
-                kde_ai_helper.cmd_stop_legacy_watchdog({})
+                maintenance.cmd_stop_legacy_watchdog({})
 
             assert _wait_exit(monitor), "legacy monitor was not stopped"
             assert other_helper.poll() is None, "another helper command was stopped"
@@ -75,12 +75,23 @@ def test_no_monitor_and_no_files_is_fine():
     with tempfile.TemporaryDirectory() as home:
         out = io.StringIO()
         with patch.dict(os.environ, {"HOME": home}), contextlib.redirect_stdout(out):
-            kde_ai_helper.cmd_stop_legacy_watchdog({})
+            maintenance.cmd_stop_legacy_watchdog({})
         assert '"status": "ok"' in out.getvalue()
 
 
+def _helper_sources():
+    """kde_ai_helper.py and its command modules (kdeaichat/*.py)."""
+    package = os.path.dirname(maintenance.__file__)
+    paths = [os.path.join(os.path.dirname(package), "kde_ai_helper.py")]
+    paths += [os.path.join(package, name) for name in sorted(os.listdir(package)) if name.endswith(".py")]
+    source = ""
+    for path in paths:
+        with open(path, encoding="utf-8") as f:
+            source += f.read()
+    return source
+
+
 def test_helper_no_longer_offers_the_watchdog():
-    with open(kde_ai_helper.__file__, encoding="utf-8") as f:
-        source = f.read()
+    source = _helper_sources()
     assert '"plasmashell_watchdog": cmd_' not in source
     assert "plasma-plasmashell.service" not in source
