@@ -104,6 +104,7 @@ PlasmoidItem {
     signal clearChatInput()
     // A chat was deleted (chat/UndoNotice.qml offers to bring it back).
     signal sessionDeleted(var session, int index)
+    signal messagesDropped(string sessionId, var messages)
     readonly property var promptTemplates: PromptTemplates.parse(plasmoid.configuration.promptTemplates)
 
     function openSettings() {
@@ -1325,18 +1326,17 @@ PlasmoidItem {
         }
     }
 
+    // Asks again from the user message at `index` (or before the reply there); later messages are dropped, undoably.
     function regenerateResponse(index, promptModifier) {
-        if (index <= 0 || index >= root.messages.length) return;
+        if (index < 0 || index >= root.messages.length) return;
         var role = root.messages[index].role || "";
-        if (role !== "assistant" && role !== "opencode_assistant") return;
-        
-        var lastUserIdx = index - 1;
-        var userRole = root.messages[lastUserIdx].role || "";
+        var reply = role === "assistant" || role === "opencode_assistant";
+        var lastUserIdx = reply ? index - 1 : index;
+        var userRole = lastUserIdx >= 0 ? (root.messages[lastUserIdx].role || "") : "";
         if (userRole !== "user" && userRole !== "queued") return;
-        
         stopStreaming();
-        var copy = root.messages.slice(0, lastUserIdx + 1);
-        
+        var before = root.messages;
+        var copy = before.slice(0, lastUserIdx + 1);
         if (promptModifier) {
             var item = Object.assign({}, copy[lastUserIdx]);
             item.content = item.content + "\n\n" + promptModifier;
@@ -1344,8 +1344,8 @@ PlasmoidItem {
             item.time = nowTime(item.at);
             copy[lastUserIdx] = item;
         }
-        
         root.messages = copy;
+        if (before.length > copy.length) messagesDropped(root.currentSessionId, before);
         clearCurrentOpenCodeSessionIfNeeded();
         saveCurrentSessionState(true);
         root.userScrolledUp = false;

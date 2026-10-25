@@ -96,6 +96,7 @@ QtObject {
     }
     function persistSessions() { record("persist", arguments); }
     signal sessionDeleted(var session, int index)
+    signal messagesDropped(string sessionId, var messages)
 
     // What chat/EmptyState.qml, ErrorActions and the composer's templates read.
     property bool openCodeMode: false
