@@ -101,10 +101,9 @@ Item {
             onDismissed: root.privacyNotice = ""
         }
 
-        Chat.OpenCodeBar {
+        Chat.WorkspaceBar {
             chat: root
             historyFull: body.historyFull
-            onWorkspaceRequested: workspaceFolderDialog.open()
             onAgentChosen: function(value) { root.chooseOpenCodeAgent(value); }
         }
 
@@ -118,7 +117,7 @@ Item {
             chat: root
             Layout.fillWidth: true
             Layout.fillHeight: true
-            onAttachRequested: fileDialog.open()
+            onAttachRequested: fileDialog.show()
         }
 
     }

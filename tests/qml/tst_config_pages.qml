@@ -125,6 +125,18 @@ Item {
             shot("config-chat-per-chat");
         }
 
+        function test_chat_page_default_workspace_is_empty_and_editable() {
+            open("ConfigChat.qml", {"cfg_enableSystemPrompt": true, "cfg_systemPrompt": "", "cfg_contextMessageLimit": -1,
+                                    "cfg_autoNameChats": true, "cfg_promptTemplates": "[]", "cfg_openCodeWorkspaceCwd": ""});
+            noSecretSettings();
+            var field = find(page, function(item) { return item.objectName === "defaultWorkspaceField"; });
+            verify(field !== null, "the field exists");
+            compare(field.text, "");
+            compare(field.placeholderText, "No workspace");
+            field.text = "/home/me/work";
+            compare(page.cfg_openCodeWorkspaceCwd, "/home/me/work");
+        }
+
         function test_chat_page_edits_templates() {
             open("ConfigChat.qml", {"cfg_enableSystemPrompt": true, "cfg_systemPrompt": "You are a helpful assistant.",
                                     "cfg_contextMessageLimit": -1, "cfg_autoNameChats": true,

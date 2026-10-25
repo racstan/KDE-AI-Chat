@@ -1,13 +1,19 @@
-// The OpenCode row under the header: workspace folder, session, agent
-// profile, and refresh/sync buttons. Shown only in OpenCode mode.
+// The row under the header, in every mode: the chat's workspace folder
+// (a folder button, its name or "No workspace", and a button to clear it).
+// In OpenCode mode it also shows the session, the agent profile and the
+// refresh/sync buttons.
 pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "../backends/OpenCodeAgents.js" as OpenCodeAgents
+
+// i18n() is provided by Plasma at runtime.
+// qmllint disable unqualified
 
 RowLayout {
     id: bar
@@ -17,18 +23,24 @@ RowLayout {
     property bool historyFull: chat ? chat.historyOnlyMode : false
     // The agents the selector offers: the server's list plus the chat's own agent.
     readonly property var agentModel: OpenCodeAgents.comboModel(bar.chat.openCodeAgentsList, bar.chat.openCodeAgent)
+    // The chat's workspace folder ("" = none).
+    readonly property string workspace: String(bar.chat.openCodeWorkspaceCwd || "").trim()
 
-    signal workspaceRequested()
     signal agentChosen(string value)
 
     Layout.fillWidth: true
-    visible: !bar.historyFull && bar.chat.openCodeMode
+    visible: !bar.historyFull
     spacing: Kirigami.Units.smallSpacing
+
+    // Sets (or, with "", clears) the open chat's workspace.
+    function choose(path) {
+        bar.chat.chooseWorkspace(path);
+    }
 
     // The agent list belongs to a workspace folder: load it when the open
     // chat's folder isn't the one it was loaded for.
     function refreshAgents() {
-        if (bar.chat.openCodeMode && bar.chat.openCodeAgentsDirectory !== String(bar.chat.openCodeWorkspaceCwd || "").trim())
+        if (bar.chat.openCodeMode && bar.chat.openCodeAgentsDirectory !== bar.workspace)
             bar.chat.fetchOpenCodeAgents();
     }
     Component.onCompleted: bar.refreshAgents()
@@ -41,29 +53,46 @@ RowLayout {
         function onOpenCodeWorkspaceCwdChanged() { bar.refreshAgents(); }
     }
 
+    FolderDialog {
+        id: folderDialog
+        title: i18n("Select the chat's workspace folder")
+        onAccepted: {
+            var path = selectedFolder.toString();
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.slice(7));
+            bar.choose(path);
+        }
+    }
+
     PC3.ToolButton {
+        objectName: "workspaceButton"
         icon.name: "folder"
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: bar.chat.openCodeWorkspaceCwd ? ("Workspace: " + bar.chat.openCodeWorkspaceCwd) : "Select OpenCode Workspace Directory"
+        QQC2.ToolTip.text: bar.workspace ? i18n("Workspace: %1", bar.workspace) : i18n("Choose a workspace folder")
         Accessible.name: QQC2.ToolTip.text
-        onClicked: bar.workspaceRequested()
+        onClicked: {
+            if (bar.workspace)
+                folderDialog.currentFolder = "file://" + encodeURI(bar.workspace);
+            folderDialog.open();
+        }
     }
 
     PC3.Label {
+        objectName: "workspaceLabel"
         text: {
             var folder = "";
-            if (bar.chat.openCodeWorkspaceCwd) {
-                const p = bar.chat.openCodeWorkspaceCwd;
+            if (bar.workspace) {
+                const p = bar.workspace;
                 folder = p.substring(p.lastIndexOf("/") + 1) || p;
             }
-            var sess = bar.chat.currentOpenCodeSessionId();
-            var labelStr = folder || "Workspace";
+            var labelStr = folder || i18n("No workspace");
+            var sess = bar.chat.openCodeMode ? bar.chat.currentOpenCodeSessionId() : "";
             if (sess) labelStr += " (" + sess.substring(0, 10) + "…)";
             return labelStr;
         }
         font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-        font.bold: true
-        opacity: 0.85
+        font.bold: bar.workspace !== ""
+        opacity: bar.workspace ? 0.85 : 0.6
         elide: Text.ElideMiddle
         // Takes the spare room and shortens first. (Never size it from
         // bar.width: the bar's own width then feeds back into its layout.)
@@ -71,8 +100,19 @@ RowLayout {
         Layout.minimumWidth: 0
     }
 
+    PC3.ToolButton {
+        objectName: "workspaceClear"
+        visible: bar.workspace !== ""
+        icon.name: "edit-clear"
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: i18n("Clear the workspace (No workspace)")
+        Accessible.name: QQC2.ToolTip.text
+        onClicked: bar.choose("")
+    }
+
     QQC2.ComboBox {
         id: agentSelectorCombo
+        visible: bar.chat.openCodeMode
         implicitWidth: Kirigami.Units.gridUnit * 7
         implicitHeight: Kirigami.Units.gridUnit * 1.8
         // The agents OpenCode reports for the chat's folder (GET /agent),
@@ -94,6 +134,7 @@ RowLayout {
     }
 
     PC3.ToolButton {
+        visible: bar.chat.openCodeMode
         icon.name: "view-list-details"
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: "Reload the agent list from OpenCode"
@@ -102,6 +143,7 @@ RowLayout {
     }
 
     PC3.ToolButton {
+        visible: bar.chat.openCodeMode
         icon.name: "view-refresh"
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: i18n("Sync session history from OpenCode")

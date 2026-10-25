@@ -33,9 +33,22 @@ Connections {
         sync.chat.openCodeMode = eff.mode === "opencode";
         sync.chat.piMode = eff.mode === "pi";
         sync.chat.openCodeAgent = eff.mode === "opencode" ? eff.agent : String(config.openCodeAgent || "");
-        sync.chat.openCodeWorkspaceCwd = session && session.openCodeWorkspaceCwd !== undefined
-            ? String(session.openCodeWorkspaceCwd || "") : String(config.openCodeWorkspaceCwd || "");
+        // The workspace is the chat's own; none when it has none. (The main
+        // setting only fills it in when a chat is created.)
+        sync.chat.openCodeWorkspaceCwd = session ? String(session.openCodeWorkspaceCwd || "") : "";
         return eff.mode;
+    }
+
+    // The workspace of a new chat: the "Default workspace for new chats" setting.
+    function newChatWorkspace() {
+        var config = sync.chat && sync.chat.plasmoid ? sync.chat.plasmoid.configuration : null;
+        return config ? String(config.openCodeWorkspaceCwd || "").trim() : "";
+    }
+
+    // Sets (or, with "", clears) the open chat's workspace folder.
+    function chooseWorkspace(path) {
+        sync.chat.setSessionProperty(sync.chat.currentSessionId, "openCodeWorkspaceCwd", String(path || ""));
+        sync.applyOpenChat();
     }
 
     function applyOpenChat() {

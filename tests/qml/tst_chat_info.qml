@@ -218,6 +218,20 @@ Item {
             verify(!dialog.draft.dirty);
         }
 
+        function test_09a_working_folder_in_every_mode() {
+            for (const source of ["provider", "opencode", "pi"]) {
+                chat.sessions = [{value: "a", text: "Trip planning", source: source}];
+                openPanel();
+                var form = findForm();
+                verify(visibleIn(form.cwdField), source);
+                compare(form.cwdField.placeholderText, "No workspace");
+                compare(form.cwdField.text, "");
+                form.cwdField.text = "/home/me/" + source;
+                dialog._save();
+                compare(chat.calls[chat.calls.length - 1].args[1].openCodeWorkspaceCwd, "/home/me/" + source);
+            }
+        }
+
         function test_09_agent_modes_keep_their_settings() {
             chat.sessions = [{value: "a", text: "Trip planning", source: "opencode"}];
             openPanel();

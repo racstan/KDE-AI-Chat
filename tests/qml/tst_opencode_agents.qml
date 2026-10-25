@@ -1,4 +1,4 @@
-// OpenCode agent selection (chat/OpenCodeBar.qml, chat/OpenCodeMode.qml,
+// OpenCode agent selection (chat/WorkspaceBar.qml, chat/OpenCodeMode.qml,
 // chat/ModeSync.qml): the selector shows the agent the chat really sends
 // with, a picked agent sticks to the chat it was picked in, loading or
 // failing to load the list never changes the chat's agent, and the list is
@@ -48,7 +48,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 8
-        Chat.OpenCodeBar {
+        Chat.WorkspaceBar {
             id: bar
             chat: chat
             onAgentChosen: function(value) { openCode.chooseAgent(value); }
@@ -84,8 +84,8 @@ Item {
             cfg.openCodeAgent = "build";
             cfg.openCodeWorkspaceCwd = "/work/main";
             chat.sessions = [
-                {value: "a", text: "Own agent", source: "opencode", messages: [], ownModel: true, openCodeAgent: "plan"},
-                {value: "b", text: "Main agent", source: "opencode", messages: []},
+                {value: "a", text: "Own agent", source: "opencode", messages: [], ownModel: true, openCodeAgent: "plan", openCodeWorkspaceCwd: "/work/main"},
+                {value: "b", text: "Main agent", source: "opencode", messages: [], openCodeWorkspaceCwd: "/work/main"},
                 {value: "c", text: "Own folder", source: "opencode", messages: [], openCodeWorkspaceCwd: "/work/c"}
             ];
             chat.openCodeAgentsList = agents;
@@ -154,16 +154,18 @@ Item {
             verify(!chat.fetchingAgentsInProgress);
         }
 
-        function test_picked_folder_goes_where_the_chat_takes_it_from() {
+        function test_picked_folder_sticks_to_its_chat() {
             open("c");
-            openCode.chooseWorkspace("/work/new-c");
+            chat.chooseWorkspace("/work/new-c");
             compare(session("c").openCodeWorkspaceCwd, "/work/new-c");
-            compare(cfg.openCodeWorkspaceCwd, "/work/main");
+            compare(cfg.openCodeWorkspaceCwd, "/work/main", "the default for new chats is untouched");
             compare(chat.openCodeWorkspaceCwd, "/work/new-c");
             open("b");
-            openCode.chooseWorkspace("/work/other");
-            compare(cfg.openCodeWorkspaceCwd, "/work/other");
-            compare(chat.openCodeWorkspaceCwd, "/work/other");
+            compare(chat.openCodeWorkspaceCwd, "/work/main");
+            chat.chooseWorkspace("/work/other");
+            compare(session("b").openCodeWorkspaceCwd, "/work/other");
+            compare(session("c").openCodeWorkspaceCwd, "/work/new-c");
+            compare(cfg.openCodeWorkspaceCwd, "/work/main");
         }
 
         // The delay the backend reopens a lost event stream with.
