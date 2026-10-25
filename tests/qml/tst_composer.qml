@@ -3,6 +3,7 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtTest
+import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 
 Item {
@@ -170,15 +171,16 @@ Item {
             verify(text.text.indexOf("Enter sends") === 0, "back in an empty chat");
         }
 
-        function test_7c_the_bar_and_the_status_do_not_share_space() {
-            var bar = find("composerBar");
+        function test_7c_there_is_no_model_line_above_the_message_box() {
+            verify(!find("composerBar"), "the model line lives in the Chat info panel now");
             var text = find("statusText");
-            verify(bar.visible);
-            var barBottom = bar.mapToItem(root, 0, bar.height).y;
-            var statusTop = text.mapToItem(root, 0, 0).y;
-            verify(barBottom <= statusTop + 1, "the bar is above the status line");
+            var input = composer.input;
+            var statusBottom = text.mapToItem(root, 0, text.height).y;
+            var inputTop = input.mapToItem(root, 0, 0).y;
+            verify(inputTop >= statusBottom - 1, "the input follows the status line");
+            verify(inputTop - statusBottom < Kirigami.Units.gridUnit * 1.5, "with no extra row between them");
+            screenshot(root, "composer-no-model-line");
             chat.loading = true;
-            verify(find("composerBar").visible, "the bar stays while a reply is written");
             verify(text.text.indexOf("Thinking") === 0);
         }
 

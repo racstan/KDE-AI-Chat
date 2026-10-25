@@ -1,5 +1,6 @@
-// chat/ComposerBar.qml and ComposerPicker.qml: the line above the message box
-// (mode, provider, model, variant) and the quick model picker behind it.
+// The Chat info panel's line (chat/EffectiveLine.qml: mode, provider, model,
+// variant, and its "Change…" button) and the quick model picker it opens
+// (chat/ComposerPicker.qml, which /model also opens above the message box).
 import QtQuick
 import QtQuick.Window
 import QtTest
@@ -45,25 +46,29 @@ Item {
         color: "white"
     }
 
-    Chat.ComposerBar {
+    Chat.EffectiveLine {
         id: bar
-        x: root.barX
+        x: 10
+        y: 10
         width: root.barWidth
-        anchors.bottom: parent.bottom
         chat: chat
+        effective: chat.effectiveConfig(chat.currentSessionId)
+        perChat: true
+        providerName: function(id) { return chat.providerDisplayName(id); }
+
+        readonly property string fullText: bar.description
     }
-    property real barX: 10
     property real barWidth: 500
 
     SignalSpy {
-        id: infoSpy
+        id: changedSpy
         target: bar
-        signalName: "chatInfoRequested"
+        signalName: "modelChanged"
     }
 
     HarnessTestCase {
         id: tc
-        name: "ComposerBar"
+        name: "ChatInfoPicker"
 
         // Sets the chat up: extra config keys, and the one chat (id "a").
         function setup(session, config) {
@@ -95,7 +100,6 @@ Item {
             root.listBody = {data: [{id: "acme/chat-big"}, {id: "acme/embed-text-1"}, {id: "acme/chat-small"}, {id: "nemotron-3.5-bolt-e4b"}]};
             chat.openCodeVariants = ({});
             chat.piThinkingModels = ({});
-            bar.variant = "";
             root.barWidth = 500;
             root.requests = [];
             chat.calls = [];
@@ -103,14 +107,14 @@ Item {
             chat.openCodeAgentsList = [];
             chat.piProviderModelMap = ({});
             bar.picker.xhrFactory = root.makeXhr;
-            infoSpy.clear();
+            changedSpy.clear();
             setup(directChat());
         }
 
         function cleanup() { bar.picker.close(); }
 
         function open() {
-            mouseClick(findChild(bar, "composerBarButton"));
+            mouseClick(findChild(bar, "changeModelButton"));
             tryVerify(function() { return bar.picker.opened; }, 2000);
         }
         function inPicker(name) { return findChild(bar.picker.contentItem, name); }
@@ -128,34 +132,37 @@ Item {
         function test_1_direct_chat_shows_mode_provider_and_model() {
             compare(bar.fullText, "Direct · NVIDIA NIM · nemotron-3.5-bolt-e4b");
             compare(bar.variantText, "");
-            var segments = findChildren(bar, "composerBarSegment");
-            compare(segments.length, 3, "no variant segment");
-            for (var i = 0; i < segments.length; i++)
-                verify(!segments[i].truncated, "room enough: nothing is cut (" + segments[i].text + ")");
+            var text = findChild(bar, "effectiveLine");
+            verify(text.visible);
+            compare(text.text, bar.fullText);
+            verify(findChild(bar, "changeModelButton").visible, "a Change… button");
+            compare(findChild(bar, "changeModelButton").text, "Change…");
+            compare(findChild(bar, "effectiveSource").text, "From this chat's settings");
             wait(50);
-            screenshot(root, "composer-bar-direct");
+            screenshot(root, "chat-info-line-direct");
         }
 
         function test_2_opencode_chat_shows_the_agent() {
             setup(openCodeChat());
             compare(bar.fullText, "OpenCode · openrouter · auto · agent build");
             wait(50);
-            screenshot(root, "composer-bar-opencode");
+            screenshot(root, "chat-info-line-opencode");
         }
 
         function test_3_pi_chat_shows_the_thinking_level_when_there_is_one() {
             setup(piChat());
             compare(bar.fullText, "Pi · openai · gpt-5 · thinking high");
             wait(50);
-            screenshot(root, "composer-bar-pi");
+            screenshot(root, "chat-info-line-pi");
             setup(piChat({piThinking: ""}));
             compare(bar.fullText, "Pi · openai · gpt-5", "model default: nothing to show");
         }
 
-        function test_4_the_variant_slot_shows_a_direct_variant_and_nothing_when_empty() {
-            bar.variant = "fast";
-            compare(bar.fullText, "Direct · NVIDIA NIM · nemotron-3.5-bolt-e4b · fast");
-            bar.variant = "";
+        function test_4_a_direct_variant_shows_at_the_end_and_nothing_when_empty() {
+            compare(bar.fullText, "Direct · NVIDIA NIM · nemotron-3.5-bolt-e4b");
+            chat.setSessionProperty("a", "chatVariant", "fast");
+            compare(bar.fullText, "Direct · NVIDIA NIM · nemotron-3.5-bolt-e4b · variant fast");
+            chat.setSessionProperty("a", "chatVariant", "");
             compare(bar.fullText, "Direct · NVIDIA NIM · nemotron-3.5-bolt-e4b");
         }
 
@@ -164,20 +171,16 @@ Item {
             compare(bar.fullText, "Direct · NVIDIA NIM · acme/chat-small");
         }
 
-        function test_6_a_narrow_popup_shortens_provider_and_model_not_mode_or_variant() {
-            setup(piChat({piModel: "a-really-long-model-name-for-a-narrow-popup-with-1m-context"}));
+        function test_6_a_narrow_panel_wraps_the_line_and_keeps_the_button() {
+            setup(piChat({piModel: "a-really-long-model-name-for-a-narrow-panel-with-1m-context"}));
             root.barWidth = 260;
             wait(50);
-            var segments = findChildren(bar, "composerBarSegment");
-            compare(segments.length, 4);
-            verify(segments[2].truncated, "the model is cut with an ellipsis");
-            verify(!segments[0].truncated && !segments[3].truncated, "mode and variant stay whole");
-            var line = findChild(bar, "composerBarLine");
-            var right = 0;
-            for (var i = 0; i < segments.length; i++)
-                right = Math.max(right, segments[i].x + segments[i].width);
-            verify(right <= line.width, "the segments fit in the bar");
-            screenshot(root, "composer-bar-narrow");
+            var text = findChild(bar, "effectiveLine");
+            var button = findChild(bar, "changeModelButton");
+            verify(text.lineCount > 1, "the line wraps");
+            verify(text.text.indexOf("thinking high") > 0, "mode and variant are all there");
+            verify(button.x + button.width <= bar.width, "the button stays inside the panel");
+            screenshot(root, "chat-info-line-narrow");
         }
 
         // --- The picker ---
@@ -188,7 +191,6 @@ Item {
             compare(root.requests[0].url, "https://nim.example/v1/models");
             compare(inPicker("pickerMode").text.indexOf("Mode: Direct") === 0, true);
             wait(100);
-            verify(!bar.tooltip.visible, "the bar's hover tip is not drawn over the open picker");
             windowShot("composer-picker-direct");
             var target = null;
             for (var i = 0; i < rows().length; i++)
@@ -365,31 +367,14 @@ Item {
             compare(findChildren(bar.picker.contentItem, "variantChoice").length, 0, "openrouter/free reports none: no chips");
         }
 
-        function test_1d_the_tooltip_is_never_shown_over_the_open_picker() {
-            var button = findChild(bar, "composerBarButton");
-            // Clicking the bar opens the picker; the tip must not flash up while it opens.
-            mouseMove(root, 5, 5);
-            wait(100);
-            mouseClick(button);
-            for (var n = 0; n < (Kirigami.Units.toolTipDelay + 400) / 20; n++) {
-                wait(20);
-                verify(!bar.tooltip.visible, "tooltip visible while the picker opens (sample " + n + ")");
-            }
-            tryVerify(function() { return bar.picker.opened; }, 2000);
-            bar.picker.close();
-            tryVerify(function() { return !bar.picker.visible; });
-            mouseMove(button, 5, 5);
-            mouseMove(button, 20, 8);
-            tryVerify(function() { return bar.tooltip.visible; }, 3000, "hovering shows the tip");
+        function test_1d_the_picker_opens_under_the_line_inside_the_panel() {
             open();
-            tryVerify(function() { return !bar.tooltip.visible; }, 3000, "gone once the picker opens");
-            wait(Kirigami.Units.toolTipDelay + 300);
-            verify(!bar.tooltip.visible, "and it does not come back while the picker is open");
-            windowShot("composer-picker-direct-no-tooltip");
-            bar.picker.close();
-            tryVerify(function() { return !bar.picker.visible; });
-            mouseMove(button, 30, 8);
-            tryVerify(function() { return bar.tooltip.visible; }, 3000, "after the picker closes it can show again");
+            var below = bar.picker.contentItem.mapToItem(root, 0, 0);
+            verify(bar.picker.y >= bar.height, "under the line, not above it");
+            verify(below.y > bar.y, "on screen below the line");
+            verify(bar.picker.width <= bar.width + 1);
+            wait(100);
+            windowShot("chat-info-picker-open");
         }
 
         function test_13_with_per_chat_settings_off_the_picker_explains_and_offers_the_settings() {
@@ -455,16 +440,23 @@ Item {
             tryVerify(function() { return status.visible && status.text.indexOf("rejected the API key") >= 0; }, 3000);
         }
 
-        function test_17_more_chat_settings_asks_for_the_chat_info_panel() {
+        function test_17_the_message_box_only_option_is_not_offered_in_the_panel() {
             open();
-            mouseClick(inPicker("moreSettingsButton"));
-            compare(infoSpy.count, 1);
+            verify(!inPicker("moreSettingsButton").visible, "the Chat info panel is already open");
+            compare(bar.picker.showMoreSettings, false);
+        }
+
+        function test_17b_a_saved_choice_is_announced_so_the_panel_reloads() {
+            open();
+            tryVerify(function() { return rows().length === 3; }, 3000);
+            mouseClick(rows()[1]);
             tryVerify(function() { return !bar.picker.opened; });
+            tryVerify(function() { return changedSpy.count >= 1; }, 2000, "modelChanged() after the picker closed");
         }
 
         function test_18_clicking_the_bar_again_closes_the_picker() {
             open();
-            mouseClick(findChild(bar, "composerBarButton"));
+            mouseClick(findChild(bar, "changeModelButton"));
             tryVerify(function() { return !bar.picker.opened; });
         }
     }

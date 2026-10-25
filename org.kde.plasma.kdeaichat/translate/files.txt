@@ -8,7 +8,6 @@ contents/ui/chat/ChatView.qml
 contents/ui/chat/CodeBlock.qml
 contents/ui/chat/CommandRunner.qml
 contents/ui/chat/Commands.js
-contents/ui/chat/ComposerBar.qml
 contents/ui/chat/ComposerPicker.qml
 contents/ui/chat/Composer.qml
 contents/ui/chat/ComposerStatus.qml
@@ -24,7 +23,10 @@ contents/ui/chat/Notifier.qml
 contents/ui/chat/OwnModelCheck.qml
 contents/ui/chat/PermissionButtons.qml
 contents/ui/chat/PermissionDetail.qml
+contents/ui/chat/PendingFiles.qml
 contents/ui/chat/QuestionCard.qml
+contents/ui/chat/QuoteBlock.qml
+contents/ui/chat/QuoteChips.qml
 contents/ui/chat/ReasoningBlock.qml
 contents/ui/chat/RenameRow.qml
 contents/ui/chat/SessionList.qml

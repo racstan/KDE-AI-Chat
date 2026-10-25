@@ -89,8 +89,8 @@ QtObject {
         var messages = [];
         for (var j = 0; j < conversation.length; j++) {
             var rm = conversation[j];
-            var hasAttachments = rm.role === "user" && rm.attachments && rm.attachments.length > 0;
-            messages.push({"role": rm.role, "content": hasAttachments ? MessageContent.build(rm.content, rm.attachments, apiType) : rm.content});
+            var extras = rm.role === "user" && ((rm.attachments && rm.attachments.length > 0) || (rm.quotes && rm.quotes.length > 0));
+            messages.push({"role": rm.role, "content": extras ? MessageContent.build(rm.content, rm.attachments, apiType, rm.quotes) : rm.content});
         }
         return {"system": direct.buildEffectiveSystemPrompt(sessionId), "messages": messages};
     }

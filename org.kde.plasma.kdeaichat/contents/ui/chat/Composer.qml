@@ -4,6 +4,8 @@
 // The widget reaches the input only through this component: it registers
 // itself as chat.composerRef, and chat.focusInput() calls focusInput() here.
 //
+// Messages quoted with the Quote button show as chips above the box (QuoteChips.qml).
+//
 // Keys in the input: Enter sends, Shift+Enter adds a line, "/" at the start
 // lists the slash commands (Commands.js, run by CommandRunner.qml) and then the
 // prompt templates; Enter on a command runs it instead of sending. While the input is empty, Up/Down browse the
@@ -27,11 +29,24 @@ ColumnLayout {
     property var chat: null
     readonly property alias input: msgInput
     readonly property alias suggestions: suggestions
+    readonly property alias quoteChips: quoteChips
 
-    readonly property alias bar: bar
+    // The quick model picker, opened by /model and /variant (CommandRunner.qml).
+    readonly property alias picker: modelPicker
 
     signal attachRequested()
     signal chatInfoRequested()
+
+    // Quotes `message` for the next message: a chip above the box, focus in the box.
+    function addQuote(message) {
+        quoteChips.add(message);
+        focusInput();
+    }
+
+    // The quotes for the message being sent (chips cleared); [{id, role, text}].
+    function takeQuotes() {
+        return quoteChips.take();
+    }
 
     // Starts editing the last message you wrote (Ctrl+E), if
     // there is one and no reply is being written. Returns whether it did.
@@ -120,122 +135,41 @@ ColumnLayout {
         }
     }
 
-    // What the chat talks to (click to change the model), then what it is doing.
-    ComposerBar {
-        id: bar
-        chat: composer.chat
-        onChatInfoRequested: composer.chatInfoRequested()
-    }
-
     ComposerStatus {
         chat: composer.chat
         notice: runner.notice
     }
 
+    // Messages quoted for the next message (Quote button, Ctrl+Q).
+    QuoteChips {
+        id: quoteChips
+        chat: composer.chat
+    }
+
     CommandRunner {
         id: runner
         chat: composer.chat
-        picker: bar.picker
+        picker: modelPicker
         input: msgInput
     }
 
     // Files waiting to be sent
-    QQC2.ScrollView {
-        Layout.fillWidth: true
-        visible: composer.chat.attachedFiles.length > 0
-        height: Kirigami.Units.gridUnit * 2
-        QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
-        QQC2.ScrollBar.vertical.policy: QQC2.ScrollBar.AlwaysOff
-
-        Row {
-            spacing: Kirigami.Units.smallSpacing
-            padding: Kirigami.Units.smallSpacing
-
-            Repeater {
-                model: composer.chat.attachedFiles
-
-                delegate: Rectangle {
-                    id: fileChip
-
-                    required property var modelData
-                    required property int index
-
-                    width: Math.min(Kirigami.Units.gridUnit * 10, filenameLabel.implicitWidth + Kirigami.Units.iconSizes.smallMedium * 2 + Kirigami.Units.smallSpacing * 4)
-                    height: Kirigami.Units.gridUnit * 1.5
-                    radius: Kirigami.Units.cornerRadius
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
-                    border.width: 1
-                    border.color: modelData.error !== "" ? Kirigami.Theme.negativeTextColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                    QQC2.ToolTip.visible: fileMouseArea.containsMouse && modelData.error !== ""
-                    QQC2.ToolTip.text: modelData.error
-
-                    MouseArea {
-                        id: fileMouseArea
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                    }
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing
-                        spacing: Kirigami.Units.smallSpacing
-
-                        Item {
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.small
-                            Layout.preferredHeight: Kirigami.Units.iconSizes.small
-
-                            PC3.BusyIndicator {
-                                anchors.centerIn: parent
-                                visible: fileChip.modelData.loading
-                                running: fileChip.modelData.loading
-                                width: Kirigami.Units.iconSizes.small
-                                height: Kirigami.Units.iconSizes.small
-                            }
-
-                            Image {
-                                anchors.fill: parent
-                                visible: !fileChip.modelData.loading && fileChip.modelData.type === "image"
-                                source: fileChip.modelData.content ? ("data:" + (fileChip.modelData.mimeType || "image/png") + ";base64," + fileChip.modelData.content) : ("file://" + fileChip.modelData.path)
-                                fillMode: Image.PreserveAspectCrop
-                                clip: true
-                            }
-
-                            Kirigami.Icon {
-                                anchors.fill: parent
-                                visible: !fileChip.modelData.loading && fileChip.modelData.type !== "image"
-                                source: composer.chat.fileIconName(fileChip.modelData.name)
-                            }
-                        }
-
-                        PC3.Label {
-                            id: filenameLabel
-
-                            Layout.fillWidth: true
-                            text: fileChip.modelData.name
-                            elide: Text.ElideRight
-                            font: Kirigami.Theme.smallFont
-                        }
-
-                        PC3.ToolButton {
-                            icon.name: "dialog-close"
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
-                            Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
-                            display: PC3.AbstractButton.IconOnly
-                            Accessible.name: i18n("Remove %1", fileChip.modelData.name)
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: i18n("Remove file")
-                            onClicked: composer.chat.removeAttachedFile(fileChip.index)
-                        }
-                    }
-                }
-            }
-        }
+    PendingFiles {
+        chat: composer.chat
     }
 
     RowLayout {
+        id: inputRow
+
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
+
+        // Opens above the message box.
+        ComposerPicker {
+            id: modelPicker
+            chat: composer.chat
+            onChatInfoRequested: composer.chatInfoRequested()
+        }
 
         PC3.TextArea {
             id: msgInput

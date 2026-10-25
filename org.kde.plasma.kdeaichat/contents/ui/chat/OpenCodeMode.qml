@@ -40,9 +40,10 @@ QtObject {
 
     // OpenCode prompt parts for a user message (text, plus images as files).
     function openCodeParts(message) {
-        if (!message.attachments || message.attachments.length === 0)
+        var hasQuotes = !!message.quotes && message.quotes.length > 0;
+        if ((!message.attachments || message.attachments.length === 0) && !hasQuotes)
             return [{"type": "text", "text": message.content || ""}];
-        var payload = chat.buildMessageContent(message.content || "", message.attachments, "openai");
+        var payload = chat.buildMessageContent(message.content || "", message.attachments || [], "openai", message.quotes);
         if (typeof payload === "string")
             return [{"type": "text", "text": payload}];
         var parts = [];

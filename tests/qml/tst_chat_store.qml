@@ -63,6 +63,19 @@ TestCase {
         compare(loaded[1].messages.length, 0);
     }
 
+    // A message's quotes (structured, MessageContent.js) are saved with it.
+    function test_roundtrip_keeps_the_quotes_of_a_message() {
+        var dir = freshDir();
+        var s = makeStore(dir);
+        var quotes = [{id: "m-1", role: "assistant", text: "Use rsync.\nIt's \"faster\" …"}, {id: "m-0", role: "user", text: "single"}];
+        var c = chat("s-q", "Quotes", ["hi"]);
+        c.messages = [{role: "assistant", id: "m-1", content: "Use rsync."}, {role: "user", content: "And?", quotes: quotes}];
+        s.save([c], true);
+        var loaded = makeStore(dir).loadAll();
+        compare(JSON.stringify(loaded[0].messages[1].quotes), JSON.stringify(quotes));
+        compare(loaded[0].messages[0].id, "m-1", "the id a quote points to is kept");
+    }
+
     function test_only_changed_chats_are_rewritten_and_removed_chats_deleted() {
         var dir = freshDir();
         var s = makeStore(dir);

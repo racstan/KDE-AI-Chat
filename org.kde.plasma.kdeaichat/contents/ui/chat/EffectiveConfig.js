@@ -224,7 +224,7 @@ function agentOwner(config, session) {
     return "chat";
 }
 
-// Pi's thinking levels ("" = the model's default), for the settings and the composer bar.
+// Pi's thinking levels ("" = the model's default), for the settings and the Chat info line.
 var PI_THINKING_LEVELS = ["", "off", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 // The chat's "variant" as a short phrase, or "": Pi's thinking level
@@ -245,7 +245,7 @@ function variantText(eff, extra) {
 }
 
 // "Pi · OpenAI · gpt-x" for the Chat info panel; names(providerId) -> display name.
-// opts (the composer bar): {directLabel: "Direct" (names the direct mode too),
+// opts (the Chat info line): {directLabel: "Direct" (names the direct mode too),
 // variant: text for the end of the line, which also stops OpenCode's agent
 // standing in for a missing model}.
 function describe(eff, names, opts) {

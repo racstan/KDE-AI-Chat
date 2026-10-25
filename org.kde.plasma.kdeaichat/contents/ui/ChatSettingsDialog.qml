@@ -150,6 +150,12 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.leftMargin: Kirigami.Units.largeSpacing
                     Layout.rightMargin: Kirigami.Units.largeSpacing
+                    chat: page.rootRef
+                    onModelChanged: {
+                        // The picker saved straight to the chat: take that over, unless edits wait.
+                        if (page.visible && !settingsDraft.dirty)
+                            settingsDraft.load(settingsDraft.sessionId);
+                    }
                     effective: page._effective
                     perChat: page._perChat
                     mainWins: page._mainWins
