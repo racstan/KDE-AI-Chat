@@ -16,6 +16,10 @@ UI_DIR = os.path.join(
 PROVIDER_SERVICE = os.path.join(UI_DIR, "ProviderService.js")
 MAIN_QML = os.path.join(UI_DIR, "main.qml")
 CHAT_SETTINGS_DIALOG = os.path.join(UI_DIR, "ChatSettingsDialog.qml")
+# The Chat info panel is split: the panel (CHAT_SETTINGS_DIALOG), its editable
+# draft with the async refreshes, and the settings form.
+CHAT_SETTINGS_DRAFT = os.path.join(UI_DIR, "chat", "ChatSettingsDraft.qml")
+CHAT_OVERRIDES_FORM = os.path.join(UI_DIR, "chat", "ChatOverridesForm.qml")
 
 
 def _read_js(path):
@@ -29,6 +33,10 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
         main_source = f.read()
     with open(CHAT_SETTINGS_DIALOG, encoding="utf-8") as f:
         dialog_source = f.read()
+    with open(CHAT_SETTINGS_DRAFT, encoding="utf-8") as f:
+        draft_source = f.read()
+    with open(CHAT_OVERRIDES_FORM, encoding="utf-8") as f:
+        form_source = f.read()
 
     assert "function setSessionOverrides(sessionId, overrides)" in main_source
     assert "property var openCodeAgentFetchWaiters" in main_source
@@ -44,19 +52,20 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
     assert atomic_body.count("root.sessions = updated") == 1
     assert "persistSessions();" in atomic_body
 
-    assert "property int _generation" in dialog_source
-    assert "function _current(token)" in dialog_source
-    assert dialog_source.count("_current(token)") >= 5
+    assert "property int _generation" in draft_source
+    assert "function _current(token)" in draft_source
+    assert draft_source.count("_current(token)") >= 5
     assert "property Item hostItem" in dialog_source
     assert "property bool sidebarOpen" in dialog_source
     assert "anchors.right: parent ? parent.right : undefined" in dialog_source
     assert "function toggleForSession(sessionId)" in dialog_source
-    assert "property bool _loadingDraft" in dialog_source
-    assert "Chat.PiChatSettings" in dialog_source
-    assert "piThinking: _piThinking" in dialog_source
-    assert "configuration.piModel =" not in dialog_source, "a chat's settings must not change the global Pi default"
-    assert "rootRef.fetchPiModels" in dialog_source
-    assert "setSessionOverrides(_sessionId, overrides)" in dialog_source
-    assert "saveCurrentSessionState" not in dialog_source
-    assert "visible: page._mode !== \"opencode\"" in dialog_source
+    assert "property bool loading" in draft_source
+    assert "PiChatSettings" in form_source
+    assert "thinking: form.draft.piThinking" in form_source
+    for source in (dialog_source, draft_source, form_source):
+        assert "configuration.piModel =" not in source, "a chat's settings must not change the global Pi default"
+        assert "saveCurrentSessionState" not in source
+    assert "rootRef.fetchPiModels" in draft_source
+    assert "setSessionOverrides(sessionId, overrides)" in draft_source
+    assert "visible: form.draft.mode !== \"opencode\"" in form_source
     assert "chatSettingsDialog.toggleForSession(root.currentSessionId)" in open(os.path.join(UI_DIR, "FullRepresentationContent.qml"), encoding="utf-8").read()

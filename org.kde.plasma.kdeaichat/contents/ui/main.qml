@@ -32,6 +32,7 @@ PlasmoidItem {
     property Chat.StreamBuffer streamBuffer: Chat.StreamBuffer { target: root; maxChars: root.maxMessageChars }
     property var attachedFiles: []
     property bool historyOnlyMode: false
+    property bool historySidePanel: false // set by chat/ChatBody.qml: history beside the chat stays open on New chat
     property bool loading: false
     property var activeXhr: null
     property int requestGeneration: 0
@@ -457,11 +458,10 @@ PlasmoidItem {
             root.streamingResponse = false;
             root.editingMessageIndex = -1;
             root.editingDraft = "";
-            root.editingSessionId = "";
-            root.editingSessionDraft = "";
+            root.editingSessionId = ""; root.editingSessionDraft = "";
             root.renamingCurrentChat = false;
             root.currentChatRenameDraft = "";
-            root.historyOnlyMode = false;
+            root.historyOnlyMode = root.historySidePanel && root.historyOnlyMode;
             root.focusInput();
         }
         persistSessions();

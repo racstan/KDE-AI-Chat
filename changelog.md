@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings rebuilt as six small pages**: Providers (providers, time limit, streaming), Harness (direct, OpenCode or Pi, and the agent's default provider and model), Chat (system prompt, earlier messages sent, chat names, prompt templates), Schedules, Voice and Appearance (name, icon, sound). Changes are saved with Apply/OK like other Plasma widgets; prompt templates can now be edited, not only added and removed.
 - **The chat window follows your Plasma colour scheme and accent colour**, light or dark, instead of its own blue-and-grey palette: the message box is dark in a dark theme, links use the scheme's link colour, and the controls are Plasma's own. Breeze icons replace the emoji on answered permission requests, delete buttons are no longer red, and errors are a neutral card with a red edge instead of red text on red.
 
+### Added
+- **History beside the chat**: in a wide popup the chat history slides in as a side panel (one compact row per chat with Today/Yesterday/date, rename, archive and delete appear on hover or keyboard focus); in a narrow popup it still takes the whole view.
+- **Chat info panel** (the (i) button in the header, replacing the old "chat controls" sidebar): this chat's input and output tokens, total cost where the provider reports it, number of messages, models used, and when it was created and last used, above the chat's own settings (provider and model, OpenCode/Pi, working folder, instructions, response length).
+- Accessible names on every icon-only header button; the less-used header actions (rename, jump to first/previous/next/latest message, export, clear) are in one "More actions" menu.
+
+### Changed
+- **Token counts and cost come straight from the provider.** OpenAI-compatible streaming requests now ask for usage (`stream_options.include_usage`; retried once without it if a server rejects the field), OpenRouter also reports the real cost of each reply, and Anthropic's input count includes cached prompt tokens. Nothing is estimated.
+
 ### Removed
 - The guide text blocks in settings, the interface-language override, the light/dark appearance override (light or dark now follows the system), the unused desktop-selection setting, and the process memory panel with its Kill buttons.
 - The "capture screen region" (Spectacle) button in the chat input. Attach a screenshot as a file instead.

@@ -79,6 +79,7 @@ Item {
 
         Chat.ChatHeader {
             chat: root
+            historyFull: body.historyFull
             appName: plasmoid.configuration.appDisplayName || "KDE AI Chat"
             onSettingsRequested: Plasmoid.internalAction("configure").trigger()
             onChatControlsRequested: chatSettingsDialog.toggleForSession(root.currentSessionId)
@@ -103,6 +104,7 @@ Item {
 
         Chat.OpenCodeBar {
             chat: root
+            historyFull: body.historyFull
             onWorkspaceRequested: workspaceFolderDialog.open()
             onAgentChosen: function(value) {
                 root.openCodeAgent = value;
@@ -112,54 +114,15 @@ Item {
 
         Chat.RenameRow {
             chat: root
+            historyFull: body.historyFull
         }
 
-        StackLayout {
+        Chat.ChatBody {
+            id: body
+            chat: root
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: root.historyOnlyMode ? 1 : 0
-
-            Item {
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: Kirigami.Units.smallSpacing
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: Kirigami.Units.cornerRadius
-                        color: Kirigami.Theme.alternateBackgroundColor
-                        clip: true
-
-                        Chat.ChatView {
-                            anchors.fill: parent
-                            anchors.margins: Kirigami.Units.smallSpacing
-                            visible: !root.historyOnlyMode
-                            chat: root
-                        }
-                    }
-
-                    Chat.Composer {
-                        chat: root
-                        onAttachRequested: fileDialog.open()
-                    }
-                }
-            }
-
-            Loader {
-                id: historyLoader
-
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                active: root.historyOnlyMode
-                visible: status === Loader.Ready
-
-                sourceComponent: Component {
-                    Chat.SessionList {
-                        chat: root
-                    }
-                }
-            }
+            onAttachRequested: fileDialog.open()
         }
 
     }

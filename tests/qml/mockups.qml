@@ -13,6 +13,7 @@ import QtQuick.Layouts
 import QtTest
 import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
+import "../../org.kde.plasma.kdeaichat/contents/ui" as Ui
 
 Item {
     id: root
@@ -45,47 +46,30 @@ Item {
             id: column
             anchors.fill: parent
             anchors.margins: Kirigami.Units.smallSpacing
+            anchors.rightMargin: infoPanel.visible ? infoPanel.width + Kirigami.Units.smallSpacing : Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
 
-            Chat.ChatHeader { id: header; chat: chat; appName: "KDE AI Chat" }
-            Chat.RenameRow { chat: chat }
+            Chat.ChatHeader { id: header; chat: chat; appName: "KDE AI Chat"; historyFull: body.historyFull }
+            Chat.RenameRow { chat: chat; historyFull: body.historyFull }
 
-            Item {
+            // As in FullRepresentationContent: the history beside the chat in a wide popup.
+            Chat.ChatBody {
+                id: body
+                chat: chat
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    visible: !chat.historyOnlyMode
-                    spacing: Kirigami.Units.smallSpacing
-
-                    // As in FullRepresentationContent: the list sits on a rounded panel.
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: Kirigami.Units.cornerRadius
-                        color: Kirigami.Theme.alternateBackgroundColor
-                        clip: true
-
-                        Chat.ChatView {
-                            id: view
-                            anchors.fill: parent
-                            anchors.margins: Kirigami.Units.smallSpacing
-                            chat: chat
-                        }
-                    }
-
-                    Chat.Composer { id: composer; chat: chat }
-                }
-
-                Chat.SessionList {
-                    anchors.fill: parent
-                    visible: chat.historyOnlyMode
-                    chat: chat
-                }
             }
         }
+
+        Ui.ChatSettingsDialog {
+            id: infoPanel
+            rootRef: chat
+            hostItem: popup
+        }
     }
+
+    readonly property var view: body.chatView
+    readonly property var composer: body.composerItem
 
     HarnessTestCase {
         name: "Mockups"
@@ -112,6 +96,7 @@ Item {
             chat.chatInputText = "";
             chat.messages = [];
             chat.sessions = [];
+            infoPanel.close();
         }
 
         // Builds the state, waits for layout, saves the shot.
@@ -231,15 +216,42 @@ Item {
 
         function test_08_history() {
             shoot("history", function() {
-                chat.messages = [{role: "user", content: "Hi", time: "10:00"}];
+                chat.messages = [
+                    {role: "user", content: "Where should we go in May? Somewhere warm, not too crowded.", time: "10:01"},
+                    {role: "assistant", model: "openrouter/auto", content: "Somewhere **warm**:\n\n- Lisbon\n- Valencia", time: "10:01", tokens: {input: 30, output: 12}}
+                ];
+                var now = Date.now();
                 chat.sessions = [
-                    {value: "a", text: "Trip planning", count: 4},
-                    {value: "b", text: "OpenCode refactor", source: "opencode", count: 14},
-                    {value: "c", text: "Shell one-liners", count: 9},
-                    {value: "d", text: "Old chat", archived: true, count: 3}
+                    {value: "a", text: "Trip planning", count: 4, updatedAt: now},
+                    {value: "b", text: "OpenCode refactor", source: "opencode", count: 14, updatedAt: now - 86400000},
+                    {value: "c", text: "Shell one-liners", count: 9, updatedAt: now - 5 * 86400000},
+                    {value: "d", text: "Old chat", archived: true, count: 3, updatedAt: now - 40 * 86400000}
                 ];
                 chat.historyOnlyMode = true;
             });
+            verify(body.sideHistory && !body.historyFull, "the history sits beside the chat in a wide popup");
+        }
+
+        function test_10_chat_info() {
+            shoot("chat-info", function() {
+                var created = Date.now() - 5 * 86400000;
+                chat.plasmoid = {configuration: {provider: "openrouter", providersJson: JSON.stringify([
+                    {id: "openrouter", name: "OpenRouter", type: "openai-compat", baseUrl: "", model: "openrouter/auto"},
+                    {id: "ollama", name: "Ollama", type: "openai-compat", baseUrl: "", model: "llama3"}])}};
+                chat.messages = [
+                    {role: "user", content: "Where should we go in May? Somewhere warm, not too crowded.", time: "10:01", at: created},
+                    {role: "assistant", model: "openrouter/auto", content: markdownReply, time: "10:01", at: created + 1000, tokens: {input: 30, output: 212}, cost: 0.00132},
+                    {role: "user", content: "Great, thanks. Can you make it 4 days?", time: "10:03", at: created + 2000},
+                    {role: "assistant", model: "anthropic/claude-sonnet-4.5", content: "Sure, add a **beach day** at Cascais.", time: "10:03", at: created + 3000, tokens: {input: 1260, output: 14}, cost: 0.00471}
+                ];
+                chat.sessions = [{value: "a", text: "Trip planning", createdAt: created, updatedAt: Date.now(), chatModel: "openrouter/auto",
+                                  chatSystemPromptEnabled: true, chatSystemPrompt: "You are a concise travel planner.", responseLength: 2}];
+                infoPanel.toggleForSession("a");
+                // The fake provider has no server to list models from; don't show that failure.
+                wait(60);
+                infoPanel.draft.invalidate();
+            });
+            verify(infoPanel.visible);
         }
 
         function test_09_attachments() {

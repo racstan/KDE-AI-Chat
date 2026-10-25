@@ -1,0 +1,109 @@
+// Everything under the header: the conversation with its composer, and the
+// history. `chat.historyOnlyMode` is the history toggle. In a wide popup the
+// history slides in beside the chat; in a narrow one it takes the whole view
+// until a chat is chosen.
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+
+Item {
+    id: body
+
+    property var chat: null
+
+    // From this width the history sits beside the chat.
+    readonly property real sideThreshold: Kirigami.Units.gridUnit * 40
+    readonly property real panelWidth: Kirigami.Units.gridUnit * 15
+    readonly property bool sideHistory: width >= sideThreshold
+    readonly property bool historyOpen: chat.historyOnlyMode
+    // The history replaces the chat (narrow popup).
+    readonly property bool historyFull: historyOpen && !sideHistory
+    readonly property alias chatView: view
+    readonly property alias composerItem: composer
+    readonly property alias historyPane: pane
+    // The SessionList, while it exists.
+    readonly property var sessionList: historyLoader.item
+
+    signal attachRequested()
+
+    // Tells the chat that the history sits beside it, so New chat leaves it open.
+    Binding {
+        target: body.chat
+        property: "historySidePanel"
+        value: body.sideHistory
+    }
+
+    RowLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        Item {
+            id: pane
+
+            // The width the history is shown at: nothing, the side panel, or all of it.
+            readonly property real shownWidth: !body.historyOpen ? 0 : (body.sideHistory ? body.panelWidth + Kirigami.Units.smallSpacing : body.width)
+
+            Layout.fillHeight: true
+            Layout.preferredWidth: shownWidth
+            visible: shownWidth > 0 || width > 0
+            clip: true
+
+            Behavior on Layout.preferredWidth {
+                enabled: body.sideHistory
+                NumberAnimation {
+                    duration: Kirigami.Units.longDuration
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Loader {
+                id: historyLoader
+
+                // Stays until the slide-out has finished.
+                active: body.historyOpen || pane.width > 0
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: body.historyFull ? pane.width : body.panelWidth
+
+                sourceComponent: Component {
+                    SessionList {
+                        chat: body.chat
+                        closeOnSelect: body.historyFull
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: !body.historyFull
+            spacing: Kirigami.Units.smallSpacing
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                radius: Kirigami.Units.cornerRadius
+                color: Kirigami.Theme.alternateBackgroundColor
+                clip: true
+
+                ChatView {
+                    id: view
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.smallSpacing
+                    visible: !body.historyFull
+                    chat: body.chat
+                }
+            }
+
+            Composer {
+                id: composer
+                chat: body.chat
+                onAttachRequested: body.attachRequested()
+            }
+        }
+    }
+}

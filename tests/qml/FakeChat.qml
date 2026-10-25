@@ -85,6 +85,29 @@ QtObject {
     function setSessionArchived() { record("archive", arguments); }
     function deleteSession() { record("deleteSession", arguments); }
 
+    // What chat/ChatBody.qml sets and ChatSettingsDialog.qml (the Chat info panel) reads.
+    property bool historySidePanel: false
+    property bool openCodeMode: false
+    property var walletApiKeys: ({})
+    property var plasmoid: ({configuration: {}})
+    function getSessionProperty(id, key, fallback) {
+        for (var i = 0; i < sessions.length; i++) {
+            if (sessions[i].value === id)
+                return sessions[i][key] === undefined || sessions[i][key] === null ? fallback : sessions[i][key];
+        }
+        return fallback;
+    }
+    function setSessionOverrides(id, overrides) {
+        record("overrides", [id, overrides]);
+        var updated = sessions.slice();
+        for (var i = 0; i < updated.length; i++) {
+            if (updated[i].value === id)
+                updated[i] = Object.assign({}, updated[i], overrides);
+        }
+        sessions = updated;
+        return true;
+    }
+
     function messageDayKeyAt(i) { return "2026-10-25"; }
     function dayDividerLabelForIndex(i) { return "Today"; }
     function formatMessageTime(m, i) { return m.time || ""; }

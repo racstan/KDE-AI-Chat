@@ -1,5 +1,6 @@
-// The toolbar above the chat: history, pin, settings, the chat title,
-// chat actions (rename, controls, jump, clear, export) and New chat.
+// The toolbar above the chat: the history toggle, pin, settings, the chat
+// title, the Chat info panel, a "More" menu (rename, jump, export, clear) and
+// New chat. Every button has an accessible name.
 //
 // Things that live outside the chat (the settings action, dialogs) are
 // requested through signals; the parent wires them up.
@@ -16,6 +17,9 @@ RowLayout {
 
     property var chat: null
     property string appName: "KDE AI Chat"
+    // The history takes the whole view (a narrow popup), so chat actions are
+    // hidden and the toggle reads "Back to chat". Set by FullRepresentationContent.
+    property bool historyFull: chat ? chat.historyOnlyMode : false
 
     signal settingsRequested()
     signal chatControlsRequested()
@@ -35,12 +39,28 @@ RowLayout {
         return docs + "/" + encodeURIComponent(cleanTitle + "_" + timestamp + ".md");
     }
 
+    function clearChat() {
+        header.chat.messages = [];
+        header.chat.editingMessageIndex = -1;
+        header.chat.editingDraft = "";
+        header.chat.clearCurrentOpenCodeSessionIfNeeded();
+        header.chat.saveCurrentSessionState(true);
+    }
+
     Layout.fillWidth: true
 
     PC3.ToolButton {
-        icon.name: header.chat.historyOnlyMode ? "go-previous-symbolic" : "view-list-icons"
+        id: historyButton
+
+        readonly property string label: header.historyFull ? i18n("Back to chat")
+            : (header.chat.historyOnlyMode ? i18n("Hide history") : i18n("Show history"))
+
+        icon.name: header.historyFull ? "go-previous-symbolic" : "view-history"
+        checkable: !header.historyFull
+        checked: !header.historyFull && header.chat.historyOnlyMode
+        Accessible.name: label
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: header.chat.historyOnlyMode ? "Back to chat" : "Expand history"
+        QQC2.ToolTip.text: label
         onClicked: header.chat.historyOnlyMode = !header.chat.historyOnlyMode
     }
 
@@ -49,14 +69,16 @@ RowLayout {
         checkable: true
         checked: !header.chat.hideOnWindowDeactivate
         onToggled: header.chat.hideOnWindowDeactivate = !checked
+        Accessible.name: checked ? i18n("Unpin (close when clicking away)") : i18n("Pin (keep open)")
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: checked ? "Unpin (close when clicking away)" : "Pin (keep open)"
+        QQC2.ToolTip.text: Accessible.name
     }
 
     PC3.ToolButton {
         icon.name: "configure"
+        Accessible.name: i18n("Open Settings")
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Open Settings"
+        QQC2.ToolTip.text: Accessible.name
         onClicked: header.settingsRequested()
     }
 
@@ -65,7 +87,7 @@ RowLayout {
     }
 
     PC3.Label {
-        text: header.chat.historyOnlyMode ? (header.appName + " History") : (header.chat.currentSessionTitle || "New Chat")
+        text: header.historyFull ? i18n("%1 History", header.appName) : (header.chat.currentSessionTitle || i18n("New Chat"))
         font.bold: true
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
@@ -78,95 +100,92 @@ RowLayout {
         Layout.fillWidth: true
     }
 
+    // Chat info: this chat's usage and its own settings.
     PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode
-        icon.name: "document-edit"
+        visible: !header.historyFull
+        icon.name: "documentinfo"
+        Accessible.name: i18n("Chat info")
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Rename current chat"
-        onClicked: {
-            header.chat.renamingCurrentChat = !header.chat.renamingCurrentChat;
-            header.chat.currentChatRenameDraft = header.chat.currentSessionTitle || "";
-        }
-    }
-
-    PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode
-        icon.name: "preferences-other"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Open chat controls sidebar"
+        QQC2.ToolTip.text: Accessible.name
         onClicked: header.chatControlsRequested()
     }
 
+    // Everything else that acts on this chat, kept out of the toolbar.
     PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode
-        icon.name: "go-top"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Jump to first message"
-        onClicked: {
-            var list = header.chat.msgListViewRef;
-            if (list && list.count > 0) {
-                header.chat.userScrolledUp = true;
-                list.positionViewAtBeginning();
+        id: moreButton
+
+        visible: !header.historyFull
+        icon.name: "overflow-menu"
+        Accessible.name: i18n("More actions")
+        QQC2.ToolTip.visible: hovered && !moreMenu.visible
+        QQC2.ToolTip.text: Accessible.name
+        onClicked: moreMenu.popup(moreButton, 0, moreButton.height)
+
+        QQC2.Menu {
+            id: moreMenu
+
+            QQC2.MenuItem {
+                text: i18n("Rename chat")
+                icon.name: "document-edit"
+                onTriggered: {
+                    header.chat.renamingCurrentChat = !header.chat.renamingCurrentChat;
+                    header.chat.currentChatRenameDraft = header.chat.currentSessionTitle || "";
+                }
+            }
+            QQC2.MenuSeparator {
+            }
+            QQC2.MenuItem {
+                text: i18n("Jump to first message")
+                icon.name: "go-top"
+                onTriggered: {
+                    var list = header.chat.msgListViewRef;
+                    if (list && list.count > 0) {
+                        header.chat.userScrolledUp = true;
+                        list.positionViewAtBeginning();
+                    }
+                }
+            }
+            QQC2.MenuItem {
+                text: i18n("Jump to previous message")
+                icon.name: "go-up"
+                onTriggered: header.chat.jumpOneMessageAbove()
+            }
+            QQC2.MenuItem {
+                text: i18n("Jump to next message")
+                icon.name: "go-down"
+                onTriggered: header.chat.jumpOneMessageBelow()
+            }
+            QQC2.MenuItem {
+                text: i18n("Jump to latest message")
+                icon.name: "go-bottom"
+                onTriggered: {
+                    header.chat.userScrolledUp = false;
+                    header.chat.scrollToBottom(true);
+                }
+            }
+            QQC2.MenuSeparator {
+            }
+            QQC2.MenuItem {
+                text: i18n("Export chat…")
+                icon.name: "document-export"
+                enabled: !header.chat.loading && header.chat.messages.length > 0
+                onTriggered: header.exportRequested(header.exportFileName())
+            }
+            QQC2.MenuItem {
+                text: i18n("Clear chat")
+                icon.name: "edit-clear-all"
+                enabled: !header.chat.loading && header.chat.messages.length > 0
+                onTriggered: header.clearChat()
             }
         }
     }
 
     PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode
-        icon.name: "go-up"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Jump to one message above"
-        onClicked: header.chat.jumpOneMessageAbove()
-    }
-
-    PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode
-        icon.name: "go-down"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Jump to one message below"
-        onClicked: header.chat.jumpOneMessageBelow()
-    }
-
-    PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode
-        icon.name: "go-bottom"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Jump to latest message"
-        onClicked: {
-            header.chat.userScrolledUp = false;
-            header.chat.scrollToBottom(true);
-        }
-    }
-
-    PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode
-        icon.name: "edit-clear-all"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Clear current chat history"
-        enabled: !header.chat.loading && header.chat.messages.length > 0
-        onClicked: {
-            header.chat.messages = [];
-            header.chat.editingMessageIndex = -1;
-            header.chat.editingDraft = "";
-            header.chat.clearCurrentOpenCodeSessionIfNeeded();
-            header.chat.saveCurrentSessionState(true);
-        }
-    }
-
-    PC3.ToolButton {
-        visible: !header.chat.historyOnlyMode && header.chat.messages.length > 0
-        icon.name: "document-export"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Export chat session"
-        enabled: !header.chat.loading
-        onClicked: header.exportRequested(header.exportFileName())
-    }
-
-    PC3.ToolButton {
         icon.name: "list-add"
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "New chat"
         enabled: !header.chat.loading
+        Accessible.name: i18n("New chat")
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: Accessible.name
         onClicked: header.chat.createSession(true)
     }
 }

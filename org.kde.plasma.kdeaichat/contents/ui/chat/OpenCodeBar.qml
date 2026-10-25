@@ -12,12 +12,14 @@ RowLayout {
     id: bar
 
     property var chat: null
+    // The history takes the whole view (set by FullRepresentationContent).
+    property bool historyFull: chat ? chat.historyOnlyMode : false
 
     signal workspaceRequested()
     signal agentChosen(string value)
 
     Layout.fillWidth: true
-    visible: !bar.chat.historyOnlyMode && bar.chat.openCodeMode
+    visible: !bar.historyFull && bar.chat.openCodeMode
     spacing: Kirigami.Units.smallSpacing
 
     Component.onCompleted: {
@@ -33,6 +35,7 @@ RowLayout {
         icon.name: "folder"
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: bar.chat.openCodeWorkspaceCwd ? ("Workspace: " + bar.chat.openCodeWorkspaceCwd) : "Select OpenCode Workspace Directory"
+        Accessible.name: QQC2.ToolTip.text
         onClicked: bar.workspaceRequested()
     }
 
@@ -83,12 +86,14 @@ RowLayout {
         }
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: "Agent profile — uses model from opencode.json\nCurrently: " + (bar.chat.openCodeAgent || "(default)")
+        Accessible.name: i18n("Agent profile")
     }
 
     PC3.ToolButton {
         icon.name: "view-list-details"
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: "Refresh agent list from opencode.json"
+        Accessible.name: QQC2.ToolTip.text
         onClicked: bar.chat.fetchOpenCodeAgents()
     }
 
@@ -96,6 +101,7 @@ RowLayout {
         icon.name: "view-refresh"
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: i18n("Sync session history from OpenCode")
+        Accessible.name: QQC2.ToolTip.text
         enabled: !bar.chat.loading && bar.chat.currentOpenCodeSessionId() !== ""
         onClicked: bar.chat.syncOpenCodeSessionHistory()
     }

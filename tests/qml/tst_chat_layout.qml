@@ -35,24 +35,12 @@ Item {
         Chat.ChatHeader { id: header; chat: chat }
         Chat.RenameRow { id: renameRow; chat: chat }
 
-        Item {
+        Chat.ChatBody {
+            id: body
+            chat: chat
             Layout.fillWidth: true
             Layout.fillHeight: true
-
-            Chat.ChatView {
-                anchors.fill: parent
-                visible: !chat.historyOnlyMode
-                chat: chat
-            }
-            Chat.SessionList {
-                id: sessionList
-                anchors.fill: parent
-                visible: chat.historyOnlyMode
-                chat: chat
-            }
         }
-
-        Chat.Composer { chat: chat }
     }
 
     HarnessTestCase {
@@ -79,7 +67,9 @@ Item {
             ];
             chat.historyOnlyMode = true;
             wait(50);
-            compare(sessionList.list.count, 3);
+            tryVerify(() => body.sessionList !== null);
+            compare(body.sessionList.list.count, 3);
+            verify(body.historyFull, "520 px is narrow: the history replaces the chat");
             screenshot(root, "chat-layout-history");
             chat.historyOnlyMode = false;
         }
