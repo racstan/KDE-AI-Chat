@@ -53,6 +53,31 @@ assert.strictEqual(E.describe("Something odd happened").detail, "");
 assert.strictEqual(E.describe("").text, "Something went wrong.");
 assert.strictEqual(E.describe(undefined).kind, "other");
 
+// Model errors in plain words
+const nim404 = "Request to https://integrate.api.nvidia.com/v1/chat/completions failed (HTTP 404): Function '767b5b9a-1': Not found for account 'TSF5_x'";
+let d = E.describe(nim404, "NVIDIA NIM");
+assert.strictEqual(d.kind, "model");
+assert.ok(d.text.startsWith("This model isn't available on your NVIDIA NIM account (it may be retired or not enabled)."), d.text);
+assert.ok(d.text.includes("Settings \u2192 Connection"), d.text);
+assert.ok(d.text.endsWith("\n\nFunction '767b5b9a-1': Not found for account 'TSF5_x'"), d.text);
+assert.strictEqual(d.detail, nim404);
+assert.strictEqual(d.settings, true);
+assert.ok(E.describe(nim404).text.startsWith("This model isn't available on your account"));
+d = E.describe("Request to https://integrate.api.nvidia.com/v1/chat/completions failed (HTTP 410): The model 'x/y' has reached its end of life on 2026-01-01 and is no longer available.", "NVIDIA NIM");
+assert.strictEqual(d.kind, "model");
+assert.ok(d.text.startsWith("This model has been retired and isn't available on your NVIDIA NIM account any more."), d.text);
+assert.ok(d.text.includes("end of life"));
+d = E.describe('Request to https://api.openai.com/v1/chat/completions failed (HTTP 404): {"error":{"message":"The model `gpt-9` does not exist","code":"model_not_found"}}', "OpenAI");
+assert.strictEqual(d.kind, "model");
+assert.ok(d.text.includes("your OpenAI account"));
+assert.strictEqual(E.describe('Request to https://x failed (HTTP 400): {"error":{"code":"model_not_found"}}').kind, "model");
+// A bare 404 (wrong URL) is not a model error: nothing says model or function.
+d = E.describe("Request to https://x/v1/chatt failed (HTTP 404): Not Found");
+assert.strictEqual(d.kind, "other");
+// Keys still win, even when the body mentions the model.
+assert.strictEqual(E.describe("Request to https://x failed (HTTP 401): Invalid API key for model gpt-4").kind, "auth");
+assert.strictEqual(E.describe("Request to https://x failed (HTTP 403): no access to model foo, not found").kind, "auth");
+
 // Prompt templates
 const list = T.parse(JSON.stringify([{name: "fix", prompt: "Fix this code:"}, {name: "summarize", prompt: "Summarise:"}, {name: "", prompt: "x"}, {name: "bad"}]));
 assert.deepStrictEqual(plain(list).map(t => t.name), ["fix", "summarize"]);

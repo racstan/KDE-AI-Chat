@@ -35,8 +35,10 @@ Item {
         ? [chat.currentStreamReasoning, chat.currentStreamExtractedReasoning].filter(function(t) { return !!t; }).join("\n")
         : (message.reasoning || "")
     property string selectedText: ""
+    readonly property string errorProvider: role === "error" && !chat.openCodeMode && !chat.piMode
+        ? chat.providerDisplayName(chat.getEffectiveProvider(chat.currentSessionId)) : ""
     // An error in plain language, with what can be done about it.
-    readonly property var errorInfo: role === "error" ? ErrorText.describe(message.content) : ({})
+    readonly property var errorInfo: role === "error" ? ErrorText.describe(message.content, errorProvider) : ({})
     // Agent requests show their own content (what is asked, the questions).
     readonly property bool ownsBody: role === "permission_request" || (role === "question_request" && (message.questions || []).length > 0)
     // From the chat view: builds the buttons after the first frame
@@ -243,6 +245,7 @@ Item {
                         info: row.errorInfo
                         onRetryRequested: row.chat.retryFailedMessage(row.index)
                         onSettingsRequested: row.chat.openSettings()
+                        onCopyRequested: row.chat.copyTextToClipboard(row.errorInfo.detail || row.errorInfo.text)
                         onDeleteRequested: row.chat.deleteMessage(row.index)
                     }
                 }

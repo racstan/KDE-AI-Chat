@@ -17,6 +17,7 @@ ColumnLayout {
 
     signal retryRequested()
     signal settingsRequested()
+    signal copyRequested()
     signal deleteRequested()
 
     spacing: Kirigami.Units.smallSpacing
@@ -49,6 +50,20 @@ ColumnLayout {
         }
 
         PC3.ToolButton {
+            objectName: "copyErrorButton"
+            display: PC3.AbstractButton.IconOnly
+            icon.name: copied.running ? "checkmark" : "edit-copy"
+            text: copied.running ? i18n("Copied") : i18n("Copy error")
+            Accessible.name: text
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.text: text
+            onClicked: {
+                actions.copyRequested();
+                copied.restart();
+            }
+        }
+
+        PC3.ToolButton {
             objectName: "deleteErrorButton"
             display: PC3.AbstractButton.IconOnly
             icon.name: "trash-empty"
@@ -58,6 +73,11 @@ ColumnLayout {
             QQC2.ToolTip.text: Accessible.name
             onClicked: actions.deleteRequested()
         }
+    }
+
+    Timer {
+        id: copied
+        interval: 1500
     }
 
     MonoBlock {
