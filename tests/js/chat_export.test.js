@@ -47,7 +47,7 @@ assert.ok(!m.includes("SECRET-FILE-BODY"), "attachment bodies stay out");
 assert.ok(!m.includes("Reasoning") && !m.includes("word-splits $f"), "reasoning is omitted by default");
 assert.ok(!m.includes("permission") && !m.includes("<div"), m);
 assert.ok(!m.includes("<think>") && !m.includes("\u0000"), m);
-assert.ok(m.includes("Thanks, xdone"), m);
+assert.ok(m.includes("Thanks, done"), m);
 assert.ok(!/\n{3,}/.test(m) && m.endsWith("\n") && !m.endsWith("\n\n"));
 // Reasoning on request, in a marked section.
 assert.ok(md(fixture, {includeReasoning: true}).includes("**Reasoning**\n\n> The loop word-splits $f."));

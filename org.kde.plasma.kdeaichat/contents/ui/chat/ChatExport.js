@@ -70,11 +70,11 @@ function _iso(ms) {
 }
 
 // Strips what must not reach a file: control and zero-width characters,
-// carriage returns and <think> tags (their text is the reasoning).
+// carriage returns and <think> blocks (reasoning, which is left out here).
 function clean(text) {
     return String(text === undefined || text === null ? "" : text)
         .replace(/\r\n?/g, "\n")
-        .replace(/<\/?think>/gi, "")
+        .replace(/<think>[\s\S]*?(<\/think>|$)/gi, "").replace(/<\/think>/gi, "")
         .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f​-‍⁠﻿]/g, "")
         .replace(/\s+$/, "");
 }

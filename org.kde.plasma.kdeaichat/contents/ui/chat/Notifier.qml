@@ -42,6 +42,8 @@ Item {
         id: soundDs
         engine: "executable"
         connectedSources: []
+        // Disconnect so the same command runs again next time.
+        onNewData: function(sourceName) { disconnectSource(sourceName); }
     }
 
     // Plain one-line text: no Markdown markup, at most `limit` characters.
