@@ -62,7 +62,7 @@ RowLayout {
         Layout.fillWidth: true
     }
 
-    PC3.ComboBox {
+    QQC2.ComboBox {
         id: agentSelectorCombo
         implicitWidth: Kirigami.Units.gridUnit * 7
         implicitHeight: Kirigami.Units.gridUnit * 1.8

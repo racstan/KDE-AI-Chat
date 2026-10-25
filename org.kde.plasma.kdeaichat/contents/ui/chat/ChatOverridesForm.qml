@@ -2,6 +2,11 @@
 // (provider, OpenCode or Pi), the model, the working folder, instructions and
 // response length. It edits a ChatSettingsDraft; nothing is saved until Apply
 // in ChatSettingsDialog.qml.
+//
+// The drop-downs are QQC2.ComboBox, not PC3.ComboBox: with libplasma 6.8 the
+// PC3 one reports "Binding loop detected for property implicitWidth" (or
+// implicitHeight) whenever it is created after another window already showed
+// one, as in the test suite.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
@@ -140,7 +145,7 @@ ColumnLayout {
         visible: form.draft.mode === "provider"
         label: i18n("Provider")
 
-        PC3.ComboBox {
+        QQC2.ComboBox {
             id: providerCombo
             Layout.fillWidth: true
             textRole: "text"
@@ -163,7 +168,7 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
-            PC3.ComboBox {
+            QQC2.ComboBox {
                 id: modelCombo
                 Layout.fillWidth: true
                 editable: true
@@ -195,7 +200,7 @@ ColumnLayout {
         visible: form.draft.mode === "opencode"
         label: i18n("Provider")
 
-        PC3.ComboBox {
+        QQC2.ComboBox {
             id: ocProviderCombo
             Layout.fillWidth: true
             editable: true
@@ -210,7 +215,7 @@ ColumnLayout {
         visible: form.draft.mode === "opencode"
         label: i18n("Model")
 
-        PC3.ComboBox {
+        QQC2.ComboBox {
             id: ocModelCombo
             Layout.fillWidth: true
             editable: true
@@ -225,7 +230,7 @@ ColumnLayout {
         visible: form.draft.mode === "opencode"
         label: i18n("Agent")
 
-        PC3.ComboBox {
+        QQC2.ComboBox {
             id: agentCombo
             Layout.fillWidth: true
             editable: true
@@ -340,7 +345,7 @@ ColumnLayout {
         visible: form.draft.mode !== "opencode"
         label: i18n("Response length")
 
-        PC3.ComboBox {
+        QQC2.ComboBox {
             id: responseLengthCombo
             Layout.fillWidth: true
             model: [i18n("Default"), i18n("Short"), i18n("Balanced"), i18n("Detailed"), i18n("Comprehensive")]
