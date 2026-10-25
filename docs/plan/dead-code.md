@@ -1,6 +1,6 @@
 # Dead and obsolete code: list for review
 
-Written on `feat/gui-rebuild` at `2b3ee99`, after phases 4-A/4-B/4-C. **Nothing has been removed.** This is the list the owner asked to see first.
+Written on `feat/gui-rebuild` at `2b3ee99`, after phases 4-A/4-B/4-C. This is the list the owner asked to see first. **Status: the approved items have been removed (see "Removal result" at the end).**
 
 How it was found: scripted scans (every function, property and signal declared in `contents/ui/**/*.qml` and `*.js`, every helper command, every `main.xml` entry, every `.pot` message) with `grep -w` over `contents/ui/`, `contents/config/`, `contents/scripts/` and `tests/`, then a manual look at every hit with one or zero uses. Dynamic access was checked: `chat.<name>`, `root.<name>`, `rootRef.<name>`, `typeof x.<name> === "function"`, `Connections` `on<Name>Changed`, `configuration[name]`, and `Alias.fn` calls from QML. File:line numbers are for `2b3ee99`.
 
@@ -163,3 +163,23 @@ No branch for a removed setting remains in `main.qml`, `ConfigChat.qml`, `Config
 - **`main.qml`** (2283 lines): about **6 to 8 lines**. It is already clean; the only dead members are two write-only flags and one forwarder. (Everything else that looked small is live.)
 - **`kde_ai_helper.py`** (829 lines): about **250 lines** with the low-risk list (functions: 12 + 23 + 40 + 8 + 14 + 7 + 9 + 23 + 45 + 9 + 3 = 193, plus blank lines and 9 dict lines, about 215 to 225), and about **290 lines** if `delete_venv_setup` (64 lines) is also removed. That takes the file from 829 to about 540 to 610 lines. It is on the shrink-only size allowlist, so the allowlist entry must be lowered.
 - Tests: roughly 100 to 150 lines of test code across `test_kde_ai_helper_integration.py`, `test_security.py`, `tests/js/*` would go with them.
+
+
+## Removal result
+
+Removed (owner-approved): all low-risk rows above, plus `schedulerAutoStart` (setting and `cfg_` alias), `delete_venv_setup`, `privacy_report`, `opencode_server_status`, `pi_bridge_stop` (as a command), `docs/AUDIT_AND_OPENCODE_ROADMAP.md`, `docs/COMPREHENSIVE_AUDIT.md`, `bench_kokoro.py`. `kde_ai_helper.py`: 829 to 532 lines; `main.qml`: 2283 to 2280. The size allowlist is lowered to match. Migration items were left untouched. `think` is now declared above `finish()` in `backends/DirectBackend.js`. Guards: `tests/test_dead_code_removed.py`.
+
+Differences from the list:
+- **`ProviderVariants.clear` kept.** Four QML tests (`tst_variants_modes`, `tst_chat_info`, `tst_composer_bar`, `tst_providers_panel`) call it to reset the per-provider cache between tests; the scan only looked at app code. It is a test hook.
+- **The "Start when I log in" checkbox in `ConfigSchedules.qml` kept.** It is not dead: it enables/disables the systemd unit through `SchedulerService.setAutoStart` and shows the systemd state. Only the unused `schedulerAutoStart` setting and its `cfg_` alias were removed. `tst_config_pages.qml` now checks the checkbox directly.
+- **`pi_bridge_stop`**: no longer a helper command, but `cmd_pi_bridge_stop` stays in `kdeaichat/pi_bridge.py` as an unregistered function. `tests/test_pi_bridge.py` uses it in the bridge fixture and `scripts/dev-pi-e2e.sh` calls it through `python3 -c`.
+- **`opencode_server_status`**: removed; its test assertion now checks `healthy()` and `find_binary()`.
+- **`privacy_report`**: the command and the read-only scanner (`report`, `scan_appletsrc`, `scan_kdeaichatrc`) are removed from `kdeaichat/privacy.py` with their tests. The key map, `read_legacy_keyfile` and `remove_legacy_keyfile` stay (migration). `CLAUDE.md` is ignored by version control and is not part of this branch: its lines about `privacy_report` and `docs/COMPREHENSIVE_AUDIT.md` must be edited by hand in the main checkout.
+
+Translations: `translate/files.txt` listed only 21 of the 57 files that call `i18n`; it now lists all of them. `translate/plasma_applet_org.kde.plasma.kdeaichat.pot` was regenerated with `xgettext --from-code=UTF-8 -C -kde -ci18n -ki18n:1 -ki18nc:1c,2 -ki18np:1,2 -ki18ncp:1c,2,3 -ktr2i18n:1 -kI18N_NOOP:1 -kI18N_NOOP2:1c,2 -f translate/files.txt` (522 messages; there was no extraction script in the repo). The machine-translation scripts were not run and no `.po`/`.mo` file was touched, so the seven locales still carry the old, mostly obsolete entries until that is done at the end of phase 7.
+
+TODO (phase 7): replace the screenshots `.github/assets/image5.png` (memory manager), `image7.png` (old "Other" tab) and `image10.png` (memory monitor). The README rows for `image5` and `image10` were removed and the `image7` row text reworded; the PNG files are still there.
+
+### Cut-list check (`docs/plan/07-cut-list.md`)
+
+Searched `contents/`, `main.xml`, the regenerated `.pot`, `README.md`, `SETUP.md`, `user_manual.md`, `store_description.txt`, `VOICE_SETUP.md`, `tests/` and `scripts/` for every identifier in the list (watchdog, MCP, `sysInfo*`, memory, compaction, memory monitor, screen-region capture, desktop selection, open in terminal, guides, `uiLanguage`, `appearanceMode`, `popupIsDark`). Result: every row is gone from the code, `main.xml`, the `.pot` and the docs. What matches are only the deliberate watchdog cleanup (`stop_legacy_watchdog`, `stopLegacyWatchdog`, its test) and guard tests (`test_requested_fixes.py`, `test_legacy_watchdog_cleanup.py`). The old `.po`/`.mo` files still contain the cut strings (see above), and the three screenshots above still show cut features.

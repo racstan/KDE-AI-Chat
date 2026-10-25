@@ -53,7 +53,7 @@ If you downloaded the compiled `.plasmoid` file directly from the KDE Store:
 
 1. **Open the KDE AI Chat widget** by clicking its panel icon
 2. **Click the gear icon** in the top-right corner to open Settings
-3. You'll see tabs for **General**, **Appearance**, and **Shortcuts**
+3. You'll see tabs for **Connection**, **Chat**, **Schedules**, **Voice**, and **Appearance**
 
 ### Configure Your First Provider
 
@@ -366,19 +366,13 @@ Follow the steps below for each provider you want to use.
 
 **What it does:**
 - Inject text from your clipboard directly into the chat
-- Use selected text from any application
 
 **How to use:**
 1. **Paste Clipboard:**
    - Click the **Clipboard icon** (📋) in the input toolbar
    - Current clipboard content is inserted
 
-2. **Use Selected Text:**
-   - Highlight text in any application
-   - Click the **Selection icon** (🔍) in KDE AI Chat
-   - Selected text is inserted into the chat
-
-3. **Tips:**
+2. **Tips:**
    - Great for code snippets: copy code → click clipboard icon → ask question
    - Fast way to include context from other apps
 
@@ -512,10 +506,10 @@ qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.wallets
 
 ---
 
-### Widget Icon, Non-streaming Responses, and MCP Tools
+### Widget Icon and Non-streaming Responses
 
-These three options are in Settings → **Other**, under
-**Widget Icon & Appearance** and **Response Streaming & MCP Server Tools**:
+The widget icon is in Settings → **Appearance**; response streaming is in
+Settings → **Connection**:
 
 - **Widget Icon:** click **Choose Image…** to pick any image file (PNG, JPG,
   SVG, WEBP, or animated GIF) — the image is shown in the panel and updates
@@ -524,18 +518,6 @@ These three options are in Settings → **Other**, under
 - **Disable response streaming:** sends a complete JSON request instead of an
   SSE stream for OpenAI-compatible providers. This is useful for providers that
   return HTTP 400 when `stream: true` is requested.
-- **Enable Model Context Protocol (MCP) server & web search tools:** opt in to
-  the built-in web search tool. The optional **MCP servers** field accepts a JSON
-  array, for example:
-
-  ```json
-   [{"id":"filesystem","command":"npx","args":["-y","@modelcontextprotocol/server-filesystem","/tmp"],"tools":[]}]
-  ```
-
-   Click **Discover tools** after adding a server. The widget performs the
-   standard MCP `initialize` and `tools/list` handshake and fills tool schemas
-   automatically. MCP tool calls are handled automatically and are kept out of
-   the visible chat transcript.
 
 ---
 
