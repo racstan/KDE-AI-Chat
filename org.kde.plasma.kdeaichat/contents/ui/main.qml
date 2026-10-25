@@ -132,6 +132,16 @@ PlasmoidItem {
         chat: root
     }
 
+    Chat.Notifier {
+        id: notifier
+        popupOpen: root.expanded
+        replyEnabled: plasmoid.configuration.notifyOnReply
+        errorEnabled: plasmoid.configuration.notifyOnError
+        scheduledEnabled: plasmoid.configuration.notifyOnScheduled
+        soundEnabled: plasmoid.configuration.playNotificationSound
+        onOpenChat: function(chatId) { root.switchSession(chatId); root.expanded = true; }
+    }
+
     VoiceManager {
         id: voiceManager
 
@@ -1299,6 +1309,7 @@ PlasmoidItem {
         }]);
         scrollToBottom();
         saveCurrentSessionState(true);
+        notifier.failed(root.currentSessionId, root.currentSessionTitle, text);
     }
 
     function retryFailedMessage(index) {
@@ -1821,7 +1832,7 @@ PlasmoidItem {
             root.activeRequestSessionId = "";
             root.requestGeneration++;
             if (completed) {
-                try { triggerNotificationSound(); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
+                try { triggerNotificationSound(); notifier.replyFinished(root.currentSessionId, root.currentSessionTitle, reply ? reply.content : ""); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
             }
             try { saveCurrentSessionState(true); } catch (saveErr) { console.error("Session save failed:", saveErr); }
             if (completed)
@@ -1846,9 +1857,7 @@ PlasmoidItem {
     }
 
     function triggerNotificationSound() {
-        if (plasmoid.configuration.playNotificationSound) {
-            soundDs.connectSource("pw-play /usr/share/sounds/ocean/stereo/message-new-instant.oga || paplay /usr/share/sounds/ocean/stereo/message-new-instant.oga || aplay /usr/share/sounds/freedesktop/stereo/bell.oga || canberra-gtk-play -i message-new-instant");
-        }
+        notifier.playSound();
 
         if (voiceManager && voiceManager.enabled && (voiceManager.ttsAuto || voiceManager.callModeActive)) {
             // Find the last assistant message
@@ -2312,13 +2321,6 @@ PlasmoidItem {
     }
 
     P5Support.DataSource {
-        id: soundDs
-
-        engine: "executable"
-        connectedSources: []
-    }
-
-    P5Support.DataSource {
         id: piDiscoveryDs
         engine: "executable"
         connectedSources: []
@@ -2622,9 +2624,7 @@ PlasmoidItem {
                             console.log("Scheduler trigger:", p.name, "-> chatId:", p.chatId);
                             if (p.notify) {
                                 root.triggerNotificationSound();
-                                let escMsg = String(p.name || "Scheduled task") + ": " + String(p.message);
-                                let notifyCmd = "notify-send -i dialog-messages 'KDE AI Chat - Scheduler' " + Sec.quoteForShell(escMsg);
-                                soundDs.connectSource(notifyCmd + " #sched-notify-" + Date.now());
+                                notifier.scheduledRan(p.chatId, p.name, p.message);
                             }
                         }
                     }

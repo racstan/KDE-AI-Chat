@@ -1,5 +1,5 @@
-// Settings → Appearance: the widget's name and icon, and the sound played
-// when a reply finishes. Colours always follow the Plasma colour scheme.
+// Settings → Appearance: the widget's name and icon, which desktop
+// notifications to show, and the sound played when a reply finishes. Colours always follow the Plasma colour scheme.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
@@ -18,6 +18,9 @@ KCM.SimpleKCM {
     property string cfg_customIcon: "dialog-messages"
     property alias cfg_appDisplayName: nameField.text
     property alias cfg_playNotificationSound: soundCheck.checked
+    property alias cfg_notifyOnReply: replyCheck.checked
+    property alias cfg_notifyOnError: errorCheck.checked
+    property alias cfg_notifyOnScheduled: scheduledCheck.checked
 
     readonly property string defaultIcon: "dialog-messages"
 
@@ -113,8 +116,33 @@ KCM.SimpleKCM {
             }
         }
 
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Notifications")
+        }
+
+        QQC2.CheckBox {
+            id: replyCheck
+            objectName: "notifyReplyCheck"
+            Kirigami.FormData.label: i18n("Notify when:")
+            text: i18n("A reply finishes while the chat is closed")
+        }
+
+        QQC2.CheckBox {
+            id: errorCheck
+            objectName: "notifyErrorCheck"
+            text: i18n("A request fails while the chat is closed")
+        }
+
+        QQC2.CheckBox {
+            id: scheduledCheck
+            objectName: "notifyScheduledCheck"
+            text: i18n("A scheduled task runs")
+        }
+
         QQC2.CheckBox {
             id: soundCheck
+            objectName: "soundCheck"
             Kirigami.FormData.label: i18n("Sound:")
             text: i18n("Play a sound when a reply is finished")
         }
