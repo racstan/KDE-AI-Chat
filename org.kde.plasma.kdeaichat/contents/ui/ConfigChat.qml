@@ -19,6 +19,9 @@ KCM.SimpleKCM {
     property alias cfg_contextMessageLimit: limitSpin.value
     property alias cfg_autoNameChats: autoNameCheck.checked
     property alias cfg_promptTemplates: templates.json
+    property alias cfg_perChatModelSettings: perChatSwitch.checked
+    // "chat" or "main" (see chat/EffectiveConfig.js).
+    property string cfg_perChatPriority: "chat"
 
     Kirigami.FormLayout {
         QQC2.CheckBox {
@@ -62,6 +65,59 @@ KCM.SimpleKCM {
             id: autoNameCheck
             Kirigami.FormData.label: i18n("Chat names:")
             text: i18n("Let the model name new chats")
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Model settings per chat")
+        }
+
+        QQC2.Switch {
+            id: perChatSwitch
+            objectName: "perChatSwitch"
+            Kirigami.FormData.label: i18n("Chats:")
+            text: i18n("Let chats have their own model settings")
+            Accessible.description: i18n("When off, every chat uses the model settings from Settings. A chat's own settings are kept but ignored.")
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
+            wrapMode: Text.Wrap
+            color: Kirigami.Theme.disabledTextColor
+            text: perChatSwitch.checked
+                ? i18n("A chat can choose its own mode (provider, OpenCode or Pi), provider and model in its Chat info panel.")
+                : i18n("Every chat uses the mode, provider and model from Settings. Any model settings a chat already has are kept, and come back if you turn this on.")
+        }
+
+        QQC2.RadioButton {
+            id: chatWinsRadio
+            objectName: "chatWinsRadio"
+            visible: perChatSwitch.checked
+            Kirigami.FormData.label: i18n("When they differ:")
+            text: i18n("This chat's settings win")
+            checked: page.cfg_perChatPriority !== "main"
+            onClicked: page.cfg_perChatPriority = "chat"
+        }
+
+        QQC2.RadioButton {
+            id: mainWinsRadio
+            objectName: "mainWinsRadio"
+            visible: perChatSwitch.checked
+            text: i18n("Main settings win")
+            checked: page.cfg_perChatPriority === "main"
+            onClicked: page.cfg_perChatPriority = "main"
+        }
+
+        QQC2.Label {
+            visible: perChatSwitch.checked
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
+            wrapMode: Text.Wrap
+            color: Kirigami.Theme.disabledTextColor
+            text: chatWinsRadio.checked
+                ? i18n("A chat that has its own settings uses them; anything it leaves empty comes from the main settings.")
+                : i18n("The main settings are used. A chat's own settings only fill in what the main settings leave empty, such as a model.")
         }
 
         Kirigami.Separator {

@@ -2,6 +2,7 @@
 // in a narrow one (chat/ChatBody.qml), with compact rows whose actions show on
 // hover or keyboard focus only (chat/SessionList.qml).
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import QtTest
 import org.kde.kirigami as Kirigami
@@ -279,6 +280,107 @@ Item {
             verify(chat.historySidePanel);
             root.width = 560;
             tryVerify(() => !chat.historySidePanel);
+        }
+
+        // Chats whose titles are far longer than any row.
+        function longChats() {
+            var now = Date.now();
+            return [
+                {value: "a", text: "Trip planning", count: 4, updatedAt: now},
+                {value: "l1", text: "A very long title with many words that goes on and on and on and on well past the edge of any popup you could open", source: "opencode", updatedAt: now - day},
+                {value: "l2", text: "Unbrokenlongtitlewithoutanyspacesatalleverywhereinthisstringsoitcannotwrapanywhere1234567890", source: "pi", updatedAt: now - 20 * day},
+                {value: "l3", text: "Archived long one that also has a long name to elide nicely", archived: true, updatedAt: now - 60 * day},
+                // Titles are the start of what was typed: markup and line breaks must not escape the row.
+                {value: "l4", text: "<b>Fix</b> this <i>please</i>, it is a long html looking title that never ends and never ends and never ends", updatedAt: now - 3 * day},
+                {value: "l5", text: "first line\nsecond line of a title that came from a multi line first message and is very long indeed", updatedAt: now - 4 * day}
+            ];
+        }
+
+        // Every visible part of `item` lies inside `item` (give or take a pixel).
+        function partsInside(item, what) {
+            function walk(node) {
+                var kids = node.children || [];
+                for (var i = 0; i < kids.length; i++) {
+                    var k = kids[i];
+                    if (k.visible && k.width > 0 && k.height > 0) {
+                        var p = k.mapToItem(item, 0, 0);
+                        verify(p.x >= -1 && p.x + k.width <= item.width + 1,
+                               what + ": " + k + " spans " + p.x + ".." + (p.x + k.width) + " of " + item.width);
+                        walk(k);
+                    }
+                }
+            }
+            walk(item);
+        }
+
+        function checkHistoryFits(width) {
+            root.width = width;
+            chat.sessions = longChats();
+            chat.historyOnlyMode = true;
+            tryVerify(() => body.sessionList !== null);
+            tryCompare(body.historyPane, "width", body.sideHistory ? body.panelWidth + Kirigami.Units.smallSpacing : body.width);
+            wait(30);
+            var list = body.sessionList;
+            var at = list.mapToItem(body, 0, 0);
+            verify(at.x >= 0 && at.x + list.width <= body.width + 1, width + ": the history is inside the popup");
+            compare(body.mapToItem(root, 0, 0).x + body.width <= root.width + 1, true);
+            for (var i = 0; i < 6; i++) {
+                var r = row(i);
+                verify(r.width <= list.list.width + 1, width + ": row " + i + " is no wider than the list");
+                partsInside(r, width + " row " + i);
+                // Hovered: the three actions appear and must still fit.
+                mouseMove(r, r.width / 2, r.height / 2);
+                tryVerify(() => r.showActions);
+                wait(30);
+                partsInside(r, width + " hovered row " + i);
+                mouseMove(body.sessionList, -5, -5);
+            }
+            // Renaming shows a text field plus two buttons.
+            chat.editingSessionDraft = longChats()[2].text;
+            chat.editingSessionId = "l2";
+            wait(50);
+            partsInside(row(2), width + " renaming row");
+            chat.editingSessionId = "";
+            for (var j = 0; j < 6; j++) {
+                var t = find(row(j), "titleLabel");
+                verify(t !== null && t.width > 0, "title label exists");
+                verify(t.truncated || t.implicitWidth <= t.width + 1, width + ": long titles elide");
+            }
+            // The title is the one to give way: the date or actions never vanish off the right edge.
+            screenshot(root, "history-fit-" + width);
+        }
+
+        function test_13_rows_fit_the_panel_at_every_width() {
+            var widths = [360, 520, 760, 1100];
+            for (var i = 0; i < widths.length; i++) {
+                chat.historyOnlyMode = false;
+                tryCompare(body.historyPane, "width", 0);
+                checkHistoryFits(widths[i]);
+            }
+        }
+
+        function test_14_rows_stay_beside_the_scroll_bar_in_a_long_history() {
+            var many = [];
+            for (var i = 0; i < 25; i++)
+                many.push({value: "m" + i, text: "Chat number " + i + " with a title long enough to need eliding in a narrow panel", updatedAt: Date.now() - i * day});
+            var widths = [360, 760];
+            chat.sessions = many;
+            for (var w = 0; w < widths.length; w++) {
+                root.width = widths[w];
+                open();
+                tryCompare(body.historyPane, "width", body.sideHistory ? body.panelWidth + Kirigami.Units.smallSpacing : body.width);
+                var list = body.sessionList.list;
+                tryVerify(() => list.contentHeight > list.height);
+                var bar = list.QQC2.ScrollBar.vertical;
+                var r = row(0);
+                mouseMove(r, r.width / 2, r.height / 2);
+                tryVerify(() => r.showActions);
+                wait(30);
+                verify(r.width <= list.width - bar.width + 1, widths[w] + ": rows leave room for the scroll bar");
+                var del = find(r, "deleteButton");
+                verify(del.mapToItem(list, del.width, 0).x <= list.width - bar.width + 1, widths[w] + ": the delete button is not under the scroll bar");
+                partsInside(r, widths[w] + " row with scroll bar");
+            }
         }
     }
 }

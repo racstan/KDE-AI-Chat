@@ -67,5 +67,28 @@ def test_per_chat_settings_save_is_atomic_and_callbacks_are_scoped():
         assert "saveCurrentSessionState" not in source
     assert "rootRef.fetchPiModels" in draft_source
     assert "setSessionOverrides(sessionId, overrides)" in draft_source
-    assert "visible: form.draft.mode !== \"opencode\"" in form_source
+    assert "visible: form.draft.shownMode !== \"opencode\"" in form_source
     assert "chatSettingsDialog.toggleForSession(root.currentSessionId)" in open(os.path.join(UI_DIR, "FullRepresentationContent.qml"), encoding="utf-8").read()
+
+
+def test_per_chat_model_settings_are_opt_in_and_routed_through_one_function():
+    """The two settings exist, default to "off" / "chat", and main.qml and the agent modes
+    resolve a chat's mode, provider and model only through EffectiveConfig.js."""
+    main_xml = os.path.join(UI_DIR, "..", "config", "main.xml")
+    with open(main_xml, encoding="utf-8") as f:
+        xml = f.read()
+    assert re.search(r'<entry name="perChatModelSettings" type="Bool">\s*<default>false</default>', xml)
+    assert re.search(r'<entry name="perChatPriority" type="String">\s*<default>chat</default>', xml)
+
+    with open(MAIN_QML, encoding="utf-8") as f:
+        main_source = f.read()
+    assert "function effectiveConfig(sessionId)" in main_source
+    assert "EffectiveConfig.forSession(plasmoid.configuration" in main_source
+    # No direct reads of a chat's model overrides left outside the resolver.
+    for key in ("chatProvider", "chatModel", "openCodeProvider", "openCodeModel", "piProvider", "piModel"):
+        assert 'getSessionProperty(sessionId, "%s"' % key not in main_source, key
+    for name in ("OpenCodeMode.qml", "PiMode.qml"):
+        with open(os.path.join(UI_DIR, "chat", name), encoding="utf-8") as f:
+            source = f.read()
+        assert "chat.effectiveConfig(sessionId)" in source, name
+        assert '"chatModel"' not in source and '"openCodeModel"' not in source, name

@@ -113,13 +113,75 @@ RowLayout {
     // Everything else that acts on this chat, kept out of the toolbar.
     PC3.ToolButton {
         id: moreButton
+        objectName: "moreButton"
+        readonly property alias menu: moreMenu
 
         visible: !header.historyFull
         icon.name: "overflow-menu"
         Accessible.name: i18n("More actions")
         QQC2.ToolTip.visible: hovered && !moreMenu.visible
         QQC2.ToolTip.text: Accessible.name
-        onClicked: moreMenu.popup(moreButton, 0, moreButton.height)
+        // A click or the keyboard (Enter/Space) opens the menu and focuses it.
+        onClicked: {
+            moreHover.hoverOpened = false;
+            moreMenu.focus = true;
+            moreMenu.popup(moreButton, 0, moreButton.height);
+            moreMenu.forceActiveFocus();
+        }
+
+        // The menu also opens when the pointer rests on the button (after a
+        // short delay) and closes once the pointer has been off both the
+        // button and the menu for a short grace period. A menu opened by
+        // hover does not take the keyboard focus from the message box; a click
+        // or key makes it an ordinary menu that stays until dismissed.
+        onHoveredChanged: {
+            if (hovered && !moreMenu.opened)
+                moreHover.openTimer.restart();
+            else if (!hovered)
+                moreHover.openTimer.stop();
+        }
+        QtObject {
+            id: moreHover
+
+            property bool hoverOpened: false
+            property real leftAt: 0
+
+            function pointerOnMenu() {
+                for (var i = 0; i < moreMenu.count; i++) {
+                    var item = moreMenu.itemAt(i);
+                    if (item && item.hovered === true)
+                        return true;
+                }
+                return false;
+            }
+
+            property Timer openTimer: Timer {
+                interval: 150
+                onTriggered: {
+                    if (moreButton.hovered && !moreMenu.opened) {
+                        moreHover.hoverOpened = true;
+                        moreMenu.focus = false;
+                        moreMenu.popup(moreButton, 0, moreButton.height);
+                    }
+                }
+            }
+            // While a hover-opened menu is open: close it 300 ms after the
+            // pointer left the button and the menu.
+            property Timer watchTimer: Timer {
+                interval: 60
+                repeat: true
+                running: moreHover.hoverOpened && moreMenu.opened
+                onRunningChanged: moreHover.leftAt = 0
+                onTriggered: {
+                    if (moreButton.hovered || moreHover.pointerOnMenu())
+                        moreHover.leftAt = 0;
+                    else if (moreHover.leftAt === 0)
+                        moreHover.leftAt = Date.now();
+                    else if (Date.now() - moreHover.leftAt >= 300)
+                        moreMenu.close();
+                }
+            }
+        }
 
         QQC2.Menu {
             id: moreMenu

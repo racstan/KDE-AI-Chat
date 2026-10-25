@@ -58,7 +58,9 @@ Rectangle {
             readonly property var chat: sessionList.chat
             readonly property bool current: modelData.value === chat.currentSessionId
             readonly property bool editing: chat.editingSessionId === modelData.value
-            readonly property string title: modelData.text || i18n("New Chat")
+            // One line, as plain text: a title is the start of what was typed, so it
+            // can hold markup (rich text ignores elide) or line breaks.
+            readonly property string title: String(modelData.text || "").replace(/\s+/g, " ").trim() || i18n("New Chat")
             readonly property bool showActions: hover.hovered || activeFocus || editing || renameButton.activeFocus
                                                 || archiveButton.activeFocus || deleteButton.activeFocus
 
@@ -68,7 +70,9 @@ Rectangle {
                     chat.historyOnlyMode = false;
             }
 
-            width: historyList.width
+            // Beside the scroll bar, not under it.
+            width: historyList.width - (historyList.QQC2.ScrollBar.vertical.visible ? historyList.QQC2.ScrollBar.vertical.width : 0)
+            clip: true
             height: Kirigami.Units.gridUnit * 2 + Kirigami.Units.smallSpacing
             radius: Kirigami.Units.cornerRadius
             opacity: modelData.archived ? 0.72 : 1
@@ -116,16 +120,20 @@ Rectangle {
                 PC3.Label {
                     visible: text !== ""
                     text: row.modelData.source === "opencode" ? "OC" : (row.modelData.source === "pi" ? "PI" : "")
+                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                     font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
                     opacity: 0.7
                     Accessible.name: row.modelData.source === "pi" ? i18n("Pi chat") : i18n("OpenCode chat")
                 }
 
                 PC3.Label {
+                    objectName: "titleLabel"
                     visible: !row.editing
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: row.title
+                    textFormat: Text.PlainText
+                    maximumLineCount: 1
                     font.bold: row.current
                     elide: Text.ElideRight
                 }
@@ -133,6 +141,7 @@ Rectangle {
                 PC3.TextField {
                     visible: row.editing
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: row.chat.editingSessionDraft
                     onTextChanged: row.chat.editingSessionDraft = text
                     onAccepted: row.chat.saveSessionRename(row.modelData.value)
@@ -145,6 +154,8 @@ Rectangle {
                     text: sessionList.dayLabel(row.modelData.updatedAt || row.modelData.createdAt)
                     color: Kirigami.Theme.disabledTextColor
                     font: Kirigami.Theme.smallFont
+                    elide: Text.ElideRight
+                    Layout.maximumWidth: Kirigami.Units.gridUnit * 6
                 }
 
                 // Actions: only while hovered or focused (or renaming).

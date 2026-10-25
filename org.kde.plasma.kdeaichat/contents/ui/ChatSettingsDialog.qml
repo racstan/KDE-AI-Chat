@@ -28,6 +28,13 @@ Rectangle {
         return ({});
     }
 
+    // What this chat really uses, and where that comes from (main.qml's
+    // effectiveConfig, which follows the "per chat" settings).
+    readonly property var _effective: rootRef && typeof rootRef.effectiveConfig === "function"
+        ? rootRef.effectiveConfig(settingsDraft.sessionId) : ({"mode": "provider", "provider": "", "model": "", "source": "main"})
+    readonly property bool _perChat: rootRef && rootRef.plasmoid ? rootRef.plasmoid.configuration.perChatModelSettings === true : false
+    readonly property bool _mainWins: rootRef && rootRef.plasmoid ? rootRef.plasmoid.configuration.perChatPriority === "main" : false
+
     function openForSession(sessionId) {
         if (!rootRef)
             return;
@@ -136,6 +143,17 @@ Rectangle {
                     Layout.topMargin: Kirigami.Units.largeSpacing
                     Layout.leftMargin: Kirigami.Units.largeSpacing
                     Layout.rightMargin: Kirigami.Units.largeSpacing
+                }
+
+                // Which settings this chat sends with, and why.
+                Chat.EffectiveLine {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    effective: page._effective
+                    perChat: page._perChat
+                    mainWins: page._mainWins
+                    providerName: function(id) { return page.rootRef ? page.rootRef.providerDisplayName(id) : id; }
                 }
 
                 Chat.ChatInfoSummary {

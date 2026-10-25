@@ -35,6 +35,7 @@ WATCHED_FILES = (
     "backends/AgentEvents.js",
     "chat/MessageBlocks.js",
     "chat/ChatStats.js",
+    "chat/EffectiveConfig.js",
     "chat/ChatTitle.js",
     "chat/ErrorText.js",
     "chat/PromptTemplates.js",
