@@ -25,6 +25,10 @@ PlasmoidItem {
     property string currentSessionId: ""
     property string currentSessionTitle: ""
     property var messages: []
+    // The view's row-by-row copy of `messages` (see chat/MessageModel.qml).
+    property Chat.MessageModel messageModel: Chat.MessageModel {}
+    // Stream deltas wait here and reach currentStreamText/Reasoning at most every 33 ms.
+    property var streamPending: ({"text": "", "reasoning": ""})
     property var attachedFiles: []
     property bool historyOnlyMode: false
     property bool loading: false
@@ -74,10 +78,6 @@ PlasmoidItem {
     // Keep the viewport stable while a response grows.  A response must not
     // yank the user to the newest bubble; only an explicit jump-to-latest
     // action releases this lock.
-    property bool responseScrollLocked: false
-    property real responseScrollY: 0
-    property bool responseScrollUserMoved: false
-    property bool restoringResponseScroll: false
     property bool titleGenerationInProgress: false
     property string titleGenerationSessionId: ""
     // Token counts reported for the reply being streamed.
@@ -482,11 +482,11 @@ PlasmoidItem {
             root.currentSessionTitle = s.text;
             root.messages = [];
             applySessionSource(s);
-            resetResponseScrollPosition();
         root.playingMessageIndex = -1;
         if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
             root.currentStreamIndex = -1;
             root.currentStreamText = "";
+            root.streamPending = {"text": "", "reasoning": ""};
             root.currentStreamReasoning = "";
             root.currentStreamExtractedReasoning = "";
             root.streamingResponse = false;
@@ -598,6 +598,7 @@ PlasmoidItem {
         if (voiceManager && voiceManager.isPlaying) { voiceManager.stopTTS(); }
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
+        root.streamPending = {"text": "", "reasoning": ""};
         root.currentStreamReasoning = "";
         root.currentStreamExtractedReasoning = "";
         root.streamingResponse = false;
@@ -608,7 +609,6 @@ PlasmoidItem {
         root.renamingCurrentChat = false;
         root.currentChatRenameDraft = "";
         persistSessions();
-        resetResponseScrollPosition();
         scrollToBottom(true);
         root.focusInput();
         if (!root.loading)
@@ -1135,10 +1135,20 @@ PlasmoidItem {
         fileReaderDs.connectSource(cmd);
     }
 
+    function flushStream() {
+        streamFlushTimer.stop();
+        if (root.streamPending.text)
+            root.currentStreamText = (root.currentStreamText + root.streamPending.text).substring(0, root.maxMessageChars);
+        if (root.streamPending.reasoning)
+            root.currentStreamReasoning = (root.currentStreamReasoning + root.streamPending.reasoning).substring(0, root.maxMessageChars);
+        root.streamPending = {"text": "", "reasoning": ""};
+    }
+
     function resetProviderStreamingState() {
+        flushStream();
         if (root.currentStreamIndex >= 0 && root.currentStreamIndex < root.messages.length) {
             var copy = root.messages.slice();
-            var current = copy[root.currentStreamIndex];
+            var current = copy[root.currentStreamIndex] = Object.assign({}, copy[root.currentStreamIndex]);
             if (current && current.role === "assistant") {
                 if (root.currentStreamText)
                     current.content = root.currentStreamText;
@@ -1156,51 +1166,15 @@ PlasmoidItem {
         root.streamingResponse = false;
     }
 
-    function captureResponseScrollPosition() {
-        if (root.responseScrollLocked)
-            return;
-        root.responseScrollLocked = true;
-        root.responseScrollUserMoved = false;
-        root.responseScrollY = root.msgListViewRef ? root.msgListViewRef.contentY : 0;
-    }
-
-    function restoreResponseScrollPosition() {
-        if (!root.responseScrollLocked || root.responseScrollUserMoved || !root.msgListViewRef)
-            return;
-        var targetY = root.responseScrollY;
-        Qt.callLater(function() {
-            if (!root.responseScrollLocked || root.responseScrollUserMoved || !root.msgListViewRef)
-                return;
-            root.restoringResponseScroll = true;
-            var view = root.msgListViewRef;
-            var minY = view.originY;
-            var maxY = Math.max(minY, view.contentHeight - view.height);
-            view.contentY = Math.max(minY, Math.min(targetY, maxY));
-            root.restoringResponseScroll = false;
-        });
-    }
-
-    function resetResponseScrollPosition() {
-        root.responseScrollLocked = false;
-        root.responseScrollUserMoved = false;
-        root.responseScrollY = 0;
-    }
-
+    // The one scroll rule: the chat view follows new content while
+    // userScrolledUp is false (see FullRepresentationContent's msgList).
+    // force: jump to the latest message even if the user scrolled up.
     function scrollToBottom(force) {
-        if (force) {
-            resetResponseScrollPosition();
-            root.userScrolledUp = false;
-        } else if (root.responseScrollLocked) {
+        if (root.userScrolledUp && !force)
             return;
-        }
-        Qt.callLater(function() {
-            if (!force && root.responseScrollLocked)
-                return;
-            if (root.msgListViewRef && root.msgListViewRef.count > 0) {
-                root.msgListViewRef.positionViewAtIndex(root.msgListViewRef.count - 1, ListView.End);
-                root.msgListViewRef.positionViewAtEnd();
-            }
-        });
+        root.userScrolledUp = false;
+        if (root.msgListViewRef)
+            root.msgListViewRef.positionViewAtEnd();
     }
 
     function messageTimestampAt(index) {
@@ -1437,8 +1411,6 @@ PlasmoidItem {
             "attachments": attachments || []
         }]);
         saveCurrentSessionState(true);
-        if (!root.userScrolledUp && !root.responseScrollLocked)
-            Qt.callLater(scrollToBottom);
 
     }
 
@@ -1456,13 +1428,13 @@ PlasmoidItem {
     function sendMessageByIndex(index) {
         root.currentStreamIndex = -1;
         root.currentStreamText = "";
+        root.streamPending = {"text": "", "reasoning": ""};
         root.currentStreamReasoning = "";
         root.currentStreamExtractedReasoning = "";
         root.streamingResponse = false;
 
         var source = root.messages[index] || {
         };
-        captureResponseScrollPosition();
         var text = (source.content || "").trim();
         var hasAttachments = source.attachments && source.attachments.length > 0;
         if (!text && !hasAttachments)
@@ -1471,7 +1443,6 @@ PlasmoidItem {
         var validationError = validateCurrentSendTarget();
         if (validationError !== "") {
             pushErrorMessage(validationError);
-            restoreResponseScrollPosition();
             return ;
         }
         if ((source.role || "") === "queued") {
@@ -1537,7 +1508,6 @@ PlasmoidItem {
             }
         }
         root.schedulerResumeSessionId = "";
-        restoreResponseScrollPosition();
     }
 
     function _cleanGeneratedTitle(value) {
@@ -1926,12 +1896,9 @@ PlasmoidItem {
             });
         } else if (event.type === "text_delta" || event.type === "reasoning_delta") {
             ensureStreamingMessage(model);
-            if (event.type === "text_delta")
-                root.currentStreamText = (root.currentStreamText + event.delta).substring(0, root.maxMessageChars);
-            else
-                root.currentStreamReasoning = (root.currentStreamReasoning + event.delta).substring(0, root.maxMessageChars);
-            if (!root.userScrolledUp)
-                Qt.callLater(scrollToBottom);
+            root.streamPending[event.type === "text_delta" ? "text" : "reasoning"] += event.delta;
+            if (!streamFlushTimer.running)
+                streamFlushTimer.start();
         } else if (event.type === "usage") {
             var usage = Object.assign({}, root.currentStreamUsage);
             if (event.input !== undefined) usage.input = event.input;
@@ -1942,6 +1909,7 @@ PlasmoidItem {
             resetProviderStreamingState();
             pushErrorMessage(event.message);
         } else if (event.type === "done") {
+            flushStream();
             var completed = event.reason === "complete";
             if (completed && root.currentStreamIndex >= 0) {
                 var msgs = root.messages.slice();
@@ -2403,7 +2371,7 @@ PlasmoidItem {
         if (expanded) {
             root.triggerInitialLoad();
             root.focusInput();
-            deferredScrollTimer.restart();
+            Qt.callLater(root.scrollToBottom);
         }
     }
     Component.onCompleted: {
@@ -2412,20 +2380,12 @@ PlasmoidItem {
         root.initSystemPrompt();
         root.stopLegacyWatchdog();
     }
-    onMessagesChanged: {
-        if (!root.historyOnlyMode && !root.userScrolledUp && !root.responseScrollLocked)
-            Qt.callLater(scrollToBottom);
-
-    }
+    onMessagesChanged: messageModel.sync(root.messages)
 
     Timer {
-        id: deferredScrollTimer
-
-        interval: 100
-        repeat: false
-        onTriggered: {
-            root.scrollToBottom(false);
-        }
+        id: streamFlushTimer
+        interval: 33
+        onTriggered: root.flushStream()
     }
 
     Timer {

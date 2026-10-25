@@ -467,10 +467,9 @@ Item {
 
                             anchors.fill: parent
                             anchors.margins: Kirigami.Units.smallSpacing
-                            model: root.messages
+                            model: root.messageModel
                             spacing: Kirigami.Units.largeSpacing
                             clip: true
-                            reuseItems: false
                             cacheBuffer: 1000
 
                             // Smooth free-flowing touchpad kinetics
@@ -479,56 +478,51 @@ Item {
                             maximumFlickVelocity: 6000
                             pixelAligned: false
 
+                            // The one scroll rule: follow new content while
+                            // root.userScrolledUp is false; scrolling away from
+                            // the end (wheel, drag, scrollbar) stops following,
+                            // reaching the end again resumes it.
+                            function follow() {
+                                if (!root.userScrolledUp && count > 0)
+                                    positionViewAtEnd();
+                            }
+                            function userMoved() {
+                                root.userScrolledUp = !atYEnd;
+                            }
+
                             WheelHandler {
-                                id: msgListWheelHandler
                                 target: msgList
                                 orientation: Qt.Vertical
                                 onWheel: function(event) {
-                                    var delta = event && event.pixelDelta && event.pixelDelta.y !== 0
-                                        ? event.pixelDelta.y
-                                        : (event && event.angleDelta ? event.angleDelta.y / 8 : 0);
-                                if (delta !== 0) {
-                                        var newY = msgList.contentY - delta;
-                                        var minY = msgList.originY;
-                                        var maxY = Math.max(minY, msgList.contentHeight - msgList.height);
-                                        msgList.contentY = Math.max(minY, Math.min(newY, maxY));
-                                        if (!root.restoringResponseScroll)
-                                            root.responseScrollUserMoved = true;
-                                        if (!msgList.atYEnd) root.userScrolledUp = true;
-                                        event.accepted = true;
-                                    }
+                                    var delta = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 8;
+                                    if (delta === 0)
+                                        return;
+                                    var maxY = Math.max(msgList.originY, msgList.originY + msgList.contentHeight - msgList.height);
+                                    msgList.contentY = Math.max(msgList.originY, Math.min(msgList.contentY - delta, maxY));
+                                    msgList.userMoved();
+                                    event.accepted = true;
                                 }
                             }
 
-                            onWidthChanged: forceLayout()
-                            onHeightChanged: forceLayout()
+                            QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+                                id: verticalScrollBar
+                                onPressedChanged: if (!pressed) msgList.userMoved()
+                                onPositionChanged: if (pressed) msgList.userMoved()
+                            }
+
                             Component.onCompleted: root.msgListViewRef = msgList
-                            // Track whether user manually scrolled away from bottom
-                            onMovementStarted: {
-                                if (!root.restoringResponseScroll)
-                                    root.responseScrollUserMoved = true;
-                                if (!msgList.atYEnd)
-                                    root.userScrolledUp = true;
-
-                            }
-                            onAtYEndChanged: {
-                                if (msgList.atYEnd)
-                                    root.userScrolledUp = false;
-
-                            }
-                            onContentYChanged: {
-                                if (root.restoringResponseScroll)
-                                    return;
-                                if (!msgList.atYEnd) {
-                                    if (msgList.moving || msgList.dragging || verticalScrollBar.pressed || verticalScrollBar.active)
-                                        root.userScrolledUp = true;
-
-                                }
-                            }
-
-
+                            onContentHeightChanged: follow()
+                            onHeightChanged: follow()
+                            onCountChanged: follow()
+                            onMovementEnded: userMoved()
+                            onDraggingChanged: if (!dragging) userMoved()
 
                             delegate: Item {
+                                // One row of root.messageModel; `rev` goes up when this message changes.
+                                required property string msgKey
+                                required property int rev
+                                required property int index
+                                property var modelData: { rev; return root.messageModel.messageFor(msgKey) || ({}); }
                                 property bool showDayHeader: index === 0 || root.messageDayKeyAt(index) !== root.messageDayKeyAt(index - 1)
                                 property bool reasoningExpanded: false
                                 property string lastSelectedText: ""
@@ -1420,35 +1414,15 @@ Item {
 
                         }
 
-                        QQC2.ScrollBar {
-                            id: verticalScrollBar
-                            hoverEnabled: true
-                            active: msgList.moving || msgList.dragging || pressed
-                            orientation: Qt.Vertical
-                            size: msgList.visibleArea.heightRatio
-                            position: msgList.visibleArea.yPosition
-                            
-                            anchors.top: msgList.top
-                            anchors.bottom: msgList.bottom
-                            anchors.right: msgList.right
-                            
-                            onPressedChanged: {
-                                if (!pressed) {
-                                    if (msgList.count > 0) {
-                                        if (position >= 1.0 - size - 0.01) {
-                                            msgList.positionViewAtIndex(msgList.count - 1, ListView.End);
-                                        } else {
-                                            let range = 1.0 - size;
-                                            let targetIndex = (range > 0) ? Math.floor((position / range) * (msgList.count - 1)) : 0;
-                                            targetIndex = Math.max(0, Math.min(msgList.count - 1, targetIndex));
-                                            msgList.positionViewAtIndex(targetIndex, ListView.Beginning);
-                                        }
-                                    }
-                                    position = Qt.binding(function() { return msgList.visibleArea.yPosition; });
-                                }
-                            }
+                        PC3.Button {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: Kirigami.Units.largeSpacing
+                            visible: root.userScrolledUp && !root.historyOnlyMode
+                            text: root.loading ? i18n("New messages") : i18n("Latest")
+                            icon.name: "go-down"
+                            onClicked: root.scrollToBottom(true)
                         }
-
                     }
 
                     RowLayout {

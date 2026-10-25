@@ -30,6 +30,7 @@ TestCase {
             { tag: "chat/PiMode", url: uiDir + "chat/PiMode.qml" },
             { tag: "chat/PermissionButtons", url: uiDir + "chat/PermissionButtons.qml" },
             { tag: "chat/PiChatSettings", url: uiDir + "chat/PiChatSettings.qml" },
+            { tag: "chat/MessageModel", url: uiDir + "chat/MessageModel.qml" },
             { tag: "ConfigGeneral", url: uiDir + "ConfigGeneral.qml" },
             { tag: "ConfigSystemPrompt", url: uiDir + "ConfigSystemPrompt.qml" },
             { tag: "ConfigVoice", url: uiDir + "ConfigVoice.qml" },
