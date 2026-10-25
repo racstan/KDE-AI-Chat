@@ -7,6 +7,8 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+// i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
+// qmllint disable unqualified
 
 Item {
     id: chatView
@@ -91,6 +93,18 @@ Item {
             id: scrollBar
             onPressedChanged: if (!pressed) list.userMoved()
             onPositionChanged: if (pressed) list.userMoved()
+        }
+    }
+
+    // An empty chat: guidance instead of a blank panel. Decided from the
+    // chat's messages, not the list's count, which is 0 for a moment while a
+    // chat opens (building this then would slow opening every chat).
+    Loader {
+        anchors.fill: parent
+        active: !!chatView.chat && !chatView.replacing && (chatView.chat.messages || []).length === 0
+        visible: active
+        sourceComponent: EmptyState {
+            chat: chatView.chat
         }
     }
 

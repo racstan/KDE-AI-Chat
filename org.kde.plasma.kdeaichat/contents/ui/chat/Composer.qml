@@ -3,6 +3,9 @@
 //
 // The widget reaches the input only through this component: it registers
 // itself as chat.composerRef, and chat.focusInput() calls focusInput() here.
+//
+// Keys in the input: Enter sends, Shift+Enter adds a line, Up in an empty
+// input edits your last message, "/" at the start suggests prompt templates.
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -10,14 +13,37 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "PromptTemplates.js" as PromptTemplates
+// i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
+// qmllint disable unqualified
 
 ColumnLayout {
     id: composer
 
     property var chat: null
     readonly property alias input: msgInput
+    readonly property alias suggestions: suggestions
 
     signal attachRequested()
+
+    // Starts editing the last message you wrote (Up in an empty input), if
+    // there is one and no reply is being written. Returns whether it did.
+    function editLastMessage() {
+        if (composer.chat.loading)
+            return false;
+        var messages = composer.chat.messages || [];
+        for (var i = messages.length - 1; i >= 0; i--) {
+            var role = messages[i].role;
+            if (role === "user" || role === "queued") {
+                composer.chat.editingMessageIndex = i;
+                composer.chat.editingDraft = messages[i].content || "";
+                if (composer.chat.msgListViewRef)
+                    composer.chat.msgListViewRef.positionViewAtIndex(i, ListView.Contain);
+                return true;
+            }
+        }
+        return false;
+    }
 
     // Focus now and again shortly after: in a Plasma popup the window may
     // not be active yet when this is first called.
@@ -62,50 +88,8 @@ ColumnLayout {
         }
     }
 
-    RowLayout {
-        readonly property var voice: composer.chat.voiceManagerRef
-
-        visible: composer.chat.loading || (!!voice && voice.statusText !== "")
-        spacing: Kirigami.Units.smallSpacing
-
-        PC3.BusyIndicator {
-            readonly property var voice: composer.chat.voiceManagerRef
-            running: composer.chat.loading || (!!voice && voice.statusText !== "" && voice.statusText !== "Reading aloud..." && voice.statusText !== "Paused" && !voice.callModeActive)
-            visible: running
-            width: Kirigami.Units.iconSizes.small
-            height: Kirigami.Units.iconSizes.small
-        }
-
-        PC3.ToolButton {
-            readonly property var voice: composer.chat.voiceManagerRef
-            icon.name: (voice && voice.callModeActive) ? "call-start" : "media-playback-stop"
-            visible: !composer.chat.loading && !!voice && (voice.statusText === "Reading aloud..." || voice.statusText === "Generating speech..." || voice.callModeActive === true)
-            display: PC3.AbstractButton.IconOnly
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: (voice && voice.callModeActive) ? "Call Mode Active" : "Stop reading"
-            onClicked: {
-                if (voice) {
-                    if (voice.callModeActive)
-                        voice.stopCallMode();
-                    else
-                        voice.stopTTS();
-                }
-                composer.chat.playingMessageIndex = -1;
-            }
-        }
-
-        PC3.Label {
-            text: {
-                var voice = composer.chat.voiceManagerRef;
-                if (composer.chat.loading)
-                    return composer.chat.streamingResponse ? "Streaming response..." : "Thinking...";
-                else if (voice && voice.statusText)
-                    return voice.statusText;
-                return "";
-            }
-            opacity: 0.8
-            font.italic: true
-        }
+    ComposerStatus {
+        chat: composer.chat
     }
 
     // Files waiting to be sent
@@ -191,8 +175,9 @@ ColumnLayout {
                             Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                             Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                             display: PC3.AbstractButton.IconOnly
+                            Accessible.name: i18n("Remove %1", fileChip.modelData.name)
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: "Remove file"
+                            QQC2.ToolTip.text: i18n("Remove file")
                             onClicked: composer.chat.removeAttachedFile(fileChip.index)
                         }
                     }
@@ -215,7 +200,8 @@ ColumnLayout {
             wrapMode: Text.WordWrap
             clip: true
             enabled: true
-            placeholderText: "Type message (Enter sends, Shift+Enter newline)"
+            placeholderText: i18n("Message")
+            Accessible.name: i18n("Message")
             focus: true
 
             onActiveFocusChanged: {
@@ -225,7 +211,11 @@ ColumnLayout {
             // Mirrored into chat.chatInputText so the widget's functions can read/clear it
             onTextChanged: composer.chat.chatInputText = text
             Keys.onPressed: function(event) {
-                if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
+                if (suggestions.active && suggestions.handleKey(event.key)) {
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_Up && msgInput.text === "" && composer.editLastMessage()) {
+                    event.accepted = true;
+                } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
                     event.accepted = true;
                     composer.chat.sendMessage();
                 } else if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
@@ -237,6 +227,38 @@ ColumnLayout {
                 if (composer.chat.expanded)
                     focusTimer.start();
                 msgInput.text = composer.chat.chatInputText;
+            }
+
+            TemplateSuggestions {
+                id: suggestions
+                objectName: "templateSuggestions"
+                templates: PromptTemplates.suggest(msgInput.text, composer.chat.promptTemplates || [])
+                onChosen: (template) => {
+                    msgInput.text = "/" + template.name + " ";
+                    msgInput.cursorPosition = msgInput.length;
+                }
+
+                // Arrow keys move, Enter/Tab picks, Esc hides (until the text changes).
+                function handleKey(key) {
+                    if (key === Qt.Key_Down)
+                        next();
+                    else if (key === Qt.Key_Up)
+                        previous();
+                    else if (key === Qt.Key_Return || key === Qt.Key_Enter || key === Qt.Key_Tab)
+                        accept();
+                    else if (key === Qt.Key_Escape)
+                        dismissed = true;
+                    else
+                        return false;
+                    return true;
+                }
+            }
+
+            Connections {
+                target: msgInput
+                function onTextChanged() {
+                    suggestions.dismissed = false;
+                }
             }
         }
 
@@ -250,8 +272,9 @@ ColumnLayout {
                 readonly property var voice: composer.chat.voiceManagerRef
                 anchors.fill: parent
                 icon.name: (voice && voice.isRecording) ? "media-playback-stop" : "audio-input-microphone"
+                Accessible.name: (voice && voice.isRecording) ? i18n("Stop recording") : i18n("Record voice")
                 QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: (voice && voice.isRecording) ? "Stop Recording" : "Record Voice (Beta STT)"
+                QQC2.ToolTip.text: (voice && voice.isRecording) ? i18n("Stop recording") : i18n("Record voice (beta speech-to-text)")
                 onClicked: {
                     if (voice) {
                         if (voice.isRecording)
@@ -277,8 +300,9 @@ ColumnLayout {
             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
             enabled: true
+            Accessible.name: i18n("Attach files")
             QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: "Attach files (Images, PDF, CSV, Word documents)"
+            QQC2.ToolTip.text: i18n("Attach files (images, PDF, CSV, Word documents)")
             onClicked: composer.attachRequested()
         }
 
@@ -287,8 +311,9 @@ ColumnLayout {
             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
             enabled: true
+            Accessible.name: i18n("Paste from clipboard")
             QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: "Paste file or text from clipboard"
+            QQC2.ToolTip.text: i18n("Paste file or text from clipboard")
             onClicked: {
                 composer.chat.checkClipboardForAttachments();
                 var txt = composer.chat.readClipboardText();
@@ -301,21 +326,26 @@ ColumnLayout {
             id: sendButton
             objectName: "sendButton"
             icon.name: composer.chat.loading ? "list-add" : "document-send"
-            text: composer.chat.loading ? "+ Queue" : "Send"
+            text: composer.chat.loading ? i18n("Queue") : i18n("Send")
             Layout.minimumWidth: Kirigami.Units.gridUnit * 5
             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
             enabled: composer.chat.attachmentsReadyToSend() && (composer.chat.chatInputText.trim() !== "" || composer.chat.attachedFiles.length > 0)
             highlighted: true
+            Accessible.name: text
             QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: composer.chat.loading ? "Queue message to send after current response finishes" : "Send message"
+            QQC2.ToolTip.text: composer.chat.loading ? i18n("Send this after the current reply finishes") : i18n("Send message")
             onClicked: composer.chat.sendMessage()
         }
 
-        PC3.ToolButton {
+        PC3.Button {
+            objectName: "stopButton"
             visible: composer.chat.loading
-            icon.name: "process-stop"
+            icon.name: "media-playback-stop"
+            text: i18n("Stop")
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
+            Accessible.name: i18n("Stop the reply")
             QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: "Stop current response"
+            QQC2.ToolTip.text: i18n("Stop the reply (Esc)")
             onClicked: composer.chat.stopStreaming()
         }
     }

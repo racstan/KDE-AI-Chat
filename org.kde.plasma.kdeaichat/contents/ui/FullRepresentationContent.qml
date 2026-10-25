@@ -164,6 +164,8 @@ Item {
 
     }
 
+    Chat.ChatShortcuts { chat: root } // qmllint disable unqualified
+
     // In the corner away from the panel, so dragging it grows the popup
     // towards the mouse.
     Chat.ResizeHandle {
