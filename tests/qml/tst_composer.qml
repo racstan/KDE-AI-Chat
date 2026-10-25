@@ -58,6 +58,7 @@ Item {
             chat.loading = false;
             chat.currentStreamIndex = -1;
             chat.chatInputText = "";
+            chat.messages = [];
             elsewhere.forceActiveFocus();
             tryVerify(() => elsewhere.activeFocus);
         }
@@ -155,6 +156,30 @@ Item {
             chat.currentStreamIndex = 1;
             verify(text.text.indexOf("Writing") === 0, text.text);
             verify(!spinner.running, "the reply has its own spinner next to its name");
+        }
+
+        function test_7b_the_key_hint_is_only_in_a_new_empty_chat() {
+            var text = find("statusText");
+            verify(text.text.indexOf("Enter sends") === 0, "a new chat explains the keys");
+            chat.messages = [{role: "user", content: "hi"}];
+            compare(text.text, "", "never in a chat that has messages");
+            chat.loading = true;
+            verify(text.text.indexOf("Thinking") === 0, "the other statuses still show");
+            chat.loading = false;
+            chat.messages = [];
+            verify(text.text.indexOf("Enter sends") === 0, "back in an empty chat");
+        }
+
+        function test_7c_the_bar_and_the_status_do_not_share_space() {
+            var bar = find("composerBar");
+            var text = find("statusText");
+            verify(bar.visible);
+            var barBottom = bar.mapToItem(root, 0, bar.height).y;
+            var statusTop = text.mapToItem(root, 0, 0).y;
+            verify(barBottom <= statusTop + 1, "the bar is above the status line");
+            chat.loading = true;
+            verify(find("composerBar").visible, "the bar stays while a reply is written");
+            verify(text.text.indexOf("Thinking") === 0);
         }
 
         function test_8_icon_buttons_have_accessible_names() {

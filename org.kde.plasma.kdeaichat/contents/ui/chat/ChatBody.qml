@@ -27,6 +27,7 @@ Item {
     readonly property var sessionList: historyLoader.item
 
     signal attachRequested()
+    signal chatInfoRequested()
 
     // Tells the chat that the history sits beside it, so New chat leaves it open.
     Binding {
@@ -112,6 +113,7 @@ Item {
                 id: composer
                 chat: body.chat
                 onAttachRequested: body.attachRequested()
+                onChatInfoRequested: body.chatInfoRequested()
             }
         }
     }

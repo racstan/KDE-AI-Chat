@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveConfig.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode, inferSource, chatMode, isMode, unavailableText, agentOwner};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode, inferSource, chatMode, isMode, unavailableText, agentOwner, variantText, PI_THINKING_LEVELS};", ctx);
 const E = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -272,6 +272,19 @@ const tests = {
         assert.strictEqual(E.describe(E.resolve(mainOC, null, off), names), "OpenCode · OpenCode Zen · zen-x");
         assert.strictEqual(E.describe(E.resolve(mainDirect, null, off), names), "OpenAI · gpt-main");
         assert.strictEqual(E.describe({mode: "provider", provider: "x", model: ""}), "x");
+    },
+    describe_for_the_composer_bar_names_the_mode_and_adds_the_variant() {
+        const names = id => ({nvidia: "NVIDIA NIM"}[id]);
+        const bar = eff => E.describe(eff, names, {directLabel: "Direct", variant: E.variantText(eff, "")});
+        assert.strictEqual(bar({mode: "provider", provider: "nvidia", model: "m"}), "Direct · NVIDIA NIM · m");
+        assert.strictEqual(bar({mode: "pi", provider: "openai", model: "gpt", thinking: "high"}), "Pi · openai · gpt · thinking high");
+        assert.strictEqual(bar({mode: "pi", provider: "openai", model: "gpt", thinking: ""}), "Pi · openai · gpt");
+        assert.strictEqual(bar({mode: "opencode", provider: "p", model: "m", agent: "build"}), "OpenCode · p · m · agent build");
+        assert.strictEqual(bar({mode: "opencode", provider: "", model: "", agent: "build"}), "OpenCode · agent build");
+        assert.strictEqual(E.describe({mode: "provider", provider: "nvidia", model: "m"}, names, {directLabel: "Direct", variant: "fast"}), "Direct · NVIDIA NIM · m · fast");
+        assert.strictEqual(E.variantText({mode: "pi", thinking: "low"}, "fast"), "fast", "a direct variant wins");
+        assert.strictEqual(E.variantText({mode: "provider"}, ""), "");
+        assert.strictEqual(E.PI_THINKING_LEVELS[0], "");
     },
 };
 

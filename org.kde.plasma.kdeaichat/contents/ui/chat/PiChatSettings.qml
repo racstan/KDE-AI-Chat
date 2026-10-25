@@ -5,6 +5,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "EffectiveConfig.js" as EffectiveConfig
 
 ColumnLayout {
     id: pi
@@ -19,7 +20,7 @@ ColumnLayout {
     signal edited()
     signal refreshRequested()
 
-    readonly property var thinkingLevels: ["", "off", "minimal", "low", "medium", "high", "xhigh", "max"]
+    readonly property var thinkingLevels: EffectiveConfig.PI_THINKING_LEVELS
 
     spacing: Kirigami.Units.largeSpacing
     onModelChanged: if (!modelCombo.activeFocus) modelCombo.editText = pi.model
