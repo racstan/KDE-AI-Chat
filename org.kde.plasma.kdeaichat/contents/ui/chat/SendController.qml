@@ -3,6 +3,7 @@
 // (direct, OpenCode or Pi). Also tracks which request is current, so a reply
 // never writes into another chat. `chat` is the widget root (main.qml).
 import QtQuick
+import "../ProviderService.js" as ProviderService
 import "PromptTemplates.js" as PromptTemplates
 import "TimeFormat.js" as TimeFormat
 
@@ -14,6 +15,7 @@ QtObject {
     property var openCodeRef: null   // chat/OpenCodeMode.qml
     property var piAgentRef: null    // chat/PiMode.qml
     property var directToolsRef: null  // chat/DirectToolRounds.qml
+    property var imageJobsRef: chat && chat.imageStore ? chat.imageStore.jobs : null   // chat/ImageJobs.qml
 
     function requestIsCurrent(sessionId, generation) {
         return !!sessionId && chat.currentSessionId === sessionId
@@ -110,6 +112,9 @@ QtObject {
         var name = chat.providerDisplayName(providerId);
         if (cfg.found === false)
             return "The provider \"" + name + "\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.";
+        // An image service makes pictures from the message: it needs no model or URL, only to be switched on.
+        if (cfg.type === "image")
+            return sender.imageJobsRef.validate(providerId, cfg);
         var missing = [];
         if (!providerId)
             missing.push("provider");
@@ -176,13 +181,36 @@ QtObject {
         }
     }
 
-    function sendMessageByIndex(index) {
+    function resetStream() {
         chat.currentStreamIndex = -1;
         chat.currentStreamText = "";
         chat.streamBuffer.clear();
         chat.currentStreamReasoning = "";
         chat.currentStreamExtractedReasoning = "";
         chat.streamingResponse = false;
+    }
+
+    // "/image <prompt>": makes a picture with the default image service as the reply to this message.
+    // Returns {ok, code, problem}: code "none" when there is no image service yet, "invalid" with
+    // `problem` (plain words) when the default one can't be used now.
+    function sendImageCommand(prompt) {
+        var providerId = ProviderService.defaultImageProvider(chat.plasmoid.configuration);
+        if (providerId === "")
+            return {"ok": false, "code": "none", "problem": ""};
+        var cfg = chat.getProviderConfig(providerId, chat.currentSessionId);
+        var problem = sender.imageJobsRef.validate(providerId, cfg);
+        if (problem !== "")
+            return {"ok": false, "code": "invalid", "problem": problem};
+        sender.appendUserMessage("/image " + prompt, "user", [], []);
+        sender.resetStream();
+        var sessionId = chat.currentSessionId;
+        chat.setCurrentSessionSource();
+        sender.imageJobsRef.send(sessionId, sender.beginRequest(sessionId), cfg, providerId, prompt);
+        return {"ok": true, "code": "", "problem": ""};
+    }
+
+    function sendMessageByIndex(index) {
+        sender.resetStream();
 
         var source = chat.messages[index] || {
         };
@@ -220,7 +248,13 @@ QtObject {
             return ;
         }
         var provider = chat.getEffectiveProvider(requestSessionId);
-        chat.doDirectRequest(chat.getProviderConfig(provider, requestSessionId), requestSessionId, requestGeneration);
+        var cfg = chat.getProviderConfig(provider, requestSessionId);
+        if (cfg.type === "image") {
+            // Every message of a chat with an image service becomes pictures (the chat stays a direct chat).
+            sender.imageJobsRef.send(requestSessionId, requestGeneration, cfg, provider, text);
+            return ;
+        }
+        chat.doDirectRequest(cfg, requestSessionId, requestGeneration);
     }
 
     function processNextQueuedMessage() {

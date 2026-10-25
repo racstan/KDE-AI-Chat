@@ -107,6 +107,39 @@ function validateHttpUrl(url) {
 }
 
 /**
+ * Validate the address of an image a model's reply points to, before the
+ * widget fetches it (only after the user clicks). Stricter than
+ * validateHttpUrl(): https only, no user name or password, a real host name
+ * or public-looking address (not localhost, a .local/.internal name, or a
+ * private, loopback or link-local address), at most 2048 characters. The
+ * helper checks the address again when it connects.
+ *
+ * @param {string} url  The image link.
+ * @returns {string}    The link, or `""` when it must not be fetched.
+ */
+function validateImageUrl(url) {
+    let s = validateUrl(url);
+    if (s === "" || s.length > 2048 || s.toLowerCase().indexOf("https://") !== 0)
+        return "";
+    let authority = s.substring(8).split(/[\/?#]/, 1)[0];
+    let host = authority.replace(/:\d*$/, "").toLowerCase();
+    if (host.charAt(0) === "[")
+        return "";   // IPv6 literals are not fetched
+    if (host === "" || host === "localhost" || /\.(local|localhost|internal|lan|home|corp)$/.test(host) || host.indexOf(".") < 0)
+        return "";
+    let ip = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+    if (ip) {
+        let a = parseInt(ip[1], 10), b = parseInt(ip[2], 10);
+        if (a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
+                || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127))
+            return "";
+    } else if (/^[\d.]+$/.test(host) || /^0x/i.test(host)) {
+        return "";   // odd numeric forms of an address
+    }
+    return s;
+}
+
+/**
  * Validate a local file path before embedding it in a shell command.
  *
  * Allows only characters that are common in real filenames and rejects

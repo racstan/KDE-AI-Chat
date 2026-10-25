@@ -156,7 +156,7 @@ Item {
 
                             PC3.Label {
                                 objectName: "streamStatus"
-                                text: row.chat.currentStreamText === "" ? i18n("Thinking…") : i18n("Writing…")
+                                text: row.message.imageJob ? i18n("Making a picture…") : row.chat.currentStreamText === "" ? i18n("Thinking…") : i18n("Writing…")
                                 font: Kirigami.Theme.smallFont
                                 opacity: 0.7
                             }
@@ -219,6 +219,18 @@ Item {
                     }
                 }
 
+                // A picture being made: the queue place and wait time, or the countdown, and Stop.
+                Loader {
+                    active: !!row.message.imageJob
+                    visible: active
+                    Layout.fillWidth: true
+                    sourceComponent: ImageJobCard {
+                        job: row.message.imageJob
+                        live: row.streaming
+                        onStopRequested: row.chat.stopStreaming()
+                    }
+                }
+
                 MessageBody {
                     id: body
                     objectName: "messageBody"
@@ -235,6 +247,17 @@ Item {
                     alignRight: row.mine
                     text: row.streaming ? row.chat.currentStreamText : row.role === "error" ? row.errorInfo.text : (row.message.content || "")
                     onSelectionMade: (text) => { if (text.trim() || !actions.keepSelection) row.selectedText = text; }
+                }
+
+                // Pictures of a reply, and the images it links to (click to load).
+                Loader {
+                    active: row.role === "assistant" && ((row.message.images || []).length > 0 || String(row.message.content || "").indexOf("![") >= 0)
+                    visible: active
+                    Layout.fillWidth: true
+                    sourceComponent: MessageImages {
+                        chat: row.chat
+                        message: row.message
+                    }
                 }
 
                 Loader {

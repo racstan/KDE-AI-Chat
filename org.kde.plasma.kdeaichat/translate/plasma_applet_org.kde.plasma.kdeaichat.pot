@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 19:34+0530\n"
+"POT-Creation-Date: 2026-10-25 20:51+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -190,13 +190,13 @@ msgid "This model is not available from the provider: %1"
 msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:205
-#: contents/ui/chat/ComposerPicker.qml:337
+#: contents/ui/chat/ComposerPicker.qml:336
 #: contents/ui/components/VariantPicker.qml:30
 msgid "Variant"
 msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:251
-#: contents/ui/chat/ComposerPicker.qml:304
+#: contents/ui/chat/ComposerPicker.qml:303
 msgid "Agent"
 msgstr ""
 
@@ -345,11 +345,11 @@ msgstr[1] ""
 msgid "Pi returned no providers"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:208
+#: contents/ui/chat/ChatView.qml:230
 msgid "New messages"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:208
+#: contents/ui/chat/ChatView.qml:230
 msgid "Latest"
 msgstr ""
 
@@ -373,182 +373,179 @@ msgstr ""
 msgid "Started a new chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:126
+#: contents/ui/chat/CommandRunner.qml:128
 msgid "Use /mode direct, /mode opencode or /mode pi."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:133
+#: contents/ui/chat/CommandRunner.qml:135
 msgid "New chats will use %1. This chat stays %2."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:140
-msgid "This model has no variants."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:142
-msgid "Variants: %1. Use /variant <name>."
+#: contents/ui/chat/CommandRunner.qml:143
+msgid "/image works in direct chats only."
 msgstr ""
 
 #: contents/ui/chat/CommandRunner.qml:145
+msgid "Write what to draw, like /image a red fox in the snow."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:147
+msgid "Wait for the current reply to finish, or press Stop, then try again."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:153
+msgid ""
+"Add an image service first: Settings → Connection → Add provider → AI Horde "
+"or Pollinations."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:160
+msgid "This model has no variants."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:162
+msgid "Variants: %1. Use /variant <name>."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:165
 msgid "This model has no variant “%1”. It has: %2."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:158
+#: contents/ui/chat/CommandRunner.qml:178
 msgid ""
 "Every chat uses the main settings. To change it for just this chat, turn on "
 "“Let chats have their own model settings” in Settings → Chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:164
+#: contents/ui/chat/CommandRunner.qml:184
 msgid "the default variant"
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:164
+#: contents/ui/chat/CommandRunner.qml:184
 msgid "This chat now uses %1."
 msgstr ""
 
-#: contents/ui/chat/ComposerBar.qml:43 contents/ui/chat/ComposerBar.qml:48
-#: contents/ui/chat/ComposerPicker.qml:41
+#: contents/ui/chat/ComposerPicker.qml:40 contents/ui/chat/EffectiveLine.qml:33
 msgid "Direct"
 msgstr ""
 
-#: contents/ui/chat/ComposerBar.qml:44
-msgid "No model chosen yet"
-msgstr ""
-
-#: contents/ui/chat/ComposerBar.qml:62
-msgid "Chat model: %1. Click to change it."
-msgstr ""
-
-#: contents/ui/chat/ComposerBar.qml:136
-msgid "Click to change the model for this chat."
-msgstr ""
-
-#: contents/ui/chat/ComposerPicker.qml:94 contents/ui/config/ProviderRow.qml:49
+#: contents/ui/chat/ComposerPicker.qml:93 contents/ui/config/ProviderRow.qml:51
 msgid "default"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:156
+#: contents/ui/chat/ComposerPicker.qml:155
 msgid "the default"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:156
+#: contents/ui/chat/ComposerPicker.qml:155
 msgid ""
 "Saved for this chat, but the main settings win over a chat's own (Settings → "
 "Chat), so it still uses %1."
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:201
+#: contents/ui/chat/ComposerPicker.qml:200
 msgid "Mode: %1 (fixed: a chat keeps the mode it was started in)"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:212
+#: contents/ui/chat/ComposerPicker.qml:211
 msgid ""
 "Every chat uses the main settings. To pick a model for just this chat, turn "
 "on “Let chats have their own model settings” in Settings → Chat."
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:219 contents/ui/chat/ErrorActions.qml:39
+#: contents/ui/chat/ComposerPicker.qml:218 contents/ui/chat/ErrorActions.qml:39
 msgid "Open settings"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:233
-#: contents/ui/chat/ComposerPicker.qml:235
+#: contents/ui/chat/ComposerPicker.qml:232
+#: contents/ui/chat/ComposerPicker.qml:234
 #: contents/ui/components/ModelPicker.qml:145
 msgid "Filter models"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:255
+#: contents/ui/chat/ComposerPicker.qml:254
 #: contents/ui/components/ModelPicker.qml:46
 msgid "%1 of %2"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:256
+#: contents/ui/chat/ComposerPicker.qml:255
 #: contents/ui/components/ModelPicker.qml:167
 msgid "No model matches. Press Enter to use “%1”."
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:337
+#: contents/ui/chat/ComposerPicker.qml:336
 msgid "Thinking"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:371
+#: contents/ui/chat/ComposerPicker.qml:370
 msgid ""
 "Choosing gives this chat its own model settings. The main settings stay as "
 "they are."
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:392
+#: contents/ui/chat/ComposerPicker.qml:393
 msgid "More chat settings…"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:225 contents/ui/config/ProviderRow.qml:87
-msgid "Remove %1"
-msgstr ""
-
-#: contents/ui/chat/Composer.qml:227
-msgid "Remove file"
-msgstr ""
-
-#: contents/ui/chat/Composer.qml:250 contents/ui/chat/Composer.qml:251
+#: contents/ui/chat/Composer.qml:184 contents/ui/chat/Composer.qml:185
 msgid "Message"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:312 contents/ui/chat/Composer.qml:314
+#: contents/ui/chat/Composer.qml:246 contents/ui/chat/Composer.qml:248
 msgid "Stop recording"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:312
+#: contents/ui/chat/Composer.qml:246
 msgid "Record voice"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:314
+#: contents/ui/chat/Composer.qml:248
 msgid "Record voice (beta speech-to-text)"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:340
+#: contents/ui/chat/Composer.qml:274
 msgid "Attach files"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:342
+#: contents/ui/chat/Composer.qml:276
 msgid "Attach files (images, PDF, CSV, Word documents)"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:351
+#: contents/ui/chat/Composer.qml:285
 msgid "Paste from clipboard"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:353
+#: contents/ui/chat/Composer.qml:287
 msgid "Paste file or text from clipboard"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:366
+#: contents/ui/chat/Composer.qml:300
 msgid "Queue"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:366 contents/ui/chat/Notifier.qml:194
+#: contents/ui/chat/Composer.qml:300 contents/ui/chat/Notifier.qml:194
 msgid "Send"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:373
+#: contents/ui/chat/Composer.qml:307
 msgid "Send this after the current reply finishes"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:373
+#: contents/ui/chat/Composer.qml:307
 msgid "Send message"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:384
+#: contents/ui/chat/Composer.qml:318 contents/ui/chat/ImageJobCard.qml:73
 #: contents/ui/config/OpenCodeSettings.qml:164 contents/ui/ConfigVoice.qml:247
 #: contents/ui/ConfigVoice.qml:254
 msgid "Stop"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:386
+#: contents/ui/chat/Composer.qml:320
 msgid "Stop the reply"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:388
+#: contents/ui/chat/Composer.qml:322
 msgid "Stop the reply (Esc)"
 msgstr ""
 
@@ -576,7 +573,7 @@ msgid "End call mode"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:54
-#: contents/ui/chat/MessageActions.qml:159
+#: contents/ui/chat/MessageActions.qml:160
 msgid "Stop reading"
 msgstr ""
 
@@ -604,25 +601,41 @@ msgid_plural "%1 failed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/EffectiveLine.qml:26
-msgid "no model chosen yet"
+#: contents/ui/chat/DirectToolRounds.qml:43
+msgid "Stopped: the AI asked for too many tools in a row."
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:35
-msgid "Using %1 (from this chat's settings)"
+#: contents/ui/chat/DirectToolRounds.qml:121
+msgid "The user closed the question without answering."
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:36
-msgid "Using %1 (from main settings)"
+#: contents/ui/chat/EffectiveLine.qml:33
+msgid "No model chosen yet"
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:46
+#: contents/ui/chat/EffectiveLine.qml:55
+msgid "Change…"
+msgstr ""
+
+#: contents/ui/chat/EffectiveLine.qml:57
+msgid "Change the model for this chat"
+msgstr ""
+
+#: contents/ui/chat/EffectiveLine.qml:68
+msgid "From this chat's settings"
+msgstr ""
+
+#: contents/ui/chat/EffectiveLine.qml:68
+msgid "From main settings"
+msgstr ""
+
+#: contents/ui/chat/EffectiveLine.qml:78
 msgid ""
 "Every chat uses the main settings. Turn on \"Let chats have their own model "
 "settings\" in Settings → Chat to change that for this chat."
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:47
+#: contents/ui/chat/EffectiveLine.qml:79
 msgid "Main settings win when they differ from a chat's own (Settings → Chat)."
 msgstr ""
 
@@ -696,7 +709,7 @@ msgstr ""
 msgid "Copy error"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:287
+#: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:301
 msgid "Delete"
 msgstr ""
 
@@ -708,79 +721,189 @@ msgstr ""
 msgid "Export chat"
 msgstr ""
 
-#: contents/ui/chat/DirectToolRounds.qml:43
-msgid "Stopped: the AI asked for too many tools in a row."
+#: contents/ui/chat/ImageJobCard.qml:23
+msgid "%1 s"
 msgstr ""
 
-#: contents/ui/chat/DirectToolRounds.qml:121
-msgid "The user closed the question without answering."
+#: contents/ui/chat/ImageJobCard.qml:23
+msgid "%1 min"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:108
-#: contents/ui/config/ProviderRow.qml:77
+#: contents/ui/chat/ImageJobCard.qml:27
+msgid "The image service"
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:29
+msgid "This picture was not finished."
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:31
+msgid ""
+"The older free %1 service makes one picture every 45 seconds. Yours starts "
+"in %2."
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:33
+msgid ""
+"%1 has no worker for this model right now. It keeps looking for a while."
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:35
+msgid "In %1's queue: place %2, about %3 left."
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:36
+msgid "In %1's queue: place %2."
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:38
+msgid "Waiting for %1: about %2 left."
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:38
+msgid "Waiting for %1…"
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:40
+msgid "%1 is making your picture: about %2 left."
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:40
+msgid "%1 is making your picture…"
+msgstr ""
+
+#: contents/ui/chat/ImageJobCard.qml:41
+msgid "Sending your prompt to %1…"
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:158
+msgid "An image in the reply was too large to keep."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:159
+msgid ""
+"The reply had an image in a format the widget can't show (it shows PNG, "
+"JPEG, WebP and GIF)."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:160
+msgid "An image in the reply could not be saved: %1"
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:225
+msgid ""
+"Copying an image needs wl-clipboard (Wayland) or xclip (X11). Install one of "
+"them, or use Download."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:226
+msgid "The image could not be copied."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:233
+msgid "The image could not be saved there."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:248
+msgid "That image is too large to load."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:249
+msgid "That link is not a PNG, JPEG, WebP or GIF image."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:250
+msgid "This image link is not allowed."
+msgstr ""
+
+#: contents/ui/chat/ImageStore.qml:251
+msgid "The image could not be loaded."
+msgstr ""
+
+#: contents/ui/chat/ImageViewer.qml:69 contents/ui/chat/MessageImages.qml:184
+msgid "Copy image"
+msgstr ""
+
+#: contents/ui/chat/ImageViewer.qml:75 contents/ui/chat/MessageImages.qml:193
+msgid "Download"
+msgstr ""
+
+#: contents/ui/chat/ImageViewer.qml:82 contents/ui/chat/MessageActions.qml:184
+#: contents/ui/chat/MessageActions.qml:240
+#: contents/ui/chat/MessageActions.qml:256
+#: contents/ui/chat/MessageImages.qml:203
+msgid "Regenerate"
+msgstr ""
+
+#: contents/ui/chat/ImageViewer.qml:89
+msgid "Close"
+msgstr ""
+
+#: contents/ui/chat/MessageActions.qml:109
+#: contents/ui/config/ProviderRow.qml:80
 #: contents/ui/config/TemplatesEditor.qml:87
 msgid "Edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:124
-#: contents/ui/chat/MessageActions.qml:239
+#: contents/ui/chat/MessageActions.qml:125
+#: contents/ui/chat/MessageActions.qml:240
 msgid "Resend"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:134
+#: contents/ui/chat/MessageActions.qml:135
 msgid "Save edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:144
+#: contents/ui/chat/MessageActions.qml:145
 msgid "Cancel edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:159
+#: contents/ui/chat/MessageActions.qml:160
 msgid "Read selection aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:159 contents/ui/ConfigVoice.qml:133
+#: contents/ui/chat/MessageActions.qml:160 contents/ui/ConfigVoice.qml:133
 msgid "Read aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:183
-#: contents/ui/chat/MessageActions.qml:239
-#: contents/ui/chat/MessageActions.qml:255
-msgid "Regenerate"
-msgstr ""
-
-#: contents/ui/chat/MessageActions.qml:223
+#: contents/ui/chat/MessageActions.qml:224
 msgid "Regenerating removes this reply and the %1 message after it."
 msgid_plural "Regenerating removes this reply and the %1 messages after it."
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/MessageActions.qml:224
+#: contents/ui/chat/MessageActions.qml:225
 msgid "Resending removes the %1 message after this one."
 msgid_plural "Resending removes the %1 messages after this one."
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/MessageActions.qml:232
+#: contents/ui/chat/MessageActions.qml:233
+#: contents/ui/config/ImageProviderEditor.qml:230
 #: contents/ui/config/ProviderEditor.qml:162
-#: contents/ui/config/ProviderRow.qml:101
+#: contents/ui/config/ProviderRow.qml:104
 #: contents/ui/config/TemplatesEditor.qml:134
 msgid "Cancel"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:260
+#: contents/ui/chat/MessageActions.qml:261
 msgid "Longer"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:265
+#: contents/ui/chat/MessageActions.qml:266
 msgid "Shorter"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:277
+#: contents/ui/chat/MessageActions.qml:278
 msgid "Copy"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:132
+#: contents/ui/chat/MessageActions.qml:291
+msgid "Quote"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:132 contents/ui/chat/QuoteBlock.qml:70
+#: contents/ui/chat/QuoteChips.qml:76
 msgid "You"
 msgstr ""
 
@@ -800,12 +923,67 @@ msgstr ""
 msgid "Permission request"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:137
+#: contents/ui/chat/MessageDelegate.qml:137 contents/ui/chat/QuoteBlock.qml:70
+#: contents/ui/chat/QuoteChips.qml:76
 msgid "Assistant"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:159
+msgid "Making a picture…"
 msgstr ""
 
 #: contents/ui/chat/MessageDelegate.qml:206
 msgid "Saving removes the messages after this one."
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:68
+msgid "seed %1"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:81
+msgid "Image copied."
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:144
+msgid "Image: %1"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:144
+msgid "Image"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:153
+msgid "This image file is missing or can't be shown."
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:175
+msgid "Enlarge"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:206
+msgid "Regenerate: same prompt, a new image"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:226
+msgid "Show image from %1"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:228
+msgid ""
+"The reply links to this picture. It is only loaded if you click. The website "
+"will see your connection."
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:268
+msgid "Save image"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:270
+msgid "Images (*.png *.jpg *.webp *.gif)"
+msgstr ""
+
+#: contents/ui/chat/MessageImages.qml:280
+msgid "Saved to %1"
 msgstr ""
 
 #: contents/ui/chat/NoticeBanner.qml:52 contents/ui/chat/QuestionCard.qml:106
@@ -861,6 +1039,14 @@ msgstr ""
 msgid "Give this chat its own model settings"
 msgstr ""
 
+#: contents/ui/chat/PendingFiles.qml:100 contents/ui/config/ProviderRow.qml:90
+msgid "Remove %1"
+msgstr ""
+
+#: contents/ui/chat/PendingFiles.qml:102
+msgid "Remove file"
+msgstr ""
+
 #: contents/ui/chat/PermissionButtons.qml:30
 msgid "Always allow"
 msgstr ""
@@ -903,6 +1089,22 @@ msgstr ""
 
 #: contents/ui/chat/QuestionCard.qml:129
 msgid "Sending answer…"
+msgstr ""
+
+#: contents/ui/chat/QuoteBlock.qml:104
+msgid "Go to the original message"
+msgstr ""
+
+#: contents/ui/chat/QuoteBlock.qml:104
+msgid "The original message is no longer in this chat"
+msgstr ""
+
+#: contents/ui/chat/QuoteChips.qml:105
+msgid "Quoted from %1: %2"
+msgstr ""
+
+#: contents/ui/chat/QuoteChips.qml:117
+msgid "Remove quote"
 msgstr ""
 
 #: contents/ui/chat/ReasoningBlock.qml:32
@@ -962,19 +1164,19 @@ msgstr ""
 msgid "This chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:176
+#: contents/ui/ChatSettingsDialog.qml:182
 msgid "Settings for this chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:203
+#: contents/ui/ChatSettingsDialog.qml:209
 msgid "Reset"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:212
+#: contents/ui/ChatSettingsDialog.qml:218
 msgid "Unsaved changes"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:216
+#: contents/ui/ChatSettingsDialog.qml:222
 msgid "Apply"
 msgstr ""
 
@@ -991,14 +1193,18 @@ msgid "Start a new chat"
 msgstr ""
 
 #: contents/ui/chat/TemplateSuggestions.qml:35
+msgid "Make a picture with the default image service"
+msgstr ""
+
+#: contents/ui/chat/TemplateSuggestions.qml:36
 msgid "Mode for NEW chats only; this chat keeps its mode"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:88
+#: contents/ui/chat/TemplateSuggestions.qml:89
 msgid "Command %1"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:88
+#: contents/ui/chat/TemplateSuggestions.qml:89
 msgid "Template %1"
 msgstr ""
 
@@ -1132,7 +1338,9 @@ msgstr ""
 msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:80 contents/ui/config/ProviderEditor.qml:48
+#: contents/ui/ConfigAppearance.qml:80
+#: contents/ui/config/ImageProviderEditor.qml:63
+#: contents/ui/config/ProviderEditor.qml:48
 msgid "Name:"
 msgstr ""
 
@@ -1329,6 +1537,152 @@ msgstr ""
 msgid "Insert with /name:"
 msgstr ""
 
+#: contents/ui/config/ImageModels.qml:68
+msgid "%1 worker"
+msgid_plural "%1 workers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/ImageModels.qml:69
+msgid "needs credit"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:70
+msgid "Before you use it:"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:80
+msgid ""
+"Your prompt is sent to AI Horde and made into a picture on a volunteer's "
+"computer, so the volunteer can see it. Pictures made without an account are "
+"shared with LAION, a research dataset. Anonymous requests wait behind "
+"others, so a picture can take a minute or more. Don't put personal details "
+"or secrets in a prompt. Only your prompt is sent, never the chat."
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:82
+msgid ""
+"Your prompt is sent to Pollinations. This is their older free service: it "
+"may stop working, it makes one picture every 45 seconds, and it adds a "
+"Pollinations logo to the picture. Don't put personal details or secrets in a "
+"prompt. Only your prompt is sent, never the chat."
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:83
+msgid ""
+"Your prompt is sent to Pollinations, with your own key. Don't put personal "
+"details or secrets in a prompt. Only your prompt is sent, never the chat."
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:88
+msgid "AI Horde terms of use"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:88
+msgid "pollinations.ai"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:93
+msgid "Get a Pollinations key"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:97
+msgid "Use %1 for pictures"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:106
+#: contents/ui/config/ProviderEditor.qml:68
+msgid "API key:"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:109
+msgid "Optional: empty uses AI Horde without an account"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:109
+msgid "Your Pollinations key, stored in KWallet"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:114
+#: contents/ui/config/OpenCodeSettings.qml:194
+#: contents/ui/config/PiSettings.qml:106
+#: contents/ui/config/ProviderEditor.qml:75
+msgid "Model:"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:123
+msgid "Chosen for you when empty"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:129
+#: contents/ui/config/PiSettings.qml:99
+#: contents/ui/config/ProviderEditor.qml:86
+msgid "Refresh"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:149
+#: contents/ui/config/ProviderEditor.qml:128
+msgid "Fetching models…"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:150
+msgid ""
+"Could not get AI Horde's model list. Leave the model empty to use a common "
+"one, or try Refresh later."
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:151
+msgid "Could not reach %1 to list its models. You can still type a model name."
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:152
+msgid "%1 sent no usable model list. You can still type a model name."
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:157
+msgid "Picture size:"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:163
+msgid "Width"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:171
+msgid "Height"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:173
+msgid "pixels"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:182
+msgid ""
+"Without an account AI Horde makes one picture at a time, up to %1 pixels "
+"wide or high and %2 steps. More needs an account with kudos."
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:187
+msgid "Steps:"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:196
+msgid "Pictures per message:"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:204
+msgid "Seed:"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:207
+msgid "Empty: a new one each time"
+msgstr ""
+
+#: contents/ui/config/ImageProviderEditor.qml:224
+#: contents/ui/config/ProviderEditor.qml:148
+#: contents/ui/config/TemplatesEditor.qml:128
+msgid "Save"
+msgstr ""
+
 #: contents/ui/config/ModeChooser.qml:18
 msgid "Send messages:"
 msgstr ""
@@ -1425,12 +1779,6 @@ msgstr ""
 msgid "Provider:"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:194
-#: contents/ui/config/PiSettings.qml:106
-#: contents/ui/config/ProviderEditor.qml:75
-msgid "Model:"
-msgstr ""
-
 #: contents/ui/config/OpenCodeSettings.qml:203
 #: contents/ui/config/ProviderEditor.qml:94
 msgid "Variant:"
@@ -1456,11 +1804,6 @@ msgstr ""
 
 #: contents/ui/config/PiSettings.qml:81
 msgid "Pi could not be run."
-msgstr ""
-
-#: contents/ui/config/PiSettings.qml:99
-#: contents/ui/config/ProviderEditor.qml:86
-msgid "Refresh"
 msgstr ""
 
 #: contents/ui/config/PiSettings.qml:115
@@ -1528,10 +1871,6 @@ msgstr ""
 msgid "Server URL:"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:68
-msgid "API key:"
-msgstr ""
-
 #: contents/ui/config/ProviderEditor.qml:71
 msgid "Optional for local servers"
 msgstr ""
@@ -1554,100 +1893,103 @@ msgstr ""
 msgid "Checking the key with the provider…"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:128
-msgid "Fetching models…"
-msgstr ""
-
-#: contents/ui/config/ProviderEditor.qml:148
-#: contents/ui/config/TemplatesEditor.qml:128
-msgid "Save"
-msgstr ""
-
-#: contents/ui/config/ProviderRow.qml:56
-msgid "no model set"
-msgstr ""
-
-#: contents/ui/config/ProviderRow.qml:57
-msgid "no API key"
+#: contents/ui/config/ProviderRow.qml:51
+msgid "used by /image"
 msgstr ""
 
 #: contents/ui/config/ProviderRow.qml:58
+msgid "no model set"
+msgstr ""
+
+#: contents/ui/config/ProviderRow.qml:59
+msgid "no API key"
+msgstr ""
+
+#: contents/ui/config/ProviderRow.qml:60
+msgid "switched off"
+msgstr ""
+
+#: contents/ui/config/ProviderRow.qml:61
 msgid "model unavailable: %1"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:68
+#: contents/ui/config/ProviderRow.qml:71
+msgid "Use for /image"
+msgstr ""
+
+#: contents/ui/config/ProviderRow.qml:71
 msgid "Use by default"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:78
+#: contents/ui/config/ProviderRow.qml:81
 msgid "Edit %1"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:86 contents/ui/config/ProviderRow.qml:95
+#: contents/ui/config/ProviderRow.qml:89 contents/ui/config/ProviderRow.qml:98
 #: contents/ui/config/TemplatesEditor.qml:94
 msgid "Remove"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:91
+#: contents/ui/config/ProviderRow.qml:94
 msgid "Remove this provider and its key?"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:66
+#: contents/ui/config/ProvidersPanel.qml:68
 msgid "(unavailable)"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:95
+#: contents/ui/config/ProvidersPanel.qml:97
 msgid "New provider"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:178
-#: contents/ui/config/ProvidersPanel.qml:238
+#: contents/ui/config/ProvidersPanel.qml:181
+#: contents/ui/config/ProvidersPanel.qml:244
 msgid "Enter an http:// or https:// URL."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:246
+#: contents/ui/config/ProvidersPanel.qml:252
 msgid "The provider rejected the API key (HTTP %1)."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:247
+#: contents/ui/config/ProvidersPanel.qml:253
 msgid "The provider answered HTTP %1 for its model list."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:248
+#: contents/ui/config/ProvidersPanel.qml:254
 msgid "Could not fetch models from %1."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:254
+#: contents/ui/config/ProvidersPanel.qml:260
 msgid "%1 models available."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:254
+#: contents/ui/config/ProvidersPanel.qml:260
 msgid "The provider returned no models."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:290
+#: contents/ui/config/ProvidersPanel.qml:296
 msgid "Providers"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:294
+#: contents/ui/config/ProvidersPanel.qml:300
 msgid "Add provider"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:324
+#: contents/ui/config/ProvidersPanel.qml:330
 msgid ""
 "No providers yet. Add one to chat with a model directly, using your own API "
 "key or a local server."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:370
+#: contents/ui/config/ProvidersPanel.qml:381
 msgid "Use this model anyway"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:370
+#: contents/ui/config/ProvidersPanel.qml:381
 msgid "Save anyway"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:372
+#: contents/ui/config/ProvidersPanel.qml:383
 msgid "Unavailable: %1"
 msgstr ""
 

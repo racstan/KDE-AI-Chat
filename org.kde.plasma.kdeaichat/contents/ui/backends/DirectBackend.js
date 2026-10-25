@@ -4,6 +4,7 @@
 // reports progress as backend events:
 //   {type: "start"} | {type: "text_delta", delta} | {type: "reasoning_delta", delta}
 //   {type: "usage", input, output, cost?}   as the provider reported it, never an estimate
+//   {type: "images", items}                images the model sent (options.images = chat/ImageExtract.js; items: see it)
 //   {type: "tool_calls", calls, thinking}   the model asked for tools (DirectTools.js), before "done"
 //   {type: "error", message, status}        the request failed; "done" follows
 //   {type: "done", reason}                  "complete" | "aborted" | "error"
@@ -186,9 +187,21 @@ function _anthropicUsage(usage) {
     return event;
 }
 
+// A reply's content is text, or a list of parts (text and images). `images` is chat/ImageExtract.js.
+function _contentText(content, images) {
+    return typeof content === "string" ? content : (images ? images.textOf(content) : JSON.stringify(content));
+}
+
+// {type: "images", items} for the images a message or delta carries (message.images, image parts).
+function _emitImages(message, images, emit) {
+    var items = images ? images.fromMessage(message) : [];
+    if (items.length > 0)
+        emit({"type": "images", "items": items});
+}
+
 // Turns one parsed streaming JSON message into events. Returns false if the
 // message signals the end of the stream.
-function _handleStreamMessage(type, sse, think, emit, collector) {
+function _handleStreamMessage(type, sse, think, emit, collector, images) {
     if (sse.data === "[DONE]")
         return false;
     var obj;
@@ -220,7 +233,8 @@ function _handleStreamMessage(type, sse, think, emit, collector) {
     if (delta) {
         var reasoning = delta.reasoning || delta.reasoning_content || delta.thinking || "";
         if (reasoning) emit({"type": "reasoning_delta", "delta": String(reasoning)});
-        if (delta.content) think.push(typeof delta.content === "string" ? delta.content : JSON.stringify(delta.content));
+        if (delta.content) think.push(_contentText(delta.content, images));
+        _emitImages(delta, images, emit);
     }
     if (obj.usage)
         emit(_openAiUsage(obj.usage));
@@ -228,7 +242,7 @@ function _handleStreamMessage(type, sse, think, emit, collector) {
 }
 
 // Events for a complete (non-streaming) JSON response.
-function _handleFullResponse(type, obj, think, emit, collector) {
+function _handleFullResponse(type, obj, think, emit, collector, images) {
     if (collector) collector.full(obj);
     if (type === "anthropic") {
         var blocks = obj.content || [];
@@ -242,7 +256,8 @@ function _handleFullResponse(type, obj, think, emit, collector) {
     var message = (obj.choices && obj.choices[0] && obj.choices[0].message) || {};
     var reasoning = message.reasoning || message.reasoning_content || "";
     if (reasoning) emit({"type": "reasoning_delta", "delta": String(reasoning)});
-    if (message.content) think.push(typeof message.content === "string" ? message.content : JSON.stringify(message.content));
+    if (message.content) think.push(_contentText(message.content, images));
+    _emitImages(message, images, emit);
     if (obj.usage) emit(_openAiUsage(obj.usage));
 }
 
@@ -293,7 +308,7 @@ function send(options) {
                 else if (event.type === "usage" && options.type !== "anthropic")
                     usage = Object.assign(usage || {}, event);
                 else emit(event);
-            }, options.collector);
+            }, options.collector, options.images);
             if (!more) sseEnded = true;
         });
     }
@@ -340,7 +355,7 @@ function send(options) {
             }
             if (xhr.readyState === 4) {
                 try {
-                    _handleFullResponse(options.type, JSON.parse(xhr.responseText), think, emit, options.collector);
+                    _handleFullResponse(options.type, JSON.parse(xhr.responseText), think, emit, options.collector, options.images);
                     finish("complete");
                 } catch (e) {
                     finish("error", "Could not read the provider's response: " + e, xhr.status);

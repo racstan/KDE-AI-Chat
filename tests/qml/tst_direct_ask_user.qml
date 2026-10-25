@@ -82,6 +82,12 @@ Item {
         property int saves: 0
         property var errors: []
         property var streamBuffer: Chat.StreamBuffer { target: chat; maxChars: 2000000 }
+        // No pictures in these replies (chat/ImageStore.qml is tested in tst_image_store.qml).
+        property var imageStore: QtObject {
+            function hasImages(message) { return false; }
+            function takeInlineImages(sessionId, reply) { return reply; }
+            function addFromReply() {}
+        }
         signal clearChatInput()
         onMessagesChanged: {
             if (chat.currentStreamIndex >= 0)

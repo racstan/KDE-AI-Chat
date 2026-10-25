@@ -115,6 +115,8 @@ Item {
             runMode(arg);
         } else if (name === "variant") {
             runVariant(arg);
+        } else if (name === "image") {
+            runImage(arg);
         } else {
             apply("model", arg);
         }
@@ -132,6 +134,24 @@ Item {
         var open = chat.effectiveConfig(chat.currentSessionId).mode;
         show(i18n("New chats will use %1. This chat stays %2.", Commands.modeName(arg), Commands.modeName(open === "provider" ? "direct" : open)));
         clearInput();
+    }
+
+    // /image <prompt>: a picture from the default image service, as the reply to this line. The line
+    // stays in the box when it can't run, so it can be fixed.
+    function runImage(arg) {
+        if (chat.effectiveConfig(chat.currentSessionId).mode !== "provider") {
+            show(i18n("/image works in direct chats only."));
+        } else if (arg === "") {
+            show(i18n("Write what to draw, like /image a red fox in the snow."));
+        } else if (chat.loading) {
+            show(i18n("Wait for the current reply to finish, or press Stop, then try again."));
+        } else {
+            var result = chat.sendImageCommand(arg);
+            if (result.ok)
+                clearInput();
+            else
+                show(result.code === "none" ? i18n("Add an image service first: Settings → Connection → Add provider → AI Horde or Pollinations.") : result.problem);
+        }
     }
 
     function runVariant(arg) {

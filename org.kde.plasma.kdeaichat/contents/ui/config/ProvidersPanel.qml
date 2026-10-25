@@ -23,6 +23,8 @@ ColumnLayout {
     property var wallet: null          // store/Wallet.qml
     property var providers: []
     property string defaultProvider: configuration ? String(configuration.provider || "") : ""
+    // The image service /image uses (image entries are edited by ImageProvidersPanel.qml).
+    readonly property string defaultImage: configuration && providers ? ProviderService.defaultImageProvider(configuration) : ""
 
     // Editor state. editingIndex is -1 when nothing is being edited.
     property int editingIndex: -1
@@ -95,6 +97,7 @@ ColumnLayout {
         var entry = {"id": ProviderService.newProviderId(providers, presetId), "name": preset.name || i18n("New provider"), // qmllint disable unqualified
                      "type": preset.type || "openai-compat", "baseUrl": preset.baseUrl || "", "model": preset.model || ""};
         if (preset.headers) entry.headers = preset.headers;
+        if (preset.service) Object.assign(entry, {"service": preset.service, "accepted": false, "options": {}});   // an image service, off at first
         providers = providers.concat([entry]);
         startEdit(providers.length - 1, true);
     }
@@ -113,7 +116,7 @@ ColumnLayout {
         editingIndex = index;
         confirmRemoveIndex = -1;
         // Show the provider's current models without being asked.
-        if (isLocal(draft) || draftKey.trim() !== "")
+        if (draft.type !== "image" && (isLocal(draft) || draftKey.trim() !== ""))
             refreshModels(false);
     }
 
@@ -209,7 +212,8 @@ ColumnLayout {
                 if (ok) panel.notifyKeysChanged();
                 else setStatus(wallet.statusMessage(), "error");
             });
-        if (!defaultProvider || ProviderService.getProviderConfig(defaultProvider, configuration).found === false)
+        // An image service never becomes the default for chats by itself.
+        if (entry.type !== "image" && (!defaultProvider || ProviderService.getProviderConfig(defaultProvider, configuration).found === false))
             setDefault(entry.id);
         editingIndex = -1;
         editingNew = false;
@@ -221,12 +225,14 @@ ColumnLayout {
         persist();
         if (wallet) wallet.remove(id, function(ok) { if (ok) panel.notifyKeysChanged(); });
         if (defaultProvider === id)
-            setDefault(providers.length > 0 ? providers[0].id : "");
+            setDefault((providers.filter(function(p) { return p.type !== "image"; })[0] || {"id": ""}).id);
         confirmRemoveIndex = -1;
     }
 
+    // The default for chats, or for an image service the one /image uses.
     function setDefault(id) {
-        configuration.provider = id;
+        if (providers.some(function(p) { return p.id === id && p.type === "image"; })) configuration.imageProvider = id;
+        else configuration.provider = id;
     }
 
     // Fetches the draft provider's models; `force` skips the session cache and
@@ -336,7 +342,7 @@ ColumnLayout {
             readonly property int index: modelData
             readonly property var item: panel.providers[modelData] || ({"id": "", "name": ""})  // briefly stale while rows are rebuilt
             entry: providerRow.item
-            isDefault: providerRow.item.id === panel.defaultProvider
+            isDefault: providerRow.item.id === (providerRow.item.type === "image" ? panel.defaultImage : panel.defaultProvider)
             local: panel.isLocal(providerRow.item)
             missingKey: !local && panel.wallet !== null && !panel.wallet.keys[providerRow.item.id]
             host: checker.hostOf(providerRow.item.baseUrl)
@@ -353,9 +359,14 @@ ColumnLayout {
     }
 
     // ── Editor (one, below the list) ──────────────────────────────────
+    ImageProvidersPanel {
+        objectName: "imageProvidersPanel"
+        Layout.fillWidth: true
+        panel: panel
+    }
     ProviderEditor {
         Layout.fillWidth: true
-        visible: panel.editingIndex >= 0
+        visible: panel.editingIndex >= 0 && panel.draft.type !== "image"
         draft: panel.draft
         draftKey: panel.draftKey
         local: panel.editingIndex >= 0 && panel.isLocal(panel.draft)

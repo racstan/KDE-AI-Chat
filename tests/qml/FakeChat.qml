@@ -37,6 +37,12 @@ QtObject {
     property bool voiceEnabled: false
     property bool voiceTtsEnabled: false
     property var calls: []
+    // chat/ImageStore.qml, or a stand-in, for the pictures of messages.
+    property var imageStore: null
+    function pushErrorMessage(text, extra) { record("error", [text]); }
+    // main.qml's sendImageCommand: what a test says the default image service answers.
+    property var imageCommandResult: ({"ok": true, "code": "", "problem": ""})
+    function sendImageCommand(prompt) { record("image", [prompt]); return imageCommandResult; }
 
     // What chat/Composer.qml reads and calls.
     signal clearChatInput()
