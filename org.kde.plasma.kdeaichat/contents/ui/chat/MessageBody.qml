@@ -6,6 +6,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "MessageBlocks.js" as MessageBlocks
+import "ImageExtract.js" as ImageExtract
 
 Column {
     id: body
@@ -51,7 +52,9 @@ Column {
                     chat: body.chat
                     messageIndex: body.messageIndex
                     alignRight: body.alignRight
-                    text: modelData.text
+                    // Markdown image links are never rendered (Qt would fetch them by itself):
+                    // a placeholder shows, and MessageImages.qml offers to load the picture.
+                    text: ImageExtract.extractMarkdown(modelData.text).text
                     onSelectionMade: (text) => body.selectionMade(text)
                 }
             }

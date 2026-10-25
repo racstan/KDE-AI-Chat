@@ -22,7 +22,7 @@ QtObject {
                     current.content = chat.currentStreamText;
                 if (chat.currentStreamReasoning)
                     current.reasoning = chat.currentStreamReasoning;
-                if (!current.content && !current.reasoning && !current.tools)
+                if (!current.content && !current.reasoning && !current.tools && !chat.imageStore.hasImages(current))
                     copy.splice(chat.currentStreamIndex, 1);
                 chat.messages = copy;
             }
@@ -89,6 +89,10 @@ QtObject {
         } else if (event.type === "text_delta" || event.type === "reasoning_delta") {
             replies.ensureStreamingMessage(model);
             chat.streamBuffer.add(event.type === "text_delta" ? "text" : "reasoning", event.delta);
+        } else if (event.type === "images") {
+            // Images the model sent: saved as files, then added to this reply.
+            replies.ensureStreamingMessage(model);
+            chat.imageStore.addFromReply(chat.currentSessionId, chat.currentStreamKey, event.items, {"model": model});
         } else if (event.type === "usage") {
             var usage = Object.assign({}, chat.currentStreamUsage);
             if (event.input !== undefined) usage.input = event.input;
@@ -104,8 +108,9 @@ QtObject {
             if (completed && chat.currentStreamIndex >= 0) {
                 var msgs = chat.messages.slice();
                 var reply = Object.assign({}, msgs[chat.currentStreamIndex]);
-                reply.content = chat.currentStreamText || (reply.tools ? "" : "(empty response)");
+                reply.content = chat.currentStreamText || (reply.tools || chat.imageStore.hasImages(reply) ? "" : "(empty response)");
                 reply.reasoning = chat.currentStreamReasoning;
+                reply = chat.imageStore.takeInlineImages(chat.currentSessionId, reply);
                 if (chat.currentStreamUsage.input !== undefined || chat.currentStreamUsage.output !== undefined)
                     reply.tokens = {"input": chat.currentStreamUsage.input || 0, "output": chat.currentStreamUsage.output || 0};
                 if (chat.currentStreamUsage.cost)

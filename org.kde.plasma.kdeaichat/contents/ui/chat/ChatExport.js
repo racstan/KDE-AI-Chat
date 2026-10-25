@@ -14,7 +14,8 @@
 // A message is {role: user|queued|assistant|error, content, time, at, model,
 // reasoning, attachments: [{name, type, mimeType, size}], quotes: [{id, role,
 // text}] (the messages it quoted), tools: {id: {name,
-// detail, status, input, output}}, filesChanged, tokens, cost}. Other roles
+// detail, status, input, output}}, filesChanged, tokens, cost, images: [{path, mime, bytes, source,
+// prompt, service, model, width, height, seed}]}. Other roles
 // (permission and question cards) and any UI state are left out.
 //
 // opts = {includeReasoning: false}. Reasoning is left out unless asked for;
@@ -27,7 +28,10 @@
 //                quotes?: [{role: "user"|"assistant", text}],
 //                reasoning?, attachments: [{name, type, mimeType, size}],
 //                toolCalls: [{name, status, input, output}], filesChanged,
+//                images?: [{file, path, mime, bytes, source, prompt, service, model, width, height, seed}],
 //                tokens?, cost?}]}
+// Images are files in the chat's folder (images/<chat>/<name>); an export lists them by that relative
+// path and file name and does not contain the pictures. Markdown links them as ![alt](path).
 // Times are ISO 8601 strings (UTC) or null.
 
 var FORMATS = [
@@ -125,6 +129,31 @@ function _attachments(m) {
     return out;
 }
 
+// The pictures of a message: [{path, file, mime, bytes, source, prompt, service, model, width, height, seed}].
+// Paths are relative to the chat's folder and only ever images/<chat>/<name>; anything else is left out.
+function _images(m) {
+    var out = [];
+    var list = m.images || [];
+    for (var i = 0; i < list.length; i++) {
+        var im = list[i] || {};
+        var path = String(im.path || "");
+        if (!/^images\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\.(png|jpg|webp|gif)$/.test(path))
+            continue;
+        var entry = {"path": path, "file": path.substring(path.lastIndexOf("/") + 1), "mime": String(im.mime || ""), "bytes": Number(im.bytes) || 0,
+                     "source": String(im.source || "")};
+        var fields = ["prompt", "service", "model", "provider"];
+        for (var f = 0; f < fields.length; f++) {
+            if (im[fields[f]])
+                entry[fields[f]] = _oneLine(im[fields[f]], 1000);
+        }
+        if (Number(im.width) > 0) entry.width = Number(im.width);
+        if (Number(im.height) > 0) entry.height = Number(im.height);
+        if (im.seed !== undefined && im.seed !== "") entry.seed = String(im.seed);
+        out.push(entry);
+    }
+    return out;
+}
+
 // What the message quoted: [{role, speaker, text}], in the order it was sent.
 function _quotes(m) {
     var out = [];
@@ -174,10 +203,11 @@ function _entries(chat, opts) {
         var e = {"role": role, "speaker": _speaker(m), "when": _when(m), "at": m.at > 0 ? m.at : 0,
                  "model": role === "assistant" ? String(m.model || "") : "",
                  "text": clean(m.content), "reasoning": opts.includeReasoning ? clean(m.reasoning) : "",
-                 "attachments": _attachments(m), "quotes": role === "user" ? _quotes(m) : [], "tools": _tools(m),
+                 "attachments": _attachments(m), "images": role === "assistant" ? _images(m) : [],
+                 "quotes": role === "user" ? _quotes(m) : [], "tools": _tools(m),
                  "filesChanged": (m.filesChanged || []).map(function(f) { return _oneLine(f, 300); }),
                  "tokens": m.tokens || null, "cost": m.cost > 0 ? Number(m.cost) : 0};
-        if (!e.text && !e.reasoning && e.attachments.length === 0 && e.tools.length === 0 && e.filesChanged.length === 0)
+        if (!e.text && !e.reasoning && e.attachments.length === 0 && e.images.length === 0 && e.tools.length === 0 && e.filesChanged.length === 0)
             continue;
         out.push(e);
     }
@@ -218,6 +248,18 @@ function _summary(output) {
     return lines.length > 1 ? s + " (" + lines.length + " lines)" : s;
 }
 
+// "AI Horde, Deliberate, 512x512, seed 77" for a caption.
+function _imageFacts(im) {
+    var parts = [];
+    if (im.service) parts.push(im.service);
+    if (im.model) parts.push(im.model);
+    if (im.width && im.height) parts.push(im.width + "x" + im.height);
+    if (im.seed !== undefined) parts.push("seed " + im.seed);
+    if (im.prompt) parts.push("prompt: " + _oneLine(im.prompt, 200));
+    parts.push(im.file);
+    return parts.join(", ");
+}
+
 function _toolLines(t) {
     var line = t.name + (t.detail ? ": " + t.detail : t.input ? ": " + _oneLine(t.input, MAX_INPUT) : "");
     var status = t.status === "error" ? "failed" : t.status;
@@ -252,6 +294,12 @@ function toMarkdown(chat, opts) {
                 out.push("- " + _esc(e.attachments[a].name) + (sz ? " (" + sz + ")" : ""));
             }
             out.push("");
+        }
+        if (e.images.length > 0) {
+            out.push("**Images**", "");
+            for (var im = 0; im < e.images.length; im++)
+                out.push("![" + _esc(_oneLine(e.images[im].prompt || e.images[im].file, 120)).replace(/[\[\]]/g, "") + "](" + e.images[im].path + ")",
+                         "*" + _imageFacts(e.images[im]) + "*", "");
         }
         if (e.tools.length > 0) {
             out.push("**Tool calls**", "");
@@ -290,6 +338,8 @@ function toText(chat, opts) {
             out.push("", "[Reasoning]", _closeFences(e.reasoning).replace(/^/gm, "  "));
         if (e.attachments.length > 0)
             out.push("", "Attachments: " + e.attachments.map(function(a) { return a.name; }).join(", "));
+        for (var im = 0; im < e.images.length; im++)
+            out.push("", "Image: " + e.images[im].path + " (" + _imageFacts(e.images[im]) + ")");
         for (var t = 0; t < e.tools.length; t++) {
             var tl = _toolLines(e.tools[t]);
             out.push("", "Tool: " + tl.line + (tl.result ? "\n  Result: " + tl.result : ""));
@@ -310,6 +360,8 @@ function toJson(chat, opts) {
         if (e.quotes.length > 0)
             m.quotes = e.quotes.map(function(q) { return {"role": q.role, "text": q.text}; });
         m.attachments = e.attachments;
+        if (e.images.length > 0)
+            m.images = e.images;
         m.toolCalls = e.tools.map(function(t) {
             return {"name": t.name, "status": t.status || null, "input": t.input, "output": t.output};
         });

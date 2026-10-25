@@ -121,20 +121,11 @@ PlasmoidItem {
         onSavesReleased: root.persistSessions()
     }
 
-    Chat.OpenCodeMode {
-        id: openCode
-        chat: root
-    }
+    Chat.OpenCodeMode { id: openCode; chat: root }
 
-    Chat.PiMode {
-        id: piAgent
-        chat: root
-    }
+    Chat.PiMode { id: piAgent; chat: root }
 
-    Chat.DirectVariant {
-        id: directVariant
-        chat: root
-    }
+    Chat.DirectVariant { id: directVariant; chat: root }
 
     Chat.Notifier {
         id: notifier
@@ -226,10 +217,7 @@ PlasmoidItem {
         helperCommandsRef: helperCommands
     }
 
-    Chat.SessionTitles {
-        id: sessionTitles
-        chat: root
-    }
+    Chat.SessionTitles { id: sessionTitles; chat: root }
 
     Chat.SendController {
         id: sender
@@ -260,26 +248,17 @@ PlasmoidItem {
         directToolsRef: directRequest.toolRounds
     }
 
-    Chat.ChatNavigation {
-        id: chatNav
-        chat: root
-    }
+    Chat.ChatNavigation { id: chatNav; chat: root }
 
-    Chat.Attachments {
-        id: attachmentList
-        chat: root
-    }
+    Chat.Attachments { id: attachmentList; chat: root }
 
-    Chat.HelperCommands {
-        id: helperCommands
-        chat: root
-    }
+    Chat.HelperCommands { id: helperCommands; chat: root }
 
-    Chat.SchedulerPoller {
-        id: schedulerPoller
-        chat: root
-        notifierRef: notifier
-    }
+    Chat.SchedulerPoller { id: schedulerPoller; chat: root; notifierRef: notifier }
+
+    // Images of replies, kept as files in the chat's folder (chat/ImageStore.qml).
+    Chat.ImageStore { id: images; chat: root }
+    readonly property var imageStore: images
 
     function nowTime(ts) { return TimeFormat.nowTime(ts); }
 
@@ -378,10 +357,7 @@ PlasmoidItem {
 
     // Puts the widget in the chat's own mode, and re-reads its provider/model
     // when the settings change. A chat never changes mode (chat/ModeSync.qml).
-    Chat.ModeSync {
-        id: modeSync
-        chat: root
-    }
+    Chat.ModeSync { id: modeSync; chat: root }
 
     // New chats start in the mode the main settings select.
 

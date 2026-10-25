@@ -148,4 +148,23 @@ assert.ok(am.includes("Blue it is."), am);
 assert.ok(!am.includes("question_request"), am);
 assert.strictEqual(json(asked).messages.length, 3);
 
+// Images: listed by their relative paths and notes; the markdown links them; no picture data is exported.
+const pics = {title: "Pics", exportedAt: fixture.exportedAt, messages: [
+    {role: "user", content: "/image a red fox", at: 1000, time: "09:00"},
+    {role: "assistant", content: "", model: "Deliberate", at: 2000, time: "09:01", images: [
+        {path: "images/s-1-2/m-9-0.webp", mime: "image/webp", bytes: 4100, source: "generated", prompt: "a red fox", service: "AI Horde",
+         model: "Deliberate", width: 512, height: 512, seed: "77", b64: "SHOULD-NOT-APPEAR", url: "https://signed.example.com/x"},
+        {path: "../../etc/passwd", mime: "image/png"}, {path: "images/s-1-2/a.svg"}, {path: "images/s-1-2/m-9-1.png", mime: "image/png", bytes: 10}]}]};
+const pm = md(pics);
+assert.ok(pm.includes("**Images**\n\n![a red fox](images/s-1-2/m-9-0.webp)\n*AI Horde, Deliberate, 512x512, seed 77, prompt: a red fox, m-9-0.webp*"), pm);
+assert.ok(pm.includes("![m-9-1.png](images/s-1-2/m-9-1.png)"), pm);
+assert.ok(!pm.includes("passwd") && !pm.includes("a.svg") && !pm.includes("SHOULD-NOT-APPEAR") && !pm.includes("signed.example"), pm);
+assert.ok(txt(pics).includes("Image: images/s-1-2/m-9-0.webp (AI Horde, Deliberate, 512x512, seed 77, prompt: a red fox, m-9-0.webp)"), txt(pics));
+const pj = json(pics).messages[1];
+assert.strictEqual(pj.images.length, 2);
+assert.deepStrictEqual(pj.images[0], {path: "images/s-1-2/m-9-0.webp", file: "m-9-0.webp", mime: "image/webp", bytes: 4100, source: "generated",
+    prompt: "a red fox", service: "AI Horde", model: "Deliberate", width: 512, height: 512, seed: "77"});
+assert.ok(!JSON.stringify(json(pics)).includes("SHOULD-NOT-APPEAR"));
+assert.strictEqual(json(fixture).messages[0].images, undefined);
+
 console.log("chat_export ok");

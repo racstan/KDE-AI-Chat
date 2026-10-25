@@ -10,6 +10,7 @@ import "../backends/DirectBackend.js" as DirectBackend
 import "../backends/DirectStream.js" as DirectStream
 import "../backends/DirectTools.js" as DirectTools
 import "MessageContent.js" as MessageContent
+import "ImageExtract.js" as ImageExtract
 
 QtObject {
     id: direct
@@ -105,7 +106,9 @@ QtObject {
                 plain = plain.concat(DirectTools.historyMessages(apiType, rm, false));
                 continue;
             }
-            var item = {"role": rm.role, "content": extras ? MessageContent.build(rm.content, rm.attachments, apiType, rm.quotes) : rm.content};
+            // A reply that is only a picture goes back as a short note, never as an empty message.
+            var said = rm.content || (rm.role === "assistant" && (rm.images || []).length > 0 ? "[image]" : "");
+            var item = {"role": rm.role, "content": extras ? MessageContent.build(rm.content, rm.attachments, apiType, rm.quotes) : said};
             messages.push(item);
             plain.push(item);
         }
@@ -153,6 +156,7 @@ QtObject {
             "collector": collector,
             "maxTokens": direct.responseMaxTokens(ctx.sessionId, DirectBackend.DEFAULT_MAX_TOKENS),
             "variantSend": ctx.variantSend,
+            "images": ImageExtract,
             "stream": chat.plasmoid.configuration.disableStreaming !== true,
             "timeoutMs": chat.plasmoid.configuration.requestTimeout > 0 ? chat.plasmoid.configuration.requestTimeout * 1000 : 0,
             "xhrFactory": direct.xhrFactory || function() { return new XMLHttpRequest(); },

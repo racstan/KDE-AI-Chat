@@ -237,6 +237,17 @@ Item {
                     onSelectionMade: (text) => { if (text.trim() || !actions.keepSelection) row.selectedText = text; }
                 }
 
+                // Pictures of a reply, and the images it links to (click to load).
+                Loader {
+                    active: row.role === "assistant" && ((row.message.images || []).length > 0 || String(row.message.content || "").indexOf("![") >= 0)
+                    visible: active
+                    Layout.fillWidth: true
+                    sourceComponent: MessageImages {
+                        chat: row.chat
+                        message: row.message
+                    }
+                }
+
                 Loader {
                     active: (row.message.attachments || []).length > 0
                     visible: active

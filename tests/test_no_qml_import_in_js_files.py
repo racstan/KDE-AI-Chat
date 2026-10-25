@@ -43,6 +43,7 @@ WATCHED_FILES = (
     "backends/PiBackend.js",
     "backends/AgentEvents.js",
     "chat/ChatExport.js",
+    "chat/ImageExtract.js",
     "chat/MessageBlocks.js",
     "chat/MessageGroups.js",
     "chat/ChatStats.js",

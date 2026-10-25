@@ -14,6 +14,10 @@ vm.runInNewContext(read("DirectBackend.js") + "\n" + read("DirectStream.js") + r
     + "\nconst rawSend = send;\nthis.exports = {createSseParser, createThinkSplitter, buildRequest, errorMessage, rejectsTools, createCollector,"
     + " send: o => rawSend(Object.assign({thinkFactory: createThinkSplitter}, o)), DEFAULT_MAX_TOKENS};", DB);
 const B = DB.exports;
+// chat/ImageExtract.js is passed to send() as options.images in the widget.
+const IX = {};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/ImageExtract.js"), "utf8")
+    .replace(/^\s*\.pragma\s+library\s*$/m, "") + "\nthis.exports = {fromMessage, textOf};", IX);
 // Objects from the vm context have another realm's prototypes; compare plain copies.
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -327,6 +331,41 @@ const tests = {
         assert.ok(xhr.aborted);
         assert.deepStrictEqual(plain(events.map(e => e.type)), ["start", "done"]);
         assert.strictEqual(events[1].reason, "aborted");
+    },
+
+    streamed_images_arrive_as_one_event_next_to_the_text() {
+        const img = {type: "image_url", image_url: {url: "data:image/png;base64,QUJD"}};
+        const {events, xhr} = run({type: "openai", baseUrl: "https://x/v1", model: "m", messages: [], images: IX.exports}, 200, [
+            'data: {"choices":[{"delta":{"content":"Here: "}}]}\n\n',
+            'data: {"choices":[{"delta":{"content":"done","images":[' + JSON.stringify(img) + ']}}]}\n\n',
+            'data: {"choices":[{"delta":{"images":[' + JSON.stringify(img) + ']}}]}\n\n',
+            "data: [DONE]\n\n",
+        ]);
+        xhr.play();
+        assert.strictEqual(collect(events, "text_delta"), "Here: done");
+        const found = events.filter(e => e.type === "images");
+        assert.strictEqual(found.length, 2);   // the backend reports each chunk's images; the widget drops repeats
+        assert.deepStrictEqual(plain(found[0].items), [{kind: "data", b64: "QUJD", mime: "image/png"}]);
+        assert.strictEqual(events[events.length - 1].reason, "complete");
+    },
+
+    full_response_images_and_content_parts() {
+        const body = {choices: [{message: {content: [{type: "text", text: "A cat."}, {type: "image_url", image_url: {url: "https://cdn.example.com/c.png"}}],
+                                           images: [{type: "image_url", image_url: {url: "data:image/webp;base64,QUJE"}}]}}]};
+        const {events, xhr} = run({type: "openai", baseUrl: "https://x/v1", model: "m", messages: [], stream: false, images: IX.exports}, 200, [JSON.stringify(body)]);
+        xhr.play();
+        assert.strictEqual(collect(events, "text_delta"), "A cat.");
+        const urls = [].concat(...events.filter(e => e.type === "images").map(e => e.items.map(i => i.kind)));
+        assert.deepStrictEqual(plain(urls.sort()), ["data", "url"]);
+    },
+
+    without_the_image_module_a_reply_is_read_as_before() {
+        const {events, xhr} = run({type: "openai", baseUrl: "https://x/v1", model: "m", messages: []}, 200, [
+            'data: {"choices":[{"delta":{"content":"x","images":[{"image_url":"https://a.example.com/a.png"}]}}]}\n\n',
+        ]);
+        xhr.play();
+        assert.strictEqual(events.filter(e => e.type === "images").length, 0);
+        assert.strictEqual(collect(events, "text_delta"), "x");
     },
 
     network_error() {
