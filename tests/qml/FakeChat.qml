@@ -59,13 +59,11 @@ QtObject {
     function checkClipboardForAttachments() {}
     function readClipboardText() { return ""; }
     function removeAttachedFile() { record("removeFile", arguments); }
-    function captureScreenRegion() { record("capture", arguments); }
     function stopStreaming() { record("stop", arguments); }
 
     // What chat/ChatHeader.qml, RenameRow.qml and SessionList.qml read.
     property bool historyOnlyMode: false
     property bool hideOnWindowDeactivate: true
-    property bool popupIsDark: false
     property string currentSessionId: "a"
     property string currentSessionTitle: "Trip planning"
     property bool renamingCurrentChat: false
@@ -73,10 +71,6 @@ QtObject {
     property string editingSessionId: ""
     property string editingSessionDraft: ""
     property var sessions: []
-    // Translucent like main.qml's, so the row suits a light or a dark popup.
-    function historySessionTint(s) {
-        return s.value === currentSessionId ? Qt.rgba(0.24, 0.68, 0.91, 0.18) : Qt.rgba(0.5, 0.5, 0.5, 0.1);
-    }
     function sessionSubtitle(s) { return (s.count || 0) + " messages"; }
     function switchSession(id) { record("switch", arguments); currentSessionId = id; }
     function renameCurrentSession() { record("renameCurrent", arguments); }

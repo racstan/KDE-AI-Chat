@@ -44,7 +44,7 @@ RowLayout {
                 folder = p.substring(p.lastIndexOf("/") + 1) || p;
             }
             var sess = bar.chat.currentOpenCodeSessionId();
-            var labelStr = folder ? ("📁 " + folder) : "📁 Workspace";
+            var labelStr = folder || "Workspace";
             if (sess) labelStr += " (" + sess.substring(0, 10) + "…)";
             return labelStr;
         }
@@ -59,7 +59,7 @@ RowLayout {
         Layout.fillWidth: true
     }
 
-    QQC2.ComboBox {
+    PC3.ComboBox {
         id: agentSelectorCombo
         implicitWidth: Kirigami.Units.gridUnit * 7
         implicitHeight: Kirigami.Units.gridUnit * 1.8

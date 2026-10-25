@@ -78,7 +78,7 @@ MouseArea {
         id: grip
 
         anchors.fill: parent
-        anchors.margins: 4
+        anchors.margins: Kirigami.Units.smallSpacing
         transform: Scale {
             origin.x: grip.width / 2
             origin.y: grip.height / 2

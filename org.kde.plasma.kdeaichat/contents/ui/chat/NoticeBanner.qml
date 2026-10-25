@@ -25,7 +25,7 @@ Rectangle {
     color: Qt.rgba(tone.r, tone.g, tone.b, 0.10)
     border.color: tone
     border.width: 1
-    radius: 6
+    radius: Kirigami.Units.cornerRadius
     implicitHeight: row.implicitHeight + Kirigami.Units.smallSpacing * 2
 
     RowLayout {
@@ -36,7 +36,7 @@ Rectangle {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             text: banner.text
-            color: banner.isError ? banner.tone : Kirigami.Theme.textColor
+            color: Kirigami.Theme.textColor
         }
         PC3.Button {
             visible: banner.actionText !== ""

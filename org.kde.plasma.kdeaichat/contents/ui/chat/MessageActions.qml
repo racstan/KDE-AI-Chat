@@ -180,7 +180,7 @@ RowLayout {
         order: 7
         sourceComponent: Action {
             enabled: !actions.streaming
-            icon.name: "edit-delete"
+            icon.name: "trash-empty"
             text: i18n("Delete")
             onClicked: actions.chat.deleteMessage(actions.messageIndex)
         }

@@ -2,6 +2,8 @@
 
 Screenshots: `build/qml-screens/mockup-<state>-<light|dark>.png`, made by `tests/qml/tst_mockups.qml` (`pytest -q` regenerates them; 760x700, the real chat components with `FakeChat`). Dark is approximated by overriding the Kirigami theme on the popup root, as `FullRepresentationContent.qml` (FRC) does: the offscreen platform has no Plasma colour scheme. Real Breeze Dark may differ, but the problems below come from the code, not the approximation.
 
+*Since this review:* the mock-ups are made by `tests/qml/mockups.qml` under the real Breeze Light/Dark schemes through KDE's platform theme (no override), and the custom palette is gone; see Progress in `04-gui.md`.
+
 ## What I see, per state
 
 **Empty chat**

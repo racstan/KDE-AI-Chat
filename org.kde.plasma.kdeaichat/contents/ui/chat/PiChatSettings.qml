@@ -3,6 +3,7 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 
 ColumnLayout {
@@ -20,7 +21,7 @@ ColumnLayout {
 
     readonly property var thinkingLevels: ["", "off", "minimal", "low", "medium", "high", "xhigh", "max"]
 
-    spacing: 8
+    spacing: Kirigami.Units.largeSpacing
     onModelChanged: if (!modelCombo.activeFocus) modelCombo.editText = pi.model
 
     RowLayout {

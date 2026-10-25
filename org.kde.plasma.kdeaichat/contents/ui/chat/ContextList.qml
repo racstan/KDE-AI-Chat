@@ -12,7 +12,7 @@ ColumnLayout {
     property var items: []
     property bool expanded: false
 
-    spacing: 2
+    spacing: Math.round(Kirigami.Units.smallSpacing / 2)
 
     QQC2.AbstractButton {
         Layout.fillWidth: true

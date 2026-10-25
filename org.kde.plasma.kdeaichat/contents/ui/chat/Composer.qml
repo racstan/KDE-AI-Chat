@@ -72,8 +72,8 @@ ColumnLayout {
             readonly property var voice: composer.chat.voiceManagerRef
             running: composer.chat.loading || (!!voice && voice.statusText !== "" && voice.statusText !== "Reading aloud..." && voice.statusText !== "Paused" && !voice.callModeActive)
             visible: running
-            width: 16
-            height: 16
+            width: Kirigami.Units.iconSizes.small
+            height: Kirigami.Units.iconSizes.small
         }
 
         PC3.ToolButton {
@@ -129,9 +129,9 @@ ColumnLayout {
                     required property var modelData
                     required property int index
 
-                    width: Math.min(180, filenameLabel.implicitWidth + 60)
+                    width: Math.min(Kirigami.Units.gridUnit * 10, filenameLabel.implicitWidth + Kirigami.Units.iconSizes.smallMedium * 2 + Kirigami.Units.smallSpacing * 4)
                     height: Kirigami.Units.gridUnit * 1.5
-                    radius: 6
+                    radius: Kirigami.Units.cornerRadius
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
                     border.width: 1
                     border.color: modelData.error !== "" ? Kirigami.Theme.negativeTextColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
@@ -151,15 +151,15 @@ ColumnLayout {
                         spacing: Kirigami.Units.smallSpacing
 
                         Item {
-                            Layout.preferredWidth: 20
-                            Layout.preferredHeight: 20
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.small
 
                             PC3.BusyIndicator {
                                 anchors.centerIn: parent
                                 visible: fileChip.modelData.loading
                                 running: fileChip.modelData.loading
-                                width: 16
-                                height: 16
+                                width: Kirigami.Units.iconSizes.small
+                                height: Kirigami.Units.iconSizes.small
                             }
 
                             Image {
@@ -183,14 +183,13 @@ ColumnLayout {
                             Layout.fillWidth: true
                             text: fileChip.modelData.name
                             elide: Text.ElideRight
-                            font.pointSize: 9
-                            color: fileChip.modelData.error !== "" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                            font: Kirigami.Theme.smallFont
                         }
 
                         PC3.ToolButton {
                             icon.name: "dialog-close"
-                            Layout.preferredWidth: 20
-                            Layout.preferredHeight: 20
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                             display: PC3.AbstractButton.IconOnly
                             QQC2.ToolTip.visible: hovered
                             QQC2.ToolTip.text: "Remove file"
@@ -206,7 +205,7 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
 
-        QQC2.TextArea {
+        PC3.TextArea {
             id: msgInput
 
             Layout.fillWidth: true
@@ -218,14 +217,6 @@ ColumnLayout {
             enabled: true
             placeholderText: "Type message (Enter sends, Shift+Enter newline)"
             focus: true
-
-            background: Rectangle {
-                color: Kirigami.Theme.backgroundColor
-                radius: 4
-                border.width: 1
-                border.color: msgInput.activeFocus ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.3)
-            }
-            color: Kirigami.Theme.textColor
 
             onActiveFocusChanged: {
                 if (activeFocus)
@@ -279,16 +270,6 @@ ColumnLayout {
                 running: !!voice && (voice.statusText.indexOf("Loading") !== -1 || voice.statusText.indexOf("Transcribing") !== -1 || voice.statusText.indexOf("Processing") !== -1)
                 visible: running
             }
-        }
-
-        PC3.ToolButton {
-            icon.name: "camera-photo-symbolic"
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
-            enabled: true
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: "Capture screen region (Spectacle)"
-            onClicked: composer.chat.captureScreenRegion()
         }
 
         PC3.ToolButton {

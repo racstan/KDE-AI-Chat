@@ -35,10 +35,29 @@ Row {
         onClicked: buttons.answered(false, false)
     }
 
-    PC3.Label {
+    // The answer: a Breeze icon and a word.
+    Row {
+        readonly property alias text: answerLabel.text
+        readonly property alias iconSource: answerIcon.source
+
         visible: buttons.message.status !== "pending"
-        text: buttons.message.status === "allowed" ? "Approved ✅" : buttons.message.status === "denied" ? "Rejected ❌" : "Answering…"
-        font.bold: true
-        color: buttons.message.status === "allowed" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+        spacing: Kirigami.Units.smallSpacing
+
+        Kirigami.Icon {
+            id: answerIcon
+            visible: buttons.message.status === "allowed" || buttons.message.status === "denied"
+            source: buttons.message.status === "allowed" ? "dialog-ok-apply" : "dialog-cancel"
+            width: Kirigami.Units.iconSizes.small
+            height: Kirigami.Units.iconSizes.small
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        PC3.Label {
+            id: answerLabel
+            text: buttons.message.status === "allowed" ? "Approved" : buttons.message.status === "denied" ? "Rejected" : "Answering…"
+            font.bold: true
+            color: buttons.message.status === "allowed" ? Kirigami.Theme.positiveTextColor
+                 : buttons.message.status === "denied" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+        }
     }
 }

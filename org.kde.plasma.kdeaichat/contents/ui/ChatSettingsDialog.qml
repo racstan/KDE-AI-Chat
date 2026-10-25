@@ -398,7 +398,7 @@ Rectangle {
                     visible: page._mode === "provider"
                     Layout.fillWidth: true
                     implicitHeight: providerColumn.implicitHeight + 24
-                    radius: 8
+                    radius: Kirigami.Units.cornerRadius
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
                     ColumnLayout {
@@ -451,7 +451,7 @@ Rectangle {
                     visible: page._mode === "opencode"
                     Layout.fillWidth: true
                     implicitHeight: openCodeColumn.implicitHeight + 24
-                    radius: 8
+                    radius: Kirigami.Units.cornerRadius
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
                     ColumnLayout {
@@ -481,7 +481,7 @@ Rectangle {
                     visible: page._mode === "pi"
                     Layout.fillWidth: true
                     implicitHeight: piSettings.implicitHeight + 24
-                    radius: 8
+                    radius: Kirigami.Units.cornerRadius
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
                     Chat.PiChatSettings {
                         id: piSettings
@@ -526,7 +526,7 @@ Rectangle {
                     visible: page._mode !== "opencode"
                     Layout.fillWidth: true
                     implicitHeight: systemColumn.implicitHeight + 24
-                    radius: 8
+                    radius: Kirigami.Units.cornerRadius
                     color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.045)
                     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
                     ColumnLayout { id: systemColumn; anchors.fill: parent; anchors.margins: 12; spacing: 8

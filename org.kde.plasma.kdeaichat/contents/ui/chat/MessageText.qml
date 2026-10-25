@@ -11,7 +11,6 @@ TextEdit {
     property var chat: null
     property int messageIndex: -1
     property bool plain: false
-    property bool isError: false
 
     // The user's selection, for "Read selected text".
     signal selectionMade(string text)
@@ -22,7 +21,10 @@ TextEdit {
     persistentSelection: true
     wrapMode: Text.Wrap
     textFormat: plain ? Text.PlainText : Text.MarkdownText
-    color: isError ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+    // Links take the colour scheme's link colour: TextEdit has no linkColor,
+    // its Markdown importer uses the application palette, which Plasma sets
+    // from the colour scheme.
+    color: Kirigami.Theme.textColor
     selectedTextColor: Kirigami.Theme.highlightedTextColor
     selectionColor: Kirigami.Theme.highlightColor
     font: Kirigami.Theme.defaultFont

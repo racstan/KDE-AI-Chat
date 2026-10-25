@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PC3
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 import "chat" as Chat
@@ -9,12 +8,6 @@ import "chat" as Chat
 Item {
     id: repRoot
     anchors.fill: parent
-
-    Kirigami.Theme.inherit: false
-    Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
-    Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
-    Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
-    Kirigami.Theme.highlightColor: "#3182ce"
 
     Connections {
         target: root.voiceManagerRef || null
@@ -48,7 +41,7 @@ Item {
             color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.15)
             border.color: Kirigami.Theme.highlightColor
             border.width: 2
-            radius: 8
+            radius: Kirigami.Units.cornerRadius
             visible: parent.containsDrag
             z: 999
 
@@ -59,15 +52,14 @@ Item {
                 Kirigami.Icon {
                     source: "mail-attachment"
                     Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 48
-                    implicitHeight: 48
+                    implicitWidth: Kirigami.Units.iconSizes.large
+                    implicitHeight: Kirigami.Units.iconSizes.large
                     color: Kirigami.Theme.highlightColor
                 }
 
-                PC3.Label {
+                Kirigami.Heading {
                     text: "Drop files here to attach"
-                    font.bold: true
-                    font.pointSize: 14
+                    level: 3
                     color: Kirigami.Theme.highlightColor
                     Layout.alignment: Qt.AlignHCenter
                 }
@@ -135,7 +127,7 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        radius: 8
+                        radius: Kirigami.Units.cornerRadius
                         color: Kirigami.Theme.alternateBackgroundColor
                         clip: true
 

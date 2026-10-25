@@ -49,7 +49,6 @@ Column {
                 MessageText {
                     chat: body.chat
                     messageIndex: body.messageIndex
-                    isError: body.isError
                     text: modelData.text
                     onSelectionMade: (text) => body.selectionMade(text)
                 }

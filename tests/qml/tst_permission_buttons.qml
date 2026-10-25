@@ -57,7 +57,12 @@ Item {
 
         function test_3_answer_is_shown_instead_of_buttons() {
             buttons.message = {"status": "allowed", "canAlways": true};
-            compare(visibleTexts(), ["Approved ✅"]);
+            compare(visibleTexts(), ["Approved"]);
+            var answer = buttons.children[buttons.children.length - 1];
+            compare(String(answer.iconSource), "dialog-ok-apply");
+            buttons.message = {"status": "denied", "canAlways": true};
+            compare(visibleTexts(), ["Rejected"]);
+            compare(String(answer.iconSource), "dialog-cancel");
             buttons.message = {"status": "answering...", "canAlways": true};
             compare(visibleTexts(), ["Answering…"]);
         }

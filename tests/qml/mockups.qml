@@ -1,10 +1,13 @@
 // Design-review mockups: the real chat components in each chat-view state,
-// light and dark, saved as build/qml-screens/mockup-<state>-<light|dark>.png
-// at a realistic popup size. Run before any visual polishing.
+// saved as build/qml-screens/mockup-<state>-<light|dark>.png at a realistic
+// popup size.
 //
-// Dark is the Kirigami theme overridden on the popup root (the same way
-// FullRepresentationContent does it): the offscreen platform has no Plasma
-// colour scheme, so this approximates a dark Breeze palette.
+// Nothing here sets a colour. tests/test_qml.py runs this file once per
+// colour scheme (Breeze Light, Breeze Dark) with KDE's platform theme reading
+// that scheme from a temporary kdeglobals, which is how Plasma itself gives
+// Kirigami.Theme and the controls their colours. The file name says which
+// scheme was really in effect (read from Kirigami.Theme), not which was asked
+// for. Not named tst_*, so the main QML suite doesn't run it.
 import QtQuick
 import QtQuick.Layouts
 import QtTest
@@ -16,7 +19,8 @@ Item {
     width: 760
     height: 700
 
-    property bool dark: false
+    readonly property bool dark: popup.Kirigami.Theme.backgroundColor.hslLightness < 0.5
+    readonly property string themeName: dark ? "dark" : "light"
 
     function i18n(text) {
         for (var i = 1; i < arguments.length; i++)
@@ -31,17 +35,7 @@ Item {
         id: popup
         anchors.fill: parent
 
-        Kirigami.Theme.inherit: false
-        Kirigami.Theme.backgroundColor: root.dark ? "#232629" : "#fcfcfc"
-        Kirigami.Theme.alternateBackgroundColor: root.dark ? "#2a2e32" : "#eff0f1"
-        Kirigami.Theme.textColor: root.dark ? "#fcfcfc" : "#232629"
-        Kirigami.Theme.disabledTextColor: root.dark ? "#a1a9b1" : "#7f8c8d"
-        Kirigami.Theme.highlightColor: "#3daee9"
-        Kirigami.Theme.highlightedTextColor: "#ffffff"
-        Kirigami.Theme.positiveTextColor: "#27ae60"
-        Kirigami.Theme.neutralTextColor: "#f67400"
-        Kirigami.Theme.negativeTextColor: "#da4453"
-
+        // Stands in for the Plasma popup's own background.
         Rectangle {
             anchors.fill: parent
             color: Kirigami.Theme.backgroundColor
@@ -69,7 +63,7 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        radius: 8
+                        radius: Kirigami.Units.cornerRadius
                         color: Kirigami.Theme.alternateBackgroundColor
                         clip: true
 
@@ -120,18 +114,31 @@ Item {
             chat.sessions = [];
         }
 
-        // Builds the state for each theme, waits for layout, saves the shot.
+        // Builds the state, waits for layout, saves the shot.
         function shoot(state, setup) {
-            var themes = ["light", "dark"];
-            for (var t = 0; t < themes.length; t++) {
-                root.dark = themes[t] === "dark";
-                chat.popupIsDark = root.dark;
-                reset();
-                setup();
-                wait(150);
-                var path = screenshot(root, "mockup-" + state + "-" + themes[t]);
-                verify(path.indexOf("mockup-" + state + "-" + themes[t] + ".png") > 0);
-            }
+            reset();
+            setup();
+            wait(150);
+            var name = "mockup-" + state + "-" + root.themeName;
+            var path = screenshot(root, name);
+            verify(path.indexOf(name + ".png") > 0);
+        }
+
+        function lightness(c) {
+            return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+        }
+
+        // The composer's text box and the popup are both light or both dark
+        // (the old custom palette left the box white in a dark popup).
+        function test_00_composer_matches_the_scheme() {
+            reset();
+            wait(100);
+            var input = composer.input;
+            var img = grabImage(input);
+            // Inside the frame, below the placeholder text.
+            var inside = img.pixel(img.width - Kirigami.Units.largeSpacing * 2, img.height - Kirigami.Units.largeSpacing);
+            console.log("MOCKUP theme", root.themeName, "background", popup.Kirigami.Theme.backgroundColor, "input", inside, "link", popup.Kirigami.Theme.linkColor);
+            compare(lightness(inside) < 0.5, root.dark, "composer box " + inside + " in a " + root.themeName + " popup");
         }
 
         function findFirst(item, predicate) {

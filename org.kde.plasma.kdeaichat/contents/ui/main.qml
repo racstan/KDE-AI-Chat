@@ -86,7 +86,6 @@ PlasmoidItem {
     property int livePopupHeight: 0
     readonly property int popupPreferredWidth: livePopupWidth > 0 ? livePopupWidth : (plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760)
     readonly property int popupPreferredHeight: livePopupHeight > 0 ? livePopupHeight : (plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760)
-    readonly property bool popupIsDark: Qt.styleHints.colorScheme === Qt.Dark
     property bool keysLoaded: false
     // providerId -> API key, read from KWallet (the only place keys are kept).
     readonly property var walletApiKeys: wallet.keys
@@ -284,22 +283,6 @@ PlasmoidItem {
             return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
         });
         root.sessions = copy;
-    }
-
-    function historySessionTint(sessionData) {
-        if (!sessionData)
-            return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05);
-
-        if (sessionData.value === root.currentSessionId && sessionData.source === "opencode")
-            return Qt.rgba(0.2, 0.48, 0.92, 0.22);
-
-        if (sessionData.source === "opencode")
-            return Qt.rgba(0.2, 0.48, 0.92, 0.1);
-
-        if (sessionData.value === root.currentSessionId)
-            return Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.18);
-
-        return Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05);
     }
 
     function sessionSubtitle(sessionData) {
@@ -753,13 +736,6 @@ PlasmoidItem {
             return ;
 
         setCurrentOpenCodeSessionId("");
-    }
-
-    function captureScreenRegion() {
-        var timestamp = Date.now();
-        var savePath = "/tmp/kdeaichat_shot_" + timestamp + ".png";
-        var cmd = "umask 077 && spectacle -r -b -n -o " + Sec.quoteForShell(savePath);
-        fileReaderDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #spectacle-shot-" + timestamp + "|" + savePath);
     }
 
     function syncOpenCodeSessionHistory() {
@@ -2495,20 +2471,6 @@ PlasmoidItem {
                 disconnectSource(sourceName);
                 return ;
             }
-            if (sourceName.indexOf("#spectacle-shot-") !== -1) {
-                if (exitCode === 0) {
-                    var parts = sourceName.split("|");
-                    if (parts.length > 1) {
-                        var shotPath = parts[1].trim();
-                        if (shotPath !== "")
-                            attachFile("file://" + shotPath);
-                    }
-                } else {
-                    pushErrorMessage("Screen region capture cancelled or failed.");
-                }
-                disconnectSource(sourceName);
-                return ;
-            }
             if (sourceName.indexOf("#fetch-opencode-agents") !== -1) {
                 var fallbackAgents = [];
                 var fallbackDefault = "";
@@ -2829,18 +2791,8 @@ PlasmoidItem {
                 Qt.callLater(root.scrollToBottom);
             }
         }
-        Kirigami.Theme.inherit: false
-        Kirigami.Theme.backgroundColor: root.popupIsDark ? "#121212" : "#ffffff"
-        Kirigami.Theme.alternateBackgroundColor: root.popupIsDark ? "#1a1a1a" : "#f5f7fa"
-        Kirigami.Theme.textColor: root.popupIsDark ? "#f7fafc" : "#1a202c"
-        Kirigami.Theme.highlightColor: "#3182ce"
-
-        Rectangle {
-            anchors.fill: parent
-            color: Kirigami.Theme.backgroundColor
-            radius: 8
-        }
-
+        // No background or colours of its own: the Plasma popup draws the
+        // background and the content follows the Plasma colour scheme.
         Loader {
             id: mainContentLoader
 

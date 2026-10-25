@@ -726,7 +726,7 @@ import org.kde.plasma.plasma5support as P5Support
 
                                 Kirigami.Icon {
                                     source: (modelData.status && modelData.status.indexOf("success") !== -1) ? "dialog-ok" : "dialog-error"
-                                    color: (modelData.status && modelData.status.indexOf("success") !== -1) ? "#2ecc71" : "#e74c3c"
+                                    color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                                     Layout.preferredWidth: Kirigami.Units.gridUnit * 1.2
                                     Layout.preferredHeight: Kirigami.Units.gridUnit * 1.2
                                 }
@@ -763,7 +763,7 @@ import org.kde.plasma.plasma5support as P5Support
                                         text: translate("Status: ") + (modelData.status === "success" ? translate("Success") : (modelData.status === "error" ? translate("Failed") : modelData.status))
                                         font.pixelSize: 10
                                         font.bold: true
-                                        color: (modelData.status && modelData.status.indexOf("success") !== -1) ? "#27ae60" : "#c0392b"
+                                        color: (modelData.status && modelData.status.indexOf("success") !== -1) ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                                         Layout.fillWidth: true
                                         wrapMode: Text.Wrap
                                     }

@@ -13,7 +13,7 @@ Rectangle {
     property var chat: null
     readonly property alias list: historyList
 
-    radius: 8
+    radius: Kirigami.Units.cornerRadius
     color: Kirigami.Theme.alternateBackgroundColor
 
     ListView {
@@ -39,9 +39,12 @@ Rectangle {
 
             width: historyList.width
             height: historyCol.implicitHeight + Kirigami.Units.smallSpacing * 2
-            radius: 8
+            radius: Kirigami.Units.cornerRadius
             opacity: modelData.archived ? 0.72 : 1
-            color: chat.historySessionTint(modelData)
+            // The open chat is tinted with the accent colour, the others faintly.
+            color: modelData.value === chat.currentSessionId
+                ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.18)
+                : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
 
             Column {
                 id: historyCol
@@ -60,8 +63,8 @@ Rectangle {
                         visible: row.modelData.source === "opencode"
                         width: modeBadgeText.implicitWidth + Kirigami.Units.smallSpacing * 2
                         height: modeBadgeText.implicitHeight + Kirigami.Units.smallSpacing
-                        radius: 999
-                        color: Qt.rgba(0.2, 0.48, 0.92, 0.18)
+                        radius: Kirigami.Units.cornerRadius
+                        color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.25)
 
                         PC3.Label {
                             id: modeBadgeText
@@ -69,23 +72,16 @@ Rectangle {
                             anchors.centerIn: parent
                             text: "OC"
                             font.bold: true
-                            color: Qt.rgba(0.12, 0.35, 0.78, 1)
+                            color: Kirigami.Theme.textColor
                         }
                     }
 
-                    QQC2.TextField {
+                    PC3.TextField {
                         id: titleField
 
                         visible: row.editing
                         width: row.titleWidth
                         text: row.chat.editingSessionDraft
-                        color: Kirigami.Theme.textColor
-                        background: Rectangle {
-                            color: Kirigami.Theme.backgroundColor
-                            radius: Kirigami.Units.smallSpacing
-                            border.color: titleField.activeFocus ? Kirigami.Theme.highlightColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.3)
-                            border.width: 1
-                        }
                         onTextChanged: row.chat.editingSessionDraft = text
                         onAccepted: row.chat.saveSessionRename(row.modelData.value)
                     }
@@ -95,7 +91,6 @@ Rectangle {
                         width: row.titleWidth
                         text: row.modelData.text || "New Chat"
                         font.bold: row.modelData.value === row.chat.currentSessionId
-                        color: row.chat.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
 
@@ -137,7 +132,7 @@ Rectangle {
                     PC3.ToolButton {
                         id: removeChat
 
-                        icon.name: row.editing ? "dialog-cancel" : "edit-delete"
+                        icon.name: row.editing ? "dialog-cancel" : "trash-empty"
                         display: PC3.AbstractButton.IconOnly
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: row.editing ? "Cancel rename" : "Delete chat"
@@ -151,8 +146,7 @@ Rectangle {
                 }
 
                 PC3.Label {
-                    opacity: row.chat.popupIsDark ? 1 : 0.7
-                    color: row.chat.popupIsDark ? "#ffffff" : Kirigami.Theme.textColor
+                    opacity: 0.7
                     text: row.chat.sessionSubtitle(row.modelData)
                 }
             }

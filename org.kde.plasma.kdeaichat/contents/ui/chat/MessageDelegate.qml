@@ -8,7 +8,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -71,9 +70,10 @@ Item {
             Layout.leftMargin: row.mine ? 0 : Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
             implicitHeight: content.implicitHeight + Kirigami.Units.largeSpacing * 2
-            radius: Kirigami.Units.cornerRadius * 2
+            radius: Kirigami.Units.cornerRadius
+            // Errors: a neutral card with a red edge (red text on red was hard to read).
             color: row.mine ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, row.role === "queued" ? 0.08 : 0.16)
-                 : row.role === "error" ? Qt.rgba(Kirigami.Theme.negativeTextColor.r, Kirigami.Theme.negativeTextColor.g, Kirigami.Theme.negativeTextColor.b, 0.1)
+                 : row.role === "error" ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
                  : row.isRequest ? Qt.rgba(Kirigami.Theme.neutralTextColor.r, Kirigami.Theme.neutralTextColor.g, Kirigami.Theme.neutralTextColor.b, 0.1)
                  : "transparent"
             border.width: row.role === "error" || row.isRequest ? 1 : 0
@@ -145,7 +145,7 @@ Item {
                     sourceComponent: ColumnLayout {
                         spacing: Kirigami.Units.smallSpacing
 
-                        QQC2.TextArea {
+                        PC3.TextArea {
                             Layout.fillWidth: true
                             text: row.chat.editingDraft
                             wrapMode: Text.Wrap
