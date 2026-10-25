@@ -28,6 +28,7 @@
   "org.kde.plasma.kdeaichat/contents/ui/chat/QuestionCard.qml": 17,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ReasoningBlock.qml": 4,
   "org.kde.plasma.kdeaichat/contents/ui/chat/RenameRow.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/chat/ResizeHandle.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/SessionList.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/ProvidersPanel.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/main.qml": 23,

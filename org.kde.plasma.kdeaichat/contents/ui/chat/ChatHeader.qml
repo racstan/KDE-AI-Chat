@@ -5,6 +5,7 @@
 // requested through signals; the parent wires them up.
 pragma ComponentBehavior: Bound
 
+import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -30,7 +31,8 @@ RowLayout {
         var min = String(now.getMinutes()).padStart(2, "0");
         var sec = String(now.getSeconds()).padStart(2, "0");
         var timestamp = year + "-" + month + "-" + day + "_" + hour + "-" + min + "-" + sec;
-        return "file:///home/home/Documents/" + cleanTitle + "_" + timestamp + ".md";
+        var docs = String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/\/+$/, "");
+        return docs + "/" + encodeURIComponent(cleanTitle + "_" + timestamp + ".md");
     }
 
     Layout.fillWidth: true

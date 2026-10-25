@@ -46,6 +46,7 @@ TestCase {
             { tag: "chat/RenameRow", url: uiDir + "chat/RenameRow.qml" },
             { tag: "chat/Composer", url: uiDir + "chat/Composer.qml" },
             { tag: "chat/SessionList", url: uiDir + "chat/SessionList.qml" },
+            { tag: "chat/ResizeHandle", url: uiDir + "chat/ResizeHandle.qml" },
             { tag: "ConfigGeneral", url: uiDir + "ConfigGeneral.qml" },
             { tag: "ConfigSystemPrompt", url: uiDir + "ConfigSystemPrompt.qml" },
             { tag: "ConfigVoice", url: uiDir + "ConfigVoice.qml" },

@@ -77,16 +77,16 @@ PlasmoidItem {
     property var msgListViewRef: null
     property var composerRef: null
     property bool userScrolledUp: false
-    // Keep the viewport stable while a response grows.  A response must not
-    // yank the user to the newest bubble; only an explicit jump-to-latest
-    // action releases this lock.
     property bool titleGenerationInProgress: false
     property string titleGenerationSessionId: ""
     // Token counts reported for the reply being streamed.
     property var currentStreamUsage: ({})
     property int queueCounter: 0
-    property int popupPreferredWidth: plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760
-    property int popupPreferredHeight: plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760
+    // Popup size: the live size while chat/ResizeHandle.qml drags (0 otherwise), else the saved one.
+    property int livePopupWidth: 0
+    property int livePopupHeight: 0
+    readonly property int popupPreferredWidth: livePopupWidth > 0 ? livePopupWidth : (plasmoid.configuration.customPopupWidth > 0 ? plasmoid.configuration.customPopupWidth : 760)
+    readonly property int popupPreferredHeight: livePopupHeight > 0 ? livePopupHeight : (plasmoid.configuration.customPopupHeight > 0 ? plasmoid.configuration.customPopupHeight : 760)
     readonly property bool popupIsDark: {
         var mode = plasmoid.configuration.appearanceMode || 0;
         if (mode === 1)

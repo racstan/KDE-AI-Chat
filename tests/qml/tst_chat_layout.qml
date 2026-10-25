@@ -1,5 +1,6 @@
 // The chat popup's parts laid out as FullRepresentationContent does:
 // header, rename row, message list, composer; and the history list.
+import QtCore
 import QtQuick
 import QtQuick.Layouts
 import QtTest
@@ -81,6 +82,13 @@ Item {
             compare(sessionList.list.count, 3);
             screenshot(root, "chat-layout-history");
             chat.historyOnlyMode = false;
+        }
+
+        function test_3_export_suggests_the_documents_folder() {
+            const docs = String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation));
+            const name = header.exportFileName();
+            verify(name.indexOf(docs.replace(/\/+$/, "") + "/") === 0, name);
+            verify(/\/Trip_planning_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.md$/.test(name), name);
         }
     }
 }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 import "chat" as Chat
 
@@ -171,62 +172,19 @@ Item {
 
     }
 
-    MouseArea {
-        property real startX: 0
-        property real startY: 0
-        property real startW: 0
-        property real startH: 0
-
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        width: Kirigami.Units.gridUnit
-        height: Kirigami.Units.gridUnit
-        cursorShape: Qt.SizeFDiagCursor
-        onPressed: function(mouse) {
-            startX = mouse.x;
-            startY = mouse.y;
-            startW = parent.implicitWidth;
-            startH = parent.implicitHeight;
-        }
-        onPositionChanged: function(mouse) {
-            if (pressed) {
-                var dx = mouse.x - startX;
-                var dy = mouse.y - startY;
-                var newW = Math.max(500, startW + dx);
-                var newH = Math.max(620, startH + dy);
-                parent.implicitWidth = newW;
-                parent.implicitHeight = newH;
-                plasmoid.configuration.customPopupWidth = newW;
-                plasmoid.configuration.customPopupHeight = newH;
-            }
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            color: "transparent"
-
-            Canvas {
-                anchors.fill: parent
-                anchors.margins: 4
-                onPaint: {
-                    var ctx = getContext("2d");
-                    ctx.strokeStyle = Kirigami.Theme.textColor;
-                    ctx.lineWidth = 1;
-                    ctx.globalAlpha = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(width - 4, height);
-                    ctx.lineTo(width, height - 4);
-                    ctx.moveTo(width - 8, height);
-                    ctx.lineTo(width, height - 8);
-                    ctx.moveTo(width - 12, height);
-                    ctx.lineTo(width, height - 12);
-                    ctx.stroke();
-                }
-            }
-
-        }
-
-    } // MouseArea
+    // In the corner away from the panel, so dragging it grows the popup
+    // towards the mouse.
+    Chat.ResizeHandle {
+        chat: root
+        config: plasmoid.configuration
+        growsUp: Plasmoid.location === PlasmaCore.Types.BottomEdge
+        growsLeft: Plasmoid.location === PlasmaCore.Types.RightEdge
+        anchors.right: growsLeft ? undefined : parent.right
+        anchors.left: growsLeft ? parent.left : undefined
+        anchors.bottom: growsUp ? undefined : parent.bottom
+        anchors.top: growsUp ? parent.top : undefined
+        z: 10
+    }
 
     ChatSettingsDialog {
         id: chatSettingsDialog
