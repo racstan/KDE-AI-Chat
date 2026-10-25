@@ -75,6 +75,7 @@ PlasmoidItem {
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
     property string chatInputText: ""
     property var msgListViewRef: null
+    property var composerRef: null
     property bool userScrolledUp: false
     // Keep the viewport stable while a response grows.  A response must not
     // yank the user to the newest bubble; only an explicit jump-to-latest
@@ -166,14 +167,11 @@ PlasmoidItem {
         walletReloadTimer.restart();
     }
 
+    // chat/Composer.qml registers itself here while the popup content exists.
     function focusInput() {
         Qt.callLater(function() {
-            if (typeof msgInput !== "undefined" && msgInput) {
-                msgInput.forceActiveFocus();
-                if (typeof msgInput.focusTimerRef !== "undefined" && msgInput.focusTimerRef)
-                    msgInput.focusTimerRef.start();
-
-            }
+            if (root.composerRef)
+                root.composerRef.focusInput();
         });
     }
 

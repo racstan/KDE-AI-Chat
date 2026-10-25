@@ -25,6 +25,58 @@ QtObject {
     property bool voiceTtsEnabled: false
     property var calls: []
 
+    // What chat/Composer.qml reads and calls.
+    signal clearChatInput()
+    property string chatInputText: ""
+    property var composerRef: null
+    property bool expanded: true
+    property bool streamingResponse: false
+    property var attachedFiles: []
+    function focusInput() {
+        Qt.callLater(function() {
+            if (fake.composerRef)
+                fake.composerRef.focusInput();
+        });
+    }
+    function sendMessage() {
+        record("send", [chatInputText]);
+        chatInputText = "";
+        clearChatInput();
+    }
+    function attachmentsReadyToSend() { return true; }
+    function ensureWalletLoaded() {}
+    function checkClipboardForAttachments() {}
+    function readClipboardText() { return ""; }
+    function removeAttachedFile() { record("removeFile", arguments); }
+    function captureScreenRegion() { record("capture", arguments); }
+    function stopStreaming() { record("stop", arguments); }
+
+    // What chat/ChatHeader.qml, RenameRow.qml and SessionList.qml read.
+    property bool historyOnlyMode: false
+    property bool hideOnWindowDeactivate: true
+    property bool popupIsDark: false
+    property string currentSessionId: "a"
+    property string currentSessionTitle: "Trip planning"
+    property bool renamingCurrentChat: false
+    property string currentChatRenameDraft: ""
+    property string editingSessionId: ""
+    property string editingSessionDraft: ""
+    property var sessions: []
+    function historySessionTint(s) { return s.value === currentSessionId ? "#e3edf7" : "#f5f7fa"; }
+    function sessionSubtitle(s) { return (s.count || 0) + " messages"; }
+    function switchSession(id) { record("switch", arguments); currentSessionId = id; }
+    function renameCurrentSession() { record("renameCurrent", arguments); }
+    function createSession() { record("create", arguments); }
+    function jumpOneMessageAbove() {}
+    function jumpOneMessageBelow() {}
+    function clearCurrentOpenCodeSessionIfNeeded() {}
+    function saveCurrentSessionState() {}
+    function startSessionRename(id) { editingSessionId = id; }
+    function saveSessionRename() { record("saveRename", arguments); editingSessionId = ""; }
+    function cancelSessionRename() { editingSessionId = ""; }
+    function setSessionArchived() { record("archive", arguments); }
+    function deleteSession() { record("deleteSession", arguments); }
+
     function messageDayKeyAt(i) { return "2026-10-25"; }
     function dayDividerLabelForIndex(i) { return "Today"; }
     function formatMessageTime(m, i) { return m.time || ""; }
