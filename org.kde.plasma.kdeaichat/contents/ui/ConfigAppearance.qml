@@ -22,6 +22,7 @@ KCM.SimpleKCM {
     property alias cfg_notifyOnReply: replyCheck.checked
     property alias cfg_notifyOnError: errorCheck.checked
     property alias cfg_notifyOnScheduled: scheduledCheck.checked
+    property alias cfg_notifyOnInput: inputCheck.checked
 
     readonly property string defaultIcon: "dialog-messages"
 
@@ -150,6 +151,12 @@ KCM.SimpleKCM {
             id: errorCheck
             objectName: "notifyErrorCheck"
             text: i18n("A request fails while the chat is closed")
+        }
+
+        QQC2.CheckBox {
+            id: inputCheck
+            objectName: "notifyInputCheck"
+            text: i18n("The AI needs an answer or permission while the chat is closed")
         }
 
         QQC2.CheckBox {

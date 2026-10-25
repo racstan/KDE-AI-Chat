@@ -73,9 +73,10 @@ QtObject {
             var isPermission = event.type === "permission_request";
             if (replies.findRequestMessage(event.type, isPermission ? "permissionId" : "questionId", event.id) >= 0)
                 return;
-            chat.messages = chat.messages.concat([isPermission ? AgentEvents.permissionMessage(event, extra, Date.now())
-                                                               : AgentEvents.questionMessage(event, extra, Date.now())]);
+            var request = isPermission ? AgentEvents.permissionMessage(event, extra, Date.now()) : AgentEvents.questionMessage(event, extra, Date.now());
+            chat.messages = chat.messages.concat([request]);
             chat.triggerNotificationSound();
+            try { replies.notifierRef.inputNeeded(chat.currentSessionId, chat.currentSessionTitle, request); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
             chat.saveCurrentSessionState(true);
         } else if (event.type === "permission_resolved") {
             replies.updateMessageAt(replies.findRequestMessage("permission_request", "permissionId", event.id), function(msg) {

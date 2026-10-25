@@ -204,12 +204,15 @@ Item {
         // ── Appearance ───────────────────────────────────────────────────────
         function test_appearance_page() {
             open("ConfigAppearance.qml", {"cfg_customIcon": "dialog-messages", "cfg_appDisplayName": "KDE AI Chat", "cfg_playNotificationSound": true,
-                                           "cfg_notifyOnReply": true, "cfg_notifyOnError": false, "cfg_notifyOnScheduled": true});
+                                           "cfg_notifyOnReply": true, "cfg_notifyOnError": false, "cfg_notifyOnScheduled": true, "cfg_notifyOnInput": true});
             noSecretSettings();
             var named = function(name) { return find(page, function(item) { return item.objectName === name; }); };
             compare(named("notifyReplyCheck").checked, true);
             compare(named("notifyErrorCheck").checked, false);
             compare(named("notifyScheduledCheck").checked, true);
+            compare(named("notifyInputCheck").checked, true);
+            mouseClick(named("notifyInputCheck"));
+            compare(page.cfg_notifyOnInput, false);
             compare(named("soundCheck").checked, true);
             mouseClick(named("notifyErrorCheck"));
             compare(page.cfg_notifyOnError, true);

@@ -138,6 +138,7 @@ PlasmoidItem {
 
     Chat.Notifier {
         id: notifier
+        chat: root
         popupOpen: root.expanded
         replyEnabled: plasmoid.configuration.notifyOnReply
         errorEnabled: plasmoid.configuration.notifyOnError
@@ -160,7 +161,6 @@ PlasmoidItem {
 
         onErrorOccurred: function(errorText) {
             console.error("Voice Error: " + errorText);
-            // Optionally show a notification
             let message = Sec.sanitizeForShell(errorText || "Unknown voice error");
             root.fileReaderDs.connectSource("notify-send -i dialog-error " + Sec.quoteForShell("Voice Error") + " " + Sec.quoteForShell(message) + " #voice-error");
         }

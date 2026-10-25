@@ -131,9 +131,11 @@ Item {
         id: replies
         chat: chat
         notifierRef: QtObject {
+            id: notice
             function replyFinished() {}
             function failed() {}
-            function inputNeeded() {}
+            property var needed: []
+            function inputNeeded(chatId, title, message) { needed = needed.concat([message.role + ":" + message.questionId]); }
             function inputResolved() {}
         }
     }
@@ -187,6 +189,7 @@ Item {
             chat.errors = [];
             chat.sent = 0;
             chat.plasmoid.configuration.allowAskUser = true;
+            notice.needed = [];
             direct.toolRounds.pending = null;
         }
 
@@ -236,6 +239,9 @@ Item {
             compare(q.questions[0].options.length, 2);
             compare(q.allowCustom, true);
             verify(chat.loading, "the request waits for the answer");
+            // With the popup closed this is what sends the "Input needed" notification.
+            compare(notice.needed.length, 1);
+            verify(notice.needed[0].indexOf("question_request:ask-") === 0);
             verify(findButton(card, "Red"));
             tc.screenshot(root, "direct-ask-user-pending");
         }

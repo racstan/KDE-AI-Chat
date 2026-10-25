@@ -290,6 +290,9 @@
     <entry name="notifyOnScheduled" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="notifyOnInput" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="customIcon" type="String">
       <default>dialog-messages</default>
     </entry>
