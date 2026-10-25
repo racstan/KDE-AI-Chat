@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Launch the working-tree widget in its own window and report QML warnings
-# (optionally screenshot it, see DEV_SCREENSHOT below), without touching the installed widget or restarting plasmashell.
+# (and screenshot it, see DEV_SCREENSHOT below), without touching the installed widget or restarting plasmashell.
 #
 # The package is installed under a separate id (org.kde.plasma.kdeaichat.dev)
 # into a sandbox: XDG_CONFIG_HOME and XDG_DATA_HOME point at build/dev-run/,
@@ -26,6 +26,7 @@ SANDBOX="$OUT_DIR/sandbox"
 if [ "${DEV_KEEP:-0}" != "1" ]; then
     rm -rf "$SANDBOX"
 fi
+rm -f "$SHOT"
 mkdir -p "$OUT_DIR" "$(dirname "$SHOT")" "$SANDBOX/config" "$SANDBOX/data" "$SANDBOX/cache"
 export XDG_CONFIG_HOME="$SANDBOX/config"
 export XDG_DATA_HOME="$SANDBOX/data"
@@ -62,12 +63,31 @@ kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 plasmawindowed "$DEV_ID" >"$LOG" 2>&1 &
 PID=$!
 sleep "$RUN_SECONDS"
-# spectacle can only grab the *active* window, which may be one of the
-# user's own windows if the test window didn't get focus. So screenshots are
-# opt-in (DEV_SCREENSHOT=1, when you know the window will be in front);
-# prefer the offscreen screenshots from tests/qml (HarnessTestCase).
-if [ "${DEV_SCREENSHOT:-0}" = "1" ] && command -v spectacle >/dev/null; then
-    spectacle --background --nonotify --activewindow --output "$SHOT" >/dev/null 2>&1 || true
+# spectacle can only grab the *active* window, so first ask KWin (scripting
+# D-Bus API) to activate the dev window, then check it really is active before
+# taking the shot. If either step fails, no screenshot is taken, so one of the
+# user's own windows is never captured. DEV_SCREENSHOT=0 skips it.
+SHOT_TAKEN=0
+if [ "${DEV_SCREENSHOT:-1}" = "1" ] && command -v spectacle >/dev/null && command -v qdbus6 >/dev/null; then
+    KWIN_JS="$(mktemp --suffix=.js)"
+    MARK="kdeaichat-dev-$$"
+    cat >"$KWIN_JS" <<JS
+for (const w of workspace.windowList()) {
+    if (w.pid === $PID) { workspace.activeWindow = w; }
+}
+const a = workspace.activeWindow;
+print("$MARK active-pid=" + (a ? a.pid : -1));
+JS
+    SINCE="$(date '+%Y-%m-%d %H:%M:%S')"
+    if SID="$(qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript "$KWIN_JS" "$MARK" 2>/dev/null)"; then
+        qdbus6 org.kde.KWin "/Scripting/Script$SID" org.kde.kwin.Script.run >/dev/null 2>&1 || true
+        sleep 1
+        qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript "$MARK" >/dev/null 2>&1 || true
+        if journalctl --user --since "$SINCE" --no-pager -o cat 2>/dev/null | grep -q "$MARK active-pid=$PID\$"; then
+            spectacle --background --nonotify --activewindow --output "$SHOT" >/dev/null 2>&1 && SHOT_TAKEN=1
+        fi
+    fi
+    rm -f "$KWIN_JS"
 fi
 kill "$PID" 2>/dev/null || true
 wait "$PID" 2>/dev/null || true
@@ -76,7 +96,7 @@ wait "$PID" 2>/dev/null || true
 # hint about callbacks referring to later variables, harmless at runtime.
 WARNINGS="$(grep -E "$DEV_ID/contents/" "$LOG" | grep -v "used before its declaration" || true)"
 
-[ "${DEV_SCREENSHOT:-0}" = "1" ] && echo "Screenshot: $SHOT"
+if [ "$SHOT_TAKEN" = "1" ]; then echo "Screenshot: $SHOT"; else echo "Screenshot: not taken (dev window could not be made active)"; fi
 echo "Full log:   $LOG"
 if [ -n "$WARNINGS" ]; then
     echo "QML warnings:"
