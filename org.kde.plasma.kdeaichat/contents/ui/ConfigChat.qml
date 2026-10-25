@@ -1,9 +1,10 @@
-// Settings → Chat: the system prompt, how much history is sent, chat names
-// and prompt templates. Each chat can add its own instructions in its chat
-// settings.
+// Settings → Chat: the system prompt, how much history is sent, chat names,
+// the default workspace of new chats and prompt templates. Each chat can add
+// its own instructions and workspace in its chat settings.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import "config" as Config
@@ -19,9 +20,21 @@ KCM.SimpleKCM {
     property alias cfg_contextMessageLimit: limitSpin.value
     property alias cfg_autoNameChats: autoNameCheck.checked
     property alias cfg_promptTemplates: templates.json
+    property alias cfg_openCodeWorkspaceCwd: workspaceField.text
     property alias cfg_perChatModelSettings: perChatSwitch.checked
     // "chat" or "main" (see chat/EffectiveConfig.js).
     property string cfg_perChatPriority: "chat"
+
+    FolderDialog {
+        id: workspaceDialog
+        title: i18n("Default workspace for new chats")
+        onAccepted: {
+            var path = selectedFolder.toString();
+            if (path.indexOf("file://") === 0)
+                path = decodeURIComponent(path.substring(7));
+            workspaceField.text = path;
+        }
+    }
 
     Kirigami.FormLayout {
         QQC2.CheckBox {
@@ -65,6 +78,36 @@ KCM.SimpleKCM {
             id: autoNameCheck
             Kirigami.FormData.label: i18n("Chat names:")
             text: i18n("Let the model name new chats")
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Default workspace for new chats:")
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                id: workspaceField
+                objectName: "defaultWorkspaceField"
+                Layout.fillWidth: true
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 16
+                maximumLength: 4096
+                placeholderText: i18n("No workspace")
+                Accessible.name: i18n("Default workspace for new chats")
+            }
+            QQC2.Button {
+                icon.name: "folder-open"
+                onClicked: workspaceDialog.open()
+                Accessible.name: i18n("Choose a folder")
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: i18n("Choose a folder")
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
+            wrapMode: Text.Wrap
+            color: Kirigami.Theme.disabledTextColor
+            text: i18n("Copied into a chat when it is created. Leave empty for no workspace. Each chat can change its own in the bar above the chat.")
         }
 
         Kirigami.Separator {

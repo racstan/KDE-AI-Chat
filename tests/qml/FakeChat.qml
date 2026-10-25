@@ -113,6 +113,14 @@ QtObject {
     property var modeSync: null
     function applySessionSource(session) { return modeSync ? modeSync.apply(session) : ""; }
     function syncOpenCodeSessionHistory() {}
+    // main.qml's chooseWorkspace: sets (or, with "", clears) the open chat's workspace.
+    function chooseWorkspace(path) {
+        record("chooseWorkspace", [path]);
+        if (modeSync)
+            modeSync.chooseWorkspace(path);
+        else
+            openCodeWorkspaceCwd = path;
+    }
     property bool piMode: false
     // Shown above the chat when its mode can't be used (main.qml's modeNotice).
     property string modeNotice: ""

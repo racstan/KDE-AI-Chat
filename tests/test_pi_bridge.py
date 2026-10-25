@@ -104,6 +104,15 @@ def _log(b):
         return [json.loads(line) for line in f]
 
 
+def test_no_directory_runs_pi_in_the_chats_own_folder_not_home(bridge):
+    q = bridge.events("chat-9")
+    assert bridge.post("/chats/chat-9/prompt", {"provider": "ollama", "model": "m", "thinking": "low", "message": "hi"})[0] == 202
+    _until(q, "agent_settled")
+    expected = os.path.realpath(os.path.join(bridge.tmp, "data", "kdeaichat", "pi-workspaces", "chat-9"))
+    assert _log(bridge)[0]["cwd"] == expected
+    assert os.path.realpath(os.path.expanduser("~")) != expected
+
+
 def test_prompt_streams_pi_events_in_the_chats_folder(bridge):
     folder = os.path.join(bridge.tmp, "project")
     os.makedirs(folder)

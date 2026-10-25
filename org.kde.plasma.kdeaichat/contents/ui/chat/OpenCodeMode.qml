@@ -239,15 +239,6 @@ QtObject {
         chat.applySessionSource(mode._openSession());
     }
 
-    // The folder picked above the chat: the chat's own when it has one.
-    function chooseWorkspace(path) {
-        var session = mode._openSession();
-        if (session && session.openCodeWorkspaceCwd !== undefined && session.openCodeWorkspaceCwd !== null)
-            chat.setSessionProperty(chat.currentSessionId, "openCodeWorkspaceCwd", path);
-        else
-            chat.plasmoid.configuration.openCodeWorkspaceCwd = path;
-        chat.applySessionSource(mode._openSession());
-    }
 
     // Replaces the open chat's messages with its OpenCode session's history.
     function syncHistory() {

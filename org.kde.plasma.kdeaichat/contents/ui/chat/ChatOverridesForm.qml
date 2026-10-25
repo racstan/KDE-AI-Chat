@@ -102,7 +102,7 @@ ColumnLayout {
         onAccepted: {
             var path = selectedFolder.toString();
             if (path.indexOf("file://") === 0)
-                path = path.substring(7);
+                path = decodeURIComponent(path.substring(7));
             cwdField.text = path;
             form.edited();
         }
@@ -256,10 +256,9 @@ ColumnLayout {
         }
     }
 
-    // --- Both agents ---
+    // --- The workspace (every mode) ---
 
     Field {
-        visible: form.draft.mode === "opencode" || form.draft.mode === "pi"
         label: i18n("Working folder")
 
         RowLayout {
@@ -270,7 +269,7 @@ ColumnLayout {
                 id: cwdField
                 Layout.fillWidth: true
                 maximumLength: 4096
-                placeholderText: i18n("~ (your home folder)")
+                placeholderText: i18n("No workspace")
                 onTextChanged: {
                     form.draft.ocCwd = text;
                     form.edited();

@@ -14,6 +14,8 @@ Routes:
   GET  /chats/<id>/events        SSE: bridge_connected, then each Pi event,
                                  bridge_exit if the Pi process ends
   POST /chats/<id>/prompt        {directory, provider, model, thinking, message, images}
+                                 (no directory: the chat's own folder under
+                                 ~/.local/share/kdeaichat/pi-workspaces/<id>)
   POST /chats/<id>/abort
   POST /chats/<id>/ui-response   {id, value | confirmed | cancelled}
   POST /chats/<id>/close         stops that chat's Pi process
@@ -148,8 +150,17 @@ def _option(payload, name, limit=256):
     return value
 
 
+def default_directory(chat_id):
+    """The folder of a chat that has no workspace: its own, never the user's home."""
+    base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    path = os.path.join(base, "kdeaichat", "pi-workspaces", chat_id)
+    os.makedirs(path, mode=0o700, exist_ok=True)
+    return os.path.realpath(path)
+
+
 def prompt(chat_id, payload):
-    directory = os.path.realpath(os.path.expanduser(str(payload.get("directory") or "~")))
+    requested = str(payload.get("directory") or "").strip()
+    directory = os.path.realpath(os.path.expanduser(requested)) if requested else default_directory(chat_id)
     if not os.path.isdir(directory):
         raise ValueError("the chat's folder doesn't exist: " + directory)
     provider, model, thinking = _option(payload, "provider"), _option(payload, "model"), _option(payload, "thinking")

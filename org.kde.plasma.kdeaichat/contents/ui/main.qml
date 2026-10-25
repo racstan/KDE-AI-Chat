@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls as QQC2
-import QtQuick.Dialogs
 import QtQuick.Layouts
 import "ProviderService.js" as ProviderService
 import org.kde.kirigami as Kirigami
@@ -63,7 +62,7 @@ PlasmoidItem {
     // Shown above the chat when its mode can't be used; the chat stays in that mode.
     property string modeNotice: ""
     property string openCodeAgent: plasmoid.configuration.openCodeAgent || ""
-    property string openCodeWorkspaceCwd: plasmoid.configuration.openCodeWorkspaceCwd || ""
+    property string openCodeWorkspaceCwd: ""  // the open chat's workspace ("" = none), set by modeSync
     property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel !== false
     property var openCodeAgentsList: []
     // The workspace folder openCodeAgentsList was loaded for (null: not loaded yet).
@@ -457,6 +456,7 @@ PlasmoidItem {
             "archived": false,
             "source": configuredSessionSource(),
             "openCodeSessionId": "",
+            "openCodeWorkspaceCwd": modeSync.newChatWorkspace(),
             "messages": []
         };
         root.sessions = [s].concat(root.sessions);
@@ -757,6 +757,7 @@ PlasmoidItem {
     function syncOpenCodeSessionHistory() { openCode.syncHistory(); }
     function fetchOpenCodeAgents(callback) { openCode.fetchAgents(callback); }
     function chooseOpenCodeAgent(value) { openCode.chooseAgent(value); }
+    function chooseWorkspace(path) { modeSync.chooseWorkspace(path); }
 
     function fetchOpenCodeProvidersAndModels(callback) {
         // Treat every refresh as a snapshot. Keeping the previous arrays when
@@ -2128,30 +2129,10 @@ PlasmoidItem {
         }
     }
 
-    FileDialog {
+    // Starts in the chat's workspace folder (chat/AttachDialog.qml).
+    Chat.AttachDialog {
         id: fileDialog
-
-        title: "Attach Files"
-        fileMode: FileDialog.OpenFiles
-        nameFilters: ["All supported files (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", "Documents (*.pdf *.docx *.csv *.txt *.md *.json)", "All files (*)"]
-        onAccepted: {
-            for (var i = 0; i < selectedFiles.length; i++) {
-                root.attachFile(selectedFiles[i]);
-            }
-        }
-    }
-
-    FolderDialog {
-        id: workspaceFolderDialog
-
-        title: "Select OpenCode Working Directory"
-        onAccepted: {
-            var path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0)
-                path = decodeURIComponent(path.slice(7));
-
-            openCode.chooseWorkspace(path);
-        }
+        chat: root
     }
 
     // Text editor acting as helper to interact with OS text clipboard (copy / paste)
