@@ -8,7 +8,7 @@ const path = require("path");
 const source = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/ProviderService.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(source + "\nthis.exports = {PRESETS, LEGACY, parseProviders, serializeProviders, newProviderId, legacyProviders, getProviderConfig, getProviderDisplayName, getSupportedProviders, defaultFirstOrder, sortDefaultFirst, parseModelIds, modelsRequest, fetchModels};", ctx);
+vm.runInNewContext(source + "\nthis.exports = {PRESETS, LEGACY, parseProviders, serializeProviders, newProviderId, legacyProviders, getProviderConfig, getProviderDisplayName, getSupportedProviders, defaultFirstOrder, sortDefaultFirst};", ctx);
 const P = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -80,12 +80,6 @@ const tests = {
         assert.strictEqual(P.newProviderId([], "custom"), "custom_2");
     },
 
-    model_ids_from_various_shapes() {
-        assert.deepStrictEqual(plain(P.parseModelIds({data: [{id: "a"}, {id: "b"}, {id: "a"}]})), ["a", "b"]);
-        assert.deepStrictEqual(plain(P.parseModelIds({models: [{name: "models/gemini-pro"}]})), ["gemini-pro"]);
-        assert.deepStrictEqual(plain(P.parseModelIds(["x", {id: "y"}])), ["x", "y"]);
-    },
-
     default_provider_sorts_first() {
         const list = [{id: "a"}, {id: "b"}, {id: "c"}];
         assert.deepStrictEqual(plain(P.defaultFirstOrder(list, "c")), [2, 0, 1]);
@@ -98,20 +92,6 @@ const tests = {
         assert.strictEqual(cfg.providersJson, JSON.stringify(list));
     },
 
-    models_request_headers() {
-        const a = plain(P.modelsRequest({type: "anthropic", baseUrl: "https://api.anthropic.com/v1/"}, "k"));
-        assert.strictEqual(a.url, "https://api.anthropic.com/v1/models");
-        assert.strictEqual(a.headers["x-api-key"], "k");
-        const o = plain(P.modelsRequest({type: "openai-compat", baseUrl: "https://x/v1/chat/completions"}, ""));
-        assert.strictEqual(o.url, "https://x/v1/models");
-        assert.ok(!("Authorization" in o.headers));
-    },
-
-    fetch_models_rejects_bad_urls() {
-        let error = "";
-        P.fetchModels({type: "openai-compat", baseUrl: "file:///etc"}, "", () => {}, e => { error = e; }, () => { throw new Error("should not request"); });
-        assert.ok(error.includes("http(s)"));
-    },
 };
 
 let failed = 0;

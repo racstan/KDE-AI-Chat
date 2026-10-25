@@ -16,7 +16,6 @@ KCM.SimpleKCM {
     id: page
 
     property alias cfg_schedulerEnabled: enabledSwitch.checked
-    property alias cfg_schedulerAutoStart: autoStartCheck.checked
     property alias cfg_executeMissedSchedules: missedCheck.checked
 
     readonly property var plasmoidObject: typeof plasmoid !== "undefined" ? plasmoid : null

@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - The guide text blocks in settings, the interface-language override, the light/dark appearance override (light or dark now follows the system), the unused desktop-selection setting, and the process memory panel with its Kill buttons.
 - The "capture screen region" (Spectacle) button in the chat input. Attach a screenshot as a file instead.
+- **Dead code and unused settings** (see `docs/plan/dead-code.md`): old helper commands (`toggle_schedule`, `add_schedule`, `delete_schedule`, `migrate_history`, `read_history`, `write_history`, `update_schedule_history_status`, `get_memory_usage`, `get_voice_token`, `delete_venv_setup`, `privacy_report`, `opencode_server_status`, `pi_bridge_stop` and two aliases), unused JS functions, the unused settings `schedulerAutoStart`, `preselectedChatId`, `preselectedChatName` and `voiceTtsModel`, and the pre-rebuild audit docs. README, SETUP, user manual and store text no longer describe the removed memory, system-info, MCP and monitor features. The translation template was regenerated from the current source (translations not yet updated).
 
 ## [1.4.0] - 2026-10-24
 

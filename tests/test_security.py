@@ -172,22 +172,6 @@ class TestSecurityFile(unittest.TestCase):
         self.assertEqual(rc, 0, msg=err)
         self.assertIn("[]", out)
 
-    # ---------- safeHref ----------
-
-    def test_safe_href_rejects_javascript(self):
-        out, err, rc = self._run_script("""
-            console.log("[" + safeHref("javascript:alert(1)") + "]");
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("[]", out)
-
-    def test_safe_href_strips_attr_breakers(self):
-        out, err, rc = self._run_script("""
-            console.log("[" + safeHref('https://example.com/\"onclick=alert(1)') + "]");
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertNotIn('"', out)
-
     # ---------- validateFilePath ----------
 
     def test_validate_path_allows_normal_paths(self):
@@ -281,91 +265,6 @@ class TestSecurityFile(unittest.TestCase):
         self.assertNotIn("(", out)
         # The metacharacters are stripped, then the result is single-quoted
         self.assertIn("'abc'", out)
-
-    # ---------- scrubSecrets ----------
-
-    def test_scrub_authorization_bearer_header(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets("Authorization: Bearer sk-abc1234567890defghij"));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("Authorization: Bearer ***", out)
-        self.assertNotIn("sk-abc1234567890defghij", out)
-
-    def test_scrub_authorization_basic_header(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets("authorization: basic dXNlcjpwYXNz"));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("***", out)
-        self.assertNotIn("dXNlcjpwYXNz", out)
-
-    def test_scrub_query_param_api_key(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets("GET /v1/chat?api_key=sk-secret123&model=gpt-4"));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("api_key=***", out)
-        self.assertIn("model=gpt-4", out)
-        self.assertNotIn("sk-secret123", out)
-
-    def test_scrub_query_param_token(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets("?token=ghp_abcd1234&keep=this"));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("token=***", out)
-        self.assertIn("keep=this", out)
-        self.assertNotIn("ghp_abcd1234", out)
-
-    def test_scrub_json_api_key_value(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets('{"api_key": "sk-abc1234567890def", "model": "gpt-4"}'));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn('"api_key": "***"', out)
-        self.assertIn('"model": "gpt-4"', out)
-        self.assertNotIn("sk-abc1234567890def", out)
-
-    def test_scrub_json_camelCase_apiKey(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets('{"apiKey":"ghp_secretvalue123456"}'));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn('"apiKey":"***"', out)
-        self.assertNotIn("ghp_secretvalue123456", out)
-
-    def test_scrub_openai_sk_key(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets("Look at sk-proj-abc1234567890defghij for context"));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("sk-***", out)
-        self.assertNotIn("sk-proj-abc1234567890defghij", out)
-
-    def test_scrub_does_not_redact_unrelated_text(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets("model gpt-4 is great, token rate is high"));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        # No query-string key=value form, no Bearer/Basic header — keep as-is
-        self.assertNotIn("***", out)
-        self.assertIn("model gpt-4 is great", out)
-
-    def test_scrub_handles_null(self):
-        out, err, rc = self._run_script("""
-            console.log("[" + scrubSecrets(null) + "]");
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("[]", out)
-
-    def test_scrub_multiple_secrets(self):
-        out, err, rc = self._run_script("""
-            console.log(scrubSecrets("Authorization: Bearer xyz1234567890 and api_key=foo1234567890"));
-        """)
-        self.assertEqual(rc, 0, msg=err)
-        self.assertNotIn("xyz1234567890", out)
-        self.assertNotIn("foo1234567890", out)
 
 
 @unittest.skipUnless(RUNNER, "No JavaScript runtime (node, qjs6, or qjs) available")
@@ -495,43 +394,6 @@ class TestValidateSessionId(unittest.TestCase):
         out, err, rc = self._run(f'console.log("[" + validateSessionId("{long_id}") + "]");')
         self.assertEqual(rc, 0, msg=err)
         self.assertIn("[]", out)
-
-
-@unittest.skipUnless(RUNNER, "No JavaScript runtime available")
-class TestScrubSecrets(unittest.TestCase):
-    """scrubSecrets should remove Bearer tokens and sk-* API keys from log strings."""
-
-    def _run(self, driver: str):
-        with open(JS_PATH) as f:
-            src = _strip_qml_directives(f.read())
-        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
-            f.write(src)
-            f.write("\n")
-            f.write(driver)
-            tmp = f.name
-        try:
-            r = subprocess.run([RUNNER, tmp], capture_output=True, text=True, timeout=10)
-            return r.stdout, r.stderr, r.returncode
-        finally:
-            os.unlink(tmp)
-
-    def test_scrubs_bearer_token(self):
-        out, err, rc = self._run('console.log(scrubSecrets("Authorization: Bearer abc123def456ghi789"));')
-        self.assertEqual(rc, 0, msg=err)
-        self.assertNotIn("abc123def456ghi789", out)
-        self.assertIn("***", out)
-
-    def test_scrubs_sk_key(self):
-        out, err, rc = self._run('console.log(scrubSecrets("using key sk-proj-abcdefghijklmnopqrstuvwxyz"));')
-        self.assertEqual(rc, 0, msg=err)
-        self.assertNotIn("abcdefghijklmnopqrstuvwxyz", out)
-        self.assertIn("sk-***", out)
-
-    def test_preserves_non_secret(self):
-        out, err, rc = self._run('console.log(scrubSecrets("hello world"));')
-        self.assertEqual(rc, 0, msg=err)
-        self.assertIn("hello world", out)
-        self.assertNotIn("***", out)
 
 
 if __name__ == "__main__":

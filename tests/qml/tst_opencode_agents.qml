@@ -151,7 +151,6 @@ Item {
             tryVerify(function() { return answered; }, 5000);
             compare(chat.openCodeAgentsList, agents, "an unreachable server keeps the list there was");
             compare(chat.openCodeAgent, "build");
-            verify(!chat.fetchingAgentsInProgress);
         }
 
         function test_picked_folder_sticks_to_its_chat() {

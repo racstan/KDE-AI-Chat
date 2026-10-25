@@ -106,15 +106,6 @@ function validateHttpUrl(url) {
     return validated;
 }
 
-function safeHref(url) {
-    let validated = validateUrl(url);
-    if (validated === "")
-        return "";
-    // Defense in depth: drop any double-quote, backtick, or angle
-    // bracket that could escape the attribute value.
-    return validated.replace(/[\"\`<>]/g, "");
-}
-
 /**
  * Validate a local file path before embedding it in a shell command.
  *
@@ -216,41 +207,6 @@ function rawShellSnippetQuote(s) {
     return "'" + out.replace(/'/g, "'\\''") + "'";
 }
 
-
-/**
- * Redact common secret-bearer patterns from a string before it is shown
- * to the user or written to a log.
- *
- * Targets:
- *   - `Authorization: Bearer …` / `Authorization: Basic …` headers
- *   - `api_key=…`, `apikey=…`, `key=…`, `token=…` query parameters
- *   - JSON keys: `"api_key"`, `"apiKey"`, `"access_token"`, `"secret"`
- *   - Sk- prefixed OpenAI-style keys (`sk-…`, `sk-proj-…`)
- *
- * The redaction replaces the value (not the key) with `***` so the
- * surrounding URL / log line is still readable. Patterns are
- * case-insensitive on the key side and only match keys surrounded by
- * reasonable delimiters so we don't mangle unrelated text.
- *
- * @param {string} s  Raw value (null/undefined treated as empty).
- * @returns {string}  Redacted string safe to display.
- */
-function scrubSecrets(s) {
-    if (s === null || s === undefined)
-        return "";
-    let out = String(s);
-    if (out.length > 8192)
-        out = out.substring(0, 8192);
-    // Authorization: Bearer xxx / Basic xxx (header form, possibly multi-line)
-    out = out.replace(/(authorization\s*:\s*(?:bearer|basic|token|api[_-]?key)\s+)[^\s,;"'<>]+/gi, "$1***");
-    // Query parameters with secret-looking names
-    out = out.replace(/((?:api[_-]?key|apikey|access[_-]?token|secret[_-]?key|token|key)=)([^&\s"'<>]+)/gi, "$1***");
-    // JSON / object-style key/value pairs in body text
-    out = out.replace(/("(?:api[_-]?key|apiKey|access[_-]?token|accessToken|secret|secretKey|token)"\s*:\s*")([^"]+)(")/gi, "$1***$3");
-    // OpenAI-style sk- keys (20+ chars after prefix). Limited to `[A-Za-z0-9_-]`
-    out = out.replace(/\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/g, "sk-***");
-    return out;
-}
 
 /**
  * A safe, standard, pure-JavaScript implementation of Base64 encoding.

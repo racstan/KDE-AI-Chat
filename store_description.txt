@@ -44,7 +44,6 @@ WHAT'S NEW IN VERSION 1.4.0:
 
 -> Switch provider and model per chat from the chat settings panel.
 -> Add multiple custom OpenAI-compatible providers, each with its own name, URL and key.
--> Optional MCP tool support, including built-in web search.
 -> Option to disable streaming for providers that reject streamed requests.
 -> Custom widget icon (KDE icon name or image file).
 -> Smoother two-finger touchpad scrolling.

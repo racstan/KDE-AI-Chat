@@ -11,7 +11,7 @@ Reports name keys but never include their values.
 import json
 import os
 import re
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, Tuple
 
 PLUGIN_IDS = ("org.kde.plasma.kdeaichat", "org.kde.plasma.kdeaichat.dev")
 KEY_NAME = re.compile(r"^(apiKey|[A-Za-z]+ApiKey)$")
@@ -95,65 +95,6 @@ def parse_kconfig(path: str) -> Iterator[Tuple[str, Dict[str, str]]]:
         yield group, entries
 
 
-def _applet_prefix(group: str) -> str:
-    """'[Containments][3][Applets][40][Configuration][General]' -> '[Containments][3][Applets][40]'."""
-    match = re.match(r"^((?:\[Containments\]\[\d+\])?\[Applets\]\[\d+\])", group)
-    return match.group(1) if match else ""
-
-
-def _chat_count(blob: str) -> int:
-    try:
-        sessions = json.loads(blob)
-    except (ValueError, TypeError):
-        return -1
-    return len(sessions) if isinstance(sessions, list) else -1
-
-
-def scan_appletsrc(path: str) -> List[Dict[str, Any]]:
-    """Config groups in an appletsrc file that hold our keys or chats."""
-    groups = list(parse_kconfig(path))
-    live = {_applet_prefix(g) for g, e in groups if e.get("plugin") in PLUGIN_IDS}
-    found = []
-    for group, entries in groups:
-        key_names = sorted(k for k, v in entries.items() if KEY_NAME.match(k) and v.strip())
-        custom = entries.get("customProvidersJson", "")
-        custom_keys = 0
-        try:
-            custom_keys = sum(1 for p in json.loads(custom or "[]") if isinstance(p, dict) and str(p.get("apiKey", "")).strip())
-        except ValueError:
-            pass
-        chats = entries.get("chatSessionsJson", "")
-        if not (key_names or custom_keys or chats.strip() not in ("", "[]")):
-            continue
-        prefix = _applet_prefix(group)
-        found.append({
-            "file": path,
-            "group": group,
-            "live": bool(prefix and prefix in live),
-            "keyNames": key_names,
-            "customProviderKeys": custom_keys,
-            "chatHistoryBytes": len(chats.encode("utf-8")),
-            "chatCount": _chat_count(chats) if chats.strip() else 0,
-        })
-    return found
-
-
-def scan_kdeaichatrc(path: str) -> Dict[str, Any]:
-    names = []
-    for _group, entries in parse_kconfig(path):
-        names.extend(k for k, v in entries.items() if KEY_NAME.match(k) and v.strip())
-    mode = oct(os.stat(path).st_mode & 0o777) if os.path.exists(path) else None
-    return {"file": path, "exists": os.path.exists(path), "mode": mode, "keyNames": sorted(set(names))}
-
-
-def report() -> Dict[str, Any]:
-    config = _config_dir()
-    applets = []
-    for name in ("plasma-org.kde.plasma.desktop-appletsrc", "plasmawindowed-appletsrc", "plasmawindowedrc"):
-        applets.extend(scan_appletsrc(os.path.join(config, name)))
-    return {"appletConfig": applets, "kdeaichatrc": scan_kdeaichatrc(os.path.join(config, "kdeaichatrc"))}
-
-
 def read_kdeaichatrc_keys(path: str = "") -> Dict[str, str]:
     """{provider id: key} from kdeaichatrc, for moving into KWallet."""
     path = path or os.path.join(_config_dir(), "kdeaichatrc")
@@ -176,10 +117,6 @@ def remove_kdeaichatrc(path: str = "") -> bool:
         return False
 
 
-def cmd_privacy_report(payload: Dict[str, Any]) -> None:
-    print(json.dumps(report()))
-
-
 def cmd_read_legacy_keyfile(payload: Dict[str, Any]) -> None:
     print(json.dumps({"keys": read_kdeaichatrc_keys()}))
 
@@ -189,7 +126,6 @@ def cmd_remove_legacy_keyfile(payload: Dict[str, Any]) -> None:
 
 
 COMMANDS = {
-    "privacy_report": cmd_privacy_report,
     "read_legacy_keyfile": cmd_read_legacy_keyfile,
     "remove_legacy_keyfile": cmd_remove_legacy_keyfile,
 }

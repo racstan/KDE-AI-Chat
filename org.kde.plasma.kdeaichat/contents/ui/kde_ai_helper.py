@@ -13,13 +13,10 @@ import os
 import json
 import base64
 import shutil
-import subprocess
-import shlex
 import fcntl
 import re
 import secrets
 import tempfile
-import time
 import signal
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, List
@@ -29,7 +26,6 @@ from kdeaichat import chats, opencode_server, pi_bridge, pi_models, privacy
 
 _MAX_FILE_BYTES = 50 * 1024 * 1024
 _MAX_SCHEDULE_STORE_BYTES = 5 * 1024 * 1024
-_MAX_CONFIG_BYTES = 5 * 1024 * 1024
 
 
 def _as_bool(value: Any, default: bool = False) -> bool:
@@ -221,113 +217,6 @@ def _load_schedules() -> Dict[str, Any]:
     return {"version": 1, "schedules": []}
 
 
-def cmd_toggle_schedule(payload: Dict[str, Any]) -> None:
-    """Enable/disable a schedule by id, clearing ``nextRunAt`` on enable."""
-    with _schedule_store_lock():
-        data = _load_schedules()
-        sched_id = str(payload.get("schedId", ""))
-        enabled = _as_bool(payload.get("enabled", False), False)
-        for s in data.get("schedules", []):
-            if isinstance(s, dict) and s.get("id") == sched_id:
-                s["enabled"] = enabled
-                if enabled:
-                    s["nextRunAt"] = ""
-        _atomic_write_json(_schedules_path(), data)
-
-
-def cmd_update_schedule_history_status(payload: Dict[str, Any]) -> None:
-    """Patch the most recent history entry for a schedule with a status."""
-    sp = _schedules_path()
-    if not os.path.exists(sp):
-        return
-    with _schedule_store_lock():
-        try:
-            if os.path.getsize(sp) > _MAX_SCHEDULE_STORE_BYTES:
-                return
-            with open(sp) as f:
-                data: Any = json.load(f)
-        except Exception:
-            return
-        if not isinstance(data, dict):
-            return
-        history: List[Dict[str, Any]] = data.setdefault("history", [])
-        sched_id = str(payload.get("schedId", ""))
-        status = str(payload.get("status", ""))[:256]
-        for entry in reversed(history):
-            if isinstance(entry, dict) and entry.get("scheduleId") == sched_id:
-                entry["status"] = status
-                break
-        _atomic_write_json(sp, data)
-
-
-def cmd_migrate_history(payload: Dict[str, Any]) -> None:
-    """Move (or copy) a history file to a new path, returning its content."""
-    old_p: str = _safe_path(payload.get("oldFullPath", ""), allow_empty=True)
-    new_p: str = _safe_path(payload.get("newFullPath", ""), allow_empty=True)
-    current_b64: str = str(payload.get("currentB64", ""))
-    res: Dict[str, Any] = {"status": "ok", "action": "none"}
-    try:
-        if not new_p:
-            if old_p and os.path.exists(old_p):
-                if os.path.getsize(old_p) > _MAX_FILE_BYTES:
-                    raise ValueError("history file is too large")
-                res["action"] = "load"
-                with open(old_p, "rb") as f:
-                    res["content"] = base64.b64encode(f.read()).decode("utf-8")
-        else:
-            folder = os.path.dirname(new_p)
-            if folder:
-                os.makedirs(folder, mode=0o700, exist_ok=True)
-            if os.path.exists(new_p):
-                if os.path.getsize(new_p) > _MAX_FILE_BYTES:
-                    raise ValueError("history file is too large")
-                res["action"] = "load"
-                with open(new_p, "rb") as f:
-                    res["content"] = base64.b64encode(f.read()).decode("utf-8")
-            elif old_p and os.path.exists(old_p):
-                if os.path.getsize(old_p) > _MAX_FILE_BYTES:
-                    raise ValueError("history file is too large")
-                shutil.copy2(old_p, new_p)
-                res["action"] = "copied"
-            else:
-                data_bytes = base64.b64decode(current_b64, validate=True)
-                if len(data_bytes) > _MAX_FILE_BYTES:
-                    raise ValueError("history export is too large")
-                data = data_bytes.decode("utf-8")
-                _atomic_write_text(new_p, data)
-                res["action"] = "exported"
-    except Exception as e:
-        res["status"] = "error"
-        res["message"] = str(e)
-    print(base64.b64encode(json.dumps(res).encode("utf-8")).decode("utf-8"))
-
-
-def cmd_write_history(payload: Dict[str, Any]) -> None:
-    """Decode a base64 payload to a UTF-8 text file at ``fullPath``."""
-    path = _safe_path(payload.get("fullPath", ""))
-    data = base64.b64decode(str(payload.get("b64Str", "")), validate=True)
-    if len(data) > _MAX_FILE_BYTES:
-        raise ValueError("history export is too large")
-    _atomic_write_text(path, data.decode("utf-8"))
-    print("OK")
-
-
-def cmd_read_history(payload: Dict[str, Any]) -> None:
-    """Read a JSON file and print its contents to stdout."""
-    path = _safe_path(payload.get("fullPath", ""), allow_empty=True)
-    if not path or not os.path.exists(path):
-        print("[]")
-        return
-    try:
-        if os.path.getsize(path) > _MAX_FILE_BYTES:
-            print("[]")
-            return
-        with open(path, "r", encoding="utf-8") as f:
-            print(f.read(_MAX_FILE_BYTES + 1))
-    except Exception:
-        print("[]")
-
-
 def cmd_delete_session_schedules(payload: Dict[str, Any]) -> None:
     """Remove every schedule whose ``chatId`` matches ``sessionId``."""
     sp = _schedules_path()
@@ -381,26 +270,6 @@ def cmd_poll_pending_triggers(payload: Dict[str, Any]) -> None:
     except Exception:
         pass
     print(json.dumps({"pending": res, "schedules": scheds}))
-
-
-def cmd_delete_schedule(payload: Dict[str, Any]) -> None:
-    """Remove a single schedule by id."""
-    with _schedule_store_lock():
-        data = _load_schedules()
-        sched_id = str(payload.get("schedId", ""))
-        data["schedules"] = [s for s in data.get("schedules", []) if isinstance(s, dict) and s.get("id") != sched_id]
-        _atomic_write_json(_schedules_path(), data)
-
-
-def cmd_add_schedule(payload: Dict[str, Any]) -> None:
-    """Append a new schedule entry to the store."""
-    entry = payload.get("entry")
-    if not isinstance(entry, dict):
-        raise ValueError("schedule entry must be an object")
-    with _schedule_store_lock():
-        data = _load_schedules()
-        data.setdefault("schedules", []).append(entry)
-        _atomic_write_json(_schedules_path(), data)
 
 
 def cmd_setup_scheduler_service(payload: Dict[str, Any]) -> None:
@@ -508,72 +377,6 @@ WantedBy=default.target
         os.system("systemctl --user disable --now kde-ai-tts.service 2>/dev/null")
     print("VOICE_SERVICES_SETUP_OK")
 
-def cmd_delete_venv_setup(payload: Dict[str, Any]) -> None:
-    """Disable/stop voice systemd services and delete the venv & downloaded models."""
-    # Stop & disable services
-    os.system("systemctl --user stop kde-ai-stt.service 2>/dev/null")
-    os.system("systemctl --user stop kde-ai-tts.service 2>/dev/null")
-    os.system("systemctl --user disable kde-ai-stt.service 2>/dev/null")
-    os.system("systemctl --user disable kde-ai-tts.service 2>/dev/null")
-    
-    # Remove the HTTP capability token as part of voice teardown.
-    for token_file in (_voice_token_path(), _voice_token_path() + ".lock"):
-        try:
-            os.remove(token_file)
-        except OSError:
-            pass
-
-    # Remove service files
-    sdir = os.path.expanduser("~/.config/systemd/user")
-    for sfile in ("kde-ai-stt.service", "kde-ai-tts.service"):
-        p = os.path.join(sdir, sfile)
-        if os.path.exists(p):
-            try:
-                os.remove(p)
-            except Exception:
-                pass
-    os.system("systemctl --user daemon-reload")
-    
-    # Remove venv only when it is an explicitly selected absolute path with
-    # the expected virtualenv layout. Never recursively remove an arbitrary
-    # user-supplied directory.
-    try:
-        venv_py = _safe_path(payload.get("venvPy", "~/.local/share/kdeaichat/venv/bin/python3"))
-    except ValueError:
-        venv_py = ""
-    venv_dir = venv_py[:-12] if venv_py.endswith("/bin/python3") else ""
-    if venv_dir and os.path.exists(venv_dir) and venv_dir != "/usr" and len(venv_dir) > 5:
-        try:
-            shutil.rmtree(venv_dir)
-        except Exception:
-            pass
-            
-    # Remove default models folder
-    models_dir = os.path.expanduser("~/.cache/kdeaichat/models")
-    if os.path.exists(models_dir):
-        try:
-            shutil.rmtree(models_dir)
-        except Exception:
-            pass
-            
-    # Remove default huggingface cache faster-whisper/kokoro entries
-    hf_cache = os.path.expanduser("~/.cache/huggingface/hub")
-    if os.path.isdir(hf_cache):
-        try:
-            for entry in os.listdir(hf_cache):
-                if "faster-whisper" in entry or "kokoro" in entry:
-                    p = os.path.join(hf_cache, entry)
-                    if os.path.isdir(p):
-                        try:
-                            shutil.rmtree(p)
-                        except Exception:
-                            pass
-        except Exception:
-            pass
-                        
-    print("DELETE_SETUP_OK")
-
-
 def cmd_save_all_schedules(payload: Dict[str, Any]) -> None:
     """Persist a full schedules payload (replaces the existing file atomically)."""
     if not isinstance(payload, dict):
@@ -613,78 +416,6 @@ def cmd_save_all_schedules(payload: Dict[str, Any]) -> None:
         print("SCHED_SAVE_ERROR")
 
 
-def _process_memory_kb(name: str, env_filter: str = None) -> int:
-    """Sum RSS (in KiB) for every process whose command line matches ``name``."""
-    r = subprocess.run(["pgrep", "-f", name], capture_output=True, text=True)
-    pids = r.stdout.strip().split()
-    total = 0
-    for pid in pids:
-        try:
-            if env_filter:
-                try:
-                    with open(f"/proc/{pid}/environ", "rb") as f:
-                        env_data = f.read()
-                    if env_filter.encode("utf-8") not in env_data:
-                        continue
-                except Exception:
-                    continue
-
-            with open(f"/proc/{pid}/status") as f:
-                for line in f:
-                    if line.startswith("VmRSS:"):
-                        total += int(line.split()[1])
-        except Exception:
-            pass
-    return total
-
-
-def cmd_get_memory_usage(payload: Dict[str, Any]) -> None:
-    """Return RSS totals (KiB) for the opencode, stt, tts, and scheduler processes."""
-    import urllib.request
-    
-    stt_vram = 0
-    token = _read_existing_voice_token()
-    headers = {"X-KDE-AI-Chat-Token": token} if token else {}
-
-    try:
-        req = urllib.request.Request("http://127.0.0.1:9015/status", headers=headers)
-        with urllib.request.urlopen(req, timeout=1.0) as response:
-            d = json.loads(response.read())
-        stt_vram = d.get("vram_kb", 0)
-    except Exception:
-        pass
-
-    tts_vram = 0
-    try:
-        req = urllib.request.Request("http://127.0.0.1:9016/status", headers=headers)
-        with urllib.request.urlopen(req, timeout=1.0) as response:
-            d = json.loads(response.read())
-        tts_vram = d.get("vram_kb", 0)
-    except Exception:
-        pass
-
-    # For STT/TTS, check both persistent server processes and one-shot command processes
-    stt_mem = _process_memory_kb("voice_helper.py.*--stt-server")
-    if stt_mem == 0:
-        stt_mem = _process_memory_kb("voice_helper.py.*start_stt")
-    tts_mem = _process_memory_kb("voice_helper.py.*--tts-server")
-    if tts_mem == 0:
-        tts_mem = _process_memory_kb("voice_helper.py.*cmd.*tts")
-        
-    # Track the opencode serve instance (server). We don't need env_filter because any opencode serve process on the machine is the one we connect to.
-    opencode_mem = _process_memory_kb("opencode serve")
-    
-    d: Dict[str, int] = {
-        "opencode": opencode_mem,
-        "stt": stt_mem,
-        "tts": tts_mem,
-        "stt_vram": stt_vram,
-        "tts_vram": tts_vram,
-        "scheduler": _process_memory_kb("kde-ai-scheduler.py"),
-    }
-    print(json.dumps(d))
-
-
 def cmd_export_chat(payload: Dict[str, Any]) -> None:
     """Decode a base64 chat export and write it to ``filePath`` as UTF-8."""
     path = _safe_path(payload.get("filePath", ""))
@@ -693,22 +424,6 @@ def cmd_export_chat(payload: Dict[str, Any]) -> None:
         raise ValueError("chat export is too large")
     _atomic_write_text(path, data.decode("utf-8"))
     print("OK")
-
-
-def _read_existing_voice_token(path: str = "") -> str:
-    """Read an existing voice token without creating one as a side effect."""
-    token_path = _safe_path(path or _voice_token_path())
-    try:
-        with open(token_path, "r", encoding="ascii") as f:
-            token = f.read().strip()
-        return token if re.fullmatch(r"[A-Za-z0-9_-]{32,}", token) else ""
-    except (OSError, UnicodeError, ValueError):
-        return ""
-
-
-def cmd_get_voice_token(payload: Dict[str, Any]) -> None:
-    """Return the private token shared by the widget and voice daemons."""
-    print(json.dumps({"type": "voice_token", "token": ensure_voice_http_token()}))
 
 
 def _legacy_watchdog_pids(helper_name: str = "kde_ai_helper.py") -> List[int]:
@@ -789,24 +504,12 @@ def main() -> None:
     payload = _decode_payload(sys.argv[2]) if len(sys.argv) > 2 else {}
 
     commands: Dict[str, Callable[[Dict[str, Any]], None]] = {
-        "toggle_schedule": cmd_toggle_schedule,
-        "update_schedule_history_status": cmd_update_schedule_history_status,
-        "migrate_history": cmd_migrate_history,
-        "write_history": cmd_write_history,
-        "read_history": cmd_read_history,
         "delete_session_schedules": cmd_delete_session_schedules,
         "poll_pending_triggers": cmd_poll_pending_triggers,
-        "delete_schedule": cmd_delete_schedule,
-        "add_schedule": cmd_add_schedule,
         "setup_scheduler_service": cmd_setup_scheduler_service,
         "setup_venv_services": cmd_setup_venv_services,
-        "setup_voice_services": cmd_setup_venv_services,
-        "delete_venv_setup": cmd_delete_venv_setup,
-        "delete_voice_setup": cmd_delete_venv_setup,
         "save_all_schedules": cmd_save_all_schedules,
-        "get_memory_usage": cmd_get_memory_usage,
         "export_chat": cmd_export_chat,
-        "get_voice_token": cmd_get_voice_token,
         "stop_legacy_watchdog": cmd_stop_legacy_watchdog,
     }
 

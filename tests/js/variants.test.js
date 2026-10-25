@@ -15,7 +15,7 @@ const load = (file, names) => {
     vm.runInNewContext(fs.readFileSync(UI + file, "utf8").replace(/^\s*\.pragma\s+library\s*$/m, "") + "\nthis.exports = {" + names + "};", ctx);
     return ctx.exports;
 };
-const V = load("Variants.js", "title, make, find, sendFor, isValid, fromOpenCodeNames, fromPi, listed");
+const V = load("Variants.js", "title, make, find, sendFor, isValid, fromOpenCodeNames, fromPi");
 const PC = load("ProviderCheck.js", "variantsFromModel, variantMap, listModels, parseModelItems, THINKING_BUDGET_TOKENS");
 const PV = load("ProviderVariants.js", "forModel, remember, clear, cached");
 const DB = load("backends/DirectBackend.js", "buildRequest");

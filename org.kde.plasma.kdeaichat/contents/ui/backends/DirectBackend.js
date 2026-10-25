@@ -288,6 +288,9 @@ function send(options) {
         if (!finished)
             options.onEvent(event);
     }
+    var think = createThinkSplitter(function(kind, text) {
+        emit({"type": kind === "text" ? "text_delta" : "reasoning_delta", "delta": text});
+    });
     function finish(reason, message, status) {
         if (finished) return;
         think.end();
@@ -298,10 +301,6 @@ function send(options) {
         emit({"type": "done", "reason": reason});
         finished = true;
     }
-
-    var think = createThinkSplitter(function(kind, text) {
-        emit({"type": kind === "text" ? "text_delta" : "reasoning_delta", "delta": text});
-    });
     var sseEnded = false;
     var sse;
 

@@ -1,9 +1,11 @@
-"""Starting and stopping the Pi bridge (pi_bridge_server.py) for the widget.
+"""Starting the Pi bridge (pi_bridge_server.py) for the widget.
 
 `pi_bridge_start` returns the bridge's loopback port and access token,
 starting the bridge first if it isn't running. The bridge only ever runs Pi
-processes it started itself, and `pi_bridge_stop` only signals a bridge whose
-pid still runs the recorded command.
+processes it started itself and exits when idle. `cmd_pi_bridge_stop` is not a
+helper command (the widget never stops the bridge); tests and
+scripts/dev-pi-e2e.sh call it directly, and it only signals a bridge whose pid
+still runs the recorded command.
 """
 import json
 import os
@@ -79,5 +81,4 @@ def cmd_pi_bridge_stop(payload: Dict[str, Any]) -> None:
 
 COMMANDS = {
     "pi_bridge_start": cmd_pi_bridge_start,
-    "pi_bridge_stop": cmd_pi_bridge_stop,
 }

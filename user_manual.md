@@ -103,8 +103,6 @@ Older versions kept keys in plaintext (in Plasma's widget config and `~/.config/
 
 ## 4. Running Offline Local LLMs (Ollama, LM Studio & LiteLLM)
 
-> **MCP safety:** Configure only MCP servers you trust. Discovery and tool calls run the configured command with your user permissions; the widget does not sandbox those processes.
-
 Enjoy complete privacy and local speed by pairing the widget with offline servers!
 
 ### Ollama Setup Walkthrough

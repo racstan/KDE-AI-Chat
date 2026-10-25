@@ -55,13 +55,6 @@ def _read_state() -> Dict[str, Any]:
         return {}
 
 
-def cmd_opencode_server_status(payload: Dict[str, Any]) -> None:
-    port = _port(payload)
-    state = _read_state()
-    print(json.dumps({"running": healthy(port), "ours": procs.is_ours(state) and state.get("port") == port,
-                      "binary": find_binary() or ""}))
-
-
 def cmd_opencode_server_start(payload: Dict[str, Any]) -> None:
     """Starts `opencode serve` on 127.0.0.1:<port> unless something already answers there."""
     port = _port(payload)
@@ -111,7 +104,6 @@ def cmd_opencode_server_stop(payload: Dict[str, Any]) -> None:
 
 
 COMMANDS = {
-    "opencode_server_status": cmd_opencode_server_status,
     "opencode_server_start": cmd_opencode_server_start,
     "opencode_server_stop": cmd_opencode_server_stop,
 }

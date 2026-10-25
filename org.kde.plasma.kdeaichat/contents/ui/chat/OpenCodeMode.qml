@@ -144,7 +144,6 @@ QtObject {
         chat.openCodeVariants = ({});
         var baseUrl = chat.openCodeBaseUrl();
         if (!baseUrl) {
-            chat.fetchingOpenCodeConfig = false;
             if (callback) callback();
             return;
         }
@@ -269,7 +268,6 @@ QtObject {
         var request = ++mode._agentsRequest;
         var directory = String(chat.openCodeWorkspaceCwd || "").trim();
         var baseUrl = chat.openCodeBaseUrl();
-        chat.fetchingAgentsInProgress = true;
         function finish(list) {
             if (request !== mode._agentsRequest)
                 return;
@@ -277,7 +275,6 @@ QtObject {
                 chat.openCodeAgentsList = list;
                 chat.openCodeAgentsDirectory = directory;
             }
-            chat.fetchingAgentsInProgress = false;
             var waiters = mode._agentWaiters;
             mode._agentWaiters = [];
             for (var i = 0; i < waiters.length; i++)
