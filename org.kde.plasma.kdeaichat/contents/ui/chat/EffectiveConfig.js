@@ -72,12 +72,6 @@ function inferSource(chat) {
     return "provider";
 }
 
-// Pi chats saved before 1.4.0 stored no workspace and ran in the home folder,
-// where Pi keeps their history, so they keep it ("~"); null for any other chat.
-function legacyWorkspace(chat) {
-    return chat && chat.openCodeWorkspaceCwd === undefined && chatMode(chat) === "pi" ? "~" : null;
-}
-
 // The mode a chat is in: its stored one, or (not stored yet) the inferred one.
 function chatMode(chat) {
     return isMode(chat && chat.source) ? _s(chat.source) : inferSource(chat);

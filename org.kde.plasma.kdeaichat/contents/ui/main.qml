@@ -262,9 +262,8 @@ PlasmoidItem {
                     return message && typeof message === "object";
                 });
                 if (session.archived === undefined) session.archived = false;
-                if (!EffectiveConfig.isMode(session.source) || EffectiveConfig.legacyWorkspace(session) !== null) {
-                    session.source = EffectiveConfig.chatMode(session);
-                    if (EffectiveConfig.legacyWorkspace(session) !== null) session.openCodeWorkspaceCwd = EffectiveConfig.legacyWorkspace(session);
+                if (!EffectiveConfig.isMode(session.source)) {
+                    session.source = EffectiveConfig.inferSource(session);
                     root.sessionSourceInferred = true;
                 }
                 for (var j = 0; j < session.messages.length; j++) {
@@ -1036,6 +1035,7 @@ PlasmoidItem {
         if (index < 0 || index >= root.messages.length) return;
         var role = root.messages[index].role || "";
         if (role !== "error") return;
+        
         var lastUserIdx = -1;
         for (var i = index - 1; i >= 0; i--) {
             var r = root.messages[i].role || "";

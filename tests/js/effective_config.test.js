@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveConfig.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode, inferSource, chatMode, isMode, unavailableText, agentOwner, legacyWorkspace};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {resolve, hasOwnModelSettings, forSession, describe, mainMode, inferSource, chatMode, isMode, unavailableText, agentOwner};", ctx);
 const E = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -85,16 +85,6 @@ const tests = {
         assert.strictEqual(E.resolve(mainPi, {text: "old"}, off).mode, "provider");
         assert.strictEqual(E.resolve(mainDirect, {openCodeSessionId: "ses_1"}, off).mode, "opencode");
         assert.strictEqual(E.resolve(mainDirect, {source: "weird", openCodeSessionId: "ses_1"}, on("main")).mode, "opencode");
-    },
-
-    old_pi_chats_keep_the_home_folder() {
-        assert.strictEqual(E.legacyWorkspace({source: "pi"}), "~");
-        assert.strictEqual(E.legacyWorkspace({messages: [{harnessChatId: "c1"}]}), "~", "an inferred Pi chat too");
-        assert.strictEqual(E.legacyWorkspace({source: "pi", openCodeWorkspaceCwd: ""}), null, "a new chat with no workspace");
-        assert.strictEqual(E.legacyWorkspace({source: "pi", openCodeWorkspaceCwd: "/w"}), null);
-        assert.strictEqual(E.legacyWorkspace({source: "opencode"}), null);
-        assert.strictEqual(E.legacyWorkspace({source: "provider"}), null);
-        assert.strictEqual(E.legacyWorkspace(null), null);
     },
 
     infer_source_for_old_chats() {
