@@ -28,7 +28,8 @@ ColumnLayout {
     readonly property alias input: msgInput
     readonly property alias suggestions: suggestions
 
-    readonly property alias bar: bar
+    // The quick model picker, opened by /model and /variant (CommandRunner.qml).
+    readonly property alias picker: picker
 
     signal attachRequested()
     signal chatInfoRequested()
@@ -120,13 +121,6 @@ ColumnLayout {
         }
     }
 
-    // What the chat talks to (click to change the model), then what it is doing.
-    ComposerBar {
-        id: bar
-        chat: composer.chat
-        onChatInfoRequested: composer.chatInfoRequested()
-    }
-
     ComposerStatus {
         chat: composer.chat
         notice: runner.notice
@@ -135,7 +129,7 @@ ColumnLayout {
     CommandRunner {
         id: runner
         chat: composer.chat
-        picker: bar.picker
+        picker: picker
         input: msgInput
     }
 
@@ -234,8 +228,17 @@ ColumnLayout {
     }
 
     RowLayout {
+        id: inputRow
+
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
+
+        // Opens above the message box.
+        ComposerPicker {
+            id: picker
+            chat: composer.chat
+            onChatInfoRequested: composer.chatInfoRequested()
+        }
 
         PC3.TextArea {
             id: msgInput

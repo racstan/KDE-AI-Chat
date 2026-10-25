@@ -1,16 +1,13 @@
-// The quick picker behind the composer bar: change this chat's model (and its
-// variant: the model's reasoning level, which only the models that report
-// variants have; OpenCode's agent) without opening the Chat
-// info panel. It goes through the same machinery as that panel: a
-// ChatSettingsDraft is loaded for the chat, one field is changed, and save()
-// writes it with setSessionOverrides. So the same rules apply: the chat keeps
-// its mode (shown here, never offered), nothing is written unless "Let chats
-// have their own model settings" is on (otherwise the picker says so and
-// offers the settings), and when the main settings win (Settings -> Chat) the
-// picker says that its choice has no effect instead of closing as if it had.
-//
-// The direct model list is the provider's live, chat-only list
-// (ProviderCheck.js, through the draft's refreshModels).
+// The quick model picker (opened from the Chat info panel's "Change…" button
+// and by /model and /variant in the message box): change this chat's model, its
+// variant (reasoning level, for models that report them) or OpenCode's agent.
+// It goes through the same machinery as the Chat info panel: a
+// ChatSettingsDraft is loaded, one field is changed and save() writes it with
+// setSessionOverrides. So the same rules apply: the chat keeps its mode (shown,
+// never offered), nothing is written unless "Let chats have their own model
+// settings" is on (otherwise the picker says so and offers the settings), and
+// when the main settings win (Settings -> Chat) it says its choice has no effect.
+// The direct model list is the provider's live, chat-only list (ProviderCheck.js).
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -28,6 +25,8 @@ QQC2.Popup {
     id: picker
 
     property var chat: null
+    property bool below: false  // under its parent (Chat info) instead of above it (message box)
+    property bool showMoreSettings: true  // not in Chat info: it is already open
     // Replaces XMLHttpRequest in tests.
     property alias xhrFactory: draft.xhrFactory
     readonly property alias draft: draft
@@ -160,7 +159,7 @@ QQC2.Popup {
     }
 
     x: 0
-    y: -height - Kirigami.Units.smallSpacing
+    y: below && parent ? parent.height + Kirigami.Units.smallSpacing : -height - Kirigami.Units.smallSpacing
     width: parent ? Math.min(parent.width, Kirigami.Units.gridUnit * 26) : Kirigami.Units.gridUnit * 20
     padding: Kirigami.Units.smallSpacing
     closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutsideParent
@@ -382,11 +381,13 @@ QQC2.Popup {
         }
 
         Kirigami.Separator {
+            visible: picker.showMoreSettings
             Layout.fillWidth: true
         }
 
         PC3.ToolButton {
             objectName: "moreSettingsButton"
+            visible: picker.showMoreSettings
             Layout.fillWidth: true
             icon.name: "configure"
             text: i18n("More chat settings…")

@@ -8,7 +8,6 @@ contents/ui/chat/ChatView.qml
 contents/ui/chat/CodeBlock.qml
 contents/ui/chat/CommandRunner.qml
 contents/ui/chat/Commands.js
-contents/ui/chat/ComposerBar.qml
 contents/ui/chat/ComposerPicker.qml
 contents/ui/chat/Composer.qml
 contents/ui/chat/ComposerStatus.qml
