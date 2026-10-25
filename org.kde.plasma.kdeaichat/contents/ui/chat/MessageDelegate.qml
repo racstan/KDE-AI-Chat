@@ -282,7 +282,10 @@ Item {
                         id: actions
                         visible: !row.isRequest && row.role !== "error"
                         // Room for the buttons, which are built after the first frame.
-                        Layout.minimumHeight: row.buttonHeight
+                        Layout.minimumHeight: buttonSize
+                        // Overlaps the bubble's bottom padding and part of the gap to
+                        // the next message (never reaching it), so it costs little height.
+                        Layout.bottomMargin: -(Kirigami.Units.largeSpacing + Kirigami.Units.smallSpacing)
                         builder: row.builder
                         chat: row.chat
                         message: row.message

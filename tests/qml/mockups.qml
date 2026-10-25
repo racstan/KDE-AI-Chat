@@ -115,7 +115,7 @@ Item {
         function shoot(state, setup) {
             reset();
             setup();
-            wait(150);
+            wait(400);
             var name = "mockup-" + state + "-" + root.themeName;
             // The window's content item, so popups (the template list) are in the shot.
             var path = screenshot(root.Window.window.contentItem, name);

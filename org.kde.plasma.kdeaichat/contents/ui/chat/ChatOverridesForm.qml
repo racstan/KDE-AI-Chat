@@ -114,6 +114,7 @@ ColumnLayout {
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
+            uniformCellSizes: true
 
             PC3.Button {
                 text: i18n("Provider")

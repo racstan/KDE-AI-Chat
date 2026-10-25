@@ -109,7 +109,7 @@ Rectangle {
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Kirigami.Units.smallSpacing * 2
-                anchors.rightMargin: Kirigami.Units.smallSpacing
+                anchors.rightMargin: Kirigami.Units.largeSpacing
                 spacing: Kirigami.Units.smallSpacing
 
                 // Agent chats are marked with a plain tag: OC for OpenCode, PI for Pi.

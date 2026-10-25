@@ -58,8 +58,16 @@ RowLayout {
         }
     }
 
+    // Small buttons, so the row adds little height under a message.
+    readonly property real buttonSize: Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing * 2
+
     component Action: PC3.ToolButton {
         display: PC3.AbstractButton.IconOnly
+        icon.width: Kirigami.Units.iconSizes.small
+        icon.height: Kirigami.Units.iconSizes.small
+        padding: Kirigami.Units.smallSpacing
+        implicitWidth: actions.buttonSize
+        implicitHeight: actions.buttonSize
         Accessible.name: text
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: text
