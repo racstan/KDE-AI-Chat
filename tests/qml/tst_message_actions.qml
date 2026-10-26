@@ -136,6 +136,32 @@ Item {
             compare(chat.calls[0].args, [3, "shorter"]);
         }
 
+        function shownTexts(actions) {
+            var texts = [];
+            for (var i = 0; i < actions.children.length; i++) {
+                var item = actions.children[i].item;
+                if (item && actions.children[i].visible)
+                    texts.push(item.text);
+            }
+            return texts;
+        }
+
+        function test_6a_an_image_only_reply_offers_only_delete() {
+            // Its pictures carry their own enlarge/copy/save/regenerate buttons.
+            var withPicture = conversation.slice();
+            withPicture[3] = {role: "assistant", model: "AI Horde · Deliberate", content: "", time: "10:01",
+                              images: [{path: "images/a/1.png", service: "horde", prompt: "sun"}]};
+            chat.messages = withPicture;
+            wait(50);
+            tryCompare(actionsOf(3), "built", actionsOf(3).buttonCount, 3000);
+            verify(actionsOf(3).imageOnly);
+            compare(shownTexts(actionsOf(3)), ["Delete"]);
+            // A reply with text and pictures keeps every button.
+            verify(!actionsOf(1).imageOnly);
+            verify(shownTexts(actionsOf(1)).indexOf("Copy") >= 0);
+            verify(shownTexts(actionsOf(1)).indexOf("Regenerate") >= 0);
+        }
+
         function test_6_icon_buttons_have_names() {
             var actions = actionsOf(1);
             for (var i = 0; i < actions.children.length; i++) {

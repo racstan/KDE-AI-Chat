@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Token counts and cost come straight from the provider.** OpenAI-compatible streaming requests now ask for usage (`stream_options.include_usage`; retried once without it if a server rejects the field), OpenRouter also reports the real cost of each reply, and Anthropic's input count includes cached prompt tokens. Nothing is estimated.
 
 ### Fixed
+- **A picture reply showed two rows of buttons** (the picture's own view/copy/save/regenerate, and the message's edit/regenerate/copy/delete). A reply that is only pictures now shows the picture buttons plus Delete.
 - **Up/Down move through the messages after clicking in the chat**: clicking a message's text or the space between messages gives the chat the keyboard, then Up picks the latest message and walks up, Down walks down and, past the latest (or with nothing picked), goes back to the message box; typing goes to the message box. Up/Down still move the cursor in a message box with text, in an edit in place and in the "/" list.
 - **The resize grip no longer sits on a button**: it was drawn over the header's ⋮ (or the history's +) with the panel at the bottom, and over Send with the panel at the top or side. The rows in its corner (header, message box, history, Chat info's top and bottom rows) now leave it room, for every panel edge, and it stays visible above Chat info.
 - **The Undo notice fits the window**: a long text (such as a long project name) wraps instead of running past both edges, and Undo and ✕ stay visible.
