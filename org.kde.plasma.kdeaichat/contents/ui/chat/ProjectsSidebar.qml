@@ -31,6 +31,9 @@ ColumnLayout {
     }
     readonly property alias list: viewList
 
+    // A property of any object (undefined if it has none).
+    function propOf(item, name) { return item ? item[name] : undefined; }
+
     // Asks first (chat/ProjectDeleteConfirm.qml); returns the question.
     function confirmDeleteWithChats(projectId) {
         var popup = deleteConfirm.createObject(sidebar, {"projects": sidebar.projects, "projectId": projectId}) as ProjectDeleteConfirm;
@@ -116,7 +119,8 @@ ColumnLayout {
                 enabled: row.isProject
                 keys: ["kdeaichat-chat"]
                 onDropped: function(drop) {
-                    var sessionId = drop.source ? String(drop.source.sessionId || "") : "";
+                    // The dragged label (chat/SessionList.qml) carries the chat id.
+                    var sessionId = String(sidebar.propOf(drop.source, "sessionId") || "");
                     if (sessionId === "")
                         return;
                     sidebar.projects.moveChat(sessionId, row.modelData.view);
