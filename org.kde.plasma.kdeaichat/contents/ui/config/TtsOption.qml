@@ -34,6 +34,7 @@ ColumnLayout {
 
     objectName: "ttsOption-" + (option.key || option.type)
     Kirigami.FormData.label: i18n(option.label) + ":"
+    Kirigami.FormData.labelAlignment: Qt.AlignTop
     Layout.fillWidth: true
     spacing: Kirigami.Units.smallSpacing
 

@@ -117,10 +117,23 @@ MouseArea {
         active: icon.mode === "video" && !icon.failed
         source: "PanelVideo.qml"
         onStatusChanged: if (status === Loader.Error) icon.failed = true
-        onLoaded: {
-            item.source = Qt.binding(function() { return Logic.fileUrl(icon.file); });
-            item.playing = Qt.binding(function() { return icon.playing; });
-            item.failed.connect(function() { icon.failed = true; });
-        }
+    }
+    // Set through Binding/Connections: PanelVideo's type is only known once it loaded.
+    Binding {
+        target: video.item
+        property: "source"
+        value: Logic.fileUrl(icon.file)
+        when: video.status === Loader.Ready
+    }
+    Binding {
+        target: video.item
+        property: "playing"
+        value: icon.playing
+        when: video.status === Loader.Ready
+    }
+    Connections {
+        target: video.item
+        ignoreUnknownSignals: true
+        function onFailed() { icon.failed = true; }
     }
 }

@@ -184,7 +184,7 @@ KCM.SimpleKCM {
         }
 
         Config.SettingHelp {
-            text: i18n("Rules the AI should always follow, one per line. How long replies are is set per chat, in its chat settings.")
+            text: i18n("Things the AI should always or never do, one per line. How long replies are is set per chat, in its chat settings.")
         }
 
         Item {

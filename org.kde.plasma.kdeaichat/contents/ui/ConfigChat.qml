@@ -121,7 +121,7 @@ KCM.SimpleKCM {
 
         Config.SettingHelp {
             text: perChatSwitch.checked
-                ? i18n("A chat can choose its own mode (provider, OpenCode or Pi), provider and model in its Chat info panel.")
+                ? i18n("A chat can choose its own provider and model in its Chat info panel. The way it sends messages (directly, OpenCode or Pi) stays the one it was started with.")
                 : i18n("Every chat uses the mode, provider and model from Settings. Any model settings a chat already has are kept, and come back if you turn this on.")
         }
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 17:31+0530\n"
+"POT-Creation-Date: 2026-10-26 17:48+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2000,8 +2000,9 @@ msgstr ""
 
 #: contents/ui/ConfigChat.qml:124
 msgid ""
-"A chat can choose its own mode (provider, OpenCode or Pi), provider and "
-"model in its Chat info panel."
+"A chat can choose its own provider and model in its Chat info panel. The way "
+"it sends messages (directly, OpenCode or Pi) stays the one it was started "
+"with."
 msgstr ""
 
 #: contents/ui/ConfigChat.qml:125
@@ -2054,6 +2055,19 @@ msgstr ""
 msgid ""
 "Add a template with a short name and the text it stands for. Changes are "
 "kept when you press OK or Apply."
+msgstr ""
+
+#: contents/ui/ConfigConnection.qml:99
+msgid ""
+"A provider is an AI service, or an AI program on your computer. Add one with "
+"the web address and key its website gives you (a program on your own "
+"computer needs no key). The default one answers new chats."
+msgstr ""
+
+#: contents/ui/ConfigConnection.qml:100
+msgid ""
+"Picture services for /image (such as AI Horde) have their own list; they "
+"never answer chats."
 msgstr ""
 
 #: contents/ui/config/ImageModels.qml:68
@@ -2149,7 +2163,7 @@ msgstr ""
 #: contents/ui/config/OpenCodeSettings.qml:206
 #: contents/ui/config/PiSettings.qml:110
 #: contents/ui/config/ProviderEditor.qml:88
-#: contents/ui/config/FasterWhisperRows.qml:72
+#: contents/ui/config/FasterWhisperRows.qml:73
 msgid "Model:"
 msgstr ""
 
@@ -2558,7 +2572,7 @@ msgstr ""
 
 #: contents/ui/config/OpenCodeSettings.qml:232
 #: contents/ui/config/PiSettings.qml:136
-#: contents/ui/config/FasterWhisperRows.qml:196
+#: contents/ui/config/FasterWhisperRows.qml:197
 msgid "Status:"
 msgstr ""
 
@@ -2674,8 +2688,8 @@ msgstr ""
 
 #: contents/ui/ConfigPersonality.qml:187
 msgid ""
-"Rules the AI should always follow, one per line. How long replies are is set "
-"per chat, in its chat settings."
+"Things the AI should always or never do, one per line. How long replies are "
+"is set per chat, in its chat settings."
 msgstr ""
 
 #: contents/ui/ConfigPersonality.qml:192
@@ -3737,155 +3751,155 @@ msgid ""
 "(about %2 to download). Your models are kept."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:82
+#: contents/ui/config/FasterWhisperRows.qml:83
 msgid "downloaded"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:83
+#: contents/ui/config/FasterWhisperRows.qml:84
 msgid "recommended"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:88
+#: contents/ui/config/FasterWhisperRows.qml:89
 msgid "%1 · from %2 · on disk"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:91
+#: contents/ui/config/FasterWhisperRows.qml:92
 msgid "Folder: %1"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:99
+#: contents/ui/config/FasterWhisperRows.qml:100
 msgid "Use a model folder (CTranslate2)"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:113
+#: contents/ui/config/FasterWhisperRows.qml:114
 msgid ""
 "Bigger models understand speech better, especially accents and noisy rooms, "
 "but are bigger to download and slower. \"small\" suits most people."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:114
+#: contents/ui/config/FasterWhisperRows.qml:115
 msgid "The speech model that turns your voice into text."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:114
+#: contents/ui/config/FasterWhisperRows.qml:115
 msgid "A model folder on this computer: nothing to download."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:116
+#: contents/ui/config/FasterWhisperRows.qml:117
 msgid "Downloaded."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:116
+#: contents/ui/config/FasterWhisperRows.qml:117
 msgid "Not downloaded yet (%1)."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:122
+#: contents/ui/config/FasterWhisperRows.qml:123
 msgid "Run on:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:130
+#: contents/ui/config/FasterWhisperRows.qml:131
 msgid ""
 "Which part of the computer does the work. \"Automatic\" is right for almost "
 "everyone; an NVIDIA graphics card is much faster than the processor."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:134
+#: contents/ui/config/FasterWhisperRows.qml:135
 msgid "Keep loaded:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:142
+#: contents/ui/config/FasterWhisperRows.qml:143
 msgid "minutes after the last use"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:145
+#: contents/ui/config/FasterWhisperRows.qml:146
 msgid ""
 "The speech model stays in memory this long after you dictate, so the next "
 "time starts quickly. A shorter time frees memory sooner."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:150
+#: contents/ui/config/FasterWhisperRows.qml:151
 msgid "Setup:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:156
+#: contents/ui/config/FasterWhisperRows.qml:157
 msgid "Working out the download size…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:158
+#: contents/ui/config/FasterWhisperRows.qml:159
 msgid " (with NVIDIA GPU support)"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:159
+#: contents/ui/config/FasterWhisperRows.qml:160
 msgid "your folder"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:157
+#: contents/ui/config/FasterWhisperRows.qml:158
 msgid ""
 "Install downloads about %1 of Python packages%2 into its own folder. The "
 "model (%3) is downloaded afterwards, when you choose."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:163
+#: contents/ui/config/FasterWhisperRows.qml:164
 msgid "Install"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:171
+#: contents/ui/config/FasterWhisperRows.qml:172
 msgid ""
 "A one-time setup of the speech program in its own folder. Nothing is "
 "installed until you press Install."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:175
+#: contents/ui/config/FasterWhisperRows.qml:176
 msgid "Model download:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:180
+#: contents/ui/config/FasterWhisperRows.qml:181
 msgid "“%1” needs a download of %2."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:184
+#: contents/ui/config/FasterWhisperRows.qml:185
 msgid "Download…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:192
+#: contents/ui/config/FasterWhisperRows.qml:193
 msgid ""
 "The chosen model has to be downloaded once before you can dictate. You are "
 "asked before it starts."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:212
+#: contents/ui/config/FasterWhisperRows.qml:213
 msgid "Smaller engine:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:217
+#: contents/ui/config/FasterWhisperRows.qml:218
 msgid ""
 "Installed by an older version with packages dictation no longer needs (about "
 "%1)."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:222
+#: contents/ui/config/FasterWhisperRows.qml:223
 msgid "Rebuild (smaller)…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:230
+#: contents/ui/config/FasterWhisperRows.qml:231
 msgid ""
 "Sets the speech program up again without the parts it no longer needs, to "
 "free disk space. Dictation keeps working the same."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:234
+#: contents/ui/config/FasterWhisperRows.qml:235
 msgid "Engine data:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:238
+#: contents/ui/config/FasterWhisperRows.qml:239
 msgid "%1 (engine %2, models downloaded here %3)"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:243
+#: contents/ui/config/FasterWhisperRows.qml:244
 msgid "Remove…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:251
+#: contents/ui/config/FasterWhisperRows.qml:252
 msgid ""
 "Disk space the speech program and its models use. Remove deletes them if you "
 "no longer dictate; you can install them again later."
@@ -4238,56 +4252,56 @@ msgstr ""
 msgid "Not saved: %1"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:60 contents/ui/config/TtsOption.qml:61
+#: contents/ui/config/TtsOption.qml:61 contents/ui/config/TtsOption.qml:62
 msgid "Engine default"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:81
+#: contents/ui/config/TtsOption.qml:82
 msgid "%1×"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:82
+#: contents/ui/config/TtsOption.qml:83
 msgid "normal"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:111
+#: contents/ui/config/TtsOption.qml:112
 msgid "Enter an address that starts with http:// or https://."
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:113
+#: contents/ui/config/TtsOption.qml:114
 msgid "This command can't be used: check its quotes."
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:145
+#: contents/ui/config/TtsOption.qml:146
 msgid "Choose a voice found on this computer…"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:146
+#: contents/ui/config/TtsOption.qml:147
 #: contents/ui/config/DictationSettings.qml:150
 msgid "%1 (%2, %3)"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:162
+#: contents/ui/config/TtsOption.qml:163
 msgid "Choose a file"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:189
+#: contents/ui/config/TtsOption.qml:190
 msgid "Saved in KWallet"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:189
+#: contents/ui/config/TtsOption.qml:190
 msgid "Not set"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:192
+#: contents/ui/config/TtsOption.qml:193
 msgid "Save key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:192
+#: contents/ui/config/TtsOption.qml:193
 msgid "Remove key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:197
+#: contents/ui/config/TtsOption.qml:198
 msgid "Saved."
 msgstr ""
 

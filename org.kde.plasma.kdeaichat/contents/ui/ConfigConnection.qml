@@ -90,6 +90,16 @@ KCM.SimpleKCM {
             wallet: page.wallet
         }
 
+        Config.SettingHelp {
+            objectName: "providersHelp"
+            visible: page.mode === "direct"
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 40
+            Layout.alignment: Qt.AlignHCenter
+            text: i18n("A provider is an AI service, or an AI program on your computer. Add one with the web address and key its website gives you (a program on your own computer needs no key). The default one answers new chats.")
+            details: i18n("Picture services for /image (such as AI Horde) have their own list; they never answer chats.")
+        }
+
         Config.RequestOptions {
             id: requests
             objectName: "requestsSection"

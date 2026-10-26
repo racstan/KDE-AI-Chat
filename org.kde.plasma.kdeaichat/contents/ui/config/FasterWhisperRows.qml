@@ -60,6 +60,7 @@ Kirigami.FormLayout {
                                     SttEngines.size(dataInfo ? dataInfo.rebuild_frees_mb : 0), SttEngines.size(size ? size.packages_mb : 0))};
         confirm.open();
     }
+    function capitalized(text) { return text.charAt(0).toUpperCase() + text.slice(1); }
     function confirmed() {
         var kind = pending ? pending.kind : "";
         pending = null;
@@ -112,7 +113,7 @@ Kirigami.FormLayout {
         Layout.preferredWidth: Kirigami.Units.gridUnit * 24
         details: i18n("Bigger models understand speech better, especially accents and noisy rooms, but are bigger to download and slower. \"small\" suits most people.")
         text: i18n("The speech model that turns your voice into text.") + " " + (rows.ownFolder ? i18n("A model folder on this computer: nothing to download.")
-            : rows.catalogueRow ? (rows.catalogueRow.note ? i18n(rows.catalogueRow.note) + ". " : "")
+            : rows.catalogueRow ? (rows.catalogueRow.note ? rows.capitalized(i18n(rows.catalogueRow.note)) + ". " : "")
                                   + (rows.catalogueRow.downloaded ? i18n("Downloaded.") : i18n("Not downloaded yet (%1).", SttEngines.size(rows.catalogueRow.mb)))
             : "")
     }
