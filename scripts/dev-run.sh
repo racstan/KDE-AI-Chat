@@ -31,6 +31,10 @@ mkdir -p "$OUT_DIR" "$(dirname "$SHOT")" "$SANDBOX/config" "$SANDBOX/data" "$SAN
 export XDG_CONFIG_HOME="$SANDBOX/config"
 export XDG_DATA_HOME="$SANDBOX/data"
 export XDG_CACHE_HOME="$SANDBOX/cache"
+# Schedule timers the sandbox widget syncs on start go to a sandbox folder, and
+# systemctl is a no-op: the real user manager is never told about them.
+export KDEAICHAT_UNIT_DIR="$SANDBOX/units"
+export KDEAICHAT_SYSTEMCTL=true
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
@@ -82,6 +86,20 @@ path, prompt = sys.argv[1:]
 src = open(path, encoding="utf-8").read()
 end = src.rstrip().rindex("}")
 hook = "    Timer { interval: 5000; running: true; onTriggered: root.sendImageCommand(%s) }\n" % json.dumps(prompt)
+open(path, "w", encoding="utf-8").write(src[:end] + hook + src[end:])
+PY
+fi
+
+# DEV_SEND_MESSAGE="text": in the staged copy only, the widget sends this text from the
+# composer once, a few seconds after it starts (root.sendMessage, the Send button's path).
+# scripts/dev-send.sh and the dev-*-e2e.sh scripts use it.
+if [ -n "${DEV_SEND_MESSAGE:-}" ]; then
+    python3 - "$STAGE/$DEV_ID/contents/ui/main.qml" "$DEV_SEND_MESSAGE" <<'PY'
+import json, sys
+path, message = sys.argv[1:]
+src = open(path, encoding="utf-8").read()
+end = src.rstrip().rindex("}")
+hook = "    Timer { interval: 5000; running: true; onTriggered: { root.chatInputText = %s; root.sendMessage(); } }\n" % json.dumps(message)
 open(path, "w", encoding="utf-8").write(src[:end] + hook + src[end:])
 PY
 fi

@@ -48,11 +48,11 @@ def _running() -> Dict[str, Any]:
     return {}
 
 
-def cmd_pi_bridge_start(payload: Dict[str, Any]) -> None:
+def ensure_bridge() -> Dict[str, Any]:
+    """{status: running|started, port, token}, starting the bridge if needed, or {status: error, message}."""
     state = _running()
     if state:
-        print(json.dumps({"status": "running", "port": state["port"], "token": state["token"]}))
-        return
+        return {"status": "running", "port": state["port"], "token": state["token"]}
     os.makedirs(chats.data_root(), mode=0o700, exist_ok=True)
     log_path = os.path.join(chats.data_root(), "pi-bridge.log")
     with open(log_path, "ab") as log:
@@ -62,12 +62,15 @@ def cmd_pi_bridge_start(payload: Dict[str, Any]) -> None:
     while time.time() < deadline:
         state = _read_state()
         if state.get("pid") == process.pid and _healthy(int(state.get("port") or 0)):
-            print(json.dumps({"status": "started", "port": state["port"], "token": state["token"]}))
-            return
+            return {"status": "started", "port": state["port"], "token": state["token"]}
         if process.poll() is not None:
             break
         time.sleep(0.1)
-    print(json.dumps({"status": "error", "message": f"The Pi bridge didn't start (see {log_path})."}))
+    return {"status": "error", "message": f"The Pi bridge didn't start (see {log_path})."}
+
+
+def cmd_pi_bridge_start(payload: Dict[str, Any]) -> None:
+    print(json.dumps(ensure_bridge()))
 
 
 def cmd_pi_bridge_stop(payload: Dict[str, Any]) -> None:

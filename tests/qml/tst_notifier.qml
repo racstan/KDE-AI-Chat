@@ -101,7 +101,7 @@ Item {
             notifier.popupOpen = true;
             verify(notifier.scheduledRan("c3", "Morning news", "Summarise the headlines"));
             compare(root.sent.length, 1);
-            compare(root.sent[0].title, "Morning news");
+            compare(root.sent[0].title, "Morning news is ready");
             compare(root.sent[0].chatId, "c3");
             notifier.scheduledEnabled = false;
             verify(!notifier.scheduledRan("c3", "Morning news", "x"));

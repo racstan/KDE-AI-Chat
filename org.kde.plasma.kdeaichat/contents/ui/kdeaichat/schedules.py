@@ -1,154 +1,103 @@
-"""Scheduler commands: the schedule store, pending triggers and the service.
+"""Schedule commands the chat widget itself runs.
 
-Each mutating command takes the schedule-store lock around its complete
-read/modify/write, so it never races the background scheduler daemon.
+- ``delete_session_schedules {sessionId}``: a deleted chat takes its schedules along.
+- ``schedules_startup {}``: run once each time the widget starts. Removes what
+  the pre-1.4.0 scheduler left behind, migrates schedules.json to
+  schedules.v2.json if that hasn't happened yet, and makes the systemd timers
+  match the definitions (also rewriting the run@ template when the widget's
+  install path changed). Idempotent and cheap when there is nothing to do:
+  systemctl is only called for units that changed.
+
+The pre-1.4.0 scheduler was a daemon polling every 5 s
+(``~/.local/share/kdeaichat/kde-ai-scheduler.py``, unit
+``kde-ai-scheduler.service``) dropping trigger files into ``pending/`` that
+the widget polled for every 3 s; ``results/`` was never used. All of it is
+stopped and removed. Leftover triggers can't be delivered any more (each
+schedule now runs by itself in its chat), so they are deleted and counted.
 """
 import json
 import os
 import shutil
-import sys
+import signal
 from typing import Any, Dict, List
 
-from kdeaichat import schedule_store
-from kdeaichat.common import (MAX_SCHEDULE_STORE_BYTES, atomic_write_json, atomic_write_text,
-                              load_schedules, pending_dir, results_dir, safe_path,
-                              schedule_store_lock, schedules_path)
+from kdeaichat import chats, schedule_store, schedule_units
+
+LEGACY_UNIT = "kde-ai-scheduler.service"
+LEGACY_SCRIPT = "kde-ai-scheduler.py"
+
+
+def _legacy_daemon_pids(script: str) -> List[int]:
+    """Our processes running the copied daemon script (exact path), from /proc."""
+    pids = []
+    uid = os.getuid()
+    for name in os.listdir("/proc") if os.path.isdir("/proc") else []:
+        if not name.isdigit():
+            continue
+        try:
+            if os.stat(f"/proc/{name}").st_uid != uid:
+                continue
+            with open(f"/proc/{name}/cmdline", "rb") as f:
+                argv = f.read().split(b"\0")
+        except OSError:
+            continue
+        if any(arg.decode("utf-8", "replace") == script for arg in argv[:3]):
+            pids.append(int(name))
+    return pids
+
+
+def cleanup_legacy(run=None) -> Dict[str, Any]:
+    """Stop and remove the old scheduler daemon, its unit, pending/ and results/."""
+    run = run or schedule_units.systemctl
+    root = chats.data_root()
+    done: Dict[str, Any] = {"unit": False, "script": False, "killed": 0, "droppedTriggers": 0, "removedDirs": []}
+    unit = os.path.join(schedule_units.unit_dir(), LEGACY_UNIT)
+    if os.path.lexists(unit):
+        run(["disable", "--now", LEGACY_UNIT])
+        os.remove(unit)
+        run(["daemon-reload"])
+        run(["reset-failed", LEGACY_UNIT])
+        done["unit"] = True
+    script = os.path.join(root, LEGACY_SCRIPT)
+    for pid in _legacy_daemon_pids(script):   # also one started by hand (the old nohup fallback)
+        try:
+            os.kill(pid, signal.SIGTERM)
+            done["killed"] += 1
+        except OSError:
+            pass
+    if os.path.lexists(script):
+        os.remove(script)
+        done["script"] = True
+    for name in ("pending", "results"):
+        path = os.path.join(root, name)
+        if os.path.islink(path):
+            os.remove(path)
+        elif os.path.isdir(path):
+            if name == "pending":
+                done["droppedTriggers"] = sum(1 for f in os.listdir(path) if f.endswith(".json"))
+            shutil.rmtree(path, ignore_errors=True)
+        else:
+            continue
+        done["removedDirs"].append(name)
+    done["changed"] = bool(done["unit"] or done["script"] or done["killed"] or done["removedDirs"])
+    return done
+
+
+def cmd_schedules_startup(payload: Dict[str, Any]) -> None:
+    legacy = cleanup_legacy()
+    units = schedule_store.sync_all(ensure_enabled=legacy["changed"])
+    print(json.dumps({"ok": not units["errors"], "legacy": legacy, "units": units}))
 
 
 def cmd_delete_session_schedules(payload: Dict[str, Any]) -> None:
-    """Remove every schedule whose ``chatId`` matches ``sessionId`` (old and new store)."""
+    """Remove every schedule whose ``chatId`` matches ``sessionId``."""
     session_id = str(payload.get("sessionId", ""))
-    if session_id and os.path.exists(schedule_store.store_path()):
-        schedule_store.delete_schedules(lambda s: s.get("chatId") == session_id)
-    sp = schedules_path()
-    if not os.path.exists(sp):
-        return
-    with schedule_store_lock():
-        try:
-            if os.path.getsize(sp) > MAX_SCHEDULE_STORE_BYTES:
-                return
-            with open(sp) as f:
-                data: Any = json.load(f)
-        except Exception:
-            return
-        if not isinstance(data, dict):
-            return
-        scheds: List[Dict[str, Any]] = data.get("schedules", [])
-        session_id = str(payload.get("sessionId", ""))
-        data["schedules"] = [s for s in scheds if isinstance(s, dict) and s.get("chatId") != session_id]
-        atomic_write_json(sp, data)
-
-
-def cmd_poll_pending_triggers(payload: Dict[str, Any]) -> None:
-    """Drain the pending trigger directory and return its contents.
-
-    Each file in the pending directory is read, parsed, and removed.
-    Schedules are also returned for the QML side to keep its list in
-    sync with the persisted store.
-    """
-    res: List[Dict[str, Any]] = []
-    pd = pending_dir()
-    if os.path.exists(pd):
-        for f in sorted(os.listdir(pd))[:50]:
-            if f.endswith(".json"):
-                p = os.path.join(pd, f)
-                try:
-                    if os.path.getsize(p) > 512 * 1024:
-                        raise ValueError("pending trigger is too large")
-                    with open(p) as pf:
-                        item = json.load(pf)
-                    if isinstance(item, dict) and len(str(item.get("message", ""))) <= 200000:
-                        res.append(item)
-                except (OSError, ValueError, json.JSONDecodeError):
-                    pass
-                finally:
-                    try: os.remove(p)
-                    except OSError: pass
-    scheds: List[Dict[str, Any]] = []
-    try:
-        with schedule_store_lock():
-            scheds = load_schedules().get("schedules", [])
-    except Exception:
-        pass
-    print(json.dumps({"pending": res, "schedules": scheds}))
-
-
-def cmd_setup_scheduler_service(payload: Dict[str, Any]) -> None:
-    """Install the scheduler service file, daemon, and schedules store.
-
-    Copies the helper script to the user's bin directory, ensures the
-    schedules store exists with restrictive permissions, and writes the
-    systemd user unit. Reports whether the unit ended up enabled.
-    """
-    src = safe_path(payload.get("srcPath", ""))
-    dest = safe_path(payload.get("destPath", ""))
-    os.makedirs(os.path.dirname(dest), mode=0o700, exist_ok=True)
-    os.makedirs(results_dir(), mode=0o700, exist_ok=True)
-    try: os.chmod(os.path.dirname(dest), 0o700); os.chmod(results_dir(), 0o700)
-    except OSError: pass
-    if os.path.exists(src):
-        shutil.copy2(src, dest)
-        os.chmod(dest, 0o755)
-    sp = schedules_path()
-    with schedule_store_lock():
-        if not os.path.exists(sp):
-            atomic_write_json(sp, {"version": 1, "schedules": []})
-    sdir = os.path.expanduser("~/.config/systemd/user")
-    os.makedirs(sdir, mode=0o700, exist_ok=True)
-    sfile = sdir + "/kde-ai-scheduler.service"
-    service_content = str(payload.get("serviceContent", ""))
-    if not service_content or "\x00" in service_content or len(service_content) > 32768:
-        raise ValueError("invalid scheduler service content")
-    atomic_write_text(sfile, service_content, mode=0o600)
-    os.system("systemctl --user daemon-reload")
-    if os.system("systemctl --user is-enabled kde-ai-scheduler.service >/dev/null 2>&1") == 0:
-        print("AUTO_ENABLED")
-    else:
-        print("AUTO_DISABLED")
-
-
-def cmd_save_all_schedules(payload: Dict[str, Any]) -> None:
-    """Persist a full schedules payload (replaces the existing file atomically)."""
-    if not isinstance(payload, dict):
-        raise ValueError("schedule payload must be an object")
-    if len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > 1500000:
-        raise ValueError("schedule payload is too large")
-    p = os.path.expanduser("~/.local/share/kdeaichat")
-    os.makedirs(p, mode=0o700, exist_ok=True)
-    try: os.chmod(p, 0o700)
-    except OSError: pass
-    target = os.path.join(p, "schedules.json")
-    try:
-        with schedule_store_lock():
-            try:
-                disk = load_schedules()
-            except Exception:
-                disk = {"version": 1, "schedules": [], "history": []}
-            merged_history = []
-            seen = set()
-            for history in (disk.get("history", []), payload.get("history", [])):
-                for entry in history if isinstance(history, list) else []:
-                    if not isinstance(entry, dict):
-                        continue
-                    key = entry.get("id") or json.dumps(entry, sort_keys=True, ensure_ascii=False)
-                    if key not in seen:
-                        seen.add(key)
-                        merged_history.append(entry)
-            payload_to_write = dict(payload)
-            payload_to_write["schedules"] = [s for s in payload.get("schedules", []) if isinstance(s, dict)][:1000]
-            payload_to_write["history"] = merged_history[-1000:]
-            if not isinstance(payload_to_write.get("settings"), dict):
-                payload_to_write["settings"] = disk.get("settings", {}) if isinstance(disk.get("settings", {}), dict) else {}
-            atomic_write_json(target, payload_to_write)
-        print("SCHED_SAVE_OK")
-    except Exception as e:
-        sys.stderr.write(f"Error saving schedules: {e}\n")
-        print("SCHED_SAVE_ERROR")
+    if session_id:
+        removed = schedule_store.delete_schedules(lambda s: s.get("chatId") == session_id)
+        print(json.dumps({"ok": True, "removed": removed["removed"]}))
 
 
 COMMANDS = {
     "delete_session_schedules": cmd_delete_session_schedules,
-    "poll_pending_triggers": cmd_poll_pending_triggers,
-    "setup_scheduler_service": cmd_setup_scheduler_service,
-    "save_all_schedules": cmd_save_all_schedules,
+    "schedules_startup": cmd_schedules_startup,
 }

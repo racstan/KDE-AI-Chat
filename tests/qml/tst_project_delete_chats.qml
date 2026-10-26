@@ -36,7 +36,6 @@ TestCase {
         property var activeXhr: null
         property int requestGeneration: 0
         property string activeRequestSessionId: ""
-        property string schedulerResumeSessionId: ""
         property int queueCounter: 0
         property bool openCodeMode: false
         property bool piMode: false

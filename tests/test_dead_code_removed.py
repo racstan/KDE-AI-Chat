@@ -12,6 +12,8 @@ REMOVED_COMMANDS = (
     "toggle_schedule", "update_schedule_history_status", "migrate_history", "write_history", "read_history",
     "delete_schedule", "add_schedule", "get_memory_usage", "get_voice_token", "setup_voice_services",
     "delete_voice_setup", "delete_venv_setup", "privacy_report", "opencode_server_status", "pi_bridge_stop",
+    # Phase 5: the polling scheduler daemon and its trigger files are gone (schedules are systemd timers).
+    "poll_pending_triggers", "setup_scheduler_service", "save_all_schedules",
 )
 REMOVED_ENTRIES = ("schedulerAutoStart", "preselectedChatId", "preselectedChatName", "voiceTtsModel")
 
@@ -21,6 +23,12 @@ def test_removed_helper_commands_are_unknown():
         out = subprocess.run([sys.executable, os.path.join(UI, "kde_ai_helper.py"), name, "e30="],
                              capture_output=True, text=True, timeout=15)
         assert out.returncode != 0 and "Unknown command" in out.stdout, name
+
+
+def test_polling_scheduler_files_are_gone():
+    for path in ("contents/scripts/kde-ai-scheduler.py", "contents/scripts/kde-ai-scheduler.service",
+                 "contents/ui/chat/SchedulerPoller.qml"):
+        assert not os.path.exists(os.path.join(REPO, "org.kde.plasma.kdeaichat", path)), path
 
 
 def test_removed_settings_are_not_declared():

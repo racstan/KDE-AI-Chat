@@ -87,11 +87,12 @@ Item {
         return true;
     }
 
-    // Scheduled tasks deliver their message whether or not the popup is open.
+    // A scheduled prompt's reply arrived (chat/ScheduleInbox.qml): shown whether or not the popup is open.
     function scheduledRan(chatId, taskName, message) {
         if (!scheduledEnabled)
             return false;
-        sender(String(taskName || "") || i18n("Scheduled task"), preview(message), String(chatId), false);
+        var name = String(taskName || "").trim();
+        sender(name ? i18n("%1 is ready", name) : i18n("A scheduled prompt is ready"), preview(message), String(chatId), false);
         return true;
     }
 

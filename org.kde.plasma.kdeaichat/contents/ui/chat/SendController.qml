@@ -267,32 +267,6 @@ QtObject {
                 return ;
             }
         }
-        // A scheduled trigger belongs to its target chat even when that chat
-        // is not currently visible. Rotate through scheduled queues only when
-        // the active request is idle; ordinary user queues stay attached to
-        // their original chat and are never cancelled by this scan.
-        for (var s = 0; s < chat.sessions.length; s++) {
-            var session = chat.sessions[s] || {};
-            if (session.value === chat.currentSessionId) continue;
-            var messages = Array.isArray(session.messages) ? session.messages : [];
-            for (var m = 0; m < messages.length; m++) {
-                if (messages[m] && messages[m].role === "queued" && messages[m].scheduled) {
-                    if (!chat.schedulerResumeSessionId)
-                        chat.schedulerResumeSessionId = chat.currentSessionId;
-                    chat.switchSession(session.value);
-                    return ;
-                }
-            }
-        }
-        if (chat.schedulerResumeSessionId && chat.schedulerResumeSessionId !== chat.currentSessionId) {
-            var resumeId = chat.schedulerResumeSessionId;
-            chat.schedulerResumeSessionId = "";
-            if (chat.sessionIndexById(resumeId) >= 0) {
-                chat.switchSession(resumeId);
-                return ;
-            }
-        }
-        chat.schedulerResumeSessionId = "";
     }
 
     function stopStreaming() {

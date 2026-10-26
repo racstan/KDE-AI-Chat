@@ -4,32 +4,39 @@ The main principle: systemd wakes the job and Python decides. The job
 loads the definition, asks ``should_run`` and records the decision in the
 schedule's run-state file. It never writes the definitions.
 
-!!! STUB (Phase 5 task t3 replaces it) !!!
-This version only decides and records: a "run" decision is recorded with
-status ``due-not-run`` (the occurrence counts as handled, so it is not
-retried), but NO prompt is sent, no chat is written and no notification
-is shown. The real per-mode run (direct / OpenCode / Pi, in the chat's own
-mode) is the next task's job and plugs in at ``_run_prompt``.
+A "run" decision is recorded at once as ``running`` (the occurrence counts
+as handled, so a second wake-up or a crash never runs it twice), then the
+run-state lock is released while the prompt runs (schedule_exec: the chat's
+own mode, the reply into the chat, a notification), and the outcome is
+recorded under the lock again: "ok", "error: …" or "skipped: …".
 
 Invocation: ``kde_ai_helper.py run_schedule <id>`` (a plain id, not a
 base64 payload, because systemd passes the instance name ``%i``).
 """
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from kdeaichat import schedule_store, schedule_units
+from kdeaichat import schedule_exec, schedule_store, schedule_units
 from kdeaichat.schedule_model import ID_RE, iso, normalize_schedule, now_local
 from kdeaichat.schedule_rules import has_future, should_run
-from kdeaichat.schedule_runs import apply_decision, history_limit, load_run_state, run_state_lock, save_run_state
+from kdeaichat.schedule_runs import (apply_decision, finish_run, history_limit, load_run_state, run_state_lock,
+                                     save_run_state)
 
 
-def _run_prompt(schedule: Dict[str, Any]) -> Optional[str]:
-    """STUB: the real run comes in task t3. Returns None = "not run"."""
-    return None
+def _run_prompt(schedule: Dict[str, Any], state: Dict[str, Any], now) -> str:
+    """Runs the prompt; returns the status. Tests replace it."""
+    return schedule_exec.run_prompt(schedule, state.get("lastSuccessAt"), now)
+
+
+def _check_finished(schedule: Dict[str, Any], state: Dict[str, Any], now, decision: Dict[str, Any]) -> None:
+    limit_hit = schedule.get("limitCount") and state["runCount"] >= schedule["limitCount"]
+    if not state["finished"] and (limit_hit or not has_future(schedule, now)):
+        state["finished"], state["finishedAt"] = True, iso(now)
+        decision["finished"] = True
 
 
 def run_schedule(sid: str, now=None, run=None) -> Dict[str, Any]:
-    """Decide and record one wake-up; returns the decision (also printed by the command)."""
+    """Decide, run and record one wake-up; returns the decision (also printed by the command)."""
     if not isinstance(sid, str) or not ID_RE.match(sid):
         raise ValueError("invalid schedule id")
     now = now or now_local()
@@ -37,6 +44,7 @@ def run_schedule(sid: str, now=None, run=None) -> Dict[str, Any]:
     store = schedule_store.read_store() or schedule_store.empty_store()
     raw = schedule_store.find(store, sid)
     limit = history_limit(store.get("settings"))
+    schedule = None
     with run_state_lock(sid):
         state = load_run_state(sid)
         if raw is None:
@@ -45,18 +53,22 @@ def run_schedule(sid: str, now=None, run=None) -> Dict[str, Any]:
             try:
                 schedule = normalize_schedule(raw, now=now)
             except ValueError as e:
-                schedule = None
                 decision = {"action": "skip", "reason": "invalid-schedule", "occurrence": None,
                             "late": False, "error": str(e)}
             if schedule is not None:
                 decision = should_run(schedule, state, now)
-                status = _run_prompt(schedule) if decision["action"] == "run" else None
-                apply_decision(state, decision, iso(now), status)
-                limit_hit = schedule.get("limitCount") and state["runCount"] >= schedule["limitCount"]
-                if not state["finished"] and (limit_hit or not has_future(schedule, now)):
-                    state["finished"], state["finishedAt"] = True, iso(now)
-                    decision["finished"] = True
+                apply_decision(state, decision, iso(now))
+                if decision["action"] != "run":
+                    _check_finished(schedule, state, now, decision)
         if raw is not None:
+            save_run_state(sid, state, limit)
+    if schedule is not None and decision["action"] == "run":
+        status = _run_prompt(schedule, state, now)
+        decision["status"] = status
+        with run_state_lock(sid):
+            state = load_run_state(sid)
+            finish_run(state, decision.get("occurrence"), status, iso(now_local()))
+            _check_finished(schedule, state, now, decision)
             save_run_state(sid, state, limit)
     if decision.get("finished") or raw is None:   # done, or a stray timer for a deleted schedule
         schedule_units.disable_timer(sid, run)

@@ -1,8 +1,7 @@
 """Integration tests for kde_ai_helper.py IPC.
 
 Spawns the helper as a real subprocess and exercises the
-``poll_pending_triggers``/``export_chat`` flows with a
-real on-disk schedule store. The helper is zero-dependency (stdlib
+``export_chat`` flow and the command dispatch. The helper is zero-dependency (stdlib
 only) so we can run it directly.
 """
 import base64
@@ -19,7 +18,6 @@ HELPER_PATH = os.path.join(
     "kde_ai_helper.py",
 )
 SCHEDULES_PATH = "~/.local/share/kdeaichat/schedules.json"
-PENDING_DIR = "~/.local/share/kdeaichat/pending"
 
 
 def _run_helper(command: str, payload: dict, temp_dir: str):
@@ -45,30 +43,10 @@ class TestKdeAiHelperIPC(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
         # Pre-create the data dir
         os.makedirs(os.path.join(self.temp_dir, ".local", "share", "kdeaichat"), exist_ok=True)
-        os.makedirs(os.path.join(self.temp_dir, ".local", "share", "kdeaichat", "pending"), exist_ok=True)
 
     def tearDown(self):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_poll_pending_drains_files(self):
-        # Drop a trigger file in the pending dir
-        pending = os.path.join(self.temp_dir, ".local", "share", "kdeaichat", "pending")
-        trigger = os.path.join(pending, "trigger-001.json")
-        with open(trigger, "w") as f:
-            json.dump({"scheduleId": "s-1", "message": "test"}, f)
-
-        out, err, rc = _run_helper("poll_pending_triggers", {}, self.temp_dir)
-        self.assertEqual(rc, 0, msg=err)
-        parsed = json.loads(out)
-        self.assertEqual(len(parsed["pending"]), 1)
-        self.assertEqual(parsed["pending"][0]["scheduleId"], "s-1")
-        # File should be removed
-        self.assertFalse(os.path.exists(trigger))
-        # Second poll should be empty
-        out2, _, _ = _run_helper("poll_pending_triggers", {}, self.temp_dir)
-        parsed2 = json.loads(out2)
-        self.assertEqual(parsed2["pending"], [])
 
     def test_export_chat(self):
         dest = os.path.join(self.temp_dir, "exported.md")

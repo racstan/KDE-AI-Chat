@@ -2,7 +2,7 @@
 
 ``~/.local/share/kdeaichat/schedule-runs/<id>.json``::
 
-    {"version": 1, "lastRunAt": iso|null, "lastScheduledFor": iso|null,
+    {"version": 1, "lastRunAt": iso|null, "lastSuccessAt": iso|null, "lastScheduledFor": iso|null,
      "runCount": 0, "lastStatus": str|null, "finished": false, "finishedAt": iso|null,
      "lastCheck": {"at": iso, "reason": str}|null,
      "history": [{"at": iso, "scheduledFor": iso|null, "status": str, "reason": str}]}
@@ -37,7 +37,7 @@ def run_state_path(sid: str) -> str:
 
 
 def empty_state() -> Dict[str, Any]:
-    return {"version": 1, "lastRunAt": None, "lastScheduledFor": None, "runCount": 0,
+    return {"version": 1, "lastRunAt": None, "lastSuccessAt": None, "lastScheduledFor": None, "runCount": 0,
             "lastStatus": None, "finished": False, "finishedAt": None, "lastCheck": None, "history": []}
 
 
@@ -117,26 +117,40 @@ def remove_run_state(sid: str) -> None:
 MISSED = ("missed-no-catchup", "outside-catchup-window")
 
 
-def apply_decision(state: Dict[str, Any], decision: Dict[str, Any], now_iso: str,
-                   run_status: Optional[str] = None) -> Dict[str, Any]:
+def apply_decision(state: Dict[str, Any], decision: Dict[str, Any], now_iso: str) -> Dict[str, Any]:
     """Record a ``should_run`` decision in ``state`` (returns it).
 
-    ``run_status`` is the outcome of a run ("ok", "error: …"); a run decision
-    without one is recorded as not run yet (the stub job, see schedule_job).
+    A run is recorded as ``running`` straight away, so its occurrence counts
+    as handled even if the job dies during the run (never sent twice);
+    ``finish_run`` then records the outcome.
     """
     reason = decision["reason"]
     occurrence = decision.get("occurrence")
     if decision["action"] == "run":
-        status = run_status or "due-not-run"
         state["lastScheduledFor"] = occurrence
-        state["lastStatus"] = status
-        if run_status is not None:
-            state["lastRunAt"] = now_iso
-            state["runCount"] = int(state.get("runCount") or 0) + 1
-        state["history"].append({"at": now_iso, "scheduledFor": occurrence, "status": status, "reason": reason})
+        state["lastStatus"] = "running"
+        state["history"].append({"at": now_iso, "scheduledFor": occurrence, "status": "running", "reason": reason})
     elif reason in MISSED:
         state["lastScheduledFor"] = occurrence
         state["lastStatus"] = "missed"
         state["history"].append({"at": now_iso, "scheduledFor": occurrence, "status": "missed", "reason": reason})
     state["lastCheck"] = {"at": now_iso, "reason": reason}
+    return state
+
+
+def finish_run(state: Dict[str, Any], occurrence: Optional[str], status: str, now_iso: str) -> Dict[str, Any]:
+    """Record a run's outcome: "ok", "error: …" (both count as runs) or "skipped: …" (does not)."""
+    entry = next((h for h in reversed(state["history"])
+                  if isinstance(h, dict) and h.get("status") == "running" and h.get("scheduledFor") == occurrence), None)
+    if entry is None:
+        entry = {"at": now_iso, "scheduledFor": occurrence, "reason": "due"}
+        state["history"].append(entry)
+    entry["status"] = status
+    entry["finishedAt"] = now_iso
+    state["lastStatus"] = status
+    if not status.startswith("skipped"):
+        state["lastRunAt"] = now_iso
+        state["runCount"] = int(state.get("runCount") or 0) + 1
+    if status == "ok":
+        state["lastSuccessAt"] = now_iso
     return state

@@ -214,11 +214,16 @@ def cmd_schedule_history(payload: Dict[str, Any]) -> None:
     _out({"ok": True, "runState": load_run_state(sid)})
 
 
-def cmd_schedules_sync(payload: Dict[str, Any]) -> None:
+def sync_all(ensure_enabled: bool = True) -> Dict[str, Any]:
+    """Units for every definition (migrating the old file first if needed); stray timers removed."""
     now = now_local()
     with schedule_store_lock():
         store = read_store() or _migrate_locked(now)
-        units = _sync(store, now, ensure_enabled=True)
+        return _sync(store, now, ensure_enabled=ensure_enabled)
+
+
+def cmd_schedules_sync(payload: Dict[str, Any]) -> None:
+    units = sync_all(ensure_enabled=True)
     _out({"ok": not units["errors"], "units": units})
 
 

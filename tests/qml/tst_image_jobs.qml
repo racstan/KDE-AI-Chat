@@ -112,7 +112,6 @@ Item {
         property var walletApiKeys: ({})
         property var errors: []
         property int queueCounter: 0
-        property string schedulerResumeSessionId: ""
         property string effectiveProvider: "nvidia"
         property bool openCodeMode: false
         property bool piMode: false

@@ -70,7 +70,6 @@
   "org.kde.plasma.kdeaichat/contents/ui/chat/RenameRow.qml": 2,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ReplyEvents.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/ResizeHandle.qml": 0,
-  "org.kde.plasma.kdeaichat/contents/ui/chat/SchedulerPoller.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/SendController.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/SessionList.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/SessionTitles.qml": 0,

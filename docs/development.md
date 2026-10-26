@@ -19,7 +19,16 @@ To send one **real message** through the widget's own send path (in the sandbox)
 scripts/dev-send.sh openrouter openrouter/auto ["message"]
 ```
 
-It copies that provider's key from your KWallet folder `KDEAIChat` into the dev folder `KDEAIChat-dev` inside D-Bus (never printed), delivers the message as a scheduler trigger, prints the conversation, and deletes the dev folder afterwards.
+It copies that provider's key from your KWallet folder `KDEAIChat` into the dev folder `KDEAIChat-dev` inside D-Bus (never printed), has the widget type and send the message itself (`DEV_SEND_MESSAGE`, see `scripts/dev-run.sh`), prints the conversation, and deletes the dev folder afterwards.
+
+To run **one real scheduled prompt** headless (what a schedule's systemd timer starts), into the sandbox chat while the dev widget is open:
+
+```bash
+scripts/dev-schedule-e2e.sh nvidia nvidia/nemotron-3.5-bolt-e4b ["message with {{date}}"]
+DEV_TIMER=1 scripts/dev-schedule-e2e.sh ...   # also once from a transient, test-named systemd timer
+```
+
+It calls `kde_ai_helper.py run_schedule <id>` with the sandbox's folders (`KDEAICHAT_WALLET_FOLDER=KDEAIChat-dev`, units in the sandbox, `systemctl` a no-op), then prints the run history, the chat file and the inbox (empty once the open widget merged the run). The key is handled as in `dev-send.sh`. Only one dev widget can run at a time (plasmawindowed is single-instance per applet id), so the script refuses to start while another one, e.g. another worktree's, is open.
 
 To make **one real picture** with AI Horde (anonymous, no key) through the `/image` path:
 

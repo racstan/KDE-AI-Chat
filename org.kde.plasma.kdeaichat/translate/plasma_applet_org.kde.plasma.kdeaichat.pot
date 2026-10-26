@@ -1046,8 +1046,12 @@ msgstr ""
 msgid "Something went wrong."
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:94
-msgid "Scheduled task"
+#: contents/ui/chat/Notifier.qml:95
+msgid "%1 is ready"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:95
+msgid "A scheduled prompt is ready"
 msgstr ""
 
 #: contents/ui/chat/Notifier.qml:104
