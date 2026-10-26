@@ -305,11 +305,11 @@ RowLayout {
             enabled: !actions.streaming
             icon.name: "bookmark-new"
             text: actions.selectedText.trim() ? i18n("Remember selection") : i18n("Remember")
-            onClicked: rememberPopup.createObject(actions, {
+            onClicked: (rememberPopup.createObject(actions, {
                 "chat": actions.chat,
                 "sessionId": actions.chat.currentSessionId,
                 "initialText": actions.selectedText.trim() ? actions.selectedText : actions.message.content || ""
-            }).open()
+            }) as RememberPopup).open()
         }
     }
 

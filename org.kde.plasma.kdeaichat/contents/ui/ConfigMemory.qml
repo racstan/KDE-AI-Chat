@@ -45,14 +45,12 @@ KCM.SimpleKCM {
     readonly property var offIds: MemoryList.disabledIds(store.list)
 
     function scopeText(m) {
-        if (m.scope === "chat") {
-            var title = (chatTitles || {})[m.chatId];
+        var title = m.scope === "chat" ? (chatTitles || {})[m.chatId] : "";
+        var name = m.scope === "project" ? (projectNames || {})[m.projectId] : "";
+        if (m.scope === "chat")
             return title ? i18n("Chat “%1”", title) : i18n("One chat");
-        }
-        if (m.scope === "project") {
-            var name = (projectNames || {})[m.projectId];
+        if (m.scope === "project")
             return name ? i18n("Project “%1”", name) : i18n("One project");
-        }
         return i18n("All chats");
     }
 
