@@ -16,6 +16,11 @@ ConfigModel {
         source: "ConfigChat.qml"
     }
     ConfigCategory {
+        name: i18n("Memory")
+        icon: "view-pim-notes"
+        source: "ConfigMemory.qml"
+    }
+    ConfigCategory {
         name: i18n("Schedules")
         icon: "view-calendar"
         source: "ConfigSchedules.qml"

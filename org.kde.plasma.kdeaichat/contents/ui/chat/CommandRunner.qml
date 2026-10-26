@@ -117,6 +117,8 @@ Item {
             runVariant(arg);
         } else if (name === "image") {
             runImage(arg);
+        } else if (name === "remember") {
+            runRemember(arg);
         } else {
             apply("model", arg);
         }
@@ -151,6 +153,22 @@ Item {
                 clearInput();
             else
                 show(result.code === "none" ? i18n("Add an image service first: Settings → Connection → Add provider → AI Horde or Pollinations.") : result.problem);
+        }
+    }
+
+    // /remember [chat:|project:] <text>: saves a memory (chat/Memory.qml), sends
+    // nothing; the Undo notice confirms it. Kept in the box when it can't run.
+    function runRemember(arg) {
+        var parsed = Commands.rememberArg(arg);
+        var project = chat.memory.projectOf(chat.currentSessionId);
+        if (parsed.text === "") {
+            show(i18n("Write what to remember, like /remember I prefer metric units. Start with chat: or project: to keep it to this chat or its project."));
+        } else if (parsed.scope === "project" && !project) {
+            show(i18n("This chat is in no project. Use /remember or /remember chat:."));
+        } else if (chat.memory.remember(parsed.text, parsed.scope, chat.currentSessionId, null)) {
+            clearInput();
+        } else {
+            show(i18n("Memories are not available."));
         }
     }
 
