@@ -17,7 +17,7 @@ import base64
 from typing import Any, Callable, Dict
 
 from kdeaichat import (chats, images, maintenance, memory, opencode_server, pi_bridge, pi_models, privacy,
-                       schedule_chat, schedule_job, schedule_store, schedules, voice_services)
+                       schedule_chat, schedule_job, schedule_store, schedules, tts, voice_legacy, voice_services)
 
 
 def _decode_payload(raw: str) -> Dict[str, Any]:
@@ -53,7 +53,7 @@ def main() -> None:
 
     commands: Dict[str, Callable[[Dict[str, Any]], None]] = {}
     for module in (schedules, schedule_store, schedule_job, schedule_chat, voice_services, maintenance, privacy, chats, images, memory,
-                   opencode_server, pi_bridge, pi_models):
+                   opencode_server, pi_bridge, pi_models, tts, voice_legacy):
         commands.update(module.COMMANDS)
     if command not in commands:
         print(f"Unknown command: {command}")
