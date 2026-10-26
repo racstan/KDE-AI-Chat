@@ -82,7 +82,7 @@ Item {
             chat.historyOnlyMode = true;
             wait(50);
             tryVerify(() => body.sessionList !== null);
-            compare(body.sessionList.list.count, 3);
+            compare(body.sessionList.list.count, 2, "the archived chat is in Archived, not All chats");
             verify(body.historyFull, "520 px is narrow: the history replaces the chat");
             screenshot(root, "chat-layout-history");
             chat.historyOnlyMode = false;

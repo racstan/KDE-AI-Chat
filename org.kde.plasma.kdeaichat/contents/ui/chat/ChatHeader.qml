@@ -12,6 +12,9 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.plasma.components as PC3
 
+// i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
+// qmllint disable unqualified
+
 RowLayout {
     id: header
 
@@ -112,7 +115,13 @@ RowLayout {
         Accessible.name: i18n("New chat")
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: Accessible.name
-        onClicked: header.chat.createSession(true)
+        // With the history open, the chat starts in the project it shows.
+        onClicked: {
+            if (header.chat.historyOnlyMode && header.chat.projects)
+                header.chat.projects.newChat();
+            else
+                header.chat.createSession(true);
+        }
     }
 
     // Chat info: this chat's usage and its own settings.
@@ -131,6 +140,7 @@ RowLayout {
         id: moreButton
         objectName: "moreButton"
         readonly property alias menu: moreMenu
+        readonly property alias projectMenu: projectMenu
 
         visible: !header.historyFull
         icon.name: "overflow-menu"
@@ -212,6 +222,12 @@ RowLayout {
                     header.chat.renamingCurrentChat = !header.chat.renamingCurrentChat;
                     header.chat.currentChatRenameDraft = header.chat.currentSessionTitle || "";
                 }
+            }
+            // Puts the open chat in a project (or none); its mode stays.
+            ProjectMenu {
+                id: projectMenu
+                objectName: "moveToProjectMenu"
+                chat: header.chat
             }
             QQC2.MenuSeparator {
             }

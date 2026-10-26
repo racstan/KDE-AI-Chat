@@ -95,7 +95,7 @@ Item {
             verify(body.composerItem.visible);
             verify(body.chatView.mapToItem(body, 0, 0).x >= body.historyPane.width, "chat is to the right of the history");
             verify(chat.historySidePanel);
-            compare(body.sessionList.list.count, 4);
+            compare(body.sessionList.list.count, 3, "All chats: the archived one is in Archived");
             compare(header.historyFull, false);
             screenshot(root, "history-panel-wide");
         }
@@ -177,7 +177,7 @@ Item {
             keyClick(Qt.Key_Tab);
             verify(find(r, "archiveButton").activeFocus);
             verify(find(r, "deleteButton").visible, "still shown while a button has focus");
-            row(3).forceActiveFocus();
+            row(0).forceActiveFocus();
             tryVerify(() => !find(r, "deleteButton").visible);
         }
 
@@ -289,7 +289,7 @@ Item {
                 {value: "a", text: "Trip planning", count: 4, updatedAt: now},
                 {value: "l1", text: "A very long title with many words that goes on and on and on and on well past the edge of any popup you could open", source: "opencode", updatedAt: now - day},
                 {value: "l2", text: "Unbrokenlongtitlewithoutanyspacesatalleverywhereinthisstringsoitcannotwrapanywhere1234567890", source: "pi", updatedAt: now - 20 * day},
-                {value: "l3", text: "Archived long one that also has a long name to elide nicely", archived: true, updatedAt: now - 60 * day},
+                {value: "l3", text: "Another long one that also has a long name to elide nicely", updatedAt: now - 60 * day},
                 // Titles are the start of what was typed: markup and line breaks must not escape the row.
                 {value: "l4", text: "<b>Fix</b> this <i>please</i>, it is a long html looking title that never ends and never ends and never ends", updatedAt: now - 3 * day},
                 {value: "l5", text: "first line\nsecond line of a title that came from a multi line first message and is very long indeed", updatedAt: now - 4 * day}

@@ -24,6 +24,13 @@ QtObject {
 
     // A project was deleted: what Undo needs (chat/UndoNotice.qml).
     signal projectDeleted(var project, int index, var movedChatIds)
+    // The project editor (chat/ProjectEditor.qml, in chat/ChatBody.qml) should
+    // open: projectId "" = a new project; moveChatId: a chat to put in it once saved.
+    signal editorRequested(string projectId, string moveChatId)
+
+    function openEditor(projectId, moveChatId) {
+        editorRequested(projectId || "", moveChatId || "");
+    }
 
     function load() {
         var store = chat ? chat.chatStore : null;
