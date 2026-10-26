@@ -30,6 +30,14 @@ DEV_TIMER=1 scripts/dev-schedule-e2e.sh ...   # also once from a transient, test
 
 It calls `kde_ai_helper.py run_schedule <id>` with the sandbox's folders (`KDEAICHAT_WALLET_FOLDER=KDEAIChat-dev`, units in the sandbox, `systemctl` a no-op), then prints the run history, the chat file and the inbox (empty once the open widget merged the run). The key is handled as in `dev-send.sh`. Only one dev widget can run at a time (plasmawindowed is single-instance per applet id), so the script refuses to start while another one, e.g. another worktree's, is open.
 
+To try the schedule editor's **"Describe when"** with a real model (in the sandbox; nothing is saved):
+
+```bash
+scripts/dev-describe.sh nvidia nvidia/nemotron-3.5-bolt-e4b "weekdays at 9 and Sunday at noon" ["answer to its question"]
+```
+
+It copies the key the same way, opens "Schedule a message…", runs the sentence, prints the model's answers and the rules with their preview, and saves the editor (only the widget's own item) as `build/dev-run/describe-question.png` / `describe-rules.png`. Dev runs keep systemd units in the sandbox (`KDEAICHAT_UNIT_DIR`, and `KDEAICHAT_SYSTEMCTL=true`), so saving a schedule there never creates a real timer.
+
 To make **one real picture** with AI Horde (anonymous, no key) through the `/image` path:
 
 ```bash

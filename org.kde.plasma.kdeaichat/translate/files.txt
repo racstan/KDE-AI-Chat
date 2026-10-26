@@ -67,7 +67,16 @@ contents/ui/config/ProviderEditor.qml
 contents/ui/config/ProviderRow.qml
 contents/ui/config/ProvidersPanel.qml
 contents/ui/config/RequestOptions.qml
-contents/ui/config/SchedulerService.qml
+contents/ui/config/ScheduleDescribeBox.qml
+contents/ui/config/ScheduleDescriber.qml
+contents/ui/config/ScheduleEditor.qml
+contents/ui/config/ScheduleFormat.qml
+contents/ui/config/ScheduleHistory.qml
+contents/ui/config/ScheduleOptions.qml
+contents/ui/config/SchedulePreview.qml
+contents/ui/config/ScheduleRow.qml
+contents/ui/config/ScheduleRuleRow.qml
+contents/ui/config/ScheduleTimes.qml
 contents/ui/ConfigSchedules.qml
 contents/ui/config/TemplatesEditor.qml
 contents/ui/config/VoiceEngine.qml
@@ -76,3 +85,4 @@ contents/ui/config/VoiceStatusGrid.qml
 contents/ui/store/MemoryMigration.qml
 contents/ui/store/Migration.qml
 contents/ui/store/Wallet.qml
+contents/ui/ScheduleDialog.qml

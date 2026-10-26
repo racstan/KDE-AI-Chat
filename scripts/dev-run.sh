@@ -104,6 +104,47 @@ open(path, "w", encoding="utf-8").write(src[:end] + hook + src[end:])
 PY
 fi
 
+# DEV_SCHEDULE_DESCRIBE="sentence": in the staged copy only, a few seconds after
+# start the chat's "Schedule a message…" editor opens and "Describe when" is run
+# with this sentence; DEV_SCHEDULE_ANSWER="text" answers the model's first
+# question. Each step is logged as "DEV_DESCRIBE …", and the editor (only the
+# widget's own item) is saved to DEV_SCHEDULE_SHOT when the question or the
+# rules arrive (scripts/dev-describe.sh).
+if [ -n "${DEV_SCHEDULE_DESCRIBE:-}" ]; then
+    python3 - "$STAGE/$DEV_ID/contents/ui/FullRepresentationContent.qml" "$DEV_SCHEDULE_DESCRIBE" \
+        "${DEV_SCHEDULE_ANSWER:-}" "${DEV_SCHEDULE_SHOT:-}" <<'PY'
+import json, sys
+path, sentence, answer, shot = sys.argv[1:]
+src = open(path, encoding="utf-8").read()
+end = src.rstrip().rindex("}")
+hook = """    Timer { interval: 5000; running: true; onTriggered: {
+        scheduleOverlay.openForChat(root.currentSessionId);
+        var editor = scheduleOverlay.dialog.editor, d = editor.describer, answer = %s, shot = %s, answered = false;
+        var save = function(suffix, then) {
+            var done = then || function() {};
+            if (!shot) { Qt.callLater(done); return; }
+            Qt.callLater(function() { scheduleOverlay.grabToImage(function(r) {
+                r.saveToFile(shot.replace(/[.]png$/, suffix + ".png")); done(); }); });
+        };
+        d.phaseChanged.connect(function() {
+            console.log("DEV_DESCRIBE phase=" + d.phase + " reply=" + JSON.stringify(d.lastReply) + " error=" + JSON.stringify(d.error));
+            if (d.phase === "question")
+                save("-question", function() { if (answer && !answered) { answered = true; d.answer(answer); } });
+        });
+        editor.previewResultChanged.connect(function() {
+            console.log("DEV_DESCRIBE rules=" + JSON.stringify(editor.draft.rules) + " preview=" + JSON.stringify(editor.previewResult));
+            if (d.lastReply) save("-rules");
+        });
+        var find = function(item) { if (item.objectName === "describeField") return item;
+            for (var i = 0; i < item.children.length; i++) { var f = find(item.children[i]); if (f) return f; } return null; };
+        find(editor).text = %s;
+        d.start(find(editor).text);
+    } }
+""" % (json.dumps(answer), json.dumps(shot), json.dumps(sentence))
+open(path, "w", encoding="utf-8").write(src[:end] + hook + src[end:])
+PY
+fi
+
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 
@@ -144,8 +185,9 @@ unplace() {
 }
 trap 'unplace; rm -rf "$STAGE"' EXIT
 
-# Run windowed, screenshot the active window, then stop it.
-plasmawindowed "$DEV_ID" >"$LOG" 2>&1 &
+# Run windowed, screenshot the active window, then stop it. Qt would send its
+# messages to the journal in a Plasma session; keep them in $LOG for the check below.
+QT_FORCE_STDERR_LOGGING=1 plasmawindowed "$DEV_ID" >"$LOG" 2>&1 &
 PID=$!
 sleep "$RUN_SECONDS"
 # spectacle can only grab the *active* window, so first ask KWin (scripting

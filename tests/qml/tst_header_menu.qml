@@ -10,7 +10,7 @@ import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 Item {
     id: root
     width: 760
-    height: 300
+    height: 420   // room for the whole More menu below the button
 
     function i18n(text) { return text; }
     function i18np(one, many, n) { return n === 1 ? one : many; }

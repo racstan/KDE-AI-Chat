@@ -16,6 +16,8 @@ RowLayout {
     property var chat: null
     property string role: ""
     property string model: ""
+    // A message a schedule sent: its name, shown small after yours.
+    property string scheduleName: ""
     // The longest the name may get.
     property real maximumWidth: 200
 
@@ -51,6 +53,17 @@ RowLayout {
         Layout.alignment: Qt.AlignBaseline
         Layout.maximumWidth: sender.maximumWidth - (avatarIcon.visible ? avatarIcon.width + sender.spacing : 0)
                              - (modelLabel.visible ? Math.min(modelLabel.implicitWidth, sender.maximumWidth / 2) + sender.spacing : 0)
+    }
+
+    PC3.Label {
+        objectName: "senderScheduled"
+        visible: sender.mine && sender.scheduleName !== ""
+        text: i18n("Scheduled: %1", sender.scheduleName)
+        font: Kirigami.Theme.smallFont
+        opacity: 0.6
+        elide: Text.ElideRight
+        Layout.alignment: Qt.AlignBaseline
+        Layout.maximumWidth: sender.maximumWidth / 2
     }
 
     // The model, kept small next to the AI's own name.

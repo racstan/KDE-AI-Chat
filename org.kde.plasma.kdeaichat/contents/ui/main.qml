@@ -421,7 +421,7 @@ PlasmoidItem {
         }
     }
     onExpandedChanged: {
-        if (expanded) {
+        if (root.expanded) {
             root.triggerInitialLoad();
             root.focusInput();
             Qt.callLater(root.scrollToBottom);

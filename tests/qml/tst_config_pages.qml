@@ -216,21 +216,12 @@ Item {
         // ── Schedules ────────────────────────────────────────────────────────
         function test_schedules_page_runs_no_real_command() {
             shellLog = [];
-            open("ConfigSchedules.qml", {"cfg_schedulerEnabled": true, "cfg_executeMissedSchedules": false,
-                                         "runShell": function(script, tag) { testCase.shellLog.push(tag); }});
+            open("ConfigSchedules.qml", {"runHelper": function(command, payload, onDone) {
+                testCase.shellLog.push(command);
+                onDone(JSON.stringify({"ok": true, "schedules": [], "settings": {}}), 0, "");
+            }});
             noSecretSettings();
-            verify(shellLog.indexOf("sched-setup") >= 0, "setup not requested: " + shellLog);
-            verify(shellLog.indexOf("sched-load") >= 0);
-            var service = find(page, function(item) { return item.hasOwnProperty("schedulerList") && item.hasOwnProperty("runShell"); });
-            service.handle("sched-load", JSON.stringify({"schedules": [{"id": "a", "name": "Morning news", "enabled": true},
-                                                                      {"id": "b", "name": "Old", "archived": true}], "history": []}), "");
-            compare(service.schedulerList.length, 1);
-            compare(service.schedulerArchivedList.length, 1);
-            service.handle("sched-poll", "SCHED_RUNNING", "");
-            verify(service.running);
-            service.handle("sched-setup", "AUTO_ENABLED", "");
-            var autoStart = find(page, function(item) { return item.text === "Start when I log in"; });
-            verify(autoStart && autoStart.checked, "the login checkbox follows the systemd state");
+            compare(shellLog.join(","), "schedules_list");
             shot("config-schedules");
         }
 

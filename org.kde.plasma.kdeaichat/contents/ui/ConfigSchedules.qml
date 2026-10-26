@@ -1,13 +1,17 @@
-// Settings → Schedules: the background scheduler that sends messages into
-// chats at set times, and the list of schedules (edited in ScheduleDialog).
-// Starting and stopping the daemon happens right away; the switches below are
-// also saved as settings when you press Apply or OK.
+// Settings → Schedules: messages sent into a chat at set times, even with the
+// widget closed (each schedule is a systemd user timer that runs the prompt in
+// the background). Each schedule has its own on/off switch, editor
+// (ScheduleDialog.qml) and history. There is no global switch. Everything here
+// takes effect at once through the helper; nothing is a cfg_ setting.
 import QtQuick
+import QtCore
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import "config" as Config
+import "config/ScheduleDraft.js" as Draft
+import "store" as Store
 
 // i18n() and plasmoid are provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -15,132 +19,141 @@ import "config" as Config
 KCM.SimpleKCM {
     id: page
 
-    property alias cfg_schedulerEnabled: enabledSwitch.checked
-    property alias cfg_executeMissedSchedules: missedCheck.checked
-
     readonly property var plasmoidObject: typeof plasmoid !== "undefined" ? plasmoid : null
-    // Replaces running shell commands (tests); see SchedulerService.runShell.
-    property var runShell: null
+    readonly property var configuration: plasmoidObject ? plasmoidObject.configuration : null
+    // Tests replace the helper (run(command, payload, onDone)) and the network.
+    property var runHelper: null
+    property var xhrFactory: null
+    // store/Wallet.qml, read only when "Describe when" needs a key; tests replace it.
+    property var wallet: walletStore
 
-    function newSchedule() {
-        var start = new Date();
-        start.setMinutes(start.getMinutes() + 5, 0, 0);
-        var chats = scheduleDialog.getChatsList();
-        scheduleDialog.draft = {
-            "id": scheduler.schedMakeUuid(), "name": "", "enabled": true,
-            "chatId": chats.length > 0 ? chats[0].id : "", "chatName": chats.length > 0 ? chats[0].name : "",
-            "message": "", "taskType": "single", "startDate": start.toISOString(),
-            "schedType": "days", "schedEvery": 1, "schedTime": "09:00", "schedDays": [1], "schedDayOfMonth": 1,
-            "limitEnabled": false, "limitCount": 5, "notify": true, "createdAt": new Date().toISOString()
-        };
-        scheduleDialog.editingIndex = -2;
-        scheduleDialog.open();
+    // "list", "edit" or "history".
+    property string view: "list"
+    property var historyItem: null
+    property var historyState: null
+
+    readonly property string dataDir: decodeURIComponent(String(StandardPaths.writableLocation(
+        StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "")) + "/kdeaichat"
+    readonly property var sessions: {
+        const raw = chatIndex.indexJson() || (configuration ? (configuration.chatSessionsJson || "[]") : "[]");
+        try {
+            const list = JSON.parse(raw);
+            return Array.isArray(list) ? list : [];
+        } catch (e) {
+            return [];
+        }
     }
 
-    Config.SchedulerService {
-        id: scheduler
-        appletId: page.plasmoidObject ? String(page.plasmoidObject.id) : ""
-        configuration: page.plasmoidObject ? page.plasmoidObject.configuration : null
-        executeMissed: missedCheck.checked
-        polling: enabledSwitch.checked
-        runShell: page.runShell
-        onAutoStartDetected: function(enabled) { autoStartCheck.checked = enabled; }
+    function edit(item) {
+        if (item)
+            dialog.openItem(item);
+        else
+            dialog.openNew(Draft.chatChoices(sessions, "").length ? Draft.chatChoices(sessions, "")[0].id : "");
+        view = "edit";
     }
 
-    ScheduleDialog {
-        id: scheduleDialog
-        page: scheduler
+    function showHistory(item) {
+        historyItem = item;
+        historyState = null;
+        view = "history";
+        scheduleService.history(item.id, function(result) {
+            page.historyState = result.ok ? result.runState : {"history": [], "runCount": 0};
+        });
     }
 
-    Component.onCompleted: {
-        scheduler.schedLoadSchedules();
-        scheduler.setup();
-        scheduler.poll();
+    Store.ChatStore {
+        id: chatIndex
+        directory: page.plasmoidObject && String(page.plasmoidObject.id) ? page.dataDir + "/chats/applet-" + page.plasmoidObject.id : ""
     }
 
-    Kirigami.FormLayout {
-        QQC2.Switch {
-            id: enabledSwitch
-            Kirigami.FormData.label: i18n("Scheduler:")
-            text: i18n("Run scheduled messages")
-            onToggled: checked ? scheduler.start() : scheduler.stop()
+    Store.Wallet {
+        id: walletStore
+    }
+
+    Config.ScheduleService {
+        id: scheduleService
+        Component.onCompleted: {
+            if (page.runHelper)
+                run = page.runHelper;
+            refresh();
+        }
+    }
+
+    ColumnLayout {
+        spacing: Kirigami.Units.largeSpacing
+
+        ScheduleDialog {
+            id: dialog
+            visible: page.view === "edit"
+            Layout.fillWidth: true
+            service: scheduleService
+            sessions: page.sessions
+            configuration: page.configuration
+            wallet: page.wallet
+            xhrFactory: page.xhrFactory
+            onClosed: page.view = "list"
         }
 
-        RowLayout {
-            Kirigami.FormData.label: i18n("Status:")
-            visible: enabledSwitch.checked
+        Config.ScheduleHistory {
+            visible: page.view === "history"
+            Layout.fillWidth: true
+            title: page.historyItem ? page.historyItem.name : ""
+            runState: page.historyState
+            onCloseRequested: page.view = "list"
+        }
+
+        ColumnLayout {
+            visible: page.view === "list"
+            Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
-            QQC2.Label {
-                text: scheduler.status !== "" ? scheduler.status : (scheduler.running ? i18n("Running") : i18n("Not running"))
-                color: scheduler.running ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
-            }
-            QQC2.Button {
-                text: scheduler.running ? i18n("Restart") : i18n("Start")
-                icon.name: scheduler.running ? "view-refresh" : "media-playback-start"
-                onClicked: scheduler.restart()
-            }
-        }
-
-        QQC2.CheckBox {
-            id: autoStartCheck
-            visible: enabledSwitch.checked
-            text: i18n("Start when I log in")
-            onToggled: scheduler.setAutoStart(checked)
-        }
-
-        QQC2.CheckBox {
-            id: missedCheck
-            visible: enabledSwitch.checked
-            text: i18n("Send messages missed while the computer was off")
-            onToggled: scheduler.schedSaveAll()
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: i18n("After a long time off, this can send many messages at once.")
-        }
-
-        Kirigami.Separator {
-            Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Schedules")
-        }
-
-        QQC2.Label {
-            Kirigami.FormData.label: i18n("Active:")
-            text: scheduler.schedulerList.length === 0 ? i18n("None")
-                : i18np("%1 schedule (%2 on)", "%1 schedules (%2 on)", scheduler.schedulerList.length,
-                        scheduler.schedulerList.filter(function(s) { return s && s.enabled; }).length)
-        }
-
-        RowLayout {
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Button {
-                text: i18n("New Schedule…")
-                icon.name: "list-add"
-                onClicked: page.newSchedule()
-            }
-            QQC2.Button {
-                text: i18n("Manage…")
-                icon.name: "view-list-details"
-                onClicked: {
-                    scheduleDialog.editingIndex = -1;
-                    scheduleDialog.open();
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                QQC2.Button {
+                    objectName: "newSchedule"
+                    text: i18n("New schedule…")
+                    icon.name: "list-add"
+                    onClicked: page.edit(null)
                 }
             }
-            QQC2.Button {
-                text: i18n("Open File")
-                icon.name: "document-open"
-                onClicked: scheduler.openFile()
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: scheduler.schedulesFile
-            }
-        }
 
-        QQC2.Label {
-            visible: !enabledSwitch.checked && scheduler.schedulerList.length > 0
-            Layout.fillWidth: true
-            wrapMode: Text.Wrap
-            opacity: 0.7
-            text: i18n("Schedules only run while the scheduler is on.")
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                text: i18n("Schedules send their message into the chat at the set times, also when the widget is closed, while you are logged in. The answer appears in the chat, with a notification if you want one.")
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: scheduleService.error !== ""
+                type: Kirigami.MessageType.Error
+                text: scheduleService.error
+            }
+
+            Kirigami.PlaceholderMessage {
+                objectName: "noSchedules"
+                Layout.fillWidth: true
+                visible: scheduleService.loaded && scheduleService.schedules.length === 0
+                icon.name: "view-calendar"
+                text: i18n("No schedules yet")
+                explanation: i18n("A schedule sends a message into a chat at set times, e.g. “Fetch the latest news” every weekday at 09:00.")
+            }
+
+            Repeater {
+                model: scheduleService.schedules
+                delegate: Config.ScheduleRow {
+                    required property var modelData
+                    objectName: "scheduleRow"
+                    item: modelData
+                    chatTitle: Draft.chatTitle(page.sessions, modelData.chatId)
+                    onEditRequested: page.edit(modelData)
+                    onHistoryRequested: page.showHistory(modelData)
+                    onDeleteRequested: scheduleService.remove(modelData.id)
+                    onEnabledToggled: on => scheduleService.setEnabled(modelData, on)
+                }
+            }
         }
     }
 }

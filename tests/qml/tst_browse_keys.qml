@@ -156,21 +156,35 @@ Item {
 
         function test_7_a_click_on_a_message_button_keeps_the_focus_where_the_button_put_it() {
             var copy = null;
-            function walk(it) {
-                if (copy || !it)
-                    return;
-                if (it.checkable !== undefined && it.text === "Copy" && it.visible) {
-                    copy = it;
-                    return;
+            // Breadth-first with a visited list: a recursive walk over the
+            // item tree could overflow the JS stack.
+            function walk(start) {
+                var queue = [start], seen = [];
+                while (queue.length > 0 && !copy) {
+                    var it = queue.shift();
+                    if (!it || seen.indexOf(it) >= 0)
+                        continue;
+                    seen.push(it);
+                    if (it.checkable !== undefined && it.text === "Copy" && it.visible)
+                        copy = it;
+                    var kids = it.children || [];
+                    for (var i = 0; i < kids.length; i++)
+                        queue.push(kids[i]);
                 }
-                var kids = it.children || [];
-                for (var i = 0; i < kids.length; i++)
-                    walk(kids[i]);
             }
+            // The buttons are built over a few frames and the row shifts while
+            // they are: wait for all of them before clicking one.
+            tryVerify(function() { return view.list.itemAtIndex(3) !== null; }, 2000);
+            var actions = findChild(view.list.itemAtIndex(3), "messageActions");
+            tryCompare(actions, "built", actions.buttonCount, 3000);
+            wait(50);
             tryVerify(function() { walk(view.list.itemAtIndex(3)); return copy !== null; }, 2000);
             mouseClick(copy);
             wait(50);
-            compare(root.Window.activeFocusItem, copy, "the list did not take the focus from the button");
+            // verify(===), not compare(): compare() deep-compares two Items and
+            // overflows the JS stack when they differ.
+            var focused = root.Window.activeFocusItem;
+            verify(focused === copy, "the list did not take the focus from the button (focus: " + focused + ")");
             keyClick(Qt.Key_Up);
             compare(view.list.selectedIndex, 3, "and Up from there browses too");
         }
