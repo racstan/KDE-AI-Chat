@@ -114,11 +114,15 @@ Item {
               + " setup_venv_services " + Sec.rawShellSnippetQuote(servicePayload()), "setup");
     }
 
+    // Transcribes the bundled sample with faster-whisper (helper stt_test; no microphone).
     function testStt() {
+        var helper = filePath("../kde_ai_helper.py");
         sttTesting = true;
         sttResult = i18n("Loading the speech model…");
-        _sttSource = helperCommand({"cmd": "start_stt", "duration": 5, "language": language || "auto",
-                                    "model_path": sttPath, "gpu_requested": gpu}, "stt", 75);
+        var payload = {"sttEngine": "faster-whisper", "sttModel": sttPath || "small", "sttLanguage": language || "auto",
+                       "sttDevice": gpu ? "cuda" : "auto", "venv": venvPath};
+        _sttSource = shell("python3 " + Sec.quoteForShell(helper) + " stt_test "
+                           + Sec.rawShellSnippetQuote(Sec.base64Encode(JSON.stringify(payload))), "stt", 75);
         sttTimer.restart();
     }
 
@@ -134,7 +138,6 @@ Item {
     function cancelStt() {
         if (_sttSource) ds.disconnectSource(_sttSource);
         _sttSource = "";
-        helperCommand({"cmd": "stop_stt"}, "stt-cancel", 10);
         sttTesting = false;
         sttResult = i18n("Recording stopped.");
     }

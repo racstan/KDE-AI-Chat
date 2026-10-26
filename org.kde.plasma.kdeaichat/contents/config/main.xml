@@ -410,6 +410,23 @@
 <entry name="voiceEspeakPath" type="String">
       <default></default>
     </entry>
+    <!-- Dictation (speech-to-text). Off by default; with it off nothing is installed or started.
+         Passed to the helper's stt_* commands (kdeaichat/stt_settings.py); the remote key is in KWallet, entry "stt-remote". -->
+    <entry name="sttEnabled" type="Bool"><default>false</default></entry>
+    <entry name="sttEngine" type="String"><default>faster-whisper</default></entry>
+    <entry name="sttModel" type="String"><default>small</default></entry>
+    <entry name="sttDevice" type="String"><default>auto</default></entry>
+    <entry name="sttLanguage" type="String"><default>auto</default></entry>
+    <entry name="sttWhisperCppBinary" type="String"><default></default></entry>
+    <entry name="sttWhisperCppModel" type="String"><default></default></entry>
+    <entry name="sttWhisperCppServer" type="String"><default></default></entry>
+    <entry name="sttRemoteUrl" type="String"><default></default></entry>
+    <entry name="sttRemoteModel" type="String"><default>whisper-1</default></entry>
+    <entry name="sttCommand" type="String"><default></default></entry>
+    <!-- Minutes the faster-whisper service keeps its model loaded after the last use (then it exits). -->
+    <entry name="sttIdleMinutes" type="Int"><default>5</default><min>1</min><max>120</max></entry>
+    <!-- Set once the old voice* dictation settings were copied into the stt* ones. -->
+    <entry name="sttSettingsMigrated" type="Bool"><default>false</default></entry>
     <entry name="requestTimeout" type="Int">
       <default>60</default>
     </entry>

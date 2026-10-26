@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""voice_helper.py - STT/TTS helper for KDE AI Chat.
+"""voice_helper.py - TTS helper for KDE AI Chat (and the settings page's check_env).
+
+Speech-to-text moved to the helper's stt_* commands (kdeaichat/stt_*.py) and
+the on-demand service voice/stt_service.py.
 
 Runs as a long-lived process, reading JSON commands from stdin
 and writing JSON responses to stdout.
@@ -78,9 +81,6 @@ def load_or_create_http_token(path=""):
 
 class VoiceHelper:
     def __init__(self):
-        self.stt_model = None
-        self.stt_model_name = None
-        self.stt_device = "cpu"
         self.tts_pipeline = None
         self.tts_device = "cpu"
         self.recording = False
@@ -89,10 +89,8 @@ class VoiceHelper:
         self.stop_tts = False
         self.tts_paused = False
         self.current_tts_proc = None
-        self.stt_thread = None
         self.tts_thread = None
         self.last_emitted = None
-        self.stt_result = None
         self.tts_result = None
         self.current_status = "idle"
         self.current_countdown = 0
@@ -128,9 +126,7 @@ class VoiceHelper:
         print(json.dumps(data), flush=True)
         self.last_emitted = data
         dtype = data.get("type", "")
-        if dtype in ("stt_result", "stt_error"):
-            self.stt_result = data
-        elif dtype in ("tts_done", "tts_error", "tts_stopped"):
+        if dtype in ("tts_done", "tts_error", "tts_stopped"):
             self.tts_result = data
 
         # Write human-readable messages to stderr if stdout is running in a terminal
@@ -369,196 +365,6 @@ class VoiceHelper:
         result["tts_ready"] = tts_ready
 
         self.emit(result)
-
-    def start_stt(self, payload):
-        """Speech-to-text recording and transcription."""
-        if self.recording:
-            self.emit({"type": "stt_error", "error": "Already recording"})
-            return
-
-        self.recording = True
-        self.stop_recording = False
-
-        def do_stt():
-            try:
-                # Fetch payload values locally to prevent enclosing scope assignment/UnboundLocalError
-                try:
-                    duration = float(payload.get("duration", 10))
-                except (TypeError, ValueError):
-                    duration = 10.0
-                if not math.isfinite(duration):
-                    duration = 10.0
-                # Zero means "until stopped" in the UI, but still enforce a
-                # five-minute safety ceiling to bound captured audio memory.
-                duration = max(0.0, min(300.0, duration))
-                language = str(payload.get("language", "en"))[:16]
-                model_name = str(payload.get("model", "small"))[:128]
-                custom_model_path = str(payload.get("model_path", ""))[:4096]
-                gpu_requested = payload.get("gpu_requested", False) is True
-
-                # Check microphone
-                try:
-                    import sounddevice as sd
-                    import numpy as np
-                except ImportError as e:
-                    self.emit({"type": "stt_error", "error": "sounddevice/numpy not available: " + str(e)})
-                    self.recording = False
-                    return
-
-                # Check mic availability
-                try:
-                    devices = sd.query_devices()
-                    input_devices = [d for d in devices if d.get("max_input_channels", 0) > 0]
-                    if not input_devices:
-                        self.emit({"type": "stt_error", "error": "No microphone detected"})
-                        self.recording = False
-                        return
-                except Exception as e:
-                    self.emit({"type": "stt_error", "error": "Cannot query audio devices: " + str(e)})
-                    self.recording = False
-                    return
-
-                # Pre-load CUDA/cuDNN libraries from venv if present before importing torch
-                self._preload_nvidia_libs()
-                
-                # Load model
-                model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
-                import torch
-                device = "cuda" if gpu_requested and torch.cuda.is_available() else "cpu"
-                if self.stt_model is None or self.stt_model_name != model_identity or getattr(self, "stt_device", "cpu") != device:
-                    self.current_status = "loading_model"
-                    self.emit({"type": "stt_status", "status": "loading_model", "device": "loading..."})
-                    try:
-                        from faster_whisper import WhisperModel
-                        self.stt_device = device
-                        compute_type = "float16" if device == "cuda" else "int8"
-                        
-                        try:
-                            if custom_model_path:
-                                custom_model_path = os.path.expanduser(custom_model_path)
-                                custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                                if os.path.isdir(custom_dir):
-                                    self.stt_model = WhisperModel(custom_dir, device=device, compute_type=compute_type)
-                                else:
-                                    self.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
-                            else:
-                                self.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
-                        except Exception:
-                            # Fallback to CPU if CUDA fails
-                            if device == "cuda":
-                                if custom_model_path:
-                                    custom_model_path = os.path.expanduser(custom_model_path)
-                                    custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                                    if os.path.isdir(custom_dir):
-                                        self.stt_model = WhisperModel(custom_dir, device="cpu", compute_type="int8")
-                                    else:
-                                        self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
-                                else:
-                                    self.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
-                            else:
-                                raise
-
-                        self.stt_model_name = model_identity
-                    except Exception as e:
-                        self.emit({"type": "stt_error", "error": "Failed to load STT model: " + str(e)})
-                        self.recording = False
-                        return
-
-                sample_rate = 16000
-                import numpy as np
-                import soundfile as sf
-                import sounddevice as sd
-
-                stop_stt_file = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_stt")
-                if os.path.exists(stop_stt_file):
-                    try: os.remove(stop_stt_file)
-                    except OSError: pass
-
-                self.current_status = "recording"
-                self.emit({"type": "stt_status", "status": "recording", "device": self.stt_device})
-
-                sample_rate = 16000
-                all_audio = []
-                total_recorded = 0.0
-                recording_limit = duration if duration > 0 else 300.0
-
-                with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32") as stream:
-                    chunk_duration = 0.1  # Check stop_recording every 100ms
-                    chunk_frames = int(chunk_duration * sample_rate)
-                    while total_recorded < recording_limit and not self.stop_recording:
-                        if os.path.exists(stop_stt_file):
-                            self.stop_recording = True
-                            break
-                        self.current_countdown = int(duration - total_recorded) if duration > 0 else 0
-                        chunk, overflowed = stream.read(chunk_frames)
-                        all_audio.append(chunk.flatten())
-                        total_recorded += chunk_duration
-
-                if not all_audio:
-                    self.emit({"type": "stt_result", "text": "", "duration": 0})
-                    self.recording = False
-                    return
-
-                self.current_status = "transcribing"
-                self.emit({"type": "stt_status", "status": "transcribing", "device": self.stt_device})
-
-                # Concatenate and transcribe
-                audio = np.concatenate(all_audio)
-
-                # Save audio to a per-recording private temp file.
-                fd, audio_path = tempfile.mkstemp(prefix="kdeaichat_stt_", suffix=".wav")
-                os.close(fd)
-                os.chmod(audio_path, 0o600)
-                self.temp_audio_path = audio_path
-                sf.write(audio_path, audio, sample_rate)
-
-                # Skip very short audio
-                if len(audio) < sample_rate * 0.5:
-                    self.emit({"type": "stt_result", "text": "", "duration": total_recorded})
-                    self.recording = False
-                    return
-
-                segments, info = self.stt_model.transcribe(
-                    audio,
-                    beam_size=5,
-                    language=language if language != "auto" else None,
-                    vad_filter=True,
-                )
-                text = " ".join(seg.text for seg in segments).strip()
-
-                self.emit({
-                    "type": "stt_result",
-                    "text": text,
-                    "duration": total_recorded,
-                    "language": info.language if hasattr(info, "language") else language,
-                    "device": self.stt_device,
-                })
-
-            except Exception as e:
-                self.emit({"type": "stt_error", "error": str(e)})
-            finally:
-                self.recording = False
-                self.current_status = "idle"
-                self.current_countdown = 0
-                if self.temp_audio_path:
-                    try: os.unlink(self.temp_audio_path)
-                    except OSError: pass
-                    self.temp_audio_path = ""
-
-        self.stt_thread = threading.Thread(target=do_stt, daemon=True)
-        self.stt_thread.start()
-
-    def stop_stt(self, payload):
-        """Stop the current recording."""
-        if self.recording:
-            self.stop_recording = True
-            self.emit({"type": "stt_status", "status": "stopping"})
-        else:
-            marker = os.path.join(tempfile.gettempdir(), "kdeaichat_stop_stt")
-            with open(marker, "a", encoding="ascii"):
-                pass
-            os.chmod(marker, 0o600)
-            self.emit({"type": "stt_stopped"})
 
     def play_audio(self, payload):
         """Play an audio file."""
@@ -1175,14 +981,7 @@ class VoiceHelper:
         self.last_emitted = None
         
         try:
-            if cmd == "start_stt":
-                self.stt_result = None
-                self.start_stt(cmd_data)
-                return {"type": "stt_started"}
-            elif cmd == "stop_stt":
-                self.stop_stt(cmd_data)
-                return {"type": "stt_status", "status": "stopping"}
-            elif cmd == "tts":
+            if cmd == "tts":
                 self.tts_result = None
                 self.tts(cmd_data)
                 return {"type": "tts_started"}
@@ -1224,7 +1023,6 @@ class VoiceHelper:
         token = load_or_create_http_token(token_file)
         helper_self = self
         allowed_commands = {
-            "stt": {"start_stt", "stop_stt", "check_env"},
             "tts": {"tts", "stop_tts", "pause_tts", "resume_tts", "play_audio"},
         }.get(mode, set())
 
@@ -1316,10 +1114,8 @@ class VoiceHelper:
                     "chunk": getattr(helper_self, "current_chunk", ""),
                     "countdown": helper_self.current_countdown,
                     "recorded_audio_path": helper_self.temp_audio_path if os.path.exists(helper_self.temp_audio_path) else "",
-                    "stt_device": getattr(helper_self, "stt_device", "cpu"),
                     "tts_device": getattr(helper_self, "tts_device", "cpu"),
                     "vram_kb": vram_kb,
-                    "stt_result": getattr(helper_self, "stt_result", None),
                     "tts_result": getattr(helper_self, "tts_result", None),
                 }
                 body = json.dumps(status_data).encode("utf-8")
@@ -1387,8 +1183,6 @@ class VoiceHelper:
         handlers = {
             "get_http_token": self.get_http_token,
             "check_env": self.check_env,
-            "start_stt": self.start_stt,
-            "stop_stt": self.stop_stt,
             "play_audio": self.play_audio,
             "tts": self.tts,
             "stop_tts": self.stop_tts_cmd,
@@ -1414,11 +1208,6 @@ class VoiceHelper:
     def wait_for_background_work(self):
         """Wait for one-shot command threads and emit a timeout instead of hanging."""
         # Wait for any running threads before exiting
-        if self.stt_thread and self.stt_thread.is_alive():
-            self.stt_thread.join(timeout=45)
-            if self.stt_thread.is_alive():
-                self.recording = False
-                self.emit({"type": "stt_error", "error": "STT test timed out while loading or transcribing. Try a smaller model or check that the selected folder matches the STT engine."})
         if self.tts_thread and self.tts_thread.is_alive():
             self.tts_thread.join(timeout=60)
             if self.tts_thread.is_alive():
@@ -1432,7 +1221,6 @@ if __name__ == "__main__":
     import argparse
     import base64
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stt-server", action="store_true", help="Run STT HTTP server")
     parser.add_argument("--tts-server", action="store_true", help="Run TTS HTTP server")
     parser.add_argument("--port", type=int, default=None, help="HTTP server port")
     parser.add_argument("--command-json", default="", help="Run one JSON command and exit")
@@ -1451,84 +1239,6 @@ if __name__ == "__main__":
     elif args.command_json:
         helper.process_command(args.command_json)
         helper.wait_for_background_work()
-    elif args.stt_server:
-        port = args.port or 9015
-        
-        def get_stt_config():
-            import configparser
-            config = configparser.ConfigParser()
-            path = os.path.expanduser("~/.config/kdeaichatrc")
-            res = {
-                "model": "small",
-                "model_path": "",
-                "gpu_requested": False
-            }
-            if os.path.exists(path):
-                try:
-                    config.read(path)
-                    for section in config.sections():
-                        if "voiceSttModel" in config[section]:
-                            res["model"] = config[section].get("voiceSttModel", "small")
-                        if "voiceSttModelPath" in config[section]:
-                            res["model_path"] = config[section].get("voiceSttModelPath", "")
-                        if "voiceGpuEnabled" in config[section]:
-                            val = config[section].get("voiceGpuEnabled", "false").lower()
-                            res["gpu_requested"] = val in ("true", "1", "yes")
-                except Exception:
-                    pass
-            return res
-
-        def preload_stt():
-            try:
-                import threading
-                conf = get_stt_config()
-                model_name = conf["model"]
-                custom_model_path = conf["model_path"]
-                gpu_requested = conf["gpu_requested"]
-
-                model_identity = os.path.expanduser(custom_model_path) if custom_model_path else model_name
-                helper._preload_nvidia_libs()
-                import torch
-                from faster_whisper import WhisperModel
-                device = "cuda" if gpu_requested and torch.cuda.is_available() else "cpu"
-                compute_type = "float16" if device == "cuda" else "int8"
-                
-                print(f"Pre-loading STT model '{model_identity}' on {device}...", flush=True)
-                
-                try:
-                    if custom_model_path:
-                        custom_model_path = os.path.expanduser(custom_model_path)
-                        custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                        if os.path.isdir(custom_dir):
-                            helper.stt_model = WhisperModel(custom_dir, device=device, compute_type=compute_type)
-                        else:
-                            helper.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
-                    else:
-                        helper.stt_model = WhisperModel(model_name, device=device, compute_type=compute_type)
-                except Exception:
-                    if device == "cuda":
-                        if custom_model_path:
-                            custom_model_path = os.path.expanduser(custom_model_path)
-                            custom_dir = os.path.dirname(custom_model_path) if os.path.isfile(custom_model_path) else custom_model_path
-                            if os.path.isdir(custom_dir):
-                                helper.stt_model = WhisperModel(custom_dir, device="cpu", compute_type="int8")
-                            else:
-                                helper.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
-                        else:
-                            helper.stt_model = WhisperModel(model_name, device="cpu", compute_type="int8")
-                        device = "cpu"
-                    else:
-                        raise
-
-                helper.stt_model_name = model_identity
-                helper.stt_device = device
-                print(f"STT model pre-loaded successfully on {device}.", flush=True)
-            except Exception as e:
-                print(f"Failed to pre-load STT model: {e}", flush=True)
-
-        import threading
-        threading.Thread(target=preload_stt, daemon=True).start()
-        helper.run_http_server(port, mode="stt", token_file=args.token_file)
     elif args.tts_server:
         port = args.port or 9016
         helper.run_http_server(port, mode="tts", token_file=args.token_file)

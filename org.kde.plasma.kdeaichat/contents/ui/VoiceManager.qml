@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import "Security.js" as Sec
+import "voice" as Voice
 
 Item {
     id: root
@@ -11,12 +12,10 @@ Item {
     property string currentPlayingChunk: ""
     property string statusText: ""
     property string lastRecognizedText: ""
-    readonly property string defaultSttModel: "small"
     property string httpToken: ""
     property bool httpTokenRequestInProgress: false
     property string httpTokenRequestSource: ""
     property var pendingHttpCommands: []
-    property var sttStatusXhr: null
     property var ttsStatusXhr: null
     
     // Config aliases for convenience
@@ -29,7 +28,7 @@ Item {
         let isVoiceEnabled = plasmoid.configuration.voiceEnabled || false;
         let isTtsEnabled = plasmoid.configuration.voiceTtsEnabled || false;
         if (!isVoiceEnabled) {
-            let killCmd = "systemctl --user disable --now kde-ai-stt.service 2>/dev/null; systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --stt-server' 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
+            let killCmd = "systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
             voiceDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(killCmd) + " #startup-sync-voice-off-" + Date.now());
         } else if (!isTtsEnabled) {
             let killCmd = "systemctl --user disable --now kde-ai-tts.service 2>/dev/null; pkill -f 'voice_helper.py --tts-server' 2>/dev/null";
@@ -43,7 +42,6 @@ Item {
     signal setupStatus(string status)
 
     Component.onDestruction: {
-        try { if (root.sttStatusXhr) root.sttStatusXhr.abort(); } catch (e) {}
         try { if (root.ttsStatusXhr) root.ttsStatusXhr.abort(); } catch (e) {}
     }
 
@@ -77,41 +75,8 @@ Item {
         id: statusPoller
         interval: 300
         repeat: true
-        running: root.isRecording || root.isPlaying
+        running: root.isPlaying
         onTriggered: {
-            if (root.isRecording && !root.sttStatusXhr) {
-                let xhr = new XMLHttpRequest();
-                root.sttStatusXhr = xhr;
-                xhr.open("GET", "http://127.0.0.1:9015/status", true);
-                if (root.httpToken)
-                    xhr.setRequestHeader("X-KDE-AI-Chat-Token", root.httpToken);
-                xhr.timeout = 2000;
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState !== XMLHttpRequest.DONE)
-                        return;
-                    if (root.sttStatusXhr === xhr) root.sttStatusXhr = null;
-                    if (xhr.status === 200) {
-                        try {
-                            let resp = JSON.parse(xhr.responseText);
-                            if (resp.status === "recording") {
-                                root.statusText = "Recording... [" + (resp.stt_device ? resp.stt_device.toUpperCase() : "CPU") + "]";
-                            } else if (resp.status === "transcribing") {
-                                root.statusText = "Transcribing... [" + (resp.stt_device ? resp.stt_device.toUpperCase() : "CPU") + "]";
-                            } else if (resp.status === "idle" && root.isRecording) {
-                                // Likely finished or errored
-                                if (resp.stt_result && (resp.stt_result.type === "stt_result" || resp.stt_result.type === "stt_error"))
-                                    handleResponse(resp.stt_result, "http_poll");
-                            }
-                        } catch(e) {}
-                    } else if (xhr.status === 401 || xhr.status === 403) {
-                        root.httpToken = "";
-                        root._requestHttpToken();
-                    }
-                };
-                xhr.ontimeout = function() { if (root.sttStatusXhr === xhr) root.sttStatusXhr = null; };
-                xhr.onerror = function() { if (root.sttStatusXhr === xhr) root.sttStatusXhr = null; };
-                try { xhr.send(); } catch (e) { if (root.sttStatusXhr === xhr) root.sttStatusXhr = null; }
-            }
             if (root.isPlaying && !root.ttsStatusXhr) {
                 let xhr = new XMLHttpRequest();
                 root.ttsStatusXhr = xhr;
@@ -300,7 +265,7 @@ Item {
             if (completed) return;
             completed = true;
             if (retries < 2) {
-                let serviceName = (port === 9015) ? "kde-ai-stt.service" : "kde-ai-tts.service";
+                let serviceName = "kde-ai-tts.service";
                 voiceDs.connectSource("systemctl --user start " + serviceName + " #start-" + Date.now());
                 var retryQueue = retryTimer.retryQueue || [];
                 retryQueue.push({"payload": payload, "port": port, "retries": retries});
@@ -372,19 +337,22 @@ Item {
         voiceDs.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #voice-setup-" + Date.now());
     }
 
+    // Dictation: the helper records and transcribes with the chosen engine (voice/SttBackend.qml).
+    Voice.SttBackend {
+        id: sttBackend
+        configuration: plasmoid.configuration
+        onReply: function(data) { root.handleResponse(data, "stt"); }
+    }
+
     function startRecording() {
         root.isRecording = true;
         root.statusText = "Recording...";
-        let lang = plasmoid.configuration.voiceLanguage || "en";
-        let model = plasmoid.configuration.voiceSttModel || root.defaultSttModel;
-        let modelPath = plasmoid.configuration.voiceSttModelPath || "";
-        let gpuReq = plasmoid.configuration.voiceGpuEnabled || false;
-        sendHttpCommand(JSON.stringify({cmd: "start_stt", duration: 0, language: lang, model: model, model_path: modelPath, gpu_requested: gpuReq}), 9015);
+        sttBackend.start();
     }
 
     function stopRecording() {
         root.statusText = "Processing...";
-        sendHttpCommand(JSON.stringify({cmd: "stop_stt"}), 9015);
+        sttBackend.stop(false);
     }
 
 

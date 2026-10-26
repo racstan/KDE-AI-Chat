@@ -28,7 +28,7 @@ class TestVoiceHttpSecurity(unittest.TestCase):
         self.helper = voice_helper.VoiceHelper()
         self.thread = threading.Thread(
             target=self.helper.run_http_server,
-            args=(self.port, "stt", self.token_path),
+            args=(self.port, "tts", self.token_path),
             daemon=True,
         )
         self.thread.start()
@@ -68,11 +68,11 @@ class TestVoiceHttpSecurity(unittest.TestCase):
             "X-KDE-AI-Chat-Token": self.token,
             "Origin": "http://evil.example",
         }
-        status, _ = self.request("POST", "/command", body=json.dumps({"cmd": "play_audio"}), headers=headers)
+        status, _ = self.request("POST", "/command", body=json.dumps({"cmd": "start_stt"}), headers=headers)
         self.assertEqual(status, 403)
 
         headers["Origin"] = "http://127.0.0.1"
-        status, _ = self.request("POST", "/command", body=json.dumps({"cmd": "play_audio"}), headers=headers)
+        status, _ = self.request("POST", "/command", body=json.dumps({"cmd": "start_stt"}), headers=headers)
         self.assertEqual(status, 400)
 
     def test_token_file_is_private(self):
