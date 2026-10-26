@@ -61,6 +61,13 @@ function instantTitle(text) {
     return cut ? title + "…" : title;
 }
 
+// The prompt of a "/image <prompt>" line (the chat is named after it, not
+// the command), or "" for any other text.
+function imagePrompt(text) {
+    var match = /^\/image[ \t]+(\S[^\n]*)$/.exec(String(text || "").trim());
+    return match ? match[1].trim() : "";
+}
+
 // A model's answer cleaned into a title, or "" when it can't be used
 // (empty, or an unfinished <think> block).
 function cleanGenerated(value) {

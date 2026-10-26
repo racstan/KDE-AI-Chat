@@ -5,6 +5,8 @@
 // wins. `chat` is the widget root (main.qml).
 import QtQuick
 import "ChatTitle.js" as ChatTitle
+// i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
+// qmllint disable unqualified
 
 QtObject {
     id: titles
@@ -64,10 +66,21 @@ QtObject {
     // model-written one. Only a title still equal to autoTitle (or the default)
     // is replaced, so a manual rename always wins.
     function nameChatFromFirstMessage(text) {
-        var title = ChatTitle.instantTitle(text);
+        var source = titles.titleSource(text);
+        var title = titles.imageTitle(ChatTitle.instantTitle(source.text), source.image);
         if (!title || !ChatTitle.isDefaultTitle(chat.currentSessionTitle) || titles.firstUserText() !== String(text).trim())
             return;
         titles.applyAutoTitle(chat.currentSessionId, title);
+    }
+
+    // What a chat is named after: a "/image <prompt>" line by its prompt.
+    function titleSource(text) {
+        var prompt = ChatTitle.imagePrompt(text);
+        return prompt !== "" ? {"text": prompt, "image": true} : {"text": String(text || ""), "image": false};
+    }
+
+    function imageTitle(title, image) {
+        return title && image ? i18n("Image: %1", title) : title;
     }
 
     function firstUserText() {
@@ -109,9 +122,10 @@ QtObject {
         if (!firstUser || !cfg || !cfg.model || !cfg.baseUrl || (!cfg.allowEmptyKey && !cfg.apiKey))
             return;
         titles.requested[sessionId] = true;
-        ChatTitle.request(cfg, firstUser, function() { return new XMLHttpRequest(); }, function(title, error) {
+        var source = titles.titleSource(firstUser);
+        ChatTitle.request(cfg, source.text, function() { return new XMLHttpRequest(); }, function(title, error) {
             if (title)
-                titles.applyAutoTitle(sessionId, title, true);
+                titles.applyAutoTitle(sessionId, titles.imageTitle(title, source.image), true);
             else
                 console.warn("KDE AI Chat: couldn't name the chat with the model (" + error + "); keeping its first-message name");
         });
