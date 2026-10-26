@@ -131,6 +131,7 @@ Item {
                         chat: row.chat
                         role: row.role
                         model: row.message.model || ""
+                        scheduleName: row.message.scheduled ? String(row.message.scheduleName || i18n("Scheduled message")) : ""
                         maximumWidth: content.width * 0.7
                     }
 

@@ -14,15 +14,15 @@ Rectangle {
     // Tests replace the helper and the network.
     property var runHelper: null
     property var xhrFactory: null
-    readonly property alias dialog: dialog
-    readonly property alias service: service
+    readonly property alias dialog: editorDialog
+    readonly property alias service: scheduleService
 
     function openForChat(chatId) {
         if (runHelper)
-            service.run = runHelper;
-        dialog.openNew(chatId);
+            scheduleService.run = runHelper;
+        editorDialog.openNew(chatId);
         visible = true;
-        dialog.editor.forceActiveFocus();
+        editorDialog.editor.forceActiveFocus();
     }
 
     visible: false
@@ -38,7 +38,7 @@ Rectangle {
     }
 
     Config.ScheduleService {
-        id: service
+        id: scheduleService
     }
 
     QQC2.ScrollView {
@@ -48,9 +48,9 @@ Rectangle {
         contentWidth: availableWidth
 
         Ui.ScheduleDialog {
-            id: dialog
+            id: editorDialog
             width: scroll.availableWidth
-            service: service
+            service: scheduleService
             sessions: overlay.chat ? overlay.chat.sessions : []
             configuration: overlay.chat && overlay.chat.plasmoid ? overlay.chat.plasmoid.configuration : null
             wallet: overlay.chat ? overlay.chat.wallet : null

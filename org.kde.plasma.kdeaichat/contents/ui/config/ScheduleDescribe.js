@@ -27,9 +27,14 @@ function systemPrompt(now) {
         "",
         "Either {\"rules\": [ ... ]} when the meaning is clear,",
         "or {\"question\": \"...\", \"options\": [\"...\", \"...\"]} when the description can reasonably be read in more than one way.",
-        "Ask instead of guessing. Example: \"every other day\" can mean \"the remaining weekdays\" (after another rule took some days)",
-        "or \"alternate days\" (every 2 days): ask which one, with 2-4 short options that each describe one concrete reading.",
+        "Ask instead of guessing, with 2-4 short options that each describe one concrete reading. You MUST ask when:",
+        "- the text says \"every other day\" or \"every second day\": it can mean alternate days (every 2 days) or, next to",
+        "  another rule, \"the other days\" (the remaining weekdays); ask which one, e.g. options",
+        "  [\"Tuesday to Sunday at 15:00\", \"Every 2 days at 15:00\"];",
+        "- a part of the day is given without a time (\"in the morning\", \"after work\").",
+        "Hours without am/pm: 7 to 11 are in the morning, 1 to 6 in the afternoon, 12 is noon; do not ask about those.",
         "Do not ask about things that are clear. Never ask about the message, only about the timing.",
+        "After the user answers, reply with the rules (or one more question only if something is still unclear).",
         "",
         "Rule formats (weekdays are numbers: 0=Sunday, 1=Monday, ..., 6=Saturday; times are 24-hour \"HH:MM\" local time):",
         "- {\"kind\":\"weekly\",\"days\":[1,2,3,4,5],\"times\":[\"09:00\"]}  (on these weekdays; add \"everyWeeks\":2 for every other week)",
@@ -38,6 +43,7 @@ function systemPrompt(now) {
         "- {\"kind\":\"once\",\"at\":\"2026-11-03T14:30\"}  (one time only)",
         "- {\"kind\":\"hourly\",\"everyHours\":2,\"minute\":30,\"from\":8,\"to\":18}  (everyHours is 1, 2, 3, 4, 6, 8 or 12; from/to are hours 0-23)",
         "- {\"kind\":\"minutes\",\"everyMinutes\":30}  (at least 15)",
+        "Leave out everyDays, everyWeeks and everyMonths unless the text itself asks for every N days, weeks or months.",
         "Prefer weekly and daily rules. Use several rules when different days have different times,",
         "e.g. \"Mondays at 4 pm and the other days at 3 pm\" is",
         "{\"rules\":[{\"kind\":\"weekly\",\"days\":[1],\"times\":[\"16:00\"]},{\"kind\":\"weekly\",\"days\":[0,2,3,4,5,6],\"times\":[\"15:00\"]}]}.",
@@ -56,6 +62,31 @@ function buildMessages(turns, now) {
             out.push({"role": t.role, "content": String(t.content || "")});
     });
     return out;
+}
+
+// The user's turns as sent: the description, then each answer.
+function describeTurn(sentence) {
+    return "Describe as schedule rules: \"" + String(sentence).trim() + "\"\n"
+        + "Reply with the JSON object only. If a phrase can mean two different schedules (like \"every other day\"), "
+        + "reply with {\"question\": ..., \"options\": [...]} instead of rules.";
+}
+
+function answerTurn(question, answer) {
+    return (question ? "To your question \"" + question + "\": " : "") + String(answer).trim()
+        + "\nNow reply with the rules as JSON.";
+}
+
+// Phrases that always need a question, whatever the model says (small models
+// tend to guess). Returns {question, options} for the sentence, or null.
+function ambiguity(sentence) {
+    var text = String(sentence || "");
+    var m = /\b(every\s+(?:other|second)\s+day|alternate\s+days)\b/i.exec(text);
+    if (!m)
+        return null;
+    var at = /(?:every\s+(?:other|second)\s+day|alternate\s+days)\s+at\s+(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?|noon|midnight)/i.exec(text);
+    var when = at ? " at " + at[1].trim() : "";
+    return {"question": "\"" + m[1] + "\" can be read two ways. Which one do you mean?",
+            "options": ["The remaining days of the week" + when, "Every 2 days (alternate days)" + when]};
 }
 
 // The first complete {...} object in `text` (braces inside strings ignored), or "".

@@ -16,7 +16,6 @@ QQC2.Frame {
 
     property var item: ({})
     property string chatTitle: ""
-    property bool paused: false
     property ScheduleFormat format: ScheduleFormat {}
 
     signal editRequested()
@@ -130,9 +129,7 @@ QQC2.Frame {
             font: Kirigami.Theme.smallFont
             text: {
                 var next;
-                if (row.paused)
-                    next = i18n("Paused: all schedules are off");
-                else if (row.item.enabled !== true)
+                if (row.item.enabled !== true)
                     next = i18n("Off");
                 else if (row.item.runState && row.item.runState.finished)
                     next = i18n("No more runs");

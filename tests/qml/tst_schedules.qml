@@ -178,14 +178,6 @@ Item {
             screenshot(page, "schedules-list");
         }
 
-        function test_master_switch_pauses_everything() {
-            open();
-            var master = findChild(page, "masterSwitch");
-            verify(master.checked);
-            mouseClick(master);
-            compare(lastCall("schedules_settings").payload.paused, true);
-        }
-
         function test_switching_a_schedule_saves_only_its_definition() {
             open();
             mouseClick(findChild(rows()[1], "scheduleEnabled"));
@@ -335,7 +327,7 @@ Item {
             tryVerify(function() { return ed.draft.rules.length === 2 && ed.draft.rules[1].days[0] === 0; }, 3000);
             compare(xhrSent[0].model, "nvidia/nemotron-3.5-bolt-e4b");
             compare(xhrSent[0].messages[0].role, "system");
-            compare(xhrSent[0].messages[1].content, "weekdays at 9 and Sunday at noon");
+            verify(xhrSent[0].messages[1].content.indexOf("\"weekdays at 9 and Sunday at noon\"") > 0, xhrSent[0].messages[1].content);
             verify(visibleChild(ed, "describeFilled") !== null);
             verify(lastCall("schedule_save") === null, "never saved automatically");
             tryCompare(findChild(ed, "previewSummary"), "text", "Mon–Fri 09:00; Sun 12:00");
@@ -343,20 +335,56 @@ Item {
 
         function test_describe_asks_then_fills() {
             open();
-            xhrReplies = ['{"question":"By \\"every other day\\", do you mean the remaining weekdays or alternate days?","options":["Tuesday to Sunday","Every 2 days"]}',
+            xhrReplies = ['{"question":"What time in the morning?","options":["07:00","08:00","09:00"]}',
+                          '{"rules":[{"kind":"daily","times":["08:00"]}]}'];
+            var ed = startDescribe("every morning");
+            tryVerify(function() { return visibleChild(ed, "describeQuestion") !== null; }, 3000);
+            compare(findChild(ed, "describeQuestionText").text, "What time in the morning?");
+            var options = findChildren(ed, "describeOption");
+            compare(options.length, 3);
+            mouseClick(options[1]);
+            tryVerify(function() { return ed.draft.rules.length === 1 && ed.draft.rules[0].kind === "daily"; }, 3000);
+            var second = xhrSent[1].messages;
+            compare(second.map(function(m) { return m.role; }).join(","), "system,user,assistant,user");
+            compare(second[3].content, "To your question \"What time in the morning?\": 08:00\nNow reply with the rules as JSON.");
+            compare(ed.draft.rules[0].times[0], "08:00");
+        }
+
+        // The owner's example: "every other day" is always asked about, with
+        // both readings, whatever the model answered first.
+        function test_describe_owner_example_question() {
+            open();
+            xhrReplies = ['{"question":"Does every other day include weekends?","options":["Yes","No"]}',
                           '{"rules":[{"kind":"weekly","days":[1],"times":["16:00"]},{"kind":"daily","times":["15:00"],"everyDays":2}]}'];
             var ed = startDescribe("Mondays at 4 pm and every other day at 3 pm");
             tryVerify(function() { return visibleChild(ed, "describeQuestion") !== null; }, 3000);
-            compare(findChild(ed, "describeQuestionText").text, "By \"every other day\", do you mean the remaining weekdays or alternate days?");
+            compare(findChild(ed, "describeQuestionText").text, "\"every other day\" can be read two ways. Which one do you mean?");
             var options = findChildren(ed, "describeOption");
-            compare(options.length, 2);
+            compare(options.map(function(o) { return o.text; }).join("|"),
+                    "The remaining days of the week at 3 pm|Every 2 days (alternate days) at 3 pm");
             screenshot(page, "schedules-describe-question");
             mouseClick(options[1]);
             tryVerify(function() { return ed.draft.rules.length === 2 && ed.draft.rules[1].kind === "daily"; }, 3000);
-            var second = xhrSent[1].messages;
-            compare(second.map(function(m) { return m.role; }).join(","), "system,user,assistant,user");
-            compare(second[3].content, "Every 2 days");
+            verify(xhrSent[1].messages[3].content.indexOf(": Every 2 days (alternate days) at 3 pm\n") > 0, xhrSent[1].messages[3].content);
             compare(ed.draft.rules[1].everyDays, 2);
+            tryCompare(findChild(ed, "previewSummary"), "text", "Mon 16:00; Every 2 days at 15:00");
+        }
+
+        function test_describe_asks_even_when_the_model_guesses() {
+            open();
+            xhrReplies = ['{"rules":[{"kind":"weekly","days":[1],"times":["16:00"]},{"kind":"daily","times":["15:00"],"everyDays":2}]}',
+                          '{"rules":[{"kind":"weekly","days":[1],"times":["16:00"]},{"kind":"weekly","days":[0,2,3,4,5,6],"times":["15:00"]}]}'];
+            var ed = startDescribe("Mondays at 4 pm and every other day at 3 pm");
+            tryVerify(function() { return visibleChild(ed, "describeQuestion") !== null; }, 3000);
+            compare(xhrSent.length, 1);
+            var options = findChildren(ed, "describeOption");
+            compare(options[0].text, "The remaining days of the week at 3 pm");
+            compare(options[1].text, "Every 2 days (alternate days) at 3 pm");
+            compare(ed.draft.rules[0].days.length, 5, "the guess is not filled in");
+            mouseClick(options[0]);
+            tryVerify(function() { return ed.draft.rules.length === 2 && ed.draft.rules[1].days.length === 6; }, 3000);
+            verify(xhrSent[1].messages[3].content.indexOf("The remaining days of the week at 3 pm") > 0);
+            tryCompare(findChild(ed, "previewSummary"), "text", "Mon 16:00; Tue–Sun 15:00");
         }
 
         function test_describe_bad_answer_is_a_friendly_error() {

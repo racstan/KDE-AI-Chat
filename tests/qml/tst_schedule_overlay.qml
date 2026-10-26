@@ -51,8 +51,22 @@ Item {
         property var calls: []
     }
 
+    Chat.SenderName {
+        id: scheduledSender
+        chat: chat
+        role: "user"
+        scheduleName: "Daily news"
+    }
+
     HarnessTestCase {
         name: "ScheduleOverlay"
+
+        function test_a_scheduled_message_says_so() {
+            compare(findChild(scheduledSender, "senderScheduled").text, "Scheduled: Daily news");
+            verify(findChild(scheduledSender, "senderScheduled").visible);
+            scheduledSender.scheduleName = "";
+            verify(!findChild(scheduledSender, "senderScheduled").visible);
+        }
 
         function test_menu_opens_the_editor_for_this_chat() {
             var menu = findChild(header, "moreButton").menu;

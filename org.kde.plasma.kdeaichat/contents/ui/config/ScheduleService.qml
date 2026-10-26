@@ -1,7 +1,7 @@
 // The schedules (schedules.v2.json) through the helper's v2 commands:
-// schedules_list, schedule_preview, schedule_save, schedule_delete,
-// schedule_history and schedules_settings (the master switch). Used by
-// Settings → Schedules and by the chat's "Schedule a message…" editor.
+// schedules_list, schedule_preview, schedule_save, schedule_delete and
+// schedule_history. Used by Settings → Schedules and by the chat's
+// "Schedule a message…" editor.
 // Saving writes systemd user timers (kdeaichat/schedule_units.py).
 import QtQuick
 import "../store" as Store
@@ -21,7 +21,6 @@ Item {
     }
 
     property var schedules: []
-    property bool paused: false
     property bool loaded: false
     property bool busy: false
     property string error: ""
@@ -62,7 +61,6 @@ Item {
             loaded = true;
             if (data.ok) {
                 schedules = data.schedules || [];
-                paused = !!(data.settings && data.settings.paused === true);
                 error = "";
             } else {
                 error = data.error || "";
@@ -109,14 +107,5 @@ Item {
     // onDone({ok, runState: {history: [{at, scheduledFor, status, reason}], …}}).
     function history(id, onDone) {
         call("schedule_history", {"id": id}, onDone);
-    }
-
-    function setPaused(value) {
-        paused = value;
-        call("schedules_settings", {"paused": value}, function(data) {
-            if (!data.ok)
-                service.error = data.error || "";
-            service.refresh();
-        });
     }
 }

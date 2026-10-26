@@ -26,7 +26,7 @@ ColumnLayout {
     property bool isNew: true
     property bool saving: false
     property string saveError: ""
-    readonly property alias editor: editor
+    readonly property alias editor: form
 
     signal saved(var schedule)
     signal closed()
@@ -44,10 +44,10 @@ ColumnLayout {
     function _load(draft) {
         saveError = "";
         saving = false;
-        editor.describer.cancel();
-        editor.showOptions = false;
-        editor.previewResult = null;
-        editor.draft = draft;
+        form.describer.cancel();
+        form.showOptions = false;
+        form.previewResult = null;
+        form.draft = draft;
     }
 
     function save() {
@@ -55,7 +55,7 @@ ColumnLayout {
             return;
         saving = true;
         saveError = "";
-        service.save(Draft.forSave(editor.draft), function(result) {
+        service.save(Draft.forSave(form.draft), function(result) {
             dialog.saving = false;
             if (result.ok) {
                 dialog.saved(result.schedule);
@@ -67,7 +67,7 @@ ColumnLayout {
     }
 
     function cancel() {
-        editor.describer.cancel();
+        form.describer.cancel();
         closed();
     }
 
@@ -90,7 +90,7 @@ ColumnLayout {
     }
 
     Config.ScheduleEditor {
-        id: editor
+        id: form
         Layout.fillWidth: true
         service: dialog.service
         sessions: dialog.sessions
@@ -114,7 +114,7 @@ ColumnLayout {
             objectName: "saveSchedule"
             text: i18n("Save")
             icon.name: "document-save"
-            enabled: editor.rulesValid && !dialog.saving
+            enabled: form.rulesValid && !dialog.saving
             onClicked: dialog.save()
         }
         QQC2.Button {

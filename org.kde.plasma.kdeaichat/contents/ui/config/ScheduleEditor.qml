@@ -25,7 +25,7 @@ ColumnLayout {
     property var previewResult: null
     property bool showOptions: false
 
-    readonly property alias describer: describer
+    readonly property alias describer: describerObject
     readonly property var chats: Draft.chatChoices(sessions, draft.chatId)
     readonly property bool rulesValid: (draft.rules || []).length > 0
         && (draft.rules || []).every(function(rule) { return Draft.ruleProblem(rule) === ""; })
@@ -66,7 +66,7 @@ ColumnLayout {
     }
 
     ScheduleDescriber {
-        id: describer
+        id: describerObject
         configuration: editor.configuration
         wallet: editor.wallet
         service: editor.service
@@ -124,7 +124,7 @@ ColumnLayout {
     ScheduleDescribeBox {
         id: describeBox
         Layout.fillWidth: true
-        describer: describer
+        describer: describerObject
     }
 
     Repeater {

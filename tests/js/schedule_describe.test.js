@@ -38,6 +38,17 @@ const tests = {
                                    {role: "user", content: "alternate days"}, {role: "tool", content: "x"}], NOW);
         assert.deepStrictEqual(plain(m.map(x => x.role)), ["system", "user", "assistant", "user"]);
     },
+    turns_wrap_the_description_and_answers() {
+        assert.ok(S.describeTurn(" weekdays at 9 ").startsWith('Describe as schedule rules: "weekdays at 9"\n'));
+        assert.strictEqual(S.answerTurn("Which?", "Every 2 days"), 'To your question "Which?": Every 2 days\nNow reply with the rules as JSON.');
+    },
+    every_other_day_is_always_asked() {
+        const a = S.ambiguity("Mondays at 4 pm and every other day at 3 pm");
+        assert.strictEqual(a.question, '"every other day" can be read two ways. Which one do you mean?');
+        assert.deepStrictEqual(plain(a.options), ["The remaining days of the week at 3 pm", "Every 2 days (alternate days) at 3 pm"]);
+        assert.deepStrictEqual(plain(S.ambiguity("Every second day").options), ["The remaining days of the week", "Every 2 days (alternate days)"]);
+        assert.strictEqual(S.ambiguity("weekdays at 9 and Sunday at noon"), null);
+    },
     rules_reply_is_parsed_and_tidied() {
         const r = S.parseReply('```json\n{"rules":[{"kind":"weekly","days":[1,2,3,4,5],"times":["9:00"],"note":"x"},' +
                                '{"kind":"weekly","days":[7],"times":"12:00"}]}\n```');

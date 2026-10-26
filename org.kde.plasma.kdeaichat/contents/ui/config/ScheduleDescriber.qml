@@ -32,9 +32,12 @@ QtObject {
     property var options: []
     property string error: ""
     property var turns: []
+    // The model's last answer as received (for scripts/dev-describe.sh).
+    property string lastReply: ""
     property int _questions: 0
     property int _generation: 0
     property bool _walletTried: false
+    property string _sentence: ""
 
     // rules: the v2 rules; preview: the helper's schedule_preview answer for them.
     signal rulesReady(var rules, var preview)
@@ -53,7 +56,8 @@ QtObject {
         var sentence = String(text || "").trim();
         if (!sentence || phase === "busy")
             return;
-        turns = [{"role": "user", "content": sentence}];
+        turns = [{"role": "user", "content": Describe.describeTurn(sentence)}];
+        _sentence = sentence;
         _questions = 0;
         _send();
     }
@@ -62,7 +66,7 @@ QtObject {
         var reply = String(text || "").trim();
         if (!reply || phase !== "question")
             return;
-        turns = turns.concat([{"role": "user", "content": reply}]);
+        turns = turns.concat([{"role": "user", "content": Describe.answerTurn(question, reply)}]);
         _send();
     }
 
@@ -114,12 +118,20 @@ QtObject {
     }
 
     function _handle(text, generation) {
+        lastReply = String(text || "");
         var reply = Describe.parseReply(text);
         if (reply.error) {
             _fail(i18n("The model's answer was not usable. Try again, or put it differently."));
             return;
         }
         turns = turns.concat([{"role": "assistant", "content": JSON.stringify(reply)}]);
+        // A phrase with two common readings ("every other day") is always
+        // asked about first, with both readings as options, even when the
+        // model guessed or asked about something else; the answer goes back
+        // to the model, which then gives the rules.
+        var unsure = _questions === 0 ? Describe.ambiguity(_sentence) : null;
+        if (unsure)
+            reply = unsure;
         if (reply.question) {
             _questions += 1;
             if (_questions > Describe.MAX_QUESTIONS) {

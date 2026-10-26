@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 13:50+0530\n"
+"POT-Creation-Date: 2026-10-26 14:24+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -605,12 +605,12 @@ msgid "Stop the reply (Esc)"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:153
+#: contents/ui/chat/MessageDelegate.qml:154
 msgid "Writing…"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:153
+#: contents/ui/chat/MessageDelegate.qml:154
 #: contents/ui/chat/ReasoningBlock.qml:47
 msgid "Thinking…"
 msgstr ""
@@ -770,8 +770,8 @@ msgstr ""
 
 #: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:331
 #: contents/ui/config/MemoryRow.qml:116 contents/ui/config/MemoryRow.qml:118
-#: contents/ui/config/ScheduleRow.qml:104
-#: contents/ui/config/ScheduleRow.qml:160
+#: contents/ui/config/ScheduleRow.qml:103
+#: contents/ui/config/ScheduleRow.qml:157
 msgid "Delete"
 msgstr ""
 
@@ -903,7 +903,7 @@ msgstr ""
 
 #: contents/ui/chat/MessageActions.qml:115 contents/ui/config/MemoryRow.qml:106
 #: contents/ui/config/MemoryRow.qml:108 contents/ui/config/ProviderRow.qml:80
-#: contents/ui/config/ScheduleRow.qml:87
+#: contents/ui/config/ScheduleRow.qml:86
 #: contents/ui/config/TemplatesEditor.qml:87
 msgid "Edit"
 msgstr ""
@@ -951,7 +951,7 @@ msgstr[1] ""
 #: contents/ui/config/ProviderRow.qml:104
 #: contents/ui/config/ScheduleDescribeBox.qml:62
 #: contents/ui/config/ScheduleDescribeBox.qml:117
-#: contents/ui/config/ScheduleRow.qml:168
+#: contents/ui/config/ScheduleRow.qml:165
 #: contents/ui/config/TemplatesEditor.qml:134
 #: contents/ui/ScheduleDialog.qml:122
 msgid "Cancel"
@@ -982,11 +982,15 @@ msgstr ""
 msgid "Remember"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:153
+#: contents/ui/chat/MessageDelegate.qml:134
+msgid "Scheduled message"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:154
 msgid "Making a picture…"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:201
+#: contents/ui/chat/MessageDelegate.qml:202
 msgid "Saving removes the messages after this one."
 msgstr ""
 
@@ -1291,12 +1295,12 @@ msgid "Sending answer…"
 msgstr ""
 
 #: contents/ui/chat/QuoteBlock.qml:23 contents/ui/chat/QuoteChips.qml:28
-#: contents/ui/chat/SenderName.qml:43 contents/ui/ConfigPersonality.qml:126
+#: contents/ui/chat/SenderName.qml:45 contents/ui/ConfigPersonality.qml:126
 msgid "You"
 msgstr ""
 
 #: contents/ui/chat/QuoteBlock.qml:24 contents/ui/chat/QuoteChips.qml:29
-#: contents/ui/chat/SenderName.qml:48
+#: contents/ui/chat/SenderName.qml:50
 msgid "Assistant"
 msgstr ""
 
@@ -1368,24 +1372,28 @@ msgstr ""
 msgid "Cancel rename"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:44
+#: contents/ui/chat/SenderName.qml:46
 msgid "%1 · queued"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:44
+#: contents/ui/chat/SenderName.qml:46
 msgid "You · queued"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:45
+#: contents/ui/chat/SenderName.qml:47
 msgid "Something went wrong"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:46
+#: contents/ui/chat/SenderName.qml:48
 msgid "Question"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:47
+#: contents/ui/chat/SenderName.qml:49
 msgid "Permission request"
+msgstr ""
+
+#: contents/ui/chat/SenderName.qml:61
+msgid "Scheduled: %1"
 msgstr ""
 
 #: contents/ui/chat/SessionList.qml:38
@@ -2652,31 +2660,31 @@ msgstr ""
 msgid "Filled in: %1. Check the rules and the next runs below, then save."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescriber.qml:86
+#: contents/ui/config/ScheduleDescriber.qml:90
 msgid "Describing needs a provider with a model in Settings → Connection."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescriber.qml:98
+#: contents/ui/config/ScheduleDescriber.qml:102
 msgid "There is no API key for %1. Add it in Settings → Connection."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescriber.qml:110
+#: contents/ui/config/ScheduleDescriber.qml:114
 msgid "%1 could not answer (%2)."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescriber.qml:119
+#: contents/ui/config/ScheduleDescriber.qml:124
 msgid "The model's answer was not usable. Try again, or put it differently."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescriber.qml:126
+#: contents/ui/config/ScheduleDescriber.qml:138
 msgid "The model keeps asking. Set the rules below by hand."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescriber.qml:135
+#: contents/ui/config/ScheduleDescriber.qml:147
 msgid "The rules could not be checked."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescriber.qml:142
+#: contents/ui/config/ScheduleDescriber.qml:154
 msgid ""
 "The model suggested rules that don't work (%1). Try again, or put it "
 "differently."
@@ -2781,7 +2789,7 @@ msgid "Due, not sent"
 msgstr ""
 
 #: contents/ui/config/ScheduleHistory.qml:30
-#: contents/ui/config/ScheduleRow.qml:70
+#: contents/ui/config/ScheduleRow.qml:69
 msgid "Untitled schedule"
 msgstr ""
 
@@ -2859,7 +2867,7 @@ msgid "Show a notification when the answer is ready"
 msgstr ""
 
 #: contents/ui/config/SchedulePreview.qml:37
-#: contents/ui/config/ScheduleRow.qml:142
+#: contents/ui/config/ScheduleRow.qml:139
 msgid "Never runs"
 msgstr ""
 
@@ -2871,75 +2879,71 @@ msgstr ""
 msgid "Not valid yet: %1"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:36
+#: contents/ui/config/ScheduleRow.qml:35
 msgid "Needs a chat and a time"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:38
+#: contents/ui/config/ScheduleRow.qml:37
 msgid "Needs a chat"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:40
+#: contents/ui/config/ScheduleRow.qml:39
 msgid "Needs a time"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:42
+#: contents/ui/config/ScheduleRow.qml:41
 msgid "Needs a message"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:43
+#: contents/ui/config/ScheduleRow.qml:42
 msgid "Check it and save it to turn it on"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:61
+#: contents/ui/config/ScheduleRow.qml:60
 msgid "On: runs at the times below"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:61
+#: contents/ui/config/ScheduleRow.qml:60
 msgid "Off: never runs"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:77
+#: contents/ui/config/ScheduleRow.qml:76
 msgid "a deleted chat"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:77
+#: contents/ui/config/ScheduleRow.qml:76
 msgid "In “%1”"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:77
+#: contents/ui/config/ScheduleRow.qml:76
 msgid "No chat chosen"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:83
+#: contents/ui/config/ScheduleRow.qml:82
 msgid "Finish…"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:96
+#: contents/ui/config/ScheduleRow.qml:95
 msgid "History"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:113
+#: contents/ui/config/ScheduleRow.qml:112
 msgid "Brought over from the old scheduler. %1."
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:134
-msgid "Paused: all schedules are off"
-msgstr ""
-
-#: contents/ui/config/ScheduleRow.qml:136
+#: contents/ui/config/ScheduleRow.qml:133
 msgid "Off"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:138
+#: contents/ui/config/ScheduleRow.qml:135
 msgid "No more runs"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:140
+#: contents/ui/config/ScheduleRow.qml:137
 msgid "Next: %1"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:156
+#: contents/ui/config/ScheduleRow.qml:153
 msgid "Delete this schedule and its history?"
 msgstr ""
 
@@ -3082,26 +3086,22 @@ msgstr ""
 msgid "Add time"
 msgstr ""
 
-#: contents/ui/ConfigSchedules.qml:114
-msgid "Run scheduled messages"
-msgstr ""
-
-#: contents/ui/ConfigSchedules.qml:121
+#: contents/ui/ConfigSchedules.qml:115
 msgid "New schedule…"
 msgstr ""
 
-#: contents/ui/ConfigSchedules.qml:131
+#: contents/ui/ConfigSchedules.qml:125
 msgid ""
 "Schedules send their message into the chat at the set times, also when the "
 "widget is closed, while you are logged in. The answer appears in the chat, "
 "with a notification if you want one."
 msgstr ""
 
-#: contents/ui/ConfigSchedules.qml:146
+#: contents/ui/ConfigSchedules.qml:140
 msgid "No schedules yet"
 msgstr ""
 
-#: contents/ui/ConfigSchedules.qml:147
+#: contents/ui/ConfigSchedules.qml:141
 msgid ""
 "A schedule sends a message into a chat at set times, e.g. “Fetch the latest "
 "news” every weekday at 09:00."

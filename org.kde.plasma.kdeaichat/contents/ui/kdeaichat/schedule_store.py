@@ -11,8 +11,6 @@ Commands (payload -> one JSON object on stdout):
 - ``schedule_delete {id}`` -> ``{ok, units}``
 - ``schedule_history {id}`` -> ``{ok, runState}``
 - ``schedules_sync {}`` -> ``{ok, units}`` (units match definitions; stray timers removed)
-- ``schedules_settings {paused}`` -> ``{ok, settings, units}`` (the master switch: while
-  ``settings.paused`` is true no timer exists, so nothing runs; definitions are kept)
 """
 import datetime as dt
 import json
@@ -96,13 +94,9 @@ def find(store: Dict[str, Any], sid: str) -> Optional[Dict[str, Any]]:
     return next((s for s in store["schedules"] if s.get("id") == sid), None)
 
 
-def is_paused(store: Dict[str, Any]) -> bool:
-    return (store.get("settings") or {}).get("paused") is True
-
-
 def _sync(store: Dict[str, Any], now: dt.datetime, ensure_enabled: bool = False) -> Dict[str, Any]:
     valid = []
-    for s in ([] if is_paused(store) else store["schedules"]):
+    for s in store["schedules"]:
         try:
             valid.append(normalize_schedule(s, now=now))
         except ValueError:
@@ -228,20 +222,6 @@ def cmd_schedules_sync(payload: Dict[str, Any]) -> None:
     _out({"ok": not units["errors"], "units": units})
 
 
-def cmd_schedules_settings(payload: Dict[str, Any]) -> None:
-    paused = payload.get("paused")
-    if not isinstance(paused, bool):
-        _out({"ok": False, "error": "paused must be true or false"})
-        return
-    now = now_local()
-    with schedule_store_lock():
-        store = read_store() or _migrate_locked(now)
-        store["settings"] = dict(store["settings"], paused=paused)
-        atomic_write_json(store_path(), store)
-        units = _sync(store, now, ensure_enabled=True)
-    _out({"ok": not units["errors"], "settings": store["settings"], "units": units})
-
-
 COMMANDS = {
     "schedules_list": cmd_schedules_list,
     "schedule_preview": cmd_schedule_preview,
@@ -249,5 +229,4 @@ COMMANDS = {
     "schedule_delete": cmd_schedule_delete,
     "schedule_history": cmd_schedule_history,
     "schedules_sync": cmd_schedules_sync,
-    "schedules_settings": cmd_schedules_settings,
 }

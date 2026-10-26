@@ -21,6 +21,14 @@ scripts/dev-send.sh openrouter openrouter/auto ["message"]
 
 It copies that provider's key from your KWallet folder `KDEAIChat` into the dev folder `KDEAIChat-dev` inside D-Bus (never printed), delivers the message as a scheduler trigger, prints the conversation, and deletes the dev folder afterwards.
 
+To try the schedule editor's **"Describe when"** with a real model (in the sandbox; nothing is saved):
+
+```bash
+scripts/dev-describe.sh nvidia nvidia/nemotron-3.5-bolt-e4b "weekdays at 9 and Sunday at noon" ["answer to its question"]
+```
+
+It copies the key the same way, opens "Schedule a message…", runs the sentence, prints the model's answers and the rules with their preview, and saves the editor (only the widget's own item) as `build/dev-run/describe-question.png` / `describe-rules.png`. Dev runs keep systemd units in the sandbox (`KDEAICHAT_UNIT_DIR`, and `KDEAICHAT_SYSTEMCTL=true`), so saving a schedule there never creates a real timer.
+
 To make **one real picture** with AI Horde (anonymous, no key) through the `/image` path:
 
 ```bash

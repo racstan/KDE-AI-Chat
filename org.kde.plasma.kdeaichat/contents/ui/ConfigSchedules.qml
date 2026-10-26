@@ -1,7 +1,7 @@
 // Settings → Schedules: messages sent into a chat at set times, even with the
 // widget closed (each schedule is a systemd user timer that runs the prompt in
-// the background). One switch pauses them all; each schedule has its own
-// on/off switch, editor (ScheduleDialog.qml) and history. Everything here
+// the background). Each schedule has its own on/off switch, editor
+// (ScheduleDialog.qml) and history. There is no global switch. Everything here
 // takes effect at once through the helper; nothing is a cfg_ setting.
 import QtQuick
 import QtCore
@@ -35,9 +35,9 @@ KCM.SimpleKCM {
     readonly property string dataDir: decodeURIComponent(String(StandardPaths.writableLocation(
         StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "")) + "/kdeaichat"
     readonly property var sessions: {
-        var raw = chatIndex.indexJson() || (configuration ? (configuration.chatSessionsJson || "[]") : "[]");
+        const raw = chatIndex.indexJson() || (configuration ? (configuration.chatSessionsJson || "[]") : "[]");
         try {
-            var list = JSON.parse(raw);
+            const list = JSON.parse(raw);
             return Array.isArray(list) ? list : [];
         } catch (e) {
             return [];
@@ -56,7 +56,7 @@ KCM.SimpleKCM {
         historyItem = item;
         historyState = null;
         view = "history";
-        service.history(item.id, function(result) {
+        scheduleService.history(item.id, function(result) {
             page.historyState = result.ok ? result.runState : {"history": [], "runCount": 0};
         });
     }
@@ -71,7 +71,7 @@ KCM.SimpleKCM {
     }
 
     Config.ScheduleService {
-        id: service
+        id: scheduleService
         Component.onCompleted: {
             if (page.runHelper)
                 run = page.runHelper;
@@ -86,7 +86,7 @@ KCM.SimpleKCM {
             id: dialog
             visible: page.view === "edit"
             Layout.fillWidth: true
-            service: service
+            service: scheduleService
             sessions: page.sessions
             configuration: page.configuration
             wallet: page.wallet
@@ -109,12 +109,6 @@ KCM.SimpleKCM {
 
             RowLayout {
                 Layout.fillWidth: true
-                QQC2.Switch {
-                    objectName: "masterSwitch"
-                    text: i18n("Run scheduled messages")
-                    checked: !service.paused
-                    onToggled: service.setPaused(!checked)
-                }
                 Item { Layout.fillWidth: true }
                 QQC2.Button {
                     objectName: "newSchedule"
@@ -133,32 +127,31 @@ KCM.SimpleKCM {
 
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
-                visible: service.error !== ""
+                visible: scheduleService.error !== ""
                 type: Kirigami.MessageType.Error
-                text: service.error
+                text: scheduleService.error
             }
 
             Kirigami.PlaceholderMessage {
                 objectName: "noSchedules"
                 Layout.fillWidth: true
-                visible: service.loaded && service.schedules.length === 0
+                visible: scheduleService.loaded && scheduleService.schedules.length === 0
                 icon.name: "view-calendar"
                 text: i18n("No schedules yet")
                 explanation: i18n("A schedule sends a message into a chat at set times, e.g. “Fetch the latest news” every weekday at 09:00.")
             }
 
             Repeater {
-                model: service.schedules
+                model: scheduleService.schedules
                 delegate: Config.ScheduleRow {
                     required property var modelData
                     objectName: "scheduleRow"
                     item: modelData
                     chatTitle: Draft.chatTitle(page.sessions, modelData.chatId)
-                    paused: service.paused
                     onEditRequested: page.edit(modelData)
                     onHistoryRequested: page.showHistory(modelData)
-                    onDeleteRequested: service.remove(modelData.id)
-                    onEnabledToggled: on => service.setEnabled(modelData, on)
+                    onDeleteRequested: scheduleService.remove(modelData.id)
+                    onEnabledToggled: on => scheduleService.setEnabled(modelData, on)
                 }
             }
         }
