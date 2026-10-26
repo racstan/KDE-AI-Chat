@@ -6,8 +6,11 @@
 //
 // Browsing by keyboard: list.selectedIndex is the message picked with
 // Up/Down (-1: none). The input (Composer.qml) calls browse()/jumpFirst()/
-// jumpLatest() through chat.msgListViewRef while it is empty; once a message
-// is selected the list itself has focus and handles the keys below.
+// jumpLatest() through chat.msgListViewRef while it is empty. Clicking the
+// chat (a message's text or between messages) gives the list the focus, and
+// while it has it Up/Down browse: with nothing picked, Up picks the latest
+// message and Down goes back to the input. Not while a message is edited in
+// place: its box keeps Up/Down.
 import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
@@ -124,10 +127,12 @@ Item {
 
         Keys.onPressed: function(event) {
             var plain = !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier));
-            if (event.key === Qt.Key_Up && plain && selectedIndex >= 0) {
+            var editing = !!chatView.chat && chatView.chat.editingMessageIndex >= 0;
+            if (event.key === Qt.Key_Up && plain && !editing) {
                 browse(-1);
-            } else if (event.key === Qt.Key_Down && plain && selectedIndex >= 0) {
-                browse(1);
+            } else if (event.key === Qt.Key_Down && plain && !editing) {
+                if (!browse(1))
+                    leave();
             } else if (event.key === Qt.Key_PageUp && plain) {
                 jumpFirst();
             } else if (event.key === Qt.Key_PageDown && plain) {
@@ -139,7 +144,7 @@ Item {
                     return;
             } else if (event.key === Qt.Key_Escape && selectedIndex >= 0) {
                 leave();
-            } else if (selectedIndex >= 0 && plain && event.text.length === 1 && event.text >= " " && event.text !== "\x7f") {
+            } else if (!editing && plain && event.text.length === 1 && event.text >= " " && event.text !== "\x7f") {
                 // Typing goes to the input, with this character.
                 clearSelection();
                 if (chatView.chat && chatView.chat.composerRef)
@@ -175,6 +180,29 @@ Item {
         onMovementEnded: userMoved()
         onDraggingChanged: if (!dragging) userMoved()
         Component.onCompleted: if (chatView.chat) chatView.chat.msgListViewRef = list
+
+        // A click in the chat gives it the keyboard (for Up/Down), unless
+        // something in it (a message's text, an edit box) already took it or
+        // it was on a button (the input keeps the focus then, as before).
+        function onButton(x, y) {
+            var item = list.contentItem.childAt(x + list.contentX, y + list.contentY);
+            var at = list.mapToItem(item, x, y);
+            while (item) {
+                if (item.checkable !== undefined && item.pressed !== undefined)
+                    return true;
+                var inner = item.childAt(at.x, at.y);
+                if (inner)
+                    at = item.mapToItem(inner, at.x, at.y);
+                item = inner;
+            }
+            return false;
+        }
+        TapHandler {
+            onTapped: function(eventPoint) {
+                if (!list.activeFocus && !list.onButton(eventPoint.position.x, eventPoint.position.y))
+                    list.forceActiveFocus();
+            }
+        }
 
         WheelHandler {
             target: list
