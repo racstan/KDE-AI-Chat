@@ -11,6 +11,7 @@ import "../backends/DirectStream.js" as DirectStream
 import "../backends/DirectTools.js" as DirectTools
 import "MessageContent.js" as MessageContent
 import "ImageExtract.js" as ImageExtract
+import "Personality.js" as Personality
 
 QtObject {
     id: direct
@@ -59,6 +60,17 @@ QtObject {
         if (memoryBlock)
             parts.push(memoryBlock);
         return parts.join("\n\n");
+    }
+
+    // Direct mode only: the Personality block (Settings → Personality) first,
+    // then everything above. OpenCode and Pi use buildEffectiveSystemPrompt
+    // without it. A chat can turn it off (personalityOff), independently of
+    // its own instructions.
+    function directSystemPrompt(sessionId) {
+        var rest = direct.buildEffectiveSystemPrompt(sessionId);
+        var off = chat.getSessionProperty(sessionId, "personalityOff", false) === true;
+        var block = off ? "" : Personality.block(chat.plasmoid.configuration);
+        return block && rest ? block + "\n\n" + rest : (block || rest);
     }
 
     function responseMaxTokens(sessionId, defaultValue) {
@@ -121,7 +133,7 @@ QtObject {
             messages.push(item);
             plain.push(item);
         }
-        return {"system": direct.buildEffectiveSystemPrompt(sessionId), "messages": messages, "plain": asText ? plain : null};
+        return {"system": direct.directSystemPrompt(sessionId), "messages": messages, "plain": asText ? plain : null};
     }
 
     // Sends a direct API request and applies its events to the chat.
