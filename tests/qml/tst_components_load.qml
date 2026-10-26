@@ -119,6 +119,13 @@ TestCase {
             { tag: "chat/ScheduleOverlay", url: uiDir + "chat/ScheduleOverlay.qml" },
             { tag: "config/VoiceEngine", url: uiDir + "config/VoiceEngine.qml" },
             { tag: "config/VoiceStatusGrid", url: uiDir + "config/VoiceStatusGrid.qml" },
+            { tag: "config/DictationSettings", url: uiDir + "config/DictationSettings.qml" },
+            { tag: "config/TtsOption", url: uiDir + "config/TtsOption.qml" },
+            { tag: "voice/ReadAloud", url: uiDir + "voice/ReadAloud.qml" },
+            { tag: "voice/QtSpeech", url: uiDir + "voice/QtSpeech.qml" },
+            { tag: "voice/FileSpeech", url: uiDir + "voice/FileSpeech.qml" },
+            { tag: "voice/WavPlayer", url: uiDir + "voice/WavPlayer.qml" },
+            { tag: "voice/TtsProbe", url: uiDir + "voice/TtsProbe.qml" },
             { tag: "config", url: configDir + "config.qml" }
         ];
     }
