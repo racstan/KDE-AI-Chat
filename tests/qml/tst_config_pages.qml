@@ -98,7 +98,7 @@ Item {
 
         // ── Chat ─────────────────────────────────────────────────────────────
         function test_chat_page_per_chat_model_settings_are_opt_in() {
-            open("ConfigChat.qml", {"cfg_enableSystemPrompt": true, "cfg_systemPrompt": "", "cfg_contextMessageLimit": -1,
+            open("ConfigChat.qml", {"cfg_contextMessageLimit": -1,
                                     "cfg_autoNameChats": true, "cfg_promptTemplates": "[]",
                                     "cfg_perChatModelSettings": false, "cfg_perChatPriority": "chat"});
             noSecretSettings();
@@ -126,7 +126,7 @@ Item {
         }
 
         function test_chat_page_default_workspace_is_empty_and_editable() {
-            open("ConfigChat.qml", {"cfg_enableSystemPrompt": true, "cfg_systemPrompt": "", "cfg_contextMessageLimit": -1,
+            open("ConfigChat.qml", {"cfg_contextMessageLimit": -1,
                                     "cfg_autoNameChats": true, "cfg_promptTemplates": "[]", "cfg_openCodeWorkspaceCwd": ""});
             noSecretSettings();
             var field = find(page, function(item) { return item.objectName === "defaultWorkspaceField"; });
@@ -138,8 +138,7 @@ Item {
         }
 
         function test_chat_page_edits_templates() {
-            open("ConfigChat.qml", {"cfg_enableSystemPrompt": true, "cfg_systemPrompt": "You are a helpful assistant.",
-                                    "cfg_contextMessageLimit": -1, "cfg_autoNameChats": true,
+            open("ConfigChat.qml", {"cfg_contextMessageLimit": -1, "cfg_autoNameChats": true,
                                     "cfg_promptTemplates": JSON.stringify([{"name": "review", "prompt": "Review this code for bugs."}])});
             noSecretSettings();
             var editor = find(page, function(item) { return item.hasOwnProperty("templates") && item.hasOwnProperty("json"); });
@@ -153,6 +152,65 @@ Item {
             compare(JSON.parse(page.cfg_promptTemplates)[0].name, "summary");
             var spin = find(page, function(item) { return item instanceof QQC2.SpinBox; });
             compare(spin.displayText, "All (up to 100)");
+        }
+
+        // ── Personality ──────────────────────────────────────────────────────
+        function test_personality_page() {
+            open("ConfigPersonality.qml", {"cfg_userName": "Rachit", "cfg_userAbout": "I build KDE widgets.", "cfg_userTone": "friendly",
+                                            "cfg_userLanguage": "", "cfg_userNotes": "Never use emoji.", "cfg_aiName": "Nova",
+                                            "cfg_aiPersonality": "witty", "cfg_aiPersonalityCustom": "", "cfg_aiAvatar": "face-smile",
+                                            "cfg_enableSystemPrompt": true, "cfg_systemPrompt": "You are a helpful assistant."});
+            noSecretSettings();
+            var named = function(name) { return find(page, function(item) { return item.objectName === name; }); };
+            compare(named("userNameField").text, "Rachit");
+            compare(named("toneCombo").currentText, "Friendly");
+            compare(named("personalityCombo").currentText, "Witty");
+            compare(named("languageField").placeholderText, "Same as my message");
+            compare(named("systemPromptArea").text, "You are a helpful assistant.", "the global prompt moved here");
+            compare(named("avatarStatus").text, "face-smile");
+            verify(!named("customPersonalityArea").visible, "custom text only for Custom");
+            shot("config-personality");
+
+            // Presets write their ids; Custom shows its box.
+            var combo = named("personalityCombo");
+            combo.currentIndex = combo.indexOfValue("custom");
+            combo.activated(combo.currentIndex);
+            compare(page.cfg_aiPersonality, "custom");
+            verify(named("customPersonalityArea").visible);
+            var tone = named("toneCombo");
+            tone.currentIndex = 0;
+            tone.activated(0);
+            compare(page.cfg_userTone, "", "no preference = nothing sent");
+            named("userNameField").text = "Ana";
+            compare(page.cfg_userName, "Ana");
+
+            // An image file is taken only with an image extension and a safe path.
+            page.setAvatarFile("file:///home/me/notes.txt");
+            compare(page.cfg_aiAvatar, "face-smile", "not an image: unchanged");
+            verify(page.avatarError !== "");
+            var picture = String(Qt.resolvedUrl("../fixtures/avatar.png"));
+            page.setAvatarFile(picture);
+            compare(page.cfg_aiAvatar, decodeURIComponent(picture.replace(/^file:\/\//, "")));
+            compare(page.avatarError, "");
+            var chosen = page.cfg_aiAvatar;
+            page.setAvatarFile("file:///home/me/a$(x).png");
+            compare(page.cfg_aiAvatar, chosen, "unsafe path refused");
+            verify(page.avatarError !== "");
+            page.setAvatarFile(picture);
+            compare(named("avatarStatus").text, "avatar.png");
+            shot("config-personality-custom");
+        }
+
+        function test_personality_page_empty() {
+            open("ConfigPersonality.qml", {"cfg_userName": "", "cfg_userAbout": "", "cfg_userTone": "", "cfg_userLanguage": "",
+                                            "cfg_userNotes": "", "cfg_aiName": "", "cfg_aiPersonality": "", "cfg_aiPersonalityCustom": "",
+                                            "cfg_aiAvatar": "", "cfg_enableSystemPrompt": false, "cfg_systemPrompt": ""});
+            var named = function(name) { return find(page, function(item) { return item.objectName === name; }); };
+            compare(named("toneCombo").currentText, "No preference");
+            compare(named("personalityCombo").currentText, "None");
+            compare(named("avatarStatus").text, "None");
+            verify(!named("systemPromptArea").enabled);
+            shot("config-personality-empty");
         }
 
         // ── Schedules ────────────────────────────────────────────────────────

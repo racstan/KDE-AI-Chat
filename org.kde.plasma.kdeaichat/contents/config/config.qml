@@ -16,6 +16,11 @@ ConfigModel {
         source: "ConfigChat.qml"
     }
     ConfigCategory {
+        name: i18n("Personality")
+        icon: "user-identity"
+        source: "ConfigPersonality.qml"
+    }
+    ConfigCategory {
         name: i18n("Schedules")
         icon: "view-calendar"
         source: "ConfigSchedules.qml"
