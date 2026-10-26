@@ -23,7 +23,11 @@ QtObject {
     readonly property var colors: ProjectsJs.COLORS
 
     // A project was deleted: what Undo needs (chat/UndoNotice.qml).
-    signal projectDeleted(var project, int index, var movedChatIds)
+    // movedChatIds: its chats that stayed (now in no project). deletedChats:
+    // with removeWithChats(), the chats deleted with it, [{session, index,
+    // wasCurrent}] in the order deleted; fillerChatId: the empty chat made
+    // because none would have been left ("" = none).
+    signal projectDeleted(var project, int index, var movedChatIds, var deletedChats, string fillerChatId)
     // The project editor (chat/ProjectEditor.qml, in chat/ChatBody.qml) should
     // open: projectId "" = a new project; moveChatId: a chat to put in it once saved.
     signal editorRequested(string projectId, string moveChatId)
@@ -98,8 +102,51 @@ QtObject {
         return false;
     }
 
+    // The chats in project `id`, archived ones too.
+    function chatsIn(id) {
+        var all = chat ? chat.sessions || [] : [];
+        return all.filter(function(s) { return !!s && String(s.projectId || "") === String(id || ""); });
+    }
+
     // Deletes the project; its chats stay and move to no project.
     function remove(id) {
+        _remove(id, [], "");
+    }
+
+    // Deletes the project and its chats. Each chat goes the way a single
+    // chat is deleted (chat.deleteSession: a reply being written into it is
+    // stopped; its schedules, memories and images go too), the open one last.
+    // There is always one chat, so when the project has all of them a new
+    // empty chat is made first. Undo (chat/UndoNotice.qml) brings back the
+    // project and its chats, not their scheduled messages.
+    function removeWithChats(id) {
+        if (!byId(id))
+            return;
+        var open = chat.currentSessionId;
+        var ids = chatsIn(id).map(function(s) { return s.value; });
+        ids.sort(function(a, b) { return (a === open) - (b === open); });
+        var filler = "";
+        if (ids.length > 0 && ids.length >= chat.sessions.length) {
+            var before = chat.sessions.map(function(s) { return s.value; });
+            chat.createSession(false, "");
+            var made = chat.sessions.filter(function(s) { return before.indexOf(s.value) < 0; });
+            filler = made.length > 0 ? made[0].value : "";
+        }
+        var deleted = [];
+        for (var i = 0; i < ids.length; i++) {
+            var index = chat.sessionIndexById(ids[i]);
+            if (index < 0)
+                continue;
+            var session = chat.sessions[index];
+            chat.deleteSession(ids[i]);
+            if (chat.sessionIndexById(ids[i]) < 0)
+                deleted.push({"session": session, "index": index, "wasCurrent": ids[i] === open});
+        }
+        _remove(id, deleted, filler);
+    }
+
+    // Any chat still in the project (one that could not be deleted) stays, in no project.
+    function _remove(id, deleted, filler) {
         var index = -1;
         for (var i = 0; i < list.length; i++) {
             if (list[i].id === id)
@@ -120,7 +167,7 @@ QtObject {
             chat.persistSessions();
         }
         _reapplyOpenChat();
-        projectDeleted(project, index, released.moved);
+        projectDeleted(project, index, released.moved, deleted, filler);
     }
 
     // Undo of remove(): the project comes back with the chats it had.

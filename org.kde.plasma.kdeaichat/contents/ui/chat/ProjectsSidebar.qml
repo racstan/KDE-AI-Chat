@@ -1,7 +1,8 @@
 // The top of the history: All chats, each project, and Archived, with how
 // many chats each has. Choosing one filters the history below it
 // (chat.projects.view). Projects can be created here; each project row edits
-// (pencil on hover, or its menu) and deletes (its menu; Undo brings it back).
+// (pencil on hover, or its menu) and deletes, keeping its chats or with
+// them after a confirmation (its menu; Undo brings it all back).
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -28,6 +29,18 @@ ColumnLayout {
         return out;
     }
     readonly property alias list: viewList
+
+    // Asks first (chat/ProjectDeleteConfirm.qml); returns the question.
+    function confirmDeleteWithChats(projectId) {
+        var popup = deleteConfirm.createObject(sidebar, {"projects": sidebar.projects, "projectId": projectId});
+        popup.open();
+        return popup;
+    }
+
+    Component {
+        id: deleteConfirm
+        ProjectDeleteConfirm {}
+    }
 
     spacing: 0
 
@@ -172,6 +185,13 @@ ColumnLayout {
                     text: i18n("Delete project (keeps its chats)")
                     icon.name: "edit-delete"
                     onTriggered: sidebar.projects.remove(row.modelData.view)
+                }
+                QQC2.MenuItem {
+                    objectName: "deleteProjectWithChatsItem"
+                    text: i18n("Delete project and its chats…")
+                    icon.name: "edit-delete"
+                    enabled: sidebar.projects.chatsIn(row.modelData.view).length > 0
+                    onTriggered: sidebar.confirmDeleteWithChats(row.modelData.view)
                 }
             }
         }

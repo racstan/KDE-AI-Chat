@@ -86,6 +86,7 @@ TestCase {
             { tag: "chat/Projects", url: uiDir + "chat/Projects.qml" },
             { tag: "chat/ProjectsSidebar", url: uiDir + "chat/ProjectsSidebar.qml" },
             { tag: "chat/ProjectEditor", url: uiDir + "chat/ProjectEditor.qml" },
+            { tag: "chat/ProjectDeleteConfirm", url: uiDir + "chat/ProjectDeleteConfirm.qml" },
             { tag: "chat/ProjectMenu", url: uiDir + "chat/ProjectMenu.qml" },
             { tag: "chat/ProjectInfoLine", url: uiDir + "chat/ProjectInfoLine.qml" },
             { tag: "ConfigConnection", url: uiDir + "ConfigConnection.qml" },
