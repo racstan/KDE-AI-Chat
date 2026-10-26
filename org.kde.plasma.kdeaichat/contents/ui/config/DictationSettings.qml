@@ -99,12 +99,10 @@ ColumnLayout {
             }
         }
 
-        QQC2.Label {
+        SettingHelp {
             objectName: "sttEngineNote"
             Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-            wrapMode: Text.Wrap
-            font: Kirigami.Theme.smallFont
-            opacity: 0.75
+            details: i18n("The engine is the program that turns your speech into text. The ones on this computer keep your voice private; a speech server gets the recording.")
             text: {
                 var row = sttSetup.engineRow(dictation.engineId);
                 var note = i18n(dictation.engine.note);
@@ -155,6 +153,11 @@ ColumnLayout {
             onActivated: if (currentValue) dictation.setOption("sttWhisperCppModel", currentValue)
         }
 
+        SettingHelp {
+            visible: dictation.engineId === "whisper-cpp" && sttSetup.found.some(function(m) { return m.engine === "whisper-cpp"; })
+            text: i18n("Speech models other apps on this computer already downloaded. Pick one to use it without downloading again.")
+        }
+
         // The other engines' options, made once; only the chosen engine's show.
         Repeater {
             model: dictation.allOptions
@@ -174,6 +177,10 @@ ColumnLayout {
             model: SttEngines.languages.map(function(l) { return {"value": l.value, "text": i18n(l.text)}; })
             currentIndex: Math.max(0, model.map(function(o) { return o.value; }).indexOf(String(dictation.optionValue("sttLanguage") || "auto")))
             onActivated: dictation.setOption("sttLanguage", currentValue)
+        }
+
+        SettingHelp {
+            text: i18n("The language you speak. \"Detect automatically\" works for most people; choosing yours helps with short phrases.")
         }
 
         RowLayout {
@@ -200,10 +207,18 @@ ColumnLayout {
             }
         }
 
+        SettingHelp {
+            text: i18n("Checks the settings above with a short recording that comes with the widget; no microphone needed.")
+        }
+
         QQC2.CheckBox {
             text: i18n("Send the transcript right away")
             checked: dictation.optionValue("voiceAutoSend") !== false
             onToggled: dictation.form.setOption("voiceAutoSend", checked)
+        }
+
+        SettingHelp {
+            text: i18n("On: what you said is sent as soon as you stop talking. Off: it waits in the message box so you can check or change it first.")
         }
     }
 }

@@ -1,7 +1,8 @@
 // One setting of a read-aloud engine on Settings → Voice, drawn from its
 // type in voice/TtsEngines.js. The value lives in the page's cfg_<key>
 // property (`form.optionValue(key)` / `form.setOption(key, value)`), so it
-// is saved with OK/Apply like any setting; a "secret" goes to KWallet.
+// is saved with OK/Apply like any setting; a "secret" goes to KWallet. Under
+// the field is the option's plain explanation (its `help` in the engine list).
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -14,7 +15,7 @@ import "../Security.js" as Sec
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
 
-Loader {
+ColumnLayout {
     id: row
 
     required property var modelData    // the option spec
@@ -28,14 +29,26 @@ Loader {
     readonly property var option: modelData
     readonly property var value: form ? form.optionValue(option.key) : undefined
     function set(v) { if (form) form.setOption(option.key, v); }
+    // The field itself (for tests).
+    readonly property alias item: field.item
 
     objectName: "ttsOption-" + (option.key || option.type)
     Kirigami.FormData.label: i18n(option.label) + ":"
     Layout.fillWidth: true
+    spacing: Kirigami.Units.smallSpacing
 
-    sourceComponent: ({"language": choiceField, "voice": choiceField, "rate": sliderField, "pitch": sliderField,
-                       "speed": sliderField, "int": intField, "text": textField, "url": textField, "command": textField,
-                       "file": fileField, "secret": secretField})[option.type] || textField
+    Loader {
+        id: field
+        Layout.fillWidth: true
+        sourceComponent: ({"language": choiceField, "voice": choiceField, "rate": sliderField, "pitch": sliderField,
+                           "speed": sliderField, "int": intField, "text": textField, "url": textField, "command": textField,
+                           "file": fileField, "secret": secretField})[row.option.type] || textField
+    }
+
+    SettingHelp {
+        text: row.option.help ? i18n(row.option.help) : ""
+        visible: text !== ""
+    }
 
     Component {
         id: choiceField

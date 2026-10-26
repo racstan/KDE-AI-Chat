@@ -12,6 +12,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.iconthemes as KIconThemes
 import "Security.js" as Sec
+import "config" as Config
 import "chat/Personality.js" as Personality
 
 // i18n() is provided by Plasma at runtime.
@@ -96,13 +97,6 @@ KCM.SimpleKCM {
         onAccepted: page.setAvatarFile(selectedFile)
     }
 
-    // A small grey note under a field.
-    component Note: QQC2.Label {
-        Layout.fillWidth: true
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 28
-        wrapMode: Text.Wrap
-        color: Kirigami.Theme.disabledTextColor
-    }
 
     // A multi-line box that grows with the form.
     component Box: QQC2.ScrollView {
@@ -135,6 +129,10 @@ KCM.SimpleKCM {
             placeholderText: i18n("Shown as \"You\"")
         }
 
+        Config.SettingHelp {
+            text: i18n("What the AI calls you, and the name shown above your messages. Leave empty to stay \"You\".")
+        }
+
         Box {
             id: aboutArea
             objectName: "userAboutArea"
@@ -142,6 +140,10 @@ KCM.SimpleKCM {
             Kirigami.FormData.labelAlignment: Qt.AlignTop
             placeholderText: i18n("What you do, what you know well, what you are working on…")
             accessibleName: i18n("About you")
+        }
+
+        Config.SettingHelp {
+            text: i18n("A few lines about yourself, so answers fit you: your job, what you know well, what you are working on.")
         }
 
         QQC2.ComboBox {
@@ -155,6 +157,10 @@ KCM.SimpleKCM {
             onActivated: page.cfg_userTone = currentValue
         }
 
+        Config.SettingHelp {
+            text: i18n("How you like to be spoken to. \"No preference\" leaves it to the AI.")
+        }
+
         QQC2.TextField {
             id: languageField
             objectName: "languageField"
@@ -162,6 +168,10 @@ KCM.SimpleKCM {
             Layout.preferredWidth: Kirigami.Units.gridUnit * 16
             maximumLength: Personality.LIMITS.userLanguage
             placeholderText: i18n("Same as my message")
+        }
+
+        Config.SettingHelp {
+            text: i18n("The language replies are written in, for example \"English\" or \"Deutsch\". Leave empty to get replies in the language you write in.")
         }
 
         Box {
@@ -173,8 +183,8 @@ KCM.SimpleKCM {
             accessibleName: i18n("Always or never")
         }
 
-        Note {
-            text: i18n("How long replies are is set per chat, in its chat settings.")
+        Config.SettingHelp {
+            text: i18n("Rules the AI should always follow, one per line. How long replies are is set per chat, in its chat settings.")
         }
 
         Item {
@@ -191,6 +201,10 @@ KCM.SimpleKCM {
             placeholderText: i18n("No name: replies show the model")
         }
 
+        Config.SettingHelp {
+            text: i18n("A name for the assistant, shown above its replies. Leave empty to show the name of the model instead.")
+        }
+
         QQC2.ComboBox {
             id: personalityCombo
             objectName: "personalityCombo"
@@ -202,6 +216,10 @@ KCM.SimpleKCM {
             onActivated: page.cfg_aiPersonality = currentValue
         }
 
+        Config.SettingHelp {
+            text: i18n("The character of the assistant: how it talks and how much it says. Choose \"Custom…\" to describe it in your own words.")
+        }
+
         Box {
             id: customArea
             objectName: "customPersonalityArea"
@@ -210,6 +228,11 @@ KCM.SimpleKCM {
             Kirigami.FormData.labelAlignment: Qt.AlignTop
             placeholderText: i18n("Calm and patient, like a good teacher…")
             accessibleName: i18n("Custom personality")
+        }
+
+        Config.SettingHelp {
+            visible: customArea.visible
+            text: i18n("Describe the personality you want in a sentence or two.")
         }
 
         RowLayout {
@@ -288,7 +311,16 @@ KCM.SimpleKCM {
             }
         }
 
-        Note {
+        Config.SettingHelp {
+            text: i18n("A small picture shown next to the AI's replies: an icon from your theme or an image file of your own.")
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            wrapMode: Text.Wrap
+            color: Kirigami.Theme.disabledTextColor
             text: i18n("What you fill in here is sent at the start of every chat with a provider, unless a chat turns it off in its chat settings. OpenCode and Pi chats keep their own instructions. The names and avatar show in the chat.")
         }
 
@@ -302,6 +334,7 @@ KCM.SimpleKCM {
             objectName: "systemPromptCheck"
             Kirigami.FormData.label: i18n("Instructions:")
             text: i18n("Send these instructions before every chat")
+            // help: next
         }
 
         Box {
@@ -311,6 +344,10 @@ KCM.SimpleKCM {
             implicitHeight: Kirigami.Units.gridUnit * 8
             placeholderText: i18n("Instructions for the model…")
             accessibleName: i18n("Extra instructions")
+        }
+
+        Config.SettingHelp {
+            text: i18n("Anything else the AI should know or do in every chat, in your own words. This is sometimes called the \"system prompt\". Turn it off to keep the text without sending it.")
         }
     }
 }

@@ -132,6 +132,10 @@ KCM.SimpleKCM {
                 text: i18n("Use memories in chats")
             }
 
+            Config.SettingHelp {
+                text: i18n("When on, the AI is reminded of the notes below that fit what you ask. Turn off to chat without them; the notes are kept. Each chat can also turn memory off in its Chat info panel.")
+            }
+
             RowLayout {
                 Kirigami.FormData.label: i18n("Send per message:")
                 enabled: enabledSwitch.checked
@@ -156,6 +160,11 @@ KCM.SimpleKCM {
                     checked: page.cfg_memoryBudget <= 0
                     onToggled: page.cfg_memoryBudget = checked ? 0 : budgetSpin.value
                 }
+            }
+
+            Config.SettingHelp {
+                text: i18n("The most memory text added to one message (a character is a letter, digit or space). A lower number keeps requests small and cheap; a higher one lets more memories through.")
+                details: i18n("Pinned memories go first, then the ones that best fit your message, until this many characters are used. \"No limit\" sends every pinned memory and every one that fits.")
             }
         }
 

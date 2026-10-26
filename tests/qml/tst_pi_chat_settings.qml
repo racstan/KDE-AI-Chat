@@ -32,11 +32,23 @@ Item {
     HarnessTestCase {
         name: "PiChatSettings"
 
-        function combos() {
-            var found = [];
-            for (var i = 0; i < pi.children.length; i++)
-                if (pi.children[i] instanceof QQC2.ComboBox) found.push(pi.children[i]);
+        // The drop-downs in order (each sits in a SettingField with its explanation).
+        function collect(item, test, found) {
+            if (test(item))
+                found.push(item);
+            for (var i = 0; i < item.children.length; i++)
+                collect(item.children[i], test, found);
             return found;
+        }
+        function combos() {
+            return collect(pi, function(item) { return item instanceof QQC2.ComboBox; }, []);
+        }
+
+        function test_0_every_setting_is_explained() {
+            var helps = collect(pi, function(item) { return item.isSettingHelp === true; }, []);
+            compare(helps.length, 3, "provider, model and thinking");
+            for (var i = 0; i < helps.length; i++)
+                verify(helps[i].text.length > 20, "explanation " + i);
         }
 
         function test_1_shows_the_chats_values() {

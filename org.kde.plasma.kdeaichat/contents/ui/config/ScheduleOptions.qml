@@ -30,12 +30,18 @@ Kirigami.FormLayout {
         placeholderText: i18n("YYYY-MM-DD (optional)")
         onEditingFinished: options.fieldChanged("startDate", options.dateField(text))
     }
+    SettingHelp {
+        text: i18n("The first day this schedule may run, for example 2026-12-01. Leave empty to start right away.")
+    }
     QQC2.TextField {
         objectName: "endDate"
         Kirigami.FormData.label: i18n("End after:")
         text: options.draft.endDate || ""
         placeholderText: i18n("YYYY-MM-DD (optional)")
         onEditingFinished: options.fieldChanged("endDate", options.dateField(text))
+    }
+    SettingHelp {
+        text: i18n("The last day it may run. Leave empty to keep going until you turn it off.")
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Stop after:")
@@ -55,14 +61,16 @@ Kirigami.FormLayout {
         }
         QQC2.Label { text: i18n("runs") }
     }
+    SettingHelp {
+        text: i18n("Stop by itself after sending the message this many times, for example for a five-day reminder.")
+    }
     QQC2.CheckBox {
         objectName: "catchUp"
         Kirigami.FormData.label: i18n("If missed:")
         text: i18n("Run once when the computer is back")
         checked: options.catchUp.enabled === true
         onToggled: options.fieldChanged("catchUp", {"enabled": checked, "withinHours": options.catchUp.withinHours || 12})
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: i18n("Off: a time missed while the computer was off or asleep is recorded as missed.")
+        // help: next
     }
     RowLayout {
         visible: options.catchUp.enabled === true
@@ -76,11 +84,17 @@ Kirigami.FormLayout {
         }
         QQC2.Label { text: i18n("hours") }
     }
+    SettingHelp {
+        text: i18n("If the computer was off or asleep at the set time, send the message once when it is back. Off: the missed time is only noted in the history.")
+    }
     QQC2.CheckBox {
         objectName: "notify"
         Kirigami.FormData.label: i18n("Notify:")
         text: i18n("Show a notification when the answer is ready")
         checked: options.draft.notify !== false
         onToggled: options.fieldChanged("notify", checked)
+    }
+    SettingHelp {
+        text: i18n("A desktop notification tells you when the answer has arrived, so you don't have to keep the chat open.")
     }
 }
