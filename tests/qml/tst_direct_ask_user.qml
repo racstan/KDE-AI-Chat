@@ -78,7 +78,6 @@ Item {
         property var attachedFiles: []
         property var promptTemplates: []
         property int sent: 0
-        property string schedulerResumeSessionId: ""
         property int saves: 0
         property var errors: []
         property var streamBuffer: Chat.StreamBuffer { target: chat; maxChars: 2000000 }

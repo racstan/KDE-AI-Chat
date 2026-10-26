@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # OpenCode mode end to end, without a real model: runs the widget in the dev
-# sandbox against scripts/dev-opencode-mock.py, sends one message (as a
-# scheduler trigger) and prints the saved chat and the requests the widget made.
+# sandbox against scripts/dev-opencode-mock.py, sends one message (typed
+# by the widget itself, DEV_SEND_MESSAGE) and prints the saved chat and the requests the widget made.
 #
 # Usage: scripts/dev-opencode-e2e.sh [port]   (default 4921)
 set -euo pipefail
@@ -35,14 +35,11 @@ config = f"{sandbox}/config/plasmawindowedrc"
 text = open(config, encoding="utf-8").read()
 group = "[Applets][4][Configuration][General]\n"
 text = text.replace(group, group + f"useOpenCode=true\nopenCodeUrl=http://127.0.0.1:{port}\nopenCodeWorkspaceCwd=/tmp/kdeaichat-mock-work\n"
-                    "openCodeProvider=mockprov\nopenCodeModel=mock-model\nschedulerEnabled=true\n")
+                    "openCodeProvider=mockprov\nopenCodeModel=mock-model\n")
 open(config, "w", encoding="utf-8").write(text)
-os.makedirs(f"{sandbox}/data/kdeaichat/pending", exist_ok=True)
-with open(f"{sandbox}/data/kdeaichat/pending/e2e.json", "w") as f:
-    json.dump({"chatId": sessions[0]["value"], "message": "Create hello.txt", "name": "e2e"}, f)
 PY
 
-DEV_KEEP=1 "$ROOT/scripts/dev-run.sh" 20 | tail -1
+DEV_KEEP=1 DEV_SEND_MESSAGE="Create hello.txt" "$ROOT/scripts/dev-run.sh" 20 | tail -1
 
 echo "--- requests:"
 python3 - "$LOG" <<'PY'

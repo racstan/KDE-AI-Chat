@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pi mode end to end: runs the widget in the dev sandbox in Pi mode, sends one
-# message (as a scheduler trigger) and prints what Pi was asked and the saved
+# message (typed by the widget itself, DEV_SEND_MESSAGE) and prints what Pi was asked and the saved
 # chat. By default `pi` is scripts/dev-pi-mock.py replaying a real capture
 # (KDEAICHAT_PI_MOCK_FIXTURE picks another); PI_E2E_REAL=1 uses the installed
 # `pi` instead (point PI_CODING_AGENT_DIR at a test config to keep yours out).
@@ -45,14 +45,11 @@ open(path, "w", encoding="utf-8").write(index.replace(match.group(0), 'sessions=
 config = f"{sandbox}/config/plasmawindowedrc"
 text = open(config, encoding="utf-8").read()
 group = "[Applets][4][Configuration][General]\n"
-text = text.replace(group, group + f"usePi=true\nopenCodeWorkspaceCwd={work}\npiProvider={provider}\npiModel={model}\nschedulerEnabled=true\n")
+text = text.replace(group, group + f"usePi=true\nopenCodeWorkspaceCwd={work}\npiProvider={provider}\npiModel={model}\n")
 open(config, "w", encoding="utf-8").write(text)
-os.makedirs(f"{sandbox}/data/kdeaichat/pending", exist_ok=True)
-with open(f"{sandbox}/data/kdeaichat/pending/e2e.json", "w") as f:
-    json.dump({"chatId": sessions[0]["value"], "message": message, "name": "e2e"}, f)
 PY
 
-DEV_KEEP=1 "$ROOT/scripts/dev-run.sh" "${PI_E2E_SECONDS:-20}" | tail -1
+DEV_KEEP=1 DEV_SEND_MESSAGE="$MESSAGE" "$ROOT/scripts/dev-run.sh" "${PI_E2E_SECONDS:-20}" | tail -1
 
 if [ -f "$KDEAICHAT_PI_MOCK_LOG" ]; then
     echo "--- pi was asked:"

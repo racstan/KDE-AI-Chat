@@ -38,7 +38,6 @@ PlasmoidItem {
     property var activeXhr: null
     property int requestGeneration: 0
     property string activeRequestSessionId: ""
-    property string schedulerResumeSessionId: ""
     property bool streamingResponse: false
     property string currentStreamText: ""
     property string currentStreamReasoning: ""
@@ -212,7 +211,7 @@ PlasmoidItem {
     // (chat/ReplyEvents.qml), message edits and agent cards (chat/MessageEdits.qml),
     // view scrolling and labels (chat/ChatNavigation.qml), attachments
     // (chat/Attachments.qml), one-off helper commands (chat/HelperCommands.qml)
-    // and scheduled-task polling (chat/SchedulerPoller.qml). The functions below
+    // and scheduled runs arriving from the chat folder (chat/ScheduleInbox.qml). The functions below
     // are the root's API for the chat UI (tests/qml/FakeChat.qml mirrors it).
     Chat.Sessions {
         id: sessionManager
@@ -258,7 +257,7 @@ PlasmoidItem {
 
     Chat.HelperCommands { id: helperCommands; chat: root }
 
-    Chat.SchedulerPoller { id: schedulerPoller; chat: root; notifierRef: notifier }
+    Chat.ScheduleInbox { chat: root; notifierRef: notifier; directory: storage.chatDirectory; ready: storage.chatStore.ready; runHelper: storage.runHelper; chatStore: storage.chatStore }
 
     Chat.ImageStore { id: images; chat: root }   // images of replies, kept as files in the chat's folder
     readonly property var imageStore: images

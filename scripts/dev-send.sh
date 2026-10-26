@@ -8,7 +8,7 @@
 # The provider's API key is copied from your KWallet folder "KDEAIChat" into
 # the dev folder "KDEAIChat-dev" inside D-Bus (never printed or put on a
 # command line) and that folder is deleted afterwards, even on failure.
-# The message is delivered as a scheduler trigger, so no clicking is needed.
+# The widget types and sends the message itself (DEV_SEND_MESSAGE in dev-run.sh), so no clicking is needed.
 # DEV_AUTO_ANSWER="Tea" answers the model's ask_user questions with that text (see dev-run.sh).
 # DEV_PROJECT="Answer in French." puts the chat in a project with those instructions.
 # DEV_CONFIG=$'userName=Ana\naiName=Nova' adds settings (one key=value per line) to the sandbox config.
@@ -68,14 +68,11 @@ providers = json.dumps([entry]).replace("\\", "\\\\")
 path = f"{sandbox}/config/plasmawindowedrc"
 config = open(path, encoding="utf-8").read()
 extra = [line for line in os.environ.get("DEV_CONFIG", "").split("\n") if re.match(r"^[A-Za-z]+=", line)]
-keys = "|".join(["providersJson", "provider", "schedulerEnabled"] + [line.split("=", 1)[0] for line in extra])
+keys = "|".join(["providersJson", "provider"] + [line.split("=", 1)[0] for line in extra])
 config = re.sub(r"^(" + keys + r")=.*\n", "", config, flags=re.M)
 group = "[Applets][4][Configuration][General]\n"
-config = config.replace(group, group + f"provider={preset['id']}\nprovidersJson={providers}\nschedulerEnabled=true\n" + "".join(l + "\n" for l in extra))
+config = config.replace(group, group + f"provider={preset['id']}\nprovidersJson={providers}\n" + "".join(l + "\n" for l in extra))
 open(path, "w", encoding="utf-8").write(config)
-os.makedirs(f"{sandbox}/data/kdeaichat/pending", exist_ok=True)
-with open(f"{sandbox}/data/kdeaichat/pending/dev-send.json", "w") as f:
-    json.dump({"chatId": chat_id, "message": message, "name": "dev-send"}, f)
 
 # DEV_PROJECT="instructions": the chat is put in a project "Dev project" with
 # those instructions (projects.ini next to the chats, chat/Projects.js).
@@ -95,7 +92,7 @@ if instructions:
 PY
 
 wallet copy "$PROVIDER"
-DEV_KEEP=1 "$ROOT/scripts/dev-run.sh" "$SECONDS_TO_RUN" | tail -1
+DEV_KEEP=1 DEV_SEND_MESSAGE="$MESSAGE" "$ROOT/scripts/dev-run.sh" "$SECONDS_TO_RUN" | tail -1
 
 python3 - "$SANDBOX" <<'PY'
 import glob, json, sys

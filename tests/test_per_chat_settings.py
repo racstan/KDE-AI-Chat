@@ -19,7 +19,7 @@ MAIN_QML = os.path.join(UI_DIR, "main.qml")
 SESSIONS_QML = os.path.join(UI_DIR, "chat", "Sessions.qml")
 ROOT_LOGIC = [MAIN_QML] + [os.path.join(UI_DIR, "chat", name) for name in (
     "Sessions.qml", "SessionTitles.qml", "SendController.qml", "DirectRequest.qml", "ReplyEvents.qml",
-    "MessageEdits.qml", "ChatNavigation.qml", "Attachments.qml", "HelperCommands.qml", "SchedulerPoller.qml")]
+    "MessageEdits.qml", "ChatNavigation.qml", "Attachments.qml", "HelperCommands.qml", "ScheduleInbox.qml")]
 
 
 def _read_root_logic():

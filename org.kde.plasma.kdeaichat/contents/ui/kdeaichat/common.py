@@ -9,7 +9,7 @@ import json
 import os
 import tempfile
 from contextlib import contextmanager
-from typing import Any, Dict
+from typing import Any
 
 from kdeaichat import chats
 
@@ -89,17 +89,9 @@ def schedules_path() -> str:
     return os.path.join(chats.data_root(), 'schedules.json')
 
 
-def pending_dir() -> str:
-    return os.path.join(chats.data_root(), 'pending')
-
-
-def results_dir() -> str:
-    return os.path.join(chats.data_root(), 'results')
-
-
 @contextmanager
 def schedule_store_lock():
-    """Serialize helper mutations with the background scheduler daemon."""
+    """Serialize writes of the schedule definitions (widget commands, the v1 migration)."""
     lock_path = schedules_path() + ".lock"
     folder = os.path.dirname(lock_path)
     if folder:
@@ -116,34 +108,3 @@ def schedule_store_lock():
             fcntl.flock(fd, fcntl.LOCK_UN)
         finally:
             os.close(fd)
-
-
-def load_schedules() -> Dict[str, Any]:
-    """Load the schedule store, tolerating legacy list-formatted files.
-
-    Returns a dict with at least ``"version"`` and ``"schedules"`` keys.
-    On missing file, returns an empty default. On parse failure, returns
-    the empty default as well (the caller's write will overwrite).
-    """
-    sp = schedules_path()
-    if os.path.exists(sp):
-        try:
-            if os.path.getsize(sp) > MAX_SCHEDULE_STORE_BYTES:
-                raise ValueError("schedule store is too large")
-            with open(sp) as f:
-                data: Any = json.load(f)
-        except ValueError:
-            raise
-        except Exception:
-            data = None
-    else:
-        data = None
-    if isinstance(data, list):
-        return {"version": 1, "schedules": data}
-    if isinstance(data, dict):
-        schedules = data.get("schedules", [])
-        history = data.get("history", [])
-        data["schedules"] = schedules if isinstance(schedules, list) else []
-        data["history"] = history if isinstance(history, list) else []
-        return data
-    return {"version": 1, "schedules": []}

@@ -34,7 +34,6 @@ TestCase {
         property bool streamingResponse: false
         property int requestGeneration: 0
         property string activeRequestSessionId: ""
-        property string schedulerResumeSessionId: ""
         property var streamBuffer: QtObject { function clear() {} }
         property string compiledSystemPrompt: ""
         property var piThinkingModels: ({})
