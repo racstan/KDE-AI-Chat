@@ -10,7 +10,7 @@ import QtQuick.Controls as QQC2
 // qmllint disable unqualified
 
 QQC2.Menu {
-    id: menu
+    id: moveMenu
 
     // The widget root (main.qml) or a stand-in with `projects`.
     property var chat: null
@@ -27,24 +27,24 @@ QQC2.Menu {
         objectName: "noProjectItem"
         text: i18n("No project")
         checkable: true
-        checked: menu._projectId === ""
-        onTriggered: menu.chat.projects.moveChat(menu._id, "")
+        checked: moveMenu._projectId === ""
+        onTriggered: moveMenu.chat.projects.moveChat(moveMenu._id, "")
     }
 
     QQC2.MenuSeparator {}
 
     Instantiator {
-        model: menu.chat ? menu.chat.projects.list : []
+        model: moveMenu.chat ? moveMenu.chat.projects.list : []
         delegate: QQC2.MenuItem {
             required property var modelData
             objectName: "projectItem"
             text: modelData.name
             checkable: true
-            checked: menu._projectId === modelData.id
-            onTriggered: menu.chat.projects.moveChat(menu._id, modelData.id)
+            checked: moveMenu._projectId === modelData.id
+            onTriggered: moveMenu.chat.projects.moveChat(moveMenu._id, modelData.id)
         }
-        onObjectAdded: function(index, object) { menu.insertItem(index + 2, object); }
-        onObjectRemoved: function(index, object) { menu.removeItem(object); }
+        onObjectAdded: function(index, object) { moveMenu.insertItem(index + 2, object); }
+        onObjectRemoved: function(index, object) { moveMenu.removeItem(object); }
     }
 
     QQC2.MenuSeparator {}
@@ -54,6 +54,6 @@ QQC2.Menu {
         text: i18n("New project…")
         icon.name: "list-add"
         // The new project gets this chat once it is saved.
-        onTriggered: menu.chat.projects.openEditor("", menu._id)
+        onTriggered: moveMenu.chat.projects.openEditor("", moveMenu._id)
     }
 }
