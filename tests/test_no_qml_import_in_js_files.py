@@ -48,6 +48,7 @@ WATCHED_FILES = (
     "chat/ChatExport.js",
     "chat/Projects.js",
     "chat/MemoryRecall.js",
+    "chat/Personality.js",
     "chat/ImageExtract.js",
     "chat/MessageBlocks.js",
     "chat/MessageGroups.js",
