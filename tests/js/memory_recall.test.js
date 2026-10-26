@@ -85,7 +85,10 @@ const tests = {
         // A memory too big for what is left is skipped, smaller ones still go.
         const r2 = R.recall([mem("rust " + "y".repeat(3000)), mem("rust small")], "rust");
         assert.deepStrictEqual(plain(r2.memories.map(m => m.text)), ["rust small"]);
-        assert.ok(R.recall([pinned], "", 0).ids.length === 0);
+        // 0 (or less) means no limit: everything that matches goes.
+        const huge = mem("rust " + "w".repeat(9000));
+        assert.deepStrictEqual(plain(R.recall([pinned, huge], "rust", 0).ids), [pinned.id, huge.id]);
+        assert.deepStrictEqual(plain(R.recall([pinned, huge], "rust", -1).ids), [pinned.id, huge.id]);
         const big = R.recall(Array.from({length: 60}, (_, i) => mem("rust note number " + i + " " + "z".repeat(40))), "rust");
         assert.ok(big.block.length <= R.DEFAULT_BUDGET, "default budget " + big.block.length);
         assert.ok(big.ids.length > 10);

@@ -13,6 +13,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "Personality.js" as Personality
 import "MessageContent.js" as MessageContent
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
@@ -22,6 +23,10 @@ Flow {
     objectName: "quoteChips"
 
     property var chat: null
+    // Speaker names from Settings → Personality (Personality.js); empty = You / Assistant.
+    readonly property var _cfg: chat && chat.plasmoid ? chat.plasmoid.configuration : ({})
+    readonly property string userName: Personality.userLabel(_cfg) || i18n("You")
+    readonly property string aiName: Personality.aiLabel(_cfg) || i18n("Assistant")
     // [{id, role, text}] (MessageContent.js), oldest first.
     property var quotes: []
 
@@ -73,7 +78,7 @@ Flow {
             required property int index
 
             objectName: "quoteChip"
-            readonly property string speaker: modelData.role === "assistant" ? i18n("Assistant") : i18n("You")
+            readonly property string speaker: modelData.role === "assistant" ? chips.aiName : chips.userName
             readonly property string firstLine: MessageContent.quoteFirstLine(modelData.text)
 
             width: Math.min(chips.width, label.implicitWidth + closeButton.width + Kirigami.Units.smallSpacing * 4)

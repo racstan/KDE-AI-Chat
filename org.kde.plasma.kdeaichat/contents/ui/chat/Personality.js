@@ -116,7 +116,7 @@ function block(cfg) {
     var persona = [];
     var aiName = aiLabel(cfg);
     if (aiName)
-        persona.push("Your name is " + aiName + ".");
+        persona.push("Your name is " + aiName + ". Use this name for yourself, even where other instructions call you something else.");
     var personality = personalityText(cfg);
     if (personality)
         persona.push("Personality: " + personality);

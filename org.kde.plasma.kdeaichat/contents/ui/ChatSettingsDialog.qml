@@ -7,9 +7,10 @@ import "chat" as Chat
 
 // The Chat info panel: a non-modal right-side drawer, opened from the chat
 // header with toggleForSession(). It shows what this chat has used
-// (Chat.ChatInfoSummary) and its own settings (Chat.ChatOverridesForm), and
-// keeps the settings as a draft (Chat.ChatSettingsDraft) until Apply. It
-// stays attached to the chat instead of covering it.
+// (Chat.ChatInfoSummary), its memories (Chat.ChatMemoryInfo) and its own
+// settings (Chat.ChatOverridesForm), and keeps the settings as a draft
+// (Chat.ChatSettingsDraft) until Apply. It stays attached to the chat
+// instead of covering it.
 Rectangle {
     id: page
 
@@ -181,6 +182,15 @@ Rectangle {
                     messages: page.rootRef ? page.rootRef.messages : []
                     createdAt: page._session.createdAt || 0
                     updatedAt: page._session.updatedAt || 0
+                }
+
+                // Memories: on or off for this chat, and those its latest message used.
+                Chat.ChatMemoryInfo {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    chat: page.rootRef
+                    sessionId: settingsDraft.sessionId
                 }
 
                 Kirigami.Separator {

@@ -10,6 +10,10 @@
 // session property memoryUsedIds (the memories of its latest request), for
 // Chat info to show.
 //
+// remember() saves a memory the user asked for (the Remember action under a
+// message, /remember); `remembered` tells chat/UndoNotice.qml, whose Undo
+// calls forget(). Only the user saves memories: nothing here suggests any.
+//
 // Deleting a chat or a project deletes the memories scoped to it. They are
 // kept here until the widget closes, so Undo of the delete brings them back.
 import QtQuick
@@ -20,7 +24,18 @@ QtObject {
 
     property var chat: null
     readonly property var store: chat ? chat.memoryStore || null : null
-    property int budget: MemoryRecall.DEFAULT_BUDGET
+    // Characters of memories per message, from the settings (0 = no limit).
+    property int budget: chat && chat.plasmoid && chat.plasmoid.configuration.memoryBudget !== undefined
+        ? chat.plasmoid.configuration.memoryBudget : MemoryRecall.DEFAULT_BUDGET
+
+    // The helper's limit on a memory's text (kdeaichat/memory.py).
+    readonly property int maxChars: 4000
+
+    // A memory was saved (existed: the same one was there already, so there
+    // is nothing to undo).
+    signal remembered(string id, bool existed)
+    // Saving failed (the helper's error, if any).
+    signal rememberFailed(string error)
 
     // Memories removed with a chat or project: {"chat:<id>" | "project:<id>": [memories]}.
     property var _removed: ({})
@@ -35,6 +50,60 @@ QtObject {
             return chat.messages || [];
         var session = _session(sessionId);
         return session ? session.messages || [] : [];
+    }
+
+    // The text a memory is saved with: trimmed and cut to maxChars.
+    function clip(text) {
+        var t = String(text === undefined || text === null ? "" : text).trim();
+        return t.length > maxChars ? t.substring(0, maxChars).trim() : t;
+    }
+
+    // The chat's project ({id, name, ...}) or null.
+    function projectOf(sessionId) {
+        var session = chat ? _session(sessionId) : null;
+        return session && session.projectId && chat.projects ? chat.projects.byId(session.projectId) || null : null;
+    }
+
+    // Saves `text` for scope "all" | "project" | "chat" (of chat `sessionId`,
+    // else the open one). A project scope without a project saves for every
+    // chat. callback(ok, id, existed). Returns false when nothing is sent.
+    function remember(text, scope, sessionId, callback) {
+        var session = chat ? _session(sessionId) : null;
+        var body = clip(text);
+        if (!store || body === "") {
+            if (callback) callback(false, "", false);
+            return false;
+        }
+        var fields = {"text": body, "scope": "all", "sourceChatId": session ? session.value : ""};
+        var project = projectOf(sessionId);
+        if (scope === "chat" && session) {
+            fields.scope = "chat";
+            fields.chatId = session.value;
+        } else if (scope === "project" && project) {
+            fields.scope = "project";
+            fields.projectId = project.id;
+        }
+        store.add(fields, function(ok, result) {
+            var added = ok && result ? result.added || [] : [];
+            var id = added[0] || (ok && result ? (result.existing || [])[0] || "" : "");
+            var existed = added.length === 0;
+            // Saved again on purpose: an old memory that was off is turned on.
+            var old = existed && id ? store.byId(id) : null;
+            if (old && old.enabled === false)
+                store.setEnabled(id, true, null);
+            if (id)
+                memory.remembered(id, existed);
+            else
+                memory.rememberFailed(store.lastError);
+            if (callback) callback(id !== "", id, existed);
+        });
+        return true;
+    }
+
+    // Removes a memory saved by remember() (Undo).
+    function forget(id) {
+        if (store && id)
+            store.remove(id, null);
     }
 
     // Whether memories go with this chat's requests at all.

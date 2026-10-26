@@ -34,7 +34,7 @@ assert.strictEqual(P.block({userTone: "friendly"}), "## About the user\nPreferre
 assert.strictEqual(P.block({userTone: "concise"}), "## About the user\nPreferred tone: short and direct, without filler.");
 assert.strictEqual(P.block({userLanguage: "German"}), "## About the user\nReply in German, whatever language they write in.");
 assert.strictEqual(P.block({userNotes: "Always use metric.\nNever use emoji."}), "## About the user\nAlways / never:\nAlways use metric.\nNever use emoji.");
-assert.strictEqual(P.block({aiName: "Nova"}), "## Your persona\nYour name is Nova.");
+assert.strictEqual(P.block({aiName: "Nova"}), "## Your persona\nYour name is Nova. Use this name for yourself, even where other instructions call you something else.");
 assert.ok(P.block({aiPersonality: "witty"}).startsWith("## Your persona\nPersonality: Witty"));
 assert.strictEqual(P.block({aiPersonality: "custom", aiPersonalityCustom: "A calm ship's computer."}), "## Your persona\nPersonality: A calm ship's computer.");
 for (const id of P.PERSONALITY_IDS)
@@ -48,7 +48,7 @@ for (const id of P.TONE_IDS)
 const full = P.block({userName: "Rachit", userAbout: "Developer.", userTone: "professional", userLanguage: "English",
                       userNotes: "Never guess.", aiName: "Nova", aiPersonality: "mentor", aiAvatar: "face-smile"});
 assert.strictEqual(full, "## About the user\nName: Rachit\nAbout them: Developer.\nPreferred tone: professional and to the point.\n"
-    + "Reply in English, whatever language they write in.\nAlways / never:\nNever guess.\n\n## Your persona\nYour name is Nova.\n"
+    + "Reply in English, whatever language they write in.\nAlways / never:\nNever guess.\n\n## Your persona\nYour name is Nova. Use this name for yourself, even where other instructions call you something else.\n"
     + "Personality: A mentor: explain the why, check understanding and help the user learn rather than only giving answers.");
 
 // Clamping: each field is bounded, names are single lines, control characters go.

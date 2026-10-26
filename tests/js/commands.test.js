@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/Commands.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {parse, resolve, suggest, find, COMMANDS, MODES};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {parse, resolve, suggest, find, COMMANDS, MODES, rememberArg};", ctx);
 const C = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 const templates = [{name: "fix", prompt: "Fix this:"}, {name: "modeling", prompt: "Model it"}, {name: "new-year", prompt: "Hi"}];
@@ -32,9 +32,15 @@ assert.deepStrictEqual(plain(C.resolve("/image a red fox in the snow").arg), "a 
 assert.strictEqual(C.resolve("/image").command.name, "image");
 assert.strictEqual(C.resolve("/image").arg, "");
 assert.strictEqual(C.resolve("/image a fox\nand more"), null);
+assert.strictEqual(C.resolve("/remember I like tea").command.name, "remember");
+assert.deepStrictEqual(plain(C.rememberArg("I like tea")), {scope: "all", text: "I like tea"});
+assert.deepStrictEqual(plain(C.rememberArg("chat: use metric")), {scope: "chat", text: "use metric"});
+assert.deepStrictEqual(plain(C.rememberArg("Project:the API is v2")), {scope: "project", text: "the API is v2"});
+assert.deepStrictEqual(plain(C.rememberArg("chatty people")), {scope: "all", text: "chatty people"});
+assert.deepStrictEqual(plain(C.rememberArg("")), {scope: "all", text: ""});
 
 // "/" lists commands first, then templates; /variant only with variants
-assert.deepStrictEqual(names(C.suggest("/", templates, {})), ["command:model", "command:new", "command:mode", "command:image", "template:fix", "template:modeling", "template:new-year"]);
+assert.deepStrictEqual(names(C.suggest("/", templates, {})), ["command:model", "command:new", "command:mode", "command:image", "command:remember", "template:fix", "template:modeling", "template:new-year"]);
 assert.ok(names(C.suggest("/", templates, {hasVariants: true})).indexOf("command:variant") === 1);
 assert.deepStrictEqual(names(C.suggest("/mo", templates, {})), ["command:model", "command:mode", "template:modeling"]);
 assert.deepStrictEqual(names(C.suggest("/new", templates, {})), ["command:new", "template:new-year"]);

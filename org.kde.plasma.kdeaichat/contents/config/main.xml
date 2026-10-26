@@ -293,6 +293,10 @@
     <entry name="memoryEnabled" type="Bool">
       <default>true</default>
     </entry>
+    <!-- Characters of memories sent with a message; 0 = no limit. -->
+    <entry name="memoryBudget" type="Int">
+      <default>2000</default>
+    </entry>
     <!-- Memory settings from older versions, declared only so the 1.4.0
          migration (store/MemoryMigration.qml) can move and clear them. -->
     <entry name="enableMemory" type="Bool"><default>false</default></entry>

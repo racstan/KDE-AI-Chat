@@ -18,6 +18,8 @@
 //   /new                        start a new chat
 //   /mode <direct|opencode|pi>  the mode of NEW chats only; the open chat keeps its mode
 //   /image <prompt>             make a picture with the default image service (direct chats only)
+//   /remember <text>            save a memory for every chat; "/remember chat: <text>" for this
+//                               chat only, "/remember project: <text>" for its project
 
 var MODES = ["direct", "opencode", "pi"];
 
@@ -28,8 +30,17 @@ var COMMANDS = [
     {"name": "variant", "args": "[name]", "description": "Change this chat's variant (reasoning level)", "needsVariants": true},
     {"name": "new", "args": "", "description": "Start a new chat"},
     {"name": "mode", "args": "<direct|opencode|pi>", "description": "Mode for NEW chats only; this chat keeps its mode"},
-    {"name": "image", "args": "<prompt>", "description": "Make a picture with the default image service"}
+    {"name": "image", "args": "<prompt>", "description": "Make a picture with the default image service"},
+    {"name": "remember", "args": "<text>", "description": "Save a memory for every chat"}
 ];
+
+// The argument of /remember: {scope: "all"|"chat"|"project", text}. A
+// leading "chat:" or "project:" picks the scope.
+function rememberArg(arg) {
+    var match = /^(chat|project|all)\s*:\s*/i.exec(arg || "");
+    return match ? {"scope": match[1].toLowerCase(), "text": arg.substring(match[0].length).trim()}
+                 : {"scope": "all", "text": String(arg || "").trim()};
+}
 
 function find(name) {
     for (var i = 0; i < COMMANDS.length; i++) {

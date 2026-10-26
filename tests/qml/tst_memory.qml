@@ -70,6 +70,7 @@ Item {
     QtObject {
         id: config
         property bool memoryEnabled: true
+        property int memoryBudget: 2000
         property bool enableSystemPrompt: true
         property string provider: "openai"
         property string providersJson: "[]"
@@ -116,6 +117,7 @@ Item {
         }
 
         function init() {
+            config.memoryBudget = 2000;
             helper.memories = [];
             helper.calls = [];
             helper.dropAdds = false;
@@ -215,6 +217,17 @@ Item {
             compare(config.memoryEnabled, false);
             compare(direct.buildEffectiveSystemPrompt("b"), "Main instructions.", "memory off everywhere");
             compare(pi.promptBody("p", {content: "dog"}).instructions, "");
+        }
+
+        function test_the_size_per_message_follows_the_setting() {
+            var long = "dog " + "x".repeat(2500);
+            addAll([{text: long, scope: "all"}]);
+            verify(direct.buildEffectiveSystemPrompt("a").indexOf(long) < 0, "too big for 2000");
+            config.memoryBudget = 0;
+            verify(direct.buildEffectiveSystemPrompt("a").indexOf(long) > 0, "no limit");
+            config.memoryBudget = 5000;
+            verify(direct.buildEffectiveSystemPrompt("a").indexOf(long) > 0, "fits in 5000");
+            config.memoryBudget = 2000;
         }
 
         function test_memories_go_with_their_chat_and_project_and_come_back_on_undo() {
