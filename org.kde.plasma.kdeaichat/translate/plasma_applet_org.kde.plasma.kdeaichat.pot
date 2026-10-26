@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 10:38+0530\n"
+"POT-Creation-Date: 2026-10-26 11:08+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -211,54 +211,54 @@ msgstr ""
 msgid "Working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:309
+#: contents/ui/chat/ChatOverridesForm.qml:310
 msgid "The project's folder: %1"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:310
+#: contents/ui/chat/ChatOverridesForm.qml:311
 #: contents/ui/chat/WorkspaceBar.qml:91 contents/ui/ConfigChat.qml:109
 msgid "No workspace"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:319
 #: contents/ui/chat/ChatOverridesForm.qml:321
+#: contents/ui/chat/ChatOverridesForm.qml:323
 msgid "Choose working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:344
+#: contents/ui/chat/ChatOverridesForm.qml:346
 msgid "Instructions"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:348
+#: contents/ui/chat/ChatOverridesForm.qml:350
 msgid "Give this chat system instructions"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:360
+#: contents/ui/chat/ChatOverridesForm.qml:362
 msgid "Instructions for this chat"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:370
+#: contents/ui/chat/ChatOverridesForm.qml:372
 msgid "Response length"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:375
+#: contents/ui/chat/ChatOverridesForm.qml:377
 #: contents/ui/components/VariantPicker.qml:24
 msgid "Default"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:375
+#: contents/ui/chat/ChatOverridesForm.qml:377
 msgid "Short"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:375
+#: contents/ui/chat/ChatOverridesForm.qml:377
 msgid "Balanced"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:375
+#: contents/ui/chat/ChatOverridesForm.qml:377
 msgid "Detailed"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:375
+#: contents/ui/chat/ChatOverridesForm.qml:377
 msgid "Comprehensive"
 msgstr ""
 
@@ -2690,6 +2690,12 @@ msgstr ""
 #: contents/ui/config/VoiceStatusGrid.qml:54
 msgid "OK"
 msgstr ""
+
+#: contents/ui/store/MemoryMigration.qml:106
+msgid "Moved %1 remembered note into the new memory list."
+msgid_plural "Moved %1 remembered notes into the new memory list."
+msgstr[0] ""
+msgstr[1] ""
 
 #: contents/ui/store/Migration.qml:67
 msgid "Moved %1 API keys from the old KaiChat wallet folder to \"KDEAIChat\"."
