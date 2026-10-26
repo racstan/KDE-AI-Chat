@@ -17,7 +17,8 @@ import base64
 from typing import Any, Callable, Dict
 
 from kdeaichat import (chats, images, maintenance, memory, opencode_server, pi_bridge, pi_models, privacy,
-                       schedule_chat, schedule_job, schedule_store, schedules, voice_services)
+                       schedule_chat, schedule_job, schedule_store, schedules, stt_commands, stt_install, tts, voice_data,
+                       voice_legacy, voice_services)
 
 
 def _decode_payload(raw: str) -> Dict[str, Any]:
@@ -28,6 +29,13 @@ def _decode_payload(raw: str) -> Dict[str, Any]:
     """
     if not raw:
         return {}
+    if raw.startswith("@"):  # chat text: in a private file, not on the command line
+        from kdeaichat import private_payload
+        try:
+            return private_payload.read(raw)
+        except (OSError, ValueError) as e:
+            print(f"Error reading payload file: {e}")
+            sys.exit(1)
     try:
         raw_bytes = raw.encode("ascii") if isinstance(raw, str) else raw
         decoded: Any = json.loads(base64.b64decode(raw_bytes, validate=True).decode("utf-8"))
@@ -52,8 +60,9 @@ def main() -> None:
         payload = _decode_payload(sys.argv[2]) if len(sys.argv) > 2 else {}
 
     commands: Dict[str, Callable[[Dict[str, Any]], None]] = {}
-    for module in (schedules, schedule_store, schedule_job, schedule_chat, voice_services, maintenance, privacy, chats, images, memory,
-                   opencode_server, pi_bridge, pi_models):
+    for module in (schedules, schedule_store, schedule_job, schedule_chat, voice_services, stt_commands, maintenance, privacy,
+                   chats, images, memory, opencode_server, pi_bridge, pi_models, tts, voice_legacy, stt_install,
+                   voice_data):
         commands.update(module.COMMANDS)
     if command not in commands:
         print(f"Unknown command: {command}")

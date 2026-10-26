@@ -15,6 +15,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "MessageContent.js" as MessageContent
+import "ReadAloudAction.js" as ReadAloudAction
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -159,24 +160,13 @@ RowLayout {
     Optional {
         id: readAloud
         order: 3
-        shown: !!actions.chat && actions.chat.voiceEnabled && actions.chat.voiceTtsEnabled && actions.role !== "error" && !actions.imageOnly
+        shown: !!actions.chat && actions.chat.voiceTtsEnabled && actions.role !== "error" && !actions.imageOnly
         sourceComponent: Action {
             enabled: !actions.streaming
             icon.name: actions.speakingThis ? "media-playback-stop" : "audio-speakers"
             text: actions.speakingThis ? i18n("Stop reading") : actions.selectedText.trim() ? i18n("Read selection aloud") : i18n("Read aloud")
-            onClicked: {
-                if (!actions.voice)
-                    return;
-                var wasThis = actions.speakingThis;
-                if (actions.voice.isPlaying)
-                    actions.voice.stopTTS();
-                if (wasThis) {
-                    actions.chat.playingMessageIndex = -1;
-                    return;
-                }
-                actions.chat.playingMessageIndex = actions.messageIndex;
-                actions.voice.playTTS(actions.selectedText.trim() ? actions.selectedText : actions.message.content);
-            }
+            onClicked: ReadAloudAction.toggle(actions.chat, actions.messageIndex,
+                                              actions.selectedText.trim() ? actions.selectedText : actions.message.content)
         }
     }
 

@@ -11,6 +11,7 @@
 # real keys are never touched.
 #
 # Usage: scripts/dev-run.sh [seconds-to-run] [screenshot-path]
+# QT_QPA_PLATFORM=offscreen runs it without any window (warnings check only).
 # Exit status: 0 if the run produced no QML warnings, 1 otherwise.
 set -euo pipefail
 
@@ -155,7 +156,11 @@ kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 # without qdbus6/kscreen-doctor, the window stays where KWin puts it.
 PLACE_MARK="kdeaichat-dev-place-$$"
 PLACE_JS=""
-DEV_OUTPUT="${DEV_OUTPUT:-$(kscreen-doctor -o 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '
+# QT_QPA_PLATFORM=offscreen: no window at all, so no placement and no screenshot
+# (kscreen-doctor would hang without a display connection).
+OFFSCREEN=0
+[ "${QT_QPA_PLATFORM:-}" = "offscreen" ] && OFFSCREEN=1 && DEV_OUTPUT="" && DEV_SCREENSHOT=0
+[ "$OFFSCREEN" = "1" ] || DEV_OUTPUT="${DEV_OUTPUT:-$(kscreen-doctor -o 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '
     /^Output:/ { name = $3; on = 0 } /^[[:space:]]*enabled/ { on = 1 }
     /priority/ { if (on && $2 != 1 && pick == "") pick = name } END { print pick }')}"
 if [ -n "$DEV_OUTPUT" ] && command -v qdbus6 >/dev/null; then
@@ -181,7 +186,7 @@ JS
 fi
 unplace() {
     qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript "$PLACE_MARK" >/dev/null 2>&1 || true
-    [ -n "$PLACE_JS" ] && rm -f "$PLACE_JS"
+    if [ -n "$PLACE_JS" ]; then rm -f "$PLACE_JS"; fi
 }
 trap 'unplace; rm -rf "$STAGE"' EXIT
 

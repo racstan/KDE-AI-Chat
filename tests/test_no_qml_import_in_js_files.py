@@ -57,6 +57,8 @@ WATCHED_FILES = (
     "chat/EffectiveConfig.js",
     "chat/ChatTitle.js",
     "config/ScheduleDraft.js",
+    "voice/SttConfig.js",
+    "voice/SttEngines.js",
     "config/ScheduleDescribe.js",
     "chat/ShortcutList.js",
     "chat/ErrorText.js",
@@ -65,6 +67,8 @@ WATCHED_FILES = (
     "chat/TimeFormat.js",
     "chat/MessageContent.js",
     "components/ModelFilter.js",
+    "voice/TtsEngines.js",
+    "chat/ReadAloudAction.js",
 )
 
 # Top-of-file patterns that are legal in a plain .js file.

@@ -54,6 +54,17 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/main.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/Security.js",
                       "org.kde.plasma.kdeaichat/contents/ui/VoiceManager.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/TtsEngines.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/ReadAloud.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/QtSpeech.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/FileSpeech.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/WavPlayer.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/TtsProbe.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/config/TtsOption.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/config/DictationSettings.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/ReadAloudAction.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/tts.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/voice_legacy.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/__init__.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/privacy.py",
@@ -116,8 +127,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/config/ScheduleDraft.js",
                       "org.kde.plasma.kdeaichat/contents/ui/config/ScheduleDescribe.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ScheduleOverlay.qml",
-                      "org.kde.plasma.kdeaichat/contents/ui/config/VoiceEngine.qml",
-                      "org.kde.plasma.kdeaichat/contents/ui/config/VoiceStatusGrid.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/config/SttSetup.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/config/FasterWhisperRows.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/OpenCodeMode.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PiMode.qml",
@@ -248,7 +259,24 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/config/main.xml",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/voice_services.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/maintenance.py",
-                      "org.kde.plasma.kdeaichat/contents/ui/voice/voice_helper.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_commands.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_engines.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_http.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_models.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_record.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_settings.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_setup.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_units.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/voice_data.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/stt_install.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/private_payload.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/stt_service.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/stt_whisper.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/stt-test.wav",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/venv_setup.sh",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/SttBackend.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/SttConfig.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/SttEngines.js",
                   ]
                   missing = [name for name in required if name not in names]
                   if missing:
@@ -270,7 +298,7 @@ jobs:
         env:
           REQUIRE_QML_TESTS: "1"
         run: |
-          pytest -q tests/test_qml.py -rs
+          pytest -q tests/test_qml.py tests/test_stt_qml.py -rs
 
       - name: Upload QML screenshots
         if: always()

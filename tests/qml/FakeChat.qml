@@ -34,7 +34,7 @@ QtObject {
     property bool loading: false
     property int playingMessageIndex: -1
     property var voiceManagerRef: null
-    property bool voiceEnabled: false
+    property bool sttEnabled: false
     property bool voiceTtsEnabled: false
     property var calls: []
     // chat/ImageStore.qml, or a stand-in, for the pictures of messages.

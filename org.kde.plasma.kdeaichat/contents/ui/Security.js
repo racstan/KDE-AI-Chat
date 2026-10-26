@@ -280,3 +280,36 @@ function base64Encode(str) {
     return out;
 }
 
+/**
+ * Check a read-aloud command template (Settings → Voice, "Custom command").
+ * The helper splits it like a shell would but runs it without a shell, so
+ * `;`, `|` and `$()` are only literal arguments; this rejects what can't be
+ * one command line: control characters, unbalanced quotes, more than 2000
+ * characters.
+ *
+ * @param {string} s  The template, e.g. `espeak-ng --stdin -w {output}`.
+ * @returns {string}  The trimmed template, or `""` if it can't be used.
+ */
+function validateCommandTemplate(s) {
+    if (s === null || s === undefined)
+        return "";
+    let t = String(s).trim();
+    if (t === "" || t.length > 2000 || /[\u0000-\u001f\u007f]/.test(t))
+        return "";
+    let quote = "";
+    for (let i = 0; i < t.length; i++) {
+        let c = t.charAt(i);
+        if (quote) {
+            if (c === quote)
+                quote = "";
+            else if (c === "\\" && quote === '"')
+                i++;
+        } else if (c === "'" || c === '"') {
+            quote = c;
+        } else if (c === "\\") {
+            i++;
+        }
+    }
+    return quote ? "" : t;
+}
+

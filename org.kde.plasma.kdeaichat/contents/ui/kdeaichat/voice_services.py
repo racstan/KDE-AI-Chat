@@ -1,16 +1,12 @@
-"""Voice service setup: the per-user HTTP token and the STT/TTS user units."""
+"""The per-user token of the local dictation service (voice/stt_service.py), and unit-file quoting."""
 import fcntl
 import os
 import re
 import secrets
-import shutil
 import tempfile
 from typing import Any, Dict
 
-from kdeaichat.common import as_bool, atomic_write_text, safe_path
-
-# contents/ui, where voice/voice_helper.py lives.
-_UI_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from kdeaichat.common import safe_path
 
 
 def _voice_token_path() -> str:
@@ -70,77 +66,6 @@ def _systemd_quote(value: str) -> str:
     return '"' + text.replace("\\", "\\\\").replace('"', '\\"').replace("%", "%%") + '"'
 
 
-def cmd_setup_venv_services(payload: Dict[str, Any]) -> None:
-    """Install the voice services for STT and TTS systemd user units."""
-    requested_venv = safe_path(payload.get("venvPy", "~/.local/share/kdeaichat/venv/bin/python3"))
-    venv_py = requested_venv
-    if not os.path.exists(venv_py) and venv_py.endswith("/bin/python3"):
-        alternate = venv_py[:-len("python3")] + "python"
-        if os.path.exists(alternate):
-            venv_py = alternate
-    if not os.path.exists(venv_py):
-        venv_py = shutil.which("python3") or "/usr/bin/python3"
-    venv_py = safe_path(venv_py)
-
-    voice_helper = safe_path(os.path.join(_UI_DIR, "voice", "voice_helper.py"))
-    token_path = safe_path(_voice_token_path())
-    ensure_voice_http_token(token_path)
-
-    sdir = os.path.expanduser("~/.config/systemd/user")
-    os.makedirs(sdir, mode=0o700, exist_ok=True)
-
-    espeak_env = ""
-    espeak_path = payload.get("espeakPath", "")
-    if espeak_path:
-        # A custom executable/directory is optional. Refuse unsafe unit-file
-        # input rather than attempting to interpret relative paths or control
-        # characters.
-        raw_espeak = safe_path(espeak_path)
-        dir_path = raw_espeak if os.path.isdir(raw_espeak) else os.path.dirname(raw_espeak)
-        if dir_path:
-            env_path = f"PATH={dir_path}:{os.path.expanduser('~/.local/bin')}:/usr/local/bin:/usr/bin:/bin"
-            espeak_env = "\nEnvironment=" + _systemd_quote(env_path)
-            espeak_env += "\nEnvironment=" + _systemd_quote(f"PHONEMIZER_ESPEAK_PATH={dir_path}")
-
-    venv_arg = _systemd_quote(venv_py)
-    helper_arg = _systemd_quote(voice_helper)
-    token_arg = _systemd_quote(token_path)
-
-    def write_voice_unit(path: str, server_flag: str) -> None:
-        content = f"""[Unit]
-Description=KDE AI Chat {server_flag.upper().lstrip('-') } Daemon
-After=network.target
-
-[Service]
-Type=simple
-ExecStart={venv_arg} {helper_arg} {server_flag} --token-file {token_arg}
-Restart=always
-RestartSec=5
-Environment=PYTHONUNBUFFERED=1{espeak_env}
-
-[Install]
-WantedBy=default.target
-"""
-        atomic_write_text(path, content, mode=0o600)
-
-    write_voice_unit(os.path.join(sdir, "kde-ai-stt.service"), "--stt-server")
-    write_voice_unit(os.path.join(sdir, "kde-ai-tts.service"), "--tts-server")
-
-    os.system("systemctl --user daemon-reload")
-    voice_enabled = as_bool(payload.get("voiceEnabled", True), True)
-    voice_tts_enabled = as_bool(payload.get("voiceTtsEnabled", True), True)
-    if voice_enabled:
-        os.system("systemctl --user enable --now kde-ai-stt.service 2>/dev/null")
-    else:
-        os.system("systemctl --user disable --now kde-ai-stt.service 2>/dev/null")
-
-    if voice_enabled and voice_tts_enabled:
-        os.system("systemctl --user enable --now kde-ai-tts.service 2>/dev/null")
-    else:
-        os.system("systemctl --user disable --now kde-ai-tts.service 2>/dev/null")
-    print("VOICE_SERVICES_SETUP_OK")
-
-
-COMMANDS = {
-    "setup_venv_services": cmd_setup_venv_services,
-}
+# No commands: dictation's unit is managed by stt_units.py (stt_sync_units),
+# read aloud has no service (voice/ReadAloud.qml).
+COMMANDS: Dict[str, Any] = {}

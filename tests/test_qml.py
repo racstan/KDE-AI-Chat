@@ -46,6 +46,10 @@ def _run(qml_input, env):
     # look like the real widget.
     env["QT_QPA_PLATFORM"] = "offscreen"
     env.setdefault("QT_QUICK_CONTROLS_STYLE", "org.kde.desktop")
+    # Components that run the real helper (voice/SttBackend.qml syncs the
+    # dictation units at start) must never touch the user's systemd units.
+    env.setdefault("KDEAICHAT_UNIT_DIR", os.path.join(SCREENS, "..", "qml-units"))
+    env.setdefault("KDEAICHAT_SYSTEMCTL", "true")
     result = subprocess.run(
         [RUNNER, "-platform", "offscreen", "-input", qml_input],
         capture_output=True,

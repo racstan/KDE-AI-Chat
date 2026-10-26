@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 14:36+0530\n"
+"POT-Creation-Date: 2026-10-26 16:40+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -591,8 +591,7 @@ msgid "Send message"
 msgstr ""
 
 #: contents/ui/chat/Composer.qml:318 contents/ui/chat/ImageJobCard.qml:73
-#: contents/ui/config/OpenCodeSettings.qml:164 contents/ui/ConfigVoice.qml:247
-#: contents/ui/ConfigVoice.qml:254
+#: contents/ui/config/OpenCodeSettings.qml:164 contents/ui/ConfigVoice.qml:256
 msgid "Stop"
 msgstr ""
 
@@ -619,16 +618,36 @@ msgstr ""
 msgid "Esc stops it."
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:32
+#: contents/ui/chat/ComposerStatus.qml:28
+msgid "Reading aloud…"
+msgstr ""
+
+#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:263
+msgid "Making speech…"
+msgstr ""
+
+#: contents/ui/chat/ComposerStatus.qml:29
+msgid "Reading paused"
+msgstr ""
+
+#: contents/ui/chat/ComposerStatus.qml:33
 msgid "Enter sends · Shift+Enter adds a line · / for commands and templates"
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:54
+#: contents/ui/chat/ComposerStatus.qml:59
+msgid "Go on reading"
+msgstr ""
+
+#: contents/ui/chat/ComposerStatus.qml:59
+msgid "Pause reading"
+msgstr ""
+
+#: contents/ui/chat/ComposerStatus.qml:72
 msgid "End call mode"
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:54
-#: contents/ui/chat/MessageActions.qml:166
+#: contents/ui/chat/ComposerStatus.qml:72
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:112
 msgid "Stop reading"
 msgstr ""
 
@@ -768,7 +787,7 @@ msgstr ""
 msgid "Copy error"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:331
+#: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:321
 #: contents/ui/config/MemoryRow.qml:116 contents/ui/config/MemoryRow.qml:118
 #: contents/ui/config/ScheduleRow.qml:103
 #: contents/ui/config/ScheduleRow.qml:157
@@ -890,9 +909,9 @@ msgstr ""
 msgid "Download"
 msgstr ""
 
-#: contents/ui/chat/ImageViewer.qml:82 contents/ui/chat/MessageActions.qml:190
-#: contents/ui/chat/MessageActions.qml:246
-#: contents/ui/chat/MessageActions.qml:262
+#: contents/ui/chat/ImageViewer.qml:82 contents/ui/chat/MessageActions.qml:180
+#: contents/ui/chat/MessageActions.qml:236
+#: contents/ui/chat/MessageActions.qml:252
 #: contents/ui/chat/MessageImages.qml:203
 msgid "Regenerate"
 msgstr ""
@@ -901,47 +920,48 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:115 contents/ui/config/MemoryRow.qml:106
+#: contents/ui/chat/MessageActions.qml:116 contents/ui/config/MemoryRow.qml:106
 #: contents/ui/config/MemoryRow.qml:108 contents/ui/config/ProviderRow.qml:80
 #: contents/ui/config/ScheduleRow.qml:86
 #: contents/ui/config/TemplatesEditor.qml:87
 msgid "Edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:131
-#: contents/ui/chat/MessageActions.qml:246
+#: contents/ui/chat/MessageActions.qml:132
+#: contents/ui/chat/MessageActions.qml:236
 msgid "Resend"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:141
+#: contents/ui/chat/MessageActions.qml:142
 msgid "Save edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:151
+#: contents/ui/chat/MessageActions.qml:152
 msgid "Cancel edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:166
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:113
 msgid "Read selection aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:166 contents/ui/ConfigVoice.qml:133
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/ConfigVoice.qml:186
+#: contents/ui/chat/MessageText.qml:113
 msgid "Read aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:230
+#: contents/ui/chat/MessageActions.qml:220
 msgid "Regenerating removes this reply and the %1 message after it."
 msgid_plural "Regenerating removes this reply and the %1 messages after it."
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/MessageActions.qml:231
+#: contents/ui/chat/MessageActions.qml:221
 msgid "Resending removes the %1 message after this one."
 msgid_plural "Resending removes the %1 messages after this one."
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/MessageActions.qml:239
+#: contents/ui/chat/MessageActions.qml:229
 #: contents/ui/chat/ProjectDeleteConfirm.qml:48
 #: contents/ui/chat/ProjectEditor.qml:229
 #: contents/ui/chat/RememberPopup.qml:126
@@ -957,27 +977,27 @@ msgstr[1] ""
 msgid "Cancel"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:267
+#: contents/ui/chat/MessageActions.qml:257
 msgid "Longer"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:272
+#: contents/ui/chat/MessageActions.qml:262
 msgid "Shorter"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:285
+#: contents/ui/chat/MessageActions.qml:275 contents/ui/chat/MessageText.qml:103
 msgid "Copy"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:298
+#: contents/ui/chat/MessageActions.qml:288
 msgid "Quote"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:312
+#: contents/ui/chat/MessageActions.qml:302
 msgid "Remember selection"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:312
+#: contents/ui/chat/MessageActions.qml:302
 #: contents/ui/chat/RememberPopup.qml:52
 msgid "Remember"
 msgstr ""
@@ -1657,78 +1677,106 @@ msgstr ""
 msgid "Open the settings"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:71
+#: contents/ui/ConfigAppearance.qml:42
+msgid "Edit your last message"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:43
+msgid "Quote the picked message in your next one"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:44
+msgid "Read aloud the selected text or the picked message; stop reading"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:45
+msgid "Previous message (input empty, or after clicking the chat)"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:46
+msgid "Next message; past the latest, back to the input"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:47
+msgid "Jump to the first message"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:48
+msgid "Jump to the latest message"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:78
 msgid "Choose an Image for the Widget"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:73 contents/ui/ConfigPersonality.qml:95
+#: contents/ui/ConfigAppearance.qml:80 contents/ui/ConfigPersonality.qml:95
 msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:80
+#: contents/ui/ConfigAppearance.qml:87
 #: contents/ui/config/ImageProviderEditor.qml:63
 #: contents/ui/config/ProviderEditor.qml:48
 #: contents/ui/config/ScheduleEditor.qml:85
 msgid "Name:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:87
+#: contents/ui/ConfigAppearance.qml:94
 msgid "Icon:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:91 contents/ui/ConfigAppearance.qml:93
+#: contents/ui/ConfigAppearance.qml:98 contents/ui/ConfigAppearance.qml:100
 msgid "Choose the widget icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:116 contents/ui/ConfigPersonality.qml:252
+#: contents/ui/ConfigAppearance.qml:123 contents/ui/ConfigPersonality.qml:252
 msgid "Choose Icon…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:125 contents/ui/ConfigPersonality.qml:261
+#: contents/ui/ConfigAppearance.qml:132 contents/ui/ConfigPersonality.qml:261
 msgid "Choose Image File…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:130
+#: contents/ui/ConfigAppearance.qml:137
 msgid "Reset to Default Icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:140
+#: contents/ui/ConfigAppearance.qml:147
 msgid "Notifications"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:146
+#: contents/ui/ConfigAppearance.qml:153
 msgid "Notify when:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:147
+#: contents/ui/ConfigAppearance.qml:154
 msgid "A reply finishes while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:153
+#: contents/ui/ConfigAppearance.qml:160
 msgid "A request fails while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:159
+#: contents/ui/ConfigAppearance.qml:166
 msgid "The AI needs an answer or permission while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:165
+#: contents/ui/ConfigAppearance.qml:172
 msgid "A scheduled task runs"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:171
+#: contents/ui/ConfigAppearance.qml:178
 msgid "Sound:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:172
+#: contents/ui/ConfigAppearance.qml:179
 msgid "Play a sound when a reply is finished"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:177
+#: contents/ui/ConfigAppearance.qml:184
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:198
+#: contents/ui/ConfigAppearance.qml:205
 msgid ""
 "These work while the chat is open. To open the widget from anywhere, set its "
 "global shortcut on the \"Keyboard Shortcuts\" page of this window."
@@ -1927,6 +1975,7 @@ msgstr ""
 #: contents/ui/config/OpenCodeSettings.qml:194
 #: contents/ui/config/PiSettings.qml:106
 #: contents/ui/config/ProviderEditor.qml:75
+#: contents/ui/config/FasterWhisperRows.qml:72
 msgid "Model:"
 msgstr ""
 
@@ -2220,7 +2269,7 @@ msgid ""
 "running."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:172 contents/ui/ConfigVoice.qml:216
+#: contents/ui/config/OpenCodeSettings.qml:172
 msgid "Check"
 msgstr ""
 
@@ -2235,7 +2284,8 @@ msgid "Variant:"
 msgstr ""
 
 #: contents/ui/config/OpenCodeSettings.qml:211
-#: contents/ui/config/PiSettings.qml:123 contents/ui/ConfigVoice.qml:189
+#: contents/ui/config/PiSettings.qml:123
+#: contents/ui/config/FasterWhisperRows.qml:184
 msgid "Status:"
 msgstr ""
 
@@ -3150,384 +3200,274 @@ msgstr ""
 msgid "Add template"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:96
-msgid "Checking folders, microphone, audio output and engine packages…"
+#: contents/ui/config/SttSetup.qml:53
+msgid "The helper is not available."
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:106
-msgid "The voice setup files are missing."
+#: contents/ui/config/SttSetup.qml:58
+msgid "No answer."
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:111
-msgid "Installing the voice engine. Models are not downloaded yet."
+#: contents/ui/config/SttSetup.qml:127
+msgid "Installing faster-whisper. This takes a few minutes…"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:119
-#: contents/ui/config/VoiceEngine.qml:187
-msgid "Loading the speech model…"
+#: contents/ui/config/SttSetup.qml:132
+msgid "faster-whisper is installed."
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:127
-#: contents/ui/config/VoiceEngine.qml:198
-msgid "Creating speech…"
+#: contents/ui/config/SttSetup.qml:132
+msgid "Installing failed: %1"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:128
-msgid "Voice setup is ready."
+#: contents/ui/config/SttSetup.qml:144
+msgid "Downloading the model…"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:139
-msgid "Recording stopped."
+#: contents/ui/config/SttSetup.qml:149
+msgid "The model is downloaded."
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:147
-msgid "Speech stopped."
+#: contents/ui/config/SttSetup.qml:149
+msgid "Downloading failed: %1"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:151
-msgid "The speech-to-text folder has no model files."
+#: contents/ui/config/SttSetup.qml:160
+msgid "Transcribing a sample recording…"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:152
-msgid "The voice engine is not installed. Press Repair."
+#: contents/ui/config/SttSetup.qml:165
+msgid "Heard: “%1” (%2 s)"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:153
-msgid "Engine packages are missing or broken. Press Repair."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:154
-msgid "No microphone was found."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:155
-msgid "The text-to-speech folder has no model files."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:156
-msgid "No audio player (paplay or aplay) was found."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:158
-msgid ""
-"This voice model needs the espeak-ng package. Install it with your package "
-"manager."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:159
-msgid ""
-"The text-to-speech folder needs engine support. Press Repair or choose "
-"another folder."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:160
-msgid "Not ready."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:168
-msgid "Creating the voice engine…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:168
-msgid "Preparing Python packages…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:169
-msgid "Installing the speech runtime…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:169
-msgid "Installing language packages…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:170
-msgid "Installing speech packages…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:170
-msgid "Installing text-to-speech support…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:174
-msgid "Ready."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:178
-msgid "Engine installed. Checking again…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:183
-msgid "Setting up the voice engine failed."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:186
-msgid "Recording. Speak now…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:187
-msgid "Transcribing…"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:191
+#: contents/ui/config/SttSetup.qml:165
 msgid "No speech heard."
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:195
-#: contents/ui/config/VoiceEngine.qml:206
-msgid "unknown error"
+#: contents/ui/config/SttSetup.qml:167
+msgid "The model is not downloaded yet."
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:195
-msgid "Speech-to-text failed: %1"
+#: contents/ui/config/SttSetup.qml:169
+msgid "The test failed: %1"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:198
-msgid "Playing…"
+#: contents/ui/config/SttSetup.qml:179
+msgid "Removing the old engine…"
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:202
+#: contents/ui/config/SttSetup.qml:179
+msgid "Removing faster-whisper's data…"
+msgstr ""
+
+#: contents/ui/config/SttSetup.qml:184
+msgid "Freed %1."
+msgstr ""
+
+#: contents/ui/config/SttSetup.qml:184
+msgid "Removing failed: %1"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:47
+msgid "Download the speech model?"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:48
+msgid "“%1” is %2. It is saved in %3 and used only on this computer."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:53
+msgid "Remove faster-whisper's data?"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:54
+msgid ""
+"This deletes the engine (%1) and the models downloaded here (%2), %3 in all. "
+"Models from Speech Note, Handy or other apps are not touched. Dictation with "
+"faster-whisper needs Install again afterwards."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:58
+msgid "Rebuild the engine smaller?"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:59
+msgid ""
+"The engine was installed by an older version with packages dictation no "
+"longer needs. Rebuilding deletes it, frees about %1 and installs it again "
+"(about %2 to download). Your models are kept."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:82
+msgid "downloaded"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:83
+msgid "recommended"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:88
+msgid "%1 · from %2 · on disk"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:91
+msgid "Folder: %1"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:99
+msgid "Use a model folder (CTranslate2)"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:116
+msgid "A model folder on this computer: nothing to download."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:118
+msgid "Downloaded."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:118
+msgid "Not downloaded yet (%1)."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:124
+msgid "Run on:"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:133
+msgid "Keep loaded:"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:141
+msgid "minutes after the last use"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:146
+msgid "Setup:"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:152
+msgid "Working out the download size…"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:154
+msgid " (with NVIDIA GPU support)"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:155
+msgid "your folder"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:153
+msgid ""
+"Install downloads about %1 of Python packages%2 into its own folder. The "
+"model (%3) is downloaded afterwards, when you choose."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:159
+msgid "Install"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:167
+msgid "Model download:"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:172
+msgid "“%1” needs a download of %2."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:176
+msgid "Download…"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:200
+msgid "Smaller engine:"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:205
+msgid ""
+"Installed by an older version with packages dictation no longer needs (about "
+"%1)."
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:210
+msgid "Rebuild (smaller)…"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:218
+msgid "Engine data:"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:222
+msgid "%1 (engine %2, models downloaded here %3)"
+msgstr ""
+
+#: contents/ui/config/FasterWhisperRows.qml:227
+msgid "Remove…"
+msgstr ""
+
+#: contents/ui/ConfigVoice.qml:119
+msgid "Hello! This is how replies will sound."
+msgstr ""
+
+#: contents/ui/ConfigVoice.qml:162
+msgid "Read aloud failed: %1"
+msgstr ""
+
+#: contents/ui/ConfigVoice.qml:163
 msgid "Finished."
 msgstr ""
 
-#: contents/ui/config/VoiceEngine.qml:206
-msgid "Text-to-speech failed: %1"
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:216
-msgid "The check got no reply. Repair the engine, then check again."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:217
-msgid "Speech-to-text got no reply. Check the folder and the engine."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:218
-msgid "Text-to-speech got no reply. Check the folder, voice and engine."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:244
-msgid "The check timed out after 30 seconds."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:249
-msgid "The speech-to-text test timed out."
-msgstr ""
-
-#: contents/ui/config/VoiceEngine.qml:254
-msgid "The text-to-speech test timed out."
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:32
-msgid "Detect automatically"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:32
-msgid "English"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:33
-msgid "Hindi"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:33
-msgid "Spanish"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:34
-msgid "French"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:34
-msgid "German"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:35
-msgid "Japanese"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:35
-msgid "Korean"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:36
-msgid "Chinese"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:75
-msgid "Voice input:"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:76
-msgid "Show a microphone button in the chat"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:91
-msgid "Use an NVIDIA GPU (CUDA)"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:93
-msgid ""
-"Needs Repair to install the CUDA packages (about 3 GB). Other GPUs are not "
-"supported."
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:97
-msgid "Speech model folder:"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:103 contents/ui/ConfigVoice.qml:163
-msgid "Empty: download the default model"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:109
-msgid "Choose the speech model folder"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:116
-msgid "Spoken language:"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:128
-msgid "Send the transcript right away"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:138 contents/ui/ConfigVoice.qml:271
+#: contents/ui/ConfigVoice.qml:173
 msgid "Read aloud:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:140
-msgid "Let replies be read aloud"
+#: contents/ui/ConfigVoice.qml:174
+msgid "Offer to read replies aloud"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:154
-msgid "Read every reply automatically"
+#: contents/ui/ConfigVoice.qml:180
+msgid "Dictation:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:158
-msgid "Voice model folder:"
+#: contents/ui/ConfigVoice.qml:181
+msgid "Show a microphone button in the chat"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:169
-msgid "Choose the voice model folder"
+#: contents/ui/ConfigVoice.qml:191 contents/ui/config/DictationSettings.qml:77
+msgid "Engine:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:177
-msgid "Voice:"
+#: contents/ui/ConfigVoice.qml:203 contents/ui/config/DictationSettings.qml:89
+msgid "%1 (not available)"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:179
-msgid "Voice id, e.g. af_heart"
+#: contents/ui/ConfigVoice.qml:214
+msgid "Looking for voices…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:184
-msgid "Engine"
+#: contents/ui/ConfigVoice.qml:231
+msgid "Piper is offered once its piper program is installed."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:201
-msgid "Not checked yet."
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:222
-msgid "Repair"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:229
-msgid "Setup Help"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:244
+#: contents/ui/ConfigVoice.qml:252 contents/ui/config/DictationSettings.qml:180
 msgid "Try it:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:247
-msgid "Record 5 Seconds"
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:254
-msgid "Speak a Sentence"
+#: contents/ui/ConfigVoice.qml:256
+msgid "Say Hello"
 msgstr ""
 
 #: contents/ui/ConfigVoice.qml:263
-msgid "Heard:"
+msgid "Speaking…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:279
-msgid "Engine folder:"
+#: contents/ui/ConfigVoice.qml:272
+msgid "Read every reply aloud when it is finished"
 msgstr ""
 
-#: contents/ui/config/VoiceStatusGrid.qml:25
-msgid "Speech-to-text folder"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:25
-#: contents/ui/config/VoiceStatusGrid.qml:27
-msgid "no model files"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:26
-msgid "Speech-to-text engine"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:26
-#: contents/ui/config/VoiceStatusGrid.qml:29
-msgid "needs repair"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:27
-msgid "Text-to-speech folder"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:28
-msgid "Text-to-speech engine"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:29
-msgid "espeak-ng is not installed"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:30
-msgid "Engine environment"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:30
-msgid "broken"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:30
-msgid "not installed"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:31
-msgid "GPU libraries"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:31
-msgid "missing"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:32
-msgid "CUDA %1"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:33
-msgid "Microphone"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:33
-#: contents/ui/config/VoiceStatusGrid.qml:34
-msgid "not found"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:34
-msgid "Audio output"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:54
-msgid "not used"
-msgstr ""
-
-#: contents/ui/config/VoiceStatusGrid.qml:54
-msgid "OK"
+#: contents/ui/ConfigVoice.qml:277
+msgid "Dictation"
 msgstr ""
 
 #: contents/ui/store/MemoryMigration.qml:106
@@ -3590,4 +3530,111 @@ msgstr ""
 
 #: contents/ui/ScheduleDialog.qml:107
 msgid "Not saved: %1"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:47 contents/ui/config/TtsOption.qml:48
+msgid "Engine default"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:68
+msgid "%1×"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:69
+msgid "normal"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:98
+msgid "Enter an address that starts with http:// or https://."
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:100
+msgid "This command can't be used: check its quotes."
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:132
+msgid "Choose a voice found on this computer…"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:133
+#: contents/ui/config/DictationSettings.qml:152
+msgid "%1 (%2, %3)"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:149
+msgid "Choose a file"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:176
+msgid "Saved in KWallet"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:176
+msgid "Not set"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:179
+msgid "Save key"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:179
+msgid "Remove key"
+msgstr ""
+
+#: contents/ui/config/TtsOption.qml:184
+msgid "Saved."
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:112
+msgid "Not ready: %1"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:120
+msgid "Not available:"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:126
+msgid "%1: %2"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:147
+msgid "Found models:"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:151
+msgid "Choose a model found on this computer…"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:171
+msgid "Spoken language:"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:183
+msgid "Test"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:188
+msgid ""
+"Transcribes a short recording that comes with the widget, with the settings "
+"above."
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:204
+msgid "Send the transcript right away"
+msgstr ""
+
+#: contents/ui/VoiceManager.qml:32
+msgid "Voice error"
+msgstr ""
+
+#: contents/ui/VoiceManager.qml:80
+msgid "Dictation failed."
+msgstr ""
+
+#: contents/ui/VoiceManager.qml:91
+msgid "Listening…"
+msgstr ""
+
+#: contents/ui/VoiceManager.qml:96
+msgid "Transcribing…"
 msgstr ""

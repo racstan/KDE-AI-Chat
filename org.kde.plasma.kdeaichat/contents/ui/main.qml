@@ -70,7 +70,7 @@ PlasmoidItem {
     property var piThinkingModels: ({})   // "provider/model" -> true for models Pi marks as thinking
     property bool piModelsFetching: false
     property var piModelFetchWaiters: []
-    property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
+    property bool sttEnabled: plasmoid.configuration.sttEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
     property string compiledSystemPrompt: ""
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation
@@ -152,10 +152,10 @@ PlasmoidItem {
             }
         }
 
+        runHelper: storage.runHelper
         onErrorOccurred: function(errorText) {
-            console.error("Voice Error: " + errorText);
-            let message = Sec.sanitizeForShell(errorText || "Unknown voice error");
-            root.fileReaderDs.connectSource("notify-send -i dialog-error " + Sec.quoteForShell("Voice Error") + " " + Sec.quoteForShell(message) + " #voice-error");
+            console.warn("KDE AI Chat: voice error:", errorText);
+            notifier.sender(voiceManager.errorTitle, errorText || voiceManager.errorTitle, "", true);
         }
     }
 
@@ -379,7 +379,7 @@ PlasmoidItem {
     function triggerNotificationSound() {
         notifier.playSound();
 
-        if (voiceManager && voiceManager.enabled && (voiceManager.ttsAuto || voiceManager.callModeActive)) {
+        if (voiceManager && voiceManager.ttsEnabled && (voiceManager.ttsAuto || voiceManager.callModeActive)) {
             // Find the last assistant message
             for (var i = root.messages.length - 1; i >= 0; i--) {
                 if (root.messages[i].role === "assistant") {
@@ -431,7 +431,7 @@ PlasmoidItem {
         // Build a usable prompt immediately; the deferred system-information
         // probe will refresh it once its results arrive.
         root.initSystemPrompt();
-        helperCommands.stopLegacyWatchdog();
+        helperCommands.cleanupLegacy();
     }
     onMessagesChanged: {
         messageModel.sync(root.messages);

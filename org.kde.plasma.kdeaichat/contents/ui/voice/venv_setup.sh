@@ -1,13 +1,18 @@
 #!/bin/bash
-# venv_setup.sh - One-time setup for KDE AI Chat voice features
-# Creates a Python venv with STT/TTS dependencies
+# venv_setup.sh [venv-dir] [auto|cpu|gpu]
+# Creates the Python venv for the faster-whisper speech-to-text service:
+# faster-whisper with CTranslate2 and onnxruntime only (no torch, spacy or
+# transformers). Read aloud needs no venv. GPU support (cuBLAS + cuDNN wheels,
+# about 1.3 GB) is added when an NVIDIA GPU is found; "cpu" or "gpu" overrides.
+# The download size is printed first (the settings page shows it before
+# running this); models are downloaded separately.
 
 set -e
 
-VENV_DIR="${1:-$HOME/.local/share/kdeaichat/venv}"
+VENV_DIR="${1:-${XDG_DATA_HOME:-$HOME/.local/share}/kdeaichat/venv}"
 # Expand tilde if present
 VENV_DIR="${VENV_DIR/#\~/$HOME}"
-MODE="${2:-cpu}" # cpu or gpu
+MODE="${2:-auto}"
 
 wait_for_keypress() {
     if [ "$NON_INTERACTIVE" = "1" ] || [ "$NONINTERACTIVE" = "1" ]; then
@@ -23,153 +28,74 @@ wait_for_keypress() {
     fi
 }
 
-if [ "$MODE" = "install_espeak" ]; then
-    echo "================================================================="
-    echo "  KDE AI Chat - Installing espeak-ng (Phonemizer)"
-    echo "================================================================="
-    if command -v apt-get >/dev/null 2>&1; then
-        echo "  Detected Debian/Ubuntu/Mint (apt)..."
-        sudo apt-get update && sudo apt-get install -y espeak-ng
-    elif command -v dnf >/dev/null 2>&1; then
-        echo "  Detected Fedora/RHEL (dnf)..."
-        sudo dnf install -y espeak-ng
-    elif command -v pacman >/dev/null 2>&1; then
-        echo "  Detected Arch Linux (pacman)..."
-        sudo pacman -S --noconfirm espeak-ng
-    elif command -v zypper >/dev/null 2>&1; then
-        echo "  Detected openSUSE (zypper)..."
-        sudo zypper install -y espeak-ng
-    elif command -v emerge >/dev/null 2>&1; then
-        echo "  Detected Gentoo (emerge)..."
-        sudo emerge app-accessibility/espeak-ng
-    elif command -v apk >/dev/null 2>&1; then
-        echo "  Detected Alpine Linux (apk)..."
-        sudo apk add espeak-ng
-    else
-        echo "❌ Error: Could not auto-detect package manager."
-        echo "  Please install the 'espeak-ng' package manually using your distribution package manager."
+
+if [ "$MODE" != "cpu" ] && [ "$MODE" != "gpu" ]; then
+    if [ -e /proc/driver/nvidia/version ] || [ -e /dev/nvidia0 ]; then MODE=gpu; else MODE=cpu; fi
+fi
+GPU_FLAG=false
+[ "$MODE" = "gpu" ] && GPU_FLAG=true
+
+echo "================================================================="
+echo "  KDE AI Chat - speech-to-text engine (faster-whisper, $MODE)"
+echo "================================================================="
+
+HELPER="$(cd "$(dirname "$0")/.." && pwd)/kde_ai_helper.py"
+if [ -f "$HELPER" ]; then
+    SIZE_PAYLOAD=$(python3 -c 'import base64, json, sys; print(base64.b64encode(json.dumps({"venv": sys.argv[1], "gpu": sys.argv[2] == "true"}).encode()).decode())' "$VENV_DIR" "$GPU_FLAG")
+    python3 "$HELPER" stt_setup_size "$SIZE_PAYLOAD" || true
+fi
+
+venv_python() {
+    if [ -f "$VENV_DIR/bin/python3" ]; then echo "$VENV_DIR/bin/python3"; else echo "$VENV_DIR/bin/python"; fi
+}
+
+ready_check() {
+    local py
+    py="$(venv_python)"
+    [ -f "$py" ] || return 1
+    "$py" -c "import faster_whisper, ctranslate2, av, sys; sys.exit(int(av.__version__.split('.')[0]) >= 19)" 2>/dev/null || return 1
+    if [ "$MODE" = "gpu" ]; then
+        "$py" -c "import importlib.util as u; exit(0 if u.find_spec('nvidia.cublas') and u.find_spec('nvidia.cudnn') else 1)" 2>/dev/null || return 1
     fi
-    echo "================================================================="
-    echo ""
+    return 0
+}
+
+if ready_check; then
+    echo "  faster-whisper is already installed at: $VENV_DIR"
+    echo '{"type":"setup_status","status":"done","percent":100}'
     wait_for_keypress
     exit 0
 fi
 
-echo "================================================================="
-echo "  KDE AI Chat - Virtual Environment setup for TTS and STT"
-echo "================================================================="
-
-# Check if venv is already fully set up
-if [ -d "$VENV_DIR" ]; then
-    VENV_PY="$VENV_DIR/bin/python3"
-    if [ ! -f "$VENV_PY" ]; then
-        VENV_PY="$VENV_DIR/bin/python"
-    fi
-    if [ -f "$VENV_PY" ] && "$VENV_PY" -c "import faster_whisper, kokoro, sounddevice, numpy, soundfile, huggingface_hub, scipy, transformers, phonemizer" 2>/dev/null; then
-        GPU_READY=1
-        if [ "$MODE" = "gpu" ]; then
-            if ! "$VENV_PY" -c "import torch; exit(0 if getattr(torch.version, 'cuda', None) else 1)" 2>/dev/null; then
-                GPU_READY=0
-                echo "  Virtual environment packages exist, but CUDA (GPU) libraries are missing. Upgrading..."
-            fi
-        fi
-        if [ "$GPU_READY" = "1" ]; then
-            echo "  ✓ Virtual environment already exists at: $VENV_DIR"
-            echo "  ✓ All required Python packages are already installed."
-            echo '{"type":"setup_status","status":"done","percent":100}'
-            echo "================================================================="
-            echo ""
-            wait_for_keypress
-            echo ""
-            exit 0
-        fi
-    fi
-fi
-
 cleanup_on_error() {
-    echo "{\"type\":\"setup_error\",\"error\":\"Voice setup failed while installing dependencies. Check your internet connection and Python/pip output, then press Reinstall.\"}"
-    echo ""
-    echo "❌ ERROR: Venv setup failed during package installation!"
-    echo "  Virtual environment at: $VENV_DIR was kept."
-    echo "  You can run the venv setup again to resume installing the missing packages."
-    echo "================================================================="
-    echo ""
+    echo '{"type":"setup_error","error":"Installing the speech-to-text engine failed. Check your internet connection and the pip output, then try again."}'
+    echo "  Setup failed; the environment at $VENV_DIR was kept, so running it again resumes."
     wait_for_keypress
-    echo ""
     exit 1
 }
 trap cleanup_on_error ERR
 
-echo "  Preparing setup environment at: $VENV_DIR"
-if [ -d "$VENV_DIR" ]; then
-    VENV_PY="$VENV_DIR/bin/python3"
-    if [ ! -f "$VENV_PY" ]; then
-        VENV_PY="$VENV_DIR/bin/python"
-    fi
-    if [ ! -f "$VENV_PY" ]; then
-        echo "  Existing virtual environment seems broken (missing Python executable). Recreating..."
-        rm -rf "$VENV_DIR"
-    else
-        echo "  Using existing virtual environment to resume/update packages..."
-    fi
+if [ -d "$VENV_DIR" ] && [ ! -f "$VENV_DIR/bin/python3" ] && [ ! -f "$VENV_DIR/bin/python" ]; then
+    echo "  The existing environment is broken (no Python). Recreating it..."
+    rm -rf "$VENV_DIR"
 fi
 
-echo "  Creating virtual environment ($MODE mode)..."
 echo '{"type":"setup_status","status":"creating_venv","percent":10}'
-
 python3 -m venv "$VENV_DIR"
 
 echo '{"type":"setup_status","status":"upgrading_pip","percent":20}'
+"$VENV_DIR/bin/pip" install --upgrade pip
 
-echo "  Upgrading pip, setuptools, and wheel..."
-"$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel
-
-echo '{"type":"setup_status","status":"installing_pytorch","percent":35}'
+echo '{"type":"setup_status","status":"installing_dependencies","percent":40}'
+# PyAV 19 dropped an argument faster-whisper 1.2 passes; recordings are decoded without it anyway.
+"$VENV_DIR/bin/pip" install faster-whisper "av<19"
 
 if [ "$MODE" = "gpu" ]; then
-    echo "  Installing GPU (CUDA) enabled PyTorch and runtime libraries..."
-    # If upgrading from CPU to GPU, pip will say "Requirement already satisfied" unless we uninstall first.
-    "$VENV_DIR/bin/pip" uninstall -y torch || true
-    # Install standard torch (comes with CUDA by default on Linux) and nvidia runtime packages
-    "$VENV_DIR/bin/pip" install torch nvidia-cublas-cu12 nvidia-cudnn-cu12
-else
-    echo "  Installing CPU-only PyTorch (efficient space-saving wheel)..."
-    "$VENV_DIR/bin/pip" uninstall -y torch || true
-    # Install cpu-only PyTorch to avoid massive ~2GB CUDA download
-    "$VENV_DIR/bin/pip" install torch --index-url https://download.pytorch.org/whl/cpu
+    echo '{"type":"setup_status","status":"installing_gpu","percent":70}'
+    # CTranslate2 4.x needs cuBLAS 12 and cuDNN 9; the service loads them from the venv.
+    "$VENV_DIR/bin/pip" install nvidia-cublas-cu12 "nvidia-cudnn-cu12==9.*"
 fi
 
-echo '{"type":"setup_status","status":"installing_spacy","percent":65}'
-
-echo "  Installing spacy>=3.8.0 (ensures pre-built wheels on Python 3.13)..."
-"$VENV_DIR/bin/pip" install "spacy>=3.8.0"
-
-echo '{"type":"setup_status","status":"installing_dependencies","percent":75}'
-
-echo "  Installing voice helper and core dependencies (faster-whisper, sounddevice, etc.)..."
-"$VENV_DIR/bin/pip" install \
-    faster-whisper \
-    sounddevice \
-    numpy \
-    soundfile \
-    huggingface_hub \
-    loguru \
-    scipy \
-    transformers \
-    num2words \
-    espeak-phonemizer \
-    phonemizer \
-    piper-tts
-
-echo '{"type":"setup_status","status":"installing_kokoro","percent":90}'
-
-echo "  Installing speech models dependencies (kokoro, misaki)..."
-"$VENV_DIR/bin/pip" install --no-deps kokoro misaki
-
 echo '{"type":"setup_status","status":"done","percent":100}'
-echo "-----------------------------------------------------------------"
-echo "  ✓ Virtual environment setup ($MODE) completed successfully!"
-echo "================================================================="
-echo ""
+echo "  Speech-to-text engine installed ($MODE). Models are downloaded separately, with their size shown first."
 wait_for_keypress
-echo ""

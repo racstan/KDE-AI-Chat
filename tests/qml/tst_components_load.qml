@@ -19,6 +19,7 @@ TestCase {
             { tag: "ChatSettingsDialog", url: uiDir + "ChatSettingsDialog.qml" },
             { tag: "ScheduleDialog", url: uiDir + "ScheduleDialog.qml" },
             { tag: "VoiceManager", url: uiDir + "VoiceManager.qml" },
+            { tag: "voice/SttBackend", url: uiDir + "voice/SttBackend.qml" },
             { tag: "store/Wallet", url: uiDir + "store/Wallet.qml" },
             { tag: "store/ChatStore", url: uiDir + "store/ChatStore.qml" },
             { tag: "store/HelperRunner", url: uiDir + "store/HelperRunner.qml" },
@@ -117,8 +118,15 @@ TestCase {
             { tag: "config/ScheduleHistory", url: uiDir + "config/ScheduleHistory.qml" },
             { tag: "config/ScheduleEditor", url: uiDir + "config/ScheduleEditor.qml" },
             { tag: "chat/ScheduleOverlay", url: uiDir + "chat/ScheduleOverlay.qml" },
-            { tag: "config/VoiceEngine", url: uiDir + "config/VoiceEngine.qml" },
-            { tag: "config/VoiceStatusGrid", url: uiDir + "config/VoiceStatusGrid.qml" },
+            { tag: "config/SttSetup", url: uiDir + "config/SttSetup.qml" },
+            { tag: "config/FasterWhisperRows", url: uiDir + "config/FasterWhisperRows.qml" },
+            { tag: "config/DictationSettings", url: uiDir + "config/DictationSettings.qml" },
+            { tag: "config/TtsOption", url: uiDir + "config/TtsOption.qml" },
+            { tag: "voice/ReadAloud", url: uiDir + "voice/ReadAloud.qml" },
+            { tag: "voice/QtSpeech", url: uiDir + "voice/QtSpeech.qml" },
+            { tag: "voice/FileSpeech", url: uiDir + "voice/FileSpeech.qml" },
+            { tag: "voice/WavPlayer", url: uiDir + "voice/WavPlayer.qml" },
+            { tag: "voice/TtsProbe", url: uiDir + "voice/TtsProbe.qml" },
             { tag: "config", url: configDir + "config.qml" }
         ];
     }
