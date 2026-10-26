@@ -27,15 +27,15 @@ ColumnLayout {
 
     property var form: null          // the settings page
     property var keyStore: null      // store/Wallet.qml
-    property alias setup: setup
+    property alias setup: sttSetup
     property var runHelper: null
     property var payload: ({})
     property bool active: false
 
     readonly property string engineId: form ? String(form.optionValue("sttEngine") || SttEngines.defaultEngine) : SttEngines.defaultEngine
     readonly property var engine: SttEngines.engine(engineId) || SttEngines.engine(SttEngines.defaultEngine)
-    readonly property var lists: SttEngines.split(setup.engines)
-    readonly property bool engineUsable: !!(setup.engineRow(engineId) || {}).available
+    readonly property var lists: SttEngines.split(sttSetup.engines)
+    readonly property bool engineUsable: !!(sttSetup.engineRow(engineId) || {}).available
 
     readonly property var allOptions: {
         var out = [];
@@ -53,11 +53,11 @@ ColumnLayout {
             recheck.restart();
     }
 
-    onActiveChanged: if (active && !setup.enginesLoaded) setup.refresh()
-    Component.onCompleted: if (active) setup.refresh()
+    onActiveChanged: if (active && !sttSetup.enginesLoaded) sttSetup.refresh()
+    Component.onCompleted: if (active) sttSetup.refresh()
 
     SttSetup {
-        id: setup
+        id: sttSetup
         runHelper: dictation.runHelper
         payload: dictation.payload
     }
@@ -66,7 +66,7 @@ ColumnLayout {
     Timer {
         id: recheck
         interval: 700
-        onTriggered: { setup.refreshEngines(); setup.estimate(); }
+        onTriggered: { sttSetup.refreshEngines(); sttSetup.estimate(); }
     }
 
     Kirigami.FormLayout {
@@ -85,7 +85,7 @@ ColumnLayout {
                     var list = dictation.lists.choices.map(function(row) {
                         return {"value": row.id, "text": i18n(SttEngines.engine(row.id).label)};
                     });
-                    if (setup.enginesLoaded && !list.some(function(r) { return r.value === dictation.engineId; }))
+                    if (sttSetup.enginesLoaded && !list.some(function(r) { return r.value === dictation.engineId; }))
                         list.push({"value": dictation.engineId, "text": i18n("%1 (not available)", i18n(dictation.engine.label))});
                     return list;
                 }
@@ -93,7 +93,7 @@ ColumnLayout {
                 onActivated: dictation.setOption("sttEngine", currentValue)
             }
             QQC2.BusyIndicator {
-                visible: !setup.enginesLoaded
+                visible: !sttSetup.enginesLoaded
                 running: visible
                 Layout.preferredHeight: Kirigami.Units.iconSizes.medium
             }
@@ -106,7 +106,7 @@ ColumnLayout {
             font: Kirigami.Theme.smallFont
             opacity: 0.75
             text: {
-                var row = setup.engineRow(dictation.engineId);
+                var row = sttSetup.engineRow(dictation.engineId);
                 var note = i18n(dictation.engine.note);
                 if (row && !row.available && row.reason && dictation.engineId !== "faster-whisper")
                     note += "\n" + i18n("Not ready: %1", row.reason);
@@ -130,7 +130,7 @@ ColumnLayout {
 
     FasterWhisperRows {
         form: dictation
-        setup: setup
+        setup: sttSetup
         shown: dictation.engineId === "faster-whisper"
         twinFormLayouts: dictation.twin ? [dictation.twin] : []
     }
@@ -142,7 +142,7 @@ ColumnLayout {
         // whisper.cpp: models found on this computer (Speech Note, Handy, whisper.cpp).
         QQC2.ComboBox {
             objectName: "sttGgmlFound"
-            readonly property var models: setup.found.filter(function(m) { return m.engine === "whisper-cpp"; })
+            readonly property var models: sttSetup.found.filter(function(m) { return m.engine === "whisper-cpp"; })
             visible: dictation.engineId === "whisper-cpp" && models.length > 0
             Kirigami.FormData.label: i18n("Found models:")
             Layout.minimumWidth: Kirigami.Units.gridUnit * 16
@@ -182,19 +182,19 @@ ColumnLayout {
                 objectName: "sttTestButton"
                 text: i18n("Test")
                 icon.name: "audio-input-microphone"
-                enabled: dictation.engineUsable && !setup.testing && !setup.busy
-                onClicked: setup.test()
+                enabled: dictation.engineUsable && !sttSetup.testing && !sttSetup.busy
+                onClicked: sttSetup.test()
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: i18n("Transcribes a short recording that comes with the widget, with the settings above.")
             }
             QQC2.BusyIndicator {
-                visible: setup.testing
+                visible: sttSetup.testing
                 running: visible
                 Layout.preferredHeight: Kirigami.Units.iconSizes.medium
             }
             QQC2.Label {
                 objectName: "sttTestResult"
-                text: setup.testResult
+                text: sttSetup.testResult
                 wrapMode: Text.Wrap
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 18
             }

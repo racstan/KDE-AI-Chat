@@ -10,6 +10,7 @@ scripts/dev-run.sh [seconds] [screenshot.png]
 - Opens it in a window with `plasmawindowed`, with the chat view open.
 - Saves a screenshot to `build/dev-run/screenshot.png`, then closes it.
 - Prints any QML warnings from the widget's files, and exits 1 if there are any.
+- With `QT_QPA_PLATFORM=offscreen` no window is opened at all (no placement, no screenshot): only the warnings check runs.
 
 Your real widget, its settings and your chats are never read or changed. KWallet is the real session wallet, because it's a system service. The sandbox resets every run; use `DEV_KEEP=1` to keep chats between runs.
 

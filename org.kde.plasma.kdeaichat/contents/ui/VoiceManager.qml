@@ -10,6 +10,9 @@
 import QtQuick
 import "voice" as Voice
 
+// i18n() and plasmoid are provided by Plasma at runtime.
+// qmllint disable unqualified
+
 Item {
     id: root
 

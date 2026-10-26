@@ -36,8 +36,8 @@ P5Support.DataSource {
         var file = payloadFile.createObject(null, {"location": "file://" + privateDir + "/" + name});
         if (!file)
             return "";
-        file.setValue("payload", encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
-        file.sync();
+        file.setValue("payload", encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")); // qmllint disable missing-property
+        file.sync(); // qmllint disable missing-property
         file.destroy();
         return "@" + name;
     }
