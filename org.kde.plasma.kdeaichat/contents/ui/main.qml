@@ -96,6 +96,8 @@ PlasmoidItem {
     property string privacyNotice: storage.notice
     readonly property var wallet: storage.wallet
     readonly property var chatStore: storage.chatStore
+    readonly property var memoryStore: storage.memoryStore  // memories; chat.memory picks those sent (chat/Memory.qml)
+    readonly property Chat.Memory memory: Chat.Memory { chat: root }
     readonly property var store: storage
     property bool sessionHistoryLoadBlocked: false
     // A loaded chat had no mode and was given one (stored by loadSessions).
@@ -353,8 +355,6 @@ PlasmoidItem {
     // Puts the widget in the chat's own mode, and re-reads its provider/model
     // when the settings change. A chat never changes mode (chat/ModeSync.qml).
     Chat.ModeSync { id: modeSync; chat: root }
-
-    // New chats start in the mode the main settings select.
 
     function applySessionSource(session) { return modeSync.apply(session); }
 

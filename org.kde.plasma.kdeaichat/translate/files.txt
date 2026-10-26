@@ -66,5 +66,6 @@ contents/ui/config/TemplatesEditor.qml
 contents/ui/config/VoiceEngine.qml
 contents/ui/ConfigVoice.qml
 contents/ui/config/VoiceStatusGrid.qml
+contents/ui/store/MemoryMigration.qml
 contents/ui/store/Migration.qml
 contents/ui/store/Wallet.qml

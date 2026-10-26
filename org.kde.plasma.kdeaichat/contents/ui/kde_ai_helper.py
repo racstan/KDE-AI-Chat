@@ -16,7 +16,7 @@ import json
 import base64
 from typing import Any, Callable, Dict
 
-from kdeaichat import (chats, images, maintenance, opencode_server, pi_bridge, pi_models, privacy,
+from kdeaichat import (chats, images, maintenance, memory, opencode_server, pi_bridge, pi_models, privacy,
                        schedules, voice_services)
 
 
@@ -49,7 +49,7 @@ def main() -> None:
     payload = _decode_payload(sys.argv[2]) if len(sys.argv) > 2 else {}
 
     commands: Dict[str, Callable[[Dict[str, Any]], None]] = {}
-    for module in (schedules, voice_services, maintenance, privacy, chats, images, opencode_server, pi_bridge, pi_models):
+    for module in (schedules, voice_services, maintenance, privacy, chats, images, memory, opencode_server, pi_bridge, pi_models):
         commands.update(module.COMMANDS)
     if command not in commands:
         print(f"Unknown command: {command}")

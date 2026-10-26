@@ -257,6 +257,16 @@
       <default>-1</default>
     </entry>
 
+    <!-- Memories on or off for every chat (the memories themselves are in
+         ~/.local/share/kdeaichat/memory.json, never here). -->
+    <entry name="memoryEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <!-- Memory settings from older versions, declared only so the 1.4.0
+         migration (store/MemoryMigration.qml) can move and clear them. -->
+    <entry name="enableMemory" type="Bool"><default>false</default></entry>
+    <entry name="userMemory" type="String"><default></default></entry>
+
     <!-- Whether chats may have their own mode/provider/model, and who wins
          when they do ("chat" or "main"). See chat/EffectiveConfig.js. -->
     <entry name="perChatModelSettings" type="Bool">

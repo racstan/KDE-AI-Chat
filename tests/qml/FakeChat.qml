@@ -87,6 +87,9 @@ QtObject {
     // projects.ini goes to `chatStore` when a test sets one.
     property var chatStore: null
     readonly property Chat.Projects projects: Chat.Projects { chat: fake }
+    // main.qml's memories: store/MemoryStore.qml when a test sets one, and the real chat/Memory.qml.
+    property var memoryStore: null
+    readonly property Chat.Memory memory: Chat.Memory { chat: fake }
     function jumpOneMessageAbove() {}
     function jumpOneMessageBelow() {}
     function clearCurrentOpenCodeSessionIfNeeded() {}
