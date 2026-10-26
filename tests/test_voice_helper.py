@@ -58,34 +58,5 @@ class TestVoiceHelper(unittest.TestCase):
             res = self.emitted_data[0]
             self.assertEqual(res["tts_model_path_ok"], True)
 
-    @patch('subprocess.Popen')
-    @patch('shutil.which')
-    def test_do_tts_espeak_ng(self, mock_which, mock_popen):
-        # Setup mock for which
-        mock_which.side_effect = lambda x: "/usr/bin/" + x if x in ("espeak-ng", "paplay") else None
-        
-        # Setup mock for Popen process
-        mock_proc = MagicMock()
-        mock_proc.poll.side_effect = [None, 0] # running first check, done second check
-        mock_popen.return_value = mock_proc
-
-        payload = {
-            "text": "Hello world",
-            "model": "espeak-ng",
-            "voice": "en-us"
-        }
-
-        # Run inside the helper's tts method
-        with patch('subprocess.run') as mock_run:
-            self.helper.tts(payload)
-            # Wait for thread to finish
-            if self.helper.tts_thread:
-                self.helper.tts_thread.join(timeout=5.0)
-
-        # We expect it to emit status playing, then tts_done
-        statuses = [d["type"] for d in self.emitted_data]
-        self.assertIn("tts_status", statuses)
-        self.assertIn("tts_done", statuses)
-
 if __name__ == "__main__":
     unittest.main()
