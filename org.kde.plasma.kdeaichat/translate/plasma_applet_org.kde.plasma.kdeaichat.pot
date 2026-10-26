@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 16:40+0530\n"
+"POT-Creation-Date: 2026-10-26 17:14+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -38,7 +38,9 @@ msgstr ""
 msgid "Schedules"
 msgstr ""
 
-#: contents/config/config.qml:34
+#: contents/config/config.qml:34 contents/ui/voice/TtsEngines.js:30
+#: contents/ui/voice/TtsEngines.js:37 contents/ui/voice/TtsEngines.js:42
+#: contents/ui/voice/TtsEngines.js:59
 msgid "Voice"
 msgstr ""
 
@@ -158,6 +160,7 @@ msgstr ""
 #: contents/ui/chat/ProjectEditor.qml:211
 #: contents/ui/chat/ProjectEditor.qml:212
 #: contents/ui/components/ModelPicker.qml:104
+#: contents/ui/voice/SttEngines.js:31
 msgid "Model"
 msgid_plural "Models"
 msgstr[0] ""
@@ -398,7 +401,7 @@ msgstr ""
 msgid "Code"
 msgstr ""
 
-#: contents/ui/chat/CodeBlock.qml:62 contents/ui/chat/ErrorActions.qml:56
+#: contents/ui/chat/CodeBlock.qml:62 contents/ui/chat/ErrorActions.qml:72
 msgid "Copied"
 msgstr ""
 
@@ -508,7 +511,7 @@ msgid ""
 "on “Let chats have their own model settings” in Settings → Chat."
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:218 contents/ui/chat/ErrorActions.qml:39
+#: contents/ui/chat/ComposerPicker.qml:218 contents/ui/chat/ErrorActions.qml:45
 msgid "Open settings"
 msgstr ""
 
@@ -604,12 +607,12 @@ msgid "Stop the reply (Esc)"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:154
+#: contents/ui/chat/MessageDelegate.qml:157
 msgid "Writing…"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:154
+#: contents/ui/chat/MessageDelegate.qml:157
 #: contents/ui/chat/ReasoningBlock.qml:47
 msgid "Thinking…"
 msgstr ""
@@ -771,31 +774,126 @@ msgstr ""
 msgid "Start with %1"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:31
+#: contents/ui/chat/ErrorActions.qml:37
 msgid "Try again"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:47
+#: contents/ui/chat/ErrorActions.qml:53 contents/ui/config/SetupCheck.qml:118
+#: contents/ui/config/SetupCheck.qml:125
+msgid "Check setup"
+msgstr ""
+
+#: contents/ui/chat/ErrorActions.qml:63
 msgid "Hide details"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:47
+#: contents/ui/chat/ErrorActions.qml:63
 msgid "Show details"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:56
+#: contents/ui/chat/ErrorActions.qml:72
 msgid "Copy error"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:321
+#: contents/ui/chat/ErrorActions.qml:86 contents/ui/chat/MessageActions.qml:321
 #: contents/ui/config/MemoryRow.qml:116 contents/ui/config/MemoryRow.qml:118
 #: contents/ui/config/ScheduleRow.qml:103
 #: contents/ui/config/ScheduleRow.qml:157
 msgid "Delete"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:71
+#: contents/ui/chat/ErrorActions.qml:87
 msgid "Delete this message"
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:76
+msgid "%1 isn't installed on this computer. Install it, then try again."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:78
+msgid ""
+"%1 isn't running and couldn't be started. Check that it is installed and "
+"that its address in Settings is right."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:83
+msgid "There's no API key for %1 yet. Add one in Settings, then try again."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:84
+msgid ""
+"There's no API key for this provider yet. Add one in Settings, then try "
+"again."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:86
+msgid ""
+"This chat isn't set up yet. Finish the provider and model settings, then try "
+"again."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:89
+msgid "Your API key was rejected. Check the key for this provider in Settings."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:93
+msgid ""
+"The provider says your account is out of credit or over its quota. Add "
+"credit with the provider, or switch to another one."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:96
+msgid ""
+"The provider is limiting how fast you can send. Wait a moment and try again."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:99
+msgid ""
+"The provider took too long to answer. Try again, or choose a faster model."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:102
+msgid ""
+"Can't reach the provider. Check your internet connection and the server "
+"address in Settings."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:116
+msgid ""
+"This model has been retired and isn't available on your %1 account any more. "
+"Pick another model in Settings → Connection, or in this chat's settings."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:118
+msgid ""
+"This model has been retired and isn't available on your account any more. "
+"Pick another model in Settings → Connection, or in this chat's settings."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:120
+msgid ""
+"This model isn't available on your %1 account (it may be retired or not "
+"enabled). Pick another model in Settings → Connection, or in this chat's "
+"settings."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:121
+msgid ""
+"This model isn't available on your account (it may be retired or not "
+"enabled). Pick another model in Settings → Connection, or in this chat's "
+"settings."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:125
+msgid "The provider had a problem on its side. Try again in a moment."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:128
+msgid "The model sent back nothing. Try again."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:131 contents/ui/chat/Notifier.qml:86
+msgid "Something went wrong."
 msgstr ""
 
 #: contents/ui/chat/ExportDialog.qml:51
@@ -1002,15 +1100,15 @@ msgstr ""
 msgid "Remember"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:134
+#: contents/ui/chat/MessageDelegate.qml:137
 msgid "Scheduled message"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:154
+#: contents/ui/chat/MessageDelegate.qml:157
 msgid "Making a picture…"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:202
+#: contents/ui/chat/MessageDelegate.qml:205
 msgid "Saving removes the messages after this one."
 msgstr ""
 
@@ -1075,10 +1173,6 @@ msgstr ""
 
 #: contents/ui/chat/Notifier.qml:86
 msgid "%1: request failed"
-msgstr ""
-
-#: contents/ui/chat/Notifier.qml:86
-msgid "Something went wrong."
 msgstr ""
 
 #: contents/ui/chat/Notifier.qml:95
@@ -3200,6 +3294,468 @@ msgstr ""
 msgid "Add template"
 msgstr ""
 
+#: contents/ui/config/SetupCheck.qml:125
+msgid "Check again"
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:144
+msgid "No problems found."
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:146 contents/ui/config/SetupCheck.qml:147
+msgid "%1 problem"
+msgid_plural "%1 problems"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/SetupCheck.qml:146 contents/ui/config/SetupCheck.qml:148
+msgid "%1 warning"
+msgid_plural "%1 warnings"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/SetupCheck.qml:157
+msgid ""
+"Looks at what your settings need on this computer (programs, servers, keys, "
+"timers) and says how to fix what's missing. It changes nothing."
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:179
+msgid "OK"
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:180
+msgid "Warning"
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:180
+msgid "Problem"
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:208
+msgid "Recreate timers"
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:221
+msgid ""
+"The setup check found nothing wrong on this computer. The provider may be "
+"having trouble; try again in a moment."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:22
+msgid "KWallet is open, so API keys can be read."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:23
+msgid "KWallet is turned off, so API keys can't be read."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:24
+msgid "Turn it on in System Settings → KDE Wallet."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:25
+msgid "KWallet is locked or refused access."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:26
+msgid ""
+"Unlock the wallet when it asks, or allow KDE AI Chat in KWallet Manager."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:27 contents/ui/store/Wallet.qml:82
+msgid "KWallet isn't running, so API keys can't be read."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:28
+msgid "Check that KDE Wallet (kwalletd6) is installed and running."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:29
+msgid "KWallet hasn't answered yet."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:29
+msgid "Check again in a moment."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:30
+msgid "No provider is set up."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:30
+msgid "Add one under Settings → Connection."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:31
+msgid "%1 is set up."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:32
+msgid "%1 has no API key."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:32
+msgid "Add the key in Settings → Connection; it is kept in KWallet."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:33
+msgid "The address of %1 isn't a valid web address: %2"
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:34
+msgid ""
+"Correct it in the provider's settings; it starts with https:// or http://."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:35
+msgid "The address of %1 still contains a placeholder."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:36
+msgid "Replace YOUR_ACCOUNT_ID in the address with your account id."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:37
+msgid "%1 has no model chosen."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:37
+msgid "Pick one in the provider's settings."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:39
+msgid "%1 answers at %2."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:40
+msgid "%1 answers at %2 and asks for a key."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:41
+msgid "Nothing answers at %2, so %1 isn't running there."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:42
+msgid "Start %1 (for Ollama: ollama serve), or correct the address."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:43
+msgid "%1 at %2 didn't answer in time."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:44
+msgid ""
+"Check that the computer at that address is on and the server isn't stuck."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:45
+msgid "%1 answers at %2, but has no model list there (HTTP 404)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:46
+msgid "Check the address: it usually ends in /v1."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:47
+msgid "%1 at %2 answered with an error (HTTP %3)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:47
+msgid "Check the address and the server's log."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:48
+msgid "The computer named in %2 can't be found."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:48
+msgid "Correct the address of %1."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:49
+msgid "%1 can't be reached at %2: %3"
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:49
+msgid "Check the address and your network."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:51
+msgid "OpenCode answers at %1 (version %2)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:52
+msgid "OpenCode answers at %1."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:53
+msgid "OpenCode is installed (%2) and starts by itself at %1 when you send."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:54
+msgid "OpenCode is installed and starts by itself at %1 when you send."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:55
+msgid "OpenCode isn't installed: there is no opencode program."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:56
+msgid "Install it (see opencode.ai), then check again."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:57
+msgid "Nothing answers at %1."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:58
+msgid "Start opencode serve there, or correct the server address above."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:59
+msgid "OpenCode at %1 didn't answer in time."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:59
+msgid "Check that the server isn't stuck."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:60
+msgid "Something answers at %1, but it isn't an OpenCode server (HTTP %2)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:61
+msgid "Check the port in the server address."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:62
+msgid "The OpenCode server address isn't valid: %1"
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:63
+msgid "Use an address like http://127.0.0.1:4096."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:65
+msgid "Pi is installed (%2)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:66
+msgid "Pi is installed."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:67
+msgid "Pi isn't installed: there is no pi program."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:68
+msgid "Install the Pi coding agent, then check again."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:69
+msgid "The Pi bridge is running."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:70
+msgid "The Pi bridge starts by itself when you send."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:71
+msgid "The Pi bridge can't start: %1."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:72
+msgid "Reinstall the widget, or see pi-bridge.log in ~/.local/share/kdeaichat."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:74
+msgid "PDF files can be attached."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:75
+msgid "PDF files can't be read: pdftotext is missing."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:76
+msgid "Install poppler-utils (Arch: poppler)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:77
+msgid "Word files can be attached."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:78
+msgid "Word files are read with a simpler built-in reader: pandoc is missing."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:79
+msgid "Install pandoc for better results."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:81
+msgid "A dictation setting isn't valid: %1"
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:81 contents/ui/config/SetupChecks.js:95
+#: contents/ui/config/SetupChecks.js:102
+msgid "Correct it in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:82
+msgid "The microphone is recorded with %1."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:83
+msgid "There is no recording program (pw-record, parecord or arecord)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:84
+msgid "Install PipeWire's tools (pipewire-tools or pipewire-utils)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:85
+msgid "faster-whisper isn't installed."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:86
+msgid "Install it in Settings → Voice; the download size is shown first."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:87
+msgid "faster-whisper can't be installed: Python's venv module is missing."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:88
+msgid "Install python3-venv, or pick another dictation engine."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:89
+msgid "The speech model %1 isn't downloaded yet."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:89
+msgid "Download it in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:90
+msgid "The speech model folder %1 doesn't exist."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:90
+msgid "Pick another model in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:91
+msgid "whisper.cpp isn't installed: there is no whisper-cli program."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:92
+msgid "Install whisper.cpp, or enter its program in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:93
+msgid "whisper.cpp has no model file."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:93
+msgid "Pick a ggml model file in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:94
+msgid "Dictation has no speech server address."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:94 contents/ui/config/SetupChecks.js:101
+msgid "Enter it in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:95
+msgid "The dictation command can't run: %1"
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:96
+msgid "Dictation with %1 is ready."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:98
+msgid "Piper isn't installed: there is no piper program."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:99
+msgid "Install Piper, or pick another read-aloud engine in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:100
+msgid "The Piper voice file isn't there: %1"
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:100
+msgid "Pick a voice file in Settings → Voice."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:101
+msgid "Read aloud has no valid speech server address."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:102
+msgid "The read-aloud command's program isn't found."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:103
+msgid "Speech Dispatcher isn't installed, so the system voices may be silent."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:104
+msgid "Install speech-dispatcher and espeak-ng."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:105
+msgid ""
+"Read aloud uses the %1 speech plugin; Settings → Voice lists the voices it "
+"finds."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:106
+msgid "Read aloud with %1 is ready."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:108
+msgid "No schedule is waiting to run."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:109
+msgid "%1 schedules have their timers."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:110
+msgid "The schedule file can't be read."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:110
+msgid "Open Settings → Schedules to see what's wrong."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:111
+msgid "systemd's user service manager isn't available, so schedules can't run."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:112
+msgid "Schedules need systemctl --user (a systemd session)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:113
+msgid "%1 schedules are missing their timer, so they won't run."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:114
+msgid "Press Recreate timers."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:115
+msgid "One check failed: %1"
+msgstr ""
+
 #: contents/ui/config/SttSetup.qml:53
 msgid "The helper is not available."
 msgstr ""
@@ -3470,6 +4026,153 @@ msgstr ""
 msgid "Dictation"
 msgstr ""
 
+#: contents/ui/voice/SttEngines.js:15
+msgid "faster-whisper (on this computer)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:16
+msgid ""
+"Whisper models run by a small service that starts when you dictate and stops "
+"when idle. Needs a one-time install."
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:18
+msgid "whisper.cpp"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:19
+msgid ""
+"Your own whisper.cpp program (whisper-cli) with a ggml model, or a running "
+"whisper.cpp server. No Python."
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:21
+msgid "Program"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:22
+msgid "whisper-cli (found automatically)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:23
+msgid "Model file"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:25
+msgid "Or server URL"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:27 contents/ui/voice/TtsEngines.js:53
+msgid "Speech server (OpenAI-compatible)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:28
+msgid ""
+"Any server with /audio/transcriptions: a local Whisper server, Groq, OpenAI…"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:30 contents/ui/voice/TtsEngines.js:56
+msgid "Server URL"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:32 contents/ui/voice/TtsEngines.js:61
+msgid "API key"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:33
+msgid "Saved in KWallet. Leave empty for a server on this computer."
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:34 contents/ui/voice/TtsEngines.js:62
+msgid "Custom command"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:35
+msgid ""
+"Your own program: {wav} is replaced by the recording (16 kHz mono WAV) and "
+"{lang} by the language; it prints the text."
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:37 contents/ui/voice/TtsEngines.js:65
+msgid "Command"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:44
+msgid "Detect automatically"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:44
+msgid "English"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:45
+msgid "German"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:45
+msgid "Spanish"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:46
+msgid "French"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:46
+msgid "Italian"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:47
+msgid "Portuguese"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:47
+msgid "Dutch"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:48
+msgid "Polish"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:48
+msgid "Russian"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:49
+msgid "Ukrainian"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:49
+msgid "Turkish"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:50
+msgid "Hindi"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:50
+msgid "Japanese"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:51
+msgid "Korean"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:51
+msgid "Chinese"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:55
+msgid "Automatic (NVIDIA GPU when there is one)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:56
+msgid "Processor (CPU)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:57
+msgid "NVIDIA GPU (CUDA)"
+msgstr ""
+
 #: contents/ui/store/MemoryMigration.qml:106
 msgid "Moved %1 remembered note into the new memory list."
 msgid_plural "Moved %1 remembered notes into the new memory list."
@@ -3506,10 +4209,6 @@ msgstr ""
 msgid ""
 "KWallet didn't allow access to the API keys (the wallet may be locked or "
 "access was refused)."
-msgstr ""
-
-#: contents/ui/store/Wallet.qml:82
-msgid "KWallet isn't running, so API keys can't be read."
 msgstr ""
 
 #: contents/ui/store/Wallet.qml:83
@@ -3621,6 +4320,86 @@ msgstr ""
 
 #: contents/ui/config/DictationSettings.qml:204
 msgid "Send the transcript right away"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:26
+msgid "System voices"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:27
+msgid ""
+"Speech Dispatcher: espeak-ng and any voice installed for it. Nothing to set "
+"up."
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:29 contents/ui/voice/TtsEngines.js:36
+msgid "Language"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:31 contents/ui/voice/TtsEngines.js:38
+#: contents/ui/voice/TtsEngines.js:43 contents/ui/voice/TtsEngines.js:52
+#: contents/ui/voice/TtsEngines.js:60
+msgid "Speed"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:32 contents/ui/voice/TtsEngines.js:44
+msgid "Pitch"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:33
+msgid "Kokoro"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:34
+msgid "Neural voices from the Kokoro speech plugin."
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:39
+msgid "Flite"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:40
+msgid "Small built-in English voices."
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:45
+msgid "Piper"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:46
+msgid ""
+"Fast local neural voices. Pick a downloaded .onnx voice (its .onnx.json must "
+"be next to it)."
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:48
+msgid "Voice file"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:50
+msgid "Speaker number"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:51
+msgid "Only for voices with several speakers."
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:54
+msgid "Any server with /audio/speech: Kokoro-FastAPI, openedai-speech, OpenAI…"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:58
+msgid "Speech model"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:61
+msgid "Saved in KWallet. Leave empty for a local server."
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:63
+msgid ""
+"Your own program: it gets the text on standard input and writes a WAV to "
+"standard output, or to {output} if the command contains it."
 msgstr ""
 
 #: contents/ui/VoiceManager.qml:32
