@@ -21,7 +21,7 @@ import shutil
 import tempfile
 from typing import Any, Callable, Dict
 
-from kdeaichat import stt_engines, stt_http, stt_models, stt_record, stt_setup, stt_units, voice_services
+from kdeaichat import stt_engines, stt_http, stt_models, stt_record, stt_setup, stt_units, voice_data, voice_services
 from kdeaichat.common import safe_path
 from kdeaichat.stt_http import EngineError
 from kdeaichat.stt_settings import SettingsError, from_payload, port, runtime_dir
@@ -95,9 +95,17 @@ def setup_size(payload: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, A
 
 
 def download_model(payload: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]:
-    """Download the chosen faster-whisper model through the service (HuggingFace cache)."""
+    """Download the chosen faster-whisper model through the service (HuggingFace cache).
+
+    A model that was not on disk before is recorded as ours, so "Remove" may delete it later.
+    """
+    model = settings["model"]
+    had_it = bool(stt_setup.cached_model(model))
     token = voice_services.ensure_voice_http_token(stt_engines.token_path())
-    return stt_http.service_call("/download", {"model": settings["model"]}, token, port(), timeout=3600)
+    reply = stt_http.service_call("/download", {"model": model}, token, port(), timeout=3600)
+    if reply.get("type") == "stt_downloaded" and not had_it and stt_setup.cached_model(model):
+        voice_data.record_download(model)
+    return reply
 
 
 def service_status(payload: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]:

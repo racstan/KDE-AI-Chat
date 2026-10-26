@@ -373,28 +373,16 @@
     
 
       <entry name="promptTemplates" type="String"><default>[]</default></entry>
-      <!-- Voice & Audio -->
-<entry name="voiceEnabled" type="Bool">
-      <default>false</default>
-    </entry>
-<entry name="voiceGpuEnabled" type="Bool">
-      <default>false</default>
-    </entry>
-<entry name="voiceTtsEnabled" type="Bool">
-      <default>false</default>
-    </entry>
-<entry name="voiceTtsAuto" type="Bool">
-      <default>false</default>
-    </entry>
-    <entry name="voiceSttModel" type="String">
-      <default></default>
-    </entry>
-<entry name="voiceSttModelPath" type="String">
-      <default></default>
-    </entry>
-<entry name="voiceLanguage" type="String">
-      <default>en</default>
-    </entry>
+      <!-- Voice. Read aloud (voiceTtsEnabled) and dictation (sttEnabled) each have their own switch, both off. -->
+    <entry name="voiceTtsEnabled" type="Bool"><default>false</default></entry>
+    <entry name="voiceTtsAuto" type="Bool"><default>false</default></entry>
+    <!-- Migration only (voice/SttConfig.js copies them once into the stt* entries, sttSettingsMigrated):
+         the pre-1.4.0 dictation switch, GPU switch, model, model folder and language. -->
+    <entry name="voiceEnabled" type="Bool"><default>false</default></entry>
+    <entry name="voiceGpuEnabled" type="Bool"><default>false</default></entry>
+    <entry name="voiceSttModel" type="String"><default></default></entry>
+    <entry name="voiceSttModelPath" type="String"><default></default></entry>
+    <entry name="voiceLanguage" type="String"><default>en</default></entry>
     <!-- Read aloud: the engine and each engine's options (voice/TtsEngines.js).
          A speech server's API key is in KWallet (entry "tts-remote"), never here. -->
     <entry name="voiceTtsEngine" type="String"><default>system</default></entry>
@@ -416,15 +404,8 @@
     <entry name="voiceTtsRemoteVoice" type="String"><default>alloy</default></entry>
     <entry name="voiceTtsRemoteSpeed" type="Double"><default>1</default></entry>
     <entry name="voiceTtsCommand" type="String"><default></default></entry>
-<entry name="voiceAutoSend" type="Bool">
-      <default>true</default>
-    </entry>
-<entry name="voiceVenvPath" type="String">
-      <default>~/.local/share/kdeaichat/venv</default>
-    </entry>
-<entry name="voiceEspeakPath" type="String">
-      <default></default>
-    </entry>
+    <!-- Dictation: send the transcript at once. -->
+    <entry name="voiceAutoSend" type="Bool"><default>true</default></entry>
     <!-- Dictation (speech-to-text). Off by default; with it off nothing is installed or started.
          Passed to the helper's stt_* commands (kdeaichat/stt_settings.py); the remote key is in KWallet, entry "stt-remote". -->
     <entry name="sttEnabled" type="Bool"><default>false</default></entry>

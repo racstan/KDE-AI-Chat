@@ -20,9 +20,6 @@ function payload(cfg) {
             value = DEFAULTS.hasOwnProperty(key) ? DEFAULTS[key] : "";
         out[key] = key === "sttEnabled" ? value === true : key === "sttIdleMinutes" ? Number(value) : String(value);
     }
-    var venv = cfg ? String(cfg.voiceVenvPath || "") : "";
-    if (venv && venv !== "~/.local/share/kdeaichat/venv")
-        out.venv = venv;
     return out;
 }
 
@@ -51,7 +48,10 @@ function migration(cfg) {
 
 function applyMigration(cfg) {
     var changes = migration(cfg);
-    for (var key in changes)
-        cfg[key] = changes[key];
+    for (var key in changes) {
+        try {
+            cfg[key] = changes[key];
+        } catch (e) {}   // a stand-in configuration without that key (tests)
+    }
     return changes;
 }

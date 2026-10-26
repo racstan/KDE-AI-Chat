@@ -18,6 +18,9 @@ Item {
     property var available: []    // engine ids, in TtsEngines.js order
     property var voices: ({})     // engine id -> [{name, locale, language}]
     property string piperPath: ""
+    // Piper voices already on this computer (Speech Note, ~/.local/share/piper):
+    // [{path, name, language, quality, source, mb}] from the helper's tts_piper_voices.
+    property var piperVoices: []
 
     property var _instances: []
     property bool _helperDone: false
@@ -54,8 +57,22 @@ Item {
                 try { probe.piperPath = String(JSON.parse(String(stdout).trim().split("\n").pop()).piper || ""); } catch (e) {}
                 probe._helperDone = true;
                 probe._finish();
+                if (probe.piperPath)
+                    probe.findPiperVoices();
             });
         }
+    }
+
+    function findPiperVoices() {
+        if (!runHelper)
+            return;
+        runHelper("tts_piper_voices", {}, function(stdout) {
+            try {
+                probe.piperVoices = JSON.parse(String(stdout).trim().split("\n").pop()).voices || [];
+            } catch (e) {
+                probe.piperVoices = [];
+            }
+        });
     }
 
     function _collect() {

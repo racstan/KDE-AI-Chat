@@ -120,26 +120,42 @@ Loader {
 
     Component {
         id: fileField
-        RowLayout {
-            QQC2.TextField {
-                id: pathField
-                Layout.fillWidth: true
+        ColumnLayout {
+            // Piper voices found on this computer (Speech Note, ~/.local/share/piper).
+            QQC2.ComboBox {
+                readonly property var voices: row.option.found === "piper" && row.voiceProbe ? row.voiceProbe.piperVoices : []
+                objectName: "piperFoundCombo"
+                visible: voices.length > 0
                 Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-                text: String(row.value || "")
-                placeholderText: row.option.placeholder || ""
-                onTextEdited: row.set(text)
+                textRole: "text"
+                valueRole: "value"
+                model: [{"value": "", "text": i18n("Choose a voice found on this computer…")}].concat(voices.map(function(v) {
+                    return {"value": v.path, "text": i18n("%1 (%2, %3)", v.name, v.source, v.mb + " MB")};
+                }))
+                currentIndex: Math.max(0, indexOfValue(String(row.value || "")))
+                onActivated: if (currentValue) row.set(currentValue)
             }
-            QQC2.Button {
-                icon.name: "document-open"
-                Accessible.name: i18n("Choose a file")
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: Accessible.name
-                onClicked: dialog.open()
-            }
-            FileDialog {
-                id: dialog
-                nameFilters: [row.option.filter ? row.option.filter : "*"]
-                onAccepted: row.set(decodeURIComponent(String(selectedFile).replace(/^file:\/\//, "")))
+            RowLayout {
+                QQC2.TextField {
+                    id: pathField
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 16
+                    text: String(row.value || "")
+                    placeholderText: row.option.placeholder || ""
+                    onTextEdited: row.set(text)
+                }
+                QQC2.Button {
+                    icon.name: "document-open"
+                    Accessible.name: i18n("Choose a file")
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.text: Accessible.name
+                    onClicked: dialog.open()
+                }
+                FileDialog {
+                    id: dialog
+                    nameFilters: [row.option.filter ? row.option.filter : "*"]
+                    onAccepted: row.set(decodeURIComponent(String(selectedFile).replace(/^file:\/\//, "")))
+                }
             }
         }
     }

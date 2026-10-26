@@ -25,7 +25,7 @@ assert.deepStrictEqual(Object.keys(p).sort(), plain(S.KEYS).sort());
 p = plain(S.payload({sttEnabled: true, sttEngine: "remote", sttRemoteUrl: "https://x/v1", voiceVenvPath: "/opt/venv"}));
 assert.strictEqual(p.sttEnabled, true);
 assert.strictEqual(p.sttRemoteUrl, "https://x/v1");
-assert.strictEqual(p.venv, "/opt/venv");
+assert.strictEqual(p.venv, undefined, "the venv folder is no longer a setting");
 assert.ok(!("apiKey" in p) && !JSON.stringify(p).includes("key"), "no key in the payload");
 
 // Old voice settings carry over once; dictation stays on for people who had voice on.
@@ -39,5 +39,24 @@ cfg = {voiceEnabled: false, voiceSttModel: "small", voiceSttModelPath: "/m/ct2",
 assert.deepStrictEqual(plain(S.migration(cfg)), {sttSettingsMigrated: true, sttModel: "/m/ct2"});
 // A fresh install: dictation stays off.
 assert.deepStrictEqual(plain(S.migration({voiceEnabled: false})), {sttSettingsMigrated: true});
+
+// voice/SttEngines.js: which engines can be picked, sizes, folders.
+const enginesSource = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/voice/SttEngines.js"), "utf8")
+    .replace(/^\s*\.pragma\s+library\s*$/m, "");
+const ectx = {};
+vm.runInNewContext(enginesSource + "\nthis.exports = {engines, split, size, isFolder, engine};", ectx);
+const E = ectx.exports;
+assert.deepStrictEqual(plain(E.engines.map(e => e.id)), ["faster-whisper", "whisper-cpp", "remote", "command"]);
+const parts = plain(E.split([{id: "faster-whisper", available: false, selectable: true},
+                             {id: "whisper-cpp", available: false, selectable: false, reason: "whisper-cli not found"},
+                             {id: "remote", available: true}, {id: "nope", available: true}]));
+assert.deepStrictEqual(parts.choices.map(r => r.id), ["faster-whisper", "remote"]);
+assert.deepStrictEqual(parts.unavailable.map(r => r.id), ["whisper-cpp"]);
+assert.strictEqual(E.size(484), "484 MB");
+assert.strictEqual(E.size(1530), "1.5 GB");
+assert.ok(E.isFolder("/home/u/models/x") && !E.isFolder("small"));
+const secret = E.engine("remote").options.filter(o => o.type === "secret")[0];
+assert.strictEqual(secret.entry, "stt-remote");
+assert.ok(!("key" in secret), "a key option has no settings key: it goes to KWallet");
 
 console.log("stt_config ok");

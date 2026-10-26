@@ -1,5 +1,5 @@
 #!/bin/bash
-# venv_setup.sh [venv-dir] [auto|cpu|gpu|install_espeak]
+# venv_setup.sh [venv-dir] [auto|cpu|gpu]
 # Creates the Python venv for the faster-whisper speech-to-text service:
 # faster-whisper with CTranslate2 and onnxruntime only (no torch, spacy or
 # transformers). Read aloud needs no venv. GPU support (cuBLAS + cuDNN wheels,
@@ -9,7 +9,7 @@
 
 set -e
 
-VENV_DIR="${1:-$HOME/.local/share/kdeaichat/venv}"
+VENV_DIR="${1:-${XDG_DATA_HOME:-$HOME/.local/share}/kdeaichat/venv}"
 # Expand tilde if present
 VENV_DIR="${VENV_DIR/#\~/$HOME}"
 MODE="${2:-auto}"
@@ -28,28 +28,6 @@ wait_for_keypress() {
     fi
 }
 
-if [ "$MODE" = "install_espeak" ]; then
-    echo "================================================================="
-    echo "  KDE AI Chat - Installing espeak-ng (Phonemizer)"
-    echo "================================================================="
-    if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update && sudo apt-get install -y espeak-ng
-    elif command -v dnf >/dev/null 2>&1; then
-        sudo dnf install -y espeak-ng
-    elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -S --noconfirm espeak-ng
-    elif command -v zypper >/dev/null 2>&1; then
-        sudo zypper install -y espeak-ng
-    elif command -v emerge >/dev/null 2>&1; then
-        sudo emerge app-accessibility/espeak-ng
-    elif command -v apk >/dev/null 2>&1; then
-        sudo apk add espeak-ng
-    else
-        echo "  Could not detect the package manager. Install 'espeak-ng' with your distribution's tools."
-    fi
-    wait_for_keypress
-    exit 0
-fi
 
 if [ "$MODE" != "cpu" ] && [ "$MODE" != "gpu" ]; then
     if [ -e /proc/driver/nvidia/version ] || [ -e /dev/nvidia0 ]; then MODE=gpu; else MODE=cpu; fi

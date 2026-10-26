@@ -130,7 +130,7 @@ QtObject {
                 var next = {};
                 var names = map ? Object.keys(map) : [];
                 for (var i = 0; i < names.length; i++) {
-                    var id = providerIdFromEntry(names[i]);
+                    var id = wallet.providerIdFromEntry(names[i]);
                     var value = String(map[names[i]] || "").trim();
                     if (id && value)
                         next[id] = value;
@@ -190,7 +190,7 @@ QtObject {
                         var toCopy = {};
                         var names = legacy ? Object.keys(legacy) : [];
                         for (var i = 0; i < names.length; i++) {
-                            var id = legacyProviderId(names[i]);
+                            var id = wallet.legacyProviderId(names[i]);
                             var value = String(legacy[names[i]] || "").trim();
                             if (id && value && !String(current[id] || "").trim())
                                 toCopy[id] = value;

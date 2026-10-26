@@ -3,11 +3,11 @@
 // System voices need no setup); "Dictation" adds the microphone button and
 // runs a local speech-to-text engine.
 //
-// The read-aloud form is built from the engine's options (config/TtsOption.qml);
-// each option is a cfg_ property below, saved with OK/Apply. The dictation
-// part is the pre-1.4.0 engine while its rebuild is in progress: turning it
-// on or off takes effect at once, because it installs or stops the systemd
-// user service.
+// The read-aloud form is built from the engine's options (config/TtsOption.qml),
+// the dictation form is config/DictationSettings.qml; every option is a cfg_
+// property below, saved with OK/Apply (keys go to KWallet, never here).
+// Nothing is installed or downloaded until a button that shows the size is
+// pressed; on save, stt_sync_units adds or removes the dictation service.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
@@ -18,6 +18,7 @@ import "config" as Config
 import "store" as Store
 import "voice" as Voice
 import "voice/TtsEngines.js" as Engines
+import "voice/SttConfig.js" as SttConfig
 
 // i18n() and plasmoid are provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -48,18 +49,42 @@ KCM.SimpleKCM {
     property real cfg_voiceTtsRemoteSpeed: 1
     property string cfg_voiceTtsCommand: ""
 
-    // Dictation (speech-to-text)
-    property alias cfg_voiceEnabled: enabledCheck.checked
-    property alias cfg_voiceGpuEnabled: dictation.gpu
-    property alias cfg_voiceAutoSend: dictation.autoSend
-    property alias cfg_voiceSttModelPath: dictation.sttPath
-    property alias cfg_voiceVenvPath: dictation.venvPath
-    property alias cfg_voiceLanguage: dictation.language
+    // Dictation (speech-to-text): voice/SttConfig.js lists these keys.
+    property alias cfg_sttEnabled: enabledCheck.checked
+    property bool cfg_voiceAutoSend: true
+    property string cfg_sttEngine: "faster-whisper"
+    property string cfg_sttModel: "small"
+    property string cfg_sttDevice: "auto"
+    property string cfg_sttLanguage: "auto"
+    property int cfg_sttIdleMinutes: 5
+    property string cfg_sttWhisperCppBinary: ""
+    property string cfg_sttWhisperCppModel: ""
+    property string cfg_sttWhisperCppServer: ""
+    property string cfg_sttRemoteUrl: ""
+    property string cfg_sttRemoteModel: "whisper-1"
+    property string cfg_sttCommand: ""
+
+    // The dictation settings as they are on the page, as the helper takes them.
+    readonly property var sttDraft: {
+        var draft = {};
+        for (var i = 0; i < SttConfig.KEYS.length; i++)
+            draft[SttConfig.KEYS[i]] = page["cfg_" + SttConfig.KEYS[i]];
+        return SttConfig.payload(draft);
+    }
+
+    // Called by Plasma on OK/Apply, before it saves the cfg_ values: the
+    // dictation service appears or disappears without restarting anything.
+    function saveConfig() {
+        if (runHelper)
+            runHelper("stt_sync_units", sttDraft, null);
+    }
 
     readonly property var configuration: typeof plasmoid !== "undefined" && plasmoid ? plasmoid.configuration : null
     // Tests pass fakes for these.
     property var runHelper: defaultRunner.run
     property var pluginOverride: ({})
+    // Tests: stands in for the KWallet D-Bus call (store/Wallet.qml `call`).
+    property var walletCall: null
 
     readonly property var engine: Engines.engine(cfg_voiceTtsEngine) || Engines.engine(Engines.defaultEngine)
     readonly property bool engineAvailable: probe.available.indexOf(engine.id) >= 0
@@ -95,21 +120,21 @@ KCM.SimpleKCM {
     }
     property string testResult: ""
 
-    // Saved at once, since the services were just changed to match.
-    function saveNow(name, value) {
-        if (configuration)
-            configuration[name] = value;
-    }
-
     // Engines are looked for once read aloud is on (and the page is complete).
     property bool _complete: false
     function probeIfNeeded() {
         if (_complete && cfg_voiceTtsEnabled && probe.available.length === 0 && !probe.probing)
             probe.refresh();
-        if (_complete && cfg_voiceTtsEnabled && engine.id === "remote" && wallet.status === "unknown")
+        var remote = (cfg_voiceTtsEnabled && engine.id === "remote") || (cfg_sttEnabled && cfg_sttEngine === "remote");
+        if (_complete && remote && wallet.status === "unknown") {
+            if (walletCall)
+                wallet.call = walletCall;
             wallet.load();
+        }
     }
     onCfg_voiceTtsEnabledChanged: probeIfNeeded()
+    onCfg_sttEngineChanged: probeIfNeeded()
+    onCfg_sttEnabledChanged: probeIfNeeded()
     onEngineChanged: probeIfNeeded()
     Component.onCompleted: { _complete = true; probeIfNeeded(); }
 
@@ -138,124 +163,124 @@ KCM.SimpleKCM {
         onIsPlayingChanged: if (!isPlaying && page.testResult === "") page.testResult = i18n("Finished.")
     }
 
-    Kirigami.FormLayout {
-        QQC2.CheckBox {
-            id: readCheck
-            objectName: "readAloudSwitch"
-            Kirigami.FormData.label: i18n("Read aloud:")
-            text: i18n("Offer to read replies aloud")
-        }
+    ColumnLayout {
+        Kirigami.FormLayout {
+            id: voiceForm
+            Layout.fillWidth: true
+            QQC2.CheckBox {
+                id: readCheck
+                objectName: "readAloudSwitch"
+                Kirigami.FormData.label: i18n("Read aloud:")
+                text: i18n("Offer to read replies aloud")
+            }
 
-        QQC2.CheckBox {
-            id: enabledCheck
-            objectName: "dictationSwitch"
-            Kirigami.FormData.label: i18n("Dictation:")
-            text: i18n("Show a microphone button in the chat")
-            onToggled: {
-                page.saveNow("voiceEnabled", checked);
-                if (checked) {
-                    dictation.engine.installServices();
-                    dictation.engine.check();
-                } else {
-                    dictation.engine.disableServices();
+            QQC2.CheckBox {
+                id: enabledCheck
+                objectName: "dictationSwitch"
+                Kirigami.FormData.label: i18n("Dictation:")
+                text: i18n("Show a microphone button in the chat")
+            }
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: i18n("Read aloud")
+                visible: readCheck.checked
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("Engine:")
+                visible: readCheck.checked
+                QQC2.ComboBox {
+                    id: engineCombo
+                    objectName: "ttsEngineCombo"
+                    textRole: "text"
+                    valueRole: "value"
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 16
+                    model: {
+                        var list = probe.available.map(function(id) { return {"value": id, "text": i18n(Engines.engine(id).label)}; });
+                        // A saved engine that isn't available now stays visible, marked.
+                        if (!page.engineAvailable && !probe.probing)
+                            list.push({"value": page.engine.id, "text": i18n("%1 (not available)", i18n(page.engine.label))});
+                        return list;
+                    }
+                    currentIndex: count > 0 ? Math.max(0, indexOfValue(page.engine.id)) : -1
+                    onActivated: page.cfg_voiceTtsEngine = currentValue
+                }
+                QQC2.BusyIndicator {
+                    visible: probe.probing
+                    running: visible
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.medium
                 }
             }
-        }
 
-        Kirigami.Separator {
-            Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Read aloud")
-            visible: readCheck.checked
-        }
-
-        RowLayout {
-            Kirigami.FormData.label: i18n("Engine:")
-            visible: readCheck.checked
-            QQC2.ComboBox {
-                id: engineCombo
-                objectName: "ttsEngineCombo"
-                textRole: "text"
-                valueRole: "value"
-                Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-                model: {
-                    var list = probe.available.map(function(id) { return {"value": id, "text": i18n(Engines.engine(id).label)}; });
-                    // A saved engine that isn't available now stays visible, marked.
-                    if (!page.engineAvailable && !probe.probing)
-                        list.push({"value": page.engine.id, "text": i18n("%1 (not available)", i18n(page.engine.label))});
-                    return list;
-                }
-                currentIndex: count > 0 ? Math.max(0, indexOfValue(page.engine.id)) : -1
-                onActivated: page.cfg_voiceTtsEngine = currentValue
-            }
-            QQC2.BusyIndicator {
-                visible: probe.probing
-                running: visible
-                Layout.preferredHeight: Kirigami.Units.iconSizes.medium
-            }
-        }
-
-        QQC2.Label {
-            visible: readCheck.checked
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 24
-            wrapMode: Text.Wrap
-            font: Kirigami.Theme.smallFont
-            opacity: 0.75
-            text: i18n(page.engine.note) + (probe.available.indexOf("piper") < 0 && !probe.probing
-                  ? "\n" + i18n("Piper is offered once its piper program is installed.") : "")
-        }
-
-        // Every engine's options, made once; only the chosen engine's show
-        // (FormLayout copes badly with rows being destroyed).
-        Repeater {
-            model: page.allOptions
-            delegate: Config.TtsOption {
-                form: page
-                voiceProbe: probe
-                keyStore: wallet
-                engineId: modelData.engine
-                visible: readCheck.checked && engineId === page.engine.id
-                language: {
-                    var spec = Engines.engine(engineId).options.filter(function(o) { return o.type === "language"; })[0];
-                    return spec ? String(page.optionValue(spec.key) || "") : "";
-                }
-            }
-        }
-
-        RowLayout {
-            Kirigami.FormData.label: i18n("Try it:")
-            visible: readCheck.checked
-            QQC2.Button {
-                objectName: "ttsTestButton"
-                text: tester.isPlaying ? i18n("Stop") : i18n("Say Hello")
-                icon.name: tester.isPlaying ? "media-playback-stop" : "audio-speakers"
-                enabled: tester.isPlaying || page.engineAvailable
-                onClicked: page.testSpeech()
-            }
             QQC2.Label {
-                objectName: "ttsTestResult"
-                text: tester.isPlaying ? (tester.phase === "synthesizing" ? i18n("Making speech…") : i18n("Speaking…")) : page.testResult
+                visible: readCheck.checked
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 24
                 wrapMode: Text.Wrap
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 18
+                font: Kirigami.Theme.smallFont
+                opacity: 0.75
+                text: i18n(page.engine.note) + (probe.available.indexOf("piper") < 0 && !probe.probing
+                      ? "\n" + i18n("Piper is offered once its piper program is installed.") : "")
             }
-        }
 
-        QQC2.CheckBox {
-            id: ttsAutoCheck
-            visible: readCheck.checked
-            text: i18n("Read every reply aloud when it is finished")
-        }
+            // Every engine's options, made once; only the chosen engine's show
+            // (FormLayout copes badly with rows being destroyed).
+            Repeater {
+                model: page.allOptions
+                delegate: Config.TtsOption {
+                    form: page
+                    voiceProbe: probe
+                    keyStore: wallet
+                    engineId: modelData.engine
+                    visible: readCheck.checked && engineId === page.engine.id
+                    language: {
+                        var spec = Engines.engine(engineId).options.filter(function(o) { return o.type === "language"; })[0];
+                        return spec ? String(page.optionValue(spec.key) || "") : "";
+                    }
+                }
+            }
 
-        Kirigami.Separator {
-            Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Dictation")
-            visible: enabledCheck.checked
+            RowLayout {
+                Kirigami.FormData.label: i18n("Try it:")
+                visible: readCheck.checked
+                QQC2.Button {
+                    objectName: "ttsTestButton"
+                    text: tester.isPlaying ? i18n("Stop") : i18n("Say Hello")
+                    icon.name: tester.isPlaying ? "media-playback-stop" : "audio-speakers"
+                    enabled: tester.isPlaying || page.engineAvailable
+                    onClicked: page.testSpeech()
+                }
+                QQC2.Label {
+                    objectName: "ttsTestResult"
+                    text: tester.isPlaying ? (tester.phase === "synthesizing" ? i18n("Making speech…") : i18n("Speaking…")) : page.testResult
+                    wrapMode: Text.Wrap
+                    Layout.maximumWidth: Kirigami.Units.gridUnit * 18
+                }
+            }
+
+            QQC2.CheckBox {
+                id: ttsAutoCheck
+                visible: readCheck.checked
+                text: i18n("Read every reply aloud when it is finished")
+            }
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: i18n("Dictation")
+                visible: enabledCheck.checked
+            }
         }
 
         Config.DictationSettings {
             id: dictation
             visible: enabledCheck.checked
             active: enabledCheck.checked
-            espeakPath: page.configuration ? String(page.configuration.voiceEspeakPath || "") : ""
+            form: page
+            keyStore: wallet
+            runHelper: page.runHelper
+            payload: page.sttDraft
+            twin: voiceForm
+            Layout.fillWidth: true
         }
     }
 }

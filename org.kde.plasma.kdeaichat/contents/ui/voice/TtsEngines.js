@@ -45,7 +45,7 @@ var engines = [
     {id: "piper", kind: "file", needs: "piper", label: I18N_NOOP("Piper"),
      note: I18N_NOOP("Fast local neural voices. Pick a downloaded .onnx voice (its .onnx.json must be next to it)."),
      options: [
-         {key: "voiceTtsPiperModel", type: "file", label: I18N_NOOP("Voice file"), def: "", filter: "*.onnx",
+         {key: "voiceTtsPiperModel", type: "file", found: "piper", label: I18N_NOOP("Voice file"), def: "", filter: "*.onnx",
           placeholder: "~/.local/share/piper/en_US-lessac-medium.onnx"},
          {key: "voiceTtsPiperSpeaker", type: "int", label: I18N_NOOP("Speaker number"), def: 0,
           hint: I18N_NOOP("Only for voices with several speakers.")},

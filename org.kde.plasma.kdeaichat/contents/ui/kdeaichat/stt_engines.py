@@ -134,27 +134,39 @@ def nvidia_gpu() -> bool:
     return os.path.exists("/proc/driver/nvidia/version") or os.path.exists("/dev/nvidia0")
 
 
+def can_make_venv() -> bool:
+    """Whether a venv for faster-whisper can be made here (python3 with venv and pip)."""
+    import importlib.util
+    return importlib.util.find_spec("venv") is not None and importlib.util.find_spec("ensurepip") is not None
+
+
 def available(settings: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """One entry per engine: id, available, reason (why not / what is used)."""
+    """One entry per engine: id, available (works now), selectable (can be finished
+    on the settings page: installed, or a URL/command entered) and reason."""
     rows: List[Dict[str, Any]] = []
     fw = _faster_whisper_installed(settings)
-    rows.append({"id": "faster-whisper", "available": fw, "local": True, "gpu": nvidia_gpu(),
-                 "reason": "" if fw else "not installed (one-click install, size shown first)"})
+    venv_ok = fw or can_make_venv()
+    rows.append({"id": "faster-whisper", "available": fw, "selectable": venv_ok, "local": True, "gpu": nvidia_gpu(),
+                 "installed": fw,
+                 "reason": "" if fw else "not installed (one-click install, size shown first)" if venv_ok
+                 else "Python's venv module is missing (install python3-venv)"})
     binary = find_binary(settings["whisper_cpp_binary"])
     model = settings["whisper_cpp_model"]
     if settings["whisper_cpp_server"]:
-        rows.append({"id": "whisper-cpp", "available": True, "local": True, "reason": "server " + settings["whisper_cpp_server"]})
+        rows.append({"id": "whisper-cpp", "available": True, "selectable": True, "local": True,
+                     "reason": "server " + settings["whisper_cpp_server"]})
     else:
         reason = ("" if binary and model and os.path.isfile(model) else
                   "whisper-cli not found" if not binary else "needs a ggml model file")
-        rows.append({"id": "whisper-cpp", "available": not reason, "local": True, "binary": binary, "reason": reason})
-    rows.append({"id": "remote", "available": bool(settings["remote_url"]), "local": False,
+        rows.append({"id": "whisper-cpp", "available": not reason, "selectable": bool(binary), "local": True,
+                     "binary": binary, "reason": reason})
+    rows.append({"id": "remote", "available": bool(settings["remote_url"]), "selectable": True, "local": False,
                  "reason": "" if settings["remote_url"] else "needs a server URL"})
     try:
         command_argv(settings["command"], "/tmp/x.wav", "auto")
         reason = ""
     except SettingsError as e:
         reason = str(e)
-    rows.append({"id": "command", "available": not reason, "local": True, "reason": reason})
+    rows.append({"id": "command", "available": not reason, "selectable": True, "local": True, "reason": reason})
     assert [r["id"] for r in rows] == list(ENGINES)
     return rows

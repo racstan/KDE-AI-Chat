@@ -15,7 +15,6 @@ Item {
     property QtObject plasmoid: QtObject {
         property string id: ""
         property QtObject configuration: QtObject {
-            property string voiceEspeakPath: ""
         }
     }
     function i18n(text) {
@@ -48,7 +47,7 @@ Item {
             var component = Qt.createComponent(uiDir + "ConfigVoice.qml");
             verify(component.status === Component.Ready, component.errorString());
             page = component.createObject(root, Object.assign({"width": root.width, "height": root.height,
-                "runHelper": root.fakeHelper, "pluginOverride": {"system": "mock", "kokoro": "no-such-engine", "flite": "no-such-engine"}}, cfg || {}));
+                "runHelper": root.fakeHelper, "walletCall": function(member, args, onReply, onError) { onError("no wallet in tests"); }, "pluginOverride": {"system": "mock", "kokoro": "no-such-engine", "flite": "no-such-engine"}}, cfg || {}));
             verify(page !== null);
             return page;
         }

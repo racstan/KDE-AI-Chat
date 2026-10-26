@@ -86,8 +86,14 @@ def is_legacy(text: Optional[str]) -> bool:
     return bool(text) and any(marker in text for marker in _LEGACY_MARKERS) and "stt_service.py" not in text
 
 
-def legacy_pids() -> List[int]:
-    """Old servers started by hand (``voice_helper.py --stt-server``), matched by exact argv."""
+def legacy_pids(allow_kill: bool = False) -> List[int]:
+    """Old servers started by hand (``voice_helper.py --stt-server``), matched by exact argv.
+
+    A sandbox (dev run, tests) with its own unit folder (``KDEAICHAT_UNIT_DIR``)
+    leaves the user's processes alone unless ``allow_kill`` is set.
+    """
+    if os.environ.get("KDEAICHAT_UNIT_DIR") and not allow_kill:
+        return []
     pids = []
     for entry in os.listdir("/proc"):
         if entry.isdigit() and int(entry) != os.getpid():
@@ -113,7 +119,7 @@ def _remove(directory: str, names: List[str]) -> List[str]:
 
 
 def sync(payload: Dict[str, Any], directory: Optional[str] = None,
-         run: Optional[Callable[[List[str]], int]] = None) -> Dict[str, Any]:
+         run: Optional[Callable[[List[str]], int]] = None, allow_kill: bool = False) -> Dict[str, Any]:
     directory = directory or schedule_units.unit_dir()
     run = run or schedule_units.systemctl
     service_path = os.path.join(directory, SERVICE)
@@ -127,7 +133,7 @@ def sync(payload: Dict[str, Any], directory: Optional[str] = None,
         _remove(directory, [SERVICE])
         result["legacy_removed"] = result["changed"] = True
         current = None
-    for pid in legacy_pids():
+    for pid in legacy_pids(allow_kill):
         try:
             os.kill(pid, signal.SIGTERM)
             result["legacy_removed"] = True

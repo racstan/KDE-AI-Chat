@@ -19,7 +19,6 @@ Item {
         property string id: ""
         property QtObject configuration: QtObject {
             property string chatSessionsJson: "[]"
-            property string voiceEspeakPath: ""
             property bool voiceEnabled: false
             property bool voiceTtsEnabled: false
         }
@@ -226,26 +225,15 @@ Item {
         }
 
         // ── Voice ────────────────────────────────────────────────────────────
-        // Read aloud is tested in tst_config_voice.qml; this is the dictation part.
-        function test_voice_page_shows_the_dictation_check() {
-            open("ConfigVoice.qml", {"cfg_voiceEnabled": false, "cfg_voiceGpuEnabled": false, "cfg_voiceTtsEnabled": false,
-                                     "cfg_voiceTtsAuto": false, "cfg_voiceAutoSend": true, "cfg_voiceSttModelPath": "",
-                                     "cfg_voiceLanguage": "en", "cfg_voiceVenvPath": "~/.local/share/kdeaichat/venv",
-                                     "runHelper": function(command, payload, onDone) { if (onDone) onDone("{}", 0, ""); }});
+        // Read aloud: tst_config_voice.qml; dictation: tst_config_dictation.qml.
+        function test_voice_page_off_runs_nothing() {
+            shellLog = [];
+            open("ConfigVoice.qml", {"cfg_sttEnabled": false, "cfg_voiceTtsEnabled": false, "cfg_voiceTtsAuto": false,
+                                     "cfg_voiceAutoSend": true,
+                                     "runHelper": function(command, payload, onDone) { testCase.shellLog.push(command); if (onDone) onDone("{}", 0, ""); }});
             noSecretSettings();
+            compare(shellLog.join(","), "", "with both switches off nothing is asked");
             shot("config-voice-off");
-            // Set like a saved value, not a click, so no service is touched.
-            page.cfg_voiceEnabled = true;
-            var engine = find(page, function(item) { return item.hasOwnProperty("repairNeeded"); });
-            verify(engine !== null, "VoiceEngine not found");
-            engine.handle({"type": "env_check", "stt_ready": false, "stt_model_path_ok": true, "faster_whisper_ok": false,
-                           "sounddevice_ok": true, "numpy_ok": true, "venv_exists": true, "venv_ready": true, "mic_available": true});
-            verify(!engine.ready);
-            verify(engine.repairNeeded);
-            compare(engine.status, "Engine packages are missing or broken. Press Repair.");
-            var combo = find(page, function(item) { return item instanceof QQC2.ComboBox && item.textRole === "text" && item.currentText === "English"; });
-            verify(combo !== null, "the spoken language is shown");
-            shot("config-voice");
         }
 
         // ── Appearance ───────────────────────────────────────────────────────

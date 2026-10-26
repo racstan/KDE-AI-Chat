@@ -22,7 +22,6 @@ TestCase {
             property var voiceSttModelPath
             property var voiceLanguage
             property var voiceGpuEnabled
-            property var voiceVenvPath
             property var sttSettingsMigrated
             property var sttEnabled
             property var sttEngine
