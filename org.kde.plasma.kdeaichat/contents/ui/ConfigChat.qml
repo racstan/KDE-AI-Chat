@@ -162,6 +162,15 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Prompt templates")
         }
 
+        QQC2.Label {
+            objectName: "templatesHelp"
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
+            wrapMode: Text.Wrap
+            color: Kirigami.Theme.disabledTextColor
+            text: i18n("A template is a message you use often, saved under a short name. In the chat box, type / and the name (for example /summarize) and the saved text appears, ready to edit or send. Typing / alone lists your templates and the built-in commands.")
+        }
+
         Config.TemplatesEditor {
             id: templates
             Kirigami.FormData.label: i18n("Insert with /name:")

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 12:48+0530\n"
+"POT-Creation-Date: 2026-10-26 13:04+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -382,11 +382,11 @@ msgstr[1] ""
 msgid "Pi returned no providers"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:258
+#: contents/ui/chat/ChatView.qml:263
 msgid "New messages"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:258
+#: contents/ui/chat/ChatView.qml:263
 msgid "Latest"
 msgstr ""
 
@@ -1820,7 +1820,15 @@ msgstr ""
 msgid "Prompt templates"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:167
+#: contents/ui/ConfigChat.qml:171
+msgid ""
+"A template is a message you use often, saved under a short name. In the chat "
+"box, type / and the name (for example /summarize) and the saved text "
+"appears, ready to edit or send. Typing / alone lists your templates and the "
+"built-in commands."
+msgstr ""
+
+#: contents/ui/ConfigChat.qml:176
 msgid "Insert with /name:"
 msgstr ""
 
