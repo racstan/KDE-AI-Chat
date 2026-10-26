@@ -17,7 +17,7 @@ import base64
 from typing import Any, Callable, Dict
 
 from kdeaichat import (chats, images, maintenance, memory, opencode_server, pi_bridge, pi_models, privacy,
-                       schedules, voice_services)
+                       schedule_job, schedule_store, schedules, voice_services)
 
 
 def _decode_payload(raw: str) -> Dict[str, Any]:
@@ -46,10 +46,14 @@ def main() -> None:
         sys.exit(1)
 
     command = sys.argv[1]
-    payload = _decode_payload(sys.argv[2]) if len(sys.argv) > 2 else {}
+    if command == "run_schedule":  # started by systemd as `run_schedule <id>` (%i), not base64
+        payload: Dict[str, Any] = {"id": sys.argv[2] if len(sys.argv) > 2 else ""}
+    else:
+        payload = _decode_payload(sys.argv[2]) if len(sys.argv) > 2 else {}
 
     commands: Dict[str, Callable[[Dict[str, Any]], None]] = {}
-    for module in (schedules, voice_services, maintenance, privacy, chats, images, memory, opencode_server, pi_bridge, pi_models):
+    for module in (schedules, schedule_store, schedule_job, voice_services, maintenance, privacy, chats, images, memory,
+                   opencode_server, pi_bridge, pi_models):
         commands.update(module.COMMANDS)
     if command not in commands:
         print(f"Unknown command: {command}")

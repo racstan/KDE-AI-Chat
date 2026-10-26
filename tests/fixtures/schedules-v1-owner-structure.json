@@ -1,0 +1,10 @@
+{
+  "schedules": [
+    {"id": "a-bcd", "name": "Sched name", "enabled": true, "message": "placeholder"},
+    {"id": "b-c", "name": "Name2", "enabled": true, "message": "pp"},
+    {"id": "c-def", "name": "Sched name", "enabled": true, "message": "placeholder"},
+    {"id": "d-e", "name": "Name2", "enabled": true, "message": "pp"},
+    {"id": "e-fgh", "name": "Sched name", "enabled": true, "message": "placeholder"}
+  ],
+  "history": []
+}

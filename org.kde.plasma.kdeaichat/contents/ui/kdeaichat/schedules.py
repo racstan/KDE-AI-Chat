@@ -9,13 +9,17 @@ import shutil
 import sys
 from typing import Any, Dict, List
 
+from kdeaichat import schedule_store
 from kdeaichat.common import (MAX_SCHEDULE_STORE_BYTES, atomic_write_json, atomic_write_text,
                               load_schedules, pending_dir, results_dir, safe_path,
                               schedule_store_lock, schedules_path)
 
 
 def cmd_delete_session_schedules(payload: Dict[str, Any]) -> None:
-    """Remove every schedule whose ``chatId`` matches ``sessionId``."""
+    """Remove every schedule whose ``chatId`` matches ``sessionId`` (old and new store)."""
+    session_id = str(payload.get("sessionId", ""))
+    if session_id and os.path.exists(schedule_store.store_path()):
+        schedule_store.delete_schedules(lambda s: s.get("chatId") == session_id)
     sp = schedules_path()
     if not os.path.exists(sp):
         return
