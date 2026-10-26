@@ -167,4 +167,18 @@ assert.deepStrictEqual(pj.images[0], {path: "images/s-1-2/m-9-0.webp", file: "m-
 assert.ok(!JSON.stringify(json(pics)).includes("SHOULD-NOT-APPEAR"));
 assert.strictEqual(json(fixture).messages[0].images, undefined);
 
+// Names from Settings → Personality: used for the speakers and quotes; none set = as before.
+const named = Object.assign(clone(fixture), {userName: "Rachit", aiName: "Nova\nX"});
+named.messages[0].quotes = [{role: "assistant", text: "Earlier answer"}];
+const nm = md(named);
+assert.ok(nm.includes("## Rachit · 2026-10-25"), nm);
+assert.ok(nm.includes("## Nova X (claude-sonnet-4) · "), nm);
+assert.ok(nm.includes("> **Nova X:** Earlier answer"), nm);
+assert.ok(!nm.includes("## You") && !nm.includes("## Assistant"), nm);
+assert.ok(txt(named).includes("Rachit  ["), txt(named));
+assert.strictEqual(json(named).userName, "Rachit");
+assert.strictEqual(json(named).aiName, "Nova X");
+assert.ok(!("userName" in json(fixture)) && !("aiName" in json(fixture)), "no names: not in the file");
+assert.strictEqual(md(Object.assign(clone(fixture), {userName: "  ", aiName: ""})), md(fixture), "blank names change nothing");
+
 console.log("chat_export ok");

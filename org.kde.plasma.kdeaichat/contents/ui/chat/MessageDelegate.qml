@@ -126,18 +126,12 @@ Item {
                         }
                     }
 
-                    PC3.Label {
-                        objectName: "senderName"
+                    SenderName {
                         visible: row.showHeader
-                        text: row.role === "user" ? i18n("You")
-                            : row.role === "queued" ? i18n("You · queued")
-                            : row.role === "error" ? i18n("Something went wrong")
-                            : row.role === "question_request" ? i18n("Question")
-                            : row.role === "permission_request" ? i18n("Permission request")
-                            : (row.message.model || i18n("Assistant"))
-                        font.bold: true
-                        elide: Text.ElideRight
-                        Layout.maximumWidth: content.width * 0.7
+                        chat: row.chat
+                        role: row.role
+                        model: row.message.model || ""
+                        maximumWidth: content.width * 0.7
                     }
 
                     // Next to the name while the reply is being written.
