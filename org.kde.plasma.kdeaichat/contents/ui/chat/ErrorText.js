@@ -4,15 +4,36 @@
 //
 // describe(raw) turns whatever a backend or the widget reported ("Request to
 // https://... failed (HTTP 429): ...") into
-//   {kind, text, detail, settings}
+//   {kind, text, detail, settings, checkSetup, template, args, extra}
 // kind      auth | missing-key | setup | credit | rate | timeout | network |
 //           model | server | empty | agent-missing | agent-offline | image | other
 // text      one or two plain sentences
 // detail    the original message (without a leading warning sign), "" if it
 //           says nothing more than `text`
 // settings  true when opening the settings can fix it
+// checkSetup true when Settings → Connection → Check setup can tell what's wrong
+// template, args, extra  the plain text for translation: `text` is `template`
+//           with %1… filled from `args`, then `extra` (the provider's own words,
+//           not translated). The QML shows i18n(template, args…) + extra
+//           (translated(), MessageDelegate.qml); templates are marked with
+//           I18N_NOOP so xgettext finds them. An empty template means `text` is
+//           shown as it is (a service's own message).
 // providerName_ (optional) is the provider's display name, used in the model message.
 // Plain JavaScript on strings, so tests run it in node.
+
+// Marks text for translation (xgettext -kI18N_NOOP); the QML shows it through i18n().
+function I18N_NOOP(text) {
+    return text;
+}
+
+function _fill(template, args) {
+    return String(template).replace(/%(\d)/g, function(all, n) {
+        var value = args[parseInt(n, 10) - 1];
+        return value === undefined ? all : String(value);
+    });
+}
+
+var CHECKABLE = ["missing-key", "setup", "network", "timeout", "agent-missing", "agent-offline"];
 
 function _clean(raw) {
     return String(raw === undefined || raw === null ? "" : raw)
@@ -29,8 +50,18 @@ function _agentName(raw) {
     return /\bpi\b/i.test(raw) && !/opencode/i.test(raw) ? "Pi" : "OpenCode";
 }
 
-function _result(kind, text, detail, settings) {
-    return {"kind": kind, "text": text, "detail": detail === text ? "" : detail, "settings": settings === true};
+// template "" = `raw` is shown as it is.
+function _result(kind, template, args, detail, settings, extra, raw) {
+    var text = template ? _fill(template, args || []) + (extra || "") : raw;
+    return {"kind": kind, "text": text, "detail": detail === text ? "" : detail, "settings": settings === true,
+            "checkSetup": CHECKABLE.indexOf(kind) >= 0, "template": template, "args": args || [], "extra": extra || ""};
+}
+
+// `info` (from describe) in the user's language; tr(template, args) is i18n.
+function translated(info, tr) {
+    if (!info || !info.template)
+        return info ? info.text : "";
+    return tr(info.template, info.args || []) + (info.extra || "");
 }
 
 function describe(raw, providerName_) {
@@ -40,34 +71,35 @@ function describe(raw, providerName_) {
 
     // The image services' own messages are already plain words ("AI Horde needs kudos for this size ...").
     if (/^(AI Horde|Pollinations)\b/.test(msg))
-        return _result("image", msg, "", /Settings/.test(msg));
+        return _result("image", "", [], "", /Settings/.test(msg), "", msg);
     if (/isn't installed|is not installed|no `?(opencode|pi)`? command/.test(low))
-        return _result("agent-missing", _agentName(msg) + " isn't installed on this computer. Install it, then try again.", msg, true);
+        return _result("agent-missing", I18N_NOOP("%1 isn't installed on this computer. Install it, then try again."), [_agentName(msg)], msg, true);
     if (/isn't reachable|isn't running|couldn't be started|could not be started|bridge/.test(low) && /opencode|\bpi\b/.test(low))
-        return _result("agent-offline", _agentName(msg) + " isn't running and couldn't be started. Check that it is installed and that its address in Settings is right.", msg, true);
+        return _result("agent-offline", I18N_NOOP("%1 isn't running and couldn't be started. Check that it is installed and that its address in Settings is right."), [_agentName(msg)], msg, true);
 
     var provider = /(?:message|chat) with (.+?)\. missing/i.exec(msg);
     var providerName = provider ? provider[1] : "";
     if (/missing:.*api key/i.test(msg))
-        return _result("missing-key", "There's no API key for " + (providerName || "this provider") + " yet. Add one in Settings, then try again.", msg, true);
+        return providerName ? _result("missing-key", I18N_NOOP("There's no API key for %1 yet. Add one in Settings, then try again."), [providerName], msg, true)
+            : _result("missing-key", I18N_NOOP("There's no API key for this provider yet. Add one in Settings, then try again."), [], msg, true);
     if (/^cannot send|missing:|isn't set up any more|configure:/.test(low))
-        return _result("setup", "This chat isn't set up yet. Finish the provider and model settings, then try again.", msg, true);
+        return _result("setup", I18N_NOOP("This chat isn't set up yet. Finish the provider and model settings, then try again."), [], msg, true);
 
     if (status === 401 || status === 403 || /api key (was )?(rejected|invalid|incorrect)|rejected the api key|invalid api key|incorrect api key|unauthori[sz]ed|authentication (failed|error)/.test(low))
-        return _result("auth", "Your API key was rejected. Check the key for this provider in Settings.", msg, true);
+        return _result("auth", I18N_NOOP("Your API key was rejected. Check the key for this provider in Settings."), [], msg, true);
 
     var creditWords = /insufficient|out of credit|credits?\b|billing|balance|quota|payment/.test(low);
     if (status === 402 || (creditWords && status !== 429) || (status === 429 && creditWords && /insufficient|credit|billing|balance/.test(low)))
-        return _result("credit", "The provider says your account is out of credit or over its quota. Add credit with the provider, or switch to another one.", msg, false);
+        return _result("credit", I18N_NOOP("The provider says your account is out of credit or over its quota. Add credit with the provider, or switch to another one."), [], msg, false);
 
     if (status === 429 || /rate.?limit|too many requests/.test(low))
-        return _result("rate", "The provider is limiting how fast you can send. Wait a moment and try again.", msg, false);
+        return _result("rate", I18N_NOOP("The provider is limiting how fast you can send. Wait a moment and try again."), [], msg, false);
 
     if (/timed out|timeout/.test(low))
-        return _result("timeout", "The provider took too long to answer. Try again, or choose a faster model.", msg, false);
+        return _result("timeout", I18N_NOOP("The provider took too long to answer. Try again, or choose a faster model."), [], msg, false);
 
     if (/could not reach|can't reach|cannot reach|network|offline|connection (refused|reset|closed)|failed to fetch|unreachable|getaddrinfo|name not resolved/.test(low) || (status === 0 && /could not (read|start) the (provider|request)/.test(low)))
-        return _result("network", "Can't reach the provider. Check your internet connection and the server address in Settings.", msg, true);
+        return _result("network", I18N_NOOP("Can't reach the provider. Check your internet connection and the server address in Settings."), [], msg, true);
 
     // The chosen model is listed but the account can't use it (NIM: 404 "Function '...': Not found
     // for account", 410 "has reached its end of life"), or the provider says it doesn't know it.
@@ -78,19 +110,24 @@ function describe(raw, providerName_) {
         || ((status === 404 || status === 400 || status === 0) && /model/.test(low)
             && /not found|does not exist|doesn't exist|not available|unknown|no such|invalid model|not supported/.test(low));
     if (retired || unknown) {
-        var who = providerName_ ? "your " + providerName_ + " account" : "your account";
-        var lead = retired ? "This model has been retired and isn't available on " + who + " any more."
-            : "This model isn't available on " + who + " (it may be retired or not enabled).";
         var body = /\):\s*([\s\S]+)$/.exec(msg);
-        return _result("model", lead + " Pick another model in Settings \u2192 Connection, or in this chat's settings."
-            + (body ? "\n\n" + body[1].trim() : ""), msg, true);
+        var extra = body ? "\n\n" + body[1].trim() : "";
+        if (retired && providerName_)
+            return _result("model", I18N_NOOP("This model has been retired and isn't available on your %1 account any more. Pick another model in Settings \u2192 Connection, or in this chat's settings."), [providerName_], msg, true, extra);
+        if (retired)
+            return _result("model", I18N_NOOP("This model has been retired and isn't available on your account any more. Pick another model in Settings \u2192 Connection, or in this chat's settings."), [], msg, true, extra);
+        if (providerName_)
+            return _result("model", I18N_NOOP("This model isn't available on your %1 account (it may be retired or not enabled). Pick another model in Settings \u2192 Connection, or in this chat's settings."), [providerName_], msg, true, extra);
+        return _result("model", I18N_NOOP("This model isn't available on your account (it may be retired or not enabled). Pick another model in Settings \u2192 Connection, or in this chat's settings."), [], msg, true, extra);
     }
 
     if (status >= 500 || /server error|overloaded|bad gateway|service unavailable|internal error/.test(low))
-        return _result("server", "The provider had a problem on its side. Try again in a moment.", msg, false);
+        return _result("server", I18N_NOOP("The provider had a problem on its side. Try again in a moment."), [], msg, false);
 
     if (/empty response/.test(low))
-        return _result("empty", "The model sent back nothing. Try again.", msg, false);
+        return _result("empty", I18N_NOOP("The model sent back nothing. Try again."), [], msg, false);
 
-    return _result("other", msg || "Something went wrong.", msg, false);
+    if (!msg)
+        return _result("other", I18N_NOOP("Something went wrong."), [], msg, false);
+    return _result("other", "", [], msg, false, "", msg);
 }

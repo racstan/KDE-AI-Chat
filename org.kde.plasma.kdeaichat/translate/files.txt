@@ -17,6 +17,7 @@ contents/ui/chat/DirectToolRounds.qml
 contents/ui/chat/EffectiveLine.qml
 contents/ui/chat/EmptyState.qml
 contents/ui/chat/ErrorActions.qml
+contents/ui/chat/ErrorText.js
 contents/ui/chat/ExportDialog.qml
 contents/ui/chat/ImageJobCard.qml
 contents/ui/chat/ImageStore.qml
@@ -80,6 +81,8 @@ contents/ui/config/ScheduleRuleRow.qml
 contents/ui/config/ScheduleTimes.qml
 contents/ui/ConfigSchedules.qml
 contents/ui/config/TemplatesEditor.qml
+contents/ui/config/SetupCheck.qml
+contents/ui/config/SetupChecks.js
 contents/ui/config/SttSetup.qml
 contents/ui/config/FasterWhisperRows.qml
 contents/ui/ConfigVoice.qml

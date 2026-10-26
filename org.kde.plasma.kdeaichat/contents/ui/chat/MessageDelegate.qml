@@ -44,6 +44,9 @@ Item {
         ? chat.providerDisplayName(chat.getEffectiveProvider(chat.currentSessionId)) : ""
     // An error in plain language, with what can be done about it.
     readonly property var errorInfo: role === "error" ? ErrorText.describe(message.content, errorProvider) : ({})
+    readonly property string errorText: role === "error" ? ErrorText.translated(errorInfo, function(template, args) {
+        return args.length === 0 ? i18n(template) : args.length === 1 ? i18n(template, args[0]) : i18n(template, args[0], args[1]);
+    }) : ""
     // Agent requests show their own content (what is asked, the questions).
     readonly property bool ownsBody: role === "permission_request" || (role === "question_request" && (message.questions || []).length > 0)
     // From the chat view: builds the buttons after the first frame
@@ -241,7 +244,7 @@ Item {
                     streaming: row.streaming
                     isError: row.role === "error"
                     alignRight: row.mine
-                    text: row.streaming ? row.chat.currentStreamText : row.role === "error" ? row.errorInfo.text : (row.message.content || "")
+                    text: row.streaming ? row.chat.currentStreamText : row.role === "error" ? row.errorText : (row.message.content || "")
                     onSelectionMade: (text) => { if (text.trim() || !actions.keepSelection) row.selectedText = text; }
                 }
 
@@ -282,9 +285,10 @@ Item {
                     Layout.fillWidth: true
                     sourceComponent: ErrorActions {
                         info: row.errorInfo
+                        chat: row.chat
                         onRetryRequested: row.chat.retryFailedMessage(row.index)
                         onSettingsRequested: row.chat.openSettings()
-                        onCopyRequested: row.chat.copyTextToClipboard(row.errorInfo.detail || row.errorInfo.text)
+                        onCopyRequested: row.chat.copyTextToClipboard(row.errorInfo.detail || row.errorText)
                         onDeleteRequested: row.chat.deleteMessage(row.index)
                     }
                 }

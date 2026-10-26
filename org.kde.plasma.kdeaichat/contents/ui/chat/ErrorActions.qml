@@ -1,11 +1,14 @@
 // What the user can do about an error message: Try again, Open settings
-// (when settings can fix it) and, when the original message says more than
-// the plain-language text, a way to read it. `info` is ErrorText.describe().
+// (when settings can fix it), Check setup (when the setup check can find the
+// cause: it runs config/SetupCheck.qml here, under the error, and lists only
+// the problems) and, when the original message says more than the
+// plain-language text, a way to read it. `info` is ErrorText.describe().
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "../config" as Config
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -14,6 +17,9 @@ ColumnLayout {
 
     property var info: ({})
     property bool showDetail: false
+    // The widget root (configuration, wallet, the chat's mode) for Check setup.
+    property var chat: null
+    property bool showCheck: false
 
     signal retryRequested()
     signal settingsRequested()
@@ -39,6 +45,16 @@ ColumnLayout {
             text: i18n("Open settings")
             icon.name: "configure"
             onClicked: actions.settingsRequested()
+        }
+
+        PC3.Button {
+            objectName: "checkSetupButton"
+            visible: actions.info.checkSetup === true && !!actions.chat
+            text: i18n("Check setup")
+            icon.name: "system-search"
+            checkable: true
+            checked: actions.showCheck
+            onClicked: actions.showCheck = !actions.showCheck
         }
 
         PC3.ToolButton {
@@ -78,6 +94,26 @@ ColumnLayout {
     Timer {
         id: copied
         interval: 1500
+    }
+
+    Loader {
+        objectName: "setupCheckLoader"
+        active: actions.showCheck && !!actions.chat
+        visible: active
+        Layout.fillWidth: true
+        sourceComponent: Config.SetupCheck {
+            problemsOnly: true
+            showHeading: false
+            configuration: actions.chat.plasmoid ? actions.chat.plasmoid.configuration : null
+            wallet: actions.chat.wallet || null
+            mode: actions.chat.openCodeMode ? "opencode" : (actions.chat.piMode ? "pi" : "direct")
+            Component.onCompleted: {
+                // Tests give the chat a fake helper; the widget uses the real one.
+                if (actions.chat.setupCheckHelper)
+                    helper = actions.chat.setupCheckHelper;
+                run();
+            }
+        }
     }
 
     MonoBlock {
