@@ -96,3 +96,5 @@ contents/ui/config/TtsOption.qml
 contents/ui/config/DictationSettings.qml
 contents/ui/voice/TtsEngines.js
 contents/ui/VoiceManager.qml
+contents/ui/config/PanelIconSettings.qml
+contents/ui/chat/PiChatSettings.qml

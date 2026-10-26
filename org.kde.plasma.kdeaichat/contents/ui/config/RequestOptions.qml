@@ -49,10 +49,19 @@ Kirigami.FormLayout {
         }
     }
 
+    SettingHelp {
+        text: i18n("How long to wait for an answer before giving up with an error. Raise it for slow models or long answers; turn it off to wait as long as it takes.")
+    }
+
     QQC2.CheckBox {
         Kirigami.FormData.label: i18n("Replies:")
         text: i18n("Show replies while they are written")
         checked: !options.disableStreaming
         onToggled: options.disableStreaming = !checked
+    }
+
+    SettingHelp {
+        text: i18n("Words appear as the AI writes them, instead of all at once at the end. Turn off only if a provider shows errors or garbled replies with it on.")
+        details: i18n("This is called \"streaming\". A few servers and proxies don't support it.")
     }
 }

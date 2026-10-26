@@ -49,11 +49,17 @@ Kirigami.FormLayout {
         text: editor.draft.name || ""
         onTextEdited: editor.fieldEdited("name", text)
     }
+    SettingHelp {
+        text: i18n("Any name you like; it is how this provider shows in lists.")
+    }
     QQC2.ComboBox {
         Kirigami.FormData.label: i18n("API type:")
         model: [i18n("OpenAI-compatible"), i18n("Anthropic")]
         currentIndex: editor.draft.type === "anthropic" ? 1 : 0
         onActivated: editor.fieldEdited("type", currentIndex === 1 ? "anthropic" : "openai-compat")
+    }
+    SettingHelp {
+        text: i18n("The \"language\" the provider's server speaks. Almost all services, and local programs like Ollama, use \"OpenAI-compatible\"; choose \"Anthropic\" only for Anthropic's own server.")
     }
     QQC2.TextField {
         objectName: "urlField"
@@ -63,6 +69,9 @@ Kirigami.FormLayout {
         placeholderText: "https://api.example.com/v1"
         onTextEdited: editor.fieldEdited("baseUrl", text)
     }
+    SettingHelp {
+        text: i18n("The web address of the provider's server, as given in its documentation (often ending in /v1). For a model on your own computer it starts with http://localhost.")
+    }
     Kirigami.PasswordField {
         objectName: "keyField"
         Kirigami.FormData.label: i18n("API key:")
@@ -70,6 +79,10 @@ Kirigami.FormLayout {
         text: editor.draftKey
         placeholderText: editor.local ? i18n("Optional for local servers") : i18n("Stored in KWallet")
         onTextEdited: editor.fieldEdited("key", text)
+    }
+    SettingHelp {
+        text: i18n("The password-like code your AI provider gives you (on its website, usually under \"API keys\"). It proves the requests are yours and is kept in KDE Wallet, your computer's password safe.")
+        details: i18n("Anyone with this key can use your account, so it is never written into the settings file. Local servers usually need no key.")
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Model:")
@@ -89,6 +102,9 @@ Kirigami.FormLayout {
             onClicked: editor.refreshClicked()
         }
     }
+    SettingHelp {
+        text: i18n("The AI model to use with this provider. Refresh asks the provider which models it has.")
+    }
     Components.VariantPicker {
         objectName: "variantPicker"
         Kirigami.FormData.label: i18n("Variant:")
@@ -96,6 +112,10 @@ Kirigami.FormLayout {
         variants: editor.variants
         value: editor.draft.variant || ""
         onPicked: function(id) { editor.fieldEdited("variant", id); }
+    }
+    SettingHelp {
+        visible: editor.variants.length > 0
+        text: i18n("Some models can think longer before answering. More thinking gives better answers to hard questions, but is slower and costs more.")
     }
     QQC2.Label {
         objectName: "modelWarning"
@@ -111,9 +131,11 @@ Kirigami.FormLayout {
         visible: editor.hiddenCount > 0 || editor.showAll
         text: i18n("Show all models (%1 hidden)", editor.hiddenCount)
         checked: editor.showAll
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: i18n("Chat models only are listed. The rest are embedding, safety, reranking, speech or image models.")
         onToggled: editor.showAllToggled(checked)
+    }
+    SettingHelp {
+        visible: editor.hiddenCount > 0 || editor.showAll
+        text: i18n("Only models you can chat with are listed. Turn this on to also see the others (for search, safety checks, speech or pictures).")
     }
     RowLayout {
         visible: editor.listing || editor.checking

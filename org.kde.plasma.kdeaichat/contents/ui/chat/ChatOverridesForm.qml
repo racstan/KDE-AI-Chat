@@ -15,29 +15,12 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "../ProviderCheck.js" as ProviderCheck
 import "../components" as Components
+import "../config" as Config
 
+// Each setting is a SettingField: a small grey label, the input(s) and a
+// plain explanation under them.
 ColumnLayout {
     id: form
-
-    // A small grey label above its input(s).
-    component Field: ColumnLayout {
-        property string label
-        default property alias content: slot.data
-
-        Layout.fillWidth: true
-        spacing: Kirigami.Units.smallSpacing
-
-        PC3.Label {
-            text: label
-            color: Kirigami.Theme.disabledTextColor
-            Layout.fillWidth: true
-        }
-        ColumnLayout {
-            id: slot
-            Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
-        }
-    }
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -129,13 +112,18 @@ ColumnLayout {
         checked: form.draft.ownModel
         onToggled: form.draft.setOwnModel(checked)
     }
+    Config.SettingHelp {
+        visible: ownModelCheck.visible
+        text: i18n("On: this chat can use a different provider or model than the main settings. Off: it follows the main settings.") // qmllint disable unqualified
+    }
 
 
     // --- Provider ---
 
-    Field {
+    SettingField {
         visible: form.draft.modelEditable && form.draft.mode === "provider"
         label: i18n("Provider")
+        help: i18n("The AI service this chat talks to.") // qmllint disable unqualified
 
         QQC2.ComboBox {
             id: providerCombo
@@ -154,9 +142,10 @@ ColumnLayout {
         }
     }
 
-    Field {
+    SettingField {
         visible: form.draft.modelEditable && form.draft.mode === "provider"
         label: i18n("Model")
+        help: i18n("The AI model that answers in this chat. Refresh asks the provider which ones it has.") // qmllint disable unqualified
 
         RowLayout {
             Layout.fillWidth: true
@@ -202,9 +191,10 @@ ColumnLayout {
 
     // The model's variant (reasoning level): only when its source reports any
     // (direct providers, OpenCode). Pi's thinking level is in PiChatSettings.
-    Field {
+    SettingField {
         visible: form.draft.modelEditable && form.draft.mode !== "pi" && form.draft.variantList.length > 0
         label: i18n("Variant") // qmllint disable unqualified
+        help: i18n("How hard the model thinks before answering: more is slower and costs more, but helps with hard questions.") // qmllint disable unqualified
 
         Components.VariantPicker {
             id: variantPicker
@@ -218,9 +208,10 @@ ColumnLayout {
 
     // --- OpenCode ---
 
-    Field {
+    SettingField {
         visible: form.draft.modelEditable && form.draft.mode === "opencode"
         label: i18n("Provider")
+        help: i18n("The AI service OpenCode uses for this chat. Empty: OpenCode's default.") // qmllint disable unqualified
 
         QQC2.ComboBox {
             id: ocProviderCombo
@@ -233,9 +224,10 @@ ColumnLayout {
         }
     }
 
-    Field {
+    SettingField {
         visible: form.draft.modelEditable && form.draft.mode === "opencode"
         label: i18n("Model")
+        help: i18n("The AI model OpenCode uses for this chat. Empty: OpenCode's default.") // qmllint disable unqualified
 
         QQC2.ComboBox {
             id: ocModelCombo
@@ -248,9 +240,10 @@ ColumnLayout {
         }
     }
 
-    Field {
+    SettingField {
         visible: form.draft.modelEditable && form.draft.mode === "opencode"
         label: i18n("Agent")
+        help: i18n("OpenCode's way of working, for example \"build\" to make changes or \"plan\" to only suggest them.") // qmllint disable unqualified
 
         QQC2.ComboBox {
             id: agentCombo
@@ -294,8 +287,9 @@ ColumnLayout {
 
     // --- The workspace (every mode) ---
 
-    Field {
+    SettingField {
         label: i18n("Working folder")
+        help: i18n("The folder on your computer this chat works in: the agents read and change files there.") // qmllint disable unqualified
 
         RowLayout {
             Layout.fillWidth: true
@@ -343,9 +337,10 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
-    Field {
+    SettingField {
         visible: form.draft.mode !== "opencode"
         label: i18n("Instructions")
+        help: i18n("Extra instructions only for this chat, for example \"Answer in French\" or \"You are a patient maths tutor\". \"Use my Personality settings\" adds what you filled in on the Personality settings page.") // qmllint disable unqualified
 
         PC3.CheckBox {
             id: systemCheck
@@ -380,9 +375,10 @@ ColumnLayout {
         }
     }
 
-    Field {
+    SettingField {
         visible: form.draft.mode !== "opencode"
         label: i18n("Response length")
+        help: i18n("How long the answers in this chat should be. \"Default\" lets the model decide.") // qmllint disable unqualified
 
         QQC2.ComboBox {
             id: responseLengthCombo

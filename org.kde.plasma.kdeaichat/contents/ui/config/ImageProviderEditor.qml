@@ -64,6 +64,9 @@ Kirigami.FormLayout {
         text: editor.draft.name || ""
         onTextEdited: editor.fieldEdited("name", text)
     }
+    SettingHelp {
+        text: i18n("Any name you like; it is how this picture service shows in lists.")
+    }
 
     // What this service does with a prompt, and where its rules are.
     ColumnLayout {
@@ -98,6 +101,9 @@ Kirigami.FormLayout {
             checked: editor.draft.accepted === true
             onToggled: editor.fieldEdited("accepted", checked)
         }
+        SettingHelp {
+            text: i18n("No picture is made with this service until you have read the note above and ticked this box.")
+        }
     }
 
     Kirigami.PasswordField {
@@ -108,6 +114,12 @@ Kirigami.FormLayout {
         text: editor.draftKey
         placeholderText: editor.isHorde ? i18n("Optional: empty uses AI Horde without an account") : i18n("Your Pollinations key, stored in KWallet")
         onTextEdited: editor.fieldEdited("key", text)
+    }
+    SettingHelp {
+        visible: !editor.isLegacy
+        text: editor.isHorde
+            ? i18n("The password-like code of your AI Horde account. Without one you can still make pictures, but they are smaller and wait longer. It is kept in KDE Wallet, your computer's password safe.")
+            : i18n("The password-like code Pollinations gives you on its website. It is kept in KDE Wallet, your computer's password safe, never in the settings file.")
     }
 
     RowLayout {
@@ -131,6 +143,9 @@ Kirigami.FormLayout {
             enabled: !editor.listing
             onClicked: editor.refreshClicked()
         }
+    }
+    SettingHelp {
+        text: i18n("The picture model: each draws in its own style. Refresh asks the service which ones it has.")
     }
     RowLayout {
         visible: editor.listing || editor.listError !== ""
@@ -172,6 +187,9 @@ Kirigami.FormLayout {
         }
         QQC2.Label { text: i18n("pixels") }
     }
+    SettingHelp {
+        text: i18n("Width × height of new pictures. Bigger pictures show more detail but take longer.")
+    }
     QQC2.Label {
         objectName: "sizeNote"
         visible: editor.isHorde && !editor.hasKey
@@ -190,6 +208,10 @@ Kirigami.FormLayout {
         value: Math.min(editor.options.steps || Horde.DEFAULT_STEPS, to)
         onValueModified: editor.fieldEdited("option.steps", value)
     }
+    SettingHelp {
+        visible: editor.isHorde
+        text: i18n("How many times the picture is refined. More steps can look better but take longer.")
+    }
     QQC2.SpinBox {
         objectName: "countBox"
         visible: editor.isHorde && editor.hasKey
@@ -199,6 +221,10 @@ Kirigami.FormLayout {
         value: Math.min(editor.options.n || 1, to)
         onValueModified: editor.fieldEdited("option.n", value)
     }
+    SettingHelp {
+        visible: editor.isHorde && editor.hasKey
+        text: i18n("How many different pictures each /image message asks for.")
+    }
     QQC2.TextField {
         objectName: "seedField"
         Kirigami.FormData.label: i18n("Seed:")
@@ -207,6 +233,9 @@ Kirigami.FormLayout {
         placeholderText: i18n("Empty: a new one each time")
         validator: IntValidator { bottom: 0; top: 2147483647 }
         onTextEdited: editor.fieldEdited("option.seed", text === "" ? null : Number(text))
+    }
+    SettingHelp {
+        text: i18n("A number that fixes the randomness: the same prompt with the same seed gives the same picture again. Leave empty for a different picture every time.")
     }
 
     QQC2.Label {

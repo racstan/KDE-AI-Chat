@@ -60,6 +60,7 @@ Kirigami.FormLayout {
                                     SttEngines.size(dataInfo ? dataInfo.rebuild_frees_mb : 0), SttEngines.size(size ? size.packages_mb : 0))};
         confirm.open();
     }
+    function capitalized(text) { return text.charAt(0).toUpperCase() + text.slice(1); }
     function confirmed() {
         var kind = pending ? pending.kind : "";
         pending = null;
@@ -107,16 +108,14 @@ Kirigami.FormLayout {
         }
     }
 
-    QQC2.Label {
+    SettingHelp {
         objectName: "sttModelNote"
         Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-        wrapMode: Text.Wrap
-        font: Kirigami.Theme.smallFont
-        opacity: 0.75
-        text: rows.ownFolder ? i18n("A model folder on this computer: nothing to download.")
-            : rows.catalogueRow ? (rows.catalogueRow.note ? i18n(rows.catalogueRow.note) + ". " : "")
+        details: i18n("Bigger models understand speech better, especially accents and noisy rooms, but are bigger to download and slower. \"small\" suits most people.")
+        text: i18n("The speech model that turns your voice into text.") + " " + (rows.ownFolder ? i18n("A model folder on this computer: nothing to download.")
+            : rows.catalogueRow ? (rows.catalogueRow.note ? rows.capitalized(i18n(rows.catalogueRow.note)) + ". " : "")
                                   + (rows.catalogueRow.downloaded ? i18n("Downloaded.") : i18n("Not downloaded yet (%1).", SttEngines.size(rows.catalogueRow.mb)))
-            : ""
+            : "")
     }
 
     QQC2.ComboBox {
@@ -127,6 +126,9 @@ Kirigami.FormLayout {
         model: SttEngines.devices.map(function(d) { return {"value": d.value, "text": i18n(d.text)}; })
         currentIndex: Math.max(0, model.map(function(o) { return o.value; }).indexOf(String(rows.form ? rows.form.optionValue("sttDevice") || "auto" : "auto")))
         onActivated: rows.form.setOption("sttDevice", currentValue)
+    }
+    SettingHelp {
+        text: i18n("Which part of the computer does the work. \"Automatic\" is right for almost everyone; an NVIDIA graphics card is much faster than the processor.")
     }
 
     RowLayout {
@@ -139,6 +141,9 @@ Kirigami.FormLayout {
             onValueModified: rows.form.setOption("sttIdleMinutes", value)
         }
         QQC2.Label { text: i18n("minutes after the last use") }
+    }
+    SettingHelp {
+        text: i18n("The speech model stays in memory this long after you dictate, so the next time starts quickly. A shorter time frees memory sooner.")
     }
 
     // Not installed: what Install downloads, before anything happens.
@@ -162,6 +167,10 @@ Kirigami.FormLayout {
             onClicked: rows.setup.install()
         }
     }
+    SettingHelp {
+        visible: !rows.installed && !!rows.setup && rows.setup.enginesLoaded
+        text: i18n("A one-time setup of the speech program in its own folder. Nothing is installed until you press Install.")
+    }
 
     RowLayout {
         Kirigami.FormData.label: i18n("Model download:")
@@ -178,6 +187,10 @@ Kirigami.FormLayout {
             enabled: !rows.setup.busy
             onClicked: rows.ask("download")
         }
+    }
+    SettingHelp {
+        visible: rows.installed && rows.needsDownload
+        text: i18n("The chosen model has to be downloaded once before you can dictate. You are asked before it starts.")
     }
 
     RowLayout {
@@ -213,6 +226,10 @@ Kirigami.FormLayout {
             onClicked: rows.ask("rebuild")
         }
     }
+    SettingHelp {
+        visible: !!rows.dataInfo && rows.dataInfo.has_torch === true
+        text: i18n("Sets the speech program up again without the parts it no longer needs, to free disk space. Dictation keeps working the same.")
+    }
 
     RowLayout {
         Kirigami.FormData.label: i18n("Engine data:")
@@ -229,6 +246,10 @@ Kirigami.FormLayout {
             enabled: !rows.setup.busy
             onClicked: rows.ask("remove")
         }
+    }
+    SettingHelp {
+        visible: !!rows.dataInfo && (rows.dataInfo.venv_exists || (rows.dataInfo.models || []).length > 0)
+        text: i18n("Disk space the speech program and its models use. Remove deletes them if you no longer dictate; you can install them again later.")
     }
 
     Kirigami.PromptDialog {

@@ -12,7 +12,7 @@ import "../../org.kde.plasma.kdeaichat/contents/ui/store" as Store
 Item {
     id: root
     width: 640
-    height: 900
+    height: 1200
 
     function i18n(text) {
         for (var i = 1; i < arguments.length; i++)

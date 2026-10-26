@@ -53,10 +53,19 @@ KCM.SimpleKCM {
             Accessible.name: i18n("Number of earlier messages sent with each request")
         }
 
+        Config.SettingHelp {
+            text: i18n("How much of the conversation the AI sees each time you write. More lets it remember what was said earlier in the chat; fewer is faster and cheaper.")
+            details: i18n("The AI keeps nothing between messages: the earlier messages are sent again with every new one. Long chats set to \"All\" use more of your provider's allowance.")
+        }
+
         QQC2.CheckBox {
             id: autoNameCheck
             Kirigami.FormData.label: i18n("Chat names:")
             text: i18n("Let the model name new chats")
+        }
+
+        Config.SettingHelp {
+            text: i18n("After your first message, the AI gives the chat a short title for the chat list. Turn this off to name chats yourself.")
         }
 
         QQC2.CheckBox {
@@ -66,11 +75,7 @@ KCM.SimpleKCM {
             text: i18n("Let the AI ask me questions")
         }
 
-        QQC2.Label {
-            Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
-            wrapMode: Text.Wrap
-            color: Kirigami.Theme.disabledTextColor
+        Config.SettingHelp {
             text: i18n("When it needs a choice or a missing detail, the AI can ask you in the chat and wait for your answer. Applies to chats with a provider; the agent modes ask in their own way.")
         }
 
@@ -96,12 +101,9 @@ KCM.SimpleKCM {
             }
         }
 
-        QQC2.Label {
-            Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
-            wrapMode: Text.Wrap
-            color: Kirigami.Theme.disabledTextColor
-            text: i18n("Copied into a chat when it is created. Leave empty for no workspace. Each chat can change its own in the bar above the chat.")
+        Config.SettingHelp {
+            text: i18n("A folder on your computer that new chats work in, for example a project you are coding. Copied into a chat when it is created. Leave empty for no workspace. Each chat can change its own in the bar above the chat.")
+            details: i18n("The agent modes (OpenCode and Pi) read and change files in this folder.")
         }
 
         Kirigami.Separator {
@@ -117,13 +119,9 @@ KCM.SimpleKCM {
             Accessible.description: i18n("When off, every chat uses the model settings from Settings. A chat's own settings are kept but ignored.")
         }
 
-        QQC2.Label {
-            Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
-            wrapMode: Text.Wrap
-            color: Kirigami.Theme.disabledTextColor
+        Config.SettingHelp {
             text: perChatSwitch.checked
-                ? i18n("A chat can choose its own mode (provider, OpenCode or Pi), provider and model in its Chat info panel.")
+                ? i18n("A chat can choose its own provider and model in its Chat info panel. The way it sends messages (directly, OpenCode or Pi) stays the one it was started with.")
                 : i18n("Every chat uses the mode, provider and model from Settings. Any model settings a chat already has are kept, and come back if you turn this on.")
         }
 
@@ -135,6 +133,7 @@ KCM.SimpleKCM {
             text: i18n("This chat's settings win")
             checked: page.cfg_perChatPriority !== "main"
             onClicked: page.cfg_perChatPriority = "chat"
+            // help: next
         }
 
         QQC2.RadioButton {
@@ -146,12 +145,8 @@ KCM.SimpleKCM {
             onClicked: page.cfg_perChatPriority = "main"
         }
 
-        QQC2.Label {
+        Config.SettingHelp {
             visible: perChatSwitch.checked
-            Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
-            wrapMode: Text.Wrap
-            color: Kirigami.Theme.disabledTextColor
             text: chatWinsRadio.checked
                 ? i18n("A chat that has its own settings uses them; anything it leaves empty comes from the main settings.")
                 : i18n("The main settings are used. A chat's own settings only fill in what the main settings leave empty, such as a model.")
@@ -162,12 +157,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Prompt templates")
         }
 
-        QQC2.Label {
+        Config.SettingHelp {
             objectName: "templatesHelp"
-            Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
-            wrapMode: Text.Wrap
-            color: Kirigami.Theme.disabledTextColor
             text: i18n("A template is a message you use often, saved under a short name. In the chat box, type / and the name (for example /summarize) and the saved text appears, ready to edit or send. Typing / alone lists your templates and the built-in commands.")
         }
 
@@ -176,6 +167,10 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Insert with /name:")
             Kirigami.FormData.labelAlignment: Qt.AlignTop
             Layout.fillWidth: true
+        }
+
+        Config.SettingHelp {
+            text: i18n("Add a template with a short name and the text it stands for. Changes are kept when you press OK or Apply.")
         }
     }
 }

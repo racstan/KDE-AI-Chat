@@ -72,8 +72,12 @@ def test_feature_settings_are_exposed_and_persisted():
     assert "*.gif" in appearance
     assert "KIconThemes.IconDialog" in appearance
     assert "Plasmoid.icon:" in main_qml
-    assert "function customIconIsImage" in main_qml
-    assert "function customIconImageSource" in main_qml
+    # The panel icon (still image, theme icon or animation) is chat/PanelIcon.qml.
+    assert "compactRepresentation: Chat.PanelIcon" in main_qml
+    with open(os.path.join(os.path.dirname(MAIN_QML), "chat", "PanelIcon.js"), encoding="utf-8") as f:
+        panel_icon = f.read()
+    assert "function isImageFile" in panel_icon
+    assert "function fileUrl" in panel_icon
     with open(os.path.join(os.path.dirname(MAIN_QML), "chat", "DirectRequest.qml"), encoding="utf-8") as f:
         assert "plasmoid.configuration.disableStreaming !== true" in f.read()
 

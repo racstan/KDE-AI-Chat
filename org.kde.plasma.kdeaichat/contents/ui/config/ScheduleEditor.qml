@@ -87,6 +87,9 @@ ColumnLayout {
             placeholderText: i18n("e.g. Latest news")
             onTextEdited: editor.setField("name", text)
         }
+        SettingHelp {
+            text: i18n("A short name, so you recognise this schedule in the list.")
+        }
         QQC2.ComboBox {
             objectName: "scheduleChat"
             Kirigami.FormData.label: i18n("Chat:")
@@ -97,6 +100,9 @@ ColumnLayout {
             currentIndex: editor.chats.findIndex(function(c) { return c.id === editor.draft.chatId; })
             displayText: currentIndex >= 0 ? currentText : (editor.draft.chatId ? i18n("A deleted chat") : i18n("Choose a chat…"))
             onActivated: editor.setField("chatId", currentValue)
+        }
+        SettingHelp {
+            text: i18n("The chat the message is sent into. The answer appears there, like a reply to something you typed.")
         }
     }
 
@@ -116,18 +122,18 @@ ColumnLayout {
         }
     }
     // Filled in when the message is sent (kdeaichat/schedule_context.py).
-    QQC2.Label {
+    SettingHelp {
         objectName: "scheduleVariablesHint"
-        Layout.fillWidth: true
-        wrapMode: Text.Wrap
-        font: Kirigami.Theme.smallFont
-        color: Kirigami.Theme.disabledTextColor
-        text: i18n("You can use {{date}}, {{time}}, {{weekday}} and {{last_run}} (when it last ran); they are filled in each time it is sent.")
+        text: i18n("What is sent to the AI, as if you typed it. You can use {{date}}, {{time}}, {{weekday}} and {{last_run}} (when it last ran); they are filled in each time it is sent.")
     }
 
     Kirigami.Heading {
         level: 4
         text: i18n("When")
+    }
+
+    SettingHelp {
+        text: i18n("The times the message is sent. Describe them in a sentence and let the AI fill in the rules, or set the rules yourself. Schedules run while you are logged in, even when the chat is closed.")
     }
 
     ScheduleDescribeBox {

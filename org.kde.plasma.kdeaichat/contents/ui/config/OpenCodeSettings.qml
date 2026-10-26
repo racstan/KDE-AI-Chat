@@ -150,6 +150,10 @@ Kirigami.FormLayout {
         onEditingFinished: oc.refresh()
     }
 
+    SettingHelp {
+        text: i18n("Where the OpenCode program can be reached on this computer. Keep the suggested address unless you started OpenCode on another port.")
+    }
+
     RowLayout {
         Kirigami.FormData.label: i18n("Server:")
         spacing: Kirigami.Units.smallSpacing
@@ -181,6 +185,10 @@ Kirigami.FormLayout {
         }
     }
 
+    SettingHelp {
+        text: i18n("OpenCode has to be running for these chats. Start runs it in the background; Check looks whether it answers.")
+    }
+
     QQC2.ComboBox {
         Kirigami.FormData.label: i18n("Provider:")
         Layout.fillWidth: true
@@ -188,6 +196,10 @@ Kirigami.FormLayout {
         model: oc.providers.length > 0 ? oc.providers : (oc.provider ? [oc.provider] : [])
         currentIndex: Math.max(0, model.indexOf(oc.provider))
         onActivated: oc.choose(currentText, "")
+    }
+
+    SettingHelp {
+        text: i18n("The AI service OpenCode uses. The list comes from OpenCode's own settings, where its keys are kept.")
     }
 
     Components.ModelPicker {
@@ -198,6 +210,10 @@ Kirigami.FormLayout {
         onPicked: function(id) { oc.variant = ""; oc.model = id; }
     }
 
+    SettingHelp {
+        text: i18n("The AI model new OpenCode chats use. Each chat can choose another one in its Chat info panel if per-chat model settings are on.")
+    }
+
     Components.VariantPicker {
         objectName: "variantPicker"
         Kirigami.FormData.label: i18n("Variant:")
@@ -205,6 +221,11 @@ Kirigami.FormLayout {
         variants: oc.variants
         value: oc.variant
         onPicked: function(id) { oc.variant = id; }
+    }
+
+    SettingHelp {
+        visible: oc.variants.length > 0
+        text: i18n("How hard the model thinks before answering. More thinking helps with hard tasks, but is slower and costs more.")
     }
 
     QQC2.Label {

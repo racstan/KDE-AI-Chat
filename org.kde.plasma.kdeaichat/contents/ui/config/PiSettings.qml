@@ -102,12 +102,20 @@ Kirigami.FormLayout {
         }
     }
 
+    SettingHelp {
+        text: i18n("The AI service Pi uses. The list comes from Pi itself, which keeps its own keys; Refresh asks it again.")
+    }
+
     Components.ModelPicker {
         Kirigami.FormData.label: i18n("Model:")
         Layout.fillWidth: true
         model: pi.modelsByProvider[pi.provider] || []
         value: pi.model
         onPicked: function(id) { pi.thinking = ""; pi.model = id; }
+    }
+
+    SettingHelp {
+        text: i18n("The AI model new Pi chats use. Each chat can choose another one in its Chat info panel if per-chat model settings are on.")
     }
 
     Components.VariantPicker {
@@ -117,6 +125,11 @@ Kirigami.FormLayout {
         variants: pi.variants
         value: pi.thinking
         onPicked: function(id) { pi.thinking = id; }
+    }
+
+    SettingHelp {
+        visible: pi.variants.length > 0
+        text: i18n("How hard the model thinks before answering. More thinking helps with hard tasks, but is slower and costs more.")
     }
 
     QQC2.Label {

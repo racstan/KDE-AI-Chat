@@ -19,23 +19,30 @@ var engines = [
      note: I18N_NOOP("Your own whisper.cpp program (whisper-cli) with a ggml model, or a running whisper.cpp server. No Python."),
      options: [
          {key: "sttWhisperCppBinary", type: "file", label: I18N_NOOP("Program"), def: "", filter: "*",
-          placeholder: I18N_NOOP("whisper-cli (found automatically)")},
+          placeholder: I18N_NOOP("whisper-cli (found automatically)"),
+          help: I18N_NOOP("The whisper.cpp program on your computer. Leave empty to have it found automatically.")},
          {key: "sttWhisperCppModel", type: "file", label: I18N_NOOP("Model file"), def: "", filter: "*.bin *.ggml",
-          placeholder: "~/whisper.cpp/models/ggml-base.bin"},
+          placeholder: "~/whisper.cpp/models/ggml-base.bin",
+          help: I18N_NOOP("The speech model file whisper.cpp uses (ending in .bin). Bigger files understand better but are slower.")},
          {key: "sttWhisperCppServer", type: "url", label: I18N_NOOP("Or server URL"), def: "",
-          placeholder: "http://127.0.0.1:8080"}]},
+          placeholder: "http://127.0.0.1:8080",
+          help: I18N_NOOP("Instead of the program: the address of a whisper.cpp server that is already running. Leave empty to use the program.")}]},
     {id: "remote", label: I18N_NOOP("Speech server (OpenAI-compatible)"),
      note: I18N_NOOP("Any server with /audio/transcriptions: a local Whisper server, Groq, OpenAI…"),
      options: [
-         {key: "sttRemoteUrl", type: "url", label: I18N_NOOP("Server URL"), def: "", placeholder: "http://localhost:8000/v1"},
-         {key: "sttRemoteModel", type: "text", label: I18N_NOOP("Model"), def: "whisper-1", placeholder: "whisper-1"},
+         {key: "sttRemoteUrl", type: "url", label: I18N_NOOP("Server URL"), def: "", placeholder: "http://localhost:8000/v1",
+          help: I18N_NOOP("The web address of the speech server, from its documentation (often ending in /v1).")},
+         {key: "sttRemoteModel", type: "text", label: I18N_NOOP("Model"), def: "whisper-1", placeholder: "whisper-1",
+          help: I18N_NOOP("The speech model the server should use, as named by the server (for example whisper-1).")},
          {type: "secret", entry: "stt-remote", label: I18N_NOOP("API key"),
-          hint: I18N_NOOP("Saved in KWallet. Leave empty for a server on this computer.")}]},
+          hint: I18N_NOOP("Saved in KWallet. Leave empty for a server on this computer."),
+          help: I18N_NOOP("The password-like code the speech service gives you, so it knows the requests are yours.")}]},
     {id: "command", label: I18N_NOOP("Custom command"),
      note: I18N_NOOP("Your own program: {wav} is replaced by the recording (16 kHz mono WAV) and {lang} by the language; it prints the text."),
      options: [
          {key: "sttCommand", type: "command", label: I18N_NOOP("Command"), def: "",
-          placeholder: "my-stt --language {lang} {wav}"}]}
+          placeholder: "my-stt --language {lang} {wav}",
+          help: I18N_NOOP("For experts: a program of your own that turns a recording into text. Leave empty if you don't have one.")}]}
 ];
 
 var defaultEngine = "faster-whisper";

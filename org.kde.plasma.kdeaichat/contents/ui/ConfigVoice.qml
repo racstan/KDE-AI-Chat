@@ -174,11 +174,19 @@ KCM.SimpleKCM {
                 text: i18n("Offer to read replies aloud")
             }
 
+            Config.SettingHelp {
+                text: i18n("Adds a speaker button under each reply that reads it out loud. Choose the voice below.")
+            }
+
             QQC2.CheckBox {
                 id: enabledCheck
                 objectName: "dictationSwitch"
                 Kirigami.FormData.label: i18n("Dictation:")
                 text: i18n("Show a microphone button in the chat")
+            }
+
+            Config.SettingHelp {
+                text: i18n("Speak instead of typing: press the microphone, talk, and your words are written into the message box. The speech is turned into text on this computer unless you pick a server below.")
             }
 
             Kirigami.Separator {
@@ -221,12 +229,10 @@ KCM.SimpleKCM {
                 }
             }
 
-            QQC2.Label {
+            Config.SettingHelp {
                 visible: readCheck.checked
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 24
-                wrapMode: Text.Wrap
-                font: Kirigami.Theme.smallFont
-                opacity: 0.75
+                details: i18n("The engine is the program that makes the speech. \"System voices\" works without any setup; the others can sound more natural but need a program or a voice file.")
                 text: i18n(page.engine.note) + (probe.available.indexOf("piper") < 0 && !probe.probing
                       ? "\n" + i18n("Piper is offered once its piper program is installed.") : "")
             }
@@ -266,10 +272,20 @@ KCM.SimpleKCM {
                 }
             }
 
+            Config.SettingHelp {
+                visible: readCheck.checked
+                text: i18n("Plays a short greeting with the settings above, so you can hear them before saving.")
+            }
+
             QQC2.CheckBox {
                 id: ttsAutoCheck
                 visible: readCheck.checked
                 text: i18n("Read every reply aloud when it is finished")
+            }
+
+            Config.SettingHelp {
+                visible: readCheck.checked
+                text: i18n("Hands-free: each new reply is spoken without pressing the speaker button. Stop it with the stop button or Ctrl+Shift+S.")
             }
 
             Kirigami.Separator {

@@ -8,7 +8,7 @@ import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 Item {
     id: root
     width: 460
-    height: 700
+    height: 900
 
     function i18n(text) {
         for (var i = 1; i < arguments.length; i++)
