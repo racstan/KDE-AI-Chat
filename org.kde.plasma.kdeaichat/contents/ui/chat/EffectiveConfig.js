@@ -125,27 +125,35 @@ function _firstOf(candidates) {
 // chat: the stored chat ({source, chatProvider, chatModel, chatVariant, openCodeProvider, openCodeModel,
 //       openCodeAgent, openCodeVariant, piProvider, piModel, piThinking, ownModel}) or null
 // opts: {perChat: bool, priority: "chat" | "main"}
+// project: the chat's project ({provider, model}, chat/Projects.js) or null.
+//   Its provider and model take the place of the main settings' direct
+//   provider and model for this chat (so the table above reads M = the
+//   project's value where it has one). It never changes the mode, and only
+//   direct chats use it: OpenCode and Pi have their own provider lists.
 // Returns {mode (always the chat's own), provider, model, agent, thinking, variant,
-//          source: "main" | "chat" (where those fields come from),
+//          source: "main" | "chat" | "project" (where those fields come from),
 //          direct: {provider, model}}; provider/model/agent/thinking/variant are those
 // of `mode` (variant: the variant id of the mode; for Pi it is the thinking
 // level), and `direct` is always the direct-provider pair (used for things
 // that always call a provider, such as naming a chat).
-function resolve(main, chat, opts) {
+function resolve(main, chat, opts, project) {
     main = main || {};
     var modelFor = typeof main.modelFor === "function" ? main.modelFor : function() { return ""; };
     var variantFor = typeof main.variantFor === "function" ? main.variantFor : function() { return ""; };
     var chatFirst = !(opts && opts.priority === "main");
     var useChat = !!(opts && opts.perChat === true) && hasOwnModelSettings(chat);
-    var mainDirect = _s(main.provider) || "openai";
+    var projectProvider = project ? _s(project.provider) : "";
+    var projectModel = projectProvider ? _s(project.model) : "";
+    var mainDirect = projectProvider || _s(main.provider) || "openai";
     var mainModeValue = mainMode(main);
 
     // Pi chats before 1.4.0 kept their provider and model in chatProvider/chatModel.
     var legacyPi = useChat && chat.piProvider === undefined && chat.piModel === undefined && chatMode(chat) === "pi";
 
-    // Candidates for one field, in priority order.
-    function field(mainValue, chatValue) {
-        var m = {"from": "main", "value": mainValue};
+    // Candidates for one field, in priority order. mainFrom: "project" when
+    // the project gives the main side's value.
+    function field(mainValue, chatValue, mainFrom) {
+        var m = {"from": mainFrom || "main", "value": mainValue};
         if (!useChat)
             return _firstOf([m]);
         var c = {"from": "chat", "value": chatValue};
@@ -156,10 +164,11 @@ function resolve(main, chat, opts) {
     var mode = chat ? chatMode(chat) : mainModeValue;
 
     // Direct: the provider, then the model for it.
-    var provider = field(mainDirect, legacyPi ? "" : (useChat ? chat.chatProvider : ""));
+    var provider = field(mainDirect, legacyPi ? "" : (useChat ? chat.chatProvider : ""), projectProvider ? "project" : "main");
     var chatDirectProvider = useChat && !legacyPi ? (_s(chat.chatProvider) || mainDirect) : "";
     var chatModel = useChat && !legacyPi && chatDirectProvider === provider.value ? chat.chatModel : "";
-    var model = field(modelFor(provider.value), chatModel);
+    var useProjectModel = projectModel !== "" && provider.value === projectProvider;
+    var model = field(useProjectModel ? projectModel : modelFor(provider.value), chatModel, useProjectModel ? "project" : "main");
     var chatVariant = useChat && !legacyPi && chatDirectProvider === provider.value ? chat.chatVariant : "";
     var variant = field(variantFor(provider.value), chatVariant);
     var directFromChat = provider.from === "chat" || model.from === "chat" || variant.from === "chat";
@@ -189,7 +198,8 @@ function resolve(main, chat, opts) {
         result.variant = piThinking.value;
         fromChat = piProvider.from === "chat" || piModel.from === "chat" || piThinking.from === "chat";
     }
-    result.source = useChat && fromChat ? "chat" : "main";
+    var fromProject = mode === "provider" && (provider.from === "project" || model.from === "project");
+    result.source = useChat && fromChat ? "chat" : (fromProject ? "project" : "main");
     return result;
 }
 
@@ -205,10 +215,11 @@ function mainFromConfig(config, modelFor, variantFor) {
 }
 
 // resolve() for a stored chat, with the two settings read from the configuration.
-function forSession(config, session, modelFor, variantFor) {
+// project: the chat's project or null.
+function forSession(config, session, modelFor, variantFor, project) {
     config = config || {};
     return resolve(mainFromConfig(config, modelFor, variantFor), session,
-                   {"perChat": config.perChatModelSettings === true, "priority": config.perChatPriority});
+                   {"perChat": config.perChatModelSettings === true, "priority": config.perChatPriority}, project || null);
 }
 
 // Where an OpenCode agent picked for an open chat (the agent selector above the

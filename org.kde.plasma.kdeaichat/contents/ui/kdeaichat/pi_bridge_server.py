@@ -13,9 +13,10 @@ Routes:
   GET  /health
   GET  /chats/<id>/events        SSE: bridge_connected, then each Pi event,
                                  bridge_exit if the Pi process ends
-  POST /chats/<id>/prompt        {directory, provider, model, thinking, message, images}
+  POST /chats/<id>/prompt        {directory, provider, model, thinking, instructions, message, images}
                                  (no directory: the chat's own folder under
-                                 ~/.local/share/kdeaichat/pi-workspaces/<id>)
+                                 ~/.local/share/kdeaichat/pi-workspaces/<id>;
+                                 instructions: added to Pi's system prompt)
   POST /chats/<id>/abort
   POST /chats/<id>/ui-response   {id, value | confirmed | cancelled}
   POST /chats/<id>/close         stops that chat's Pi process
@@ -38,6 +39,10 @@ import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+# Started with `python -I`: only this file's own folder is added, for pi_files.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pi_files import default_directory, instructions_file, private_write  # noqa: E402
 
 AGENT_IDLE = float(os.environ.get("KDEAICHAT_PI_AGENT_IDLE", 15 * 60))
 SERVER_IDLE = float(os.environ.get("KDEAICHAT_PI_SERVER_IDLE", 10 * 60))
@@ -69,17 +74,18 @@ def broadcast(chat_id, event):
 class Agent:
     """One `pi --mode rpc` process for one chat."""
 
-    def __init__(self, chat_id, directory, provider, model, thinking):
+    def __init__(self, chat_id, directory, provider, model, thinking, instructions=""):
         env = pi_env()
         binary = shutil.which("pi", path=env["PATH"])
         if not binary:
             raise FileNotFoundError("Pi isn't installed (no `pi` command found).")
         argv = [binary, "--mode", "rpc", "--session-id", "kde-ai-chat-" + chat_id]
-        for flag, value in (("--provider", provider), ("--model", model), ("--thinking", thinking)):
+        for flag, value in (("--provider", provider), ("--model", model), ("--thinking", thinking),
+                            ("--append-system-prompt", instructions_file(chat_id, instructions))):
             if value:
                 argv += [flag, value]
         self.chat_id = chat_id
-        self.key = (directory, provider, model, thinking)
+        self.key = (directory, provider, model, thinking, instructions)
         self.running = False
         self.last_active = time.monotonic()
         self.stderr_tail = collections.deque(maxlen=40)
@@ -150,33 +156,6 @@ def _option(payload, name, limit=256):
     return value
 
 
-def _has_home_history(chat_id, home):
-    """True when Pi already keeps this chat's history for the home folder.
-
-    Before 1.4.0 a chat without a workspace ran Pi in the home folder, and Pi
-    files sessions by working folder (core/session-manager.js), so such a chat
-    must stay there or Pi loses what was said."""
-    agent_dir = os.environ.get("PI_CODING_AGENT_DIR") or os.path.expanduser("~/.pi/agent")
-    folder = os.path.join(agent_dir, "sessions", "--" + re.sub(r"[/\\:]", "-", home.lstrip("/\\")) + "--")
-    suffix = "_kde-ai-chat-" + chat_id + ".jsonl"
-    try:
-        return any(name.endswith(suffix) for name in os.listdir(folder))
-    except OSError:
-        return False
-
-
-def default_directory(chat_id):
-    """The folder of a chat that has no workspace: its own, never the user's home
-    (except for a chat that already has history there, see _has_home_history)."""
-    home = os.path.realpath(os.path.expanduser("~"))
-    if _has_home_history(chat_id, home):
-        return home
-    base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    path = os.path.join(base, "kdeaichat", "pi-workspaces", chat_id)
-    os.makedirs(path, mode=0o700, exist_ok=True)
-    return os.path.realpath(path)
-
-
 def prompt(chat_id, payload):
     requested = str(payload.get("directory") or "").strip()
     directory = os.path.realpath(os.path.expanduser(requested)) if requested else default_directory(chat_id)
@@ -188,13 +167,16 @@ def prompt(chat_id, payload):
     message = str(payload.get("message") or "")
     if not message.strip() or "\x00" in message:
         raise ValueError("the message is empty")
+    instructions = str(payload.get("instructions") or "")
+    if len(instructions) > 100000 or "\x00" in instructions:
+        raise ValueError("invalid instructions")
     images = [{"type": "image", "data": str(i.get("data", "")), "mimeType": str(i.get("mimeType", "image/png"))}
               for i in (payload.get("images") or [])[:20] if isinstance(i, dict)]
     # A run that was just stopped may take a moment to settle.
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline and getattr(agents.get(chat_id), "running", False):
         time.sleep(0.1)
-    key = (directory, provider, model, thinking)
+    key = (directory, provider, model, thinking, instructions)
     with lock:
         replaced = agents.pop(chat_id) if chat_id in agents and agents[chat_id].key != key and not agents[chat_id].running else None
     if replaced:
@@ -204,7 +186,7 @@ def prompt(chat_id, payload):
         if agent and agent.running:
             return 409, {"error": "Pi is still working on this chat."}
         if agent is None:
-            agent = agents[chat_id] = Agent(chat_id, directory, provider, model, thinking)
+            agent = agents[chat_id] = Agent(chat_id, directory, provider, model, thinking, instructions)
         agent.running = True
     command = {"id": "prompt-" + secrets.token_hex(4), "type": "prompt", "message": message}
     if images:
@@ -355,11 +337,7 @@ def janitor():
 
 
 def write_state(path, port, token):
-    tmp = path + ".tmp"
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        json.dump({"pid": os.getpid(), "port": port, "token": token, "argv": [sys.executable] + sys.argv}, f)
-    os.replace(tmp, path)
+    private_write(path, json.dumps({"pid": os.getpid(), "port": port, "token": token, "argv": [sys.executable] + sys.argv}))
 
 
 def main():

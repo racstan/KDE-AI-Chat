@@ -175,9 +175,12 @@ QtObject {
         return true;
     }
 
-    function createSession(switchToNew) {
+    // projectId: the project the chat starts in ("" = none). The mode is the
+    // main one either way; a project with a folder gives the chat its folder.
+    function createSession(switchToNew, projectId) {
         if (switchToNew && chat.loading)
             chat.invalidateActiveRequest(false);
+        var project = projectId && chat.projects ? chat.projects.byId(projectId) : null;
         var s = {
             "value": manager.makeSessionId(),
             "text": "New Chat",
@@ -185,8 +188,9 @@ QtObject {
             "updatedAt": Date.now(),
             "archived": false,
             "source": manager.modeSyncRef.newChatMode(),
+            "projectId": project ? project.id : "",
             "openCodeSessionId": "",
-            "openCodeWorkspaceCwd": manager.modeSyncRef.newChatWorkspace(),
+            "openCodeWorkspaceCwd": project && project.folder ? "" : manager.modeSyncRef.newChatWorkspace(),
             "messages": []
         };
         chat.sessions = [s].concat(chat.sessions);
@@ -276,6 +280,14 @@ QtObject {
         chat.sessions = updated;
         manager.sortSessionsByUpdated();
         manager.persistSessions();
+        // The open chat left the list: open the latest chat still in it (or a new one).
+        if (archived && sessionId === chat.currentSessionId) {
+            var next = chat.sessions.filter(function(s) { return !s.archived; })[0];
+            if (next)
+                manager.switchSession(next.value);
+            else
+                manager.createSession(true, item.projectId || "");
+        }
     }
 
     // Clears what belonged to the chat on screen: TTS, the stream, edits and renames.

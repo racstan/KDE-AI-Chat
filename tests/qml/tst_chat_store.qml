@@ -42,6 +42,38 @@ TestCase {
         helperCalls = [];
     }
 
+    // Projects sit next to the chats in projects.ini; a folder without one has none.
+    function test_projects_roundtrip_and_old_folders_have_none() {
+        var dir = freshDir();
+        var s = makeStore(dir);
+        compare(s.loadProjects(), "", "no projects.ini yet: no projects");
+        s.save([chat("s-1", "Old chat", ["hi"])], true);
+        var projects = [{id: "p-1", name: "Work", color: "#3daee9", instructions: "Answer in French.", folder: "/tmp", provider: "", model: "", createdAt: 1}];
+        var written = [];
+        s.fileWritten.connect(function(name) { written.push(name); });
+        s.saveProjects(projects);
+        compare(written, ["projects.ini"]);
+        s.saveProjects(projects);
+        compare(written.length, 1, "unchanged projects are not rewritten");
+        var reader = makeStore(dir);
+        compare(JSON.parse(reader.loadProjects()), projects);
+        var chats = reader.loadAll();
+        compare(chats.length, 1);
+        compare(chats[0].projectId, undefined, "a chat from before projects loads unchanged (no project)");
+    }
+
+    function test_projects_saved_before_the_folder_is_ready_wait_for_it() {
+        var dir = freshDir();
+        var s = createTemporaryObject(storeComponent, testCase, {"directory": dir});
+        var later = null;
+        s.runHelper = function(command, payload, onDone) { later = onDone; };
+        s.prepare(null);
+        s.saveProjects([{id: "p-2", name: "Later"}]);
+        compare(makeStore(dir).loadProjects(), "", "nothing written before the folder is private");
+        later("");
+        compare(JSON.parse(makeStore(dir).loadProjects())[0].name, "Later");
+    }
+
     function test_empty_folder_has_no_index() {
         var s = makeStore(freshDir());
         verify(!s.hasIndex());

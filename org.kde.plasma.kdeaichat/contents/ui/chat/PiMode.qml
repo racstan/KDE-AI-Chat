@@ -100,8 +100,11 @@ QtObject {
             }
         }
         return {
-            // The chat's working folder (shared with OpenCode mode, hence the key).
-            "directory": String(chat.getSessionProperty(sessionId, "openCodeWorkspaceCwd", chat.openCodeWorkspaceCwd) || "").trim(),
+            // The chat's working folder (shared with OpenCode mode, hence the key), else its project's.
+            "directory": chat.projects ? chat.projects.workspaceFor(sessionId).path
+                : String(chat.getSessionProperty(sessionId, "openCodeWorkspaceCwd", chat.openCodeWorkspaceCwd) || "").trim(),
+            // The project's instructions and the chat's own, added to Pi's system prompt.
+            "instructions": chat.projects ? chat.projects.instructionsFor(sessionId) : "",
             // Provider, model and thinking: the main settings or the chat's own (EffectiveConfig.js).
             "provider": eff.provider,
             "model": eff.model,

@@ -159,7 +159,18 @@ Rectangle {
                     effective: page._effective
                     perChat: page._perChat
                     mainWins: page._mainWins
+                    projectName: projectInfo.project ? projectInfo.project.name : ""
                     providerName: function(id) { return page.rootRef ? page.rootRef.providerDisplayName(id) : id; }
+                }
+
+                // The chat's project and what comes from it.
+                Chat.ProjectInfoLine {
+                    id: projectInfo
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    chat: page.rootRef
+                    sessionId: settingsDraft.sessionId
                 }
 
                 Chat.ChatInfoSummary {

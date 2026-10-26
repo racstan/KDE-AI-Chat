@@ -104,8 +104,9 @@ def test_per_chat_model_settings_are_opt_in_and_routed_through_one_function():
 
     with open(MAIN_QML, encoding="utf-8") as f:
         main_source = f.read()
-    assert "function effectiveConfig(sessionId)" in main_source
-    assert "EffectiveConfig.forSession(plasmoid.configuration" in main_source
+    assert "function effectiveConfig(sessionId) { return modeSync.effectiveConfig(sessionId); }" in main_source
+    with open(os.path.join(UI_DIR, "chat", "ModeSync.qml"), encoding="utf-8") as f:
+        assert "EffectiveConfig.forSession(config, session" in f.read()
     # No direct reads of a chat's model overrides left outside the resolver.
     root_logic = _read_root_logic()
     for key in ("chatProvider", "chatModel", "openCodeProvider", "openCodeModel", "piProvider", "piModel"):

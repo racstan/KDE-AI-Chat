@@ -303,7 +303,13 @@ ColumnLayout {
                 id: cwdField
                 Layout.fillWidth: true
                 maximumLength: 4096
-                placeholderText: i18n("No workspace")
+                // Empty: the project's folder, when the chat is in a project that has one.
+                // qmllint disable unqualified
+                readonly property var projectFolder: form.draft.rootRef && form.draft.rootRef.projects
+                    ? form.draft.rootRef.projects.workspaceFor(form.draft.sessionId) : null
+                placeholderText: projectFolder && projectFolder.from === "project" ? i18n("The project's folder: %1", projectFolder.path)
+                                                                                 : i18n("No workspace")
+                // qmllint enable unqualified
                 onTextChanged: {
                     form.draft.ocCwd = text;
                     form.edited();

@@ -1,4 +1,4 @@
-// A short-lived "Undo" notice after clearing a chat or deleting one.
+// A short-lived "Undo" notice after clearing a chat, deleting one, or deleting a project.
 //
 // Clearing is seen as the messages of the open chat becoming empty (whoever
 // does it); deleting is the widget's `sessionDeleted` signal. The notice
@@ -20,6 +20,7 @@ Rectangle {
 
     // What can be undone: {kind: "clear", messages, count} or
     // {kind: "delete", session, index, wasCurrent} or
+    // {kind: "project", project, index, moved} (a deleted project) or
     // {kind: "restore", sessionId, messages} (after regenerating).
     property var undoable: null
     property string text: ""
@@ -61,6 +62,8 @@ Rectangle {
                 chat.messages = what.messages;
                 chat.saveCurrentSessionState(true);
             }
+        } else if (what.kind === "project") {
+            chat.projects.restore(what.project, what.index, what.moved);
         } else {
             list = (chat.sessions || []).slice();
             list.splice(Math.min(what.index, list.length), 0, what.session);
@@ -105,6 +108,15 @@ Rectangle {
             }
             notice.trackedSession = notice.chat.currentSessionId;
             notice.trackedMessages = now;
+        }
+    }
+
+    // A deleted project: its chats stayed (in no project); Undo puts it all back.
+    Connections {
+        target: notice.chat ? notice.chat.projects || null : null
+        function onProjectDeleted(project, index, movedChatIds) {
+            notice.show({"kind": "project", "project": project, "index": index, "moved": movedChatIds},
+                        i18n("Project “%1” deleted; its chats were kept", project.name));
         }
     }
 

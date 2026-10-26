@@ -10,6 +10,7 @@
 # command line) and that folder is deleted afterwards, even on failure.
 # The message is delivered as a scheduler trigger, so no clicking is needed.
 # DEV_AUTO_ANSWER="Tea" answers the model's ask_user questions with that text (see dev-run.sh).
+# DEV_PROJECT="Answer in French." puts the chat in a project with those instructions.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -72,6 +73,22 @@ open(path, "w", encoding="utf-8").write(config)
 os.makedirs(f"{sandbox}/data/kdeaichat/pending", exist_ok=True)
 with open(f"{sandbox}/data/kdeaichat/pending/dev-send.json", "w") as f:
     json.dump({"chatId": chat_id, "message": message, "name": "dev-send"}, f)
+
+# DEV_PROJECT="instructions": the chat is put in a project "Dev project" with
+# those instructions (projects.ini next to the chats, chat/Projects.js).
+instructions = os.environ.get("DEV_PROJECT", "")
+if instructions:
+    def ini_string(value):
+        return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    chats_dir = f"{sandbox}/data/kdeaichat/chats/applet-4"
+    project = {"id": "p-dev", "name": "Dev project", "color": "#3daee9", "instructions": instructions,
+               "folder": "", "provider": "", "model": "", "createdAt": 1}
+    with open(f"{chats_dir}/projects.ini", "w", encoding="utf-8") as f:
+        f.write("[General]\nprojects=" + ini_string(json.dumps([project])) + "\nversion=1\n")
+    sessions = json.loads(raw)
+    sessions[0]["projectId"] = "p-dev"
+    index = re.sub(r"^sessions=.*$", lambda m: "sessions=" + ini_string(json.dumps(sessions, separators=(",", ":"))), index, flags=re.M)
+    open(f"{chats_dir}/index.ini", "w", encoding="utf-8").write(index)
 PY
 
 wallet copy "$PROVIDER"

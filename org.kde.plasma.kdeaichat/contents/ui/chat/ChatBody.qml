@@ -29,6 +29,14 @@ Item {
     signal attachRequested()
     signal chatInfoRequested()
 
+    readonly property alias projectEditor: editor
+
+    // Creating and editing projects, from the history or any chat's menu.
+    ProjectEditor {
+        id: editor
+        chat: body.chat
+    }
+
     // Tells the chat that the history sits beside it, so New chat leaves it open.
     Binding {
         target: body.chat

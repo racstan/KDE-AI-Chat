@@ -35,7 +35,9 @@ QtObject {
     // Where a chat's OpenCode requests go.
     function openCodeTarget(sessionId) {
         return {"baseUrl": chat.openCodeBaseUrl(), "xhrFactory": function() { return new XMLHttpRequest(); },
-                "directory": String(chat.getSessionProperty(sessionId, "openCodeWorkspaceCwd", chat.openCodeWorkspaceCwd || "") || "").trim()};
+                // The chat's own folder, else its project's (chat/Projects.js).
+                "directory": chat.projects ? chat.projects.workspaceFor(sessionId).path
+                    : String(chat.getSessionProperty(sessionId, "openCodeWorkspaceCwd", chat.openCodeWorkspaceCwd || "") || "").trim()};
     }
 
     // OpenCode prompt parts for a user message (text, plus images as files).

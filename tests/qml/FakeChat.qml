@@ -83,6 +83,10 @@ QtObject {
     function switchSession(id) { record("switch", arguments); currentSessionId = id; }
     function renameCurrentSession() { record("renameCurrent", arguments); }
     function createSession() { record("create", arguments); }
+    // main.qml's projects (the real chat/Projects.qml on this fake's sessions);
+    // projects.ini goes to `chatStore` when a test sets one.
+    property var chatStore: null
+    readonly property Chat.Projects projects: Chat.Projects { chat: fake }
     function jumpOneMessageAbove() {}
     function jumpOneMessageBelow() {}
     function clearCurrentOpenCodeSessionIfNeeded() {}
@@ -168,7 +172,7 @@ QtObject {
             return ProviderService.getProviderConfig(providerId, plasmoid.configuration).model;
         }, function(providerId) {
             return ProviderService.getProviderConfig(providerId, plasmoid.configuration).variant;
-        });
+        }, projects.byId(session ? session.projectId : ""));
     }
     function getSessionProperty(id, key, fallback) {
         for (var i = 0; i < sessions.length; i++) {

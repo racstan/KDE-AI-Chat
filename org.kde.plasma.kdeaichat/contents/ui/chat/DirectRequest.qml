@@ -42,6 +42,10 @@ QtObject {
         var parts = [];
         if (chat.plasmoid.configuration.enableSystemPrompt !== false && chat.compiledSystemPrompt)
             parts.push(chat.compiledSystemPrompt);
+        // The chat's project: its instructions come after the main ones, before the chat's own.
+        var projectBlock = chat.projects ? chat.projects.instructionsBlock(sessionId) : "";
+        if (projectBlock)
+            parts.push(projectBlock);
         var chatPrompt = String(chat.getSessionProperty(sessionId, "chatSystemPrompt", "") || "").trim();
         if (chatPrompt)
             parts.push("--- Chat-specific instructions ---\n" + chatPrompt + "\n--- End chat-specific instructions ---");
