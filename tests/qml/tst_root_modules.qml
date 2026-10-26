@@ -11,6 +11,12 @@ TestCase {
     id: tc
     name: "RootModules"
 
+    function i18n(text) {
+        for (var i = 1; i < arguments.length; i++)
+            text = text.replace("%" + i, arguments[i]);
+        return text;
+    }
+
     // The root's state and the forwarders these modules call (main.qml has the real ones).
     QtObject {
         id: chat
@@ -181,5 +187,28 @@ TestCase {
         compare(chat.sent, 2);
         chat.sent = 0;
         chat.messages = [];
+    }
+
+    // A chat started with "/image <prompt>" is named after the prompt, not the command.
+    function test_image_chat_title() {
+        chat.sessions = [];
+        manager.createSession(true);
+        chat.messages = [{"role": "user", "content": "/image sun hugging moon", "at": 1}];
+        titles.nameChatFromFirstMessage("/image sun hugging moon");
+        compare(chat.currentSessionTitle, "Image: Sun hugging moon");
+        compare(chat.sessions[0].text, "Image: Sun hugging moon");
+        // The model is asked to name the prompt; its title gets the same prefix.
+        var source = titles.titleSource("/image sun hugging moon");
+        compare(source.text, "sun hugging moon");
+        verify(source.image);
+        verify(titles.applyAutoTitle(chat.currentSessionId, titles.imageTitle("Sun Embracing the Moon", source.image), true));
+        compare(chat.currentSessionTitle, "Image: Sun Embracing the Moon");
+        // Other text is unchanged, including a path that starts with /image.
+        compare(titles.titleSource("/images/cat.png is broken").text, "/images/cat.png is broken");
+        verify(!titles.titleSource("how do I make an /image").image);
+        chat.messages = [];
+        chat.sessions = [];
+        chat.currentSessionId = "";
+        chat.currentSessionTitle = "";
     }
 }
