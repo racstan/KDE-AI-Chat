@@ -150,7 +150,7 @@ def test_run_state_lock_serialises_writers(sched_env):
     assert schedule_runs.load_run_state("r-3")["runCount"] == 100
 
 
-# ---- run_schedule stub ------------------------------------------------------------------
+# ---- run_schedule decisions ---------------------------------------------------------------
 
 def stored(capsys, sid, **over):
     out = save(capsys, dict(OWNER, id=sid, **over))
@@ -158,7 +158,9 @@ def stored(capsys, sid, **over):
     return out["schedule"]
 
 
-def test_stub_records_due_and_dedupes(sched_env, capsys):
+def test_job_records_due_run_and_dedupes(sched_env, capsys, monkeypatch):
+    ran = []
+    monkeypatch.setattr(schedule_job, "_run_prompt", lambda schedule, state, now: ran.append(schedule["id"]) or "ok")
     s = stored(capsys, "job-1")
     due = dt.datetime.fromisoformat(s["editedAt"]).replace(hour=0, minute=0, second=0) + dt.timedelta(days=8)
     occ = next(d for d in (due + dt.timedelta(hours=h) for h in range(24 * 8))
@@ -166,13 +168,14 @@ def test_stub_records_due_and_dedupes(sched_env, capsys):
     decision = schedule_job.run_schedule("job-1", now=occ + dt.timedelta(seconds=20))
     assert decision["action"] == "run" and decision["occurrence"] == iso(occ)
     state = schedule_runs.load_run_state("job-1")
-    assert state["lastScheduledFor"] == iso(occ) and state["lastStatus"] == "due-not-run"
-    assert state["runCount"] == 0 and state["history"][-1]["status"] == "due-not-run"
+    assert ran == ["job-1"] and decision["status"] == "ok"
+    assert state["lastScheduledFor"] == iso(occ) and state["lastStatus"] == "ok" and state["lastSuccessAt"]
+    assert state["runCount"] == 1 and state["history"][-1]["status"] == "ok"
     again = schedule_job.run_schedule("job-1", now=occ + dt.timedelta(seconds=50))
     assert again["reason"] == "already-ran" and len(schedule_runs.load_run_state("job-1")["history"]) == 1
 
 
-def test_stub_records_missed_and_finishes_once(sched_env, capsys):
+def test_job_records_missed_and_finishes_once(sched_env, capsys):
     at = (dt.datetime.now() + dt.timedelta(days=30)).replace(hour=10, minute=0, second=0, microsecond=0)
     s = stored(capsys, "job-2", rules=[{"kind": "once", "at": at.strftime("%Y-%m-%dT%H:%M")}])
     late = at + dt.timedelta(hours=3)
@@ -184,7 +187,7 @@ def test_stub_records_missed_and_finishes_once(sched_env, capsys):
     assert s["catchUp"]["enabled"] is False
 
 
-def test_stub_unknown_schedule_stops_its_timer(sched_env, capsys):
+def test_job_unknown_schedule_stops_its_timer(sched_env, capsys):
     assert schedule_job.run_schedule("ghost")["reason"] == "unknown-schedule"
     assert sched_env.calls() == ["--user disable --now kdeaichat-sched-ghost.timer"]
     assert not os.path.exists(schedule_runs.run_state_path("ghost"))

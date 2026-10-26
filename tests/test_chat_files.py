@@ -28,6 +28,7 @@ def test_prepare_makes_folder_private_and_tightens_files():
         assert _mode(directory) == 0o700
         assert _mode(chats.chats_root()) == 0o700
         assert _mode(os.path.join(directory, "chat-a.ini")) == 0o600
+        assert _mode(os.path.join(directory, "inbox")) == 0o700  # scheduled runs land here
 
 
 def test_delete_removes_only_named_chat_files():
@@ -39,7 +40,7 @@ def test_delete_removes_only_named_chat_files():
 
         chats.cmd_delete_chat_files({"directory": directory, "files": ["chat-a.ini", "chat-b%3Ac.ini", "chat-gone.ini"]})
 
-        assert sorted(os.listdir(directory)) == ["index.ini"]
+        assert sorted(os.listdir(directory)) == ["inbox", "index.ini"]
 
 
 @pytest.mark.parametrize("name", ["index.ini", "../x.ini", "chat-a/../../x.ini", "chat-.ini.bak", "x.ini"])

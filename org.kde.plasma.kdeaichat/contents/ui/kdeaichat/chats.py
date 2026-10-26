@@ -31,10 +31,11 @@ def _chat_dir(payload: Dict[str, Any]) -> str:
 
 
 def cmd_prepare_chat_dir(payload: Dict[str, Any]) -> None:
-    """Create the chat folder private (0700) and tighten existing files to 0600."""
+    """Create the chat folder and its inbox private (0700) and tighten existing files to 0600."""
     directory = _chat_dir(payload)
     os.makedirs(directory, mode=0o700, exist_ok=True)
-    for path in (os.path.dirname(directory), directory):
+    os.makedirs(os.path.join(directory, "inbox"), mode=0o700, exist_ok=True)  # scheduled runs (schedule_chat.py)
+    for path in (os.path.dirname(directory), directory, os.path.join(directory, "inbox")):
         os.chmod(path, 0o700)
     for name in os.listdir(directory):
         path = os.path.join(directory, name)
