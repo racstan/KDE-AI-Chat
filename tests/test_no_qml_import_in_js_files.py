@@ -47,6 +47,7 @@ WATCHED_FILES = (
     "backends/ImageHttp.js",
     "chat/ChatExport.js",
     "chat/Projects.js",
+    "chat/MemoryRecall.js",
     "chat/ImageExtract.js",
     "chat/MessageBlocks.js",
     "chat/MessageGroups.js",
