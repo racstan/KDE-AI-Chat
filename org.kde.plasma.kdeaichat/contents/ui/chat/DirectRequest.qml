@@ -35,10 +35,13 @@ QtObject {
         return cfg;
     }
 
+    // Memories (chat/Memory.qml) go last, and also when the chat's own
+    // instructions are off: memory has its own switches.
     function buildEffectiveSystemPrompt(sessionId) {
+        var memoryBlock = chat.memory ? chat.memory.blockFor(sessionId) : "";
         var enabled = chat.getSessionProperty(sessionId, "chatSystemPromptEnabled", true) !== false;
         if (!enabled)
-            return "";
+            return memoryBlock;
         var parts = [];
         if (chat.plasmoid.configuration.enableSystemPrompt !== false && chat.compiledSystemPrompt)
             parts.push(chat.compiledSystemPrompt);
@@ -53,6 +56,8 @@ QtObject {
         var instructions = ["", "Keep the response short and focused, around 256 output tokens unless the task requires more.", "Give a balanced response, around 1024 output tokens at most.", "Give a detailed response, around 4096 output tokens at most.", "Give a comprehensive response, up to roughly 8192 output tokens when useful."];
         if (responseLength > 0 && responseLength < instructions.length)
             parts.push("Response length preference: " + instructions[responseLength]);
+        if (memoryBlock)
+            parts.push(memoryBlock);
         return parts.join("\n\n");
     }
 

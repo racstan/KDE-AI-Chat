@@ -1,5 +1,6 @@
 // Everything the widget stores, in one place: API keys (KWallet), chats
-// (per-chat files), the helper process, and the one-time 1.4.0 migration.
+// (per-chat files), memories (memory.json, through the helper), the helper
+// process, and the one-time 1.4.0 migration.
 //
 // main.qml loads chats through chatStore, calls chatsLoaded() once they are
 // in memory, and saves through save(). Saves are held back until the chat
@@ -19,15 +20,18 @@ Item {
 
     readonly property alias wallet: walletStore
     readonly property alias chatStore: chats
+    readonly property alias memoryStore: memories
     // What the migration moved, for a one-line notice.
-    readonly property string notice: migration.notice
+    readonly property string notice: [migration.notice, memoryMigration.notice].filter(function(t) { return t; }).join(" ")
 
     property bool _chatsLoaded: false
     property bool _chatMigrationSettled: false
     property bool _savePending: false
     property bool _keyMigrationDone: false
+    property bool _memoryMigrationDone: false
 
-    // Emitted when held-back saves may be written; the widget saves again.
+    // Emitted when held-back saves may be written, or a migration changed the
+    // chats in memory; the widget saves again.
     signal savesReleased()
 
     // Runs a helper command (kde_ai_helper.py): onDone(stdout, exitCode, stderr).
@@ -59,6 +63,19 @@ Item {
             _savePending = false;
             savesReleased();
         }
+        _migrateMemoryOnce();
+    }
+
+    // Old memory (config text, chats' chatMemory) moves once memories are
+    // loaded and the chats are in memory; the chats are saved again after.
+    function _migrateMemoryOnce() {
+        if (_memoryMigrationDone || !_chatMigrationSettled || !memories.loaded)
+            return;
+        _memoryMigrationDone = true;
+        memoryMigration.migrate(currentSessions(), function(sessionsChanged) {
+            if (sessionsChanged)
+                savesReleased();
+        });
     }
 
     function _migrateKeysOnce() {
@@ -85,6 +102,19 @@ Item {
         onReadyChanged: storage._migrateChatsOnce()
     }
 
+    MemoryStore {
+        id: memories
+        configuration: storage.configuration
+        runHelper: helper.run
+        onListLoaded: storage._migrateMemoryOnce()
+    }
+
+    MemoryMigration {
+        id: memoryMigration
+        configuration: storage.configuration
+        memoryStore: memories
+    }
+
     Migration {
         id: migration
         configuration: storage.configuration
@@ -93,5 +123,8 @@ Item {
         runHelper: helper.run
     }
 
-    Component.onCompleted: chats.prepare()
+    Component.onCompleted: {
+        chats.prepare();
+        memories.load();
+    }
 }

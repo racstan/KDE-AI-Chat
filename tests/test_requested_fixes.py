@@ -99,3 +99,32 @@ def test_settings_pages_exist_and_cut_settings_are_gone():
                     text = f.read()
                 for setting in cut:
                     assert setting not in text, f"{name} still reads {setting}"
+
+
+def test_old_memory_settings_exist_only_for_the_migration():
+    """enableMemory/userMemory (cut before 1.4.0) are declared only so
+    store/MemoryMigration.qml can move them into the memory list and clear
+    them, like the old key settings are for store/Migration.qml; nothing else
+    reads them. Memory's own switch is memoryEnabled."""
+    with open(MAIN_XML, encoding="utf-8") as f:
+        xml = f.read()
+    entries = {elem.attrib.get("name"): elem for elem in ET.fromstring(xml).iter() if elem.tag.endswith("entry")}
+    assert entries["memoryEnabled"].attrib["type"] == "Bool"
+    assert [e.text for e in entries["memoryEnabled"] if e.tag.endswith("default")] == ["true"]
+    marker = xml.index("migration (store/MemoryMigration.qml) can move and clear them. -->")
+    for name in ("enableMemory", "userMemory"):
+        assert name in entries
+        declared_at = xml.index('name="%s"' % name)
+        between = xml[marker:declared_at]
+        assert 0 < declared_at - marker and between.count("<!--") == 0 and between.count("<entry") <= 2, \
+            name + " must sit right under the migration-only comment"
+    ui = os.path.dirname(MAIN_QML)
+    readers = []
+    for folder, _dirs, files in os.walk(ui):
+        for name in files:
+            if name.endswith((".qml", ".js", ".py")):
+                path = os.path.join(folder, name)
+                with open(path, encoding="utf-8") as f:
+                    if re.search(r"\b(userMemory|enableMemory)\b", f.read()):
+                        readers.append(os.path.relpath(path, ui))
+    assert readers == [os.path.join("store", "MemoryMigration.qml")]
