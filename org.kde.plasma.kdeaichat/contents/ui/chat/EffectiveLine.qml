@@ -23,6 +23,8 @@ ColumnLayout {
     // "Let chats have their own model settings", and whether main settings win.
     property bool perChat: false
     property bool mainWins: false
+    // The chat's project, named when its settings decide (source "project").
+    property string projectName: ""
     // providerId -> name to show, for direct providers.
     property var providerName: function(id) { return id; }
 
@@ -65,7 +67,9 @@ ColumnLayout {
         wrapMode: Text.Wrap
         color: Kirigami.Theme.disabledTextColor
         font: Kirigami.Theme.smallFont
-        text: line.effective.source === "chat" ? i18n("From this chat's settings") : i18n("From main settings")
+        text: line.effective.source === "chat" ? i18n("From this chat's settings")
+            : line.effective.source === "project" ? i18n("From the project “%1”", line.projectName)
+            : i18n("From main settings")
     }
 
     PC3.Label {
@@ -75,7 +79,8 @@ ColumnLayout {
         wrapMode: Text.Wrap
         color: Kirigami.Theme.disabledTextColor
         font: Kirigami.Theme.smallFont
-        text: !line.perChat ? i18n("Every chat uses the main settings. Turn on \"Let chats have their own model settings\" in Settings → Chat to change that for this chat.")
+        text: line.effective.source === "project" ? ""
+            : !line.perChat ? i18n("Every chat uses the main settings. Turn on \"Let chats have their own model settings\" in Settings → Chat to change that for this chat.")
             : line.mainWins ? i18n("Main settings win when they differ from a chat's own (Settings → Chat).")
             : ""
     }

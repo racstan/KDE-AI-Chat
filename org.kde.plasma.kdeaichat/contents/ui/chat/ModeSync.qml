@@ -47,9 +47,11 @@ Connections {
         sync.chat.openCodeMode = eff.mode === "opencode";
         sync.chat.piMode = eff.mode === "pi";
         sync.chat.openCodeAgent = eff.mode === "opencode" ? eff.agent : String(config.openCodeAgent || "");
-        // The workspace is the chat's own; none when it has none. (The main
-        // setting only fills it in when a chat is created.)
-        sync.chat.openCodeWorkspaceCwd = session ? String(session.openCodeWorkspaceCwd || "") : "";
+        // The workspace is the chat's own, else its project's (chat/Projects.js);
+        // none when neither has one. (The main setting only fills it in when a
+        // chat is created.)
+        sync.chat.openCodeWorkspaceCwd = !session ? ""
+            : sync.chat.projects ? sync.chat.projects.workspaceFor(session.value).path : String(session.openCodeWorkspaceCwd || "");
         return eff.mode;
     }
 

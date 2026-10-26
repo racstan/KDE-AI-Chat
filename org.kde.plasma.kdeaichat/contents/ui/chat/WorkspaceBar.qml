@@ -25,6 +25,9 @@ RowLayout {
     readonly property var agentModel: OpenCodeAgents.comboModel(bar.chat.openCodeAgentsList, bar.chat.openCodeAgent)
     // The chat's workspace folder ("" = none).
     readonly property string workspace: String(bar.chat.openCodeWorkspaceCwd || "").trim()
+    // The open chat's project (or null), and whether the folder is the project's.
+    readonly property var project: bar.chat.projects ? bar.chat.projects.ofChat(bar.chat.currentSessionId) : null
+    readonly property bool fromProject: bar.chat.projects ? bar.chat.projects.workspaceFor(bar.chat.currentSessionId).from === "project" : false
 
     signal agentChosen(string value)
 
@@ -100,9 +103,28 @@ RowLayout {
         Layout.minimumWidth: 0
     }
 
+    // The chat's project, with its colour; the folder may come from it.
+    Rectangle {
+        visible: bar.project !== null
+        implicitWidth: Kirigami.Units.smallSpacing * 2
+        implicitHeight: implicitWidth
+        radius: width / 2
+        color: bar.project ? bar.project.color : "transparent"
+    }
+    PC3.Label {
+        objectName: "workspaceProject"
+        visible: bar.project !== null
+        text: bar.project ? (bar.fromProject ? i18n("%1 (folder from the project)", bar.project.name) : bar.project.name) : ""
+        font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+        opacity: 0.75
+        elide: Text.ElideRight
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 12
+    }
+
+    // Clears the chat's own folder (a project's folder is changed in the project).
     PC3.ToolButton {
         objectName: "workspaceClear"
-        visible: bar.workspace !== ""
+        visible: bar.workspace !== "" && !bar.fromProject
         icon.name: "edit-clear"
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: i18n("Clear the workspace (No workspace)")

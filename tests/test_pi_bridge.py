@@ -187,6 +187,30 @@ def test_abort_and_close(bridge):
     assert _until(q, "bridge_exit")[-1]["type"] == "bridge_exit"
 
 
+def test_instructions_reach_pi_from_a_private_file(bridge):
+    q = bridge.events("chat-5")
+    text = "--- Project instructions (Work) ---\nAnswer in French.\n--- End project instructions ---"
+    assert bridge.post("/chats/chat-5/prompt", {"directory": bridge.tmp, "instructions": text, "message": "hi"})[0] == 202
+    _until(q, "agent_settled")
+    argv = [e for e in _log(bridge) if "argv" in e][0]["argv"]
+    path = argv[argv.index("--append-system-prompt") + 1]
+    assert path == os.path.join(bridge.tmp, "data", "kdeaichat", "pi-instructions", "chat-5.md")
+    with open(path, encoding="utf-8") as f:
+        assert f.read() == text
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
+    assert stat.S_IMODE(os.stat(os.path.dirname(path)).st_mode) == 0o700
+    assert "Answer in French" not in " ".join(argv), "the text itself is never on a command line"
+    # Same instructions: the same Pi. Changed ones: a new Pi; none: no flag.
+    for instructions in (text, "Answer in German.", ""):
+        assert bridge.post("/chats/chat-5/prompt", {"directory": bridge.tmp, "instructions": instructions, "message": "hi"})[0] == 202
+        _until(q, "agent_settled")
+    starts = [e["argv"] for e in _log(bridge) if "argv" in e]
+    assert len(starts) == 3
+    assert "--append-system-prompt" not in starts[2]
+    assert bridge.post("/chats/chat-5/prompt", {"message": "x", "instructions": "a\x00b"})[0] == 400
+    assert bridge.post("/chats/chat-5/prompt", {"message": "x", "instructions": "a" * 100001})[0] == 400
+
+
 def test_changing_the_folder_restarts_pi(bridge):
     q = bridge.events("chat-4")
     other = os.path.join(bridge.tmp, "other")
