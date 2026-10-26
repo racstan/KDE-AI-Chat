@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 12:18+0530\n"
+"POT-Creation-Date: 2026-10-26 12:48+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -78,8 +78,8 @@ msgstr ""
 msgid "%1 History"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:93 contents/ui/chat/SessionList.qml:168
-#: contents/ui/chat/UndoNotice.qml:101
+#: contents/ui/chat/ChatHeader.qml:93 contents/ui/chat/SessionList.qml:171
+#: contents/ui/chat/UndoNotice.qml:128
 msgid "New Chat"
 msgstr ""
 
@@ -87,7 +87,7 @@ msgstr ""
 msgid "New chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:132 contents/ui/ChatSettingsDialog.qml:104
+#: contents/ui/chat/ChatHeader.qml:132 contents/ui/ChatSettingsDialog.qml:109
 msgid "Chat info"
 msgstr ""
 
@@ -95,8 +95,8 @@ msgstr ""
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:219 contents/ui/chat/SessionList.qml:65
-#: contents/ui/chat/SessionList.qml:292
+#: contents/ui/chat/ChatHeader.qml:219 contents/ui/chat/SessionList.qml:67
+#: contents/ui/chat/SessionList.qml:295
 msgid "Rename chat"
 msgstr ""
 
@@ -382,11 +382,11 @@ msgstr[1] ""
 msgid "Pi returned no providers"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:230
+#: contents/ui/chat/ChatView.qml:258
 msgid "New messages"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:230
+#: contents/ui/chat/ChatView.qml:258
 msgid "Latest"
 msgstr ""
 
@@ -935,6 +935,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: contents/ui/chat/MessageActions.qml:235
+#: contents/ui/chat/ProjectDeleteConfirm.qml:48
 #: contents/ui/chat/ProjectEditor.qml:229
 #: contents/ui/chat/RememberPopup.qml:126
 #: contents/ui/config/ImageProviderEditor.qml:230
@@ -974,7 +975,7 @@ msgstr ""
 msgid "Making a picture…"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:200
+#: contents/ui/chat/MessageDelegate.qml:201
 msgid "Saving removes the messages after this one."
 msgstr ""
 
@@ -1029,7 +1030,7 @@ msgid "Saved to %1"
 msgstr ""
 
 #: contents/ui/chat/NoticeBanner.qml:52 contents/ui/chat/QuestionCard.qml:106
-#: contents/ui/chat/UndoNotice.qml:168
+#: contents/ui/chat/UndoNotice.qml:208
 msgid "Dismiss"
 msgstr ""
 
@@ -1113,17 +1114,33 @@ msgstr ""
 msgid "Wants to use %1"
 msgstr ""
 
+#: contents/ui/chat/ProjectDeleteConfirm.qml:39
+msgid "Delete the project “%2” and its chat?"
+msgid_plural "Delete the project “%2” and its %1 chats?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/ProjectDeleteConfirm.qml:40
+msgid ""
+"For a few seconds afterwards, Undo brings back the project and its chats, "
+"but not their scheduled messages."
+msgstr ""
+
+#: contents/ui/chat/ProjectDeleteConfirm.qml:55
+msgid "Delete project and chats"
+msgstr ""
+
 #: contents/ui/chat/ProjectEditor.qml:91
 msgid "Select the project's working folder"
 msgstr ""
 
 #: contents/ui/chat/ProjectEditor.qml:103
-#: contents/ui/chat/ProjectsSidebar.qml:147
+#: contents/ui/chat/ProjectsSidebar.qml:160
 msgid "Edit project"
 msgstr ""
 
 #: contents/ui/chat/ProjectEditor.qml:103
-#: contents/ui/chat/ProjectsSidebar.qml:49
+#: contents/ui/chat/ProjectsSidebar.qml:62
 msgid "New project"
 msgstr ""
 
@@ -1210,31 +1227,35 @@ msgstr ""
 msgid "New project…"
 msgstr ""
 
-#: contents/ui/chat/ProjectsSidebar.qml:23
-#: contents/ui/chat/RememberPopup.qml:93 contents/ui/chat/SessionList.qml:112
+#: contents/ui/chat/ProjectsSidebar.qml:24
+#: contents/ui/chat/RememberPopup.qml:93 contents/ui/chat/SessionList.qml:115
 #: contents/ui/ConfigMemory.qml:56
 msgid "All chats"
 msgstr ""
 
-#: contents/ui/chat/ProjectsSidebar.qml:27
+#: contents/ui/chat/ProjectsSidebar.qml:28
 msgid "Archived"
 msgstr ""
 
-#: contents/ui/chat/ProjectsSidebar.qml:41
+#: contents/ui/chat/ProjectsSidebar.qml:54
 msgid "Projects"
 msgstr ""
 
-#: contents/ui/chat/ProjectsSidebar.qml:157
+#: contents/ui/chat/ProjectsSidebar.qml:170
 msgid "Edit project…"
 msgstr ""
 
-#: contents/ui/chat/ProjectsSidebar.qml:162
-#: contents/ui/chat/SessionList.qml:122
+#: contents/ui/chat/ProjectsSidebar.qml:175
+#: contents/ui/chat/SessionList.qml:125
 msgid "New chat in this project"
 msgstr ""
 
-#: contents/ui/chat/ProjectsSidebar.qml:172
+#: contents/ui/chat/ProjectsSidebar.qml:185
 msgid "Delete project (keeps its chats)"
+msgstr ""
+
+#: contents/ui/chat/ProjectsSidebar.qml:191
+msgid "Delete project and its chats…"
 msgstr ""
 
 #: contents/ui/chat/QuestionCard.qml:89
@@ -1327,11 +1348,11 @@ msgid ""
 "yet."
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:292
+#: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:295
 msgid "Save title"
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:39 contents/ui/chat/SessionList.qml:323
+#: contents/ui/chat/RenameRow.qml:39 contents/ui/chat/SessionList.qml:326
 msgid "Cancel rename"
 msgstr ""
 
@@ -1355,80 +1376,80 @@ msgstr ""
 msgid "Permission request"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:36
+#: contents/ui/chat/SessionList.qml:38
 msgid "Today"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:38
+#: contents/ui/chat/SessionList.qml:40
 msgid "Yesterday"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:75 contents/ui/chat/SessionList.qml:310
+#: contents/ui/chat/SessionList.qml:77 contents/ui/chat/SessionList.qml:313
 msgid "Restore chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:75 contents/ui/chat/SessionList.qml:310
+#: contents/ui/chat/SessionList.qml:77 contents/ui/chat/SessionList.qml:313
 msgid "Archive chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:81 contents/ui/chat/SessionList.qml:323
+#: contents/ui/chat/SessionList.qml:83 contents/ui/chat/SessionList.qml:326
 msgid "Delete chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:112
+#: contents/ui/chat/SessionList.qml:115
 msgid "Archived chats"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:141
+#: contents/ui/chat/SessionList.qml:144
 msgid ""
 "No archived chats. Archive a chat to keep it out of the list without "
 "deleting it."
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:142
+#: contents/ui/chat/SessionList.qml:145
 msgid ""
 "No chats in this project yet. Start one with +, or move a chat here from its "
 "menu."
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:143
+#: contents/ui/chat/SessionList.qml:146
 msgid "No chats yet."
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:239
+#: contents/ui/chat/SessionList.qml:242
 msgid "In project %1"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:249
+#: contents/ui/chat/SessionList.qml:252
 msgid "Pi chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:249
+#: contents/ui/chat/SessionList.qml:252
 msgid "OpenCode chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:116
-#: contents/ui/ChatSettingsDialog.qml:118
+#: contents/ui/ChatSettingsDialog.qml:121
+#: contents/ui/ChatSettingsDialog.qml:123
 msgid "Close chat info"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:142
+#: contents/ui/ChatSettingsDialog.qml:147
 msgid "This chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:203
+#: contents/ui/ChatSettingsDialog.qml:208
 msgid "Settings for this chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:230
+#: contents/ui/ChatSettingsDialog.qml:236
 msgid "Reset"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:239
+#: contents/ui/ChatSettingsDialog.qml:245
 msgid "Unsaved changes"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:243
+#: contents/ui/ChatSettingsDialog.qml:249
 msgid "Apply"
 msgstr ""
 
@@ -1492,41 +1513,47 @@ msgstr ""
 msgid "Output"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:101
+#: contents/ui/chat/UndoNotice.qml:128
 msgid "Chat “%1” deleted"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:106
+#: contents/ui/chat/UndoNotice.qml:133
 msgid "%1 message removed"
 msgid_plural "%1 messages removed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/UndoNotice.qml:113
+#: contents/ui/chat/UndoNotice.qml:140
 msgid "Message deleted"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:113
+#: contents/ui/chat/UndoNotice.qml:140
 msgid "Chat cleared"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:124
+#: contents/ui/chat/UndoNotice.qml:151
 msgid "Already in memory"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:124
+#: contents/ui/chat/UndoNotice.qml:151
 msgid "Saved to memory"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:127
+#: contents/ui/chat/UndoNotice.qml:154
 msgid "Could not save the memory."
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:136
+#: contents/ui/chat/UndoNotice.qml:164
+msgid "Project “%2” and its chat deleted"
+msgid_plural "Project “%2” and its %1 chats deleted"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/UndoNotice.qml:165
 msgid "Project “%1” deleted; its chats were kept"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:160 contents/ui/ConfigMemory.qml:193
+#: contents/ui/chat/UndoNotice.qml:199 contents/ui/ConfigMemory.qml:193
 msgid "Undo"
 msgstr ""
 
