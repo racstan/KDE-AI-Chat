@@ -68,3 +68,15 @@ Paths are relative to `org.kde.plasma.kdeaichat/contents/`.
 
 - No process is running and nothing polls when no schedule is due.
 - Schedules fire with the widget closed and after suspend, in the chat's own mode.
+
+## As built (steps 3 and 4)
+
+Modules under `contents/ui/kdeaichat/` (stdlib only):
+- `schedule_job.py`: decides (`should_run`), records the run as `running` at once (never sent twice, even after a crash), releases the run-state lock while the prompt runs, then records `ok` / `error: …` / `skipped: …`. Skipped runs don't count toward `limitCount`; `{{last_run}}` is the last `ok` run (`lastSuccessAt`).
+- `schedule_exec.py`: finds the chat, reads the widget's settings, resolves the chat's own mode and runs it; `schedule_context.py` ports EffectiveConfig/ProviderService/Personality/system-prompt/history rules (parity tests against the JS); `applet_config.py` reads `main.xml` defaults plus the applet's group in `plasma-org.kde.plasma.desktop-appletsrc` (read only).
+- Direct: `schedule_direct.py` (OpenAI-compatible and Anthropic, non-streaming, no tools), key via `schedule_wallet.py` (`busctl --json` to kwalletd6; a wallet that isn't open = "skipped: wallet locked", never a password prompt; `KDEAICHAT_WALLET_FOLDER` for the dev folder).
+- OpenCode: `schedule_opencode.py`, the server API (`POST /session/:id/message`) in the chat's session and folder; a temporary local `opencode serve` when none answers. Pi: `schedule_pi.py`, through the Pi bridge (which also keeps the job and the widget from driving the same Pi session at once). Permission requests and questions are declined (nobody can answer) and noted in the reply. Not headless: memories, tools, attachments, the direct model's variant.
+- The chat: `schedule_chat.py` + `qsettings_ini.py` (Qt's INI escaping, checked both ways against QSettings). The job appends to `chat-<id>.ini` under a folder lock and also writes `inbox/run-*.ini`; the widget (`chat/ScheduleInbox.qml`, a FolderListModel = file-system watcher) merges by run id, saves, then removes the inbox file (`schedule_inbox_done`). Either writer losing a race is repaired by the merge. Note: Qt decodes ChatStore's `%XX` file names, so on disk the file is plainly `chat-<id>.ini`.
+- Notifications (`schedule_notify.py`): with Plasma running the widget shows "<name> is ready" (click opens the chat); otherwise, and for failures/skips, the job uses `notify-send` (no click action).
+- Upgrade: `schedules_startup` (run by the widget on every start, idempotent) stops/disables/removes `kde-ai-scheduler.service`, kills a hand-started copy of the daemon (exact script path only), removes the script, `pending/` (old triggers are dropped and counted) and `results/`, migrates `schedules.json` and syncs the timers.
+- Real check: `scripts/dev-schedule-e2e.sh` (sandbox, dev wallet folder, optional transient test-named timer).
