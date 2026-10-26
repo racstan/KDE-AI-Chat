@@ -372,9 +372,9 @@ ColumnLayout {
             id: personalityCheck
             objectName: "personalityCheck"
             visible: form.draft.mode === "provider"
-            text: i18n("Use my Personality settings")
+            text: i18n("Use my Personality settings") // qmllint disable unqualified
             onToggled: {
-                form.draft.personalityOn = checked;
+                form.draft.personalityOn = personalityCheck.checked;
                 form.edited();
             }
         }
