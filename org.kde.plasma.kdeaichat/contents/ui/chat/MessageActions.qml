@@ -1,6 +1,7 @@
 // The buttons under a message: edit (apply/cancel while editing), read
 // aloud, regenerate (with longer/shorter) or, on your own message, resend,
-// copy, quote (a chip above the message box, Composer.qml) and delete.
+// copy, quote (a chip above the message box, Composer.qml), remember (save
+// it, or the selected part, as a memory: RememberPopup.qml) and delete.
 //
 // They show while the message is hovered (`hovered`, from its delegate) or
 // has keyboard focus, and never while it streams. They stay in the layout
@@ -44,8 +45,9 @@ RowLayout {
         return false;
     }
     readonly property bool shown: !streaming && (hovered || focusWithin || editing || selected)
-    // True while the pointer is on the read-aloud button (clicking it clears the selection).
-    readonly property bool keepSelection: (readAloud.item as PC3.ToolButton)?.hovered ?? false
+    // True while the pointer is on a button that uses the selection (clicking it clears it).
+    readonly property bool keepSelection: ((readAloud.item as PC3.ToolButton)?.hovered ?? false)
+        || ((remember.item as PC3.ToolButton)?.hovered ?? false)
 
     readonly property string role: message.role || ""
     readonly property bool isReply: role === "assistant" || role === "opencode_assistant"
@@ -83,7 +85,7 @@ RowLayout {
     // the first frame instead of all while the chat opens.
     property var builder: null
     property int built: builder ? 0 : buttonCount
-    readonly property int buttonCount: 9
+    readonly property int buttonCount: 10
 
     // Builds the next button; false once all are built.
     function buildStep() {
@@ -291,6 +293,29 @@ RowLayout {
             text: i18n("Quote")
             onClicked: actions.chat.composerRef.addQuote(actions.message)
         }
+    }
+
+    // Save this message (or the selected part) as a memory.
+    Optional {
+        id: remember
+        order: 9
+        shown: MessageContent.canQuote(actions.message) && !actions.editing && !!actions.chat && !!actions.chat.memory
+        sourceComponent: Action {
+            objectName: "rememberButton"
+            enabled: !actions.streaming
+            icon.name: "bookmark-new"
+            text: actions.selectedText.trim() ? i18n("Remember selection") : i18n("Remember")
+            onClicked: rememberPopup.createObject(actions, {
+                "chat": actions.chat,
+                "sessionId": actions.chat.currentSessionId,
+                "initialText": actions.selectedText.trim() ? actions.selectedText : actions.message.content || ""
+            }).open()
+        }
+    }
+
+    Component {
+        id: rememberPopup
+        RememberPopup {}
     }
 
     Optional {
