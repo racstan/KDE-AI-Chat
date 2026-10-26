@@ -274,14 +274,14 @@ Rectangle {
                         onVisibleChanged: if (visible) forceActiveFocus()
                     }
 
+                    // Always whole: the title is cut instead.
                     PC3.Label {
                         objectName: "dateLabel"
                         visible: !row.showActions
                         text: sessionList.dayLabel(row.modelData.updatedAt || row.modelData.createdAt)
                         color: Kirigami.Theme.disabledTextColor
                         font: Kirigami.Theme.smallFont
-                        elide: Text.ElideRight
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 6
+                        Layout.minimumWidth: implicitWidth
                     }
 
                     // Actions: only while hovered or focused (or renaming).

@@ -148,6 +148,7 @@ ColumnLayout {
                     text: row.count > 0 ? String(row.count) : ""
                     color: Kirigami.Theme.disabledTextColor
                     font: Kirigami.Theme.smallFont
+                    Layout.minimumWidth: implicitWidth
                 }
                 PC3.ToolButton {
                     id: editButton
