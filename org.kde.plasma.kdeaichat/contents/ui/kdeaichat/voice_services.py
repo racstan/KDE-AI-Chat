@@ -1,4 +1,4 @@
-"""Voice service setup: the per-user HTTP token and the STT/TTS user units."""
+"""Voice service setup: the per-user HTTP token and the TTS user unit (STT: stt_units.py)."""
 import fcntl
 import os
 import re
@@ -71,7 +71,7 @@ def _systemd_quote(value: str) -> str:
 
 
 def cmd_setup_venv_services(payload: Dict[str, Any]) -> None:
-    """Install the voice services for STT and TTS systemd user units."""
+    """Install the TTS systemd user unit and sync the on-demand STT units."""
     requested_venv = safe_path(payload.get("venvPy", "~/.local/share/kdeaichat/venv/bin/python3"))
     venv_py = requested_venv
     if not os.path.exists(venv_py) and venv_py.endswith("/bin/python3"):
@@ -123,16 +123,16 @@ WantedBy=default.target
 """
         atomic_write_text(path, content, mode=0o600)
 
-    write_voice_unit(os.path.join(sdir, "kde-ai-stt.service"), "--stt-server")
     write_voice_unit(os.path.join(sdir, "kde-ai-tts.service"), "--tts-server")
 
     os.system("systemctl --user daemon-reload")
     voice_enabled = as_bool(payload.get("voiceEnabled", True), True)
     voice_tts_enabled = as_bool(payload.get("voiceTtsEnabled", True), True)
-    if voice_enabled:
-        os.system("systemctl --user enable --now kde-ai-stt.service 2>/dev/null")
-    else:
-        os.system("systemctl --user disable --now kde-ai-stt.service 2>/dev/null")
+    # Speech-to-text is the on-demand socket unit now (and the old always-on unit is removed).
+    from kdeaichat import stt_units
+    stt_units.sync({"sttEnabled": as_bool(payload.get("sttEnabled", voice_enabled), voice_enabled),
+                    "sttEngine": payload.get("sttEngine", "faster-whisper"),
+                    "venv": os.path.dirname(os.path.dirname(requested_venv))})
 
     if voice_enabled and voice_tts_enabled:
         os.system("systemctl --user enable --now kde-ai-tts.service 2>/dev/null")
