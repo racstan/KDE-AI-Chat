@@ -48,6 +48,7 @@ TestCase {
         property string sessionHistoryLoadError: ""
         property bool sessionHistoryLoadBlocked: false
         property bool sessionSourceInferred: false
+        property var projects: null
         readonly property int maxMessageChars: 2000000
         property var streamBuffer: QtObject { function clear() {} function flush() {} }
         property var store: QtObject { property int saves: 0; function save(s) { saves++; } }
@@ -121,6 +122,35 @@ TestCase {
         compare(chat.currentSessionId, first);
         compare(manager.helperCommandsRef.n, 1);
         verify(manager.sessionSubtitle(chat.sessions[0]).indexOf("Updated ") === 0);
+    }
+
+    // Archiving the open chat opens the latest chat still in the list (or a new
+    // one); restoring brings it back; a new chat can start in a project.
+    function test_archive_and_restore() {
+        chat.sessions = [];
+        manager.createSession(true);
+        var older = chat.currentSessionId;
+        manager.createSession(true);
+        var newer = chat.currentSessionId;
+        manager.setSessionArchived(newer, true);
+        compare(chat.sessions[manager.sessionIndexById(newer)].archived, true);
+        compare(chat.currentSessionId, older, "the open chat left the list: the other one opens");
+        manager.setSessionArchived(older, true);
+        compare(chat.sessions.length, 3, "nothing left in the list: a new chat");
+        verify(chat.currentSessionId !== older && chat.currentSessionId !== newer);
+        manager.setSessionArchived(newer, false);
+        compare(chat.sessions[manager.sessionIndexById(newer)].archived, false, "restored");
+        compare(chat.sessions[manager.sessionIndexById(newer)].source, "chat", "its mode is kept");
+        // New chat in a project: no copy of the main default folder when the project has one.
+        chat.projects = {"byId": function(id) { return id === "p-1" ? {"id": "p-1", "folder": "/srv/p"} : null; }};
+        manager.createSession(true, "p-1");
+        compare(chat.sessions[0].projectId, "p-1");
+        compare(chat.sessions[0].openCodeWorkspaceCwd, "");
+        manager.createSession(true, "p-gone");
+        compare(chat.sessions[0].projectId, "", "an unknown project means none");
+        chat.projects = null;
+        chat.sessions = [];
+        chat.currentSessionId = "";
     }
 
     function test_nav_and_direct() {

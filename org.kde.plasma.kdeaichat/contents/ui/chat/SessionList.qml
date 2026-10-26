@@ -73,7 +73,7 @@ Rectangle {
         QQC2.MenuItem {
             objectName: "archiveItem"
             text: chatMenu.archived ? i18n("Restore chat") : i18n("Archive chat")
-            icon.name: chatMenu.archived ? "archive-remove" : "archive-insert"
+            icon.name: chatMenu.archived ? "document-revert" : "archive-insert"
             onTriggered: sessionList.chat.setSessionArchived(chatMenu.session.value, !chatMenu.archived)
         }
         QQC2.MenuSeparator {}
@@ -180,7 +180,7 @@ Rectangle {
                 clip: true
                 height: Kirigami.Units.gridUnit * 2 + Kirigami.Units.smallSpacing
                 radius: Kirigami.Units.cornerRadius
-                opacity: modelData.archived ? 0.72 : 1
+                opacity: modelData.archived && !sessionList.archivedView ? 0.72 : 1
                 // The open chat is tinted with the accent colour; a hovered one faintly.
                 color: current ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.18)
                      : hover.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.07)
@@ -305,7 +305,7 @@ Rectangle {
                         objectName: "archiveButton"
 
                         visible: row.showActions && !row.editing
-                        icon.name: row.modelData.archived ? "archive-remove" : "archive-insert"
+                        icon.name: row.modelData.archived ? "document-revert" : "archive-insert"
                         display: PC3.AbstractButton.IconOnly
                         Accessible.name: row.modelData.archived ? i18n("Restore chat") : i18n("Archive chat")
                         QQC2.ToolTip.visible: hovered

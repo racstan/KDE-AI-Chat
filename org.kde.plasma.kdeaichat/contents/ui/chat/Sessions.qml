@@ -280,6 +280,14 @@ QtObject {
         chat.sessions = updated;
         manager.sortSessionsByUpdated();
         manager.persistSessions();
+        // The open chat left the list: open the latest chat still in it (or a new one).
+        if (archived && sessionId === chat.currentSessionId) {
+            var next = chat.sessions.filter(function(s) { return !s.archived; })[0];
+            if (next)
+                manager.switchSession(next.value);
+            else
+                manager.createSession(true, item.projectId || "");
+        }
     }
 
     // Clears what belonged to the chat on screen: TTS, the stream, edits and renames.
