@@ -9,6 +9,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "Personality.js" as Personality
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -17,6 +18,10 @@ ColumnLayout {
     objectName: "quoteBlock"
 
     property var chat: null
+    // Speaker names from Settings → Personality (Personality.js); empty = You / Assistant.
+    readonly property var _cfg: chat && chat.plasmoid ? chat.plasmoid.configuration : ({})
+    readonly property string userName: Personality.userLabel(_cfg) || i18n("You")
+    readonly property string aiName: Personality.aiLabel(_cfg) || i18n("Assistant")
     // [{id, role, text}] (MessageContent.js).
     property var quotes: []
 
@@ -67,7 +72,7 @@ ColumnLayout {
                 PC3.Label {
                     objectName: "quoteSpeaker"
                     Layout.fillWidth: true
-                    text: quote.modelData.role === "assistant" ? i18n("Assistant") : i18n("You")
+                    text: quote.modelData.role === "assistant" ? block.aiName : block.userName
                     font.bold: true
                     elide: Text.ElideRight
                     opacity: 0.8

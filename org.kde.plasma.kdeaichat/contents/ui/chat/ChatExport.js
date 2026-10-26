@@ -9,6 +9,7 @@
 //   createdAt, exportedAt  ms since the epoch (0 / missing when unknown)
 //   mode                   "provider" | "opencode" | "pi"
 //   provider, model        what the chat uses now (display strings)
+//   userName, aiName       Settings → Personality names ("" = You / Assistant)
 //   messages               the chat's message list (see below)
 // }
 // A message is {role: user|queued|assistant|error, content, time, at, model,
@@ -94,10 +95,15 @@ function _esc(text) {
     return String(text).replace(/([*_`\\])/g, "\\$1");
 }
 
-function _speaker(m) {
+// The names a chat shows: {user, ai}, "You" / "Assistant" when not set.
+function _names(chat) {
+    return {"user": _oneLine(chat.userName, 60) || "You", "ai": _oneLine(chat.aiName, 40) || "Assistant"};
+}
+
+function _speaker(m, names) {
     if (m.role === "assistant")
-        return m.model ? "Assistant (" + _oneLine(m.model, 80) + ")" : "Assistant";
-    return m.role === "error" ? "Error" : "You";
+        return m.model ? names.ai + " (" + _oneLine(m.model, 80) + ")" : names.ai;
+    return m.role === "error" ? "Error" : names.user;
 }
 
 function _role(m) {
@@ -155,7 +161,7 @@ function _images(m) {
 }
 
 // What the message quoted: [{role, speaker, text}], in the order it was sent.
-function _quotes(m) {
+function _quotes(m, names) {
     var out = [];
     var list = m.quotes || [];
     for (var i = 0; i < list.length; i++) {
@@ -163,7 +169,7 @@ function _quotes(m) {
         var text = clean(q.text);
         if (text)
             out.push({"role": q.role === "assistant" ? "assistant" : "user",
-                      "speaker": q.role === "assistant" ? "Assistant" : "You", "text": text});
+                      "speaker": q.role === "assistant" ? names.ai : names.user, "text": text});
     }
     return out;
 }
@@ -193,6 +199,7 @@ function _tools(m) {
 function _entries(chat, opts) {
     var out = [];
     var list = chat.messages || [];
+    var names = _names(chat);
     for (var i = 0; i < list.length; i++) {
         var m = list[i];
         if (!m || typeof m !== "object")
@@ -200,11 +207,11 @@ function _entries(chat, opts) {
         var role = _role(m);
         if (role !== "user" && role !== "assistant" && role !== "error")
             continue;
-        var e = {"role": role, "speaker": _speaker(m), "when": _when(m), "at": m.at > 0 ? m.at : 0,
+        var e = {"role": role, "speaker": _speaker(m, names), "when": _when(m), "at": m.at > 0 ? m.at : 0,
                  "model": role === "assistant" ? String(m.model || "") : "",
                  "text": clean(m.content), "reasoning": opts.includeReasoning ? clean(m.reasoning) : "",
                  "attachments": _attachments(m), "images": role === "assistant" ? _images(m) : [],
-                 "quotes": role === "user" ? _quotes(m) : [], "tools": _tools(m),
+                 "quotes": role === "user" ? _quotes(m, names) : [], "tools": _tools(m),
                  "filesChanged": (m.filesChanged || []).map(function(f) { return _oneLine(f, 300); }),
                  "tokens": m.tokens || null, "cost": m.cost > 0 ? Number(m.cost) : 0};
         if (!e.text && !e.reasoning && e.attachments.length === 0 && e.images.length === 0 && e.tools.length === 0 && e.filesChanged.length === 0)
@@ -372,11 +379,14 @@ function toJson(chat, opts) {
             m.cost = e.cost;
         return m;
     });
+    var names = _names(chat);  // only when set (undefined is left out)
     return JSON.stringify({
         "format": "kdeaichat-chat", "version": 1, "title": _title(chat),
         "exportedAt": _iso(chat.exportedAt > 0 ? chat.exportedAt : Date.now()),
         "createdAt": _iso(chat.createdAt), "mode": chat.mode || "provider",
-        "provider": chat.provider || null, "model": chat.model || null, "messages": messages
+        "provider": chat.provider || null, "model": chat.model || null,
+        "userName": names.user !== "You" ? names.user : undefined, "aiName": names.ai !== "Assistant" ? names.ai : undefined,
+        "messages": messages
     }, null, 2) + "\n";
 }
 

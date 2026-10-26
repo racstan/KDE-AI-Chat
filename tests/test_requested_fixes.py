@@ -82,7 +82,7 @@ def test_settings_pages_exist_and_cut_settings_are_gone():
     package = os.path.join(REPO_ROOT, "org.kde.plasma.kdeaichat", "contents")
     with open(os.path.join(package, "config", "config.qml"), encoding="utf-8") as f:
         sources = re.findall(r'source:\s*"([^"]+)"', f.read())
-    assert sources == ["ConfigConnection.qml", "ConfigChat.qml", "ConfigMemory.qml",
+    assert sources == ["ConfigConnection.qml", "ConfigChat.qml", "ConfigPersonality.qml", "ConfigMemory.qml",
                        "ConfigSchedules.qml", "ConfigVoice.qml", "ConfigAppearance.qml"]
     for source in sources:
         assert os.path.isfile(os.path.join(package, "ui", source)), source

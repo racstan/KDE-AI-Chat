@@ -46,6 +46,8 @@ QtObject {
     property bool systemEnabled: true
     property string system: ""
     property int responseLength: 0
+    // Settings → Personality for this chat (direct mode; session property personalityOff).
+    property bool personalityOn: true
     property string piProvider: ""
     property string piModel: ""
     property string piThinking: ""
@@ -196,6 +198,7 @@ QtObject {
         system = _get("chatSystemPrompt", "");
         systemEnabled = system.trim() !== "" && _get("chatSystemPromptEnabled", true) !== false;
         responseLength = _get("responseLength", 0) || 0;
+        personalityOn = _get("personalityOff", false) !== true;
         // Pi chats used to keep their provider and model in chatProvider/chatModel.
         var configuration = _config || {};
         piProvider = _get("piProvider", source === "pi" ? _get("chatProvider", "") : "") || configuration.piProvider || "";
@@ -364,6 +367,8 @@ QtObject {
             overrides.chatSystemPrompt = hasText ? system : "";
             overrides.chatSystemPromptEnabled = hasText ? systemEnabled : _get("chatSystemPromptEnabled", true) !== false;
         }
+        if (!personalityOn || _get("personalityOff", false) === true)
+            overrides.personalityOff = !personalityOn;
         // The model settings are only written while they are editable; otherwise
         // what the chat has stays as it is (kept, not used). The mode (source)
         // is never written: a chat keeps the mode it was started in.

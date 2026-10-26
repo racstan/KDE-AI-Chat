@@ -1,6 +1,7 @@
-// Settings → Chat: the system prompt, how much history is sent, chat names,
-// the default workspace of new chats and prompt templates. Each chat can add
-// its own instructions and workspace in its chat settings.
+// Settings → Chat: how much history is sent, chat names, questions, the
+// default workspace of new chats, per-chat model settings and prompt
+// templates. The instructions sent before every chat are on the Personality
+// page. Each chat can add its own instructions and workspace in its chat settings.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -15,8 +16,6 @@ import "config" as Config
 KCM.SimpleKCM {
     id: page
 
-    property alias cfg_enableSystemPrompt: promptCheck.checked
-    property alias cfg_systemPrompt: promptArea.text
     property alias cfg_contextMessageLimit: limitSpin.value
     property alias cfg_autoNameChats: autoNameCheck.checked
     property alias cfg_allowAskUser: askUserCheck.checked
@@ -38,27 +37,6 @@ KCM.SimpleKCM {
     }
 
     Kirigami.FormLayout {
-        QQC2.CheckBox {
-            id: promptCheck
-            Kirigami.FormData.label: i18n("System prompt:")
-            text: i18n("Send these instructions before every chat")
-        }
-
-        QQC2.ScrollView {
-            Layout.fillWidth: true
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 20
-            // FormLayout sizes its rows from implicit sizes.
-            implicitHeight: Kirigami.Units.gridUnit * 8
-            enabled: promptCheck.checked
-
-            QQC2.TextArea {
-                id: promptArea
-                wrapMode: TextEdit.Wrap
-                placeholderText: i18n("Instructions for the model…")
-                Accessible.name: i18n("System prompt")
-            }
-        }
-
         QQC2.SpinBox {
             id: limitSpin
             Kirigami.FormData.label: i18n("Earlier messages sent:")

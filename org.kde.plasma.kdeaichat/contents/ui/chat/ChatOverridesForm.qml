@@ -52,6 +52,7 @@ ColumnLayout {
     property alias systemCheck: systemCheck
     property alias systemArea: systemArea
     property alias responseLengthCombo: responseLengthCombo
+    property alias personalityCheck: personalityCheck
 
     function edited() {
         if (draft && !draft.loading)
@@ -90,6 +91,7 @@ ColumnLayout {
             systemCheck.checked = draft.systemEnabled;
             systemArea.text = draft.system;
             responseLengthCombo.currentIndex = draft.responseLength;
+            personalityCheck.checked = draft.personalityOn;
         }
     }
 
@@ -362,6 +364,17 @@ ColumnLayout {
             placeholderText: i18n("Instructions for this chat")
             onTextChanged: {
                 form.draft.system = text;
+                form.edited();
+            }
+        }
+        // Settings → Personality; on its own switch, so it stays when the chat's instructions are off.
+        PC3.CheckBox {
+            id: personalityCheck
+            objectName: "personalityCheck"
+            visible: form.draft.mode === "provider"
+            text: i18n("Use my Personality settings") // qmllint disable unqualified
+            onToggled: {
+                form.draft.personalityOn = personalityCheck.checked;
                 form.edited();
             }
         }

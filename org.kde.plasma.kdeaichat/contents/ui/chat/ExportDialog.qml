@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Dialogs
 import "ChatExport.js" as ChatExport
+import "Personality.js" as Personality
 
 FileDialog {
     id: dialog
@@ -25,11 +26,13 @@ FileDialog {
             provider = chat.providerDisplayName(eff.provider);
         else if (eff)
             provider = String(eff.provider || "");
+        var cfg = chat.plasmoid ? chat.plasmoid.configuration : null;
         return {
             "title": chat.currentSessionTitle,
             "createdAt": session ? Number(session.createdAt) || 0 : 0,
             "exportedAt": Date.now(),
             "mode": mode, "provider": provider, "model": model,
+            "userName": Personality.userLabel(cfg), "aiName": Personality.aiLabel(cfg),
             "messages": chat.messages
         };
     }

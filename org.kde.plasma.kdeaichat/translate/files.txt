@@ -40,6 +40,7 @@ contents/ui/chat/QuoteChips.qml
 contents/ui/chat/ReasoningBlock.qml
 contents/ui/chat/RememberPopup.qml
 contents/ui/chat/RenameRow.qml
+contents/ui/chat/SenderName.qml
 contents/ui/chat/SessionList.qml
 contents/ui/ChatSettingsDialog.qml
 contents/ui/chat/ShortcutList.js
@@ -58,6 +59,7 @@ contents/ui/ConfigMemory.qml
 contents/ui/config/MemoryRow.qml
 contents/ui/config/ModeChooser.qml
 contents/ui/config/OpenCodeSettings.qml
+contents/ui/ConfigPersonality.qml
 contents/ui/config/PiSettings.qml
 contents/ui/config/ProviderChecker.qml
 contents/ui/config/ProviderEditor.qml

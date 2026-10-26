@@ -16,6 +16,11 @@ ConfigModel {
         source: "ConfigChat.qml"
     }
     ConfigCategory {
+        name: i18n("Personality")
+        icon: "user-identity"
+        source: "ConfigPersonality.qml"
+    }
+    ConfigCategory {
         name: i18n("Memory")
         icon: "view-pim-notes"
         source: "ConfigMemory.qml"

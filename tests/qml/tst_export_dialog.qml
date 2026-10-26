@@ -22,6 +22,8 @@ Item {
         ]
         property var sessions: [{value: "a", createdAt: 1761390000000}]
         property var written: []
+        // Settings → Personality names (empty = "You" / the model, as before).
+        property var plasmoid: ({configuration: {userName: "", aiName: ""}})
         function sessionIndexById(id) { return id === "a" ? 0 : -1; }
         function effectiveConfig() { return {mode: "provider", provider: "openrouter", model: "openrouter/auto"}; }
         function providerDisplayName(id) { return id === "openrouter" ? "OpenRouter" : id; }
@@ -37,7 +39,25 @@ Item {
         name: "ExportDialog"
         when: windowShown
 
-        function init() { chat.written = []; }
+        function init() {
+            chat.written = [];
+            chat.plasmoid = {configuration: {userName: "", aiName: ""}};
+        }
+
+        function test_export_uses_the_personality_names() {
+            dialog.exportTo("/home/u/Docs/Trip.md", 0);
+            verify(chat.written[0].content.indexOf("## You · ") > 0, "no names: as before");
+            verify(chat.written[0].content.indexOf("## Assistant (openrouter/auto)") > 0);
+            chat.plasmoid = {configuration: {userName: "Rachit", aiName: "Nova"}};
+            const d = dialog.describe();
+            compare(d.userName, "Rachit");
+            compare(d.aiName, "Nova");
+            dialog.exportTo("/home/u/Docs/Trip.md", 0);
+            verify(chat.written[1].content.indexOf("## Rachit · ") > 0, chat.written[1].content);
+            verify(chat.written[1].content.indexOf("## Nova (openrouter/auto)") > 0, chat.written[1].content);
+            dialog.exportTo("/home/u/Docs/Trip.json", 2);
+            compare(JSON.parse(chat.written[2].content).aiName, "Nova");
+        }
 
         function test_filters_are_markdown_text_json() {
             compare(dialog.nameFilters.length, 3);

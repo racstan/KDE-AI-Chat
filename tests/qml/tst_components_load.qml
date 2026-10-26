@@ -90,6 +90,8 @@ TestCase {
             { tag: "chat/ProjectInfoLine", url: uiDir + "chat/ProjectInfoLine.qml" },
             { tag: "ConfigConnection", url: uiDir + "ConfigConnection.qml" },
             { tag: "ConfigChat", url: uiDir + "ConfigChat.qml" },
+            { tag: "ConfigPersonality", url: uiDir + "ConfigPersonality.qml" },
+            { tag: "chat/SenderName", url: uiDir + "chat/SenderName.qml" },
             { tag: "ConfigSchedules", url: uiDir + "ConfigSchedules.qml" },
             { tag: "ConfigMemory", url: uiDir + "ConfigMemory.qml" },
             { tag: "ConfigVoice", url: uiDir + "ConfigVoice.qml" },

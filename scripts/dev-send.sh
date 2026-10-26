@@ -11,6 +11,7 @@
 # The message is delivered as a scheduler trigger, so no clicking is needed.
 # DEV_AUTO_ANSWER="Tea" answers the model's ask_user questions with that text (see dev-run.sh).
 # DEV_PROJECT="Answer in French." puts the chat in a project with those instructions.
+# DEV_CONFIG=$'userName=Ana\naiName=Nova' adds settings (one key=value per line) to the sandbox config.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -66,9 +67,11 @@ if preset.get("headers"):
 providers = json.dumps([entry]).replace("\\", "\\\\")
 path = f"{sandbox}/config/plasmawindowedrc"
 config = open(path, encoding="utf-8").read()
-config = re.sub(r"^(providersJson|provider|schedulerEnabled)=.*\n", "", config, flags=re.M)
+extra = [line for line in os.environ.get("DEV_CONFIG", "").split("\n") if re.match(r"^[A-Za-z]+=", line)]
+keys = "|".join(["providersJson", "provider", "schedulerEnabled"] + [line.split("=", 1)[0] for line in extra])
+config = re.sub(r"^(" + keys + r")=.*\n", "", config, flags=re.M)
 group = "[Applets][4][Configuration][General]\n"
-config = config.replace(group, group + f"provider={preset['id']}\nprovidersJson={providers}\nschedulerEnabled=true\n")
+config = config.replace(group, group + f"provider={preset['id']}\nprovidersJson={providers}\nschedulerEnabled=true\n" + "".join(l + "\n" for l in extra))
 open(path, "w", encoding="utf-8").write(config)
 os.makedirs(f"{sandbox}/data/kdeaichat/pending", exist_ok=True)
 with open(f"{sandbox}/data/kdeaichat/pending/dev-send.json", "w") as f:
