@@ -19,7 +19,7 @@ Item {
         property QtObject configuration: QtObject {
             // Dictation "on" here only so the manager doesn't run its
             // stop-the-dictation-service command at start.
-            property bool voiceEnabled: true
+            property bool sttEnabled: true
             property bool voiceTtsEnabled: true
             property bool voiceTtsAuto: false
             property bool voiceAutoSend: true

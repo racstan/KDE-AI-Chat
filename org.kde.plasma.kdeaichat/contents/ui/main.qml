@@ -70,7 +70,7 @@ PlasmoidItem {
     property var piThinkingModels: ({})   // "provider/model" -> true for models Pi marks as thinking
     property bool piModelsFetching: false
     property var piModelFetchWaiters: []
-    property bool voiceEnabled: plasmoid.configuration.voiceEnabled === true
+    property bool sttEnabled: plasmoid.configuration.sttEnabled === true
     property bool voiceTtsEnabled: plasmoid.configuration.voiceTtsEnabled === true
     property string compiledSystemPrompt: ""
     // Root-level proxies so root-scope functions can reach UI elements in fullRepresentation

@@ -234,7 +234,7 @@ ColumnLayout {
         }
 
         Item {
-            visible: composer.chat.voiceEnabled
+            visible: composer.chat.sttEnabled
             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.5
 
