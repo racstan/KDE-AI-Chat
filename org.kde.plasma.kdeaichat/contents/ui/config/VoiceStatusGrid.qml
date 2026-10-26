@@ -1,4 +1,5 @@
-// The result of the last voice engine check, one row per requirement.
+// The result of the last dictation engine check, one row per requirement.
+// (Read aloud has no engine to check: Settings → Voice tests it directly.)
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -13,9 +14,7 @@ GridLayout {
     id: grid
 
     property var env: ({})
-    property bool ttsEnabled: false
     property bool gpu: false
-    property bool espeakMissing: false
 
     columns: 2
     columnSpacing: Kirigami.Units.largeSpacing
@@ -24,14 +23,10 @@ GridLayout {
     readonly property var checks: [
         {"label": i18n("Speech-to-text folder"), "ok": !!env.stt_model_path_ok, "bad": i18n("no model files")},
         {"label": i18n("Speech-to-text engine"), "ok": !!(env.faster_whisper_ok && env.sounddevice_ok), "bad": i18n("needs repair")},
-        {"label": i18n("Text-to-speech folder"), "ok": !!env.tts_model_path_ok, "bad": i18n("no model files"), "off": !ttsEnabled},
-        {"label": i18n("Text-to-speech engine"), "ok": !!env.tts_ready, "off": !ttsEnabled,
-         "bad": espeakMissing ? i18n("espeak-ng is not installed") : i18n("needs repair")},
         {"label": i18n("Engine environment"), "ok": !!env.venv_ready, "bad": env.venv_exists ? i18n("broken") : i18n("not installed")},
         {"label": i18n("GPU libraries"), "ok": !!env.torch_cuda_version, "off": !gpu, "bad": i18n("missing"),
          "good": env.torch_cuda_version ? i18n("CUDA %1", env.torch_cuda_version) : ""},
-        {"label": i18n("Microphone"), "ok": !!env.mic_available, "bad": i18n("not found")},
-        {"label": i18n("Audio output"), "ok": !!(env.paplay_available || env.aplay_available), "bad": i18n("not found")}
+        {"label": i18n("Microphone"), "ok": !!env.mic_available, "bad": i18n("not found")}
     ]
 
     Repeater {
