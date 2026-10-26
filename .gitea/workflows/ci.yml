@@ -123,6 +123,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ImageViewer.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ImageStore.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ImageExtract.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/Projects.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/Projects.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ImageJobs.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ImageJobCard.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/QuestionCard.qml",

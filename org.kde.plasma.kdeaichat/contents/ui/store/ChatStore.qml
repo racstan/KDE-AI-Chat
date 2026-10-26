@@ -2,6 +2,7 @@
 //
 //   <directory>/index.ini        sessions = JSON list of chat metadata (no messages)
 //   <directory>/chat-<id>.ini    messages = JSON list of messages
+//   <directory>/projects.ini     projects = JSON list of projects (chat/Projects.js)
 //
 // Files are written in-process with QtCore Settings (atomic, no helper
 // process, nothing on a command line). Saves are debounced and only chats
@@ -75,7 +76,39 @@ Item {
             ready = true;
             if (callback) callback();
             if (_pending !== null) flush();
+            if (_pendingProjects !== null) saveProjects(_pendingProjects);
         });
+    }
+
+    // Projects (chat/Projects.js) live in <directory>/projects.ini, key
+    // "projects" (a JSON list). No file yet: "" (no projects).
+    property var _pendingProjects: null
+    property string _writtenProjects: ""
+
+    function loadProjects() {
+        if (directory === "")
+            return "";
+        _writtenProjects = _read("projects.ini", "projects");
+        return _writtenProjects;
+    }
+
+    // Written at once (projects change rarely), or once the folder is ready.
+    function saveProjects(projects) {
+        var json = JSON.stringify(projects || []);
+        if (!ready || directory === "") {
+            _pendingProjects = projects || [];
+            return;
+        }
+        _pendingProjects = null;
+        if (json === _writtenProjects)
+            return;
+        var file = _open("projects.ini");
+        file.setValue("version", 1);
+        file.setValue("projects", json);
+        file.sync();
+        file.destroy();
+        _writtenProjects = json;
+        fileWritten("projects.ini");
     }
 
     function hasIndex() {

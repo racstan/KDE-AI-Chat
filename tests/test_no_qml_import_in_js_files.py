@@ -46,6 +46,7 @@ WATCHED_FILES = (
     "backends/PollinationsBackend.js",
     "backends/ImageHttp.js",
     "chat/ChatExport.js",
+    "chat/Projects.js",
     "chat/ImageExtract.js",
     "chat/MessageBlocks.js",
     "chat/MessageGroups.js",

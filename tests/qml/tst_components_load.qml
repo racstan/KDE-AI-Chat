@@ -77,6 +77,7 @@ TestCase {
             { tag: "chat/PrimaryButton", url: uiDir + "chat/PrimaryButton.qml" },
             { tag: "chat/ToolCard", url: uiDir + "chat/ToolCard.qml" },
             { tag: "chat/UndoNotice", url: uiDir + "chat/UndoNotice.qml" },
+            { tag: "chat/Projects", url: uiDir + "chat/Projects.qml" },
             { tag: "ConfigConnection", url: uiDir + "ConfigConnection.qml" },
             { tag: "ConfigChat", url: uiDir + "ConfigChat.qml" },
             { tag: "ConfigSchedules", url: uiDir + "ConfigSchedules.qml" },

@@ -7,6 +7,7 @@
 // provider, model and agent of the chat's own mode.
 import QtQuick
 import "EffectiveConfig.js" as EffectiveConfig
+import "../ProviderService.js" as ProviderService
 
 Connections {
     id: sync
@@ -20,6 +21,19 @@ Connections {
     function newChatMode() {
         var config = sync.chat && sync.chat.plasmoid ? sync.chat.plasmoid.configuration : null;
         return EffectiveConfig.mainMode(EffectiveConfig.mainFromConfig(config, null));
+    }
+
+    // The mode, provider and model a chat really uses: the main settings, the
+    // chat's project or the chat's own, per the two "per chat" settings
+    // (chat/EffectiveConfig.js has the rules). main.qml's effectiveConfig.
+    function effectiveConfig(sessionId) {
+        var idx = sync.chat.sessionIndexById(sessionId || sync.chat.currentSessionId);
+        var session = idx < 0 ? null : sync.chat.sessions[idx];
+        var config = sync.chat.plasmoid.configuration;
+        var providerOf = function(id) { return ProviderService.getProviderConfig(id, config); };
+        return EffectiveConfig.forSession(config, session, function(id) { return providerOf(id).model; },
+                                          function(id) { return providerOf(id).variant; },
+                                          sync.chat.projects ? sync.chat.projects.byId(session ? session.projectId : "") : null);
     }
 
     // Puts the widget in the mode of `session` (the open chat). Returns the mode.

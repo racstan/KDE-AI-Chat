@@ -8,7 +8,6 @@ import org.kde.plasma.plasmoid
 import QtCore
 import "Security.js" as Sec
 import "store" as Store
-import "chat/EffectiveConfig.js" as EffectiveConfig
 import "chat/PromptTemplates.js" as PromptTemplates
 import "chat/MessageContent.js" as MessageContent
 import "chat/TimeFormat.js" as TimeFormat
@@ -30,6 +29,8 @@ PlasmoidItem {
     property Chat.MessageModel messageModel: Chat.MessageModel {}
     // Stream deltas wait here and reach currentStreamText/Reasoning at most every 33 ms.
     property Chat.StreamBuffer streamBuffer: Chat.StreamBuffer { target: root; maxChars: root.maxMessageChars }
+    // Projects and the history's view (chat/Projects.qml); the UI calls chat.projects.<name>.
+    readonly property Chat.Projects projects: Chat.Projects { chat: root }
     property var attachedFiles: []
     property bool historyOnlyMode: false
     property bool historySidePanel: false // set by chat/ChatBody.qml: history beside the chat stays open on New chat
@@ -196,6 +197,7 @@ PlasmoidItem {
         _initialLoadDone = true;
         startupTimer.stop(); // Stop background timer if we triggered early
         // Load sessions immediately so UI has chat list / current chat ready
+        root.projects.load();
         sessionManager.loadSessions();
         storage.chatsLoaded();
         // Defer wallet and sys info slightly so initial layout/rendering is unblocked
@@ -269,7 +271,7 @@ PlasmoidItem {
     function getSessionProperty(sessionId, key, defaultValue) { return sessionManager.getSessionProperty(sessionId, key, defaultValue); }
     function setSessionProperty(sessionId, key, value) { sessionManager.setSessionProperty(sessionId, key, value); }
     function setSessionOverrides(sessionId, overrides) { return sessionManager.setSessionOverrides(sessionId, overrides); }
-    function createSession(switchToNew) { sessionManager.createSession(switchToNew); }
+    function createSession(switchToNew, projectId) { sessionManager.createSession(switchToNew, projectId); }
     function resetUnreadableSessionHistory() { sessionManager.resetUnreadableSessionHistory(); }
     function saveCurrentSessionState(touchUpdatedAt) { sessionManager.saveCurrentSessionState(touchUpdatedAt); }
     function setCurrentSessionSource() { sessionManager.setCurrentSessionSource(); }
@@ -339,16 +341,9 @@ PlasmoidItem {
     function buildMessageContent(text, attachments, apiType, quotes) { return MessageContent.build(text, attachments, apiType, quotes); }
     function writeExportFile(filePath, content) { helperCommands.writeExportFile(filePath, content); }
 
-    // The mode, provider and model a chat really uses: the main settings, or the
-    // chat's own, per the two "per chat" settings (chat/EffectiveConfig.js has
-    // the rules). Everything that sends, validates or shows a mode/provider/model
-    // goes through this.
-    function effectiveConfig(sessionId) {
-        var idx = sessionIndexById(sessionId || root.currentSessionId);
-        var providerOf = function(id) { return ProviderService.getProviderConfig(id, plasmoid.configuration); };
-        return EffectiveConfig.forSession(plasmoid.configuration, idx < 0 ? null : root.sessions[idx],
-                                          function(id) { return providerOf(id).model; }, function(id) { return providerOf(id).variant; });
-    }
+    // The mode, provider and model a chat really uses (chat/ModeSync.qml, rules in
+    // chat/EffectiveConfig.js). Everything that sends, validates or shows them goes through this.
+    function effectiveConfig(sessionId) { return modeSync.effectiveConfig(sessionId); }
 
     // The provider for requests that always go to a provider (direct chats, naming a chat).
     function getEffectiveProvider(sessionId) {
