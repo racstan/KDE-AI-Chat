@@ -16,8 +16,8 @@ import "chat" as Chat
 PlasmoidItem {
     id: root
 
-    // The icon value may be a KDE icon name or an image file path chosen in
-    // Settings → Other (see customIconIsImage below).
+    // A KDE icon name or an image file path (Settings → Appearance); the panel
+    // shows it, or an animation, through chat/PanelIcon.qml.
     Plasmoid.icon: (plasmoid && plasmoid.configuration && plasmoid.configuration.customIcon) ? plasmoid.configuration.customIcon : "dialog-messages"
 
     property var sessions: []
@@ -518,55 +518,9 @@ PlasmoidItem {
         return path.endsWith("/contents/ui/kde_ai_helper.py") ? path : "";
     }
 
-    // True when the custom widget icon is an image file (not a KDE icon name).
-    function customIconIsImage() {
-        var v = (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "") : "";
-        if (v === "")
-            return false;
-        var s = v.trim().toLowerCase();
-        if (s.indexOf("file://") === 0 || s.charAt(0) === "/")
-            return true;
-        return s.endsWith(".png") || s.endsWith(".jpg") || s.endsWith(".jpeg")
-            || s.endsWith(".gif") || s.endsWith(".webp") || s.endsWith(".svg")
-            || s.endsWith(".svgz") || s.endsWith(".bmp");
-    }
-
-    // Turns the stored icon value (a file path) into a QML-usable source URL.
-    function customIconImageSource() {
-        var v = (plasmoid && plasmoid.configuration) ? (plasmoid.configuration.customIcon || "") : "";
-        if (v === "")
-            return "";
-        if (v.indexOf("file://") === 0)
-            return v;
-        return "file://" + v;
-    }
-
-    compactRepresentation: MouseArea {
-        onClicked: root.expanded = !root.expanded
-
-        // Custom image icons (including animated GIFs) are rendered with an
-        // Image element; KDE icon names fall back to Kirigami.Icon.
-        Image {
-            anchors.centerIn: parent
-            width: Math.min(parent.width, parent.height) * 0.8
-            height: width
-            visible: root.customIconIsImage()
-            source: root.customIconIsImage() ? root.customIconImageSource() : ""
-            sourceSize.width: width * 2
-            sourceSize.height: height * 2
-            fillMode: Image.PreserveAspectFit
-            asynchronous: true
-            cache: false
-        }
-
-        Kirigami.Icon {
-            anchors.centerIn: parent
-            width: Math.min(parent.width, parent.height) * 0.8
-            height: width
-            visible: !root.customIconIsImage()
-            source: (plasmoid && plasmoid.configuration && plasmoid.configuration.customIcon)
-                ? plasmoid.configuration.customIcon : "dialog-messages"
-        }
+    // The panel icon, still or animated (Settings → Appearance).
+    compactRepresentation: Chat.PanelIcon {
+        chat: root
     }
 
     fullRepresentation: Item {

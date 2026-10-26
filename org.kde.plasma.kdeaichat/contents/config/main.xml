@@ -341,6 +341,16 @@
     <entry name="customIcon" type="String">
       <default>dialog-messages</default>
     </entry>
+    <!-- The panel icon: "icon" (customIcon), "animated" (GIF, APNG or WebP) or "video" (short, muted, looping); see chat/PanelIcon.js. -->
+    <entry name="panelIconMode" type="String">
+      <default>icon</default>
+    </entry>
+    <entry name="panelIconFile" type="String">
+      <default></default>
+    </entry>
+    <entry name="panelIconHoverOnly" type="Bool">
+      <default>false</default>
+    </entry>
     <entry name="disableStreaming" type="Bool">
       <default>false</default>
     </entry>
