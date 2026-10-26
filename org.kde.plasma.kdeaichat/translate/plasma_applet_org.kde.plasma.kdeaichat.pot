@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 20:51+0530\n"
+"POT-Creation-Date: 2026-10-26 10:38+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,77 +42,78 @@ msgstr ""
 msgid "Open %1"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:55
+#: contents/ui/chat/ChatHeader.qml:58
 msgid "Back to chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:56
+#: contents/ui/chat/ChatHeader.qml:59
 msgid "Hide history"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:56
+#: contents/ui/chat/ChatHeader.qml:59
 msgid "Show history"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:72
+#: contents/ui/chat/ChatHeader.qml:75
 msgid "Unpin (close when clicking away)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:72
+#: contents/ui/chat/ChatHeader.qml:75
 msgid "Pin (keep open)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:79
+#: contents/ui/chat/ChatHeader.qml:82
 msgid "Open Settings"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:90
+#: contents/ui/chat/ChatHeader.qml:93
 msgid "%1 History"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:90 contents/ui/chat/SessionList.qml:63
-#: contents/ui/chat/UndoNotice.qml:92
+#: contents/ui/chat/ChatHeader.qml:93 contents/ui/chat/SessionList.qml:168
+#: contents/ui/chat/UndoNotice.qml:95
 msgid "New Chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:107 contents/ui/ChatSettingsDialog.qml:103
+#: contents/ui/chat/ChatHeader.qml:115 contents/ui/ConfigAppearance.qml:32
+msgid "New chat"
+msgstr ""
+
+#: contents/ui/chat/ChatHeader.qml:132 contents/ui/ChatSettingsDialog.qml:103
 msgid "Chat info"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:121
+#: contents/ui/chat/ChatHeader.qml:147
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:190 contents/ui/chat/SessionList.qml:169
+#: contents/ui/chat/ChatHeader.qml:219 contents/ui/chat/SessionList.qml:65
+#: contents/ui/chat/SessionList.qml:292
 msgid "Rename chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:200
+#: contents/ui/chat/ChatHeader.qml:235
 msgid "Jump to first message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:211
+#: contents/ui/chat/ChatHeader.qml:246
 msgid "Jump to previous message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:216
+#: contents/ui/chat/ChatHeader.qml:251
 msgid "Jump to next message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:221
+#: contents/ui/chat/ChatHeader.qml:256
 msgid "Jump to latest message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:231
+#: contents/ui/chat/ChatHeader.qml:266
 msgid "Export chat…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:237
+#: contents/ui/chat/ChatHeader.qml:272
 msgid "Clear chat"
-msgstr ""
-
-#: contents/ui/chat/ChatHeader.qml:248 contents/ui/ConfigAppearance.qml:32
-msgid "New chat"
 msgstr ""
 
 #: contents/ui/chat/ChatInfoSummary.qml:24
@@ -142,6 +143,8 @@ msgstr ""
 #: contents/ui/chat/ChatInfoSummary.qml:90
 #: contents/ui/chat/ChatOverridesForm.qml:157
 #: contents/ui/chat/ChatOverridesForm.qml:236
+#: contents/ui/chat/ProjectEditor.qml:211
+#: contents/ui/chat/ProjectEditor.qml:212
 #: contents/ui/components/ModelPicker.qml:104
 msgid "Model"
 msgid_plural "Models"
@@ -208,50 +211,54 @@ msgstr ""
 msgid "Working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:306
-#: contents/ui/chat/WorkspaceBar.qml:88 contents/ui/ConfigChat.qml:109
+#: contents/ui/chat/ChatOverridesForm.qml:309
+msgid "The project's folder: %1"
+msgstr ""
+
+#: contents/ui/chat/ChatOverridesForm.qml:310
+#: contents/ui/chat/WorkspaceBar.qml:91 contents/ui/ConfigChat.qml:109
 msgid "No workspace"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:315
-#: contents/ui/chat/ChatOverridesForm.qml:317
+#: contents/ui/chat/ChatOverridesForm.qml:319
+#: contents/ui/chat/ChatOverridesForm.qml:321
 msgid "Choose working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:340
+#: contents/ui/chat/ChatOverridesForm.qml:344
 msgid "Instructions"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:344
+#: contents/ui/chat/ChatOverridesForm.qml:348
 msgid "Give this chat system instructions"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:356
+#: contents/ui/chat/ChatOverridesForm.qml:360
 msgid "Instructions for this chat"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:366
+#: contents/ui/chat/ChatOverridesForm.qml:370
 msgid "Response length"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:371
+#: contents/ui/chat/ChatOverridesForm.qml:375
 #: contents/ui/components/VariantPicker.qml:24
 msgid "Default"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:371
+#: contents/ui/chat/ChatOverridesForm.qml:375
 msgid "Short"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:371
+#: contents/ui/chat/ChatOverridesForm.qml:375
 msgid "Balanced"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:371
+#: contents/ui/chat/ChatOverridesForm.qml:375
 msgid "Detailed"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:371
+#: contents/ui/chat/ChatOverridesForm.qml:375
 msgid "Comprehensive"
 msgstr ""
 
@@ -425,7 +432,7 @@ msgstr ""
 msgid "This chat now uses %1."
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:40 contents/ui/chat/EffectiveLine.qml:33
+#: contents/ui/chat/ComposerPicker.qml:40 contents/ui/chat/EffectiveLine.qml:35
 msgid "Direct"
 msgstr ""
 
@@ -609,33 +616,37 @@ msgstr ""
 msgid "The user closed the question without answering."
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:33
+#: contents/ui/chat/EffectiveLine.qml:35
 msgid "No model chosen yet"
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:55
+#: contents/ui/chat/EffectiveLine.qml:57
 msgid "Change…"
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:57
+#: contents/ui/chat/EffectiveLine.qml:59
 msgid "Change the model for this chat"
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:68
+#: contents/ui/chat/EffectiveLine.qml:70
 msgid "From this chat's settings"
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:68
+#: contents/ui/chat/EffectiveLine.qml:71
+msgid "From the project “%1”"
+msgstr ""
+
+#: contents/ui/chat/EffectiveLine.qml:72
 msgid "From main settings"
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:78
+#: contents/ui/chat/EffectiveLine.qml:83
 msgid ""
 "Every chat uses the main settings. Turn on \"Let chats have their own model "
 "settings\" in Settings → Chat to change that for this chat."
 msgstr ""
 
-#: contents/ui/chat/EffectiveLine.qml:79
+#: contents/ui/chat/EffectiveLine.qml:84
 msgid "Main settings win when they differ from a chat's own (Settings → Chat)."
 msgstr ""
 
@@ -879,6 +890,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: contents/ui/chat/MessageActions.qml:233
+#: contents/ui/chat/ProjectEditor.qml:229
 #: contents/ui/config/ImageProviderEditor.qml:230
 #: contents/ui/config/ProviderEditor.qml:162
 #: contents/ui/config/ProviderRow.qml:104
@@ -987,7 +999,7 @@ msgid "Saved to %1"
 msgstr ""
 
 #: contents/ui/chat/NoticeBanner.qml:52 contents/ui/chat/QuestionCard.qml:106
-#: contents/ui/chat/UndoNotice.qml:138
+#: contents/ui/chat/UndoNotice.qml:150
 msgid "Dismiss"
 msgstr ""
 
@@ -1071,6 +1083,126 @@ msgstr ""
 msgid "Wants to use %1"
 msgstr ""
 
+#: contents/ui/chat/ProjectEditor.qml:91
+msgid "Select the project's working folder"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:103
+#: contents/ui/chat/ProjectsSidebar.qml:147
+msgid "Edit project"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:103
+#: contents/ui/chat/ProjectsSidebar.qml:49
+msgid "New project"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:111
+#: contents/ui/chat/ProjectEditor.qml:112
+msgid "Project name"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:136
+msgid "Colour %1"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:145
+msgid "Instructions for every chat in this project"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:156
+msgid "For example: answer in French, keep code in Python"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:161
+msgid "Working folder (OpenCode and Pi work here)"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:171
+#: contents/ui/chat/ProjectEditor.qml:183
+msgid "No folder"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:176
+msgid "Choose…"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:191
+msgid "Model for direct chats"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:202
+msgid "Main settings"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:223
+msgid "Delete project"
+msgstr ""
+
+#: contents/ui/chat/ProjectEditor.qml:235
+#: contents/ui/config/ImageProviderEditor.qml:224
+#: contents/ui/config/ProviderEditor.qml:148
+#: contents/ui/config/TemplatesEditor.qml:128
+msgid "Save"
+msgstr ""
+
+#: contents/ui/chat/ProjectInfoLine.qml:40
+msgid "In the project “%1”"
+msgstr ""
+
+#: contents/ui/chat/ProjectInfoLine.qml:52
+msgid "Instructions: the project's, then this chat's own"
+msgstr ""
+
+#: contents/ui/chat/ProjectInfoLine.qml:53
+msgid "Instructions: from the project"
+msgstr ""
+
+#: contents/ui/chat/ProjectInfoLine.qml:63
+msgid "Working folder: %1 (from the project)"
+msgstr ""
+
+#: contents/ui/chat/ProjectInfoLine.qml:64
+msgid "Working folder: %1 (this chat's own)"
+msgstr ""
+
+#: contents/ui/chat/ProjectMenu.qml:23
+msgid "Move to project"
+msgstr ""
+
+#: contents/ui/chat/ProjectMenu.qml:28
+msgid "No project"
+msgstr ""
+
+#: contents/ui/chat/ProjectMenu.qml:54
+msgid "New project…"
+msgstr ""
+
+#: contents/ui/chat/ProjectsSidebar.qml:23 contents/ui/chat/SessionList.qml:112
+msgid "All chats"
+msgstr ""
+
+#: contents/ui/chat/ProjectsSidebar.qml:27
+msgid "Archived"
+msgstr ""
+
+#: contents/ui/chat/ProjectsSidebar.qml:41
+msgid "Projects"
+msgstr ""
+
+#: contents/ui/chat/ProjectsSidebar.qml:157
+msgid "Edit project…"
+msgstr ""
+
+#: contents/ui/chat/ProjectsSidebar.qml:162
+#: contents/ui/chat/SessionList.qml:122
+msgid "New chat in this project"
+msgstr ""
+
+#: contents/ui/chat/ProjectsSidebar.qml:172
+msgid "Delete project (keeps its chats)"
+msgstr ""
+
 #: contents/ui/chat/QuestionCard.qml:89
 msgid "Or type your own answer…"
 msgstr ""
@@ -1119,40 +1251,64 @@ msgstr ""
 msgid "Thought process"
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:169
+#: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:292
 msgid "Save title"
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:39 contents/ui/chat/SessionList.qml:200
+#: contents/ui/chat/RenameRow.qml:39 contents/ui/chat/SessionList.qml:323
 msgid "Cancel rename"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:30
+#: contents/ui/chat/SessionList.qml:36
 msgid "Today"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:32
+#: contents/ui/chat/SessionList.qml:38
 msgid "Yesterday"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:126
-msgid "Pi chat"
+#: contents/ui/chat/SessionList.qml:75 contents/ui/chat/SessionList.qml:310
+msgid "Restore chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:126
-msgid "OpenCode chat"
-msgstr ""
-
-#: contents/ui/chat/SessionList.qml:187
-msgid "Unarchive chat"
-msgstr ""
-
-#: contents/ui/chat/SessionList.qml:187
+#: contents/ui/chat/SessionList.qml:75 contents/ui/chat/SessionList.qml:310
 msgid "Archive chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:200
+#: contents/ui/chat/SessionList.qml:81 contents/ui/chat/SessionList.qml:323
 msgid "Delete chat"
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:112
+msgid "Archived chats"
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:141
+msgid ""
+"No archived chats. Archive a chat to keep it out of the list without "
+"deleting it."
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:142
+msgid ""
+"No chats in this project yet. Start one with +, or move a chat here from its "
+"menu."
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:143
+msgid "No chats yet."
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:239
+msgid "In project %1"
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:249
+msgid "Pi chat"
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:249
+msgid "OpenCode chat"
 msgstr ""
 
 #: contents/ui/ChatSettingsDialog.qml:115
@@ -1164,19 +1320,19 @@ msgstr ""
 msgid "This chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:182
+#: contents/ui/ChatSettingsDialog.qml:193
 msgid "Settings for this chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:209
+#: contents/ui/ChatSettingsDialog.qml:220
 msgid "Reset"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:218
+#: contents/ui/ChatSettingsDialog.qml:229
 msgid "Unsaved changes"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:222
+#: contents/ui/ChatSettingsDialog.qml:233
 msgid "Apply"
 msgstr ""
 
@@ -1236,49 +1392,57 @@ msgstr ""
 msgid "Output"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:92
+#: contents/ui/chat/UndoNotice.qml:95
 msgid "Chat “%1” deleted"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:97
+#: contents/ui/chat/UndoNotice.qml:100
 msgid "%1 message removed"
 msgid_plural "%1 messages removed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/UndoNotice.qml:104
+#: contents/ui/chat/UndoNotice.qml:107
 msgid "Message deleted"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:104
+#: contents/ui/chat/UndoNotice.qml:107
 msgid "Chat cleared"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:130
+#: contents/ui/chat/UndoNotice.qml:119
+msgid "Project “%1” deleted; its chats were kept"
+msgstr ""
+
+#: contents/ui/chat/UndoNotice.qml:142
 msgid "Undo"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:58
+#: contents/ui/chat/WorkspaceBar.qml:61
 msgid "Select the chat's workspace folder"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:71
+#: contents/ui/chat/WorkspaceBar.qml:74
 msgid "Workspace: %1"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:71
+#: contents/ui/chat/WorkspaceBar.qml:74
 msgid "Choose a workspace folder"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:108
+#: contents/ui/chat/WorkspaceBar.qml:117
+msgid "%1 (folder from the project)"
+msgstr ""
+
+#: contents/ui/chat/WorkspaceBar.qml:130
 msgid "Clear the workspace (No workspace)"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:133
+#: contents/ui/chat/WorkspaceBar.qml:155
 msgid "Agent profile"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:149
+#: contents/ui/chat/WorkspaceBar.qml:171
 msgid "Sync session history from OpenCode"
 msgstr ""
 
@@ -1675,12 +1839,6 @@ msgstr ""
 
 #: contents/ui/config/ImageProviderEditor.qml:207
 msgid "Empty: a new one each time"
-msgstr ""
-
-#: contents/ui/config/ImageProviderEditor.qml:224
-#: contents/ui/config/ProviderEditor.qml:148
-#: contents/ui/config/TemplatesEditor.qml:128
-msgid "Save"
 msgstr ""
 
 #: contents/ui/config/ModeChooser.qml:18
