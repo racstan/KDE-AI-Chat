@@ -144,14 +144,24 @@ Rectangle {
         }
     }
 
+    // The text wraps when the notice is narrower than it (its parent caps
+    // the width); the buttons always keep their room.
     RowLayout {
         id: row
-        anchors.centerIn: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.leftMargin: Kirigami.Units.largeSpacing
+        anchors.rightMargin: Kirigami.Units.largeSpacing
         spacing: Kirigami.Units.smallSpacing
 
         PC3.Label {
             objectName: "undoText"
+            Layout.fillWidth: true
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 3
             text: notice.text
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
         }
 
         PC3.Button {
@@ -163,6 +173,7 @@ Rectangle {
         }
 
         PC3.ToolButton {
+            objectName: "undoDismiss"
             icon.name: "dialog-close"
             display: PC3.AbstractButton.IconOnly
             Accessible.name: i18n("Dismiss")
