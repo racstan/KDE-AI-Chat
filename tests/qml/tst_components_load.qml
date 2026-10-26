@@ -19,6 +19,7 @@ TestCase {
             { tag: "ChatSettingsDialog", url: uiDir + "ChatSettingsDialog.qml" },
             { tag: "ScheduleDialog", url: uiDir + "ScheduleDialog.qml" },
             { tag: "VoiceManager", url: uiDir + "VoiceManager.qml" },
+            { tag: "voice/SttBackend", url: uiDir + "voice/SttBackend.qml" },
             { tag: "store/Wallet", url: uiDir + "store/Wallet.qml" },
             { tag: "store/ChatStore", url: uiDir + "store/ChatStore.qml" },
             { tag: "store/HelperRunner", url: uiDir + "store/HelperRunner.qml" },

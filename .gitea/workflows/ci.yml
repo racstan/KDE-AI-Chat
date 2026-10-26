@@ -284,7 +284,7 @@ jobs:
         env:
           REQUIRE_QML_TESTS: "1"
         run: |
-          pytest -q tests/test_qml.py -rs
+          pytest -q tests/test_qml.py tests/test_stt_qml.py -rs
 
       - name: Upload QML screenshots
         if: always()
