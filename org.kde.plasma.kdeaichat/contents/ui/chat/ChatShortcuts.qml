@@ -15,6 +15,7 @@
 //   Ctrl+PgDown/Up  next / previous chat
 //   Ctrl+,          open the settings
 //   Ctrl+E          edit your last message
+//   Ctrl+Shift+S    read aloud the selection / picked message; stop reading
 //   Up / Down       browse the messages (input empty, or the chat clicked)
 //   PgUp / PgDown   first / latest message
 //
@@ -27,6 +28,7 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "ShortcutList.js" as ShortcutList
+import "ReadAloudAction.js" as ReadAloudAction
 
 Item {
     id: shortcuts
@@ -132,6 +134,27 @@ Item {
             var composer = shortcuts.chat.composerRef;
             if (composer && composer.editLastMessage() && shortcuts.chat.msgListViewRef)
                 shortcuts.chat.msgListViewRef.clearSelection();
+        }
+    }
+
+    // Ctrl+Shift+S: read aloud the selected text (a message, the input or an
+    // edit box), else the picked message, else the last reply; stop if reading.
+    Shortcut {
+        sequence: ShortcutList.keysFor("readAloud")
+        context: Qt.WindowShortcut
+        enabled: !!shortcuts.chat && shortcuts.chat.voiceTtsEnabled === true && !!shortcuts.chat.voiceManagerRef
+        onActivated: {
+            var chat = shortcuts.chat;
+            if (chat.voiceManagerRef.isPlaying) {
+                chat.voiceManagerRef.stopTTS();
+                chat.playingMessageIndex = -1;
+                return;
+            }
+            var list = chat.msgListViewRef;
+            var target = ReadAloudAction.shortcutTarget(shortcuts.Window.window ? shortcuts.Window.window.activeFocusItem : null,
+                                                        chat.messages, list ? list.selectedIndex : -1, shortcuts._lastReply());
+            if (target)
+                ReadAloudAction.toggle(chat, target.index, target.text);
         }
     }
 
