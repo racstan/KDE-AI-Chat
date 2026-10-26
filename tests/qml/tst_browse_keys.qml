@@ -174,5 +174,18 @@ Item {
             keyClick(Qt.Key_Up);
             compare(view.list.selectedIndex, 3, "and Up from there browses too");
         }
+
+        function test_8_a_field_in_a_message_keeps_up_and_down() {
+            // Like a question card's answer field.
+            tryVerify(() => view.list.itemAtIndex(3) !== null, 2000);
+            var field = Qt.createQmlObject('import QtQuick; TextInput { width: 100; height: 20; text: "answer" }', view.list.itemAtIndex(3));
+            field.forceActiveFocus();
+            verify(field.activeFocus);
+            keyClick(Qt.Key_Up);
+            keyClick(Qt.Key_Down);
+            compare(view.list.selectedIndex, -1);
+            verify(field.activeFocus, "still typing the answer");
+            field.destroy();
+        }
     }
 }

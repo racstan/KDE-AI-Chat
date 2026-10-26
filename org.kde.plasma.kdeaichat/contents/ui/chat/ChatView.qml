@@ -127,7 +127,10 @@ Item {
 
         Keys.onPressed: function(event) {
             var plain = !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier));
-            var editing = !!chatView.chat && chatView.chat.editingMessageIndex >= 0;
+            // Not from a field being typed in (an edit in place, a question's answer).
+            var focused = list.Window.activeFocusItem;
+            var typing = !!focused && focused !== list && focused.cursorPosition !== undefined && focused.readOnly === false;
+            var editing = typing || (!!chatView.chat && chatView.chat.editingMessageIndex >= 0);
             if (event.key === Qt.Key_Up && plain && !editing) {
                 browse(-1);
             } else if (event.key === Qt.Key_Down && plain && !editing) {
