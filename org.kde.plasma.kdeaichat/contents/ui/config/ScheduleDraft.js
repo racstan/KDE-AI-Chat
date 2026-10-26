@@ -82,7 +82,8 @@ function defaultRule(kind, rules, now) {
     case "minutes": return {"kind": "minutes", "everyMinutes": 30};
     case "cron": return {"kind": "cron", "expr": "0 9 * * 1-5"};
     }
-    return {"kind": "weekly", "days": uncoveredDays(rules), "times": [DEFAULT_TIME], "everyWeeks": 1};
+    var days = uncoveredDays(rules).slice().sort(function(a, b) { return a - b; });
+    return {"kind": "weekly", "days": days, "times": [DEFAULT_TIME], "everyWeeks": 1};
 }
 
 // `rule` as `kind`, keeping its times (and the first time for "once").
@@ -191,10 +192,10 @@ function ruleProblem(rule) {
     return "";
 }
 
-// A blank schedule for `chatId` with one weekday rule.
+// A blank schedule for `chatId` with one rule: weekdays at 09:00.
 function newSchedule(chatId, now) {
     return {"id": "", "name": "", "enabled": true, "chatId": chatId || "", "message": "", "notify": true,
-            "rules": [defaultRule("weekly", [], now)], "startDate": null, "endDate": null, "limitCount": null,
+            "rules": [setDays(defaultRule("weekly", [], now), "weekdays")], "startDate": null, "endDate": null, "limitCount": null,
             "catchUp": {"enabled": false, "withinHours": 12}};
 }
 

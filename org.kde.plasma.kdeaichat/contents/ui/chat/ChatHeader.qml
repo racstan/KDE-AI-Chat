@@ -27,6 +27,7 @@ RowLayout {
     signal settingsRequested()
     signal chatControlsRequested()
     signal exportRequested(string suggestedFile)
+    signal scheduleRequested()
 
     function exportFileName() {
         var cleanTitle = (header.chat.currentSessionTitle || "New Chat").replace(/[\/\?<>\\:\*\|":\s]+/g, "_");
@@ -261,6 +262,12 @@ RowLayout {
                 }
             }
             QQC2.MenuSeparator {
+            }
+            QQC2.MenuItem {
+                objectName: "scheduleMessageItem"
+                text: i18n("Schedule a message…")
+                icon.name: "view-calendar"
+                onTriggered: header.scheduleRequested()
             }
             QQC2.MenuItem {
                 text: i18n("Export chat…")

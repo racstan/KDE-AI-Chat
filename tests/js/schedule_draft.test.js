@@ -31,7 +31,7 @@ const tests = {
     a_new_weekly_rule_ticks_the_free_weekdays() {
         const mon = {kind: "weekly", days: [1], times: ["16:00"]};
         const next = D.defaultRule("weekly", [mon], NOW);
-        assert.deepStrictEqual(plain(next.days), [2, 3, 4, 5, 6, 0]);
+        assert.deepStrictEqual(plain(next.days), [0, 2, 3, 4, 5, 6]);
         // all covered: weekdays
         const all = {kind: "weekly", days: [0, 1, 2, 3, 4, 5, 6], times: ["09:00"]};
         assert.deepStrictEqual(plain(D.defaultRule("weekly", [all], NOW).days), [1, 2, 3, 4, 5]);

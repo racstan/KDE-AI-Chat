@@ -89,6 +89,7 @@ Item {
             onExportRequested: function(suggestedFile) {
                 exportDialog.openWith(suggestedFile);
             }
+            onScheduleRequested: scheduleOverlay.openForChat(root.currentSessionId) // qmllint disable unqualified
         }
 
         Chat.NoticeBanner {
@@ -147,6 +148,16 @@ Item {
         growsLeft: Plasmoid.location === PlasmaCore.Types.RightEdge
         z: 1001
     }
+
+    // "Schedule a message…": the schedule editor over the chat.
+    // qmllint disable unqualified
+    Chat.ScheduleOverlay {
+        id: scheduleOverlay
+        anchors.fill: parent
+        chat: root
+        z: 1002
+    }
+    // qmllint enable unqualified
 
     Chat.ExportDialog {
         id: exportDialog
