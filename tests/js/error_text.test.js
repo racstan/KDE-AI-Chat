@@ -13,7 +13,7 @@ function load(name, exports) {
     return ctx.exports;
 }
 const plain = x => JSON.parse(JSON.stringify(x));
-const E = load("ErrorText.js", "describe");
+const E = load("ErrorText.js", "describe, translated");
 const T = load("PromptTemplates.js", "parse, expand, suggest");
 
 const cases = [
@@ -106,4 +106,27 @@ for (const text of ["AI Horde needs kudos for this size. Pick a smaller picture 
     assert.strictEqual(r.settings, /Settings/.test(text));
 }
 assert.strictEqual(plain(E.describe("The provider rejected the API key (HTTP 401). Check the key in Settings.")).kind, "auth", "other messages are unchanged");
+
+// Translatable: a template with %1 and its arguments; the provider's own words stay apart (not translated).
+d = plain(E.describe("⚠️ Cannot send message with OpenRouter. Missing: API key."));
+assert.strictEqual(d.template, "There's no API key for %1 yet. Add one in Settings, then try again.");
+assert.deepStrictEqual(d.args, ["OpenRouter"]);
+assert.strictEqual(d.checkSetup, true);
+const fake = (t, args) => "[" + t.replace(/%(\d)/g, (m, n) => "<" + args[n - 1] + ">") + "]";
+assert.strictEqual(E.translated(d, fake), "[There's no API key for <OpenRouter> yet. Add one in Settings, then try again.]");
+d = plain(E.describe(nim404, "NVIDIA NIM"));
+assert.strictEqual(E.translated(d, fake), "[" + d.template.replace("%1", "<NVIDIA NIM>") + "]\n\nFunction '767b5b9a-1': Not found for account 'TSF5_x'");
+assert.ok(!d.template.includes("NVIDIA") && d.extra.startsWith("\n\n"));
+// Messages shown as they are have no template, so nothing is translated.
+d = plain(E.describe("Something odd happened"));
+assert.strictEqual(d.template, "");
+assert.strictEqual(E.translated(d, fake), "Something odd happened");
+assert.strictEqual(E.translated(plain(E.describe("AI Horde can't be reached.")), fake), "AI Horde can't be reached.");
+assert.strictEqual(E.translated(null, fake), "");
+// "Check setup" is offered where the setup check can find the cause.
+const checkable = {"missing-key": 1, "setup": 1, "network": 1, "timeout": 1, "agent-missing": 1, "agent-offline": 1};
+for (const [raw] of cases) {
+    const r = E.describe(raw);
+    assert.strictEqual(r.checkSetup, !!checkable[r.kind], raw);
+}
 console.log("PASS error_text");
