@@ -219,7 +219,7 @@ def test_old_tts_server_process_is_stopped(tmp_path, monkeypatch):
             if proc.pid in voice_legacy._tts_server_pids():
                 break
             threading.Event().wait(0.05)
-        done = voice_legacy.cleanup_legacy_tts(run=lambda args: 0)
+        done = voice_legacy.cleanup_legacy_tts(run=lambda args: 0, allow_kill=True)
         assert done["killed"] == 1
         assert proc.wait(timeout=5) != 0
         assert other.poll() is None
@@ -228,3 +228,18 @@ def test_old_tts_server_process_is_stopped(tmp_path, monkeypatch):
             if p.poll() is None:
                 p.kill()
                 p.wait()
+
+
+def test_widget_wiring_for_read_aloud():
+    """Voice errors reach a notification (the old fileReaderDs path is gone),
+    the widget never starts the old TTS service, and the startup cleanup runs."""
+    ui = os.path.join(UI)
+    main = open(os.path.join(ui, "main.qml")).read()
+    voice = open(os.path.join(ui, "VoiceManager.qml")).read()
+    commands = open(os.path.join(ui, "chat", "HelperCommands.qml")).read()
+    assert "fileReaderDs" not in main
+    assert 'notifier.sender(voiceManager.errorTitle' in main
+    assert "helperCommands.cleanupLegacy()" in main
+    assert "voice_startup" in commands
+    assert "kde-ai-tts" not in voice and "9016" not in voice
+    assert 'lang_code: "a"' not in voice

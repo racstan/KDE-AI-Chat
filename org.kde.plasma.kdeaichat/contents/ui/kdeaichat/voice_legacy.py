@@ -40,7 +40,7 @@ def _tts_server_pids() -> List[int]:
     return pids
 
 
-def cleanup_legacy_tts(run=None) -> Dict[str, Any]:
+def cleanup_legacy_tts(run=None, allow_kill: bool = False) -> Dict[str, Any]:
     run = run or schedule_units.systemctl
     done: Dict[str, Any] = {"unit": False, "killed": 0, "marker": False}
     unit = os.path.join(schedule_units.unit_dir(), LEGACY_TTS_UNIT)
@@ -50,7 +50,9 @@ def cleanup_legacy_tts(run=None) -> Dict[str, Any]:
         run(["daemon-reload"])
         run(["reset-failed", LEGACY_TTS_UNIT])
         done["unit"] = True
-    for pid in _tts_server_pids():
+    # A sandbox (dev run, tests) with its own unit folder leaves the user's processes alone.
+    sandboxed = bool(os.environ.get("KDEAICHAT_UNIT_DIR")) and not allow_kill
+    for pid in [] if sandboxed else _tts_server_pids():
         try:
             os.kill(pid, signal.SIGTERM)
             done["killed"] += 1

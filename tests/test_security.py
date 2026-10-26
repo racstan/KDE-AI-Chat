@@ -395,6 +395,21 @@ class TestValidateSessionId(unittest.TestCase):
         self.assertEqual(rc, 0, msg=err)
         self.assertIn("[]", out)
 
+    # ---------- validateCommandTemplate ----------
+
+    def test_command_template(self):
+        out, err, rc = self._run(r"""
+            console.log(JSON.stringify([
+                validateCommandTemplate("  espeak-ng --stdin -w {output} "),
+                validateCommandTemplate("say 'unbalanced"),
+                validateCommandTemplate("a\nb"),
+                validateCommandTemplate(""),
+                validateCommandTemplate('tts --name "A \\" B" > x'),
+                validateCommandTemplate("x".repeat(2001))]));
+        """)
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(out.strip(), r'["espeak-ng --stdin -w {output}","","","","tts --name \"A \\\" B\" > x",""]')
+
 
 if __name__ == "__main__":
     unittest.main()
