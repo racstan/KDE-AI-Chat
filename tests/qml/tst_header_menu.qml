@@ -91,6 +91,23 @@ Item {
             tryVerify(() => !menu().opened);
         }
 
+        function test_07_new_chat_is_a_plain_button_away_from_the_menu() {
+            var plus = findChild(header, "newChatButton");
+            verify(plus !== null);
+            compare(plus.display, 0 /* AbstractButton.IconOnly */, "an icon only, no label or arrow");
+            compare(plus.Accessible.role, Accessible.Button, "not a menu button (which Plasma draws with a down arrow)");
+            verify(plus.menu === undefined || plus.menu === null, "no menu attached");
+            verify(plus.x < more().x, "New chat is not the More button's neighbour on the side its menu opens");
+            // Opening the More menu by hover, then moving onto "+": the menu closes at once.
+            var b = more();
+            mouseMove(b, b.width / 2, b.height / 2);
+            tryVerify(() => menu().opened, 600);
+            mouseMove(plus, plus.width / 2, plus.height / 2);
+            tryVerify(() => !menu().opened, 200, "no menu hangs under New chat");
+            tryVerify(() => !menu().visible, 1000);
+            screenshot(root.Window.window.contentItem, "header-new-chat-plain");
+        }
+
         function test_06_keyboard_opens_it_and_focuses_the_menu() {
             var b = more();
             b.forceActiveFocus();

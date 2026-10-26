@@ -1,6 +1,6 @@
 // The toolbar above the chat: the history toggle, pin, settings, the chat
-// title, the Chat info panel, a "More" menu (rename, jump, export, clear) and
-// New chat. Every button has an accessible name.
+// title, New chat, the Chat info panel and a "More" menu (rename, jump,
+// export, clear). Every button has an accessible name.
 //
 // Things that live outside the chat (the settings action, dialogs) are
 // requested through signals; the parent wires them up.
@@ -100,8 +100,24 @@ RowLayout {
         Layout.fillWidth: true
     }
 
+    // New chat: a plain "+" with no menu. It sits away from the More button,
+    // whose menu opens on hover and used to hang under this one.
+    PC3.ToolButton {
+        id: newChatButton
+        objectName: "newChatButton"
+        icon.name: "list-add"
+        display: PC3.AbstractButton.IconOnly
+        enabled: !header.chat.loading
+        Accessible.role: Accessible.Button
+        Accessible.name: i18n("New chat")
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: Accessible.name
+        onClicked: header.chat.createSession(true)
+    }
+
     // Chat info: this chat's usage and its own settings.
     PC3.ToolButton {
+        id: infoButton
         visible: !header.historyFull
         icon.name: "documentinfo"
         Accessible.name: i18n("Chat info")
@@ -173,7 +189,10 @@ RowLayout {
                 running: moreHover.hoverOpened && moreMenu.opened
                 onRunningChanged: moreHover.leftAt = 0
                 onTriggered: {
-                    if (moreButton.hovered || moreHover.pointerOnMenu())
+                    // On another button of the header: close at once.
+                    if (newChatButton.hovered || infoButton.hovered)
+                        moreMenu.close();
+                    else if (moreButton.hovered || moreHover.pointerOnMenu())
                         moreHover.leftAt = 0;
                     else if (moreHover.leftAt === 0)
                         moreHover.leftAt = Date.now();
@@ -240,14 +259,5 @@ RowLayout {
                 onTriggered: header.clearChat()
             }
         }
-    }
-
-    PC3.ToolButton {
-        icon.name: "list-add"
-        enabled: !header.chat.loading
-        Accessible.name: i18n("New chat")
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: Accessible.name
-        onClicked: header.chat.createSession(true)
     }
 }
