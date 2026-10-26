@@ -77,7 +77,10 @@ Item {
         anchors.rightMargin: chatSettingsDialog.visible ? chatSettingsDialog.width + Kirigami.Units.smallSpacing : Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
+        // The grip (below) may sit in a corner of this row: its last button keeps clear of it.
         Chat.ChatHeader {
+            Layout.leftMargin: grip.roomTopLeft
+            Layout.rightMargin: chatSettingsDialog.visible ? 0 : grip.roomTopRight
             chat: root
             historyFull: body.historyFull
             appName: plasmoid.configuration.appDisplayName || "KDE AI Chat"
@@ -115,6 +118,8 @@ Item {
         Chat.ChatBody {
             id: body
             chat: root
+            roomBottomLeft: grip.roomBottomLeft
+            roomBottomRight: chatSettingsDialog.visible ? 0 : grip.roomBottomRight
             Layout.fillWidth: true
             Layout.fillHeight: true
             onAttachRequested: fileDialog.show()
@@ -131,17 +136,16 @@ Item {
     // qmllint enable unqualified
 
     // In the corner away from the panel, so dragging it grows the popup
-    // towards the mouse.
+    // towards the mouse. Above the chat info panel too; the rows in its
+    // corner (header, composer, history, the panel's own top and bottom
+    // rows) leave it room, so it never covers a button.
     Chat.ResizeHandle {
+        id: grip
         chat: root
         config: plasmoid.configuration
         growsUp: Plasmoid.location === PlasmaCore.Types.BottomEdge
         growsLeft: Plasmoid.location === PlasmaCore.Types.RightEdge
-        anchors.right: growsLeft ? undefined : parent.right
-        anchors.left: growsLeft ? parent.left : undefined
-        anchors.bottom: growsUp ? undefined : parent.bottom
-        anchors.top: growsUp ? parent.top : undefined
-        z: 10
+        z: 1001
     }
 
     Chat.ExportDialog {
@@ -153,5 +157,7 @@ Item {
         id: chatSettingsDialog
         rootRef: root
         hostItem: repRoot
+        roomTop: grip.roomTopRight
+        roomBottom: grip.roomBottomRight
     }
 }

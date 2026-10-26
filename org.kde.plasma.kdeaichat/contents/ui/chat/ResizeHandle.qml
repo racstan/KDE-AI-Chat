@@ -27,6 +27,14 @@ MouseArea {
     property int maximumWidth: Screen.width > 0 ? Screen.width : 4096
     property int maximumHeight: Screen.height > 0 ? Screen.height : 4096
 
+    // The room the grip takes in each corner of the popup (0 where it isn't):
+    // whatever sits in that corner (the header's last button, the composer's
+    // Send) keeps this much free, so the grip never covers a button.
+    readonly property real roomTopLeft: growsUp && growsLeft ? width : 0
+    readonly property real roomTopRight: growsUp && !growsLeft ? width : 0
+    readonly property real roomBottomLeft: !growsUp && growsLeft ? width : 0
+    readonly property real roomBottomRight: !growsUp && !growsLeft ? width : 0
+
     property point pressPoint: Qt.point(0, 0)
     property int startWidth: 0
     property int startHeight: 0
@@ -52,6 +60,10 @@ MouseArea {
 
     width: Kirigami.Units.gridUnit
     height: Kirigami.Units.gridUnit
+    // In the corner of its parent away from the panel. (Not anchors: switching
+    // anchors when the panel moves to another edge can leave it stretched.)
+    x: growsLeft || !parent ? 0 : parent.width - width
+    y: growsUp || !parent ? 0 : parent.height - height
     cursorShape: handle.growsLeft === handle.growsUp ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
     preventStealing: true
 

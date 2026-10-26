@@ -24,6 +24,8 @@ Rectangle {
     // A narrow popup shows the history instead of the chat: choosing a chat
     // then goes back to it. Beside the chat, the history stays open.
     property bool closeOnSelect: true
+    // Room kept free at the bottom for the popup's resize grip (chat/ChatBody.qml).
+    property real bottomRoom: 0
     readonly property alias list: historyList
 
     // "Today", "Yesterday" or the date.
@@ -87,6 +89,7 @@ Rectangle {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
+        anchors.bottomMargin: Kirigami.Units.smallSpacing + sessionList.bottomRoom
         spacing: Kirigami.Units.smallSpacing
 
         ProjectsSidebar {

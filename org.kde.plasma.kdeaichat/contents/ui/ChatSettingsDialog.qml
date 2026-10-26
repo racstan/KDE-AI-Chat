@@ -16,6 +16,10 @@ Rectangle {
 
     property var rootRef: null
     property Item hostItem: null
+    // Room its top and bottom rows leave at the right for the popup's resize
+    // grip (chat/ResizeHandle.qml) when it is in that corner.
+    property real roomTop: 0
+    property real roomBottom: 0
     property bool sidebarOpen: false
     readonly property alias draft: settingsDraft
 
@@ -93,6 +97,7 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.largeSpacing
+            Layout.rightMargin: Kirigami.Units.largeSpacing + page.roomTop
             spacing: Kirigami.Units.smallSpacing
 
             ColumnLayout {
@@ -224,6 +229,7 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.largeSpacing
+            Layout.rightMargin: Kirigami.Units.largeSpacing + page.roomBottom
             spacing: Kirigami.Units.smallSpacing
 
             PC3.Button {
