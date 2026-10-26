@@ -32,7 +32,7 @@ ColumnLayout {
 
     // Asks first (chat/ProjectDeleteConfirm.qml); returns the question.
     function confirmDeleteWithChats(projectId) {
-        var popup = deleteConfirm.createObject(sidebar, {"projects": sidebar.projects, "projectId": projectId});
+        var popup = deleteConfirm.createObject(sidebar, {"projects": sidebar.projects, "projectId": projectId}) as ProjectDeleteConfirm;
         popup.open();
         return popup;
     }

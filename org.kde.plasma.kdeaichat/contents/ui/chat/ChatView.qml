@@ -129,7 +129,7 @@ Item {
             var plain = !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier));
             // Not from a field being typed in (an edit in place, a question's answer).
             var focused = list.Window.activeFocusItem;
-            var typing = !!focused && focused !== list && focused.cursorPosition !== undefined && focused.readOnly === false;
+            var typing = !!focused && focused !== list && list.prop(focused, "cursorPosition") !== undefined && list.prop(focused, "readOnly") === false;
             var editing = typing || (!!chatView.chat && chatView.chat.editingMessageIndex >= 0);
             if (event.key === Qt.Key_Up && plain && !editing) {
                 browse(-1);
@@ -187,11 +187,13 @@ Item {
         // A click in the chat gives it the keyboard (for Up/Down), unless
         // something in it (a message's text, an edit box) already took it or
         // it was on a button (the input keeps the focus then, as before).
+        // A property of whatever item it is (undefined if it has none).
+        function prop(item, name) { return item[name]; }
         function onButton(x, y) {
             var item = list.contentItem.childAt(x + list.contentX, y + list.contentY);
             var at = list.mapToItem(item, x, y);
             while (item) {
-                if (item.checkable !== undefined && item.pressed !== undefined)
+                if (list.prop(item, "checkable") !== undefined && list.prop(item, "pressed") !== undefined)
                     return true;
                 var inner = item.childAt(at.x, at.y);
                 if (inner)
