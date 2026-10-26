@@ -1,6 +1,7 @@
 // Everything the widget stores, in one place: API keys (KWallet), chats
 // (per-chat files), memories (memory.json, through the helper), the helper
-// process, and the one-time 1.4.0 migration.
+// process, the one-time 1.4.0 migration, and then removing the settings 1.4.0
+// dropped from the applet config (SettingsCleanup.qml).
 //
 // main.qml loads chats through chatStore, calls chatsLoaded() once they are
 // in memory, and saves through save(). Saves are held back until the chat
@@ -75,6 +76,7 @@ Item {
         memoryMigration.migrate(currentSessions(), function(sessionsChanged) {
             if (sessionsChanged)
                 savesReleased();
+            settingsCleanup.begin();
         });
     }
 
@@ -113,6 +115,12 @@ Item {
         id: memoryMigration
         configuration: storage.configuration
         memoryStore: memories
+    }
+
+    SettingsCleanup {
+        id: settingsCleanup
+        runHelper: helper.run
+        chatDirectory: storage.chatDirectory
     }
 
     Migration {

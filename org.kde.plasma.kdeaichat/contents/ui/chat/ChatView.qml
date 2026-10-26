@@ -172,6 +172,20 @@ Item {
             if (chatView.chat)
                 chatView.chat.userScrolledUp = !atYEnd;
         }
+        // A flick or drag that started while following and did not go up
+        // keeps following, even if it ends short of the end: the content grew
+        // while it moved (a picture that loaded, more text), and follow()
+        // waits while the list moves.
+        property bool followingAtStart: false
+        property real startY: 0
+        function movedByFlick() {
+            if (followingAtStart && !atYEnd && contentY >= startY - 1) {
+                if (!moving)
+                    positionViewAtEnd();
+                return;
+            }
+            userMoved();
+        }
 
         onContentHeightChanged: follow()
         onHeightChanged: follow()
@@ -180,8 +194,12 @@ Item {
                 selectedIndex = -1;
             follow();
         }
-        onMovementEnded: userMoved()
-        onDraggingChanged: if (!dragging) userMoved()
+        onMovementStarted: {
+            followingAtStart = !!chatView.chat && !chatView.chat.userScrolledUp;
+            startY = contentY;
+        }
+        onMovementEnded: movedByFlick()
+        onDraggingChanged: if (!dragging) movedByFlick()
         Component.onCompleted: if (chatView.chat) chatView.chat.msgListViewRef = list
 
         // A click in the chat gives it the keyboard (for Up/Down), unless

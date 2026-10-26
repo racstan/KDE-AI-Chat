@@ -124,5 +124,20 @@ KCM.SimpleKCM {
             active: page.mode === "pi"
             helper: page.helperRunner
         }
+
+        Kirigami.Separator { Layout.fillWidth: true }
+
+        // What this way of chatting needs on this computer, and how to fix what's missing.
+        Config.SetupCheck {
+            objectName: "setupCheck"
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 40
+            Layout.alignment: Qt.AlignHCenter
+            configuration: page.configuration
+            wallet: page.wallet
+            mode: page.mode
+            openCodeUrl: openCode.url
+            helper: page.helperRunner
+        }
     }
 }

@@ -2,7 +2,8 @@
 // many chats each has. Choosing one filters the history below it
 // (chat.projects.view). Projects can be created here; each project row edits
 // (pencil on hover, or its menu) and deletes, keeping its chats or with
-// them after a confirmation (its menu; Undo brings it all back).
+// them after a confirmation (its menu; Undo brings it all back). A chat row
+// of the history dropped on a project moves the chat there.
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -29,6 +30,9 @@ ColumnLayout {
         return out;
     }
     readonly property alias list: viewList
+
+    // A property of any object (undefined if it has none).
+    function propOf(item, name) { return item ? item[name] : undefined; }
 
     // Asks first (chat/ProjectDeleteConfirm.qml); returns the question.
     function confirmDeleteWithChats(projectId) {
@@ -91,7 +95,7 @@ ColumnLayout {
             width: viewList.width - (viewList.QQC2.ScrollBar.vertical.visible ? viewList.QQC2.ScrollBar.vertical.width : 0)
             height: Kirigami.Units.gridUnit * 1.6
             radius: Kirigami.Units.cornerRadius
-            color: current ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.18)
+            color: current || dropArea.containsDrag ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, dropArea.containsDrag ? 0.35 : 0.18)
                  : hover.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.07)
                  : "transparent"
             border.width: activeFocus ? 1 : 0
@@ -107,6 +111,22 @@ ColumnLayout {
 
             HoverHandler { id: hover }
             TapHandler { onTapped: row.choose() }
+            // A chat dragged from the history (chat/SessionList.qml) moves here.
+            DropArea {
+                id: dropArea
+                objectName: "projectDropArea"
+                anchors.fill: parent
+                enabled: row.isProject
+                keys: ["kdeaichat-chat"]
+                onDropped: function(drop) {
+                    // The dragged label (chat/SessionList.qml) carries the chat id.
+                    var sessionId = String(sidebar.propOf(drop.source, "sessionId") || "");
+                    if (sessionId === "")
+                        return;
+                    sidebar.projects.moveChat(sessionId, row.modelData.view);
+                    drop.accept();
+                }
+            }
             TapHandler {
                 acceptedButtons: Qt.RightButton
                 enabled: row.isProject
@@ -148,6 +168,7 @@ ColumnLayout {
                     text: row.count > 0 ? String(row.count) : ""
                     color: Kirigami.Theme.disabledTextColor
                     font: Kirigami.Theme.smallFont
+                    Layout.minimumWidth: implicitWidth
                 }
                 PC3.ToolButton {
                     id: editButton

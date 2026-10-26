@@ -4,6 +4,8 @@
 // in Archived) and delete appear on the row only while the pointer is over it
 // or it has keyboard focus; right-click or the Menu key opens the chat's menu
 // (also Move to project). Clicking a row (or Enter on it) opens that chat.
+// Dragging a row (mouse) onto a project above moves the chat there, the same
+// move as the menu's Move to project.
 // Shown beside the chat in a wide popup and in place of it in a narrow one
 // (chat/ChatBody.qml).
 pragma ComponentBehavior: Bound
@@ -206,6 +208,32 @@ Rectangle {
                     id: hover
                 }
 
+                // Drag onto a project (ProjectsSidebar.qml's drop areas); touch still scrolls.
+                DragHandler {
+                    id: dragHandler
+                    target: null
+                    enabled: !row.editing
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onActiveChanged: {
+                        if (active) {
+                            dragGhost.sessionId = row.modelData.value;
+                            dragGhost.title = row.title;
+                            dragGhost.Drag.active = true;
+                        } else {
+                            dragGhost.Drag.drop();
+                            dragGhost.Drag.active = false;
+                            dragGhost.sessionId = "";
+                        }
+                    }
+                    onCentroidChanged: {
+                        if (!active)
+                            return;
+                        var at = row.mapToItem(sessionList, centroid.position.x, centroid.position.y);
+                        dragGhost.x = at.x - dragGhost.Drag.hotSpot.x;
+                        dragGhost.y = at.y - dragGhost.Drag.hotSpot.y;
+                    }
+                }
+
                 TapHandler {
                     enabled: !row.editing
                     onTapped: {
@@ -274,14 +302,14 @@ Rectangle {
                         onVisibleChanged: if (visible) forceActiveFocus()
                     }
 
+                    // Always whole: the title is cut instead.
                     PC3.Label {
                         objectName: "dateLabel"
                         visible: !row.showActions
                         text: sessionList.dayLabel(row.modelData.updatedAt || row.modelData.createdAt)
                         color: Kirigami.Theme.disabledTextColor
                         font: Kirigami.Theme.smallFont
-                        elide: Text.ElideRight
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 6
+                        Layout.minimumWidth: implicitWidth
                     }
 
                     // Actions: only while hovered or focused (or renaming).
@@ -335,6 +363,37 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    // What a dragged chat row looks like under the pointer; it carries the
+    // chat's id to the drop areas of the projects.
+    Rectangle {
+        id: dragGhost
+        objectName: "dragGhost"
+        property string sessionId: ""
+        property string title: ""
+        visible: Drag.active
+        z: 10
+        width: Math.min(ghostLabel.implicitWidth + Kirigami.Units.largeSpacing * 2, sessionList.width * 0.8)
+        height: Kirigami.Units.gridUnit * 1.6
+        radius: Kirigami.Units.cornerRadius
+        color: Kirigami.Theme.backgroundColor
+        border.width: 1
+        border.color: Kirigami.Theme.highlightColor
+        Drag.keys: ["kdeaichat-chat"]
+        Drag.hotSpot.x: Kirigami.Units.largeSpacing
+        Drag.hotSpot.y: height / 2
+
+        PC3.Label {
+            id: ghostLabel
+            anchors.fill: parent
+            anchors.leftMargin: Kirigami.Units.largeSpacing
+            anchors.rightMargin: Kirigami.Units.largeSpacing
+            verticalAlignment: Text.AlignVCenter
+            text: dragGhost.title
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
         }
     }
 }

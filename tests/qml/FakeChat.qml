@@ -163,6 +163,10 @@ QtObject {
     // What chat/ChatBody.qml sets and ChatSettingsDialog.qml (the Chat info panel) reads.
     property bool historySidePanel: false
     property var walletApiKeys: ({})
+    // store/Wallet.qml (status, keys): Check setup under an error reads it.
+    property var wallet: null
+    // Runs Check setup's helper commands in tests (chat/ErrorActions.qml); the widget has none.
+    property var setupCheckHelper: null
     property var plasmoid: ({configuration: {}})
     // main.qml's effectiveConfig, on this fake's sessions and plasmoid.configuration.
     function effectiveConfig(id) {

@@ -131,4 +131,6 @@ def test_old_memory_settings_exist_only_for_the_migration():
                 with open(path, encoding="utf-8") as f:
                     if re.search(r"\b(userMemory|enableMemory)\b", f.read()):
                         readers.append(os.path.relpath(path, ui))
-    assert readers == [os.path.join("store", "MemoryMigration.qml")]
+    # The migration reads them; the old-settings cleanup only deletes them once it's done.
+    assert sorted(readers) == sorted([os.path.join("store", "MemoryMigration.qml"),
+                                      os.path.join("kdeaichat", "config_cleanup.py")])

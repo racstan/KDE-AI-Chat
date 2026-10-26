@@ -19,7 +19,9 @@ Item {
 
     // From this width the history sits beside the chat.
     readonly property real sideThreshold: Kirigami.Units.gridUnit * 40
-    readonly property real panelWidth: Kirigami.Units.gridUnit * 15
+    // The side panel: wider in a wide popup, so titles fit, but never more
+    // than about a third of it (at least 15 grid units).
+    readonly property real panelWidth: Math.round(Math.max(Kirigami.Units.gridUnit * 15, Math.min(Kirigami.Units.gridUnit * 20, width * 0.28)))
     readonly property bool sideHistory: width >= sideThreshold
     readonly property bool historyOpen: chat.historyOnlyMode
     // The history replaces the chat (narrow popup).

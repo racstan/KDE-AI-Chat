@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/ChatTitle.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {instantTitle, isDefaultTitle, cleanGenerated, parseResponse, buildRequest, request};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {instantTitle, imagePrompt, isDefaultTitle, cleanGenerated, parseResponse, buildRequest, request};", ctx);
 const T = ctx.exports;
 
 function fakeXhr(status, body, mode) {
@@ -26,6 +26,13 @@ const oa = {type: "openai", baseUrl: "https://x/v1/", apiKey: "SECRET", model: "
 const choice = content => JSON.stringify({choices: [{message: {content}}]});
 
 const tests = {
+    image_prompt_is_the_text_after_the_command() {
+        assert.strictEqual(T.imagePrompt("/image  sun hugging moon "), "sun hugging moon");
+        assert.strictEqual(T.imagePrompt("/image"), "");
+        assert.strictEqual(T.imagePrompt("/images of cats"), "");
+        assert.strictEqual(T.imagePrompt("draw /image x"), "");
+        assert.strictEqual(T.imagePrompt("/image a\nb"), "");
+    },
     short_message_is_kept_whole() {
         assert.strictEqual(T.instantTitle("How do I rotate a PDF?"), "How do I rotate a PDF");
     },
