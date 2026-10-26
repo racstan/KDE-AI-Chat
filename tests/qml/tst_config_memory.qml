@@ -196,8 +196,25 @@ Item {
             // Nothing about the memories themselves is a cfg_ property.
             for (var key in page) {
                 if (key.indexOf("cfg_") === 0)
-                    compare(key.indexOf("cfg_memoryEnabled"), 0, key);
+                    verify(["cfg_memoryEnabled", "cfg_memoryBudget"].indexOf(key.replace(/(Default)?(Changed)?$/, "")) >= 0, key);
             }
+        }
+
+        function test_7b_the_size_per_message_is_the_users_call() {
+            open();
+            var spin = findChild(page, "memoryBudgetSpin");
+            var noLimit = findChild(page, "memoryNoLimitCheck");
+            compare(page.cfg_memoryBudget, 2000);
+            verify(!noLimit.checked);
+            mouseClick(noLimit);
+            compare(page.cfg_memoryBudget, 0, "no limit");
+            verify(!spin.enabled);
+            mouseClick(noLimit);
+            compare(page.cfg_memoryBudget, 2000, "back to the number shown");
+            spin.forceActiveFocus();
+            spin.increase();
+            spin.valueModified();
+            compare(page.cfg_memoryBudget, 2500);
         }
 
         function test_8_empty() {

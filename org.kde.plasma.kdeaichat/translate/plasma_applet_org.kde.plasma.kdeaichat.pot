@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 11:41+0530\n"
+"POT-Creation-Date: 2026-10-26 12:08+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1514,7 +1514,7 @@ msgstr ""
 msgid "Project “%1” deleted; its chats were kept"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:160 contents/ui/ConfigMemory.qml:167
+#: contents/ui/chat/UndoNotice.qml:160 contents/ui/ConfigMemory.qml:193
 msgid "Undo"
 msgstr ""
 
@@ -1941,19 +1941,19 @@ msgstr ""
 msgid "Empty: a new one each time"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:50
+#: contents/ui/ConfigMemory.qml:53
 msgid "Chat “%1”"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:50
+#: contents/ui/ConfigMemory.qml:53
 msgid "One chat"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:54
+#: contents/ui/ConfigMemory.qml:55
 msgid "Project “%1”"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:54
+#: contents/ui/ConfigMemory.qml:55
 msgid "One project"
 msgstr ""
 
@@ -1965,14 +1965,26 @@ msgstr ""
 msgid "Use memories in chats"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:140
+#: contents/ui/ConfigMemory.qml:136
+msgid "Send per message:"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:151
+msgid "characters"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:155
+msgid "No limit"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:166
 msgid ""
 "Memories are notes you ask the assistant to keep. Only the ones that fit "
 "what you ask (and pinned ones) go with a message. Save one with Remember "
 "under a message or /remember."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:148
+#: contents/ui/ConfigMemory.qml:174
 msgid ""
 "1 memory is turned off and is never sent. Memories brought over from the old "
 "version start off."
@@ -1982,55 +1994,55 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/ConfigMemory.qml:152
+#: contents/ui/ConfigMemory.qml:178
 msgid "Turn on all"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:164
+#: contents/ui/ConfigMemory.qml:190
 msgid "Memory deleted."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:178
+#: contents/ui/ConfigMemory.qml:204
 msgid "The last change could not be saved: %1"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:189
+#: contents/ui/ConfigMemory.qml:215
 msgid "Add a memory for all chats…"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:195
+#: contents/ui/ConfigMemory.qml:221
 msgid "Add"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:216
+#: contents/ui/ConfigMemory.qml:242
 msgid "All memories"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:217
+#: contents/ui/ConfigMemory.qml:243
 msgid "For all chats"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:218
+#: contents/ui/ConfigMemory.qml:244
 msgid "For a project"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:219
+#: contents/ui/ConfigMemory.qml:245
 msgid "For one chat"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:220
+#: contents/ui/ConfigMemory.qml:246
 msgid "Turned off"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:233
+#: contents/ui/ConfigMemory.qml:259
 msgid "Loading…"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:234
+#: contents/ui/ConfigMemory.qml:260
 msgid "No memories yet."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:234
+#: contents/ui/ConfigMemory.qml:260
 msgid "No memories match."
 msgstr ""
 

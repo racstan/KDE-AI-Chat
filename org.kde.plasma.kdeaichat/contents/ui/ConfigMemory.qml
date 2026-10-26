@@ -27,6 +27,8 @@ KCM.SimpleKCM {
     id: page
 
     property alias cfg_memoryEnabled: enabledSwitch.checked
+    // Characters of memories sent with a message; 0 = no limit.
+    property int cfg_memoryBudget: 2000
 
     readonly property var plasmoidObject: typeof plasmoid !== "undefined" ? plasmoid : null
     // Runs the helper's commands; a property so a test can pass a fake.
@@ -128,6 +130,32 @@ KCM.SimpleKCM {
                 objectName: "memoryEnabledSwitch"
                 Kirigami.FormData.label: i18n("Memory:")
                 text: i18n("Use memories in chats")
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("Send per message:")
+                enabled: enabledSwitch.checked
+
+                QQC2.SpinBox {
+                    id: budgetSpin
+                    objectName: "memoryBudgetSpin"
+                    from: 200
+                    to: 1000000
+                    stepSize: 500
+                    editable: true
+                    enabled: page.cfg_memoryBudget > 0
+                    value: page.cfg_memoryBudget > 0 ? page.cfg_memoryBudget : 2000
+                    onValueModified: page.cfg_memoryBudget = value
+                }
+                QQC2.Label {
+                    text: i18n("characters")
+                }
+                QQC2.CheckBox {
+                    objectName: "memoryNoLimitCheck"
+                    text: i18n("No limit")
+                    checked: page.cfg_memoryBudget <= 0
+                    onToggled: page.cfg_memoryBudget = checked ? 0 : budgetSpin.value
+                }
             }
         }
 

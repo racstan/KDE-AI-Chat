@@ -127,10 +127,12 @@ function _byCreated(a, b) {
 // The memories to send: {memories, ids, block}. memories are the applicable
 // ones (see applicable()); query is the text being answered (queryFor()).
 // Pinned memories come first (oldest first), then matches by score; one that
-// doesn't fit in what is left of the budget is skipped. block is "" when
-// nothing is chosen.
+// doesn't fit in what is left of the budget is skipped; a budget of 0 (or
+// less) means no limit. block is "" when nothing is chosen.
 function recall(memories, query, budget) {
     var limit = budget === undefined ? DEFAULT_BUDGET : Number(budget) || 0;
+    if (limit <= 0)
+        limit = Infinity;
     var list = (memories || []).filter(function(m) { return m && _s(m.text).trim(); });
     var score = scores(list, query);
     var ranked = list.map(function(m, i) { return {"memory": m, "score": score[i]}; });

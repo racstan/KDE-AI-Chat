@@ -24,7 +24,9 @@ QtObject {
 
     property var chat: null
     readonly property var store: chat ? chat.memoryStore || null : null
-    property int budget: MemoryRecall.DEFAULT_BUDGET
+    // Characters of memories per message, from the settings (0 = no limit).
+    property int budget: chat && chat.plasmoid && chat.plasmoid.configuration.memoryBudget !== undefined
+        ? chat.plasmoid.configuration.memoryBudget : MemoryRecall.DEFAULT_BUDGET
 
     // The helper's limit on a memory's text (kdeaichat/memory.py).
     readonly property int maxChars: 4000
