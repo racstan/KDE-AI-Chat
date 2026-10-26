@@ -203,7 +203,15 @@ KCM.SimpleKCM {
                             list.push({"value": page.engine.id, "text": i18n("%1 (not available)", i18n(page.engine.label))});
                         return list;
                     }
-                    currentIndex: count > 0 ? Math.max(0, indexOfValue(page.engine.id)) : -1
+                    // Looked up in the model itself: indexOfValue() can lag when the list arrives late.
+                    currentIndex: {
+                        var list = model || [];
+                        for (var i = 0; i < list.length; i++)
+                            if (list[i].value === page.engine.id)
+                                return i;
+                        return list.length > 0 ? 0 : -1;
+                    }
+                    displayText: count === 0 && probe.probing ? i18n("Looking for voices…") : currentText
                     onActivated: page.cfg_voiceTtsEngine = currentValue
                 }
                 QQC2.BusyIndicator {
