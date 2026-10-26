@@ -2,6 +2,7 @@ contents/config/config.qml
 contents/ui/chat/AttachmentChips.qml
 contents/ui/chat/ChatHeader.qml
 contents/ui/chat/ChatInfoSummary.qml
+contents/ui/chat/ChatMemoryInfo.qml
 contents/ui/chat/ChatOverridesForm.qml
 contents/ui/chat/ChatSettingsDraft.qml
 contents/ui/chat/ChatView.qml
@@ -37,6 +38,7 @@ contents/ui/chat/QuestionCard.qml
 contents/ui/chat/QuoteBlock.qml
 contents/ui/chat/QuoteChips.qml
 contents/ui/chat/ReasoningBlock.qml
+contents/ui/chat/RememberPopup.qml
 contents/ui/chat/RenameRow.qml
 contents/ui/chat/SessionList.qml
 contents/ui/ChatSettingsDialog.qml
@@ -52,6 +54,8 @@ contents/ui/ConfigChat.qml
 contents/ui/ConfigConnection.qml
 contents/ui/config/ImageModels.qml
 contents/ui/config/ImageProviderEditor.qml
+contents/ui/ConfigMemory.qml
+contents/ui/config/MemoryRow.qml
 contents/ui/config/ModeChooser.qml
 contents/ui/config/OpenCodeSettings.qml
 contents/ui/config/PiSettings.qml

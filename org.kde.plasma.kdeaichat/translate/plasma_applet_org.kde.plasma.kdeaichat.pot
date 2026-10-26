@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 11:08+0530\n"
+"POT-Creation-Date: 2026-10-26 11:41+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,15 +26,19 @@ msgstr ""
 msgid "Chat"
 msgstr ""
 
-#: contents/config/config.qml:19 contents/ui/ConfigSchedules.qml:103
+#: contents/config/config.qml:19 contents/ui/chat/ChatMemoryInfo.qml:53
+msgid "Memory"
+msgstr ""
+
+#: contents/config/config.qml:24 contents/ui/ConfigSchedules.qml:103
 msgid "Schedules"
 msgstr ""
 
-#: contents/config/config.qml:24
+#: contents/config/config.qml:29
 msgid "Voice"
 msgstr ""
 
-#: contents/config/config.qml:29
+#: contents/config/config.qml:34
 msgid "Appearance"
 msgstr ""
 
@@ -71,7 +75,7 @@ msgid "%1 History"
 msgstr ""
 
 #: contents/ui/chat/ChatHeader.qml:93 contents/ui/chat/SessionList.qml:168
-#: contents/ui/chat/UndoNotice.qml:95
+#: contents/ui/chat/UndoNotice.qml:101
 msgid "New Chat"
 msgstr ""
 
@@ -79,7 +83,7 @@ msgstr ""
 msgid "New chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:132 contents/ui/ChatSettingsDialog.qml:103
+#: contents/ui/chat/ChatHeader.qml:132 contents/ui/ChatSettingsDialog.qml:104
 msgid "Chat info"
 msgstr ""
 
@@ -165,6 +169,24 @@ msgid_plural ""
 "The provider gave no usage for %1 replies, so they aren't counted."
 msgstr[0] ""
 msgstr[1] ""
+
+#: contents/ui/chat/ChatMemoryInfo.qml:61
+msgid "Use memories in this chat"
+msgstr ""
+
+#: contents/ui/chat/ChatMemoryInfo.qml:74
+msgid "Memory is turned off for every chat in Settings → Memory."
+msgstr ""
+
+#: contents/ui/chat/ChatMemoryInfo.qml:85
+msgid "The latest message was sent with 1 memory:"
+msgid_plural "The latest message was sent with %1 memories:"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/ChatMemoryInfo.qml:86
+msgid "The latest message was sent with no memories."
+msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:104
 msgid "Select the chat's working folder"
@@ -380,55 +402,69 @@ msgstr ""
 msgid "Started a new chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:128
+#: contents/ui/chat/CommandRunner.qml:130
 msgid "Use /mode direct, /mode opencode or /mode pi."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:135
+#: contents/ui/chat/CommandRunner.qml:137
 msgid "New chats will use %1. This chat stays %2."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:143
+#: contents/ui/chat/CommandRunner.qml:145
 msgid "/image works in direct chats only."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:145
+#: contents/ui/chat/CommandRunner.qml:147
 msgid "Write what to draw, like /image a red fox in the snow."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:147
+#: contents/ui/chat/CommandRunner.qml:149
 msgid "Wait for the current reply to finish, or press Stop, then try again."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:153
+#: contents/ui/chat/CommandRunner.qml:155
 msgid ""
 "Add an image service first: Settings → Connection → Add provider → AI Horde "
 "or Pollinations."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:160
-msgid "This model has no variants."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:162
-msgid "Variants: %1. Use /variant <name>."
-msgstr ""
-
 #: contents/ui/chat/CommandRunner.qml:165
-msgid "This model has no variant “%1”. It has: %2."
+msgid ""
+"Write what to remember, like /remember I prefer metric units. Start with "
+"chat: or project: to keep it to this chat or its project."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:167
+msgid "This chat is in no project. Use /remember or /remember chat:."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:171
+msgid "Memories are not available."
 msgstr ""
 
 #: contents/ui/chat/CommandRunner.qml:178
+msgid "This model has no variants."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:180
+msgid "Variants: %1. Use /variant <name>."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:183
+msgid "This model has no variant “%1”. It has: %2."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:196
 msgid ""
 "Every chat uses the main settings. To change it for just this chat, turn on "
 "“Let chats have their own model settings” in Settings → Chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:184
+#: contents/ui/chat/CommandRunner.qml:202
 msgid "the default variant"
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:184
+#: contents/ui/chat/CommandRunner.qml:202
 msgid "This chat now uses %1."
 msgstr ""
 
@@ -580,7 +616,7 @@ msgid "End call mode"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:54
-#: contents/ui/chat/MessageActions.qml:160
+#: contents/ui/chat/MessageActions.qml:162
 msgid "Stop reading"
 msgstr ""
 
@@ -720,7 +756,8 @@ msgstr ""
 msgid "Copy error"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:301
+#: contents/ui/chat/ErrorActions.qml:70 contents/ui/chat/MessageActions.qml:326
+#: contents/ui/config/MemoryRow.qml:116 contents/ui/config/MemoryRow.qml:118
 msgid "Delete"
 msgstr ""
 
@@ -839,9 +876,9 @@ msgstr ""
 msgid "Download"
 msgstr ""
 
-#: contents/ui/chat/ImageViewer.qml:82 contents/ui/chat/MessageActions.qml:184
-#: contents/ui/chat/MessageActions.qml:240
-#: contents/ui/chat/MessageActions.qml:256
+#: contents/ui/chat/ImageViewer.qml:82 contents/ui/chat/MessageActions.qml:186
+#: contents/ui/chat/MessageActions.qml:242
+#: contents/ui/chat/MessageActions.qml:258
 #: contents/ui/chat/MessageImages.qml:203
 msgid "Regenerate"
 msgstr ""
@@ -850,68 +887,79 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:109
-#: contents/ui/config/ProviderRow.qml:80
+#: contents/ui/chat/MessageActions.qml:111 contents/ui/config/MemoryRow.qml:106
+#: contents/ui/config/MemoryRow.qml:108 contents/ui/config/ProviderRow.qml:80
 #: contents/ui/config/TemplatesEditor.qml:87
 msgid "Edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:125
-#: contents/ui/chat/MessageActions.qml:240
+#: contents/ui/chat/MessageActions.qml:127
+#: contents/ui/chat/MessageActions.qml:242
 msgid "Resend"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:135
+#: contents/ui/chat/MessageActions.qml:137
 msgid "Save edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:145
+#: contents/ui/chat/MessageActions.qml:147
 msgid "Cancel edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:160
+#: contents/ui/chat/MessageActions.qml:162
 msgid "Read selection aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:160 contents/ui/ConfigVoice.qml:133
+#: contents/ui/chat/MessageActions.qml:162 contents/ui/ConfigVoice.qml:133
 msgid "Read aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:224
+#: contents/ui/chat/MessageActions.qml:226
 msgid "Regenerating removes this reply and the %1 message after it."
 msgid_plural "Regenerating removes this reply and the %1 messages after it."
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/MessageActions.qml:225
+#: contents/ui/chat/MessageActions.qml:227
 msgid "Resending removes the %1 message after this one."
 msgid_plural "Resending removes the %1 messages after this one."
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/MessageActions.qml:233
+#: contents/ui/chat/MessageActions.qml:235
 #: contents/ui/chat/ProjectEditor.qml:229
+#: contents/ui/chat/RememberPopup.qml:126
 #: contents/ui/config/ImageProviderEditor.qml:230
+#: contents/ui/config/MemoryRow.qml:134
 #: contents/ui/config/ProviderEditor.qml:162
 #: contents/ui/config/ProviderRow.qml:104
 #: contents/ui/config/TemplatesEditor.qml:134
 msgid "Cancel"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:261
+#: contents/ui/chat/MessageActions.qml:263
 msgid "Longer"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:266
+#: contents/ui/chat/MessageActions.qml:268
 msgid "Shorter"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:278
+#: contents/ui/chat/MessageActions.qml:280
 msgid "Copy"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:291
+#: contents/ui/chat/MessageActions.qml:293
 msgid "Quote"
+msgstr ""
+
+#: contents/ui/chat/MessageActions.qml:307
+msgid "Remember selection"
+msgstr ""
+
+#: contents/ui/chat/MessageActions.qml:307
+#: contents/ui/chat/RememberPopup.qml:52
+msgid "Remember"
 msgstr ""
 
 #: contents/ui/chat/MessageDelegate.qml:132 contents/ui/chat/QuoteBlock.qml:70
@@ -999,7 +1047,7 @@ msgid "Saved to %1"
 msgstr ""
 
 #: contents/ui/chat/NoticeBanner.qml:52 contents/ui/chat/QuestionCard.qml:106
-#: contents/ui/chat/UndoNotice.qml:150
+#: contents/ui/chat/UndoNotice.qml:168
 msgid "Dismiss"
 msgstr ""
 
@@ -1140,7 +1188,9 @@ msgid "Delete project"
 msgstr ""
 
 #: contents/ui/chat/ProjectEditor.qml:235
+#: contents/ui/chat/RememberPopup.qml:132
 #: contents/ui/config/ImageProviderEditor.qml:224
+#: contents/ui/config/MemoryRow.qml:140
 #: contents/ui/config/ProviderEditor.qml:148
 #: contents/ui/config/TemplatesEditor.qml:128
 msgid "Save"
@@ -1178,7 +1228,9 @@ msgstr ""
 msgid "New project…"
 msgstr ""
 
-#: contents/ui/chat/ProjectsSidebar.qml:23 contents/ui/chat/SessionList.qml:112
+#: contents/ui/chat/ProjectsSidebar.qml:23
+#: contents/ui/chat/RememberPopup.qml:93 contents/ui/chat/SessionList.qml:112
+#: contents/ui/ConfigMemory.qml:56
 msgid "All chats"
 msgstr ""
 
@@ -1251,6 +1303,38 @@ msgstr ""
 msgid "Thought process"
 msgstr ""
 
+#: contents/ui/chat/RememberPopup.qml:60
+msgid ""
+"Memories go with your messages when they are relevant. Change them in "
+"Settings → Memory."
+msgstr ""
+
+#: contents/ui/chat/RememberPopup.qml:73
+msgid "What should the assistant remember?"
+msgstr ""
+
+#: contents/ui/chat/RememberPopup.qml:81 contents/ui/config/MemoryRow.qml:129
+msgid "%1 / %2"
+msgstr ""
+
+#: contents/ui/chat/RememberPopup.qml:88
+msgid "Use it in:"
+msgstr ""
+
+#: contents/ui/chat/RememberPopup.qml:100
+msgid "Chats in the project “%1”"
+msgstr ""
+
+#: contents/ui/chat/RememberPopup.qml:106
+msgid "This chat only"
+msgstr ""
+
+#: contents/ui/chat/RememberPopup.qml:117
+msgid ""
+"Memory is turned off in Settings → Memory, so it will be saved but not used "
+"yet."
+msgstr ""
+
 #: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:292
 msgid "Save title"
 msgstr ""
@@ -1311,28 +1395,28 @@ msgstr ""
 msgid "OpenCode chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:115
-#: contents/ui/ChatSettingsDialog.qml:117
+#: contents/ui/ChatSettingsDialog.qml:116
+#: contents/ui/ChatSettingsDialog.qml:118
 msgid "Close chat info"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:141
+#: contents/ui/ChatSettingsDialog.qml:142
 msgid "This chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:193
+#: contents/ui/ChatSettingsDialog.qml:203
 msgid "Settings for this chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:220
+#: contents/ui/ChatSettingsDialog.qml:230
 msgid "Reset"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:229
+#: contents/ui/ChatSettingsDialog.qml:239
 msgid "Unsaved changes"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:233
+#: contents/ui/ChatSettingsDialog.qml:243
 msgid "Apply"
 msgstr ""
 
@@ -1353,14 +1437,18 @@ msgid "Make a picture with the default image service"
 msgstr ""
 
 #: contents/ui/chat/TemplateSuggestions.qml:36
+msgid "Save a memory for every chat"
+msgstr ""
+
+#: contents/ui/chat/TemplateSuggestions.qml:37
 msgid "Mode for NEW chats only; this chat keeps its mode"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:89
+#: contents/ui/chat/TemplateSuggestions.qml:90
 msgid "Command %1"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:89
+#: contents/ui/chat/TemplateSuggestions.qml:90
 msgid "Template %1"
 msgstr ""
 
@@ -1392,29 +1480,41 @@ msgstr ""
 msgid "Output"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:95
+#: contents/ui/chat/UndoNotice.qml:101
 msgid "Chat “%1” deleted"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:100
+#: contents/ui/chat/UndoNotice.qml:106
 msgid "%1 message removed"
 msgid_plural "%1 messages removed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/UndoNotice.qml:107
+#: contents/ui/chat/UndoNotice.qml:113
 msgid "Message deleted"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:107
+#: contents/ui/chat/UndoNotice.qml:113
 msgid "Chat cleared"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:119
+#: contents/ui/chat/UndoNotice.qml:124
+msgid "Already in memory"
+msgstr ""
+
+#: contents/ui/chat/UndoNotice.qml:124
+msgid "Saved to memory"
+msgstr ""
+
+#: contents/ui/chat/UndoNotice.qml:127
+msgid "Could not save the memory."
+msgstr ""
+
+#: contents/ui/chat/UndoNotice.qml:136
 msgid "Project “%1” deleted; its chats were kept"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:142
+#: contents/ui/chat/UndoNotice.qml:160 contents/ui/ConfigMemory.qml:167
 msgid "Undo"
 msgstr ""
 
@@ -1839,6 +1939,131 @@ msgstr ""
 
 #: contents/ui/config/ImageProviderEditor.qml:207
 msgid "Empty: a new one each time"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:50
+msgid "Chat “%1”"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:50
+msgid "One chat"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:54
+msgid "Project “%1”"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:54
+msgid "One project"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:131
+msgid "Memory:"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:132
+msgid "Use memories in chats"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:140
+msgid ""
+"Memories are notes you ask the assistant to keep. Only the ones that fit "
+"what you ask (and pinned ones) go with a message. Save one with Remember "
+"under a message or /remember."
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:148
+msgid ""
+"1 memory is turned off and is never sent. Memories brought over from the old "
+"version start off."
+msgid_plural ""
+"%1 memories are turned off and are never sent. Memories brought over from "
+"the old version start off."
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/ConfigMemory.qml:152
+msgid "Turn on all"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:164
+msgid "Memory deleted."
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:178
+msgid "The last change could not be saved: %1"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:189
+msgid "Add a memory for all chats…"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:195
+msgid "Add"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:216
+msgid "All memories"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:217
+msgid "For all chats"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:218
+msgid "For a project"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:219
+msgid "For one chat"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:220
+msgid "Turned off"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:233
+msgid "Loading…"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:234
+msgid "No memories yet."
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:234
+msgid "No memories match."
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:49
+msgid "Use this memory"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:51
+msgid "On: can go with messages"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:51
+msgid "Off: never sent"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:71
+msgid "pinned"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:71
+msgid "off"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:96 contents/ui/config/MemoryRow.qml:98
+msgid "Unpin"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:96
+msgid "Pin"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:98
+msgid "Pin: send it with every message, first"
 msgstr ""
 
 #: contents/ui/config/ModeChooser.qml:18
