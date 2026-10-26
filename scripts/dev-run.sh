@@ -31,6 +31,10 @@ mkdir -p "$OUT_DIR" "$(dirname "$SHOT")" "$SANDBOX/config" "$SANDBOX/data" "$SAN
 export XDG_CONFIG_HOME="$SANDBOX/config"
 export XDG_DATA_HOME="$SANDBOX/data"
 export XDG_CACHE_HOME="$SANDBOX/cache"
+# Saving a schedule writes systemd user units and runs systemctl --user: keep
+# both in the sandbox, so a dev run never creates or starts a real timer.
+export KDEAICHAT_UNIT_DIR="$SANDBOX/systemd-user"
+export KDEAICHAT_SYSTEMCTL=true
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
