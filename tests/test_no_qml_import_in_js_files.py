@@ -65,6 +65,8 @@ WATCHED_FILES = (
     "chat/TimeFormat.js",
     "chat/MessageContent.js",
     "components/ModelFilter.js",
+    "voice/TtsEngines.js",
+    "chat/ReadAloudAction.js",
 )
 
 # Top-of-file patterns that are legal in a plain .js file.

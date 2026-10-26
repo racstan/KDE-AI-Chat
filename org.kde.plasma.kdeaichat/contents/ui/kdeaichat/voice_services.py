@@ -124,20 +124,15 @@ WantedBy=default.target
         atomic_write_text(path, content, mode=0o600)
 
     write_voice_unit(os.path.join(sdir, "kde-ai-stt.service"), "--stt-server")
-    write_voice_unit(os.path.join(sdir, "kde-ai-tts.service"), "--tts-server")
+    # Read aloud has no service any more (voice/ReadAloud.qml); an old
+    # kde-ai-tts.service is removed by voice_startup (voice_legacy.py).
 
     os.system("systemctl --user daemon-reload")
     voice_enabled = as_bool(payload.get("voiceEnabled", True), True)
-    voice_tts_enabled = as_bool(payload.get("voiceTtsEnabled", True), True)
     if voice_enabled:
         os.system("systemctl --user enable --now kde-ai-stt.service 2>/dev/null")
     else:
         os.system("systemctl --user disable --now kde-ai-stt.service 2>/dev/null")
-
-    if voice_enabled and voice_tts_enabled:
-        os.system("systemctl --user enable --now kde-ai-tts.service 2>/dev/null")
-    else:
-        os.system("systemctl --user disable --now kde-ai-tts.service 2>/dev/null")
     print("VOICE_SERVICES_SETUP_OK")
 
 

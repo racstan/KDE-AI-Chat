@@ -65,6 +65,24 @@ P5Support.DataSource {
         commands.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #plasmashell-watchdog-" + Date.now());
     }
 
+    // Read aloud ran in an always-on kde-ai-tts.service before 1.4.0; it now
+    // runs in the widget, so that unit is stopped and removed once
+    // (kdeaichat/voice_legacy.py) if its file is still there.
+    function stopLegacyTtsService() {
+        var helper = chat.getHelperPath();
+        if (!helper)
+            return;
+        var unit = '"${KDEAICHAT_UNIT_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user}"/kde-ai-tts.service';
+        var cmd = "if [ -e " + unit + " ]; then python3 " + Sec.quoteForShell(helper) + " voice_startup; fi";
+        commands.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #voice-legacy-" + Date.now());
+    }
+
+    // Once at startup: what older versions left running.
+    function cleanupLegacy() {
+        stopLegacyWatchdog();
+        stopLegacyTtsService();
+    }
+
     onNewData: function(sourceName, data) {
         var exitCode = Number(data["exit code"]);
         if (isNaN(exitCode)) exitCode = 1;

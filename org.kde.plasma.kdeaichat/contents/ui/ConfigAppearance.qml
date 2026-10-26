@@ -38,7 +38,14 @@ KCM.SimpleKCM {
             "copyReply": i18n("Copy the last reply"),
             "nextChat": i18n("Next chat"),
             "prevChat": i18n("Previous chat"),
-            "settings": i18n("Open the settings")
+            "settings": i18n("Open the settings"),
+            "editLast": i18n("Edit your last message"),
+            "quote": i18n("Quote the picked message in your next one"),
+            "readAloud": i18n("Read aloud the selected text or the picked message; stop reading"),
+            "browseUp": i18n("Previous message (input empty, or after clicking the chat)"),
+            "browseDown": i18n("Next message; past the latest, back to the input"),
+            "firstMessage": i18n("Jump to the first message"),
+            "latestMessage": i18n("Jump to the latest message")
         };
         return labels[id] || id;
     }

@@ -25,7 +25,8 @@ RowLayout {
         if (chat.loading)
             return (chat.currentStreamIndex >= 0 ? i18n("Writing…") : i18n("Thinking…")) + " " + i18n("Esc stops it.");
         if (voiceText !== "")
-            return voiceText;
+            return ({"Reading aloud...": i18n("Reading aloud…"), "Generating speech...": i18n("Making speech…"),
+                     "Paused": i18n("Reading paused")})[voiceText] || voiceText;
         if (notice !== "")
             return notice;
         // The keys are explained once, in a new chat; never in one with messages.
@@ -45,9 +46,26 @@ RowLayout {
         Layout.preferredHeight: Kirigami.Units.iconSizes.small
     }
 
+    // Pause / resume reading, when the engine can.
     PC3.ToolButton {
+        objectName: "pauseReading"
+        readonly property bool paused: !!status.voice && status.voice.ttsPaused === true
+        icon.name: paused ? "media-playback-start" : "media-playback-pause"
+        visible: !status.chat.loading && !!status.voice && status.voice.isPlaying === true && status.voice.ttsCanPause === true
+                 && status.voiceText !== "Generating speech..."
+        display: PC3.AbstractButton.IconOnly
+        Layout.preferredHeight: status.height
+        Layout.preferredWidth: status.height
+        Accessible.name: paused ? i18n("Go on reading") : i18n("Pause reading")
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: Accessible.name
+        onClicked: paused ? status.voice.resumeTTS() : status.voice.pauseTTS()
+    }
+
+    PC3.ToolButton {
+        objectName: "stopReading"
         icon.name: (status.voice && status.voice.callModeActive) ? "call-start" : "media-playback-stop"
-        visible: !status.chat.loading && !!status.voice && (status.voiceText === "Reading aloud..." || status.voiceText === "Generating speech..." || status.voice.callModeActive === true)
+        visible: !status.chat.loading && !!status.voice && (status.voice.isPlaying === true || status.voice.callModeActive === true)
         display: PC3.AbstractButton.IconOnly
         Layout.preferredHeight: status.height
         Layout.preferredWidth: status.height

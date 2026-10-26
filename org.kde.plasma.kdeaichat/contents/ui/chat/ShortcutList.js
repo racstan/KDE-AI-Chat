@@ -20,6 +20,7 @@ var shortcuts = [
     {id: "settings", keys: "Ctrl+,", text: "Open the settings"},
     {id: "editLast", keys: "Ctrl+E", text: "Edit your last message"},
     {id: "quote", keys: "Ctrl+Q", text: "Quote the picked message in your next one"},
+    {id: "readAloud", keys: "Ctrl+Shift+S", text: "Read aloud the selected text or the picked message; stop reading"},
     {id: "browseUp", keys: "Up", text: "Previous message (input empty, or after clicking the chat)"},
     {id: "browseDown", keys: "Down", text: "Next message; past the latest, back to the input"},
     {id: "firstMessage", keys: "PgUp", text: "Jump to the first message"},

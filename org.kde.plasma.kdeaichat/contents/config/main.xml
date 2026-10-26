@@ -392,15 +392,30 @@
 <entry name="voiceSttModelPath" type="String">
       <default></default>
     </entry>
-<entry name="voiceTtsModelPath" type="String">
-      <default></default>
-    </entry>
 <entry name="voiceLanguage" type="String">
       <default>en</default>
     </entry>
-<entry name="voiceTtsVoice" type="String">
-      <default></default>
-    </entry>
+    <!-- Read aloud: the engine and each engine's options (voice/TtsEngines.js).
+         A speech server's API key is in KWallet (entry "tts-remote"), never here. -->
+    <entry name="voiceTtsEngine" type="String"><default>system</default></entry>
+    <entry name="voiceTtsSystemLanguage" type="String"><default></default></entry>
+    <entry name="voiceTtsSystemVoice" type="String"><default></default></entry>
+    <entry name="voiceTtsSystemRate" type="Double"><default>0</default></entry>
+    <entry name="voiceTtsSystemPitch" type="Double"><default>0</default></entry>
+    <entry name="voiceTtsKokoroLanguage" type="String"><default></default></entry>
+    <entry name="voiceTtsKokoroVoice" type="String"><default></default></entry>
+    <entry name="voiceTtsKokoroRate" type="Double"><default>0</default></entry>
+    <entry name="voiceTtsFliteVoice" type="String"><default></default></entry>
+    <entry name="voiceTtsFliteRate" type="Double"><default>0</default></entry>
+    <entry name="voiceTtsFlitePitch" type="Double"><default>0</default></entry>
+    <entry name="voiceTtsPiperModel" type="String"><default></default></entry>
+    <entry name="voiceTtsPiperSpeaker" type="Int"><default>0</default></entry>
+    <entry name="voiceTtsPiperSpeed" type="Double"><default>1</default></entry>
+    <entry name="voiceTtsRemoteUrl" type="String"><default>http://localhost:8880/v1</default></entry>
+    <entry name="voiceTtsRemoteModel" type="String"><default>tts-1</default></entry>
+    <entry name="voiceTtsRemoteVoice" type="String"><default>alloy</default></entry>
+    <entry name="voiceTtsRemoteSpeed" type="Double"><default>1</default></entry>
+    <entry name="voiceTtsCommand" type="String"><default></default></entry>
 <entry name="voiceAutoSend" type="Bool">
       <default>true</default>
     </entry>
