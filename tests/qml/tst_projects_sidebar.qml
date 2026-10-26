@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import QtQuick.Window
 import QtTest
 import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
@@ -19,7 +20,12 @@ Item {
             text = text.replace("%" + i, arguments[i]);
         return text;
     }
-    function i18np(one, many, n) { return (n === 1 ? one : many).replace("%1", n); }
+    function i18np(one, many, n) {
+        var text = n === 1 ? one : many;
+        for (var i = 2; i < arguments.length; i++)
+            text = text.replace("%" + (i - 1), arguments[i]);
+        return text;
+    }
 
     FakeChat { id: chat }
 
@@ -250,6 +256,54 @@ Item {
             mouseClick(rowNamed("Work"));
             compare(titles(), ["Quarterly report"]);
             screenshot(root, "projects-sidebar-narrow");
+        }
+
+        function test_10_delete_a_project_with_its_chats_after_confirming() {
+            root.width = 520;
+            mouseClick(rowNamed("Work"), 20, 10, Qt.RightButton);
+            var overlay = root.QQC2.Overlay.overlay;
+            var keep = null, withChats = null;
+            tryVerify(function() {
+                keep = findChild(overlay, "deleteProjectItem");
+                withChats = findChild(overlay, "deleteProjectWithChatsItem");
+                return keep !== null && withChats !== null && withChats.visible;
+            }, 2000, "the menu offers both");
+            verify(withChats.enabled, "Work has chats");
+            wait(400); // the menu fades in
+            screenshot(root.Window.window.contentItem, "project-delete-menu");
+            mouseClick(withChats);
+            var text = null;
+            tryVerify(function() { text = findChild(overlay, "projectDeleteText"); return text !== null && text.visible && text.width > 0; }, 2000, "it asks first");
+            verify(text.text.indexOf("Delete the project “Work” and its 2 chats?") === 0, text.text);
+            verify(text.text.indexOf("Undo") > 0, "says what Undo brings back");
+            var box = text.mapToItem(root, 0, 0);
+            verify(box.x >= 0 && box.x + text.width <= root.width, "fits the narrow popup");
+            wait(400); // the menu fades out, the question in
+            screenshot(root.Window.window.contentItem, "project-delete-confirm");
+            chat.calls = [];
+            mouseClick(findChild(overlay, "projectDeleteConfirmButton"));
+            tryVerify(() => findChild(overlay, "projectDeleteText") === null, 2000, "it closes");
+            compare(chat.calls.filter(c => c.name === "deleteSession").map(c => c.args[0]).sort(), ["a", "d"], "through the chat delete path");
+            compare(chat.projects.byId("p-work"), null);
+            compare(chat.sessions.map(s => s.value), ["b", "c"]);
+            compare(undo.text, "Project “Work” and its 2 chats deleted");
+            screenshot(root, "project-deleted-with-chats-undo");
+            mouseClick(findChild(undo, "undoButton"));
+            compare(chat.projects.list[0].name, "Work");
+            compare(chat.sessions.map(s => s.value), ["a", "b", "c", "d"], "the chats are back");
+            compare(chat.getSessionProperty("d", "projectId", ""), "p-work");
+        }
+
+        function test_11_cancel_deletes_nothing_and_an_empty_project_has_no_chats_to_delete() {
+            var confirm = body.sessionList.sidebar.confirmDeleteWithChats("p-home");
+            tryVerify(() => confirm.opened);
+            compare(confirm.count, 1);
+            keyClick(Qt.Key_Escape);
+            tryVerify(() => !confirm.visible);
+            verify(chat.projects.byId("p-home") !== null);
+            compare(chat.sessions.length, 4);
+            var id = chat.projects.create({"name": "Empty"});
+            compare(chat.projects.chatsIn(id).length, 0);
         }
     }
 }

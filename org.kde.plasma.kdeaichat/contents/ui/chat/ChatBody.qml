@@ -12,6 +12,10 @@ Item {
     id: body
 
     property var chat: null
+    // Room to keep free in the bottom corners for the popup's resize grip
+    // (chat/ResizeHandle.qml): the composer and the history end short of it.
+    property real roomBottomLeft: 0
+    property real roomBottomRight: 0
 
     // From this width the history sits beside the chat.
     readonly property real sideThreshold: Kirigami.Units.gridUnit * 40
@@ -81,6 +85,7 @@ Item {
                     SessionList {
                         chat: body.chat
                         closeOnSelect: body.historyFull
+                        bottomRoom: body.historyFull ? Math.max(body.roomBottomLeft, body.roomBottomRight) : body.roomBottomLeft
                     }
                 }
             }
@@ -119,6 +124,8 @@ Item {
 
             Composer {
                 id: composer
+                Layout.leftMargin: pane.shownWidth > 0 ? 0 : body.roomBottomLeft
+                Layout.rightMargin: body.roomBottomRight
                 chat: body.chat
                 onAttachRequested: body.attachRequested()
                 onChatInfoRequested: body.chatInfoRequested()

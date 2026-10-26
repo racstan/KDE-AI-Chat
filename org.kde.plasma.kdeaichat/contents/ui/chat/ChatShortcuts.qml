@@ -15,7 +15,7 @@
 //   Ctrl+PgDown/Up  next / previous chat
 //   Ctrl+,          open the settings
 //   Ctrl+E          edit your last message
-//   Up / Down       browse the messages (input empty, or a message selected)
+//   Up / Down       browse the messages (input empty, or the chat clicked)
 //   PgUp / PgDown   first / latest message
 //
 // (The history has no search field, so there is no "search chats" key.)

@@ -21,7 +21,8 @@ Rectangle {
 
     // What can be undone: {kind: "clear", messages, count} or
     // {kind: "delete", session, index, wasCurrent} or
-    // {kind: "project", project, index, moved} (a deleted project) or
+    // {kind: "project", project, index, moved, chats, filler} (a deleted
+    // project; chats: those deleted with it, see chat/Projects.qml) or
     // {kind: "restore", sessionId, messages} (after regenerating) or
     // {kind: "memory", id} (a saved memory) or {kind: "info"} (nothing to undo).
     property var undoable: null
@@ -70,6 +71,7 @@ Rectangle {
             }
         } else if (what.kind === "project") {
             chat.projects.restore(what.project, what.index, what.moved);
+            notice._restoreChats(what.chats || [], what.filler || "");
         } else {
             list = (chat.sessions || []).slice();
             list.splice(Math.min(what.index, list.length), 0, what.session);
@@ -78,6 +80,31 @@ Rectangle {
             if (what.wasCurrent)
                 chat.switchSession(what.session.value);
         }
+    }
+
+    // Puts back chats deleted one after another (the last deleted first, each
+    // at its index), reopens the one that was open, and drops the empty chat
+    // made in their place if it is still empty.
+    function _restoreChats(chats, filler) {
+        if (chats.length === 0)
+            return;
+        var list = (chat.sessions || []).slice();
+        var reopen = "";
+        for (var i = chats.length - 1; i >= 0; i--) {
+            list.splice(Math.min(chats[i].index, list.length), 0, chats[i].session);
+            if (chats[i].wasCurrent)
+                reopen = chats[i].session.value;
+        }
+        chat.sessions = list;
+        if (reopen !== "")
+            chat.switchSession(reopen);
+        var at = filler !== "" && chat.currentSessionId !== filler ? chat.sessionIndexById(filler) : -1;
+        if (at >= 0 && (chat.sessions[at].messages || []).length === 0) {
+            list = chat.sessions.slice();
+            list.splice(at, 1);
+            chat.sessions = list;
+        }
+        chat.persistSessions();
     }
 
     visible: undoable !== null
@@ -128,12 +155,14 @@ Rectangle {
         }
     }
 
-    // A deleted project: its chats stayed (in no project); Undo puts it all back.
+    // A deleted project, with its chats kept (in no project) or deleted; Undo puts it all back.
     Connections {
         target: notice.chat ? notice.chat.projects || null : null
-        function onProjectDeleted(project, index, movedChatIds) {
-            notice.show({"kind": "project", "project": project, "index": index, "moved": movedChatIds},
-                        i18n("Project “%1” deleted; its chats were kept", project.name));
+        function onProjectDeleted(project, index, movedChatIds, deletedChats, fillerChatId) {
+            var chats = deletedChats || [];
+            notice.show({"kind": "project", "project": project, "index": index, "moved": movedChatIds, "chats": chats, "filler": fillerChatId || ""},
+                        chats.length > 0 ? i18np("Project “%2” and its chat deleted", "Project “%2” and its %1 chats deleted", chats.length, project.name)
+                                         : i18n("Project “%1” deleted; its chats were kept", project.name));
         }
     }
 
@@ -144,14 +173,24 @@ Rectangle {
         }
     }
 
+    // The text wraps when the notice is narrower than it (its parent caps
+    // the width); the buttons always keep their room.
     RowLayout {
         id: row
-        anchors.centerIn: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.leftMargin: Kirigami.Units.largeSpacing
+        anchors.rightMargin: Kirigami.Units.largeSpacing
         spacing: Kirigami.Units.smallSpacing
 
         PC3.Label {
             objectName: "undoText"
+            Layout.fillWidth: true
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 3
             text: notice.text
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
         }
 
         PC3.Button {
@@ -163,6 +202,7 @@ Rectangle {
         }
 
         PC3.ToolButton {
+            objectName: "undoDismiss"
             icon.name: "dialog-close"
             display: PC3.AbstractButton.IconOnly
             Accessible.name: i18n("Dismiss")
