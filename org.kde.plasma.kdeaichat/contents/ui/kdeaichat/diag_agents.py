@@ -137,7 +137,9 @@ def check_opencode(raw_url: str, timeout: float = TIMEOUT) -> List[Dict[str, Any
     outcome, status, data = probe(url + "/global/health", timeout)
     if outcome == "ok":
         server_version = str(data.get("version") or "") if isinstance(data, dict) else ""
-        return [row("opencode-server", "opencode", "ok", "opencode-running", url, server_version or version)]
+        found = server_version or version
+        return [row("opencode-server", "opencode", "ok", "opencode-running", url, found) if found
+                else row("opencode-server", "opencode", "ok", "opencode-running-plain", url)]
     rows = []
     if not binary and _is_local(url):
         rows.append(row("opencode-program", "opencode", "error", "opencode-missing"))
@@ -145,7 +147,8 @@ def check_opencode(raw_url: str, timeout: float = TIMEOUT) -> List[Dict[str, Any
         rows.append(row("opencode-server", "opencode", "error", "opencode-not-server", url, status))
     elif outcome in ("refused", "timeout") and _is_local(url) and binary:
         # The widget starts `opencode serve` itself for a local address (chat/OpenCodeMode.qml).
-        rows.append(row("opencode-server", "opencode", "ok", "opencode-starts", url, version))
+        rows.append(row("opencode-server", "opencode", "ok", "opencode-starts", url, version) if version
+                    else row("opencode-server", "opencode", "ok", "opencode-starts-plain", url))
     elif outcome == "timeout":
         rows.append(row("opencode-server", "opencode", "error", "opencode-timeout", url))
     elif binary or not _is_local(url):
@@ -168,7 +171,9 @@ def check_pi() -> List[Dict[str, Any]]:
     binary = find_pi()
     if binary:
         env = dict(os.environ, PATH=pi_env_path())
-        rows.append(row("pi-program", "pi", "ok", "pi-ok", binary, _version([binary], env)))
+        version = _version([binary], env)
+        rows.append(row("pi-program", "pi", "ok", "pi-ok", binary, version) if version
+                    else row("pi-program", "pi", "ok", "pi-ok-plain", binary))
     else:
         rows.append(row("pi-program", "pi", "error", "pi-missing"))
     state = pi_bridge._read_state()

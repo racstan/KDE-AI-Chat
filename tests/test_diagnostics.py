@@ -144,6 +144,8 @@ def test_opencode_not_running(env, server):
     fake_program(env, "opencode", "1.18.2")
     rows = diag_agents.check_opencode(url)
     assert codes(rows) == [("ok", "opencode-starts")] and rows[0]["args"][1] == "1.18.2"
+    fake_program(env, "opencode", "", code=1)
+    assert codes(diag_agents.check_opencode(url)) == [("ok", "opencode-starts-plain")]
     # Something else on that port.
     s = server({})
     assert codes(diag_agents.check_opencode(s.url)) == [("error", "opencode-not-server")]
@@ -169,7 +171,7 @@ def test_pi_missing_and_installed(env):
     assert codes(rows)[0] == ("ok", "pi-ok") and rows[0]["args"][1] == "0.84.0"
     # A program that fails --version still counts as installed, without a version.
     fake_program(env, "pi", "boom", code=3)
-    assert diag_agents.check_pi()[0]["args"][1] == ""
+    assert codes(diag_agents.check_pi())[0] == ("ok", "pi-ok-plain")
 
 
 # ── Attachments, voice, schedules ─────────────────────────────────────────

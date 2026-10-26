@@ -68,6 +68,7 @@ WATCHED_FILES = (
     "chat/MessageContent.js",
     "components/ModelFilter.js",
     "voice/TtsEngines.js",
+    "config/SetupChecks.js",
     "chat/ReadAloudAction.js",
 )
 

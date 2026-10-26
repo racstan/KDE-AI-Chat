@@ -36,6 +36,7 @@ Item {
             text = text.replace("%" + i, arguments[i]);
         return text;
     }
+    function i18np(one, many, n) { return (n === 1 ? one : many).replace("%1", n); }
 
     Component {
         id: fakeWalletComponent
@@ -157,6 +158,22 @@ Item {
 
         function stubPi() {
             return section("piSection");
+        }
+
+        function test_check_setup_follows_the_page_choice() {
+            open();
+            var check = section("setupCheck");
+            verify(check !== null && check.visible, "Check setup is on the page");
+            compare(check.mode, "direct");
+            compare(check.helper, fakeHelper);
+            chooseMode("Through OpenCode");
+            compare(check.mode, "opencode");
+            compare(check.openCodeUrl, "http://127.0.0.1:9/v1");
+            piCommands = [];
+            check.run();
+            tryVerify(function() { return check.checked; }, 3000);
+            compare(piCommands, ["setup_check"]);
+            compare(check.rows[0].code, "check-failed", "the fake's reply isn't a check list");
         }
 
         function test_no_key_is_a_saved_setting() {
