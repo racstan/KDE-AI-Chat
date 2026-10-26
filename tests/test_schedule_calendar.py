@@ -65,7 +65,8 @@ def test_owner_timer_golden():
         "\n"
         "[Install]\n"
         "WantedBy=timers.target\n")
-    assert "Persistent=false" in cal.timer_text(dict(s, catchUp={"enabled": False, "withinHours": 12}))
+    # Always persistent: with catch-up off the job records the missed time.
+    assert "Persistent=true" in cal.timer_text(dict(s, catchUp={"enabled": False, "withinHours": 12}))
 
 
 def test_service_template_golden_and_quoting():

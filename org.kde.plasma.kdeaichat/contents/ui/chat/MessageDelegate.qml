@@ -185,6 +185,7 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.TextArea {
+                            objectName: "inPlaceEditor"
                             Layout.fillWidth: true
                             text: row.chat.editingDraft
                             wrapMode: Text.Wrap

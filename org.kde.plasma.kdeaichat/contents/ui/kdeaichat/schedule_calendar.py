@@ -95,12 +95,13 @@ def timer_name(sid: str) -> str:
 def timer_text(schedule: Dict[str, Any], persistent: Optional[bool] = None) -> str:
     """The ``kdeaichat-sched-<id>.timer`` file for an enabled schedule.
 
-    ``Persistent=`` follows the schedule's catch-up option: with catch-up off
-    a time missed while powered off or logged out is not woken up for.
+    ``Persistent=true`` always: a time missed while powered off or logged out
+    still wakes the job, which runs it (catch-up on, within its window) or
+    records it as missed (catch-up off). systemd wakes, Python decides.
     """
     sid = schedule["id"]
     if persistent is None:
-        persistent = bool((schedule.get("catchUp") or {}).get("enabled"))
+        persistent = True
     body = [HEADER.rstrip("\n"), "[Unit]", f"Description=KDE AI Chat schedule {sid}", "", "[Timer]"]
     body += [f"OnCalendar={line}" for line in schedule_lines(schedule)]
     body += [f"Persistent={'true' if persistent else 'false'}", f"AccuracySec={ACCURACY}",

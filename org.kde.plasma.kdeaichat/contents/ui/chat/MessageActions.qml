@@ -51,6 +51,10 @@ RowLayout {
 
     readonly property string role: message.role || ""
     readonly property bool isReply: role === "assistant" || role === "opencode_assistant"
+    // A reply that is only pictures (an image service's answer): the pictures
+    // have their own enlarge/copy/save/regenerate buttons (MessageImages.qml),
+    // so only Delete is offered here.
+    readonly property bool imageOnly: (message.images || []).length > 0 && !String(message.content || "").trim()
     readonly property var voice: chat ? chat.voiceManagerRef : null
     readonly property bool speakingThis: !!voice && voice.isPlaying && chat.playingMessageIndex === messageIndex
 
@@ -104,7 +108,7 @@ RowLayout {
 
     Optional {
         order: 0
-        shown: !actions.editing && actions.role !== "error"
+        shown: !actions.editing && actions.role !== "error" && !actions.imageOnly
         sourceComponent: Action {
             enabled: !actions.streaming
             icon.name: "document-edit"
@@ -155,7 +159,7 @@ RowLayout {
     Optional {
         id: readAloud
         order: 3
-        shown: !!actions.chat && actions.chat.voiceEnabled && actions.chat.voiceTtsEnabled && actions.role !== "error"
+        shown: !!actions.chat && actions.chat.voiceEnabled && actions.chat.voiceTtsEnabled && actions.role !== "error" && !actions.imageOnly
         sourceComponent: Action {
             enabled: !actions.streaming
             icon.name: actions.speakingThis ? "media-playback-stop" : "audio-speakers"
@@ -178,7 +182,7 @@ RowLayout {
 
     Optional {
         order: 4
-        shown: actions.isReply
+        shown: actions.isReply && !actions.imageOnly
         sourceComponent: Action {
             id: regenerate
             enabled: !actions.streaming
@@ -274,6 +278,7 @@ RowLayout {
 
     Optional {
         order: 5
+        shown: !actions.imageOnly
         sourceComponent: Action {
             enabled: !actions.streaming
             icon.name: "edit-copy"
