@@ -10,6 +10,8 @@ QQC2.Menu {
     id: chatMenu
 
     property var chat: null
+    // Delete was chosen (the history asks first when Settings → Chat says so).
+    signal deleteRequested(var session)
     property var session: ({})
     readonly property bool archived: session.archived === true
 
@@ -38,6 +40,6 @@ QQC2.Menu {
     QQC2.MenuItem {
         text: i18n("Delete chat")
         icon.name: "trash-empty"
-        onTriggered: chatMenu.chat.deleteSession(chatMenu.session.value)
+        onTriggered: chatMenu.deleteRequested(chatMenu.session)
     }
 }

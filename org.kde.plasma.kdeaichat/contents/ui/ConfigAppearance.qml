@@ -1,8 +1,10 @@
 // Settings → Appearance: the widget's name and icon, the panel icon's
-// animation (config/PanelIconSettings.qml), which desktop notifications to
+// animation (config/PanelIconSettings.qml), the chat's look
+// (config/ChatLookSettings.qml) and layout (config/LayoutSettings.qml), which desktop notifications to
 // show, the sound played when a reply finishes, the keyboard shortcuts and a
 // link to support the developer (Plasma's About page shows no donation link).
-// Colours always follow the Plasma colour scheme.
+// Colours follow the Plasma colour scheme; only the accent can be changed.
+// Every look and layout option is opt-in: its default is the Plasma look.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
@@ -13,6 +15,7 @@ import org.kde.iconthemes as KIconThemes
 import "config" as Config
 import "store" as Store
 import "chat/ShortcutList.js" as ShortcutList
+import "chat/Prefs.js" as Prefs
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -31,6 +34,27 @@ KCM.SimpleKCM {
     property alias cfg_panelIconMode: panelIcon.mode
     property alias cfg_panelIconFile: panelIcon.file
     property alias cfg_panelIconHoverOnly: panelIcon.hoverOnly
+    property alias cfg_chatFontScale: look.fontScale
+    property alias cfg_chatDensity: look.density
+    property alias cfg_chatStyle: look.chatStyle
+    property alias cfg_codeTheme: look.codeTheme
+    property alias cfg_accentColor: look.accentColor
+    property alias cfg_customPopupWidth: layoutForm.popupWidth
+    property alias cfg_customPopupHeight: layoutForm.popupHeight
+    property alias cfg_historySide: layoutForm.historySide
+    property alias cfg_showWorkspaceBar: layoutForm.showWorkspaceBar
+    property alias cfg_headerShowHistory: layoutForm.showHistory
+    property alias cfg_headerShowPin: layoutForm.showPin
+    property alias cfg_headerShowSettings: layoutForm.showSettings
+    property alias cfg_headerShowNewChat: layoutForm.showNewChat
+    property alias cfg_headerShowInfo: layoutForm.showInfo
+
+    // "Reset this page": every setting here back to its default.
+    function resetPage() {
+        Prefs.resetPage(page, Prefs.appearancePageDefaults);
+        look.resetAll();
+        layoutForm.resetAll();
+    }
 
     readonly property string donateUrl: "https://buymeacoffee.com/rachitasthana"
     // Runs the helper's commands (the animation file check); tests pass a fake.
@@ -186,6 +210,18 @@ KCM.SimpleKCM {
             runHelper: page.runHelper
         }
 
+        Config.ChatLookSettings {
+            id: look
+            Layout.fillWidth: true
+            twinFormLayouts: [mainForm, restForm]
+        }
+
+        Config.LayoutSettings {
+            id: layoutForm
+            Layout.fillWidth: true
+            twinFormLayouts: [mainForm, restForm]
+        }
+
         Kirigami.FormLayout {
             id: restForm
             Layout.fillWidth: true
@@ -292,6 +328,10 @@ KCM.SimpleKCM {
                 objectName: "donateHelp"
                 text: i18n("KDE AI Chat is free. If it helps you, you can thank the developer with a small gift; this opens buymeacoffee.com in your web browser.")
             }
+        }
+
+        Config.PageReset {
+            onReset: page.resetPage()
         }
     }
 }

@@ -32,7 +32,8 @@ RowLayout {
     signal agentChosen(string value)
 
     Layout.fillWidth: true
-    visible: !bar.historyFull
+    // Settings → Appearance can hide it; OpenCode chats keep it for the agent profile.
+    visible: !bar.historyFull && (!bar.chat.prefs || bar.chat.prefs.showWorkspaceBar || bar.chat.openCodeMode)
     spacing: Kirigami.Units.smallSpacing
 
     // Sets (or, with "", clears) the open chat's workspace.

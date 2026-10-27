@@ -50,6 +50,11 @@ QtObject {
     }
 
     function formatMessageTime(message, index) {
+        // 12-hour or the region's format (Settings → Chat); "" keeps the
+        // time as the message has it (24-hour, the default).
+        var chosen = chat.prefs && message && message.at ? chat.prefs.formatTime(message.at) : "";
+        if (chosen)
+            return chosen;
         if (message && message.time)
             return message.time;
 

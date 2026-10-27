@@ -62,6 +62,15 @@ Item {
     // Yours sit at the right and take at most 80% of the row, so the line
     // lengths stay readable; the others fill it.
     readonly property real bubbleWidth: mine ? Math.round((width - Kirigami.Units.smallSpacing * 2) * 0.8) : width - Kirigami.Units.smallSpacing * 2
+    // Settings → Appearance (chat/ChatPrefs.qml): the padding at the chosen
+    // density, and filled boxes ("bubbles") for the conversation's messages.
+    readonly property var prefs: chat && chat.prefs ? chat.prefs : null
+    readonly property real pad: prefs ? prefs.spaced(Kirigami.Units.largeSpacing) : Kirigami.Units.largeSpacing
+    readonly property bool filled: !!prefs && prefs.bubbles && (mine || role === "assistant")
+    // How far the action buttons reach into the padding and the gap below
+    // (so they cost little height).
+    readonly property real actionsOverlap: prefs && prefs.densityFactor !== 1
+        ? pad + Math.round(prefs.spaced(Kirigami.Units.largeSpacing) / 2) : Kirigami.Units.largeSpacing + Kirigami.Units.smallSpacing
 
     implicitHeight: column.implicitHeight
     height: implicitHeight
@@ -88,11 +97,13 @@ Item {
             Layout.preferredWidth: row.bubbleWidth
             Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
-            implicitHeight: content.implicitHeight + Kirigami.Units.largeSpacing * 2
+            implicitHeight: content.implicitHeight + row.pad * 2
             radius: Kirigami.Units.cornerRadius
-            // No fill for any message: a colour only where it means something,
-            // and then only as an edge (errors red, agent requests orange).
-            color: row.selected ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14) : "transparent"
+            // No fill for any message by default: a colour only where it means
+            // something, and then only as an edge (errors red, agent requests
+            // orange). With bubbles, yours take the accent, the AI's the view colour.
+            color: row.selected ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14)
+                : !row.filled ? "transparent" : row.mine ? Qt.alpha(Kirigami.Theme.highlightColor, 0.18) : Kirigami.Theme.backgroundColor
             opacity: row.role === "queued" ? 0.7 : 1
             border.width: row.role === "error" || row.isRequest || row.selected ? 1 : 0
             border.color: row.role === "error" ? Kirigami.Theme.negativeTextColor
@@ -108,8 +119,8 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: Kirigami.Units.largeSpacing
-                spacing: Kirigami.Units.smallSpacing
+                anchors.margins: row.pad
+                spacing: row.prefs ? row.prefs.spaced(Kirigami.Units.smallSpacing) : Kirigami.Units.smallSpacing
 
                 RowLayout {
                     id: header
@@ -236,7 +247,7 @@ Item {
 
                     visible: !row.editing && !row.ownsBody && (text !== "" || row.streaming)
                     Layout.fillWidth: true
-                    textWidth: row.bubbleWidth - Kirigami.Units.largeSpacing * 2
+                    textWidth: row.bubbleWidth - row.pad * 2
                     buttonHeight: row.buttonHeight
                     builder: row.builder
                     chat: row.chat
@@ -337,7 +348,7 @@ Item {
                         Layout.minimumHeight: buttonSize
                         // Overlaps the bubble's bottom padding and part of the gap to
                         // the next message (never reaching it), so it costs little height.
-                        Layout.bottomMargin: -(Kirigami.Units.largeSpacing + Kirigami.Units.smallSpacing)
+                        Layout.bottomMargin: -row.actionsOverlap
                         builder: row.builder
                         chat: row.chat
                         message: row.message

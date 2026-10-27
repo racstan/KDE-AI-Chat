@@ -317,12 +317,34 @@
     <entry name="lastSessionId" type="String">
       <default></default>
     </entry>
-      <entry name="customPopupWidth" type="Int">
+    <entry name="customPopupWidth" type="Int">
       <default>760</default>
     </entry>
     <entry name="customPopupHeight" type="Int">
       <default>760</default>
     </entry>
+
+    <!-- Look, layout and behaviour customisations (Settings → Appearance and
+         Chat). Each default is how the widget looked and behaved before, so
+         nothing changes until the user picks something else. The same
+         defaults are in contents/ui/chat/Prefs.js (tests/test_prefs.py). -->
+    <entry name="chatFontScale" type="Int"><default>100</default><min>50</min><max>200</max></entry>
+    <entry name="chatDensity" type="String"><default>normal</default></entry>
+    <entry name="chatStyle" type="String"><default>plain</default></entry>
+    <entry name="codeTheme" type="String"><default>system</default></entry>
+    <entry name="accentColor" type="String"><default></default></entry>
+    <entry name="historySide" type="String"><default>left</default></entry>
+    <entry name="showWorkspaceBar" type="Bool"><default>true</default></entry>
+    <entry name="headerShowHistory" type="Bool"><default>true</default></entry>
+    <entry name="headerShowPin" type="Bool"><default>true</default></entry>
+    <entry name="headerShowSettings" type="Bool"><default>true</default></entry>
+    <entry name="headerShowNewChat" type="Bool"><default>true</default></entry>
+    <entry name="headerShowInfo" type="Bool"><default>true</default></entry>
+    <entry name="sendKey" type="String"><default>enter</default></entry>
+    <entry name="autoScroll" type="Bool"><default>true</default></entry>
+    <entry name="timeFormat" type="String"><default>24h</default></entry>
+    <entry name="confirmDeleteChat" type="Bool"><default>false</default></entry>
+    <entry name="newChatOnOpen" type="Bool"><default>false</default></entry>
     <entry name="playNotificationSound" type="Bool">
       <default>true</default>
     </entry>

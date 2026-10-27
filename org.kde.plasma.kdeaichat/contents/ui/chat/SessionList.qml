@@ -16,10 +16,8 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
-
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
-
 Rectangle {
     id: sessionList
 
@@ -48,6 +46,8 @@ Rectangle {
     readonly property bool archivedView: projects.view === "archived"
     readonly property alias sidebar: projectsSidebar
     readonly property alias rowMenu: chatMenu
+    // Deletes a chat, or asks first if Settings → Chat says so (returns the question; chat/ChatPrefs.qml).
+    function removeChat(s) { return chat.prefs ? chat.prefs.deleteChat(s.value, s.text, sessionList) : chat.deleteSession(s.value); }
     readonly property alias search: searchPanel
 
     radius: Kirigami.Units.cornerRadius
@@ -59,6 +59,7 @@ Rectangle {
     ChatRowMenu {
         id: chatMenu
         chat: sessionList.chat
+        onDeleteRequested: session => sessionList.removeChat(session)
     }
 
     function focusSearch() { searchPanel.focusSearch(); }
@@ -346,7 +347,7 @@ Rectangle {
                             if (row.editing)
                                 row.chat.cancelSessionRename();
                             else
-                                row.chat.deleteSession(row.modelData.value);
+                                sessionList.removeChat(row.modelData);
                         }
                     }
                 }

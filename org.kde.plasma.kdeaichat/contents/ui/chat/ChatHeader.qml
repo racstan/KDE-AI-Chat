@@ -25,6 +25,8 @@ RowLayout {
     // The history takes the whole view (a narrow popup), so chat actions are
     // hidden and the toggle reads "Back to chat". Set by FullRepresentationContent.
     property bool historyFull: chat ? chat.historyOnlyMode : false
+    // Which buttons show (Settings → Appearance, chat/ChatPrefs.qml); all by default.
+    readonly property var prefs: chat && chat.prefs ? chat.prefs : null
     readonly property var incognito: chat ? chat.incognito || null : null
     readonly property bool inIncognito: !!incognito && incognito.active
 
@@ -59,6 +61,9 @@ RowLayout {
 
     PC3.ToolButton {
         id: historyButton
+        objectName: "historyButton"
+        // "Back to chat" always shows: it is the way out of the history.
+        visible: header.historyFull || !header.prefs || header.prefs.showHistoryButton
 
         readonly property string label: header.historyFull ? i18n("Back to chat")
             : (header.chat.historyOnlyMode ? i18n("Hide history") : i18n("Show history"))
@@ -73,6 +78,8 @@ RowLayout {
     }
 
     PC3.ToolButton {
+        objectName: "pinButton"
+        visible: !header.prefs || header.prefs.showPinButton
         icon.name: "window-pin"
         checkable: true
         checked: !header.chat.hideOnWindowDeactivate
@@ -83,6 +90,8 @@ RowLayout {
     }
 
     PC3.ToolButton {
+        objectName: "settingsButton"
+        visible: !header.prefs || header.prefs.showSettingsButton
         icon.name: "configure"
         Accessible.name: i18n("Open Settings")
         QQC2.ToolTip.visible: hovered
@@ -121,6 +130,7 @@ RowLayout {
     PC3.ToolButton {
         id: newChatButton
         objectName: "newChatButton"
+        visible: !header.prefs || header.prefs.showNewChatButton
         icon.name: "list-add"
         display: PC3.AbstractButton.IconOnly
         enabled: !header.chat.loading
@@ -153,7 +163,8 @@ RowLayout {
     // Chat info: this chat's usage and its own settings.
     PC3.ToolButton {
         id: infoButton
-        visible: !header.historyFull
+        objectName: "infoButton"
+        visible: !header.historyFull && (!header.prefs || header.prefs.showInfoButton)
         icon.name: "documentinfo"
         Accessible.name: i18n("Chat info")
         QQC2.ToolTip.visible: hovered

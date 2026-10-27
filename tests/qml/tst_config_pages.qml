@@ -246,6 +246,10 @@ Item {
             compare(named("notifyErrorCheck").checked, false);
             compare(named("notifyScheduledCheck").checked, true);
             compare(named("notifyInputCheck").checked, true);
+            // The notifications are below the chat look and layout: scroll to them.
+            var flick = page.flickable;
+            flick.contentY = Math.max(0, named("notifyReplyCheck").mapToItem(flick.contentItem, 0, 0).y - 100);
+            wait(50);
             mouseClick(named("notifyInputCheck"));
             compare(page.cfg_notifyOnInput, false);
             compare(named("soundCheck").checked, true);

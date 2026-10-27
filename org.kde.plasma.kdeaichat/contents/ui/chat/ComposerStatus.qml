@@ -30,7 +30,10 @@ RowLayout {
         if (notice !== "")
             return notice;
         // The keys are explained once, in a new chat; never in one with messages.
-        return status.isNewChat ? i18n("Enter sends · Shift+Enter adds a line · / for commands and templates") : "";
+        if (!status.isNewChat)
+            return "";
+        return chat.prefs && chat.prefs.sendKey === "ctrlEnter" ? i18n("Ctrl+Enter sends · Enter adds a line · / for commands and templates")
+            : i18n("Enter sends · Shift+Enter adds a line · / for commands and templates");
     }
 
     Layout.fillWidth: true

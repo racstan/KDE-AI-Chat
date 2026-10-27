@@ -39,6 +39,7 @@ FILES = [
     "config/OpenCodeSettings.qml", "config/PiSettings.qml", "config/ImageProviderEditor.qml",
     "config/ScheduleEditor.qml", "config/ScheduleOptions.qml", "config/DictationSettings.qml",
     "config/LocalSttRows.qml", "config/TtsOption.qml", "config/PanelIconSettings.qml",
+    "config/ChatLookSettings.qml", "config/LayoutSettings.qml", "config/BehaviourSettings.qml",
     "ChatSettingsDialog.qml", "chat/ChatOverridesForm.qml", "chat/PiChatSettings.qml", "chat/SettingField.qml",
     "chat/OwnModelCheck.qml",
 ]

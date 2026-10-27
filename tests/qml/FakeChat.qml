@@ -94,6 +94,9 @@ QtObject {
     // projects.ini goes to `chatStore` when a test sets one.
     property var chatStore: null
     readonly property Chat.Projects projects: Chat.Projects { chat: fake }
+    // main.qml's look and behaviour options (chat/ChatPrefs.qml) on this fake's
+    // plasmoid.configuration: a test sets `plasmoid` to change them.
+    readonly property Chat.ChatPrefs prefs: Chat.ChatPrefs { chat: fake; config: fake.plasmoid.configuration }
     // main.qml's memories: store/MemoryStore.qml when a test sets one, and the real chat/Memory.qml.
     property var memoryStore: null
     readonly property Chat.Memory memory: Chat.Memory { chat: fake }

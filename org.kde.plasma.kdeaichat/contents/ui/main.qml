@@ -97,6 +97,8 @@ PlasmoidItem {
     readonly property var chatStore: storage.chatStore
     readonly property var memoryStore: storage.memoryStore  // memories; chat.memory picks those sent (chat/Memory.qml)
     readonly property Chat.Memory memory: Chat.Memory { chat: root }
+    // Look, layout and behaviour options (chat/ChatPrefs.qml; defaults change nothing).
+    readonly property Chat.ChatPrefs prefs: Chat.ChatPrefs { chat: root; config: root.plasmoid.configuration }
     readonly property Chat.Incognito incognito: Chat.Incognito { chat: root }  // chats never written to disk
     readonly property var store: storage
     property bool sessionHistoryLoadBlocked: false
@@ -549,12 +551,7 @@ PlasmoidItem {
             active: root.expanded || root._initialLoadDone
             source: "FullRepresentationContent.qml"
 
-            onStatusChanged: {
-                console.log("Loader status changed:", status, (status === Loader.Error ? "ERROR!" : ""));
-                if (status === Loader.Error) {
-                    console.log("Error string:", sourceComponent ? sourceComponent.errorString() : "No sourceComponent");
-                }
-            }
+            onStatusChanged: if (status === Loader.Error) console.warn("KDE AI Chat: the chat view failed to load");
         }
     }
 }

@@ -23,6 +23,8 @@ Item {
     // than about a third of it (at least 15 grid units).
     readonly property real panelWidth: Math.round(Math.max(Kirigami.Units.gridUnit * 15, Math.min(Kirigami.Units.gridUnit * 20, width * 0.28)))
     readonly property bool sideHistory: width >= sideThreshold
+    // The side panel on the right instead (Settings → Appearance).
+    readonly property bool onRight: !!chat && !!chat.prefs && chat.prefs.historyOnRight
     readonly property bool historyOpen: chat.historyOnlyMode
     // The history replaces the chat (narrow popup).
     readonly property bool historyFull: historyOpen && !sideHistory
@@ -62,6 +64,7 @@ Item {
     RowLayout {
         anchors.fill: parent
         spacing: 0
+        layoutDirection: body.onRight ? Qt.RightToLeft : Qt.LeftToRight
 
         Item {
             id: pane
@@ -87,7 +90,8 @@ Item {
 
                 // Stays until the slide-out has finished.
                 active: body.historyOpen || pane.width > 0
-                anchors.left: parent.left
+                // On the side the panel slides in from.
+                x: body.onRight && !body.historyFull ? pane.width - width : 0
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: body.historyFull ? pane.width : body.panelWidth
@@ -96,7 +100,8 @@ Item {
                     SessionList {
                         chat: body.chat
                         closeOnSelect: body.historyFull
-                        bottomRoom: body.historyFull ? Math.max(body.roomBottomLeft, body.roomBottomRight) : body.roomBottomLeft
+                        bottomRoom: body.historyFull ? Math.max(body.roomBottomLeft, body.roomBottomRight)
+                            : (body.onRight ? body.roomBottomRight : body.roomBottomLeft)
                     }
                 }
             }
@@ -135,8 +140,8 @@ Item {
 
             Composer {
                 id: composer
-                Layout.leftMargin: pane.shownWidth > 0 ? 0 : body.roomBottomLeft
-                Layout.rightMargin: body.roomBottomRight
+                Layout.leftMargin: pane.shownWidth > 0 && !body.onRight ? 0 : body.roomBottomLeft
+                Layout.rightMargin: pane.shownWidth > 0 && body.onRight ? 0 : body.roomBottomRight
                 chat: body.chat
                 onAttachRequested: body.attachRequested()
                 onChatInfoRequested: body.chatInfoRequested()

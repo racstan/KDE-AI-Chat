@@ -42,7 +42,8 @@ Item {
 
         anchors.fill: parent
         model: chatView.chat && !chatView.replacing ? chatView.chat.messageModel : null
-        spacing: Kirigami.Units.largeSpacing
+        // The gap between messages, at the density from Settings → Appearance.
+        spacing: chatView.chat && chatView.chat.prefs ? chatView.chat.prefs.spaced(Kirigami.Units.largeSpacing) : Kirigami.Units.largeSpacing
         clip: true
         cacheBuffer: Kirigami.Units.gridUnit * 40
         // No current item: it would keep row 0's delegate alive for nothing.
@@ -183,9 +184,21 @@ Item {
 
         function follow() {
             // Not while the user drags or flicks: userMoved() decides then.
-            if (chatView.chat && !chatView.chat.userScrolledUp && count > 0 && !moving && !scrollBar.pressed)
-                positionViewAtEnd();
+            if (!chatView.chat || chatView.chat.userScrolledUp || count === 0 || moving || scrollBar.pressed)
+                return;
+            if (holdsStill()) {
+                if (!atYEnd)
+                    chatView.chat.userScrolledUp = true;
+                return;
+            }
+            positionViewAtEnd();
         }
+        // "Follow the answer" off (Settings → Chat): a reply being written
+        // doesn't move the view; "New messages" shows once it goes past the end.
+        function holdsStill() {
+            return !!chatView.chat && !!chatView.chat.prefs && !chatView.chat.prefs.autoScroll && chatView.chat.loading;
+        }
+        onAtYEndChanged: if (!atYEnd && !moving && holdsStill()) chatView.chat.userScrolledUp = true
         function userMoved() {
             if (chatView.chat)
                 chatView.chat.userScrolledUp = !atYEnd;

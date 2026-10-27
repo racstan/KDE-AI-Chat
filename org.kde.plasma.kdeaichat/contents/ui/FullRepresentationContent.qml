@@ -5,9 +5,11 @@ import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 import "chat" as Chat
 
-Item {
+// The accent colour from Settings → Appearance; none: the Plasma theme as is.
+Chat.AccentArea {
     id: repRoot
     anchors.fill: parent
+    accent: root.prefs ? root.prefs.accent : ""
 
     Connections {
         target: root.voiceManagerRef || null

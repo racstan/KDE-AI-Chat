@@ -12,6 +12,7 @@ import "ReadAloudAction.js" as ReadAloudAction
 
 TextEdit {
     id: block
+    objectName: "messageText"
 
     property var chat: null
     property int messageIndex: -1
@@ -35,7 +36,8 @@ TextEdit {
     color: Kirigami.Theme.textColor
     selectedTextColor: Kirigami.Theme.highlightedTextColor
     selectionColor: Kirigami.Theme.highlightColor
-    font: Kirigami.Theme.defaultFont
+    // The theme's font, at the text size from Settings → Appearance.
+    font: chat && chat.prefs ? chat.prefs.scaledFont(Kirigami.Theme.defaultFont) : Kirigami.Theme.defaultFont
 
     onLinkActivated: function(link) {
         var safe = Sec.validateUrl(link);

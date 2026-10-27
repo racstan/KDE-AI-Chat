@@ -6,7 +6,8 @@
 //
 // Messages quoted with the Quote button show as chips above the box (QuoteChips.qml).
 //
-// Keys in the input: Enter sends, Shift+Enter adds a line, "/" at the start
+// Keys in the input: Enter sends, Shift+Enter adds a line (or, with "Send
+// with Ctrl+Enter" in Settings → Chat, Ctrl+Enter sends and Enter adds a line), "/" at the start
 // lists the slash commands (Commands.js, run by CommandRunner.qml) and then the
 // prompt templates; Enter on a command runs it instead of sending. While the input is empty, Up/Down browse the
 // messages (ChatView.qml); PageUp/PageDown jump to the first/latest message,
@@ -27,6 +28,8 @@ ColumnLayout {
     id: composer
 
     property var chat: null
+    // The look and behaviour options (chat/ChatPrefs.qml), or null.
+    readonly property var prefs: chat && chat.prefs ? chat.prefs : null
     readonly property alias input: msgInput
     readonly property alias suggestions: suggestions
     readonly property alias quoteChips: quoteChips
@@ -202,7 +205,8 @@ ColumnLayout {
                     event.accepted = true;
                 } else if (composer.browseKey(event)) {
                     event.accepted = true;
-                } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
+                } else if (composer.prefs ? composer.prefs.sendsMessage(event)
+                           : (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
                     event.accepted = true;
                     if (!runner.run(msgInput.text))
                         composer.chat.sendMessage();
@@ -215,6 +219,11 @@ ColumnLayout {
                 if (composer.chat.expanded)
                     focusTimer.start();
                 msgInput.text = composer.chat.chatInputText;
+            }
+            // The text size from Settings → Appearance; the theme's font otherwise.
+            Binding on font {
+                when: !!composer.prefs && composer.prefs.fontFactor !== 1
+                value: composer.prefs ? composer.prefs.scaledFont(Kirigami.Theme.defaultFont) : Kirigami.Theme.defaultFont
             }
 
             TemplateSuggestions {

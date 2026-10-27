@@ -10,6 +10,7 @@ import org.kde.plasma.components as PC3
 
 Rectangle {
     id: codeBlock
+    objectName: "codeBlock"
 
     property var chat: null
     property string language: ""
@@ -29,11 +30,15 @@ Rectangle {
 
     signal selectionMade(string text)
 
+    // The code colours from Settings → Appearance (chat/Prefs.js codeThemes),
+    // or null: the Plasma colours.
+    readonly property var theme: chat && chat.prefs ? chat.prefs.codeTheme : null
+
     implicitHeight: column.implicitHeight
     radius: Kirigami.Units.cornerRadius
-    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.06)
+    color: theme ? theme.background : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.06)
     border.width: 1
-    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+    border.color: theme ? theme.border : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
 
     ColumnLayout {
         id: column
@@ -50,7 +55,8 @@ Rectangle {
                 Layout.fillWidth: true
                 text: codeBlock.language && codeBlock.language !== "code" ? codeBlock.language : i18n("Code")
                 font: Kirigami.Theme.smallFont
-                opacity: 0.7
+                color: codeBlock.theme ? codeBlock.theme.label : Kirigami.Theme.textColor
+                opacity: codeBlock.theme ? 1 : 0.7
             }
 
             Loader {
@@ -59,6 +65,7 @@ Rectangle {
                 sourceComponent: PC3.ToolButton {
                     icon.name: copied.running ? "checkmark" : "edit-copy"
                     display: PC3.AbstractButton.IconOnly
+                    icon.color: codeBlock.theme ? codeBlock.theme.text : "transparent"
                     text: copied.running ? i18n("Copied") : i18n("Copy code")
                     Accessible.name: text
                     QQC2.ToolTip.visible: hovered
@@ -88,8 +95,8 @@ Rectangle {
                 id: codeText
                 text: codeBlock.code
                 textFormat: Text.PlainText
-                font: Kirigami.Theme.fixedWidthFont
-                color: Kirigami.Theme.textColor
+                font: codeBlock.chat && codeBlock.chat.prefs ? codeBlock.chat.prefs.scaledFont(Kirigami.Theme.fixedWidthFont) : Kirigami.Theme.fixedWidthFont
+                color: codeBlock.theme ? codeBlock.theme.text : Kirigami.Theme.textColor
                 selectionColor: Kirigami.Theme.highlightColor
                 selectedTextColor: Kirigami.Theme.highlightedTextColor
                 readOnly: true
