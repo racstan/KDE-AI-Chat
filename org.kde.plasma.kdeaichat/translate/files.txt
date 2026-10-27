@@ -98,6 +98,7 @@ contents/ui/store/Wallet.qml
 contents/ui/ScheduleDialog.qml
 contents/ui/chat/MessageText.qml
 contents/ui/config/TtsOption.qml
+contents/ui/config/NeuralVoiceSetup.qml
 contents/ui/config/DictationSettings.qml
 contents/ui/voice/TtsEngines.js
 contents/ui/VoiceManager.qml

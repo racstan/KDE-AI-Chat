@@ -41,7 +41,7 @@ ColumnLayout {
     Loader {
         id: field
         Layout.fillWidth: true
-        sourceComponent: ({"language": choiceField, "voice": choiceField, "rate": sliderField, "pitch": sliderField,
+        sourceComponent: ({"language": choiceField, "voice": choiceField, "choice": choiceField, "rate": sliderField, "pitch": sliderField,
                            "speed": sliderField, "int": intField, "text": textField, "url": textField, "command": textField,
                            "file": fileField, "secret": secretField})[row.option.type] || textField
     }
@@ -58,9 +58,10 @@ ColumnLayout {
             textRole: "text"
             valueRole: "value"
             Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-            model: !row.voiceProbe ? [] : isLanguage ? row.voiceProbe.languages(row.engineId, i18n("Engine default"))
-                                               : row.voiceProbe.voiceChoices(row.engineId, row.language, i18n("Engine default"))
-            currentIndex: count > 0 ? Math.max(0, indexOfValue(String(row.value || ""))) : -1
+            model: row.option.type === "choice" ? row.option.choices.map(function(c) { return {"value": c.value, "text": i18n(c.text)}; })
+                : !row.voiceProbe ? [] : isLanguage ? row.voiceProbe.languages(row.engineId, i18n("Engine default"))
+                : row.voiceProbe.voiceChoices(row.engineId, row.language, i18n("Engine default"), String(row.value || ""))
+            currentIndex: count > 0 ? Math.max(0, indexOfValue(String(row.value || row.option.def || ""))) : -1
             onActivated: row.set(currentValue)
         }
     }

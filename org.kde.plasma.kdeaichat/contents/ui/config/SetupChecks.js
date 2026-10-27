@@ -95,6 +95,8 @@ var MESSAGES = {
     "stt-command-bad": [I18N_NOOP("The dictation command can't run: %1"), I18N_NOOP("Correct it in Settings → Voice.")],
     "stt-ready": [I18N_NOOP("Dictation with %1 is ready."), ""],
     // Read aloud
+    "tts-neural-missing": [I18N_NOOP("The natural voice isn't installed yet, so replies are read with the robotic system voice."),
+                           I18N_NOOP("Install it in Settings → Voice (one time, size shown first).")],
     "tts-piper-missing": [I18N_NOOP("Piper isn't installed: there is no piper program."),
                           I18N_NOOP("Install Piper, or pick another read-aloud engine in Settings → Voice.")],
     "tts-piper-voice": [I18N_NOOP("The Piper voice file isn't there: %1"), I18N_NOOP("Pick a voice file in Settings → Voice.")],

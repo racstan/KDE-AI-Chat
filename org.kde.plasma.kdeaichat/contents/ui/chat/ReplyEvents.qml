@@ -76,7 +76,7 @@ QtObject {
                 return;
             var request = isPermission ? AgentEvents.permissionMessage(event, extra, Date.now()) : AgentEvents.questionMessage(event, extra, Date.now());
             chat.messages = chat.messages.concat([request]);
-            chat.triggerNotificationSound();
+            chat.triggerNotificationSound(false);
             try { replies.notifierRef.inputNeeded(chat.currentSessionId, chat.currentSessionTitle, request); } catch (notifyErr) { console.error("Notification failed:", notifyErr); }
             chat.saveCurrentSessionState(true);
         } else if (event.type === "permission_resolved") {
