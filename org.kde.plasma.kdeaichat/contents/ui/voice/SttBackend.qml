@@ -1,12 +1,11 @@
-// Dictation back end for VoiceManager: records and transcribes through the
-// helper's stt_* commands (kdeaichat/stt_commands.py) with the chosen engine.
-//
-// start(): `stt_dictate` records until stop() and prints one result when it
-// ends, so the reply arrives once (no polling). At start it copies the old
-// voice* settings once and runs `stt_sync_units`, which removes the old
-// always-on service and keeps the on-demand local socket (Parakeet or faster-whisper) installed
-// only while dictation is on with one of those engines. With the Speech Note
-// engine (the default) the app does the listening: voice/SpeechNoteDictation.qml.
+// Dictation back end for VoiceManager. With the Speech Note engine (the default)
+// the app does the listening: voice/SpeechNoteDictation.qml. With a speech
+// server the helper records and transcribes through its stt_* commands
+// (kdeaichat/stt_commands.py): `stt_dictate` records until stop() and prints
+// one result when it ends, so the reply arrives once (no polling).
+// At start it carries older settings over once (voice/SttConfig.js): a saved
+// engine that no longer exists (faster-whisper, Parakeet, whisper.cpp, a custom
+// command) becomes Speech Note.
 import QtQuick
 import "../store" as Store
 import "SttConfig.js" as SttConfig
@@ -18,7 +17,7 @@ Item {
     // store/HelperRunner.qml's run(); empty: this backend's own runner.
     property var runHelper: null
     readonly property var _run: runHelper || runner.run
-    readonly property string engine: String((configuration && configuration.sttEngine) || SttConfig.DEFAULTS.sttEngine)
+    readonly property string engine: SttConfig.migratedEngine(configuration ? configuration.sttEngine : "")
     readonly property bool busy: _dictating || speechNote.busy
     property bool _dictating: false
     property bool _viaSpeechNote: false
@@ -64,14 +63,12 @@ Item {
         runner.run("stt_stop", {"cancel": cancel === true}, null);
     }
 
-    function syncUnits() {
-        if (!configuration)
-            return;
-        SttConfig.applyMigration(configuration);
-        runner.run("stt_sync_units", SttConfig.payload(configuration), null);
+    function migrate() {
+        if (configuration)
+            SttConfig.applyMigration(configuration);
     }
 
-    Component.onCompleted: syncUnits()
+    Component.onCompleted: migrate()
 
     SpeechNoteDictation {
         id: speechNote

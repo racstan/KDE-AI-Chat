@@ -96,7 +96,6 @@ contents/ui/config/LocalServers.qml
 contents/ui/config/LocalServers.js
 contents/ui/config/SetupChecks.js
 contents/ui/config/SttSetup.qml
-contents/ui/config/LocalSttRows.qml
 contents/ui/ConfigVoice.qml
 contents/ui/voice/SttEngines.js
 contents/ui/store/MemoryMigration.qml
@@ -105,7 +104,6 @@ contents/ui/store/Wallet.qml
 contents/ui/ScheduleDialog.qml
 contents/ui/chat/MessageText.qml
 contents/ui/config/TtsOption.qml
-contents/ui/config/NeuralVoiceSetup.qml
 contents/ui/config/DictationSettings.qml
 contents/ui/config/SpeechNotePanel.qml
 contents/ui/config/SpeechNoteStatus.qml

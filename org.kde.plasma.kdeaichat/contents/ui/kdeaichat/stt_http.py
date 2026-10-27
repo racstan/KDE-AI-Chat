@@ -1,4 +1,4 @@
-"""HTTP speech-to-text engines: remote OpenAI-compatible, whisper.cpp server, and the local service.
+"""HTTP speech-to-text: the OpenAI-compatible speech server (``/audio/transcriptions``).
 
 stdlib only (urllib). The remote key comes from KWallet and only lives in
 this process's memory: it is sent in the Authorization header and never
@@ -91,50 +91,6 @@ def remote(wav: str, settings: Dict[str, Any], key: str) -> Dict[str, Any]:
     headers = {"Authorization": "Bearer " + key} if key else {}
     data = post(transcriptions_url(settings["remote_url"]), body, ctype, headers)
     return {"text": str(data.get("text", "")).strip(), "model": settings["remote_model"]}
-
-
-def whisper_cpp_server(wav: str, settings: Dict[str, Any]) -> Dict[str, Any]:
-    """whisper.cpp's ``whisper-server``: ``POST {url}/inference``."""
-    base = settings["whisper_cpp_server"]
-    url = base if base.endswith("/inference") else base + "/inference"
-    fields = {"response_format": "json", "temperature": "0.0",
-              "language": settings["language"].split("-")[0] if settings["language"] != "auto" else "auto"}
-    body, ctype = multipart(fields, wav)
-    data = post(url, body, ctype, timeout=300)
-    return {"text": str(data.get("text", "")).strip()}
-
-
-def service_call(path: str, request: Dict[str, Any], token: str, port: int, timeout: float = 900) -> Dict[str, Any]:
-    """POST to the local faster-whisper service (loopback, token header, no Origin)."""
-    body = json.dumps(request).encode("utf-8")
-    req = urllib.request.Request("http://127.0.0.1:%d%s" % (port, path), data=body, method="POST")
-    req.add_header("Content-Type", "application/json")
-    req.add_header("X-KDE-AI-Chat-Token", token)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            data = json.loads(response.read(MAX_REPLY).decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        raise EngineError("the speech service refused the request (HTTP %d)" % e.code, "service") from None
-    except (urllib.error.URLError, ConnectionError) as e:
-        raise EngineError("the speech service is not running (%s)" % getattr(e, "reason", e), "unreachable") from None
-    except (OSError, ValueError) as e:
-        raise EngineError("the speech service failed: %s" % e, "service") from None
-    if not isinstance(data, dict):
-        raise EngineError("unexpected reply from the speech service", "service")
-    if data.get("type") == "stt_error":
-        raise EngineError(str(data.get("error") or "speech-to-text failed"), str(data.get("code") or "failed"))
-    return data
-
-
-def service_status(token: str, port: int, timeout: float = 2) -> Optional[Dict[str, Any]]:
-    req = urllib.request.Request("http://127.0.0.1:%d/status" % port)
-    req.add_header("X-KDE-AI-Chat-Token", token)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            data = json.loads(response.read(65536).decode("utf-8"))
-            return data if isinstance(data, dict) else None
-    except (OSError, ValueError):
-        return None
 
 
 def wav_exists(path: str) -> bool:

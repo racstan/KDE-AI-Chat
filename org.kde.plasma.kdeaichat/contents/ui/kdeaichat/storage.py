@@ -14,7 +14,7 @@ schedules (those have their own controls). Everything removed is a fixed path of
 folder (``~/.local/share/kdeaichat``, XDG_DATA_HOME aware) and the widget's temporary folders. Speech Note's
 models, Handy's and the HuggingFace cache are Speech Note's and other apps': the Speech Note folder is only
 reported (never counted, never removed), and a HuggingFace model is touched only when the widget downloaded
-it itself (recorded by voice_data).
+it itself (recorded in stt-downloads.json, see voice_leftovers).
 """
 import glob
 import json
@@ -24,7 +24,7 @@ import stat
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from kdeaichat import chats
+from kdeaichat import chats, tts, voice_leftovers, voice_legacy
 
 ITEMS = ("chats", "pictures", "memories", "schedules", "backups", "caches", "voice_old", "other")
 REMOVABLE = ("backups", "caches", "voice_old")
@@ -130,17 +130,8 @@ def _is_images_dir(path: str, depth: int) -> bool:
 
 
 def _own_models() -> List[str]:
-    """HuggingFace model folders the widget's own voice installer downloaded (recorded by voice_data)."""
-    try:
-        from kdeaichat import voice_data
-        found = []
-        for name in sorted(voice_data.read_record()):
-            folder = voice_data._model_folder(name)
-            if os.path.isdir(folder) and not os.path.islink(folder):
-                found.append(folder)
-        return found
-    except Exception:
-        return []
+    """HuggingFace model folders the widget's own (old) voice installer downloaded."""
+    return voice_leftovers.model_folders()
 
 
 def voice_paths() -> List[str]:
@@ -153,8 +144,7 @@ def speech_note_folder() -> Dict[str, Any]:
     """Speech Note's models folder: only reported, never counted or removed."""
     folders: List[str] = []
     try:
-        from kdeaichat.stt_models import speech_note_dirs
-        folders = [f for f in speech_note_dirs(os.path.expanduser("~")) if os.path.isdir(f)]
+        folders = voice_leftovers.speech_note_dirs(os.path.expanduser("~"))
     except Exception:
         pass
     return {"folder": folders[0] if folders else "", "exists": bool(folders)}
@@ -251,22 +241,8 @@ def _remove_caches() -> None:
 
 def _remove_voice(warnings: List[str]) -> None:
     """Old voice engines: stop and remove their units and services, then their own folders only."""
-    steps = []
-    try:
-        from kdeaichat import stt_units
-        steps.append(("dictation units", lambda: stt_units.sync({"sttEnabled": False})))
-    except Exception as e:
-        warnings.append("dictation units: %s" % e)
-    try:
-        from kdeaichat import voice_legacy
-        steps.append(("old read-aloud unit", voice_legacy.cleanup_legacy_tts))
-    except Exception as e:
-        warnings.append("old read-aloud unit: %s" % e)
-    try:
-        from kdeaichat import tts, tts_worker
-        steps.append(("read-aloud service", lambda: tts_worker.stop(tts.out_dir())))
-    except Exception as e:
-        warnings.append("read-aloud service: %s" % e)
+    steps = [("old voice units", voice_legacy.cleanup_old_units),
+             ("old read-aloud service", lambda: voice_legacy.stop_kokoro_worker(tts.out_dir()))]
     for label, step in steps:
         try:
             step()

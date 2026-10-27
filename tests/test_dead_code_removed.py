@@ -14,8 +14,23 @@ REMOVED_COMMANDS = (
     "delete_voice_setup", "delete_venv_setup", "privacy_report", "opencode_server_status", "pi_bridge_stop",
     # Phase 5: the polling scheduler daemon and its trigger files are gone (schedules are systemd timers).
     "poll_pending_triggers", "setup_scheduler_service", "save_all_schedules",
+    # The widget's own speech engines (faster-whisper, Parakeet, whisper.cpp, Kokoro, Piper, custom commands) are gone.
+    "stt_engines", "stt_models", "stt_setup_size", "stt_download_model", "stt_install", "stt_sync_units",
+    "stt_service_status", "voice_data", "voice_data_remove", "tts_probe", "tts_piper_voices", "tts_neural_status",
+    "tts_neural_install", "tts_neural_remove", "tts_neural_stop",
 )
-REMOVED_ENTRIES = ("schedulerAutoStart", "preselectedChatId", "preselectedChatName", "voiceTtsModel")
+REMOVED_ENTRIES = ("schedulerAutoStart", "preselectedChatId", "preselectedChatName", "voiceTtsModel",
+                   "sttModel", "sttParakeetModel", "sttDevice", "sttWhisperCppBinary", "sttWhisperCppModel",
+                   "sttWhisperCppServer", "sttCommand", "sttIdleMinutes", "voiceTtsNeuralVoice", "voiceTtsPiperModel",
+                   "voiceTtsKokoroVoice", "voiceTtsFliteVoice", "voiceTtsCommand")
+
+REMOVED_SPEECH_FILES = (
+    "kdeaichat/stt_install.py", "kdeaichat/stt_setup.py", "kdeaichat/stt_models.py", "kdeaichat/stt_parakeet.py",
+    "kdeaichat/stt_units.py", "kdeaichat/tts_neural.py", "kdeaichat/tts_worker.py", "kdeaichat/voice_data.py",
+    "kdeaichat/voice_services.py", "voice/stt_service.py", "voice/stt_whisper.py", "voice/stt_parakeet_model.py",
+    "voice/tts_service.py", "voice/tts_venv_setup.sh", "voice/venv_setup.sh", "config/LocalSttRows.qml",
+    "config/NeuralVoiceSetup.qml",
+)
 
 
 def test_removed_helper_commands_are_unknown():
@@ -35,3 +50,20 @@ def test_removed_settings_are_not_declared():
     with open(MAIN_XML, encoding="utf-8") as f:
         declared = set(re.findall(r'<entry name="([A-Za-z0-9_]+)"', f.read()))
     assert not declared & set(REMOVED_ENTRIES)
+
+
+def test_removed_speech_engine_files_are_gone():
+    for path in REMOVED_SPEECH_FILES:
+        assert not os.path.exists(os.path.join(UI, path)), path
+
+
+def test_nothing_in_the_widget_starts_the_removed_speech_engines():
+    for folder, _, files in os.walk(UI):
+        for name in files:
+            if not name.endswith((".py", ".qml", ".js", ".sh")):
+                continue
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                text = f.read()
+            for old in ("stt_install", "stt_sync_units", "tts_neural_", "venv_setup.sh", "stt_service.py",
+                        "tts_service.py", "kde-ai-stt.socket 127", "--device parakeet"):
+                assert old not in text, "%s still mentions %s" % (name, old)

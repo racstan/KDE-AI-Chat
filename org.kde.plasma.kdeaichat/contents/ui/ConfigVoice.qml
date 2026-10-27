@@ -1,13 +1,12 @@
 // Settings → Voice: two switches, both off by default. "Read aloud" adds a
 // read-aloud button to replies and picks the engine (voice/TtsEngines.js:
-// System voices need no setup); "Dictation" adds the microphone button and
-// runs a local speech-to-text engine.
+// Speech Note, the system voice, or a speech server); "Dictation" adds the
+// microphone button and picks Speech Note or a speech server. Speech Note is a
+// separate app: the widget installs and runs no speech models itself.
 //
 // The read-aloud form is built from the engine's options (config/TtsOption.qml),
 // the dictation form is config/DictationSettings.qml; every option is a cfg_
 // property below, saved with OK/Apply (keys go to KWallet, never here).
-// Nothing is installed or downloaded until a button that shows the size is
-// pressed; on save, stt_sync_units adds or removes the dictation service.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
@@ -30,43 +29,23 @@ KCM.SimpleKCM {
     property alias cfg_voiceTtsEnabled: readCheck.checked
     property alias cfg_voiceTtsAuto: ttsAutoCheck.checked
     property string cfg_voiceTtsEngine: Engines.defaultEngine
-    property string cfg_voiceTtsNeuralVoice: "af_heart"
-    property real cfg_voiceTtsNeuralSpeed: 1
     property string cfg_voiceTtsSystemLanguage: ""
     property string cfg_voiceTtsSystemVoice: ""
     property real cfg_voiceTtsSystemRate: 0
     property real cfg_voiceTtsSystemPitch: 0
-    property string cfg_voiceTtsKokoroLanguage: ""
-    property string cfg_voiceTtsKokoroVoice: ""
-    property real cfg_voiceTtsKokoroRate: 0
-    property string cfg_voiceTtsFliteVoice: ""
-    property real cfg_voiceTtsFliteRate: 0
-    property real cfg_voiceTtsFlitePitch: 0
-    property string cfg_voiceTtsPiperModel: ""
-    property int cfg_voiceTtsPiperSpeaker: 0
-    property real cfg_voiceTtsPiperSpeed: 1
     property string cfg_voiceTtsRemoteUrl: "http://localhost:8880/v1"
     property string cfg_voiceTtsRemoteModel: "tts-1"
     property string cfg_voiceTtsRemoteVoice: "alloy"
     property real cfg_voiceTtsRemoteSpeed: 1
-    property string cfg_voiceTtsCommand: ""
     property string cfg_voiceTtsSpeechNoteModel: ""
 
     // Dictation (speech-to-text): voice/SttConfig.js lists these keys.
     property alias cfg_sttEnabled: enabledCheck.checked
     property bool cfg_voiceAutoSend: true
     property string cfg_sttEngine: "speechnote"
-    property string cfg_sttModel: "small"
-    property string cfg_sttParakeetModel: "parakeet-unified-en-0.6b"
-    property string cfg_sttDevice: "auto"
     property string cfg_sttLanguage: "auto"
-    property int cfg_sttIdleMinutes: 5
-    property string cfg_sttWhisperCppBinary: ""
-    property string cfg_sttWhisperCppModel: ""
-    property string cfg_sttWhisperCppServer: ""
     property string cfg_sttRemoteUrl: ""
     property string cfg_sttRemoteModel: "whisper-1"
-    property string cfg_sttCommand: ""
     property string cfg_sttSpeechNoteModel: ""
     property int cfg_speechNoteKeepReadyMinutes: 5
 
@@ -78,13 +57,6 @@ KCM.SimpleKCM {
         return SttConfig.payload(draft);
     }
 
-    // Called by Plasma on OK/Apply, before it saves the cfg_ values: the
-    // dictation service appears or disappears without restarting anything.
-    function saveConfig() {
-        if (runHelper)
-            runHelper("stt_sync_units", sttDraft, null);
-    }
-
     readonly property var configuration: typeof plasmoid !== "undefined" && plasmoid ? plasmoid.configuration : null
     // Tests pass fakes for these.
     property var runHelper: defaultRunner.run
@@ -93,7 +65,8 @@ KCM.SimpleKCM {
     // Tests: stands in for the KWallet D-Bus call (store/Wallet.qml `call`).
     property var walletCall: null
 
-    readonly property var engine: Engines.engine(cfg_voiceTtsEngine) || Engines.engine(Engines.defaultEngine)
+    // A saved engine that no longer exists counts as Speech Note (the widget moves it at start).
+    readonly property var engine: Engines.engine(Engines.migratedEngine(cfg_voiceTtsEngine))
     readonly property bool engineAvailable: probe.available.indexOf(engine.id) >= 0
 
     readonly property var allOptions: {
@@ -132,7 +105,7 @@ KCM.SimpleKCM {
     function probeIfNeeded() {
         if (_complete && cfg_voiceTtsEnabled && probe.available.length === 0 && !probe.probing)
             probe.refresh();
-        var remote = (cfg_voiceTtsEnabled && engine.id === "remote") || (cfg_sttEnabled && cfg_sttEngine === "remote");
+        var remote = (cfg_voiceTtsEnabled && engine.id === "remote") || (cfg_sttEnabled && SttConfig.migratedEngine(cfg_sttEngine) === "remote");
         if (_complete && remote && wallet.status === "unknown") {
             if (walletCall)
                 wallet.call = walletCall;
@@ -163,7 +136,6 @@ KCM.SimpleKCM {
 
     Voice.TtsProbe {
         id: probe
-        runHelper: page.runHelper
         pluginOverride: page.pluginOverride
     }
 
@@ -176,7 +148,7 @@ KCM.SimpleKCM {
         onError: function(message) { page.testResult = i18n("Read aloud failed: %1", message); }
         onIsPlayingChanged: if (!isPlaying && page.testResult === "") page.testResult = usedFallback
             ? (engine.id === "speechnote" ? i18n("That was the system voice, because Speech Note is not installed: see the setup steps above.")
-                                          : i18n("That was the system voice: install the natural voice to hear it.")) : i18n("Finished.")
+                                          : i18n("That was the system voice.")) : i18n("Finished.")
     }
 
     ColumnLayout {
@@ -248,21 +220,8 @@ KCM.SimpleKCM {
             Config.SettingHelp {
                 visible: readCheck.checked
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 24
-                details: i18n("The engine is the program that makes the speech. \"Natural voice\" sounds the most human and needs a one-time install; \"System voices\" works without any setup but sounds robotic; the others need a program, a voice file or a server.")
-                text: i18n(page.engine.note) + (probe.available.indexOf("piper") < 0 && !probe.probing
-                      ? "\n" + i18n("Piper is offered once its piper program is installed.") : "")
-            }
-
-            Config.NeuralVoiceSetup {
-                visible: readCheck.checked && page.engine.setup === "neural"
-                active: visible
-                runHelper: page.runHelper
-                onInstalledChanged: page.testResult = ""
-            }
-
-            Config.SettingHelp {
-                visible: readCheck.checked && page.engine.setup === "neural"
-                text: i18n("The natural voice is installed once, with its size shown first. It starts when something is read and stops itself two minutes later.")
+                details: i18n("The engine is the program that makes the speech. Speech Note is a separate app with natural voices in many languages; \"System voices\" works without any setup but sounds robotic; a speech server is one you run or pay for.")
+                text: i18n(page.engine.note)
             }
 
             // Every engine's options, made once; only the chosen engine's show
@@ -287,7 +246,7 @@ KCM.SimpleKCM {
         Config.SpeechNotePanel {
             objectName: "speechNoteReadAloud"
             role: "tts"
-            showKeepReady: !(cfg_sttEnabled && cfg_sttEngine === "speechnote")   // shown once, with dictation when that uses it
+            showKeepReady: !(cfg_sttEnabled && SttConfig.migratedEngine(cfg_sttEngine) === "speechnote")   // shown once, with dictation when that uses it
             form: page
             status: speechNoteInfo
             twin: voiceForm

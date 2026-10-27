@@ -16,7 +16,7 @@ This manual provides an in-depth operations guide, walkthroughs of every feature
 7. [Chat Export](#7-chat-export)
 8. [Prompt Templates](#8-prompt-templates)
 9. [Frequently Asked Questions (FAQ)](#9-frequently-asked-questions-faq)
-10. [Voice Mode & Local Speech Tools (Beta)](#10-voice-mode--local-speech-tools-beta)
+10. [Voice: dictation and read aloud](#10-voice-dictation-and-read-aloud)
 11. [Ask from KRunner and Dolphin](#11-ask-from-krunner-and-dolphin)
 
 ---
@@ -235,17 +235,15 @@ Prompt Templates allow you to save prompts you use frequently and insert them in
 
 ---
 
-## 10. Voice Mode & Local Speech Tools (Beta)
+## 10. Voice: dictation and read aloud
 
-Voice Mode enables hands-free speech input (Speech-to-Text) and read-aloud features (Text-to-Speech) directly within the chat widget.
+Dictation (speech-to-text) and read aloud (text-to-speech) are both off by default; switch them on in **Settings → Voice**. The widget installs and runs no speech models itself:
 
-### Beta Status
-Please note that Voice Tools are currently a **Beta feature**. You may encounter configuration or compatibility issues depending on your Python virtual environment, microphone configuration, or system audio configuration.
+- **Speech Note** (recommended): a separate app, [net.mkiol.SpeechNote on Flathub](https://flathub.org/apps/net.mkiol.SpeechNote). Install it, open it once and download a speech-to-text model and a voice in your language. It uses your graphics card when it can. It starts when you dictate or read and stops when idle.
+- **System voice** (read aloud only): Speech Dispatcher; it reads while Speech Note is not installed.
+- **Speech server** (OpenAI-compatible): your own or a cloud one, for dictation and/or read aloud. The recording or the text goes to that server.
 
-### GPU Acceleration & NVIDIA Support Limitation
-To process voice inputs and synthesize read-aloud audio quickly, you can enable GPU acceleration in the settings.
-> [!IMPORTANT]
-> **NVIDIA GPUs via CUDA** are supported for local hardware acceleration. CPU mode works without NVIDIA; AMD and Intel GPU acceleration is not currently configured. If you do not have NVIDIA CUDA, leave **GPU Usage** disabled.
+See [VOICE_SETUP.md](VOICE_SETUP.md). Speech models, environments and services of earlier builds can be deleted in **Settings → Storage**.
 
 ---
 

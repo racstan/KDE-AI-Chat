@@ -1,7 +1,7 @@
 // A dictation failure reaches the user: VoiceManager turns the helper's
 // stt_error into errorOccurred, and the widget shows it as a "Voice error"
 // desktop notification through chat/Notifier.qml (the same wiring as
-// main.qml, whose text tests/test_stt_parakeet.py checks). Before this the
+// main.qml, whose text tests/test_tts_engines.py checks). Before this the
 // handler called a data source that no longer existed, so nothing was shown.
 import QtQuick
 import QtTest
@@ -50,12 +50,12 @@ Item {
 
         function test_dictation_error_is_notified() {
             voice.isRecording = true;
-            voice.handleResponse({"type": "stt_error", "code": "model_missing",
-                                  "error": "The Parakeet model is not downloaded yet (731 MB). Download it in Settings → Voice."});
+            voice.handleResponse({"type": "stt_error", "code": "auth",
+                                  "error": "HTTP 401: bad key"});
             compare(voice.isRecording, false);
             compare(root.shown.length, 1);
             compare(root.shown[0].title, "Voice error");
-            verify(root.shown[0].text.indexOf("731 MB") >= 0, root.shown[0].text);
+            verify(root.shown[0].text.indexOf("HTTP 401") >= 0, root.shown[0].text);
             compare(root.shown[0].isError, true);
             voice.handleResponse({"type": "stt_error"});
             compare(root.shown[1].text, "Dictation failed.");

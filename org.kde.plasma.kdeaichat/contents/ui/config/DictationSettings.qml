@@ -1,13 +1,11 @@
-// Settings → Voice, dictation part: the engine (from the helper's
-// stt_engines: only engines that work or can be finished here; the others
-// are listed with the reason), that engine's options, the language, and a
-// Test button that transcribes a bundled recording (no microphone).
+// Settings → Voice, dictation part: the engine (Speech Note, the default, or
+// a speech server), that engine's options, the language of the speech
+// server, and a Test button that sends a bundled recording to the server (no
+// microphone).
 //
-// The local engines (Parakeet, the default, and faster-whisper) get their own
-// rows (config/LocalSttRows.qml): model with sizes and models found on disk,
-// device, Install / Download / Remove data, each showing its size first. The values are the page's cfg_ properties
-// (`form.optionValue(key)` / `form.setOption(key, value)`); the speech
-// server's key goes to KWallet (entry stt-remote), never into the settings.
+// The values are the page's cfg_ properties (`form.optionValue(key)` /
+// `form.setOption(key, value)`); the speech server's key goes to KWallet
+// (entry stt-remote), never into the settings.
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -15,6 +13,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import "../voice/SttEngines.js" as SttEngines
+import "../voice/SttConfig.js" as SttConfig
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -33,10 +32,10 @@ ColumnLayout {
     property bool active: false
     property var speechNote: null    // config/SpeechNoteStatus.qml
 
-    readonly property string engineId: form ? String(form.optionValue("sttEngine") || SttEngines.defaultEngine) : SttEngines.defaultEngine
-    readonly property var engine: SttEngines.engine(engineId) || SttEngines.engine(SttEngines.defaultEngine)
-    readonly property var lists: SttEngines.split(sttSetup.engines)
-    readonly property bool engineUsable: !!(sttSetup.engineRow(engineId) || {}).available
+    // A saved engine that no longer exists counts as Speech Note (the widget moves it at start).
+    readonly property string engineId: SttConfig.migratedEngine(form ? form.optionValue("sttEngine") : "")
+    readonly property var engine: SttEngines.engine(engineId)
+    readonly property bool isServer: engineId === "remote"
 
     readonly property var allOptions: {
         var out = [];
@@ -50,12 +49,7 @@ ColumnLayout {
     function setOption(key, value) {
         if (form)
             form.setOption(key, value);
-        if (key !== "sttLanguage")
-            recheck.restart();
     }
-
-    onActiveChanged: if (active && !sttSetup.enginesLoaded) sttSetup.refresh()
-    Component.onCompleted: if (active) sttSetup.refresh()
 
     SttSetup {
         id: sttSetup
@@ -63,67 +57,27 @@ ColumnLayout {
         payload: dictation.payload
     }
 
-    // Typing a path, URL or command re-checks which engines work (debounced).
-    Timer {
-        id: recheck
-        interval: 700
-        onTriggered: { sttSetup.refreshEngines(); sttSetup.estimate(); }
-    }
-
     Kirigami.FormLayout {
         twinFormLayouts: dictation.twin ? [dictation.twin] : []
         Layout.fillWidth: true
 
-        RowLayout {
+        QQC2.ComboBox {
+            id: engineCombo
+            objectName: "sttEngineCombo"
             Kirigami.FormData.label: i18n("Engine:")
-            QQC2.ComboBox {
-                id: engineCombo
-                objectName: "sttEngineCombo"
-                textRole: "text"
-                valueRole: "value"
-                Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-                model: {
-                    var list = dictation.lists.choices.map(function(row) {
-                        return {"value": row.id, "text": i18n(SttEngines.engine(row.id).label)};
-                    });
-                    if (sttSetup.enginesLoaded && !list.some(function(r) { return r.value === dictation.engineId; }))
-                        list.push({"value": dictation.engineId, "text": i18n("%1 (not available)", i18n(dictation.engine.label))});
-                    return list;
-                }
-                currentIndex: model.map(function(o) { return o.value; }).indexOf(dictation.engineId)
-                onActivated: dictation.setOption("sttEngine", currentValue)
-            }
-            QQC2.BusyIndicator {
-                visible: !sttSetup.enginesLoaded
-                running: visible
-                Layout.preferredHeight: Kirigami.Units.iconSizes.medium
-            }
+            textRole: "text"
+            valueRole: "value"
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 16
+            model: SttEngines.engines.map(function(e) { return {"value": e.id, "text": i18n(e.label)}; })
+            currentIndex: model.map(function(o) { return o.value; }).indexOf(dictation.engineId)
+            onActivated: dictation.setOption("sttEngine", currentValue)
         }
 
         SettingHelp {
             objectName: "sttEngineNote"
             Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-            details: i18n("The engine is the program that turns your speech into text. The ones on this computer keep your voice private; a speech server gets the recording.")
-            text: {
-                var row = sttSetup.engineRow(dictation.engineId);
-                var note = i18n(dictation.engine.note);
-                if (row && !row.available && row.reason && !SttEngines.isLocal(dictation.engineId))
-                    note += "\n" + i18n("Not ready: %1", row.reason);
-                return note;
-            }
-        }
-
-        QQC2.Label {
-            objectName: "sttUnavailable"
-            visible: dictation.lists.unavailable.length > 0
-            Kirigami.FormData.label: i18n("Not available:")
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-            wrapMode: Text.Wrap
-            font: Kirigami.Theme.smallFont
-            opacity: 0.75
-            text: dictation.lists.unavailable.map(function(row) {
-                return i18n("%1: %2", i18n(SttEngines.engine(row.id).label), row.reason);
-            }).join("\n")
+            details: i18n("The engine is the program that turns your speech into text. Speech Note works on this computer and keeps your voice private; a speech server gets the recording.")
+            text: i18n(dictation.engine.note)
         }
     }
 
@@ -137,40 +91,11 @@ ColumnLayout {
         active: visible && dictation.active
     }
 
-    LocalSttRows {
-        form: dictation
-        setup: sttSetup
-        engine: SttEngines.isLocal(dictation.engineId) ? dictation.engineId : SttEngines.localDefault
-        shown: SttEngines.isLocal(dictation.engineId)
-        twinFormLayouts: dictation.twin ? [dictation.twin] : []
-    }
-
     Kirigami.FormLayout {
         twinFormLayouts: dictation.twin ? [dictation.twin] : []
         Layout.fillWidth: true
 
-        // whisper.cpp: models found on this computer (Speech Note, Handy, whisper.cpp).
-        QQC2.ComboBox {
-            objectName: "sttGgmlFound"
-            readonly property var models: sttSetup.found.filter(function(m) { return m.engine === "whisper-cpp"; })
-            visible: dictation.engineId === "whisper-cpp" && models.length > 0
-            Kirigami.FormData.label: i18n("Found models:")
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-            textRole: "text"
-            valueRole: "value"
-            model: [{"value": "", "text": i18n("Choose a model found on this computer…")}].concat(models.map(function(m) {
-                return {"value": m.model, "text": i18n("%1 (%2, %3)", m.name, m.source, SttEngines.size(m.mb))};
-            }))
-            currentIndex: Math.max(0, model.map(function(o) { return o.value; }).indexOf(String(dictation.optionValue("sttWhisperCppModel") || "")))
-            onActivated: if (currentValue) dictation.setOption("sttWhisperCppModel", currentValue)
-        }
-
-        SettingHelp {
-            visible: dictation.engineId === "whisper-cpp" && sttSetup.found.some(function(m) { return m.engine === "whisper-cpp"; })
-            text: i18n("Speech models other apps on this computer already downloaded. Pick one to use it without downloading again.")
-        }
-
-        // The other engines' options, made once; only the chosen engine's show.
+        // The speech server's options, made once; only the chosen engine's show.
         Repeater {
             model: dictation.allOptions
             delegate: TtsOption {
@@ -181,16 +106,9 @@ ColumnLayout {
             }
         }
 
-        QQC2.Label {
-            objectName: "sttEnglishOnly"
-            visible: dictation.engineId === "parakeet"
-            Kirigami.FormData.label: i18n("Spoken language:")
-            text: i18n("English (this model understands English only)")
-        }
-
         QQC2.ComboBox {
             objectName: "sttLanguageCombo"
-            visible: dictation.engineId !== "parakeet" && dictation.engineId !== "speechnote"
+            visible: dictation.isServer
             Kirigami.FormData.label: i18n("Spoken language:")
             textRole: "text"
             valueRole: "value"
@@ -200,21 +118,21 @@ ColumnLayout {
         }
 
         SettingHelp {
-            visible: dictation.engineId !== "parakeet" && dictation.engineId !== "speechnote"
+            visible: dictation.isServer
             text: i18n("The language you speak. \"Detect automatically\" works for most people; choosing yours helps with short phrases.")
         }
 
         RowLayout {
             Kirigami.FormData.label: i18n("Try it:")
-            visible: dictation.engineId !== "speechnote"
+            visible: dictation.isServer
             QQC2.Button {
                 objectName: "sttTestButton"
                 text: i18n("Test")
                 icon.name: "audio-input-microphone"
-                enabled: dictation.engineUsable && !sttSetup.testing && !sttSetup.busy
+                enabled: !sttSetup.testing && String(dictation.optionValue("sttRemoteUrl") || "") !== ""
                 onClicked: sttSetup.test()
                 QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: i18n("Transcribes a short recording that comes with the widget, with the settings above.")
+                QQC2.ToolTip.text: i18n("Sends a short recording that comes with the widget to the server, with the settings above.")
             }
             QQC2.BusyIndicator {
                 visible: sttSetup.testing
@@ -230,7 +148,7 @@ ColumnLayout {
         }
 
         SettingHelp {
-            visible: dictation.engineId !== "speechnote"
+            visible: dictation.isServer
             text: i18n("Checks the settings above with a short recording that comes with the widget; no microphone needed.")
         }
 

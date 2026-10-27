@@ -1,10 +1,10 @@
 // Settings → Voice, dictation part, with a fake helper: the engine list holds
-// only engines that work or can be finished here (the rest with a reason);
-// the install size is shown before Install can run; Download and Remove ask
-// first; Test transcribes with the page's choices; OK/Apply syncs the units;
-// the speech server's key is never a setting. Speech Note is the default engine; Parakeet
-// reuses a copy of its model found on disk (Handy's), or downloads it after
-// asking. Also Piper voices found on disk and the screenshots of the page.
+// Speech Note (the default) and the speech server only; an engine of an earlier
+// build (faster-whisper, Parakeet, whisper.cpp, custom command) shows as Speech
+// Note; Test sends the bundled recording with the page's choices to the speech
+// server; nothing is installed, downloaded or started through the helper; the
+// speech server's key is never a setting. Also the screenshots of the page,
+// wide and at 480 px.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtTest
@@ -12,7 +12,7 @@ import QtTest
 Item {
     id: root
     width: 1100
-    height: 2400
+    height: 1400
 
     property QtObject plasmoid: QtObject {
         property string id: ""
@@ -24,10 +24,6 @@ Item {
         return text;
     }
 
-    property bool installed: false
-    property bool hasTorch: false
-    property bool parakeetInstalled: false
-    property bool parakeetOnDisk: true
     property var calls: []
     function commands() { return calls.map(function(c) { return c.command; }); }
     function last(command) {
@@ -38,62 +34,13 @@ Item {
     }
     function reply(command, payload) {
         switch (command) {
-        case "stt_engines":
-            return {"type": "stt_engines", "gpu": false, "engines": [
-                {"id": "parakeet", "available": parakeetInstalled && parakeetOnDisk, "selectable": true,
-                 "installed": parakeetInstalled, "model_found": parakeetOnDisk,
-                 "reason": parakeetInstalled ? "" : "not installed (one-click install, size shown first)"},
-                {"id": "faster-whisper", "available": installed, "selectable": true, "installed": installed,
-                 "reason": installed ? "" : "not installed (one-click install, size shown first)"},
-                {"id": "whisper-cpp", "available": false, "selectable": false, "reason": "whisper-cli not found"},
-                {"id": "remote", "available": !!payload.sttRemoteUrl, "selectable": true, "reason": payload.sttRemoteUrl ? "" : "needs a server URL"},
-                {"id": "command", "available": false, "selectable": true, "reason": "no command is set"},
-                {"id": "speechnote", "available": true, "selectable": true, "installed": true, "reason": ""}]};
-        case "stt_models":
-            return {"type": "stt_models", "gpu": false, "faster_whisper": [
-                {"name": "tiny", "mb": 75, "downloaded": true, "recommended": false, "note": "fastest, least accurate"},
-                {"name": "small", "mb": 484, "downloaded": false, "recommended": true, "note": "good balance on a CPU"}],
-                "parakeet": [{"name": "parakeet-unified-en-0.6b", "label": "Parakeet Unified EN 0.6B", "mb": 731,
-                              "recommended": true, "downloaded": parakeetOnDisk, "source": parakeetOnDisk ? "Handy, HuggingFace cache" : "",
-                              "path": parakeetOnDisk ? "/home/u/.cache/huggingface/hub/models--handy-computer--parakeet-unified-en-0.6b-gguf/snapshots/7e9/parakeet-unified-en-0.6b-Q8_0.gguf" : "",
-                              "note": "fast, accurate English transcription; English only"}],
-                "found": [{"engine": "faster-whisper", "model": "/sn/en_fasterwhisper_base", "path": "/sn/en_fasterwhisper_base",
-                           "name": "en_fasterwhisper_base", "source": "Speech Note", "mb": 145},
-                          {"engine": "parakeet", "model": "/hf/parakeet-unified-en-0.6b-Q4_K_M.gguf", "path": "/hf/parakeet-unified-en-0.6b-Q4_K_M.gguf",
-                           "name": "parakeet-unified-en-0.6b-Q4_K_M", "source": "HuggingFace", "mb": 477},
-                          {"engine": "whisper-cpp", "model": "/handy/ggml-small.bin", "path": "/handy/ggml-small.bin",
-                           "name": "ggml-small", "source": "Handy", "mb": 488}]};
-        case "stt_setup_size":
-            if (payload.sttEngine === "parakeet")
-                return {"type": "stt_setup_size", "engine": "parakeet", "gpu": false, "packages_mb": 24,
-                        "model_mb": parakeetOnDisk ? 0 : 731, "total_mb": parakeetOnDisk ? 24 : 755,
-                        "items": parakeetOnDisk ? [] : [{"name": "model Parakeet Unified EN 0.6B", "mb": 731, "kind": "model",
-                                                         "to": "/home/u/.local/share/kdeaichat/models/parakeet"}]};
-            return {"type": "stt_setup_size", "gpu": false, "packages_mb": 135, "model_mb": 484, "total_mb": 619,
-                    "items": [{"name": "model small", "mb": 484, "kind": "model", "to": "/home/u/.cache/huggingface/hub"}]};
-        case "voice_data":
-            return {"type": "voice_data", "faster_whisper": {"venv": "/home/u/.local/share/kdeaichat/venv",
-                    "venv_exists": installed, "venv_mb": hasTorch ? 5200 : 300, "has_torch": hasTorch,
-                    "rebuild_frees_mb": hasTorch ? 4900 : 0, "models": [], "models_mb": 0, "total_mb": hasTorch ? 5200 : 300}};
-        case "stt_install":
-            if (payload.sttEngine === "parakeet")
-                parakeetInstalled = true;
-            else
-                installed = true;
-            return {"type": "stt_installed", "ok": true, "mode": "cpu"};
-        case "stt_download_model":
-            return {"type": "stt_downloaded", "path": "/x"};
+        case "speechnote_status":
+            return {"type": "speechnote_status", "installed": true, "kind": "flatpak", "running": false, "state": 0,
+                    "ready": true, "models_known": true, "default_stt_model": "", "default_tts_lang": "en",
+                    "stt_models": [{"id": "stt.whisper_base_en", "name": "English Whisper Base / English", "lang": "en"}],
+                    "tts_models": [{"id": "tts.piper_amy", "name": "English Piper Amy / English", "lang": "en"}]};
         case "stt_test":
             return {"type": "stt_result", "text": "Hello, this is a speech test.", "seconds": 1.2};
-        case "voice_data_remove":
-            installed = false;
-            return {"type": "voice_data_removed", "freed_mb": 5200, "removed": []};
-        case "tts_probe":
-            return {"ok": true, "piper": "/usr/bin/piper"};
-        case "tts_piper_voices":
-            return {"type": "tts_piper_voices", "voices": [
-                {"path": "/sn/en_piper_lessac/en_US-lessac-medium.onnx", "name": "en_US-lessac-medium", "language": "en_US",
-                 "quality": "medium", "source": "Speech Note (Flatpak)", "mb": 63}]};
         }
         return {"type": command};
     }
@@ -113,12 +60,12 @@ Item {
         readonly property url uiDir: Qt.resolvedUrl("../../org.kde.plasma.kdeaichat/contents/ui/")
         property var page: null
 
-        function open(cfg) {
+        function open(cfg, width) {
             var component = Qt.createComponent(uiDir + "ConfigVoice.qml");
             verify(component.status === Component.Ready, component.errorString());
-            page = component.createObject(root, Object.assign({"width": root.width, "height": root.height,
-                "runHelper": root.fakeHelper, "walletCall": function(member, args, onReply, onError) { onError("no wallet in tests"); }, "pluginOverride": {"system": "mock", "kokoro": "no-such-engine", "flite": "no-such-engine"},
-                "cfg_sttEnabled": true}, cfg || {}));
+            page = component.createObject(root, Object.assign({"width": width || root.width, "height": root.height,
+                "runHelper": root.fakeHelper, "walletCall": function(member, args, onReply, onError) { onError("no wallet in tests"); },
+                "pluginOverride": {"system": "mock"}, "cfg_sttEnabled": true}, cfg || {}));
             verify(page !== null);
             tryVerify(function() { return engineCombo().count > 0; }, 3000);
             wait(50);
@@ -129,10 +76,6 @@ Item {
                 page.destroy();
             page = null;
             root.calls = [];
-            root.installed = false;
-            root.hasTorch = false;
-            root.parakeetInstalled = false;
-            root.parakeetOnDisk = true;
             wait(100);
         }
         function find(item, test) {
@@ -155,176 +98,95 @@ Item {
                 out.push(combo.model[i].value);
             return out;
         }
-        function dialog() { return find(page, function(item) { return item.hasOwnProperty("confirmDialog"); }).confirmDialog; }
-
-        function test_1_engine_list_only_usable_engines_with_reasons() {
-            open({"cfg_sttEngine": "faster-whisper"});
-            compare(values(engineCombo()), ["speechnote", "parakeet", "faster-whisper", "remote", "command"]);
-            verify(named("sttUnavailable").visible);
-            verify(named("sttUnavailable").text.indexOf("whisper-cli not found") >= 0);
-            var combo = named("sttModelCombo");
-            var all = values(combo);
-            verify(all.indexOf("small") >= 0 && all.indexOf("/sn/en_fasterwhisper_base") >= 0, "catalogue and Speech Note models");
-            verify(combo.currentText.indexOf("484 MB") >= 0 && combo.currentText.indexOf("recommended") >= 0, combo.currentText);
-            combo.currentIndex = all.indexOf("/sn/en_fasterwhisper_base");
+        function chooseEngine(id) {
+            var combo = engineCombo();
+            combo.currentIndex = combo.indexOfValue(id);
             combo.activated(combo.currentIndex);
-            compare(page.cfg_sttModel, "/sn/en_fasterwhisper_base");
+            wait(50);
         }
 
-        function test_2_install_shows_the_size_first() {
-            open({"cfg_sttEngine": "faster-whisper"});
-            tryVerify(function() { return named("sttSetupSize").text.indexOf("135 MB") >= 0; }, 2000);
-            verify(named("sttSetupSize").text.indexOf("484 MB") >= 0, "the model size too");
-            verify(root.commands().indexOf("stt_install") < 0, "nothing installed on opening");
-            verify(root.commands().indexOf("stt_download_model") < 0);
-            var install = named("sttInstallButton");
-            verify(install.visible && install.enabled);
-            install.clicked();
-            tryVerify(function() { return root.commands().indexOf("stt_install") >= 0; }, 2000);
-            verify(root.commands().indexOf("stt_setup_size") < root.commands().indexOf("stt_install"));
-            tryVerify(function() { return root.last("stt_sync_units") !== null; }, 2000);
-            compare(root.last("stt_sync_units").sttEnabled, true);
-            tryVerify(function() { return named("sttDownloadButton").visible; }, 2000);
-            screenshot(page, "config-dictation-installed");
+        function test_1_only_speech_note_and_the_speech_server() {
+            open({});
+            compare(values(engineCombo()), ["speechnote", "remote"]);
+            compare(engineCombo().currentValue, "speechnote", "Speech Note is the default");
+            verify(named("speechNoteDictation").visible, "Speech Note's panel");
+            verify(!named("sttTestButton").visible && !named("sttLanguageCombo").visible, "the server's rows are hidden");
+            verify(!named("ttsOption-sttRemoteUrl") || !named("ttsOption-sttRemoteUrl").visible);
+            tryVerify(function() { return root.commands().indexOf("speechnote_status") >= 0; }, 3000);
+            wait(200);
+            // Nothing is installed, downloaded, probed or started for dictation.
+            var allowed = ["speechnote_status"];
+            for (var i = 0; i < root.commands().length; i++)
+                verify(allowed.indexOf(root.commands()[i]) >= 0, "unexpected helper command " + root.commands()[i]);
+            screenshot(page, "config-dictation-speechnote");
         }
 
-        function test_3_download_asks_first() {
-            root.installed = true;
-            open({"cfg_sttEngine": "faster-whisper"});
-            var button = named("sttDownloadButton");
-            tryVerify(function() { return button.visible; }, 2000);
-            button.clicked();
-            var d = dialog();
-            tryCompare(d, "opened", true, 2000);
-            verify(d.subtitle.indexOf("484 MB") >= 0, d.subtitle);
-            verify(root.commands().indexOf("stt_download_model") < 0, "not before the answer");
-            d.reject();
-            wait(100);
-            verify(root.commands().indexOf("stt_download_model") < 0, "Cancel downloads nothing");
-            button.clicked();
-            tryCompare(d, "opened", true, 2000);
-            d.accept();
-            tryVerify(function() { return root.commands().indexOf("stt_download_model") >= 0; }, 2000);
-            compare(root.last("stt_download_model").sttModel, "small");
+        function test_2_engines_of_earlier_builds_show_as_speech_note() {
+            var gone = ["faster-whisper", "parakeet", "whisper-cpp", "command"];
+            for (var i = 0; i < gone.length; i++) {
+                open({"cfg_sttEngine": gone[i]});
+                compare(engineCombo().currentValue, "speechnote", gone[i]);
+                verify(named("speechNoteDictation").visible, gone[i]);
+                page.destroy();
+                page = null;
+            }
         }
 
-        function test_4_test_button_uses_the_page_choices() {
-            open({"cfg_sttEngine": "remote", "cfg_sttRemoteUrl": "http://localhost:8000/v1"});
+        function test_3_speech_server_options_and_test() {
+            open({"cfg_sttEngine": "remote"});
+            verify(!named("speechNoteDictation").visible);
             var button = named("sttTestButton");
+            verify(button.visible);
+            verify(!button.enabled, "no address yet");
+            var url = named("ttsOption-sttRemoteUrl");
+            verify(url.visible && named("ttsOption-sttRemoteModel").visible);
+            verify(named("ttsSecretField") !== null, "the key field is shown");
+            var field = url.item.children[0];
+            field.text = "http://localhost:8000/v1";
+            field.textEdited();
+            compare(page.cfg_sttRemoteUrl, "http://localhost:8000/v1");
             tryVerify(function() { return button.enabled; }, 2000);
             button.clicked();
             tryVerify(function() { return named("sttTestResult").text.indexOf("Hello, this is a speech test.") >= 0; }, 2000);
             var payload = root.last("stt_test");
             compare(payload.sttEngine, "remote");
             compare(payload.sttRemoteUrl, "http://localhost:8000/v1");
-            verify(root.commands().indexOf("stt_sync_units") < 0, "no service for a remote engine");
-            verify(named("ttsSecretField") !== null, "the key field is shown");
+            compare(payload.sttLanguage, "auto");
+            verify(JSON.stringify(payload).toLowerCase().indexOf("key") < 0, "no key in the payload");
+            var combo = named("sttLanguageCombo");
+            combo.currentIndex = combo.indexOfValue("de");
+            combo.activated(combo.currentIndex);
+            compare(page.cfg_sttLanguage, "de");
+            screenshot(page, "config-dictation-server");
         }
 
-        function test_5_save_syncs_the_units_and_no_key_is_a_setting() {
+        function test_4_no_key_or_removed_engine_setting_on_the_page() {
             open({"cfg_sttEngine": "remote"});
-            for (var name in page)
-                if (name.indexOf("cfg_") === 0)
-                    verify(!/apikey|key$|token|password|secret/i.test(name), name + " would be saved by the settings dialog");
+            for (var name in page) {
+                if (name.indexOf("cfg_") !== 0)
+                    continue;
+                verify(!/apikey|key$|token|password|secret/i.test(name), name + " would be saved by the settings dialog");
+                verify(!/Parakeet|Whisper|Neural|Kokoro|Flite|Piper|Command|Device|IdleMinutes|sttModel/.test(name), name + " belongs to a removed engine");
+            }
             root.calls = [];
-            page.saveConfig();
-            compare(root.commands(), ["stt_sync_units"]);
-            compare(root.last("stt_sync_units").sttEnabled, true);
-            compare(root.last("stt_sync_units").sttEngine, "remote");
-            verify(JSON.stringify(root.last("stt_sync_units")).toLowerCase().indexOf("key") < 0);
-            page.cfg_sttEnabled = false;
-            page.saveConfig();
-            compare(root.last("stt_sync_units").sttEnabled, false, "turning dictation off removes the service");
+            if (page.saveConfig)
+                page.saveConfig();
+            compare(root.commands(), [], "saving starts and installs nothing");
         }
 
-        function test_6_remove_and_rebuild_ask_with_sizes() {
-            root.installed = true;
-            root.hasTorch = true;
-            open({"cfg_sttEngine": "faster-whisper"});
-            var remove = named("sttRemoveButton");
-            tryVerify(function() { return remove.visible; }, 2000);
-            verify(named("sttDataSize").text.indexOf("5.2 GB") >= 0, named("sttDataSize").text);
-            verify(named("sttRebuildButton").visible, "an old venv with torch can be rebuilt smaller");
-            remove.clicked();
-            var d = dialog();
-            tryCompare(d, "opened", true, 2000);
-            verify(d.subtitle.indexOf("5.2 GB") >= 0 && d.subtitle.indexOf("Handy") >= 0, d.subtitle);
-            d.reject();
-            wait(100);
-            verify(root.commands().indexOf("voice_data_remove") < 0);
-            named("sttRebuildButton").clicked();
-            tryCompare(d, "opened", true, 2000);
-            verify(d.subtitle.indexOf("4.9 GB") >= 0, d.subtitle);
-            d.accept();
-            tryVerify(function() { return root.commands().indexOf("stt_install") >= 0; }, 2000);
-            var removal = root.last("voice_data_remove");
-            compare(removal.confirm, true);
-            compare(removal.keepModels, true, "rebuilding keeps the models");
-        }
-
-        function test_7_piper_voices_found_on_disk_and_screenshots() {
-            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsEngine": "piper"});
-            tryVerify(function() { return root.commands().indexOf("tts_piper_voices") >= 0; }, 5000);
-            var found = named("piperFoundCombo");
-            tryVerify(function() { return found && found.visible; }, 3000);
-            compare(found.count, 2);
-            found.currentIndex = 1;
-            found.activated(1);
-            compare(page.cfg_voiceTtsPiperModel, "/sn/en_piper_lessac/en_US-lessac-medium.onnx");
-            page.cfg_voiceTtsEngine = "system";
-            wait(300);
+        function test_5_screenshots_wide_and_narrow() {
+            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsEngine": "system"});
+            wait(400);
             screenshot(page, "config-voice-both-on");
-            page.cfg_sttEngine = "whisper-cpp";
-            wait(200);
-            verify(named("sttGgmlFound").visible, "ggml models from Handy are offered");
-            compare(engineCombo().currentText, "whisper.cpp (not available)");
-            screenshot(page, "config-voice-whisper-cpp");
-        }
-
-        function test_8_parakeet_reuses_the_model_on_disk() {
-            open({"cfg_sttDevice": "cuda", "cfg_sttEngine": "parakeet"});
-            compare(page.cfg_sttEngine, "parakeet");
-            compare(engineCombo().currentValue, "parakeet");
-            var model = named("sttModelCombo");
-            verify(model.currentText.indexOf("Parakeet Unified EN 0.6B · 731 MB · on disk (from Handy, HuggingFace cache) · recommended") === 0,
-                   model.currentText);
-            verify(values(model).indexOf("/hf/parakeet-unified-en-0.6b-Q4_K_M.gguf") >= 0, "other Parakeet files are offered");
-            verify(named("sttEnglishOnly").visible && !named("sttLanguageCombo").visible, "English only");
-            var device = named("sttDeviceCombo");
-            compare(device.currentValue, "gpu", "a CUDA choice means the graphics card");
-            verify(device.currentText.indexOf("Vulkan") >= 0, device.currentText);
-            tryVerify(function() { return named("sttSetupSize").text.indexOf("24 MB") >= 0; }, 2000);
-            verify(named("sttSetupSize").text.indexOf("already on this computer") >= 0, named("sttSetupSize").text);
-            screenshot(page, "config-dictation-parakeet");
-            named("sttInstallButton").clicked();
-            tryVerify(function() { return root.commands().indexOf("stt_install") >= 0; }, 2000);
-            compare(root.last("stt_install").sttEngine, "parakeet");
-            tryVerify(function() { return !named("sttInstallButton").visible; }, 2000);
-            verify(!named("sttDownloadButton").visible, "nothing to download: the model is on disk");
-            verify(root.commands().indexOf("stt_download_model") < 0);
-            named("sttTestButton").clicked();
-            tryVerify(function() { return root.last("stt_test") !== null; }, 2000);
-            compare(root.last("stt_test").sttEngine, "parakeet");
-            compare(root.last("stt_sync_units").sttEnabled, true, "the local service is set up for the test");
-            screenshot(page, "config-dictation-parakeet-installed");
-        }
-
-        function test_9_parakeet_downloads_only_after_asking() {
-            root.parakeetInstalled = true;
-            root.parakeetOnDisk = false;
-            open({"cfg_sttEngine": "parakeet"});
-            var button = named("sttDownloadButton");
-            tryVerify(function() { return button.visible; }, 2000);
-            button.clicked();
-            var d = dialog();
-            tryCompare(d, "opened", true, 2000);
-            verify(d.subtitle.indexOf("731 MB") >= 0 && d.subtitle.indexOf("/home/u/.local/share/kdeaichat/models/parakeet") >= 0,
-                   d.subtitle);
-            screenshot(page, "config-dictation-parakeet-download");
-            d.accept();
-            tryVerify(function() { return root.commands().indexOf("stt_download_model") >= 0; }, 2000);
-            compare(root.last("stt_download_model").sttEngine, "parakeet");
-            compare(root.last("stt_download_model").sttParakeetModel, "parakeet-unified-en-0.6b");
+            page.cfg_sttEngine = "remote";
+            wait(300);
+            screenshot(page, "config-voice-both-on-server");
+            page.destroy();
+            page = null;
+            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsEngine": "remote", "cfg_sttEngine": "remote"}, 480);
+            wait(400);
+            screenshot(page, "config-voice-narrow");
+            verify(page.width <= 480);
         }
     }
 }

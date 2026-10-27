@@ -13,7 +13,7 @@ function load(rel, names) {
     return ctx.exports;
 }
 const E = load("voice/TtsEngines.js", ["engines", "engine", "optionKeys", "settingsFor", "valueOfType", "speakableText", "chunks", "clampUnit", "clampSpeed", "defaultEngine",
-                                         "fallbackEngine", "sentenceChunks", "chunksFor", "plainVoice"]);
+                                         "fallbackEngine", "sentenceChunks", "chunksFor", "plainVoice", "migratedEngine"]);
 const A = load("chat/ReadAloudAction.js", ["toggle", "shortcutTarget"]);
 
 function same(a, b, msg) { assert.strictEqual(JSON.stringify(a), JSON.stringify(b), msg); }
@@ -33,7 +33,9 @@ const tests = {
         });
         assert.strictEqual(E.defaultEngine, "speechnote", "Speech Note is the default");
         assert.strictEqual(E.engines[0].id, "speechnote", "and first in the list");
-        assert.strictEqual(E.engines[1].id, "neural", "the natural voice follows");
+        same(E.engines.map(e => e.id), ["speechnote", "system", "remote"], "Speech Note, the system voice and the speech server only");
+        ["neural", "kokoro", "flite", "piper", "command"].forEach(gone => assert.strictEqual(E.engine(gone), null, gone));
+        E.engines.forEach(e => e.options.forEach(o => assert.ok(["language", "voice", "rate", "pitch", "speed", "text", "url", "secret"].includes(o.type), o.type)));
         assert.strictEqual(E.fallbackEngine, "system");
         assert.strictEqual(E.engine("system").plugin, "speechd");
         assert.strictEqual(E.engine("system").options.filter(o => o.type === "rate" || o.type === "pitch").every(o => o.def === 0), true);
@@ -56,7 +58,7 @@ const tests = {
         assert.strictEqual(s.voiceTtsRemoteModel, "tts-1");
         assert.strictEqual(E.valueOfType("system", {voiceTtsSystemVoice: ""}, "voice", "x"), "");
         assert.strictEqual(E.valueOfType("system", {voiceTtsSystemRate: 0.5}, "rate", 0), 0.5);
-        assert.strictEqual(E.valueOfType("flite", {}, "language", "none"), "none");
+        assert.strictEqual(E.valueOfType("remote", {}, "language", "none"), "none");
     },
     markdown_is_made_speakable() {
         const t = E.speakableText("# Title\n\n**Bold** and *it* with `code`.\n\n```js\nx()\n```\n- [a link](https://x.y) here\n> quoted\nSee https://example.com/a");
@@ -76,11 +78,15 @@ const tests = {
         same(c, ["Hi. This is the first real sentence here.", "Note: it goes on!", "And on? A list item", "Another"]);
         const long = "word ".repeat(120).trim() + ".";
         E.sentenceChunks(long).forEach(x => assert.ok(x.length <= 240, x.length));
-        same(E.chunksFor(E.engine("neural"), "**The first one.** The second one."), ["The first one.", "The second one."]);
+        same(E.chunksFor({sentences: true}, "**The first one.** The second one."), ["The first one.", "The second one."]);
         const qt = E.chunksFor(E.engine("system"), "One. Two. Three.");
         same(qt, ["One. Two. Three."], "a Qt engine says a normal reply in one go");
         assert.ok(E.chunksFor(E.engine("system"), "Sentence here. ".repeat(200)).every(x => x.length <= 1000));
-        same(E.chunksFor(E.engine("neural"), "```\ncode\n```"), ["(code block)"]);
+        same(E.chunksFor({sentences: true}, "```\ncode\n```"), ["(code block)"]);
+    },
+    saved_engines_that_were_removed_become_speech_note() {
+        ["neural", "kokoro", "flite", "piper", "command", "", "nope", undefined].forEach(id => assert.strictEqual(E.migratedEngine(id), "speechnote", String(id)));
+        ["speechnote", "system", "remote"].forEach(id => assert.strictEqual(E.migratedEngine(id), id));
     },
     espeak_variants_are_hidden_unless_chosen() {
         assert.strictEqual(E.plainVoice("English (America)"), true);

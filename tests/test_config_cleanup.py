@@ -197,5 +197,31 @@ def test_lists_match_main_xml_and_migrations():
     # SttConfig.js copies exactly these old dictation keys.
     with open(os.path.join(UI_DIR, "voice", "SttConfig.js")) as f:
         stt = f.read()
-    assert set(re.findall(r"\b(voice(?:Enabled|GpuEnabled|SttModel|SttModelPath|Language))\b", stt)) == \
+    assert set(re.findall(r"\b(voice(?:Enabled|Language))\b", stt)) == \
         config_cleanup.OLD_DICTATION
+
+
+REMOVED_VOICE_ENGINE_KEYS = (
+    "sttModel sttParakeetModel sttDevice sttWhisperCppBinary sttWhisperCppModel sttWhisperCppServer sttCommand "
+    "sttIdleMinutes voiceGpuEnabled voiceSttModel voiceSttModelPath voiceTtsNeuralVoice voiceTtsNeuralSpeed "
+    "voiceTtsKokoroLanguage voiceTtsKokoroVoice voiceTtsKokoroRate voiceTtsFliteVoice voiceTtsFliteRate "
+    "voiceTtsFlitePitch voiceTtsPiperModel voiceTtsPiperSpeaker voiceTtsPiperSpeed voiceTtsCommand").split()
+
+
+def test_settings_of_the_removed_voice_engines_are_cleaned_up():
+    declared = set(applet_config.defaults(MAIN_XML))
+    for key in REMOVED_VOICE_ENGINE_KEYS:
+        assert key in config_cleanup.DROPPED, key
+        assert key not in declared, key
+    # The settings the remaining engines use are still declared and never removed.
+    for key in ("sttEnabled", "sttEngine", "sttLanguage", "sttRemoteUrl", "sttRemoteModel", "sttSpeechNoteModel",
+                "voiceTtsEngine", "voiceTtsSystemVoice", "voiceTtsRemoteUrl", "voiceTtsSpeechNoteModel", "voiceAutoSend"):
+        assert key in declared and key not in config_cleanup.DROPPED, key
+    text = APPLETSRC.replace("customIcon=dialog-messages\n", "customIcon=dialog-messages\n" + "".join(
+        "%s=x\n" % k for k in REMOVED_VOICE_ENGINE_KEYS) + "sttEngine=parakeet\nsttRemoteUrl=http://localhost:8000/v1\n")
+    group, removed, new_text = config_cleanup.plan(text, "42")
+    assert set(REMOVED_VOICE_ENGINE_KEYS) <= set(removed)
+    kept = new_text
+    assert "sttEngine=parakeet" in kept, "the engine itself stays: the widget moves it to Speech Note at start"
+    assert "sttRemoteUrl=http://localhost:8000/v1" in kept
+    assert not any(line.split("=")[0] in REMOVED_VOICE_ENGINE_KEYS for line in kept.splitlines())

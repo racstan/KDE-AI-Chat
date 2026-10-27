@@ -253,7 +253,7 @@ Item {
 
         function test_it_is_not_started_when_the_feature_or_engine_is_off() {
             warm({"sttEnabled": false, "voiceTtsEnabled": false, "sttEngine": "speechnote"}, true);
-            warm({"sttEnabled": true, "sttEngine": "parakeet", "voiceTtsEnabled": true, "voiceTtsEngine": "system"}, true);
+            warm({"sttEnabled": true, "sttEngine": "remote", "voiceTtsEnabled": true, "voiceTtsEngine": "system"}, true);
             wait(120);
             compare(root.calls.length, 0);
         }

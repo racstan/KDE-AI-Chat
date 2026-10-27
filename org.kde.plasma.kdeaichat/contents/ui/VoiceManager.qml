@@ -9,6 +9,7 @@
 // statusText; errorOccurred(text).
 import QtQuick
 import "voice" as Voice
+import "voice/TtsEngines.js" as Engines
 
 // i18n() and plasmoid are provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -25,7 +26,7 @@ Item {
     property string sttStatusText: ""
     readonly property string statusText: sttStatusText || readAloud.statusText
     property string lastRecognizedText: ""
-    // store/HelperRunner.qml's run(), for the read-aloud engines that write files.
+    // store/HelperRunner.qml's run(), for the speech server and Speech Note.
     property var runHelper: null
     // The widget's popup is open (main.qml): Speech Note is warmed up and kept ready (voice/SpeechNoteWarm.qml).
     property bool popupOpen: false
@@ -50,7 +51,13 @@ Item {
     onSttEnabledChanged: {
         if (!sttEnabled && isRecording)
             sttBackend.stop(true);
-        sttBackend.syncUnits();
+    }
+
+    // A read-aloud engine of an earlier build (Kokoro, Piper, a custom command, ...) becomes Speech Note.
+    Component.onCompleted: {
+        var engine = Engines.migratedEngine(configuration.voiceTtsEngine);
+        if (configuration.voiceTtsEngine !== undefined && configuration.voiceTtsEngine !== engine)
+            configuration.voiceTtsEngine = engine;
     }
 
     signal textRecognized(string text)

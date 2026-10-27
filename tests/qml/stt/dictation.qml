@@ -1,15 +1,16 @@
 // voice/SttBackend.qml end to end through the real helper, run by tests/test_stt_qml.py
-// (not by the main QML suite: it needs a fake recorder and a sandbox in the environment,
-// so it never records from a real microphone).
+// (not by the main QML suite: it needs a fake recorder, a fake speech server and a sandbox in the
+// environment, so it never records from a real microphone). The speech server engine records with the
+// helper and posts the recording to the server (build/stt-qml/server.js has its port).
 import QtQuick
 import QtTest
 import "../../../org.kde.plasma.kdeaichat/contents/ui/voice" as Voice
+import "../../../build/stt-qml/server.js" as Server
 
 TestCase {
     id: testCase
     name: "SttDictation"
 
-    readonly property string fakeStt: decodeURIComponent(String(Qt.resolvedUrl("../../../build/stt-qml/fake-stt")).replace(/^file:\/\//, ""))
     property var replies: []
     property var config: null
 
@@ -18,23 +19,13 @@ TestCase {
         id: configComponent
         QtObject {
             property var voiceEnabled
-            property var voiceSttModel
-            property var voiceSttModelPath
             property var voiceLanguage
-            property var voiceGpuEnabled
             property var sttSettingsMigrated
             property var sttEnabled
             property var sttEngine
-            property var sttModel
-            property var sttDevice
             property var sttLanguage
-            property var sttCommand
-            property var sttWhisperCppBinary
-            property var sttWhisperCppModel
-            property var sttWhisperCppServer
             property var sttRemoteUrl
             property var sttRemoteModel
-            property var sttIdleMinutes
         }
     }
 
@@ -47,17 +38,16 @@ TestCase {
 
     function test_migration_then_dictate_until_stop() {
         config = createTemporaryObject(configComponent, testCase, {
-            "voiceEnabled": true, "voiceSttModel": "base", "voiceLanguage": "de", "voiceGpuEnabled": false,
-            "sttSettingsMigrated": false, "sttCommand": fakeStt + " {wav} {lang}"});
+            "voiceEnabled": true, "voiceLanguage": "de", "sttSettingsMigrated": false, "sttEngine": "faster-whisper"});
         var backend = createTemporaryObject(backendComponent, testCase, {"configuration": config});
-        // The old settings were carried over once, at start.
+        // The old settings were carried over once, at start; an engine that no longer exists became Speech Note.
         compare(config.sttSettingsMigrated, true);
         compare(config.sttEnabled, true);
-        compare(config.sttModel, "base");
         compare(config.sttLanguage, "de");
-        // A user who had picked a Whisper model keeps faster-whisper; this test fakes the custom command engine.
-        compare(config.sttEngine, "faster-whisper");
-        config.sttEngine = "command";
+        compare(config.sttEngine, "speechnote");
+        compare(backend.engine, "speechnote");
+        config.sttEngine = "remote";
+        config.sttRemoteUrl = "http://127.0.0.1:" + Server.port + "/v1";
 
         backend.start();
         verify(backend.busy);
@@ -67,7 +57,7 @@ TestCase {
         var reply = replies[0];
         compare(reply.type, "stt_result", JSON.stringify(reply));
         compare(reply.text, "fake heard de");
-        compare(reply.engine, "command");
+        compare(reply.engine, "remote");
         verify(reply.duration >= 0.3);
         verify(!backend.busy);
 

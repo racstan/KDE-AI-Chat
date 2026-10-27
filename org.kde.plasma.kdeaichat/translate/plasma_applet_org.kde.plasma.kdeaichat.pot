@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 12:29+0530\n"
+"POT-Creation-Date: 2026-10-27 12:43+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,9 +43,8 @@ msgstr ""
 msgid "Schedules"
 msgstr ""
 
-#: contents/config/config.qml:34 contents/ui/voice/TtsEngines.js:71
-#: contents/ui/voice/TtsEngines.js:80 contents/ui/voice/TtsEngines.js:91
-#: contents/ui/voice/TtsEngines.js:98 contents/ui/voice/TtsEngines.js:123
+#: contents/config/config.qml:34 contents/ui/voice/TtsEngines.js:45
+#: contents/ui/voice/TtsEngines.js:59
 #, kde-format
 msgid "Voice"
 msgstr ""
@@ -210,7 +209,7 @@ msgstr ""
 #: contents/ui/chat/ProjectEditor.qml:211
 #: contents/ui/chat/ProjectEditor.qml:212
 #: contents/ui/components/ModelPicker.qml:104
-#: contents/ui/voice/SttEngines.js:41 contents/ui/chat/PiChatSettings.qml:65
+#: contents/ui/voice/SttEngines.js:21 contents/ui/chat/PiChatSettings.qml:65
 #, kde-format
 msgid "Model"
 msgid_plural "Models"
@@ -820,7 +819,7 @@ msgid "Send message"
 msgstr ""
 
 #: contents/ui/chat/Composer.qml:330 contents/ui/chat/ImageJobCard.qml:73
-#: contents/ui/config/OpenCodeSettings.qml:168 contents/ui/ConfigVoice.qml:308
+#: contents/ui/config/OpenCodeSettings.qml:168 contents/ui/ConfigVoice.qml:267
 #, kde-format
 msgid "Stop"
 msgstr ""
@@ -858,7 +857,7 @@ msgstr ""
 msgid "Reading aloud…"
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:315
+#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:274
 #, kde-format
 msgid "Making speech…"
 msgstr ""
@@ -1434,7 +1433,7 @@ msgstr ""
 msgid "Read selection aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:167 contents/ui/ConfigVoice.qml:210
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/ConfigVoice.qml:182
 #: contents/ui/chat/MessageText.qml:115
 #, kde-format
 msgid "Read aloud"
@@ -2992,7 +2991,6 @@ msgstr ""
 #: contents/ui/config/OpenCodeSettings.qml:206
 #: contents/ui/config/PiSettings.qml:110
 #: contents/ui/config/ProviderEditor.qml:88
-#: contents/ui/config/LocalSttRows.qml:87
 #, kde-format
 msgid "Model:"
 msgstr ""
@@ -3489,7 +3487,6 @@ msgstr ""
 
 #: contents/ui/config/OpenCodeSettings.qml:232
 #: contents/ui/config/PiSettings.qml:136
-#: contents/ui/config/LocalSttRows.qml:219
 #, kde-format
 msgid "Status:"
 msgstr ""
@@ -5030,8 +5027,7 @@ msgstr ""
 msgid "Installed now: KRunner %1, Dolphin %2."
 msgstr ""
 
-#: contents/ui/config/StorageRow.qml:56 contents/ui/config/LocalSttRows.qml:266
-#: contents/ui/config/NeuralVoiceSetup.qml:141
+#: contents/ui/config/StorageRow.qml:56
 #, kde-format
 msgid "Remove…"
 msgstr ""
@@ -5526,8 +5522,7 @@ msgstr ""
 msgid "A dictation setting isn't valid: %1"
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:81 contents/ui/config/SetupChecks.js:95
-#: contents/ui/config/SetupChecks.js:115
+#: contents/ui/config/SetupChecks.js:81
 #, kde-format
 msgid "Correct it in Settings → Voice."
 msgstr ""
@@ -5549,666 +5544,236 @@ msgstr ""
 
 #: contents/ui/config/SetupChecks.js:85
 #, kde-format
-msgid "%1 isn't installed."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:86
-#, kde-format
-msgid "Install it in Settings → Voice; the download size is shown first."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:87
-#, kde-format
-msgid "%1 can't be installed: Python's venv module is missing."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:88
-#, kde-format
-msgid "Install python3-venv, or pick another dictation engine."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:89
-#, kde-format
-msgid "The speech model %1 isn't downloaded yet."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:89
-#, kde-format
-msgid "Download it in Settings → Voice."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:90
-#, kde-format
-msgid "The speech model folder %1 doesn't exist."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:90
-#, kde-format
-msgid "Pick another model in Settings → Voice."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:91
-#, kde-format
-msgid "whisper.cpp isn't installed: there is no whisper-cli program."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:92
-#, kde-format
-msgid "Install whisper.cpp, or enter its program in Settings → Voice."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:93
-#, kde-format
-msgid "whisper.cpp has no model file."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:93
-#, kde-format
-msgid "Pick a ggml model file in Settings → Voice."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:94
-#, kde-format
 msgid "Dictation has no speech server address."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:94 contents/ui/config/SetupChecks.js:114
+#: contents/ui/config/SetupChecks.js:85 contents/ui/config/SetupChecks.js:99
 #, kde-format
 msgid "Enter it in Settings → Voice."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:95
-#, kde-format
-msgid "The dictation command can't run: %1"
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:96
+#: contents/ui/config/SetupChecks.js:86
 #, kde-format
 msgid "Dictation with %1 is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:98
+#: contents/ui/config/SetupChecks.js:88
 #, kde-format
 msgid "Speech Note isn't installed, so dictation can't listen."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:99
+#: contents/ui/config/SetupChecks.js:89
 #, kde-format
 msgid ""
 "Install Speech Note (see Settings → Voice), then download a speech model in "
 "it."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:100
+#: contents/ui/config/SetupChecks.js:90
 #, kde-format
 msgid ""
 "Speech Note isn't installed, so replies are read with the robotic system "
 "voice."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:101
+#: contents/ui/config/SetupChecks.js:91
 #, kde-format
 msgid ""
 "Install Speech Note (see Settings → Voice), then download a voice in it."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:102
+#: contents/ui/config/SetupChecks.js:92
 #, kde-format
 msgid "Speech Note has no speech-to-text model yet."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:103
+#: contents/ui/config/SetupChecks.js:93
 #, kde-format
 msgid "Open Speech Note and download a speech-to-text model in your language."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:104
+#: contents/ui/config/SetupChecks.js:94
 #, kde-format
 msgid ""
 "Speech Note has no voice yet, so replies are read with the robotic system "
 "voice."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:105
+#: contents/ui/config/SetupChecks.js:95
 #, kde-format
 msgid "Open Speech Note and download a voice in your language."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:106
+#: contents/ui/config/SetupChecks.js:96
 #, kde-format
 msgid "Speech Note could not be started: %1"
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:106
+#: contents/ui/config/SetupChecks.js:96
 #, kde-format
 msgid "Open Speech Note once by hand to see what it says."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:107
+#: contents/ui/config/SetupChecks.js:97
 #, kde-format
 msgid "Dictation with Speech Note is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:108
+#: contents/ui/config/SetupChecks.js:98
 #, kde-format
 msgid "Read aloud with Speech Note is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:109
-#, kde-format
-msgid ""
-"The natural voice isn't installed yet, so replies are read with the robotic "
-"system voice."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:110
-#, kde-format
-msgid "Install it in Settings → Voice (one time, size shown first)."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:111
-#, kde-format
-msgid "Piper isn't installed: there is no piper program."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:112
-#, kde-format
-msgid "Install Piper, or pick another read-aloud engine in Settings → Voice."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:113
-#, kde-format
-msgid "The Piper voice file isn't there: %1"
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:113
-#, kde-format
-msgid "Pick a voice file in Settings → Voice."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:114
+#: contents/ui/config/SetupChecks.js:99
 #, kde-format
 msgid "Read aloud has no valid speech server address."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:115
-#, kde-format
-msgid "The read-aloud command's program isn't found."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:116
+#: contents/ui/config/SetupChecks.js:100
 #, kde-format
 msgid "Speech Dispatcher isn't installed, so the system voices may be silent."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:117
+#: contents/ui/config/SetupChecks.js:101
 #, kde-format
 msgid "Install speech-dispatcher and espeak-ng."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:118
-#, kde-format
-msgid ""
-"Read aloud uses the %1 speech plugin; Settings → Voice lists the voices it "
-"finds."
-msgstr ""
-
-#: contents/ui/config/SetupChecks.js:119
+#: contents/ui/config/SetupChecks.js:102
 #, kde-format
 msgid "Read aloud with %1 is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:121
+#: contents/ui/config/SetupChecks.js:104
 #, kde-format
 msgid "No schedule is waiting to run."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:122
+#: contents/ui/config/SetupChecks.js:105
 #, kde-format
 msgid "%1 schedules have their timers."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:123
+#: contents/ui/config/SetupChecks.js:106
 #, kde-format
 msgid "The schedule file can't be read."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:123
+#: contents/ui/config/SetupChecks.js:106
 #, kde-format
 msgid "Open Settings → Schedules to see what's wrong."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:124
+#: contents/ui/config/SetupChecks.js:107
 #, kde-format
 msgid "systemd's user service manager isn't available, so schedules can't run."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:125
+#: contents/ui/config/SetupChecks.js:108
 #, kde-format
 msgid "Schedules need systemctl --user (a systemd session)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:126
+#: contents/ui/config/SetupChecks.js:109
 #, kde-format
 msgid "%1 schedules are missing their timer, so they won't run."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:127
+#: contents/ui/config/SetupChecks.js:110
 #, kde-format
 msgid "Press Recreate timers."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:128
+#: contents/ui/config/SetupChecks.js:111
 #, kde-format
 msgid "One check failed: %1"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:55
+#: contents/ui/config/SttSetup.qml:40
 #, kde-format
 msgid "The helper is not available."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:60
-#, kde-format
-msgid "No answer."
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:132
-#, kde-format
-msgid "Installing %1. This can take a few minutes…"
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:137
-#, kde-format
-msgid "%1 is installed."
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:137
-#, kde-format
-msgid "Installing failed: %1"
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:149
-#, kde-format
-msgid "Downloading the model…"
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:154
-#, kde-format
-msgid "The model is downloaded."
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:154
-#, kde-format
-msgid "Downloading failed: %1"
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:165
-#, kde-format
-msgid "Transcribing a sample recording…"
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:170
-#, kde-format
-msgid "Heard: “%1” (%2 s)"
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:170
-#, kde-format
-msgid "No speech heard."
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:172
-#, kde-format
-msgid "The model is not downloaded yet."
-msgstr ""
-
-#: contents/ui/config/SttSetup.qml:174
+#: contents/ui/config/SttSetup.qml:40 contents/ui/config/SttSetup.qml:51
 #, kde-format
 msgid "The test failed: %1"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:184
+#: contents/ui/config/SttSetup.qml:44
 #, kde-format
-msgid "Removing the old engine…"
+msgid "Transcribing a sample recording…"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:184
+#: contents/ui/config/SttSetup.qml:49
 #, kde-format
-msgid "Removing the speech engine's data…"
+msgid "Heard: “%1” (%2 s)"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:189
+#: contents/ui/config/SttSetup.qml:49
 #, kde-format
-msgid "Freed %1."
+msgid "No speech heard."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:189
+#: contents/ui/config/SttSetup.qml:51
 #, kde-format
-msgid "Removing failed: %1"
+msgid "No answer."
 msgstr ""
 
-#: contents/ui/config/LocalSttRows.qml:56
-#, kde-format
-msgid "Download the speech model?"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:57
-#, kde-format
-msgid "“%1” is %2. It is saved in %3 and used only on this computer."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:61
-#, kde-format
-msgid "Remove the speech engine's data?"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:62
-#, kde-format
-msgid ""
-"This deletes the speech engine (%1) and the models downloaded here (%2), %3 "
-"in all. Models from Handy, Speech Note or other apps are not touched. "
-"Dictation needs Install again afterwards."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:66
-#, kde-format
-msgid "Rebuild the engine smaller?"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:67
-#, kde-format
-msgid ""
-"The engine was installed by an older version with packages dictation no "
-"longer needs. Rebuilding deletes it, frees about %1 and installs it again "
-"(about %2 to download). Your models are kept."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:81
-#, kde-format
-msgid "on disk (from %1)"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:81
-#, kde-format
-msgid "downloaded"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:82
-#, kde-format
-msgid "recommended"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:98
-#, kde-format
-msgid "%1 · from %2 · on disk"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:101
-#, kde-format
-msgid "Your file: %1"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:109
-#, kde-format
-msgid "Use a model file (.gguf)"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:109
-#, kde-format
-msgid "Use a model folder (CTranslate2)"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:120
-#, kde-format
-msgid "GGUF models (*.gguf)"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:129
-#, kde-format
-msgid ""
-"Parakeet Unified EN 0.6B is NVIDIA's open English speech model, the one the "
-"Handy app uses. If Handy (or another app) already downloaded it, it is used "
-"from there without downloading again."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:130
-#, kde-format
-msgid ""
-"Bigger models understand speech better, especially accents and noisy rooms, "
-"but are bigger to download and slower. \"small\" suits most people."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:131
-#, kde-format
-msgid "The speech model that turns your voice into text."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:131
-#, kde-format
-msgid "Your own model on this computer: nothing to download."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:133
-#, kde-format
-msgid "On this computer: %1"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:133
-#, kde-format
-msgid "Downloaded."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:134
-#, kde-format
-msgid "Not downloaded yet (%1)."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:140
-#, kde-format
-msgid "Run on:"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:150
-#, kde-format
-msgid ""
-"Which part of the computer does the work. \"Automatic\" uses the graphics "
-"card when it can (through Vulkan, any make) and the processor otherwise; "
-"Parakeet is fast on both."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:151
-#, kde-format
-msgid ""
-"Which part of the computer does the work. \"Automatic\" is right for almost "
-"everyone; an NVIDIA graphics card is much faster than the processor."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:155
-#, kde-format
-msgid "Keep loaded:"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:163
-#, kde-format
-msgid "minutes after the last use"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:166
-#, kde-format
-msgid ""
-"The speech model stays in memory this long after you dictate, so the next "
-"time starts quickly. A shorter time frees memory sooner."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:171
-#, kde-format
-msgid "Setup:"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:177
-#, kde-format
-msgid "Working out the download size…"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:179
-#, kde-format
-msgid " (with NVIDIA GPU support)"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:180
-#, kde-format
-msgid "your own, nothing to download"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:181
-#, kde-format
-msgid "%1, downloaded afterwards when you choose"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:182
-#, kde-format
-msgid "already on this computer, nothing to download"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:178
-#, kde-format
-msgid ""
-"Install downloads about %1 of Python packages%2 into its own folder. The "
-"model: %3."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:186
-#: contents/ui/config/NeuralVoiceSetup.qml:133
-#, kde-format
-msgid "Install"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:194
-#, kde-format
-msgid ""
-"A one-time setup of the speech program in its own folder. Nothing is "
-"installed until you press Install."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:198
-#, kde-format
-msgid "Model download:"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:203
-#, kde-format
-msgid "“%1” needs a download of %2."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:207
-#, kde-format
-msgid "Download…"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:215
-#, kde-format
-msgid ""
-"The chosen model has to be downloaded once before you can dictate. You are "
-"asked before it starts."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:235
-#, kde-format
-msgid "Smaller engine:"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:240
-#, kde-format
-msgid ""
-"Installed by an older version with packages dictation no longer needs (about "
-"%1)."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:245
-#, kde-format
-msgid "Rebuild (smaller)…"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:253
-#, kde-format
-msgid ""
-"Sets the speech program up again without the parts it no longer needs, to "
-"free disk space. Dictation keeps working the same."
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:257
-#, kde-format
-msgid "Engine data:"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:261
-#, kde-format
-msgid "%1 (engine %2, models downloaded here %3)"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:274
-#, kde-format
-msgid ""
-"Disk space the speech program and its models use. Remove deletes them if you "
-"no longer dictate; you can install them again later."
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:126
+#: contents/ui/ConfigVoice.qml:99
 #, kde-format
 msgid "Hello! This is how replies will sound."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:176
+#: contents/ui/ConfigVoice.qml:148
 #, kde-format
 msgid "Read aloud failed: %1"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:178
+#: contents/ui/ConfigVoice.qml:150
 #, kde-format
 msgid ""
 "That was the system voice, because Speech Note is not installed: see the "
 "setup steps above."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:179
+#: contents/ui/ConfigVoice.qml:151
 #, kde-format
-msgid "That was the system voice: install the natural voice to hear it."
+msgid "That was the system voice."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:179
+#: contents/ui/ConfigVoice.qml:151
 #, kde-format
 msgid "Finished."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:189
+#: contents/ui/ConfigVoice.qml:161
 #, kde-format
 msgid "Read aloud:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:190
+#: contents/ui/ConfigVoice.qml:162
 #, kde-format
 msgid "Offer to read replies aloud"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:194
+#: contents/ui/ConfigVoice.qml:166
 #, kde-format
 msgid ""
 "Adds a speaker button under each reply that reads it out loud. Choose the "
 "voice below."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:200
+#: contents/ui/ConfigVoice.qml:172
 #, kde-format
 msgid "Dictation:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:201
+#: contents/ui/ConfigVoice.qml:173
 #, kde-format
 msgid "Show a microphone button in the chat"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:205
+#: contents/ui/ConfigVoice.qml:177
 #, kde-format
 msgid ""
 "Speak instead of typing: press the microphone, talk, and your words are "
@@ -6216,87 +5781,74 @@ msgid ""
 "computer unless you pick a server below."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:215 contents/ui/config/DictationSettings.qml:78
+#: contents/ui/ConfigVoice.qml:187 contents/ui/config/DictationSettings.qml:67
 #, kde-format
 msgid "Engine:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:227 contents/ui/config/DictationSettings.qml:90
+#: contents/ui/ConfigVoice.qml:199
 #, kde-format
 msgid "%1 (not available)"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:238
+#: contents/ui/ConfigVoice.qml:210
 #, kde-format
 msgid "Looking for voices…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:251
+#: contents/ui/ConfigVoice.qml:223
 #, kde-format
 msgid ""
-"The engine is the program that makes the speech. \"Natural voice\" sounds "
-"the most human and needs a one-time install; \"System voices\" works without "
-"any setup but sounds robotic; the others need a program, a voice file or a "
-"server."
+"The engine is the program that makes the speech. Speech Note is a separate "
+"app with natural voices in many languages; \"System voices\" works without "
+"any setup but sounds robotic; a speech server is one you run or pay for."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:253
-#, kde-format
-msgid "Piper is offered once its piper program is installed."
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:265
-#, kde-format
-msgid ""
-"The natural voice is installed once, with its size shown first. It starts "
-"when something is read and stops itself two minutes later."
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:304 contents/ui/config/DictationSettings.qml:208
+#: contents/ui/ConfigVoice.qml:263 contents/ui/config/DictationSettings.qml:126
 #, kde-format
 msgid "Try it:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:308
+#: contents/ui/ConfigVoice.qml:267
 #, kde-format
 msgid "Say Hello"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:315
+#: contents/ui/ConfigVoice.qml:274
 #, kde-format
 msgid "Speaking…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:323
+#: contents/ui/ConfigVoice.qml:282
 #, kde-format
 msgid ""
 "Plays a short greeting with the settings above, so you can hear them before "
 "saving."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:329
+#: contents/ui/ConfigVoice.qml:288
 #, kde-format
 msgid "Read every reply aloud when it is finished"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:334
+#: contents/ui/ConfigVoice.qml:293
 #, kde-format
 msgid ""
 "Hands-free: each new reply is spoken without pressing the speaker button. "
 "Stop it with the stop button or Ctrl+Shift+S."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:339
+#: contents/ui/ConfigVoice.qml:298
 #, kde-format
 msgid "Dictation"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:15 contents/ui/voice/TtsEngines.js:64
+#: contents/ui/voice/SttEngines.js:13 contents/ui/voice/TtsEngines.js:37
 #, kde-format
 msgid "Speech Note (any language, recommended)"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:16
+#: contents/ui/voice/SttEngines.js:14
 #, kde-format
 msgid ""
 "Speech Note, a separate app, listens and writes down what you say in any "
@@ -6304,259 +5856,132 @@ msgid ""
 "card when it can. It starts when you dictate and stops when idle."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:18
-#, kde-format
-msgid "Parakeet (on this computer, English)"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:19
-#, kde-format
-msgid ""
-"NVIDIA's Parakeet Unified EN 0.6B, the model Handy uses: fast, accurate "
-"English transcription. English only. Runs in a small service that starts "
-"when you dictate and stops when idle, on the graphics card when there is "
-"one. Needs a one-time install of about 24 MB."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:21
-#, kde-format
-msgid "faster-whisper (on this computer)"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:22
-#, kde-format
-msgid ""
-"Whisper models run by a small service that starts when you dictate and stops "
-"when idle. Needs a one-time install."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:24
-#, kde-format
-msgid "whisper.cpp"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:25
-#, kde-format
-msgid ""
-"Your own whisper.cpp program (whisper-cli) with a ggml model, or a running "
-"whisper.cpp server. No Python."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:27
-#, kde-format
-msgid "Program"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:28
-#, kde-format
-msgid "whisper-cli (found automatically)"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:29
-#, kde-format
-msgid ""
-"The whisper.cpp program on your computer. Leave empty to have it found "
-"automatically."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:30
-#, kde-format
-msgid "Model file"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:32
-#, kde-format
-msgid ""
-"The speech model file whisper.cpp uses (ending in .bin). Bigger files "
-"understand better but are slower."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:33
-#, kde-format
-msgid "Or server URL"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:35
-#, kde-format
-msgid ""
-"Instead of the program: the address of a whisper.cpp server that is already "
-"running. Leave empty to use the program."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:36 contents/ui/voice/TtsEngines.js:115
+#: contents/ui/voice/SttEngines.js:16 contents/ui/voice/TtsEngines.js:51
 #, kde-format
 msgid "Speech server (OpenAI-compatible)"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:37
+#: contents/ui/voice/SttEngines.js:17
 #, kde-format
 msgid ""
-"Any server with /audio/transcriptions: a local Whisper server, Groq, OpenAI…"
+"Any server with /audio/transcriptions: a local Whisper server, Groq, OpenAI… "
+"The recording is sent to that server."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:39 contents/ui/voice/TtsEngines.js:118
+#: contents/ui/voice/SttEngines.js:19 contents/ui/voice/TtsEngines.js:54
 #, kde-format
 msgid "Server URL"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:40 contents/ui/voice/TtsEngines.js:120
+#: contents/ui/voice/SttEngines.js:20 contents/ui/voice/TtsEngines.js:56
 #, kde-format
 msgid ""
 "The web address of the speech server, from its documentation (often ending "
 "in /v1)."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:42
+#: contents/ui/voice/SttEngines.js:22
 #, kde-format
 msgid ""
 "The speech model the server should use, as named by the server (for example "
 "whisper-1)."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:43 contents/ui/voice/TtsEngines.js:127
+#: contents/ui/voice/SttEngines.js:23 contents/ui/voice/TtsEngines.js:63
 #, kde-format
 msgid "API key"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:44
+#: contents/ui/voice/SttEngines.js:24
 #, kde-format
 msgid "Saved in KWallet. Leave empty for a server on this computer."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:45 contents/ui/voice/TtsEngines.js:128
+#: contents/ui/voice/SttEngines.js:25 contents/ui/voice/TtsEngines.js:64
 #, kde-format
 msgid ""
 "The password-like code the speech service gives you, so it knows the "
 "requests are yours."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:46 contents/ui/voice/TtsEngines.js:129
-#, kde-format
-msgid "Custom command"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:47
-#, kde-format
-msgid ""
-"Your own program: {wav} is replaced by the recording (16 kHz mono WAV) and "
-"{lang} by the language; it prints the text."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:49 contents/ui/voice/TtsEngines.js:132
-#, kde-format
-msgid "Command"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:51
-#, kde-format
-msgid ""
-"For experts: a program of your own that turns a recording into text. Leave "
-"empty if you don't have one."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:62
+#: contents/ui/voice/SttEngines.js:31
 #, kde-format
 msgid "Detect automatically"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:62
+#: contents/ui/voice/SttEngines.js:31
 #, kde-format
 msgid "English"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:63
+#: contents/ui/voice/SttEngines.js:32
 #, kde-format
 msgid "German"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:63
+#: contents/ui/voice/SttEngines.js:32
 #, kde-format
 msgid "Spanish"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:64
+#: contents/ui/voice/SttEngines.js:33
 #, kde-format
 msgid "French"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:64
+#: contents/ui/voice/SttEngines.js:33
 #, kde-format
 msgid "Italian"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:65
+#: contents/ui/voice/SttEngines.js:34
 #, kde-format
 msgid "Portuguese"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:65
+#: contents/ui/voice/SttEngines.js:34
 #, kde-format
 msgid "Dutch"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:66
+#: contents/ui/voice/SttEngines.js:35
 #, kde-format
 msgid "Polish"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:66
+#: contents/ui/voice/SttEngines.js:35
 #, kde-format
 msgid "Russian"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:67
+#: contents/ui/voice/SttEngines.js:36
 #, kde-format
 msgid "Ukrainian"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:67
+#: contents/ui/voice/SttEngines.js:36
 #, kde-format
 msgid "Turkish"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:68
+#: contents/ui/voice/SttEngines.js:37
 #, kde-format
 msgid "Hindi"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:68
+#: contents/ui/voice/SttEngines.js:37
 #, kde-format
 msgid "Japanese"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:69
+#: contents/ui/voice/SttEngines.js:38
 #, kde-format
 msgid "Korean"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:69
+#: contents/ui/voice/SttEngines.js:38
 #, kde-format
 msgid "Chinese"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:73
-#, kde-format
-msgid "Automatic (NVIDIA GPU when there is one)"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:74 contents/ui/voice/SttEngines.js:81
-#, kde-format
-msgid "Processor (CPU)"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:75
-#, kde-format
-msgid "NVIDIA GPU (CUDA)"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:80
-#, kde-format
-msgid "Automatic (graphics card when there is one)"
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:82
-#, kde-format
-msgid "Graphics card (Vulkan)"
 msgstr ""
 
 #: contents/ui/store/MemoryMigration.qml:106
@@ -6630,267 +6055,96 @@ msgstr ""
 msgid "Not saved: %1"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:62 contents/ui/config/TtsOption.qml:63
+#: contents/ui/config/TtsOption.qml:60 contents/ui/config/TtsOption.qml:61
 #, kde-format
 msgid "Engine default"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:83
+#: contents/ui/config/TtsOption.qml:81
 #, kde-format
 msgid "%1×"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:84
+#: contents/ui/config/TtsOption.qml:82
 #, kde-format
 msgid "normal"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:113
+#: contents/ui/config/TtsOption.qml:93
 #, kde-format
 msgid "Enter an address that starts with http:// or https://."
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:115
-#, kde-format
-msgid "This command can't be used: check its quotes."
-msgstr ""
-
-#: contents/ui/config/TtsOption.qml:147
-#, kde-format
-msgid "Choose a voice found on this computer…"
-msgstr ""
-
-#: contents/ui/config/TtsOption.qml:148
-#: contents/ui/config/DictationSettings.qml:162
-#, kde-format
-msgid "%1 (%2, %3)"
-msgstr ""
-
-#: contents/ui/config/TtsOption.qml:164
-#, kde-format
-msgid "Choose a file"
-msgstr ""
-
-#: contents/ui/config/TtsOption.qml:191
+#: contents/ui/config/TtsOption.qml:126
 #, kde-format
 msgid "Saved in KWallet"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:191
+#: contents/ui/config/TtsOption.qml:126
 #, kde-format
 msgid "Not set"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:194
+#: contents/ui/config/TtsOption.qml:129
 #, kde-format
 msgid "Save key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:194
+#: contents/ui/config/TtsOption.qml:129
 #, kde-format
 msgid "Remove key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:199
+#: contents/ui/config/TtsOption.qml:134
 #, kde-format
 msgid "Saved."
 msgstr ""
 
-#: contents/ui/config/NeuralVoiceSetup.qml:32
-#, kde-format
-msgid "Natural voice:"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:59
-#, kde-format
-msgid "%1 GB"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:59
-#, kde-format
-msgid "%1 MB"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:66
-#, kde-format
-msgid "Installing… this can take a few minutes."
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:70
-#, kde-format
-msgid "Installed. Replies are now read with the natural voice."
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:71
-#, kde-format
-msgid "no answer"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:71
-#, kde-format
-msgid "Install failed: %1"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:82
+#: contents/ui/config/DictationSettings.qml:79
 #, kde-format
 msgid ""
-"Removed. The system voice reads until you install the natural voice again."
+"The engine is the program that turns your speech into text. Speech Note "
+"works on this computer and keeps your voice private; a speech server gets "
+"the recording."
 msgstr ""
 
-#: contents/ui/config/NeuralVoiceSetup.qml:92
-#, kde-format
-msgid "Checking…"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:93
-#, kde-format
-msgid "Installed, with graphics card support."
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:93
-#: contents/ui/config/SpeechNotePanel.qml:59
-#, kde-format
-msgid "Installed."
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:94
-#, kde-format
-msgid ""
-"Not installed yet: replies are read with the system voice until you install "
-"it."
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:108
-#, kde-format
-msgid "the program %1"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:109
-#, kde-format
-msgid "graphics card support %1"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:110
-#, kde-format
-msgid "the voice model %1"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:111
-#, kde-format
-msgid "Install downloads about %1 (%2), into %3."
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:120
-#, kde-format
-msgid "Also use the NVIDIA graphics card (much bigger download)"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:124
-#, kde-format
-msgid ""
-"Not needed: the processor reads fast enough. The graphics card only makes "
-"the first words come a little sooner."
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:133
-#, kde-format
-msgid "Install (%1)"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:162
-#, kde-format
-msgid "Remove the natural voice?"
-msgstr ""
-
-#: contents/ui/config/NeuralVoiceSetup.qml:163
-#, kde-format
-msgid ""
-"This deletes its program and voice model from %1 and %2. The system voice "
-"reads instead until you install it again."
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:106
-#, kde-format
-msgid ""
-"The engine is the program that turns your speech into text. The ones on this "
-"computer keep your voice private; a speech server gets the recording."
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:111
-#, kde-format
-msgid "Not ready: %1"
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:119
-#, kde-format
-msgid "Not available:"
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:125
-#, kde-format
-msgid "%1: %2"
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:157
-#, kde-format
-msgid "Found models:"
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:161
-#, kde-format
-msgid "Choose a model found on this computer…"
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:170
-#, kde-format
-msgid ""
-"Speech models other apps on this computer already downloaded. Pick one to "
-"use it without downloading again."
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:187
-#: contents/ui/config/DictationSettings.qml:194
+#: contents/ui/config/DictationSettings.qml:112
 #, kde-format
 msgid "Spoken language:"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:188
-#, kde-format
-msgid "English (this model understands English only)"
-msgstr ""
-
-#: contents/ui/config/DictationSettings.qml:204
+#: contents/ui/config/DictationSettings.qml:122
 #, kde-format
 msgid ""
 "The language you speak. \"Detect automatically\" works for most people; "
 "choosing yours helps with short phrases."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:212
+#: contents/ui/config/DictationSettings.qml:130
 #, kde-format
 msgid "Test"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:217
+#: contents/ui/config/DictationSettings.qml:135
 #, kde-format
 msgid ""
-"Transcribes a short recording that comes with the widget, with the settings "
-"above."
+"Sends a short recording that comes with the widget to the server, with the "
+"settings above."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:234
+#: contents/ui/config/DictationSettings.qml:152
 #, kde-format
 msgid ""
 "Checks the settings above with a short recording that comes with the widget; "
 "no microphone needed."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:238
+#: contents/ui/config/DictationSettings.qml:156
 #, kde-format
 msgid "Send the transcript right away"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:244
+#: contents/ui/config/DictationSettings.qml:162
 #, kde-format
 msgid ""
 "On: what you said is sent as soon as you stop talking. Off: it waits in the "
@@ -6915,6 +6169,11 @@ msgstr ""
 #: contents/ui/config/SpeechNotePanel.qml:59
 #, kde-format
 msgid "Installed (Flatpak)."
+msgstr ""
+
+#: contents/ui/config/SpeechNotePanel.qml:59
+#, kde-format
+msgid "Installed."
 msgstr ""
 
 #: contents/ui/config/SpeechNotePanel.qml:61
@@ -7079,127 +6338,7 @@ msgstr ""
 msgid "Listening — speak now"
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:36
-#, kde-format
-msgid "Heart: American English, woman (recommended)"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:37
-#, kde-format
-msgid "Bella: American English, woman"
-msgstr ""
-
 #: contents/ui/voice/TtsEngines.js:38
-#, kde-format
-msgid "Nicole: American English, woman, soft"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:39
-#, kde-format
-msgid "Aoede: American English, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:40
-#, kde-format
-msgid "Kore: American English, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:41
-#, kde-format
-msgid "Sarah: American English, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:42
-#, kde-format
-msgid "Michael: American English, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:43
-#, kde-format
-msgid "Fenrir: American English, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:44
-#, kde-format
-msgid "Puck: American English, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:45
-#, kde-format
-msgid "Emma: British English, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:46
-#, kde-format
-msgid "Isabella: British English, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:47
-#, kde-format
-msgid "George: British English, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:48
-#, kde-format
-msgid "Fable: British English, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:49
-#, kde-format
-msgid "Dora: Spanish, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:50
-#, kde-format
-msgid "Alex: Spanish, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:51
-#, kde-format
-msgid "Siwis: French, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:52
-#, kde-format
-msgid "Sara: Italian, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:53
-#, kde-format
-msgid "Nicola: Italian, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:54
-#, kde-format
-msgid "Dora: Brazilian Portuguese, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:55
-#, kde-format
-msgid "Alex: Brazilian Portuguese, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:56
-#, kde-format
-msgid "Alpha: Hindi, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:57
-#, kde-format
-msgid "Omega: Hindi, man"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:58
-#, kde-format
-msgid "Alpha: Japanese, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:59
-#, kde-format
-msgid "Xiaoxiao: Mandarin Chinese, woman"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:65
 #, kde-format
 msgid ""
 "Speech Note, a separate app, reads replies in any language with the voices "
@@ -7207,204 +6346,103 @@ msgid ""
 "up, the system voice reads."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:68
-#, kde-format
-msgid "Natural voice (Kokoro, recommended)"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:69
-#, kde-format
-msgid ""
-"A natural-sounding voice that runs on this computer, offline. It needs a one-"
-"time install; until then the system voice reads instead."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:72
-#, kde-format
-msgid ""
-"Which voice reads to you. Each voice speaks its own language best, so pick "
-"one in the language of your chats."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:73 contents/ui/voice/TtsEngines.js:82
-#: contents/ui/voice/TtsEngines.js:93 contents/ui/voice/TtsEngines.js:100
-#: contents/ui/voice/TtsEngines.js:113 contents/ui/voice/TtsEngines.js:125
-#, kde-format
-msgid "Speed"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:74 contents/ui/voice/TtsEngines.js:114
-#: contents/ui/voice/TtsEngines.js:126
-#, kde-format
-msgid "How fast the voice talks; 1× is normal speed."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:75
+#: contents/ui/voice/TtsEngines.js:40
 #, kde-format
 msgid "System voices"
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:76
+#: contents/ui/voice/TtsEngines.js:41
 #, kde-format
 msgid ""
 "Speech Dispatcher: espeak-ng and any voice installed for it. Nothing to set "
 "up, but espeak-ng sounds robotic."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:78 contents/ui/voice/TtsEngines.js:89
+#: contents/ui/voice/TtsEngines.js:43
 #, kde-format
 msgid "Language"
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:79 contents/ui/voice/TtsEngines.js:90
+#: contents/ui/voice/TtsEngines.js:44
 #, kde-format
 msgid ""
 "The language of the voices offered below. \"Engine default\" uses your "
 "system language."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:81 contents/ui/voice/TtsEngines.js:92
-#: contents/ui/voice/TtsEngines.js:99
+#: contents/ui/voice/TtsEngines.js:46
 #, kde-format
 msgid "Which voice reads to you. Try a few with \"Say Hello\"."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:83 contents/ui/voice/TtsEngines.js:94
-#: contents/ui/voice/TtsEngines.js:101
+#: contents/ui/voice/TtsEngines.js:47 contents/ui/voice/TtsEngines.js:61
+#, kde-format
+msgid "Speed"
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:48
 #, kde-format
 msgid "How fast the voice talks. The middle is normal speed."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:84 contents/ui/voice/TtsEngines.js:102
+#: contents/ui/voice/TtsEngines.js:49
 #, kde-format
 msgid "Pitch"
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:85 contents/ui/voice/TtsEngines.js:103
+#: contents/ui/voice/TtsEngines.js:50
 #, kde-format
 msgid "How high or deep the voice sounds. The middle is its normal pitch."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:86
-#, kde-format
-msgid "Kokoro (KDE speech plugin)"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:87
-#, kde-format
-msgid ""
-"Neural voices from KDE's Kokoro speech plugin, when its own Python packages "
-"are installed."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:95
-#, kde-format
-msgid "Flite"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:96
-#, kde-format
-msgid "Small built-in English voices."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:104
-#, kde-format
-msgid "Piper"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:105
-#, kde-format
-msgid ""
-"Fast local neural voices. Pick a downloaded .onnx voice (its .onnx.json must "
-"be next to it)."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:107
-#, kde-format
-msgid "Voice file"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:109
-#, kde-format
-msgid ""
-"A Piper voice is a file you download once (ending in .onnx). Pick one found "
-"on this computer, or choose the file yourself."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:110
-#, kde-format
-msgid "Speaker number"
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:111
-#, kde-format
-msgid "Only for voices with several speakers."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:112
-#, kde-format
-msgid ""
-"Some voice files hold several people's voices; this picks one of them. Leave "
-"at 0 otherwise."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:116
+#: contents/ui/voice/TtsEngines.js:52
 #, kde-format
 msgid "Any server with /audio/speech: Kokoro-FastAPI, openedai-speech, OpenAI…"
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:121
+#: contents/ui/voice/TtsEngines.js:57
 #, kde-format
 msgid "Speech model"
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:122
+#: contents/ui/voice/TtsEngines.js:58
 #, kde-format
 msgid ""
 "The speech model the server should use, as named by the server (for example "
 "tts-1)."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:124
+#: contents/ui/voice/TtsEngines.js:60
 #, kde-format
 msgid "The voice name the server should use (for example alloy)."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:127
+#: contents/ui/voice/TtsEngines.js:62
+#, kde-format
+msgid "How fast the voice talks; 1× is normal speed."
+msgstr ""
+
+#: contents/ui/voice/TtsEngines.js:63
 #, kde-format
 msgid "Saved in KWallet. Leave empty for a local server."
 msgstr ""
 
-#: contents/ui/voice/TtsEngines.js:130
-#, kde-format
-msgid ""
-"Your own program: it gets the text on standard input and writes a WAV to "
-"standard output, or to {output} if the command contains it."
-msgstr ""
-
-#: contents/ui/voice/TtsEngines.js:134
-#, kde-format
-msgid ""
-"For experts: a program of your own that turns text into speech. Leave empty "
-"if you don't have one."
-msgstr ""
-
-#: contents/ui/VoiceManager.qml:34
+#: contents/ui/VoiceManager.qml:35
 #, kde-format
 msgid "Voice error"
 msgstr ""
 
-#: contents/ui/VoiceManager.qml:92
+#: contents/ui/VoiceManager.qml:99
 #, kde-format
 msgid "Dictation failed."
 msgstr ""
 
-#: contents/ui/VoiceManager.qml:103
+#: contents/ui/VoiceManager.qml:110
 #, kde-format
 msgid "Listening…"
 msgstr ""
 
-#: contents/ui/VoiceManager.qml:108
+#: contents/ui/VoiceManager.qml:115
 #, kde-format
 msgid "Transcribing…"
 msgstr ""

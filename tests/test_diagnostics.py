@@ -184,54 +184,39 @@ def test_attachments(env):
 
 
 def test_dictation(env, monkeypatch):
-    rows = diag_system.check_dictation({"sttEngine": "faster-whisper"})
+    # The speech server needs a recorder and an address.
+    rows = diag_system.check_dictation({"sttEngine": "remote"})
     assert ("error", "stt-no-recorder") in codes(rows)
-    assert codes(rows)[-1][1] in ("stt-fw-missing", "stt-no-venv")
     fake_program(env, "pw-record")
     assert codes(diag_system.check_dictation({"sttEngine": "remote"})) == [("ok", "stt-recorder-ok"),
                                                                         ("error", "stt-remote-url")]
     assert codes(diag_system.check_dictation({"sttEngine": "remote", "sttRemoteUrl": "http://localhost:9/v1"}))[-1] \
         == ("ok", "stt-ready")
-    assert codes(diag_system.check_dictation({"sttEngine": "whisper-cpp"}))[-1] == ("error", "stt-whispercpp-missing")
-    fake_program(env, "whisper-cli")
-    assert codes(diag_system.check_dictation({"sttEngine": "whisper-cpp"}))[-1] == ("error", "stt-whispercpp-model")
-    assert codes(diag_system.check_dictation({"sttEngine": "command", "sttCommand": "nope {wav}"}))[-1] \
-        == ("error", "stt-command-bad")
-    assert codes(diag_system.check_dictation({"sttEngine": "warp"})) == [("error", "stt-bad-settings")]
+    assert codes(diag_system.check_dictation({"sttEngine": "remote", "sttLanguage": "en us"})) == [("error", "stt-bad-settings")]
 
 
-def test_dictation_faster_whisper_model(env, tmp_path):
-    venv = tmp_path / "venv"
-    (venv / "bin").mkdir(parents=True)
-    (venv / "bin" / "python3").write_text("")
-    (venv / "lib" / "python3.13" / "site-packages" / "faster_whisper").mkdir(parents=True)
-    fake_program(env, "pw-record")
-    payload = {"sttEngine": "faster-whisper", "sttModel": "small", "venv": str(venv)}
-    rows = diag_system.check_dictation(payload)
-    assert codes(rows)[-1] == ("warn", "stt-model-missing") and rows[-1]["args"] == ["small"]
-    snap = tmp_path / "hf" / "models--Systran--faster-whisper-small" / "snapshots" / "abc"
-    snap.mkdir(parents=True)
-    (snap / "model.bin").write_text("x")
-    assert codes(diag_system.check_dictation(payload))[-1] == ("ok", "stt-ready")
-    rows = diag_system.check_dictation(dict(payload, sttModel=str(tmp_path / "missing-model")))
-    assert codes(rows)[-1] == ("error", "stt-model-folder-missing")
+def test_dictation_with_a_removed_engine_is_checked_as_speech_note(env, monkeypatch):
+    seen = []
+    monkeypatch.setattr(diag_system.diag_speechnote, "check", lambda role: seen.append(role) or [])
+    for engine in ("speechnote", "parakeet", "faster-whisper", "whisper-cpp", "command", ""):
+        diag_system.check_dictation({"sttEngine": engine})
+    assert seen == ["stt"] * 6
 
 
-def test_read_aloud(env, tmp_path):
-    assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "piper"})) == [("error", "tts-piper-missing")]
-    fake_program(env, "piper")
-    assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "piper", "voiceTtsPiperModel": "/nope.onnx"})) \
-        == [("error", "tts-piper-voice")]
-    voice = tmp_path / "v.onnx"
-    voice.write_text("x")
-    assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "piper", "voiceTtsPiperModel": str(voice)})) \
-        == [("ok", "tts-ready")]
+def test_read_aloud(env, tmp_path, monkeypatch):
     assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "remote", "voiceTtsRemoteUrl": "x"})) \
         == [("error", "tts-remote-url")]
-    assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "command", "voiceTtsCommand": "missing-prog"})) \
-        == [("error", "tts-command-bad")]
+    assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "remote", "voiceTtsRemoteUrl": "http://localhost:8880/v1"})) \
+        == [("ok", "tts-ready")]
     assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "system"})) == [("warn", "tts-speechd-missing")]
-    assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "kokoro"})) == [("ok", "tts-qt-engine")]
+    fake_program(env, "speech-dispatcher")
+    assert codes(diag_system.check_read_aloud({"voiceTtsEngine": "system"})) == [("ok", "tts-ready")]
+    # Speech Note is the default; an engine that was removed counts as Speech Note.
+    seen = []
+    monkeypatch.setattr(diag_system.diag_speechnote, "check", lambda role: seen.append(role) or [])
+    for engine in ("", "speechnote", "neural", "piper", "command", "kokoro", "flite"):
+        diag_system.check_read_aloud({"voiceTtsEngine": engine})
+    assert seen == ["tts"] * 7
 
 
 OWNER = {"name": "News", "chatId": "chat-news", "message": "hi",
@@ -262,7 +247,7 @@ def test_setup_check_command_per_mode(env, server):
                "stt": {"sttEnabled": False}, "tts": {"voiceTtsEnabled": False}}
     ids = [r["id"] for r in diagnostics.run_checks(payload)]
     assert ids == ["endpoint:ollama", "attach-pdf", "attach-docx", "schedules"]
-    ids = [r["id"] for r in diagnostics.run_checks({"mode": "pi", "stt": {"sttEnabled": True}})]
+    ids = [r["id"] for r in diagnostics.run_checks({"mode": "pi", "stt": {"sttEnabled": True, "sttEngine": "remote"}})]
     assert ids[:2] == ["pi-program", "pi-bridge"] and "stt-recorder" in ids and "endpoint:ollama" not in ids
     ids = [r["id"] for r in diagnostics.run_checks({"mode": "opencode", "openCodeUrl": "bad url",
                                                     "tts": {"voiceTtsEnabled": True, "voiceTtsEngine": "kokoro"}})]

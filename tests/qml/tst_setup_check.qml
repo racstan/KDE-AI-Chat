@@ -29,7 +29,7 @@ Item {
             {id: "ollama", name: "Ollama (local)", type: "openai-compat", baseUrl: "http://localhost:11434/v1", model: "qwen3"},
             {id: "aihorde", name: "AI Horde", type: "image", service: "horde", baseUrl: "https://aihorde.net/api/v2"}]),
         "useOpenCode": false, "usePi": false, "openCodeUrl": "http://127.0.0.1:4096/v1",
-        "sttEnabled": true, "sttEngine": "faster-whisper", "voiceTtsEnabled": false
+        "sttEnabled": true, "sttEngine": "remote", "voiceTtsEnabled": false
     })
 
     QtObject {
@@ -47,7 +47,7 @@ Item {
             {"id": "endpoint:ollama", "area": "connection", "status": "error", "code": "local-refused", "args": ["Ollama (local)", "http://localhost:11434/v1"]},
             {"id": "attach-pdf", "area": "attachments", "status": "ok", "code": "pdf-ok", "args": []},
             {"id": "attach-docx", "area": "attachments", "status": "warn", "code": "docx-basic", "args": []},
-            {"id": "stt-engine", "area": "voice", "status": "warn", "code": "stt-model-missing", "args": ["small"]},
+            {"id": "stt-engine", "area": "voice", "status": "warn", "code": "stt-remote-url", "args": []},
             {"id": "schedules", "area": "scheduler", "status": "error", "code": "sched-timers-missing", "args": ["2"]}]})
         function run(command, payload, done) {
             calls = calls.concat([{"command": command, "payload": payload}]);
@@ -111,7 +111,7 @@ Item {
                             "Nothing answers at http://localhost:11434/v1, so Ollama (local) isn't running there.",
                             "PDF files can be attached.",
                             "Word files are read with a simpler built-in reader: pandoc is missing.",
-                            "The speech model small isn't downloaded yet.",
+                            "Dictation has no speech server address.",
                             "2 schedules are missing their timer, so they won't run."]);
             var fixes = texts(check, "setupCheckFix");
             verify(fixes.indexOf("Start Ollama (local), or correct the address. For Ollama, the command is: ollama serve") >= 0, fixes);

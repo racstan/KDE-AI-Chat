@@ -161,17 +161,33 @@ def test_remove_old_voice_only_removes_its_folders(env):
 
 def test_old_voice_includes_recorded_hf_models_only(env):
     tmp_path, home, root = env
-    from kdeaichat import stt_setup, voice_data
-    name = sorted(stt_setup.MODELS)[0]
-    folder = tmp_path / "hf" / ("models--" + stt_setup.MODELS[name][0].replace("/", "--"))
+    from kdeaichat import voice_leftovers
+    name = "small"
+    folder = tmp_path / "hf" / ("models--" + voice_leftovers._REPOS[name].replace("/", "--"))
     write(str(folder / "blobs" / "b"), KB * 6)
     other = tmp_path / "hf" / "models--not--ours"
     write(str(other / "b"), KB * 6)
     assert sizes(storage.usage())["voice_old"] == 0  # present but never recorded: not ours
-    voice_data.record_download(name)
+    # The old installer recorded what it downloaded; names outside its list (a tampered file) are ignored.
+    write(str(root / "stt-downloads.json"), 0)
+    (root / "stt-downloads.json").write_text(json.dumps({"models": {name: "x", "../../etc": "y", "not-a-model": "z"}}))
+    assert voice_leftovers.recorded_models() == [name]
     assert sizes(storage.usage())["voice_old"] >= KB * 6
     storage.remove("voice_old")
     assert not folder.exists() and other.exists()
+
+
+def test_removing_old_voice_stops_and_deletes_the_old_units_only(env, monkeypatch):
+    tmp_path, home, root = env
+    units = tmp_path / "units"
+    units.mkdir(exist_ok=True)
+    for name in ("kde-ai-stt.socket", "kde-ai-stt.service", "kde-ai-tts.service", "kdeaichat-sched-x.timer"):
+        (units / name).write_text("[Unit]\n")
+    monkeypatch.setenv("KDEAICHAT_UNIT_DIR", str(units))
+    monkeypatch.setenv("KDEAICHAT_SYSTEMCTL", "true")
+    out = storage.remove("voice_old")
+    assert out["warnings"] == []
+    assert sorted(os.listdir(units)) == ["kdeaichat-sched-x.timer"], "the schedule timer is not a voice unit"
 
 
 def test_speech_note_never_counted_or_removed(env):

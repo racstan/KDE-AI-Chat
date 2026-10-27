@@ -82,17 +82,7 @@ var MESSAGES = {
     "stt-recorder-ok": [I18N_NOOP("The microphone is recorded with %1."), ""],
     "stt-no-recorder": [I18N_NOOP("There is no recording program (pw-record, parecord or arecord)."),
                         I18N_NOOP("Install PipeWire's tools (pipewire-tools or pipewire-utils).")],
-    "stt-fw-missing": [I18N_NOOP("%1 isn't installed."),
-                       I18N_NOOP("Install it in Settings → Voice; the download size is shown first.")],
-    "stt-no-venv": [I18N_NOOP("%1 can't be installed: Python's venv module is missing."),
-                    I18N_NOOP("Install python3-venv, or pick another dictation engine.")],
-    "stt-model-missing": [I18N_NOOP("The speech model %1 isn't downloaded yet."), I18N_NOOP("Download it in Settings → Voice.")],
-    "stt-model-folder-missing": [I18N_NOOP("The speech model folder %1 doesn't exist."), I18N_NOOP("Pick another model in Settings → Voice.")],
-    "stt-whispercpp-missing": [I18N_NOOP("whisper.cpp isn't installed: there is no whisper-cli program."),
-                               I18N_NOOP("Install whisper.cpp, or enter its program in Settings → Voice.")],
-    "stt-whispercpp-model": [I18N_NOOP("whisper.cpp has no model file."), I18N_NOOP("Pick a ggml model file in Settings → Voice.")],
     "stt-remote-url": [I18N_NOOP("Dictation has no speech server address."), I18N_NOOP("Enter it in Settings → Voice.")],
-    "stt-command-bad": [I18N_NOOP("The dictation command can't run: %1"), I18N_NOOP("Correct it in Settings → Voice.")],
     "stt-ready": [I18N_NOOP("Dictation with %1 is ready."), ""],
     // Read aloud (and Speech Note, the default engine of both)
     "speechnote-missing-stt": [I18N_NOOP("Speech Note isn't installed, so dictation can't listen."),
@@ -106,16 +96,9 @@ var MESSAGES = {
     "speechnote-service": [I18N_NOOP("Speech Note could not be started: %1"), I18N_NOOP("Open Speech Note once by hand to see what it says.")],
     "speechnote-ready-stt": [I18N_NOOP("Dictation with Speech Note is ready."), ""],
     "speechnote-ready-tts": [I18N_NOOP("Read aloud with Speech Note is ready."), ""],
-    "tts-neural-missing": [I18N_NOOP("The natural voice isn't installed yet, so replies are read with the robotic system voice."),
-                           I18N_NOOP("Install it in Settings → Voice (one time, size shown first).")],
-    "tts-piper-missing": [I18N_NOOP("Piper isn't installed: there is no piper program."),
-                          I18N_NOOP("Install Piper, or pick another read-aloud engine in Settings → Voice.")],
-    "tts-piper-voice": [I18N_NOOP("The Piper voice file isn't there: %1"), I18N_NOOP("Pick a voice file in Settings → Voice.")],
     "tts-remote-url": [I18N_NOOP("Read aloud has no valid speech server address."), I18N_NOOP("Enter it in Settings → Voice.")],
-    "tts-command-bad": [I18N_NOOP("The read-aloud command's program isn't found."), I18N_NOOP("Correct it in Settings → Voice.")],
     "tts-speechd-missing": [I18N_NOOP("Speech Dispatcher isn't installed, so the system voices may be silent."),
                             I18N_NOOP("Install speech-dispatcher and espeak-ng.")],
-    "tts-qt-engine": [I18N_NOOP("Read aloud uses the %1 speech plugin; Settings → Voice lists the voices it finds."), ""],
     "tts-ready": [I18N_NOOP("Read aloud with %1 is ready."), ""],
     // Schedules
     "sched-none": [I18N_NOOP("No schedule is waiting to run."), ""],
@@ -177,9 +160,8 @@ function directChecks(entries, walletStatus, walletKeys, defaultId) {
 
 // The helper's payload. mode: direct|opencode|pi; cfg: plasmoid.configuration
 // (or a plain object with the same names); entries as in directChecks.
-var STT_KEYS = ["sttEnabled", "sttEngine", "sttModel", "sttDevice", "sttLanguage", "sttWhisperCppBinary",
-                "sttWhisperCppModel", "sttWhisperCppServer", "sttRemoteUrl", "sttRemoteModel", "sttCommand"];
-var TTS_KEYS = ["voiceTtsEnabled", "voiceTtsEngine", "voiceTtsPiperModel", "voiceTtsRemoteUrl", "voiceTtsCommand"];
+var STT_KEYS = ["sttEnabled", "sttEngine", "sttLanguage", "sttRemoteUrl", "sttRemoteModel"];
+var TTS_KEYS = ["voiceTtsEnabled", "voiceTtsEngine", "voiceTtsRemoteUrl"];
 
 function _pick(cfg, keys) {
     var out = {};

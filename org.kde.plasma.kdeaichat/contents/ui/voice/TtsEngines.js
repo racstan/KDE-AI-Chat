@@ -8,22 +8,23 @@
 //
 // kind "qt":   QtTextToSpeech in the widget process (`plugin` is the Qt
 //              engine), with stop and pause; voices come from the plugin.
-// kind "file": the helper (kdeaichat/tts.py) writes a WAV per chunk and the
-//              widget plays it (voice/FileSpeech.qml), with stop and pause.
+// kind "file": the helper (kdeaichat/tts.py) asks a speech server for a WAV per chunk and
+//              the widget plays it (voice/FileSpeech.qml), with stop and pause.
 // kind "speechnote": the Speech Note app speaks the whole reply itself, with
 //              its own voices and graphics-card support (voice/SpeechNoteSpeech.qml).
 //              `keys` are its settings (no form rows: config/SpeechNotePanel.qml).
 //
-// Option types: "language" and "voice" (lists from the Qt engine), "choice"
-// (from `choices`), "rate" and "pitch" (-1 … 1), "speed" (0.5 … 2), "int",
-// "text", "url", "file" (a path, with `filter`), "command" (a template),
+// Option types: "language" and "voice" (lists from the Qt engine), "rate"
+// and "pitch" (-1 … 1), "speed" (0.5 … 2), "text", "url",
 // "secret" (KWallet entry `entry`, never a setting). `key` is the main.xml
 // entry; `def` its default.
 //
 // `sentences: true` reads one sentence per chunk, so the first sound comes
 // quickly and the next sentences are made while it plays (`ahead` of them).
-// `setup` names the engine's install box on the settings page; until it is
-// installed the widget reads with `fallbackEngine` instead.
+// `setup` names the engine's setup box on the settings page; until it is
+// ready the widget reads with `fallbackEngine` instead.
+// Engines of earlier builds (Kokoro, Flite, Piper, the natural voice, a custom command)
+// are gone: `migratedEngine` maps a saved id to one that exists.
 
 // Marks text for translation (xgettext -kI18N_NOOP); the QML shows it
 // through i18n().
@@ -31,47 +32,11 @@ function I18N_NOOP(text) {
     return text;
 }
 
-// Kokoro v1.0 voices worth offering (the better-rated ones per language).
-var neuralVoices = [
-    {value: "af_heart", text: I18N_NOOP("Heart: American English, woman (recommended)")},
-    {value: "af_bella", text: I18N_NOOP("Bella: American English, woman")},
-    {value: "af_nicole", text: I18N_NOOP("Nicole: American English, woman, soft")},
-    {value: "af_aoede", text: I18N_NOOP("Aoede: American English, woman")},
-    {value: "af_kore", text: I18N_NOOP("Kore: American English, woman")},
-    {value: "af_sarah", text: I18N_NOOP("Sarah: American English, woman")},
-    {value: "am_michael", text: I18N_NOOP("Michael: American English, man")},
-    {value: "am_fenrir", text: I18N_NOOP("Fenrir: American English, man")},
-    {value: "am_puck", text: I18N_NOOP("Puck: American English, man")},
-    {value: "bf_emma", text: I18N_NOOP("Emma: British English, woman")},
-    {value: "bf_isabella", text: I18N_NOOP("Isabella: British English, woman")},
-    {value: "bm_george", text: I18N_NOOP("George: British English, man")},
-    {value: "bm_fable", text: I18N_NOOP("Fable: British English, man")},
-    {value: "ef_dora", text: I18N_NOOP("Dora: Spanish, woman")},
-    {value: "em_alex", text: I18N_NOOP("Alex: Spanish, man")},
-    {value: "ff_siwis", text: I18N_NOOP("Siwis: French, woman")},
-    {value: "if_sara", text: I18N_NOOP("Sara: Italian, woman")},
-    {value: "im_nicola", text: I18N_NOOP("Nicola: Italian, man")},
-    {value: "pf_dora", text: I18N_NOOP("Dora: Brazilian Portuguese, woman")},
-    {value: "pm_alex", text: I18N_NOOP("Alex: Brazilian Portuguese, man")},
-    {value: "hf_alpha", text: I18N_NOOP("Alpha: Hindi, woman")},
-    {value: "hm_omega", text: I18N_NOOP("Omega: Hindi, man")},
-    {value: "jf_alpha", text: I18N_NOOP("Alpha: Japanese, woman")},
-    {value: "zf_xiaoxiao", text: I18N_NOOP("Xiaoxiao: Mandarin Chinese, woman")}
-];
-
 var engines = [
     {id: "speechnote", kind: "speechnote", setup: "speechnote", keys: {"voiceTtsSpeechNoteModel": ""},
      label: I18N_NOOP("Speech Note (any language, recommended)"),
      note: I18N_NOOP("Speech Note, a separate app, reads replies in any language with the voices you download in it, using your graphics card when it can. Until it is set up, the system voice reads."),
      options: []},
-    {id: "neural", kind: "file", setup: "neural", sentences: true, ahead: 2,
-     label: I18N_NOOP("Natural voice (Kokoro, recommended)"),
-     note: I18N_NOOP("A natural-sounding voice that runs on this computer, offline. It needs a one-time install; until then the system voice reads instead."),
-     options: [
-         {key: "voiceTtsNeuralVoice", type: "choice", choices: neuralVoices, label: I18N_NOOP("Voice"), def: "af_heart",
-          help: I18N_NOOP("Which voice reads to you. Each voice speaks its own language best, so pick one in the language of your chats.")},
-         {key: "voiceTtsNeuralSpeed", type: "speed", label: I18N_NOOP("Speed"), def: 1,
-          help: I18N_NOOP("How fast the voice talks; 1× is normal speed.")}]},
     {id: "system", kind: "qt", plugin: "speechd", label: I18N_NOOP("System voices"),
      note: I18N_NOOP("Speech Dispatcher: espeak-ng and any voice installed for it. Nothing to set up, but espeak-ng sounds robotic."),
      options: [
@@ -83,35 +48,6 @@ var engines = [
           help: I18N_NOOP("How fast the voice talks. The middle is normal speed.")},
          {key: "voiceTtsSystemPitch", type: "pitch", label: I18N_NOOP("Pitch"), def: 0,
           help: I18N_NOOP("How high or deep the voice sounds. The middle is its normal pitch.")}]},
-    {id: "kokoro", kind: "qt", plugin: "kokoro", label: I18N_NOOP("Kokoro (KDE speech plugin)"),
-     note: I18N_NOOP("Neural voices from KDE's Kokoro speech plugin, when its own Python packages are installed."),
-     options: [
-         {key: "voiceTtsKokoroLanguage", type: "language", label: I18N_NOOP("Language"), def: "",
-          help: I18N_NOOP("The language of the voices offered below. \"Engine default\" uses your system language.")},
-         {key: "voiceTtsKokoroVoice", type: "voice", label: I18N_NOOP("Voice"), def: "",
-          help: I18N_NOOP("Which voice reads to you. Try a few with \"Say Hello\".")},
-         {key: "voiceTtsKokoroRate", type: "rate", label: I18N_NOOP("Speed"), def: 0,
-          help: I18N_NOOP("How fast the voice talks. The middle is normal speed.")}]},
-    {id: "flite", kind: "qt", plugin: "flite", label: I18N_NOOP("Flite"),
-     note: I18N_NOOP("Small built-in English voices."),
-     options: [
-         {key: "voiceTtsFliteVoice", type: "voice", label: I18N_NOOP("Voice"), def: "",
-          help: I18N_NOOP("Which voice reads to you. Try a few with \"Say Hello\".")},
-         {key: "voiceTtsFliteRate", type: "rate", label: I18N_NOOP("Speed"), def: 0,
-          help: I18N_NOOP("How fast the voice talks. The middle is normal speed.")},
-         {key: "voiceTtsFlitePitch", type: "pitch", label: I18N_NOOP("Pitch"), def: 0,
-          help: I18N_NOOP("How high or deep the voice sounds. The middle is its normal pitch.")}]},
-    {id: "piper", kind: "file", needs: "piper", label: I18N_NOOP("Piper"),
-     note: I18N_NOOP("Fast local neural voices. Pick a downloaded .onnx voice (its .onnx.json must be next to it)."),
-     options: [
-         {key: "voiceTtsPiperModel", type: "file", found: "piper", label: I18N_NOOP("Voice file"), def: "", filter: "*.onnx",
-          placeholder: "~/.local/share/piper/en_US-lessac-medium.onnx",
-          help: I18N_NOOP("A Piper voice is a file you download once (ending in .onnx). Pick one found on this computer, or choose the file yourself.")},
-         {key: "voiceTtsPiperSpeaker", type: "int", label: I18N_NOOP("Speaker number"), def: 0,
-          hint: I18N_NOOP("Only for voices with several speakers."),
-          help: I18N_NOOP("Some voice files hold several people's voices; this picks one of them. Leave at 0 otherwise.")},
-         {key: "voiceTtsPiperSpeed", type: "speed", label: I18N_NOOP("Speed"), def: 1,
-          help: I18N_NOOP("How fast the voice talks; 1× is normal speed.")}]},
     {id: "remote", kind: "file", label: I18N_NOOP("Speech server (OpenAI-compatible)"),
      note: I18N_NOOP("Any server with /audio/speech: Kokoro-FastAPI, openedai-speech, OpenAI…"),
      options: [
@@ -125,16 +61,16 @@ var engines = [
          {key: "voiceTtsRemoteSpeed", type: "speed", label: I18N_NOOP("Speed"), def: 1,
           help: I18N_NOOP("How fast the voice talks; 1× is normal speed.")},
          {type: "secret", entry: "tts-remote", label: I18N_NOOP("API key"), hint: I18N_NOOP("Saved in KWallet. Leave empty for a local server."),
-          help: I18N_NOOP("The password-like code the speech service gives you, so it knows the requests are yours.")}]},
-    {id: "command", kind: "file", label: I18N_NOOP("Custom command"),
-     note: I18N_NOOP("Your own program: it gets the text on standard input and writes a WAV to standard output, or to {output} if the command contains it."),
-     options: [
-         {key: "voiceTtsCommand", type: "command", label: I18N_NOOP("Command"), def: "",
-          placeholder: "espeak-ng --stdin -v en -w {output}",
-          help: I18N_NOOP("For experts: a program of your own that turns text into speech. Leave empty if you don't have one.")}]}
+          help: I18N_NOOP("The password-like code the speech service gives you, so it knows the requests are yours.")}]}
 ];
 
 var defaultEngine = "speechnote";
+
+// The engine a saved id means now: its own when it still exists, else Speech Note.
+function migratedEngine(id) {
+    return engine(String(id || "")) ? String(id) : defaultEngine;
+}
+
 // Reads while the default engine isn't installed; needs no setup.
 var fallbackEngine = "system";
 
