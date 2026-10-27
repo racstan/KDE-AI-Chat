@@ -4,8 +4,11 @@ A finished run is announced by the widget when it is running: it merges the
 run from the chat folder's inbox and shows "<name> is ready" through its own
 notifier, whose click opens the popup at that chat (chat/ScheduleInbox.qml,
 chat/Notifier.qml). When Plasma isn't running, or for a run that failed or
-was skipped, the job itself sends the notification with ``notify-send``
-(no click action: nothing could open the chat then).
+was skipped, the job itself sends the notification (no click action: nothing
+could open the chat then). It goes straight over the session bus
+(org.freedesktop.Notifications.Notify, minidbus) so the reply text never
+appears on a command line; ``notify-send`` is only the fallback, with the
+schedule name and a generic line, never reply text.
 
 Overrides for tests: ``KDEAICHAT_NOTIFY_SEND`` (the program) and
 ``KDEAICHAT_WIDGET_RUNNING`` ("1"/"0" instead of asking D-Bus).
@@ -14,6 +17,8 @@ import json
 import os
 import re
 import subprocess
+
+from kdeaichat import minidbus
 
 APP_NAME = "KDE AI Chat"
 ICON = "dialog-messages"
@@ -44,11 +49,36 @@ def preview(text: str, limit: int = 140) -> str:
     return s[:limit - 1].strip() + "…" if len(s) > limit else s
 
 
-def send(title: str, body: str, error: bool = False) -> bool:
-    """Shows one notification; False if it couldn't be sent (never raises)."""
+def _markup(text: str) -> str:
+    """Notification bodies take a small HTML subset: keep reply text literal."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _notify_dbus(title: str, body: str, error: bool) -> bool:
+    conn = minidbus.Connection()
+    try:
+        hints = {"urgency": ("y", 1 if error else 0)}
+        conn.call("org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify",
+                  "susssasa{sv}i", (APP_NAME, 0, "dialog-error" if error else ICON, title[:200], _markup(body[:500]), [], hints, -1),
+                  timeout=10.0)
+        return True
+    finally:
+        conn.close()
+
+
+def send(title: str, body: str, error: bool = False, fallback_body: str = "") -> bool:
+    """Shows one notification; False if it couldn't be sent (never raises).
+
+    ``fallback_body`` is what ``notify-send`` (whose arguments any local user can
+    read) gets when D-Bus fails: pass a generic line when ``body`` is reply text.
+    """
+    try:
+        return _notify_dbus(title, body, error)
+    except (OSError, ValueError, minidbus.DBusError, KeyError):
+        pass
     argv = [os.environ.get("KDEAICHAT_NOTIFY_SEND") or "notify-send", "--app-name=" + APP_NAME,
             "--icon=" + ("dialog-error" if error else ICON), "--urgency=" + ("normal" if error else "low"),
-            "--", title[:200], body[:500]]
+            "--", title[:200], (fallback_body or body)[:500]]
     try:
         return subprocess.run(argv, capture_output=True, timeout=15).returncode == 0
     except (OSError, subprocess.SubprocessError):

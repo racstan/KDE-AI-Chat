@@ -151,5 +151,6 @@ def run_prompt(schedule: Dict[str, Any], last_success: Optional[str], now: dt.da
     except (OSError, ValueError) as e:
         return failed("error: the reply couldn't be saved", f"The reply couldn't be added to the chat ({e}).")
     if wants and not widget:
-        schedule_notify.send(f"{name} is ready", schedule_notify.preview(result["content"]))
+        schedule_notify.send(f"{name} is ready", schedule_notify.preview(result["content"]),
+                             fallback_body="A new reply is ready")
     return "ok"

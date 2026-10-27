@@ -14,6 +14,7 @@ import json
 import os
 import re
 import stat
+import time
 from typing import Any, Dict
 
 _NAME = re.compile(r"^kdeaichat-payload-[A-Za-z0-9-]{1,80}\.ini$")
@@ -31,6 +32,37 @@ def runtime_dir() -> str:
         return folder
     import pwd
     return "/tmp/runtime-" + pwd.getpwuid(os.getuid()).pw_name
+
+
+def sweep_stale(folder: str, name: "re.Pattern[str]", max_age: float, now: float = 0.0) -> int:
+    """Deletes regular files of ours in ``folder`` whose name matches ``name`` and that
+    were last changed more than ``max_age`` seconds ago (never follows symlinks;
+    anything else is left alone). Returns how many went; never raises."""
+    removed = 0
+    cutoff = (now or time.time()) - max_age
+    try:
+        entries = list(os.scandir(folder))
+    except OSError:
+        return 0
+    for entry in entries:
+        if not name.match(entry.name):
+            continue
+        try:
+            info = entry.stat(follow_symlinks=False)
+            if stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_mtime < cutoff:
+                os.unlink(entry.path)
+                removed += 1
+        except OSError:
+            pass
+    return removed
+
+
+def sweep(folder: str = "", max_age: float = 3600.0, now: float = 0.0) -> int:
+    """Payload files the helper never got to read (it didn't start) go after an hour."""
+    try:
+        return sweep_stale(folder or runtime_dir(), _NAME, max_age, now)
+    except (OSError, KeyError):
+        return 0
 
 
 def read(argument: str, folder: str = "") -> Dict[str, Any]:

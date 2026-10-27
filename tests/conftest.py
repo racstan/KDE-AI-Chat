@@ -87,6 +87,7 @@ def sched_env(tmp_path, monkeypatch, berlin):
     monkeypatch.setenv("KDEAICHAT_NOTIFY_SEND", str(tmp_path / "fake-notify-send"))
     monkeypatch.setenv("KDEAICHAT_BUSCTL", str(tmp_path / "fake-busctl"))
     monkeypatch.setenv("KDEAICHAT_WIDGET_RUNNING", "0")
+    monkeypatch.setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=" + str(tmp_path / "no-bus"))  # never the real session bus
     return env
 
 

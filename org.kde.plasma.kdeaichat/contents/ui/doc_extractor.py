@@ -11,10 +11,31 @@ import urllib.parse
 import tempfile
 import selectors
 import time
+import re
 
 MAX_INPUT_BYTES = 50 * 1024 * 1024
 MAX_TEXT_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
+
+CLIP_PREFIX = "kdeaichat_clip_"
+CLIP_MAX_AGE = 24 * 3600
+
+
+def clip_dir():
+    """Clipboard images go to the private runtime folder; /tmp only when there is none."""
+    folder = os.environ.get("XDG_RUNTIME_DIR") or ""
+    return folder if folder and os.path.isdir(folder) else tempfile.gettempdir()
+
+
+def sweep_stale_clips(folder=None, now=None):
+    """Remove clipboard images older than a day (the widget removes them when sent or dropped)."""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from kdeaichat import private_payload
+        return private_payload.sweep_stale(folder or clip_dir(), re.compile(r"^kdeaichat_clip_.+$"), CLIP_MAX_AGE, now or 0.0)
+    except Exception:
+        return 0
+
 
 def _run_text_command(argv, timeout):
     """Run an extractor with bounded in-memory output and a hard timeout."""
@@ -302,7 +323,7 @@ def handle_clipboard():
         if img_bytes and len(img_bytes) <= MAX_IMAGE_BYTES:
             import tempfile
             suffix = mimetypes.guess_extension(img_mime) or '.png'
-            with tempfile.NamedTemporaryFile(delete=False, prefix="kdeaichat_clip_", suffix=suffix) as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False, dir=clip_dir(), prefix=CLIP_PREFIX, suffix=suffix) as tmp_file:
                 tmp_file.write(img_bytes)
                 temp_path = tmp_file.name
             
@@ -331,10 +352,10 @@ def handle_clipboard():
 def cleanup_temporary_file(path):
     """Remove only files created by the widget's temporary attachment paths."""
     real_path = os.path.realpath(os.path.expanduser(str(path or "")))
-    temp_root = os.path.realpath(tempfile.gettempdir())
+    temp_roots = {os.path.realpath(clip_dir()), os.path.realpath(tempfile.gettempdir())}
     base = os.path.basename(real_path)
     allowed_prefixes = ("kdeaichat_clip_", "kdeaichat_shot_")
-    if not real_path.startswith(temp_root + os.sep) or not base.startswith(allowed_prefixes):
+    if os.path.dirname(real_path) not in temp_roots or not base.startswith(allowed_prefixes):
         return {"status": "error", "message": "Refusing to remove a non-widget temporary file"}
     try:
         os.remove(real_path)
@@ -351,6 +372,7 @@ def main():
         return
 
     arg = sys.argv[1]
+    sweep_stale_clips()
     if arg == '--clipboard':
         handle_clipboard()
     elif arg == '--cleanup' and len(sys.argv) >= 3:
