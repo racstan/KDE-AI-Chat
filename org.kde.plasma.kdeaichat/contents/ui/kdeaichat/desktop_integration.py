@@ -1,0 +1,216 @@
+"""Desktop integration (Settings -> Desktop integration): KRunner and the Dolphin menu.
+
+Both live outside the widget's package, so they are installed only while their switch is on, and removed
+when it is switched off:
+
+  desktop_sync    {krunner, dolphin, prefix, restart_krunner} -> {"type": "desktop_status", ...}
+  desktop_status  {} -> {"type": "desktop_status", "krunner": bool, "dolphin": bool, "prefix": str}
+
+KRunner: ``krunner/dbusplugins/kdeaichat-runner.desktop`` (describes the D-Bus runner) and
+``dbus-1/services/org.kde.kdeaichat.runner.service`` (lets D-Bus start scripts/kdeaichat-runner on demand).
+Dolphin: ``kio/servicemenus/kdeaichat-ask.desktop`` (KDE 6 format, executable) running scripts/kdeaichat-ask.
+All three are under ``$XDG_DATA_HOME`` (default ~/.local/share), so nothing needs root. Every file carries
+the marker ``X-KDEAIChat-Managed=true`` (or ``# X-KDEAIChat-Managed``): only files with it are ever
+replaced or deleted, so a file of the same name that is someone else's is left alone. Writes are atomic.
+The runner's prefix (default "ai") and the switches are kept in ``<data>/kdeaichat/desktop-integration.json``,
+which the runner reads. Folders can be replaced for tests and dev runs: KDEAICHAT_KRUNNER_DIR,
+KDEAICHAT_DBUS_SERVICE_DIR, KDEAICHAT_SERVICEMENU_DIR, KDEAICHAT_DESKTOP_STATE.
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from typing import Any, Dict, List
+
+SERVICE_NAME = "org.kde.kdeaichat.runner"
+RUNNER_FILE = "kdeaichat-runner.desktop"
+SERVICE_FILE = SERVICE_NAME + ".service"
+MENU_FILE = "kdeaichat-ask.desktop"
+MARKER = "X-KDEAIChat-Managed=true"
+# Documents and pictures the widget's attachment code (doc_extractor.py) reads.
+MIME_TYPES = ["text/plain", "text/markdown", "text/csv", "application/pdf", "application/json", "text/x-python",
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "image/png",
+              "image/jpeg", "image/webp", "image/gif", "image/bmp"]
+DEFAULT_PREFIX = "ai"
+
+
+def _data_home() -> str:
+    return os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+
+
+def folders() -> Dict[str, str]:
+    base = _data_home()
+    return {
+        "krunner": os.environ.get("KDEAICHAT_KRUNNER_DIR") or os.path.join(base, "krunner", "dbusplugins"),
+        "service": os.environ.get("KDEAICHAT_DBUS_SERVICE_DIR") or os.path.join(base, "dbus-1", "services"),
+        "menu": os.environ.get("KDEAICHAT_SERVICEMENU_DIR") or os.path.join(base, "kio", "servicemenus"),
+        "state": os.environ.get("KDEAICHAT_DESKTOP_STATE") or os.path.join(base, "kdeaichat", "desktop-integration.json"),
+    }
+
+
+def _scripts_dir() -> str:
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "scripts")
+
+
+def _quote(arg: str, desktop: bool = True) -> str:
+    """One argument of an Exec= line (desktop entry, or D-Bus service file): quoted when it needs it."""
+    if arg and not any(c in arg for c in ' \t\n"\'\\><~|&;$*?#()`%'):
+        return arg
+    out = arg.replace("\\", "\\\\").replace('"', '\\"').replace("`", "\\`").replace("$", "\\$")
+    return '"' + (out.replace("%", "%%") if desktop else out) + '"'
+
+
+def _python() -> str:
+    return sys.executable if os.path.isabs(sys.executable or "") else (shutil.which("python3") or "/usr/bin/python3")
+
+
+def runner_desktop() -> str:
+    return "\n".join([
+        "[Desktop Entry]", "Type=Service", "Name=KDE AI Chat", "Comment=Ask KDE AI Chat a question: type \"ai\" and your question",
+        "Icon=dialog-messages", "X-KDE-ServiceTypes=Plasma/Runner", "X-Plasma-API=DBus",
+        "X-Plasma-DBusRunner-Service=" + SERVICE_NAME, "X-Plasma-DBusRunner-Path=/runner",
+        "X-KDE-PluginInfo-Name=kdeaichat", MARKER, ""])
+
+
+def runner_service() -> str:
+    runner = os.path.join(_scripts_dir(), "kdeaichat-runner")
+    return "\n".join(["[D-BUS Service]", "Name=" + SERVICE_NAME,
+                      "Exec=" + _quote(_python(), False) + " " + _quote(runner, False), "# " + MARKER, ""])
+
+
+def menu_desktop() -> str:
+    ask = os.path.join(_scripts_dir(), "kdeaichat-ask")
+    return "\n".join([
+        "[Desktop Entry]", "Type=Service", "MimeType=" + ";".join(MIME_TYPES) + ";", "Actions=askKdeAiChat",
+        "X-KDE-Priority=TopLevel", "X-KDE-StartupNotify=false", MARKER, "",
+        "[Desktop Action askKdeAiChat]", "Name=Ask KDE AI Chat about this file", "Icon=dialog-messages",
+        "Exec=" + _quote(_python()) + " " + _quote(ask) + " --files %F", ""])
+
+
+def _ours(path: str) -> bool:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return MARKER in f.read(65536)
+    except OSError:
+        return False
+
+
+def _install(path: str, content: str, mode: int) -> None:
+    """Atomically writes a file of ours; refuses to replace one that isn't."""
+    if os.path.lexists(path) and not _ours(path):
+        raise ValueError("%s already exists and is not from KDE AI Chat" % path)
+    folder = os.path.dirname(path)
+    os.makedirs(folder, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".kdeaichat-", dir=folder)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _remove(path: str) -> None:
+    if os.path.lexists(path) and _ours(path):
+        os.unlink(path)
+
+
+def _files(kind: str) -> List[str]:
+    f = folders()
+    if kind == "krunner":
+        return [os.path.join(f["krunner"], RUNNER_FILE), os.path.join(f["service"], SERVICE_FILE)]
+    return [os.path.join(f["menu"], MENU_FILE)]
+
+
+def is_installed(kind: str) -> bool:
+    return all(_ours(p) for p in _files(kind))
+
+
+def clean_prefix(value: Any) -> str:
+    value = value.strip() if isinstance(value, str) else ""
+    return value if value and len(value) <= 24 and not any(c.isspace() or c in "\"'\\" for c in value) else DEFAULT_PREFIX
+
+
+def _write_state(krunner: bool, dolphin: bool, prefix: str) -> None:
+    path = folders()["state"]
+    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+    data = json.dumps({"krunner": krunner, "dolphin": dolphin, "prefix": prefix})
+    fd, tmp = tempfile.mkstemp(prefix=".desktop-", dir=os.path.dirname(path))
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(data)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+
+
+def _restart_krunner() -> None:
+    """So KRunner notices the runner at once (it keeps running between uses). Best effort."""
+    tool = shutil.which("kquitapp6")
+    if tool:
+        try:
+            subprocess.run([tool, "krunner"], capture_output=True, timeout=10, check=False)
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+
+def sync(krunner: bool, dolphin: bool, prefix: str = DEFAULT_PREFIX, restart_krunner: bool = False) -> Dict[str, Any]:
+    """Makes the files match the switches. Returns the status, with "errors" (plain words) for what failed."""
+    prefix = clean_prefix(prefix)
+    errors: List[str] = []
+    was = is_installed("krunner")
+    f = folders()
+    try:
+        if krunner:
+            _install(os.path.join(f["krunner"], RUNNER_FILE), runner_desktop(), 0o644)
+            _install(os.path.join(f["service"], SERVICE_FILE), runner_service(), 0o644)
+        else:
+            for p in _files("krunner"):
+                _remove(p)
+    except (OSError, ValueError) as error:
+        errors.append("KRunner: %s" % error)
+    try:
+        if dolphin:
+            _install(os.path.join(f["menu"], MENU_FILE), menu_desktop(), 0o755)  # Dolphin needs the executable bit
+        else:
+            _remove(os.path.join(f["menu"], MENU_FILE))
+    except (OSError, ValueError) as error:
+        errors.append("Dolphin: %s" % error)
+    try:
+        if krunner or dolphin or os.path.exists(f["state"]):
+            _write_state(krunner and is_installed("krunner"), dolphin and is_installed("dolphin"), prefix)
+    except OSError as error:
+        errors.append("settings file: %s" % error)
+    if restart_krunner and was != is_installed("krunner"):
+        _restart_krunner()
+    return status(prefix, errors)
+
+
+def status(prefix: str = "", errors: Any = None) -> Dict[str, Any]:
+    if not prefix:
+        try:
+            with open(folders()["state"], encoding="utf-8") as fh:
+                prefix = json.load(fh).get("prefix", DEFAULT_PREFIX)
+        except (OSError, ValueError, AttributeError):
+            prefix = DEFAULT_PREFIX
+    return {"type": "desktop_status", "krunner": is_installed("krunner"), "dolphin": is_installed("dolphin"),
+            "prefix": clean_prefix(prefix), "errors": list(errors or [])}
+
+
+def cmd_desktop_sync(payload: Dict[str, Any]) -> None:
+    print(json.dumps(sync(payload.get("krunner") is True, payload.get("dolphin") is True, payload.get("prefix", DEFAULT_PREFIX),
+                          payload.get("restart_krunner") is True)), flush=True)
+
+
+def cmd_desktop_status(payload: Dict[str, Any]) -> None:
+    print(json.dumps(status()), flush=True)
+
+
+COMMANDS = {"desktop_sync": cmd_desktop_sync, "desktop_status": cmd_desktop_status}

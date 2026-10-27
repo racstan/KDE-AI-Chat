@@ -471,6 +471,10 @@
     <entry name="sttIdleMinutes" type="Int"><default>5</default><min>1</min><max>120</max></entry>
     <!-- Set once the old voice* dictation settings were copied into the stt* ones. -->
     <entry name="sttSettingsMigrated" type="Bool"><default>false</default></entry>
+    <!-- Settings -> Desktop integration: files outside the widget (KRunner, Dolphin), installed only while on. -->
+    <entry name="krunnerEnabled" type="Bool"><default>false</default></entry>
+    <entry name="krunnerPrefix" type="String"><default>ai</default></entry>
+    <entry name="dolphinMenuEnabled" type="Bool"><default>false</default></entry>
     <entry name="requestTimeout" type="Int">
       <default>60</default>
     </entry>

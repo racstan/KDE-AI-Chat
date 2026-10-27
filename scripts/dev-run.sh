@@ -36,6 +36,10 @@ export XDG_CACHE_HOME="$SANDBOX/cache"
 # systemctl is a no-op: the real user manager is never told about them.
 export KDEAICHAT_UNIT_DIR="$SANDBOX/units"
 export KDEAICHAT_SYSTEMCTL=true
+# The ask inbox (KRunner, Dolphin, kdeaichat-ask) and the KRunner/Dolphin/D-Bus files stay in the sandbox too.
+export KDEAICHAT_ASK_DIR="$SANDBOX/ask"
+export KDEAICHAT_KRUNNER_DIR="$SANDBOX/desktop/krunner" KDEAICHAT_DBUS_SERVICE_DIR="$SANDBOX/desktop/dbus"
+export KDEAICHAT_SERVICEMENU_DIR="$SANDBOX/desktop/servicemenus" KDEAICHAT_DESKTOP_STATE="$SANDBOX/desktop/state.json"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 

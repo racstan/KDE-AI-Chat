@@ -34,7 +34,7 @@ UI = os.path.join(ROOT, "org.kde.plasma.kdeaichat", "contents", "ui")
 # The settings pages and every form they are built from, and the per-chat settings.
 FILES = [
     "ConfigConnection.qml", "ConfigChat.qml", "ConfigPersonality.qml", "ConfigMemory.qml",
-    "ConfigSchedules.qml", "ConfigVoice.qml", "ConfigAppearance.qml",
+    "ConfigSchedules.qml", "ConfigVoice.qml", "ConfigAppearance.qml", "ConfigDesktop.qml",
     "config/ModeChooser.qml", "config/RequestOptions.qml", "config/ProviderEditor.qml",
     "config/OpenCodeSettings.qml", "config/PiSettings.qml", "config/ImageProviderEditor.qml",
     "config/ScheduleEditor.qml", "config/ScheduleOptions.qml", "config/DictationSettings.qml",

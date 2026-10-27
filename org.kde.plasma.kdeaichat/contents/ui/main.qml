@@ -211,11 +211,10 @@ PlasmoidItem {
     // The chat list and its persistence (chat/Sessions.qml), chat names
     // (chat/SessionTitles.qml), sending and the queue (chat/SendController.qml),
     // direct-mode requests (chat/DirectRequest.qml), backend events
-    // (chat/ReplyEvents.qml), message edits and agent cards (chat/MessageEdits.qml),
-    // view scrolling and labels (chat/ChatNavigation.qml), attachments
-    // (chat/Attachments.qml), one-off helper commands (chat/HelperCommands.qml)
-    // and scheduled runs arriving from the chat folder (chat/ScheduleInbox.qml). The functions below
-    // are the root's API for the chat UI (tests/qml/FakeChat.qml mirrors it).
+    // (chat/ReplyEvents.qml), message edits and agent cards (chat/MessageEdits.qml), view scrolling and labels
+    // (chat/ChatNavigation.qml), attachments (chat/Attachments.qml), one-off helper commands (chat/HelperCommands.qml),
+    // scheduled runs arriving from the chat folder (chat/ScheduleInbox.qml) and questions from KRunner, Dolphin and
+    // kdeaichat-ask (chat/AskInbox.qml). The functions below are the root's API for the chat UI (tests/qml/FakeChat.qml mirrors it).
     Chat.Sessions {
         id: sessionManager
         chat: root
@@ -261,6 +260,7 @@ PlasmoidItem {
     Chat.HelperCommands { id: helperCommands; chat: root }
 
     Chat.ScheduleInbox { chat: root; notifierRef: notifier; directory: storage.chatDirectory; ready: storage.chatStore.ready; runHelper: storage.runHelper; chatStore: storage.chatStore }
+    Chat.AskInbox { chat: root; runHelper: storage.runHelper; ready: storage.chatStore.ready; config: root.plasmoid.configuration }
 
     Chat.ImageStore { id: images; chat: root }   // images of replies, kept as files in the chat's folder
     readonly property var imageStore: images
