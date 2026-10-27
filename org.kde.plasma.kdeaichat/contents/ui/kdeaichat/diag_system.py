@@ -12,7 +12,7 @@ import shlex
 import shutil
 from typing import Any, Dict, List
 
-from kdeaichat import schedule_store, schedule_units, stt_engines, stt_parakeet, stt_record, stt_setup
+from kdeaichat import diag_speechnote, schedule_store, schedule_units, stt_engines, stt_parakeet, stt_record, stt_setup
 from kdeaichat.diag_agents import row, valid_http_url
 from kdeaichat.schedule_calendar import timer_name
 from kdeaichat.schedule_model import normalize_schedule
@@ -37,6 +37,8 @@ ENGINE_NAMES = {"parakeet": "Parakeet", "faster-whisper": "faster-whisper", "whi
 
 def check_dictation(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Dictation (only called when sttEnabled): recorder, engine, model."""
+    if str(payload.get("sttEngine") or "") == "speechnote":   # Speech Note listens with its own microphone
+        return diag_speechnote.check("stt")
     try:
         settings = from_payload(payload)
     except SettingsError as e:
@@ -83,6 +85,8 @@ def check_dictation(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
 def check_read_aloud(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Read aloud (only called when voiceTtsEnabled): what the chosen engine needs."""
     engine = str(payload.get("voiceTtsEngine") or "neural")
+    if engine == "speechnote":
+        return diag_speechnote.check("tts")
     if engine == "neural":
         from kdeaichat import tts_neural
         if not (tts_neural.packages_installed() and tts_neural.model_files()):

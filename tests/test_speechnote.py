@@ -274,6 +274,16 @@ def test_keepalive_reports_finished_task(fake, capsys):
     assert run("speechnote_keepalive", {"task": 2}, capsys)["alive"] is False
 
 
+def test_keepalive_service_only_when_running(fake, capsys):
+    fake.set(present=False)
+    assert run("speechnote_keepalive_service", capsys=capsys) == {"type": "speechnote_service_kept", "running": False}
+    assert fake.launched() is None, "never starts the service"
+    assert not any(c.startswith("KeepAliveService") for c in fake.calls())
+    fake.set(present=True, returns={"KeepAliveService": 1})
+    assert run("speechnote_keepalive_service", capsys=capsys) == {"type": "speechnote_service_kept", "running": True}
+    assert any(c.startswith("KeepAliveService") for c in fake.calls())
+
+
 def test_listen_stop_timeout(fake, capsys):
     fake.set(present=True, returns={"SttStopListen": 0}, signals=[])
     assert run("speechnote_listen_stop", {"task": 7, "timeout": 1}, capsys)["code"] == "timeout"

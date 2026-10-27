@@ -12,6 +12,8 @@ spoken text is never logged.
                           default_stt_model, default_tts_model, default_stt_lang, default_tts_lang}
                           Reads only, unless start is true (then it starts the service first and may report an error).
   speechnote_start        -> {"type": "speechnote_started", state, started: bool}; waits for State 3 (idle)
+  speechnote_keepalive_service -> {"type": "speechnote_service_kept", running}; postpones the service's idle exit
+                          (KeepAliveService); does nothing, and never starts it, when it is not running.
   speechnote_listen_start {model?, lang?} -> {"type": "speechnote_listening", task}; starts the service if needed and
                           uses the microphone. model is a model id from stt_models (it goes where the D-Bus API takes
                           a language or model id); empty means Speech Note's default.
@@ -131,6 +133,14 @@ def start(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {"type": "speechnote_started", "state": bus.ensure_ready(), "started": not was_running}
 
 
+def keepalive_service(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Postpone the service's idle exit. Never starts it: when it is not running nothing happens."""
+    if bus.state() is None:
+        return {"type": "speechnote_service_kept", "running": False}
+    bus.call("KeepAliveService")
+    return {"type": "speechnote_service_kept", "running": True}
+
+
 def listen_start(payload: Dict[str, Any]) -> Dict[str, Any]:
     model = _model(payload)
     bus.ensure_ready()
@@ -226,6 +236,7 @@ def wait_spoken(payload: Dict[str, Any]) -> Dict[str, Any]:
 COMMANDS = {
     "speechnote_status": _command(status),
     "speechnote_start": _command(start),
+    "speechnote_keepalive_service": _command(keepalive_service),
     "speechnote_listen_start": _command(listen_start),
     "speechnote_keepalive": _command(keepalive),
     "speechnote_listen_stop": _command(listen_stop),

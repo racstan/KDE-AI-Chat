@@ -47,13 +47,14 @@ def home(tmp_path, monkeypatch):
 
 def test_names_match_the_settings_and_the_qml_defaults():
     assert stt_parakeet.NAME == stt_settings.PARAKEET_DEFAULT
+    # The helper falls back to Parakeet when a payload names no engine; the widget defaults to Speech Note.
     assert stt_settings.ENGINES[0] == stt_settings.DEFAULT_ENGINE == "parakeet"
     with open(os.path.join(UI, "voice", "SttEngines.js")) as f:
         js = f.read()
-    assert 'var defaultEngine = "parakeet";' in js and 'var parakeetDefault = "%s";' % stt_parakeet.NAME in js
+    assert 'var defaultEngine = "speechnote";' in js and 'var localDefault = "parakeet";' in js and 'var parakeetDefault = "%s";' % stt_parakeet.NAME in js
     with open(os.path.join(UI, "..", "config", "main.xml")) as f:
         xml = f.read()
-    assert '<entry name="sttEngine" type="String"><default>parakeet</default></entry>' in xml
+    assert '<entry name="sttEngine" type="String"><default>speechnote</default></entry>' in xml
     assert '<entry name="sttParakeetModel" type="String"><default>%s</default></entry>' % stt_parakeet.NAME in xml
     assert stt_parakeet.MB == 731 and stt_parakeet.REVISION in stt_parakeet.URL
 
