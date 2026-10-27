@@ -1,4 +1,5 @@
-// The grip in a corner of the popup that resizes it.
+// The corner of the popup that resizes it. Nothing is drawn there (owner's
+// choice); the pointer turns into the resize arrow on it.
 //
 // The mouse is measured in screen coordinates, so the handle moving with the
 // popup's edge doesn't feed back into the size (problem 5). While dragging,
@@ -94,32 +95,4 @@ MouseArea {
     }
     onReleased: handle.commit()
     onCanceled: handle.commit()
-
-    Canvas {
-        id: grip
-
-        anchors.fill: parent
-        anchors.margins: Kirigami.Units.smallSpacing
-        transform: Scale {
-            origin.x: grip.width / 2
-            origin.y: grip.height / 2
-            xScale: handle.growsLeft ? -1 : 1
-            yScale: handle.growsUp ? -1 : 1
-        }
-        property color strokeColor: Kirigami.Theme.textColor
-        onStrokeColorChanged: requestPaint()
-        onPaint: {
-            var ctx = getContext("2d");
-            ctx.reset();
-            ctx.strokeStyle = grip.strokeColor;
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.5;
-            ctx.beginPath();
-            for (var d = 4; d <= 12; d += 4) {
-                ctx.moveTo(width - d, height);
-                ctx.lineTo(width, height - d);
-            }
-            ctx.stroke();
-        }
-    }
 }
