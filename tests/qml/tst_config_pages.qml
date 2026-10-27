@@ -239,6 +239,73 @@ Item {
             compare(named("userAvatarStatus").text, "None" );
         }
 
+        // Animated and video avatars: checked by the helper like the panel icon's file.
+        function test_personality_animated_and_video_avatar() {
+            var fixtures = decodeURIComponent(String(Qt.resolvedUrl("../fixtures/")).replace(/^file:\/\//, ""));
+            var gif = fixtures + "panel-icon.gif";
+            var clip = fixtures + "avatar-clip.webm";
+            var replies = {};
+            replies[gif] = {"ok": true, "exists": true, "size": 300 * 1024, "kind": "animated"};
+            replies[clip] = {"ok": true, "exists": true, "size": 4100, "kind": "video"};
+            replies["/home/me/huge.gif"] = {"ok": true, "exists": true, "size": 25 * 1024 * 1024, "kind": "animated"};
+            replies["/home/me/big.webm"] = {"ok": true, "exists": true, "size": 8 * 1024 * 1024, "kind": "video"};
+            var calls = [];
+            open("ConfigPersonality.qml", {"cfg_userName": "", "cfg_userAbout": "", "cfg_userTone": "", "cfg_userLanguage": "",
+                                            "cfg_userNotes": "", "cfg_aiName": "", "cfg_aiPersonality": "", "cfg_aiPersonalityCustom": "",
+                                            "cfg_aiAvatar": "", "cfg_userAvatar": "", "cfg_enableSystemPrompt": false, "cfg_systemPrompt": "",
+                                            "runHelper": function(command, payload, onDone) {
+                                                calls.push(command + " " + payload.path);
+                                                onDone(JSON.stringify(replies[payload.path] || {"ok": false, "error": "invalid path"}), 0, "");
+                                            }});
+            var named = function(name) { return find(page, function(item) { return item.objectName === name; }); };
+            var picker = named("avatarButton").parent;
+            picker.menu.open();
+            picker.videoAvailable = true;
+            wait(50);
+            verify(picker.videoItem.visible, "video offered when QtMultimedia is there");
+            picker.videoAvailable = false;
+            wait(50);
+            verify(!picker.videoItem.visible, "no video entry without QtMultimedia");
+            picker.videoAvailable = true;
+            picker.menu.close();
+
+            picker.setMedia("file://" + gif, "animated");
+            compare(page.cfg_aiAvatar, gif);
+            compare(picker.error, "");
+            compare(calls.join(","), "panel_icon_check " + gif);
+            compare(named("avatarStatus").text, "panel-icon.gif");
+            wait(200);
+            verify(find(picker, function(item) { return item.objectName === "avatarAnimation"; }).visible, "an AnimatedImage previews it");
+            shot("config-personality-animated-avatar");
+
+            picker.setMedia("file://" + gif, "video");
+            compare(page.cfg_aiAvatar, gif, "an image is not a video: unchanged");
+            verify(picker.error !== "");
+            picker.setMedia("file:///home/me/huge.gif", "animated");
+            compare(page.cfg_aiAvatar, gif, "over 20 MB is refused");
+            verify(/25\.0 MB/.test(picker.error), picker.error);
+            picker.setMedia("file:///home/me/gone.gif", "animated");
+            compare(page.cfg_aiAvatar, gif);
+            compare(picker.error, "The file can't be read.");
+            picker.setMedia("file:///home/me/../a.gif", "animated");
+            compare(picker.error, "This file is not an animated image.", "unsafe path refused");
+
+            picker.setMedia("file:///home/me/big.webm", "video");
+            compare(page.cfg_aiAvatar, "/home/me/big.webm");
+            verify(/8\.0 MB/.test(picker.warning), "a warning, not a refusal");
+            compare(named("avatarStatus").text, picker.warning);
+
+            // The video is yours too, with its own picker.
+            var mine = named("userAvatarButton").parent;
+            mine.setMedia("file://" + clip, "video");
+            compare(page.cfg_userAvatar, clip);
+            compare(page.cfg_aiAvatar, "/home/me/big.webm", "the AI's avatar is untouched");
+            wait(300);
+            compare(named("userAvatarStatus").text, "avatar-clip.webm");
+            verify(named("userAvatarPreview").valid, "the video (or its fallback icon) shows");
+            shot("config-personality-video-avatar");
+        }
+
         function test_personality_page_empty() {
             open("ConfigPersonality.qml", {"cfg_userName": "", "cfg_userAbout": "", "cfg_userTone": "", "cfg_userLanguage": "",
                                             "cfg_userNotes": "", "cfg_aiName": "", "cfg_aiPersonality": "", "cfg_aiPersonalityCustom": "",

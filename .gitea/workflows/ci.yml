@@ -233,6 +233,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PanelIcon.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PanelIcon.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PanelVideo.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/AvatarView.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/config/SettingHelp.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/config/PanelIconSettings.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/config/ChatLookSettings.qml",

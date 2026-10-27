@@ -36,6 +36,8 @@ var PERSONALITIES = {
 var PERSONALITY_IDS = ["", "friendly", "professional", "witty", "mentor", "concise", "custom"];
 
 var IMAGE_EXT = /\.(png|jpe?g|gif|webp|svgz?|bmp)$/i;
+// Same list as VIDEO_EXTENSIONS in PanelIcon.js (JS modules can't import).
+var VIDEO_EXT = /\.(mp4|webm|mkv|mov|m4v|ogv)$/i;
 
 // One field as safe, bounded text: no control characters (newlines kept when
 // `multiLine`), trimmed, cut at `max` characters with "…".
@@ -72,16 +74,28 @@ function isImagePath(value) {
     return IMAGE_EXT.test(v);
 }
 
-// An avatar setting as {kind: "" | "icon" | "image", source}. An image is a
-// file:// URL; an icon is a theme icon name. Anything else is no avatar.
+// True for an absolute path (or file:// URL) to a video file, without "..".
+function isVideoPath(value) {
+    var v = String(value || "").trim();
+    if (v.indexOf("file://") === 0)
+        v = v.substring(7);
+    if (v.charAt(0) !== "/" || /[\u0000-\u001f]/.test(v) || v.split("/").indexOf("..") >= 0)
+        return false;
+    return VIDEO_EXT.test(v);
+}
+
+// An avatar setting as {kind: "" | "icon" | "image" | "video", source}. An
+// image (still or animated: AvatarView tells them apart by extension) or a
+// video is a file:// URL; an icon is a theme icon name. Else no avatar.
 function _avatarOf(value) {
     var v = String(value || "").trim();
     if (!v || v.length > LIMITS.aiAvatar)
         return {"kind": "", "source": ""};
     if (v.charAt(0) === "/" || v.indexOf("file://") === 0) {
-        if (!isImagePath(v))
+        var video = isVideoPath(v);
+        if (!video && !isImagePath(v))
             return {"kind": "", "source": ""};
-        return {"kind": "image", "source": v.indexOf("file://") === 0 ? v : "file://" + v};
+        return {"kind": video ? "video" : "image", "source": v.indexOf("file://") === 0 ? v : "file://" + v};
     }
     return /^[A-Za-z0-9._+-]+$/.test(v) ? {"kind": "icon", "source": v} : {"kind": "", "source": ""};
 }
