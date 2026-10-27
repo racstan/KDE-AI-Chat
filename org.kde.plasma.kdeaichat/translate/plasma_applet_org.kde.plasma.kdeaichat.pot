@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 19:03+0530\n"
+"POT-Creation-Date: 2026-10-27 19:05+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -66,7 +66,7 @@ msgstr ""
 
 #: contents/config/config.qml:54
 #, kde-format
-msgid "About"
+msgid "Support"
 msgstr ""
 
 #: contents/ui/chat/AttachmentChips.qml:34
@@ -3118,100 +3118,39 @@ msgstr ""
 msgid "No model matches."
 msgstr ""
 
-#: contents/ui/ConfigAbout.qml:31
-#, kde-format
-msgid "KDE AI Chat"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:36
-#, kde-format
-msgid "Version:"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:45
-#, kde-format
-msgid ""
-"A chat with AI models (online services or ones on your computer, OpenCode "
-"and Pi agents) in a Plasma widget."
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:50
-#, kde-format
-msgid "License:"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:51
-#, kde-format
-msgid "GPL-3.0-or-later"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:56
-#, kde-format
-msgid "Author:"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:62
-#, kde-format
-msgid "Source code:"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:63
-#, kde-format
-msgid "Open the project page"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:71
-#, kde-format
-msgid ""
-"The code, the issue tracker and the releases are on GitHub; this opens the "
-"page in your web browser."
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:76
-#, kde-format
-msgid "Credits:"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:81 contents/ui/config/SpeechNotePanel.qml:166
-#, kde-format
-msgid ""
-"Speech, models and GPU support by <a href=\"%1\">Speech Note</a>, © Michał "
-"Kosciesza, MPL-2.0"
-msgstr ""
-
-#: contents/ui/ConfigAbout.qml:87
+#: contents/ui/ConfigSupport.qml:29
 #, kde-format
 msgid "Support the developer"
 msgstr ""
 
-#: contents/ui/ConfigAbout.qml:92
+#: contents/ui/ConfigSupport.qml:34
 #, kde-format
 msgid "Like it?"
 msgstr ""
 
-#: contents/ui/ConfigAbout.qml:93
+#: contents/ui/ConfigSupport.qml:35
 #, kde-format
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: contents/ui/ConfigAbout.qml:102
+#: contents/ui/ConfigSupport.qml:44
 #, kde-format
 msgid ""
 "KDE AI Chat is free. If it helps you, you can thank the developer with a "
 "small gift; this opens buymeacoffee.com in your web browser."
 msgstr ""
 
-#: contents/ui/ConfigAbout.qml:107
+#: contents/ui/ConfigSupport.qml:49
 #, kde-format
 msgid "Terms of use:"
 msgstr ""
 
-#: contents/ui/ConfigAbout.qml:108
+#: contents/ui/ConfigSupport.qml:50
 #, kde-format
 msgid "Read the terms"
 msgstr ""
 
-#: contents/ui/ConfigAbout.qml:117
+#: contents/ui/ConfigSupport.qml:59
 #, kde-format
 msgid ""
 "In short: the widget comes without warranty and collects nothing itself. "
@@ -3219,6 +3158,30 @@ msgid ""
 "responsible for your keys, for the costs on your accounts (scheduled prompts "
 "run by themselves) and for how you use the answers. Opens the full terms in "
 "your web browser."
+msgstr ""
+
+#: contents/ui/ConfigSupport.qml:64
+#, kde-format
+msgid "Credits"
+msgstr ""
+
+#: contents/ui/ConfigSupport.qml:69 contents/ui/config/SpeechNotePanel.qml:107
+#, kde-format
+msgid "Voice:"
+msgstr ""
+
+#: contents/ui/ConfigSupport.qml:74 contents/ui/config/SpeechNotePanel.qml:166
+#, kde-format
+msgid ""
+"Speech, models and GPU support by <a href=\"%1\">Speech Note</a>, © Michał "
+"Kosciesza, MPL-2.0"
+msgstr ""
+
+#: contents/ui/ConfigSupport.qml:79
+#, kde-format
+msgid ""
+"The name, version, author, license and website are on the About page of "
+"these settings."
 msgstr ""
 
 #: contents/ui/ConfigAppearance.qml:65
@@ -7075,11 +7038,6 @@ msgstr ""
 #: contents/ui/config/SpeechNotePanel.qml:107
 #, kde-format
 msgid "Speech model:"
-msgstr ""
-
-#: contents/ui/config/SpeechNotePanel.qml:107
-#, kde-format
-msgid "Voice:"
 msgstr ""
 
 #: contents/ui/config/SpeechNotePanel.qml:111

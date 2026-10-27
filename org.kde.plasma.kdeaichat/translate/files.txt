@@ -71,7 +71,7 @@ contents/ui/chat/UndoNotice.qml
 contents/ui/chat/WorkspaceBar.qml
 contents/ui/components/ModelPicker.qml
 contents/ui/components/VariantPicker.qml
-contents/ui/ConfigAbout.qml
+contents/ui/ConfigSupport.qml
 contents/ui/ConfigAppearance.qml
 contents/ui/ConfigChat.qml
 contents/ui/ConfigConnection.qml

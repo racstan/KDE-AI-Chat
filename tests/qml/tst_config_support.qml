@@ -1,4 +1,4 @@
-// Settings → About (ConfigAbout.qml): name, version, description, license,
+// Settings → About (ConfigSupport.qml): name, version, description, license,
 // author, source link and credits, and the "Buy Me a Coffee" and "Read the
 // terms" buttons (moved here from Appearance). Links open through the page's
 // openUrl, which the test replaces: no browser is started.
@@ -25,13 +25,13 @@ Item {
 
     HarnessTestCase {
         id: testCase
-        name: "ConfigAbout"
+        name: "ConfigSupport"
 
         readonly property url uiDir: Qt.resolvedUrl("../../org.kde.plasma.kdeaichat/contents/ui/")
         property var page: null
 
         function open(props) {
-            var component = Qt.createComponent(uiDir + "ConfigAbout.qml");
+            var component = Qt.createComponent(uiDir + "ConfigSupport.qml");
             verify(component.status === Component.Ready, component.errorString());
             page = component.createObject(root, Object.assign({
                 "width": root.width, "height": root.height,
@@ -48,29 +48,15 @@ Item {
             wait(200);
         }
 
-        function test_facts() {
-            open({"version": "1.4.0"});
-            compare(findChild(page, "aboutVersion").text, "1.4.0");
-            verify(findChild(page, "aboutDescription").text.length > 20);
-            compare(findChild(page, "aboutLicense").text, "GPL-3.0-or-later");
-            compare(findChild(page, "aboutAuthor").text, "Rachit Asthana");
+        function test_no_repeat_of_plasmas_about_page() {
+            open();
+            ["aboutVersion", "aboutDescription", "aboutLicense", "aboutAuthor", "sourceButton"].forEach(function(name) {
+                compare(findChild(page, name), null, name + " belongs to Plasma's own About page");
+            });
             var credits = findChild(page, "aboutCredits").text;
             verify(credits.indexOf("Speech Note") >= 0 && credits.indexOf("Michał Kosciesza") >= 0 && credits.indexOf("MPL-2.0") >= 0, credits);
             wait(300);
-            screenshot(page, "config-about");
-        }
-
-        function test_version_without_plasma() {
-            open();
-            compare(findChild(page, "aboutVersion").text, "dev", "no plasmoid: a plain placeholder");
-        }
-
-        function test_source_link() {
-            open();
-            var button = findChild(page, "sourceButton");
-            verify(button !== null);
-            button.clicked();
-            compare(root.opened.join(","), "https://github.com/racstan/KDE-AI-Chat");
+            screenshot(page, "config-support");
         }
 
         function test_donate_link() {

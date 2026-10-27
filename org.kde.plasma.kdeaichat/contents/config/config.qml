@@ -51,8 +51,8 @@ ConfigModel {
         source: "ConfigStorage.qml"
     }
     ConfigCategory {
-        name: i18n("About")
-        icon: "help-about"
+        name: i18n("Support")
+        icon: "emblem-favorite"
         source: "ConfigAbout.qml"
     }
 }
