@@ -21,7 +21,7 @@ def env(tmp_path, monkeypatch):
 
 
 def test_marshalling_round_trip():
-    sig = "sa(sssuda{sv})a{sv}vgb"
+    sig = "sa(sssida{sv})a{sv}vgb"
     body = ("é", [("id", "text", "icon", 100, 1.0, {"subtext": ("s", "hello"), "n": ("u", 7)})], {"k": ("b", True)},
             ("a(ss)", [("a", "b")]), "a{sv}", True)
     data = minidbus.Message(minidbus.METHOD_RETURN, 0, 5, {minidbus.REPLY_SERIAL: 3}, sig, body).encode()
@@ -94,7 +94,7 @@ def test_round_trip_over_the_session_bus(env):
                 break
             threading.Event().wait(0.1)
         reply = client.call(name, "/runner", "org.kde.krunner1", "Match", "s", ("ai what time is it",))
-        assert reply.sig == "a(sssuda{sv})"
+        assert reply.sig == "a(sssida{sv})"
         (mid, title, icon, kind, relevance, props), = reply.body[0]
         assert (mid, title, kind) == ("ask:what time is it", "Ask KDE AI Chat: what time is it", 100)
         assert dict(props)["subtext"][0] == "s"

@@ -5,8 +5,9 @@ KRunner talks to "D-Bus runners" (the interface ``org.kde.krunner1``) described 
 service is started on demand by D-Bus (an activation file in ``~/.local/share/dbus-1/services/``) and exits
 when nobody asked for a minute. Methods:
 
-  Match(query)    -> a(sssuda{sv})  one match "Ask KDE AI Chat: <question>" when the query starts with the
+  Match(query)    -> a(sssida{sv})  one match "Ask KDE AI Chat: <question>" when the query starts with the
                                     prefix (default "ai"), nothing otherwise
+                                    (the category is a signed int32 "i": KRunner drops replies typed "u")
   Actions()       -> a(sss)         one extra action: ask in a new chat
   Run(match, action)               leaves the question in the ask inbox (ask_inbox.py); the widget opens
   Teardown()                       nothing to do
@@ -36,7 +37,7 @@ INTROSPECTION = """<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Intro
  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
  <interface name="org.kde.krunner1">
-  <method name="Match"><arg name="query" type="s" direction="in"/><arg name="matches" type="a(sssuda{sv})" direction="out"/></method>
+  <method name="Match"><arg name="query" type="s" direction="in"/><arg name="matches" type="a(sssida{sv})" direction="out"/></method>
   <method name="Actions"><arg name="matches" type="a(sss)" direction="out"/></method>
   <method name="Run"><arg name="matchId" type="s" direction="in"/><arg name="actionId" type="s" direction="in"/></method>
   <method name="Teardown"/>
@@ -102,7 +103,7 @@ def _handle(conn: minidbus.Connection, call: minidbus.Message) -> None:
     elif iface == "org.freedesktop.DBus.Introspectable" and member == "Introspect":
         conn.reply(call, "s", (INTROSPECTION,))
     elif call.path == PATH and iface == INTERFACE and member == "Match" and call.body:
-        conn.reply(call, "a(sssuda{sv})", (match(str(call.body[0]), read_prefix()),))
+        conn.reply(call, "a(sssida{sv})", (match(str(call.body[0]), read_prefix()),))
     elif call.path == PATH and iface == INTERFACE and member == "Actions":
         conn.reply(call, "a(sss)", (actions(),))
     elif call.path == PATH and iface == INTERFACE and member == "Run" and len(call.body) >= 2:
