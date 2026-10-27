@@ -169,5 +169,16 @@ Item {
                 checkView(edges[i], "chat-info");
             verify(grip.z > dialog.z, "the grip stays above the panel");
         }
+
+        // A popup above a panel in the bottom right corner of a 1920x1080 screen
+        // grows up and left, so the grip goes top left; at the bottom left, up and right.
+        function test_5_the_grip_goes_where_the_popup_can_grow() {
+            compare(grip.growsTowardsLow(1280, 1920, 0, 1920), true, "right-hand popup grows left");
+            compare(grip.growsTowardsLow(0, 640, 0, 1920), false, "left-hand popup grows right");
+            compare(grip.growsTowardsLow(300, 940, 0, 1920), false, "nearer the left edge: right");
+            compare(grip.growsTowardsLow(1000, 1920, 0, 1920), true, "touching the right edge: left");
+            compare(grip.growsTowardsLow(300, 1060, 0, 1080), true, "a tall popup above the bottom panel grows up");
+            compare(grip.growsTowardsLow(1920 + 1280, 1920 + 1920, 1920, 3840), true, "second screen");
+        }
     }
 }
