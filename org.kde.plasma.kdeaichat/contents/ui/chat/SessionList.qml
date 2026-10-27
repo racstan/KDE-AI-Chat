@@ -282,6 +282,7 @@ Rectangle {
                     }
 
                     PC3.TextField {
+                        Accessible.name: i18n("Chat name")
                         visible: row.editing
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0

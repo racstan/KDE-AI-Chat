@@ -28,6 +28,7 @@ Flow {
             spacing: 0
 
             QQC2.TextField {
+                Accessible.name: placeholderText
                 id: field
                 objectName: "ruleTime"
                 text: timeItem.modelData

@@ -75,6 +75,14 @@ Item {
     implicitHeight: column.implicitHeight
     height: implicitHeight
 
+    // Screen readers: who said it. While the reply is being written only that
+    // is said, so the changing text isn't read out again with every token.
+    Accessible.role: Accessible.ListItem
+    Accessible.name: streaming ? i18n("%1 is writing a reply", message.model || i18n("Assistant"))
+        : mine ? i18n("You said: %1", String(message.content || ""))
+        : role === "assistant" ? i18n("%1 replied: %2", message.model || i18n("Assistant"), String(message.content || ""))
+        : role === "error" ? i18n("Error: %1", errorText) : String(message.content || "")
+
     ColumnLayout {
         id: column
         width: row.width
@@ -86,7 +94,7 @@ Item {
             Layout.topMargin: Kirigami.Units.smallSpacing
             text: row.showDay ? row.chat.dayDividerLabelForIndex(row.index) : ""
             font: Kirigami.Theme.smallFont
-            opacity: 0.6
+            opacity: 0.7
         }
 
         Rectangle {
@@ -176,7 +184,7 @@ Item {
                         text: row.chat.formatMessageTime(row.message, row.index)
                         visible: text !== "" && row.showHeader
                         font: Kirigami.Theme.smallFont
-                        opacity: 0.6
+                        opacity: 0.7
                     }
 
                     Item { Layout.fillWidth: true }
@@ -200,6 +208,9 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.TextArea {
+                            Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+                            Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+                            Accessible.name: i18n("Edit message")
                             objectName: "inPlaceEditor"
                             Layout.fillWidth: true
                             text: row.chat.editingDraft
@@ -369,7 +380,7 @@ Item {
                         Layout.leftMargin: Kirigami.Units.smallSpacing
                         text: visible ? row.chat.formatTokensUsage(row.message.tokens, row.message.cost) : ""
                         font: Kirigami.Theme.smallFont
-                        opacity: actions.shown ? 0.55 : 0
+                        opacity: actions.shown ? 0.7 : 0
                         elide: Text.ElideRight
                         Layout.maximumWidth: content.width - actions.implicitWidth - Kirigami.Units.largeSpacing
 

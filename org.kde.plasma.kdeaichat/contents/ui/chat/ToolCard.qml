@@ -161,7 +161,7 @@ Rectangle {
                     text: card.failed ? i18n("Error") : i18n("Output")
                     font: Kirigami.Theme.smallFont
                     color: card.tone
-                    opacity: card.failed ? 1 : 0.6
+                    opacity: card.failed ? 1 : 0.7
                 }
 
                 MonoBlock {

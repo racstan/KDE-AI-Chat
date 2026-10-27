@@ -94,6 +94,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.ComboBox {
+        Accessible.name: Kirigami.FormData.label
         id: modeCombo
         objectName: "panelIconModeCombo"
         Kirigami.FormData.label: i18n("Panel icon:")

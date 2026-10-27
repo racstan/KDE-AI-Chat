@@ -101,7 +101,7 @@ QQC2.Popup {
                 PC3.Label {
                     visible: text !== ""
                     text: item.modelData.usage
-                    opacity: 0.55
+                    opacity: 0.7
                 }
 
                 PC3.Label {

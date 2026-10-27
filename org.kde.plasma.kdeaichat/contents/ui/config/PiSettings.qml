@@ -88,6 +88,7 @@ Kirigami.FormLayout {
         Layout.fillWidth: true
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Provider")
             Layout.fillWidth: true
             enabled: pi.providers.length > 0
             model: pi.providers.length > 0 ? pi.providers : (pi.provider ? [pi.provider] : [])

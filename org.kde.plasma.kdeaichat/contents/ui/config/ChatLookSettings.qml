@@ -104,6 +104,7 @@ Kirigami.FormLayout {
         onReset: form.density = Prefs.defaults.chatDensity
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Spacing")
             objectName: "densityCombo"
             model: form.densities
             textRole: "text"
@@ -123,6 +124,7 @@ Kirigami.FormLayout {
         onReset: form.chatStyle = Prefs.defaults.chatStyle
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Message style")
             objectName: "chatStyleCombo"
             model: form.styles
             textRole: "text"
@@ -142,6 +144,7 @@ Kirigami.FormLayout {
         onReset: form.codeTheme = Prefs.defaults.codeTheme
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Code colours")
             objectName: "codeThemeCombo"
             model: form.codeThemes
             textRole: "text"

@@ -96,6 +96,7 @@ KCM.SimpleKCM {
             }
 
             QQC2.TextField {
+                Accessible.name: Kirigami.FormData.label
                 id: prefixField
                 objectName: "krunnerPrefix"
                 Kirigami.FormData.label: i18n("Word to type first:")

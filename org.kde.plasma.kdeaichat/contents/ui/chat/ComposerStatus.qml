@@ -90,7 +90,7 @@ RowLayout {
         text: status.text
         elide: Text.ElideRight
         font: Kirigami.Theme.smallFont
-        opacity: status.busy || status.voiceText !== "" || status.notice !== "" ? 0.85 : 0.55
+        opacity: status.busy || status.voiceText !== "" || status.notice !== "" ? 0.85 : 0.7
     }
 
     // Where this chat's messages go (local, network, online, agent).

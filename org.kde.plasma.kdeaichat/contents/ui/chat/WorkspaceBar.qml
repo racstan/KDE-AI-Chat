@@ -96,7 +96,7 @@ RowLayout {
         }
         font.pixelSize: Kirigami.Theme.smallFont.pixelSize
         font.bold: bar.workspace !== ""
-        opacity: bar.workspace ? 0.85 : 0.6
+        opacity: bar.workspace ? 0.85 : 0.7
         elide: Text.ElideMiddle
         // Takes the spare room and shortens first. (Never size it from
         // bar.width: the bar's own width then feeds back into its layout.)

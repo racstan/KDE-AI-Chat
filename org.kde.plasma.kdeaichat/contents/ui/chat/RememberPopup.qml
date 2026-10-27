@@ -66,6 +66,9 @@ QQC2.Popup {
             Layout.topMargin: Kirigami.Units.smallSpacing
 
             PC3.TextArea {
+                Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+                Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+                Accessible.name: placeholderText
                 id: editor
                 objectName: "rememberText"
                 text: popup.memory ? popup.memory.clip(popup.initialText) : popup.initialText

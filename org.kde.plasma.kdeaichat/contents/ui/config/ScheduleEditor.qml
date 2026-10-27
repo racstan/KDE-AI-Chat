@@ -81,6 +81,7 @@ ColumnLayout {
         Layout.fillWidth: true
 
         QQC2.TextField {
+            Accessible.name: Kirigami.FormData.label
             objectName: "scheduleName"
             Kirigami.FormData.label: i18n("Name:")
             text: editor.draft.name || ""
@@ -91,6 +92,7 @@ ColumnLayout {
             text: i18n("A short name, so you recognise this schedule in the list.")
         }
         QQC2.ComboBox {
+            Accessible.name: Kirigami.FormData.label
             objectName: "scheduleChat"
             Kirigami.FormData.label: i18n("Chat:")
             Layout.fillWidth: true
@@ -110,6 +112,9 @@ ColumnLayout {
         text: i18n("Message to send:")
     }
     QQC2.TextArea {
+        Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+        Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+        Accessible.name: placeholderText
         objectName: "scheduleMessage"
         Layout.fillWidth: true
         Layout.minimumHeight: Kirigami.Units.gridUnit * 3.5

@@ -142,6 +142,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.TextField {
+        Accessible.name: Kirigami.FormData.label
         Kirigami.FormData.label: i18n("Server address:")
         Layout.fillWidth: true
         text: oc.url
@@ -190,6 +191,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.ComboBox {
+        Accessible.name: Kirigami.FormData.label
         Kirigami.FormData.label: i18n("Provider:")
         Layout.fillWidth: true
         enabled: oc.providers.length > 0

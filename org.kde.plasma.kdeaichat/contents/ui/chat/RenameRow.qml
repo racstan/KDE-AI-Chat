@@ -21,6 +21,7 @@ RowLayout {
     spacing: Kirigami.Units.smallSpacing
 
     PC3.TextField {
+        Accessible.name: i18n("Chat name") // qmllint disable unqualified
         id: field
         Layout.fillWidth: true
         text: row.chat.currentChatRenameDraft
@@ -30,13 +31,13 @@ RowLayout {
 
     PC3.ToolButton {
         icon.name: "dialog-ok-apply"
-        Accessible.name: i18n("Save title")
+        Accessible.name: i18n("Save title") // qmllint disable unqualified
         onClicked: row.save()
     }
 
     PC3.ToolButton {
         icon.name: "dialog-cancel"
-        Accessible.name: i18n("Cancel rename")
+        Accessible.name: i18n("Cancel rename") // qmllint disable unqualified
         onClicked: row.chat.renamingCurrentChat = false
     }
 }

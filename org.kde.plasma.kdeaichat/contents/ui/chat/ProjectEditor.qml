@@ -148,6 +148,9 @@ QQC2.Popup {
             wrapMode: Text.Wrap
         }
         PC3.TextArea {
+            Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+            Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+            Accessible.name: placeholderText
             id: instructionsArea
             objectName: "projectInstructions"
             Layout.fillWidth: true
@@ -170,7 +173,7 @@ QQC2.Popup {
                 Layout.fillWidth: true
                 text: editor.folder || i18n("No folder")
                 elide: Text.ElideMiddle
-                opacity: editor.folder ? 1 : 0.6
+                opacity: editor.folder ? 1 : 0.7
             }
             PC3.Button {
                 text: i18n("Choose…")
@@ -195,6 +198,7 @@ QQC2.Popup {
         RowLayout {
             Layout.fillWidth: true
             QQC2.ComboBox {
+                Accessible.name: i18n("Model for direct chats")
                 id: providerCombo
                 objectName: "projectProvider"
                 Layout.fillWidth: true
@@ -204,6 +208,7 @@ QQC2.Popup {
                 onActivated: editor.provider = editor.providerIds[currentIndex] || ""
             }
             PC3.TextField {
+                Accessible.name: placeholderText
                 id: modelField
                 objectName: "projectModel"
                 Layout.fillWidth: true

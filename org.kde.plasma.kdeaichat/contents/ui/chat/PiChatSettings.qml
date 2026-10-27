@@ -45,6 +45,7 @@ ColumnLayout {
         label: i18n("Provider")
         help: i18n("The AI service Pi uses for this chat. Empty: Pi's default.")
         QQC2.ComboBox {
+            Accessible.name: i18n("Provider")
             Layout.fillWidth: true
             model: pi.providers
             textRole: "text"
@@ -65,6 +66,7 @@ ColumnLayout {
         label: i18n("Model")
         help: i18n("The AI model Pi uses for this chat. Empty: Pi's default.")
         QQC2.ComboBox {
+            Accessible.name: i18n("Model")
             id: modelCombo
             Layout.fillWidth: true
             editable: true

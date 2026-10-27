@@ -187,6 +187,7 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: i18n("Engine:")
                 visible: readCheck.checked
                 QQC2.ComboBox {
+                    Accessible.name: i18n("Engine")
                     id: engineCombo
                     objectName: "ttsEngineCombo"
                     textRole: "text"

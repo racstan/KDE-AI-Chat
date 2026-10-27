@@ -42,8 +42,11 @@ RowLayout {
     Layout.minimumWidth: Math.min(implicitWidth, Layout.maximumWidth)
     Layout.preferredWidth: implicitWidth
 
+    // Reachable with Tab: the explanation shows (and is read out) on focus as on hover.
+    activeFocusOnTab: true
     Accessible.role: Accessible.StaticText
     Accessible.name: detail
+    Accessible.focusable: true
 
     Kirigami.Icon {
         source: badge.info.icon
@@ -58,10 +61,10 @@ RowLayout {
         text: badge.shortText
         elide: Text.ElideRight
         font: Kirigami.Theme.smallFont
-        opacity: 0.7
+        opacity: badge.activeFocus ? 1 : 0.7
     }
 
     HoverHandler { id: hover }
-    QQC2.ToolTip.visible: hover.hovered
+    QQC2.ToolTip.visible: hover.hovered || badge.activeFocus
     QQC2.ToolTip.text: badge.detail
 }

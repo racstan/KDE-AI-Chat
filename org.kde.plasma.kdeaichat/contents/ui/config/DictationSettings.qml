@@ -62,6 +62,7 @@ ColumnLayout {
         Layout.fillWidth: true
 
         QQC2.ComboBox {
+            Accessible.name: Kirigami.FormData.label
             id: engineCombo
             objectName: "sttEngineCombo"
             Kirigami.FormData.label: i18n("Engine:")
@@ -107,6 +108,7 @@ ColumnLayout {
         }
 
         QQC2.ComboBox {
+            Accessible.name: Kirigami.FormData.label
             objectName: "sttLanguageCombo"
             visible: dictation.isServer
             Kirigami.FormData.label: i18n("Spoken language:")

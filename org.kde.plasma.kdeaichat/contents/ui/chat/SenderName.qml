@@ -60,7 +60,7 @@ RowLayout {
         visible: sender.mine && sender.scheduleName !== ""
         text: i18n("Scheduled: %1", sender.scheduleName)
         font: Kirigami.Theme.smallFont
-        opacity: 0.6
+        opacity: 0.7
         elide: Text.ElideRight
         Layout.alignment: Qt.AlignBaseline
         Layout.maximumWidth: sender.maximumWidth / 2
@@ -73,7 +73,7 @@ RowLayout {
         visible: sender.aiName !== "" && sender.model !== ""
         text: sender.model
         font: Kirigami.Theme.smallFont
-        opacity: 0.6
+        opacity: 0.7
         elide: Text.ElideRight
         Layout.alignment: Qt.AlignBaseline
         Layout.maximumWidth: sender.maximumWidth / 2

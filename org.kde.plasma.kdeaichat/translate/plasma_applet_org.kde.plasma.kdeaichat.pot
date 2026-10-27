@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 13:12+0530\n"
+"POT-Creation-Date: 2026-10-27 13:43+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -89,7 +89,7 @@ msgstr ""
 msgid "Unpin (close when clicking away)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:87 contents/ui/config/LayoutSettings.qml:143
+#: contents/ui/chat/ChatHeader.qml:87 contents/ui/config/LayoutSettings.qml:144
 #, kde-format
 msgid "Pin (keep open)"
 msgstr ""
@@ -111,7 +111,7 @@ msgid "New Chat"
 msgstr ""
 
 #: contents/ui/chat/ChatHeader.qml:138 contents/ui/ConfigAppearance.qml:71
-#: contents/ui/config/LayoutSettings.qml:167
+#: contents/ui/config/LayoutSettings.qml:168
 #, kde-format
 msgid "New chat"
 msgstr ""
@@ -122,7 +122,7 @@ msgid "New incognito chat (never saved)"
 msgstr ""
 
 #: contents/ui/chat/ChatHeader.qml:169 contents/ui/ChatSettingsDialog.qml:109
-#: contents/ui/config/LayoutSettings.qml:179
+#: contents/ui/config/LayoutSettings.qml:180
 #, kde-format
 msgid "Chat info"
 msgstr ""
@@ -132,7 +132,7 @@ msgstr ""
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:256 contents/ui/chat/SessionList.qml:312
+#: contents/ui/chat/ChatHeader.qml:256 contents/ui/chat/SessionList.qml:313
 #: contents/ui/chat/ChatRowMenu.qml:25
 #, kde-format
 msgid "Rename chat"
@@ -204,12 +204,15 @@ msgid "Total cost"
 msgstr ""
 
 #: contents/ui/chat/ChatInfoSummary.qml:90
-#: contents/ui/chat/ChatOverridesForm.qml:147
+#: contents/ui/chat/ChatOverridesForm.qml:145
+#: contents/ui/chat/ChatOverridesForm.qml:153
 #: contents/ui/chat/ChatOverridesForm.qml:229
-#: contents/ui/chat/FirstRunKey.qml:68 contents/ui/chat/ProjectEditor.qml:211
-#: contents/ui/chat/ProjectEditor.qml:212
+#: contents/ui/chat/ChatOverridesForm.qml:233
+#: contents/ui/chat/FirstRunKey.qml:68 contents/ui/chat/ProjectEditor.qml:216
+#: contents/ui/chat/ProjectEditor.qml:217
 #: contents/ui/components/ModelPicker.qml:104
-#: contents/ui/voice/SttEngines.js:21 contents/ui/chat/PiChatSettings.qml:65
+#: contents/ui/voice/SttEngines.js:21 contents/ui/chat/PiChatSettings.qml:66
+#: contents/ui/chat/PiChatSettings.qml:69
 #, kde-format
 msgid "Model"
 msgid_plural "Models"
@@ -261,73 +264,76 @@ msgstr[1] ""
 msgid "The latest message was sent with no memories."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:89
+#: contents/ui/chat/ChatOverridesForm.qml:87
 #, kde-format
 msgid "Select the chat's working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:105
+#: contents/ui/chat/ChatOverridesForm.qml:103
 #, kde-format
 msgid "direct provider"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:104
+#: contents/ui/chat/ChatOverridesForm.qml:102
 #, kde-format
 msgid "Mode: %1 (set when the chat was started)"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:117
+#: contents/ui/chat/ChatOverridesForm.qml:115
 #, kde-format
 msgid ""
 "On: this chat can use a different provider or model than the main settings. "
 "Off: it follows the main settings."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:125
-#: contents/ui/chat/ChatOverridesForm.qml:213
-#: contents/ui/chat/PiChatSettings.qml:45
+#: contents/ui/chat/ChatOverridesForm.qml:122
+#: contents/ui/chat/ChatOverridesForm.qml:126
+#: contents/ui/chat/ChatOverridesForm.qml:212
+#: contents/ui/chat/ChatOverridesForm.qml:216
+#: contents/ui/config/PiSettings.qml:91 contents/ui/chat/PiChatSettings.qml:45
+#: contents/ui/chat/PiChatSettings.qml:48
 #, kde-format
 msgid "Provider"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:126
+#: contents/ui/chat/ChatOverridesForm.qml:123
 #, kde-format
 msgid "The AI service this chat talks to."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:148
+#: contents/ui/chat/ChatOverridesForm.qml:146
 #, kde-format
 msgid ""
 "The AI model that answers in this chat. Refresh asks the provider which ones "
 "it has."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:173
-#: contents/ui/chat/ChatOverridesForm.qml:175
+#: contents/ui/chat/ChatOverridesForm.qml:172
+#: contents/ui/chat/ChatOverridesForm.qml:174
 #, kde-format
 msgid "Refresh models"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:186
+#: contents/ui/chat/ChatOverridesForm.qml:185
 #, kde-format
 msgid "This model is not available from the provider: %1"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:196
+#: contents/ui/chat/ChatOverridesForm.qml:195
 #: contents/ui/chat/ComposerPicker.qml:336
 #: contents/ui/components/VariantPicker.qml:30
 #, kde-format
 msgid "Variant"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:197
+#: contents/ui/chat/ChatOverridesForm.qml:196
 #, kde-format
 msgid ""
 "How hard the model thinks before answering: more is slower and costs more, "
 "but helps with hard questions."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:214
+#: contents/ui/chat/ChatOverridesForm.qml:213
 #, kde-format
 msgid "The AI service OpenCode uses for this chat. Empty: OpenCode's default."
 msgstr ""
@@ -337,59 +343,60 @@ msgstr ""
 msgid "The AI model OpenCode uses for this chat. Empty: OpenCode's default."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:245
+#: contents/ui/chat/ChatOverridesForm.qml:246
+#: contents/ui/chat/ChatOverridesForm.qml:250
 #: contents/ui/chat/ComposerPicker.qml:303
 #, kde-format
 msgid "Agent"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:246
+#: contents/ui/chat/ChatOverridesForm.qml:247
 #, kde-format
 msgid ""
 "OpenCode's way of working, for example \"build\" to make changes or \"plan\" "
 "to only suggest them."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:262
+#: contents/ui/chat/ChatOverridesForm.qml:264
 #, kde-format
 msgid "Refresh providers and agents"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:291
+#: contents/ui/chat/ChatOverridesForm.qml:293
 #, kde-format
 msgid "Working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:292
+#: contents/ui/chat/ChatOverridesForm.qml:294
 #, kde-format
 msgid ""
 "The folder on your computer this chat works in: the agents read and change "
 "files there."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:306
+#: contents/ui/chat/ChatOverridesForm.qml:309
 #, kde-format
 msgid "The project's folder: %1"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:307
+#: contents/ui/chat/ChatOverridesForm.qml:310
 #: contents/ui/chat/WorkspaceBar.qml:92 contents/ui/ConfigChat.qml:123
 #, kde-format
 msgid "No workspace"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:317
-#: contents/ui/chat/ChatOverridesForm.qml:319
+#: contents/ui/chat/ChatOverridesForm.qml:320
+#: contents/ui/chat/ChatOverridesForm.qml:322
 #, kde-format
 msgid "Choose working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:342
+#: contents/ui/chat/ChatOverridesForm.qml:345
 #, kde-format
 msgid "Instructions"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:343
+#: contents/ui/chat/ChatOverridesForm.qml:346
 #, kde-format
 msgid ""
 "Extra instructions only for this chat, for example \"Answer in French\" or "
@@ -397,55 +404,56 @@ msgid ""
 "you filled in on the Personality settings page."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:347
+#: contents/ui/chat/ChatOverridesForm.qml:350
 #, kde-format
 msgid "Give this chat system instructions"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:359
+#: contents/ui/chat/ChatOverridesForm.qml:365
 #, kde-format
 msgid "Instructions for this chat"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:370
+#: contents/ui/chat/ChatOverridesForm.qml:376
 #, kde-format
 msgid "Use my Personality settings"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:380
+#: contents/ui/chat/ChatOverridesForm.qml:386
+#: contents/ui/chat/ChatOverridesForm.qml:390
 #, kde-format
 msgid "Response length"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:381
+#: contents/ui/chat/ChatOverridesForm.qml:387
 #, kde-format
 msgid ""
 "How long the answers in this chat should be. \"Default\" lets the model "
 "decide."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:386
+#: contents/ui/chat/ChatOverridesForm.qml:393
 #: contents/ui/components/VariantPicker.qml:24
 #, kde-format
 msgid "Default"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:386
+#: contents/ui/chat/ChatOverridesForm.qml:393
 #, kde-format
 msgid "Short"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:386
+#: contents/ui/chat/ChatOverridesForm.qml:393
 #, kde-format
 msgid "Balanced"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:386
+#: contents/ui/chat/ChatOverridesForm.qml:393
 #, kde-format
 msgid "Detailed"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:386
+#: contents/ui/chat/ChatOverridesForm.qml:393
 #, kde-format
 msgid "Comprehensive"
 msgstr ""
@@ -741,7 +749,7 @@ msgid "No model matches. Press Enter to use “%1”."
 msgstr ""
 
 #: contents/ui/chat/ComposerPicker.qml:336
-#: contents/ui/chat/PiChatSettings.qml:91
+#: contents/ui/chat/PiChatSettings.qml:93
 #, kde-format
 msgid "Thinking"
 msgstr ""
@@ -758,90 +766,90 @@ msgstr ""
 msgid "More chat settings…"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:187 contents/ui/chat/Composer.qml:188
+#: contents/ui/chat/Composer.qml:195 contents/ui/chat/Composer.qml:196
 #, kde-format
 msgid "Message"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:258 contents/ui/chat/Composer.qml:260
+#: contents/ui/chat/Composer.qml:266 contents/ui/chat/Composer.qml:268
 #, kde-format
 msgid "Stop recording"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:258
+#: contents/ui/chat/Composer.qml:266
 #, kde-format
 msgid "Record voice"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:260
+#: contents/ui/chat/Composer.qml:268
 #, kde-format
 msgid "Record voice (beta speech-to-text)"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:286
+#: contents/ui/chat/Composer.qml:294
 #, kde-format
 msgid "Attach files"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:288
+#: contents/ui/chat/Composer.qml:296
 #, kde-format
 msgid "Attach files (images, PDF, CSV, Word documents)"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:297
+#: contents/ui/chat/Composer.qml:305
 #, kde-format
 msgid "Paste from clipboard"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:299
+#: contents/ui/chat/Composer.qml:307
 #, kde-format
 msgid "Paste file or text from clipboard"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:312
+#: contents/ui/chat/Composer.qml:320
 #, kde-format
 msgid "Queue"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:312 contents/ui/chat/Notifier.qml:223
+#: contents/ui/chat/Composer.qml:320 contents/ui/chat/Notifier.qml:223
 #, kde-format
 msgid "Send"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:319
+#: contents/ui/chat/Composer.qml:327
 #, kde-format
 msgid "Send this after the current reply finishes"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:319
+#: contents/ui/chat/Composer.qml:327
 #, kde-format
 msgid "Send message"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:330 contents/ui/chat/ImageJobCard.qml:73
-#: contents/ui/config/OpenCodeSettings.qml:168 contents/ui/ConfigVoice.qml:267
+#: contents/ui/chat/Composer.qml:338 contents/ui/chat/ImageJobCard.qml:73
+#: contents/ui/config/OpenCodeSettings.qml:169 contents/ui/ConfigVoice.qml:268
 #, kde-format
 msgid "Stop"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:332
+#: contents/ui/chat/Composer.qml:340
 #, kde-format
 msgid "Stop the reply"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:334
+#: contents/ui/chat/Composer.qml:342
 #, kde-format
 msgid "Stop the reply (Esc)"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:168
+#: contents/ui/chat/MessageDelegate.qml:176
 #, kde-format
 msgid "Writing…"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:168
+#: contents/ui/chat/MessageDelegate.qml:176
 #: contents/ui/chat/ReasoningBlock.qml:47
 #, kde-format
 msgid "Thinking…"
@@ -857,7 +865,7 @@ msgstr ""
 msgid "Reading aloud…"
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:274
+#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:275
 #, kde-format
 msgid "Making speech…"
 msgstr ""
@@ -1298,9 +1306,9 @@ msgid "Copy error"
 msgstr ""
 
 #: contents/ui/chat/ErrorActions.qml:86 contents/ui/chat/MessageActions.qml:323
-#: contents/ui/config/MemoryRow.qml:116 contents/ui/config/MemoryRow.qml:118
-#: contents/ui/config/ScheduleRow.qml:103
-#: contents/ui/config/ScheduleRow.qml:157
+#: contents/ui/config/MemoryRow.qml:119 contents/ui/config/MemoryRow.qml:121
+#: contents/ui/config/ScheduleRow.qml:106
+#: contents/ui/config/ScheduleRow.qml:160
 #, kde-format
 msgid "Delete"
 msgstr ""
@@ -1428,7 +1436,7 @@ msgid "%1 s"
 msgstr ""
 
 #: contents/ui/chat/ImageJobCard.qml:23
-#: contents/ui/config/SpeechNotePanel.qml:147
+#: contents/ui/config/SpeechNotePanel.qml:149
 #, kde-format
 msgid "%1 min"
 msgstr ""
@@ -1568,9 +1576,9 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:116 contents/ui/config/MemoryRow.qml:106
-#: contents/ui/config/MemoryRow.qml:108 contents/ui/config/ProviderRow.qml:80
-#: contents/ui/config/ScheduleRow.qml:86
+#: contents/ui/chat/MessageActions.qml:116 contents/ui/config/MemoryRow.qml:109
+#: contents/ui/config/MemoryRow.qml:111 contents/ui/config/ProviderRow.qml:80
+#: contents/ui/config/ScheduleRow.qml:87
 #: contents/ui/config/TemplatesEditor.qml:87
 #, kde-format
 msgid "Edit"
@@ -1619,15 +1627,15 @@ msgstr[1] ""
 
 #: contents/ui/chat/MessageActions.qml:229
 #: contents/ui/chat/ProjectDeleteConfirm.qml:48
-#: contents/ui/chat/ProjectEditor.qml:229
-#: contents/ui/chat/RememberPopup.qml:126
-#: contents/ui/config/ImageProviderEditor.qml:259
-#: contents/ui/config/MemoryRow.qml:134
-#: contents/ui/config/ProviderEditor.qml:184
+#: contents/ui/chat/ProjectEditor.qml:234
+#: contents/ui/chat/RememberPopup.qml:129
+#: contents/ui/config/ImageProviderEditor.qml:266
+#: contents/ui/config/MemoryRow.qml:137
+#: contents/ui/config/ProviderEditor.qml:188
 #: contents/ui/config/ProviderRow.qml:104
-#: contents/ui/config/ScheduleDescribeBox.qml:62
-#: contents/ui/config/ScheduleDescribeBox.qml:117
-#: contents/ui/config/ScheduleRow.qml:165
+#: contents/ui/config/ScheduleDescribeBox.qml:63
+#: contents/ui/config/ScheduleDescribeBox.qml:119
+#: contents/ui/config/ScheduleRow.qml:168
 #: contents/ui/config/TemplatesEditor.qml:134
 #: contents/ui/ScheduleDialog.qml:122 contents/ui/chat/ChatDeleteConfirm.qml:56
 #, kde-format
@@ -1665,17 +1673,49 @@ msgstr ""
 msgid "Remember"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:148
+#: contents/ui/chat/MessageDelegate.qml:81
+#: contents/ui/chat/MessageDelegate.qml:83 contents/ui/chat/QuoteBlock.qml:24
+#: contents/ui/chat/QuoteChips.qml:29 contents/ui/chat/SenderName.qml:50
+#, kde-format
+msgid "Assistant"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:81
+#, kde-format
+msgid "%1 is writing a reply"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:82
+#, kde-format
+msgid "You said: %1"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:83
+#, kde-format
+msgid "%1 replied: %2"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:84
+#, kde-format
+msgid "Error: %1"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:156
 #, kde-format
 msgid "Scheduled message"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:168
+#: contents/ui/chat/MessageDelegate.qml:176
 #, kde-format
 msgid "Making a picture…"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:216
+#: contents/ui/chat/MessageDelegate.qml:213
+#, kde-format
+msgid "Edit message"
+msgstr ""
+
+#: contents/ui/chat/MessageDelegate.qml:227
 #, kde-format
 msgid "Saving removes the messages after this one."
 msgstr ""
@@ -1742,7 +1782,7 @@ msgstr ""
 msgid "Saved to %1"
 msgstr ""
 
-#: contents/ui/chat/NoticeBanner.qml:52 contents/ui/chat/QuestionCard.qml:106
+#: contents/ui/chat/NoticeBanner.qml:53 contents/ui/chat/QuestionCard.qml:106
 #: contents/ui/chat/UndoNotice.qml:208
 #, kde-format
 msgid "Dismiss"
@@ -1907,48 +1947,49 @@ msgstr ""
 msgid "Instructions for every chat in this project"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:156
+#: contents/ui/chat/ProjectEditor.qml:159
 #, kde-format
 msgid "For example: answer in French, keep code in Python"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:161
+#: contents/ui/chat/ProjectEditor.qml:164
 #, kde-format
 msgid "Working folder (OpenCode and Pi work here)"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:171
-#: contents/ui/chat/ProjectEditor.qml:183
+#: contents/ui/chat/ProjectEditor.qml:174
+#: contents/ui/chat/ProjectEditor.qml:186
 #, kde-format
 msgid "No folder"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:176
-#: contents/ui/config/PanelIconSettings.qml:139
+#: contents/ui/chat/ProjectEditor.qml:179
+#: contents/ui/config/PanelIconSettings.qml:140
 #, kde-format
 msgid "Choose…"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:191
+#: contents/ui/chat/ProjectEditor.qml:194
+#: contents/ui/chat/ProjectEditor.qml:201
 #, kde-format
 msgid "Model for direct chats"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:202
+#: contents/ui/chat/ProjectEditor.qml:206
 #, kde-format
 msgid "Main settings"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:223
+#: contents/ui/chat/ProjectEditor.qml:228
 #, kde-format
 msgid "Delete project"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:235
-#: contents/ui/chat/RememberPopup.qml:132
-#: contents/ui/config/ImageProviderEditor.qml:253
-#: contents/ui/config/MemoryRow.qml:140
-#: contents/ui/config/ProviderEditor.qml:170
+#: contents/ui/chat/ProjectEditor.qml:240
+#: contents/ui/chat/RememberPopup.qml:135
+#: contents/ui/config/ImageProviderEditor.qml:260
+#: contents/ui/config/MemoryRow.qml:143
+#: contents/ui/config/ProviderEditor.qml:174
 #: contents/ui/config/TemplatesEditor.qml:128
 #: contents/ui/ScheduleDialog.qml:115
 #, kde-format
@@ -1996,7 +2037,7 @@ msgid "New project…"
 msgstr ""
 
 #: contents/ui/chat/ProjectsSidebar.qml:25
-#: contents/ui/chat/RememberPopup.qml:93 contents/ui/chat/SessionList.qml:105
+#: contents/ui/chat/RememberPopup.qml:96 contents/ui/chat/SessionList.qml:105
 #: contents/ui/ConfigMemory.qml:56
 #, kde-format
 msgid "All chats"
@@ -2060,15 +2101,9 @@ msgid "Sending answer…"
 msgstr ""
 
 #: contents/ui/chat/QuoteBlock.qml:23 contents/ui/chat/QuoteChips.qml:28
-#: contents/ui/chat/SenderName.qml:45 contents/ui/ConfigPersonality.qml:120
+#: contents/ui/chat/SenderName.qml:45 contents/ui/ConfigPersonality.qml:122
 #, kde-format
 msgid "You"
-msgstr ""
-
-#: contents/ui/chat/QuoteBlock.qml:24 contents/ui/chat/QuoteChips.qml:29
-#: contents/ui/chat/SenderName.qml:50
-#, kde-format
-msgid "Assistant"
 msgstr ""
 
 #: contents/ui/chat/QuoteBlock.qml:109
@@ -2113,44 +2148,49 @@ msgid ""
 "Settings → Memory."
 msgstr ""
 
-#: contents/ui/chat/RememberPopup.qml:73
+#: contents/ui/chat/RememberPopup.qml:76
 #, kde-format
 msgid "What should the assistant remember?"
 msgstr ""
 
-#: contents/ui/chat/RememberPopup.qml:81 contents/ui/config/MemoryRow.qml:129
+#: contents/ui/chat/RememberPopup.qml:84 contents/ui/config/MemoryRow.qml:132
 #, kde-format
 msgid "%1 / %2"
 msgstr ""
 
-#: contents/ui/chat/RememberPopup.qml:88
+#: contents/ui/chat/RememberPopup.qml:91
 #, kde-format
 msgid "Use it in:"
 msgstr ""
 
-#: contents/ui/chat/RememberPopup.qml:100
+#: contents/ui/chat/RememberPopup.qml:103
 #, kde-format
 msgid "Chats in the project “%1”"
 msgstr ""
 
-#: contents/ui/chat/RememberPopup.qml:106
+#: contents/ui/chat/RememberPopup.qml:109
 #, kde-format
 msgid "This chat only"
 msgstr ""
 
-#: contents/ui/chat/RememberPopup.qml:117
+#: contents/ui/chat/RememberPopup.qml:120
 #, kde-format
 msgid ""
 "Memory is turned off in Settings → Memory, so it will be saved but not used "
 "yet."
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:312
+#: contents/ui/chat/RenameRow.qml:24 contents/ui/chat/SessionList.qml:285
+#, kde-format
+msgid "Chat name"
+msgstr ""
+
+#: contents/ui/chat/RenameRow.qml:34 contents/ui/chat/SessionList.qml:313
 #, kde-format
 msgid "Save title"
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:39 contents/ui/chat/SessionList.qml:343
+#: contents/ui/chat/RenameRow.qml:40 contents/ui/chat/SessionList.qml:344
 #, kde-format
 msgid "Cancel rename"
 msgstr ""
@@ -2234,17 +2274,17 @@ msgstr ""
 msgid "OpenCode chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:330 contents/ui/chat/ChatRowMenu.qml:35
+#: contents/ui/chat/SessionList.qml:331 contents/ui/chat/ChatRowMenu.qml:35
 #, kde-format
 msgid "Restore chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:330 contents/ui/chat/ChatRowMenu.qml:35
+#: contents/ui/chat/SessionList.qml:331 contents/ui/chat/ChatRowMenu.qml:35
 #, kde-format
 msgid "Archive chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:343 contents/ui/chat/ChatRowMenu.qml:41
+#: contents/ui/chat/SessionList.qml:344 contents/ui/chat/ChatRowMenu.qml:41
 #: contents/ui/chat/ChatDeleteConfirm.qml:63
 #, kde-format
 msgid "Delete chat"
@@ -2495,7 +2535,7 @@ msgstr[1] ""
 msgid "Project “%1” deleted; its chats were kept"
 msgstr ""
 
-#: contents/ui/chat/UndoNotice.qml:199 contents/ui/ConfigMemory.qml:202
+#: contents/ui/chat/UndoNotice.qml:199 contents/ui/ConfigMemory.qml:203
 #, kde-format
 msgid "Undo"
 msgstr ""
@@ -2640,173 +2680,173 @@ msgstr ""
 msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:140
-#: contents/ui/config/ImageProviderEditor.qml:63
-#: contents/ui/config/ProviderEditor.qml:48
-#: contents/ui/config/ScheduleEditor.qml:85
+#: contents/ui/ConfigAppearance.qml:141
+#: contents/ui/config/ImageProviderEditor.qml:64
+#: contents/ui/config/ProviderEditor.qml:49
+#: contents/ui/config/ScheduleEditor.qml:86
 #, kde-format
 msgid "Name:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:146
+#: contents/ui/ConfigAppearance.qml:147
 #, kde-format
 msgid ""
 "The widget's name, shown at the top of the chat and when you hover over it "
 "in the panel."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:151
+#: contents/ui/ConfigAppearance.qml:152
 #, kde-format
 msgid "Icon:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:155 contents/ui/ConfigAppearance.qml:157
+#: contents/ui/ConfigAppearance.qml:156 contents/ui/ConfigAppearance.qml:158
 #, kde-format
 msgid "Choose the widget icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:180 contents/ui/ConfigPersonality.qml:275
+#: contents/ui/ConfigAppearance.qml:181 contents/ui/ConfigPersonality.qml:282
 #, kde-format
 msgid "Choose Icon…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:189 contents/ui/ConfigPersonality.qml:284
+#: contents/ui/ConfigAppearance.qml:190 contents/ui/ConfigPersonality.qml:291
 #, kde-format
 msgid "Choose Image File…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:194
+#: contents/ui/ConfigAppearance.qml:195
 #, kde-format
 msgid "Reset to Default Icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:203
+#: contents/ui/ConfigAppearance.qml:204
 #, kde-format
 msgid ""
 "The picture for the widget: an icon from your theme or an image file of your "
 "own. It is what you click in the panel, unless you choose an animation below."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:232
+#: contents/ui/ConfigAppearance.qml:233
 #, kde-format
 msgid "Notifications"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:238
+#: contents/ui/ConfigAppearance.qml:239
 #, kde-format
 msgid "Notify when:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:239
+#: contents/ui/ConfigAppearance.qml:240
 #, kde-format
 msgid "A reply finishes while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:243
+#: contents/ui/ConfigAppearance.qml:244
 #, kde-format
 msgid ""
 "A desktop notification tells you the answer is ready, so you can do other "
 "things while you wait."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:249
+#: contents/ui/ConfigAppearance.qml:250
 #, kde-format
 msgid "A request fails while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:253
+#: contents/ui/ConfigAppearance.qml:254
 #, kde-format
 msgid ""
 "You hear about problems, for example a wrong key or no internet, without "
 "opening the chat."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:259
+#: contents/ui/ConfigAppearance.qml:260
 #, kde-format
 msgid "The AI needs an answer or permission while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:263
+#: contents/ui/ConfigAppearance.qml:264
 #, kde-format
 msgid ""
 "The AI is waiting for you, for example to answer a question or to allow a "
 "change to your files."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:269
+#: contents/ui/ConfigAppearance.qml:270
 #, kde-format
 msgid "A scheduled task runs"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:273
+#: contents/ui/ConfigAppearance.qml:274
 #, kde-format
 msgid ""
 "A schedule from the Schedules page has sent its message. Each schedule can "
 "also turn its own notification off."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:279
+#: contents/ui/ConfigAppearance.qml:280
 #, kde-format
 msgid "Sound:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:280
+#: contents/ui/ConfigAppearance.qml:281
 #, kde-format
 msgid "Play a sound when a reply is finished"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:284
+#: contents/ui/ConfigAppearance.qml:285
 #, kde-format
 msgid ""
 "A short sound when the answer is complete, handy when you are looking at "
 "something else."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:289
+#: contents/ui/ConfigAppearance.qml:290
 #, kde-format
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:310
+#: contents/ui/ConfigAppearance.qml:311
 #, kde-format
 msgid ""
 "These work while the chat is open. To open the widget from anywhere, set its "
 "global shortcut on the \"Keyboard Shortcuts\" page of this window."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:315
+#: contents/ui/ConfigAppearance.qml:316
 #, kde-format
 msgid "Support the developer"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:320
+#: contents/ui/ConfigAppearance.qml:321
 #, kde-format
 msgid "Like it?"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:321
+#: contents/ui/ConfigAppearance.qml:322
 #, kde-format
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:330
+#: contents/ui/ConfigAppearance.qml:331
 #, kde-format
 msgid ""
 "KDE AI Chat is free. If it helps you, you can thank the developer with a "
 "small gift; this opens buymeacoffee.com in your web browser."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:335
+#: contents/ui/ConfigAppearance.qml:336
 #, kde-format
 msgid "Terms of use:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:336
+#: contents/ui/ConfigAppearance.qml:337
 #, kde-format
 msgid "Read the terms"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:345
+#: contents/ui/ConfigAppearance.qml:346
 #, kde-format
 msgid ""
 "In short: the widget comes without warranty and collects nothing itself. "
@@ -3058,17 +3098,17 @@ msgstr[1] ""
 msgid "needs credit"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:68
+#: contents/ui/config/ImageProviderEditor.qml:69
 #, kde-format
 msgid "Any name you like; it is how this picture service shows in lists."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:73
+#: contents/ui/config/ImageProviderEditor.qml:74
 #, kde-format
 msgid "Before you use it:"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:83
+#: contents/ui/config/ImageProviderEditor.qml:84
 #, kde-format
 msgid ""
 "Your prompt is sent to AI Horde and made into a picture on a volunteer's "
@@ -3078,7 +3118,7 @@ msgid ""
 "or secrets in a prompt. Only your prompt is sent, never the chat."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:85
+#: contents/ui/config/ImageProviderEditor.qml:86
 #, kde-format
 msgid ""
 "Your prompt is sent to Pollinations. This is their older free service: it "
@@ -3087,57 +3127,57 @@ msgid ""
 "prompt. Only your prompt is sent, never the chat."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:86
+#: contents/ui/config/ImageProviderEditor.qml:87
 #, kde-format
 msgid ""
 "Your prompt is sent to Pollinations, with your own key. Don't put personal "
 "details or secrets in a prompt. Only your prompt is sent, never the chat."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:91
+#: contents/ui/config/ImageProviderEditor.qml:93
 #, kde-format
 msgid "AI Horde terms of use"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:91
+#: contents/ui/config/ImageProviderEditor.qml:93
 #, kde-format
 msgid "pollinations.ai"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:96
+#: contents/ui/config/ImageProviderEditor.qml:99
 #, kde-format
 msgid "Get a Pollinations key"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:100
+#: contents/ui/config/ImageProviderEditor.qml:103
 #, kde-format
 msgid "Use %1 for pictures"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:105
+#: contents/ui/config/ImageProviderEditor.qml:108
 #, kde-format
 msgid ""
 "No picture is made with this service until you have read the note above and "
 "ticked this box."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:112
-#: contents/ui/config/ProviderEditor.qml:77
+#: contents/ui/config/ImageProviderEditor.qml:116
+#: contents/ui/config/ProviderEditor.qml:81
 #, kde-format
 msgid "API key:"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:115
+#: contents/ui/config/ImageProviderEditor.qml:119
 #, kde-format
 msgid "Optional: empty uses AI Horde without an account"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:115
+#: contents/ui/config/ImageProviderEditor.qml:119
 #, kde-format
 msgid "Your Pollinations key, stored in KWallet"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:121
+#: contents/ui/config/ImageProviderEditor.qml:125
 #, kde-format
 msgid ""
 "The password-like code of your AI Horde account. Without one you can still "
@@ -3145,130 +3185,130 @@ msgid ""
 "Wallet, your computer's password safe."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:122
+#: contents/ui/config/ImageProviderEditor.qml:126
 #, kde-format
 msgid ""
 "The password-like code Pollinations gives you on its website. It is kept in "
 "KDE Wallet, your computer's password safe, never in the settings file."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:126
-#: contents/ui/config/OpenCodeSettings.qml:206
-#: contents/ui/config/PiSettings.qml:110
-#: contents/ui/config/ProviderEditor.qml:88
+#: contents/ui/config/ImageProviderEditor.qml:130
+#: contents/ui/config/OpenCodeSettings.qml:208
+#: contents/ui/config/PiSettings.qml:111
+#: contents/ui/config/ProviderEditor.qml:92
 #, kde-format
 msgid "Model:"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:135
+#: contents/ui/config/ImageProviderEditor.qml:139
 #, kde-format
 msgid "Chosen for you when empty"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:141
-#: contents/ui/config/PiSettings.qml:99
-#: contents/ui/config/ProviderEditor.qml:99 contents/ui/ConfigStorage.qml:183
+#: contents/ui/config/ImageProviderEditor.qml:145
+#: contents/ui/config/PiSettings.qml:100
+#: contents/ui/config/ProviderEditor.qml:103 contents/ui/ConfigStorage.qml:183
 #, kde-format
 msgid "Refresh"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:148
+#: contents/ui/config/ImageProviderEditor.qml:152
 #, kde-format
 msgid ""
 "The picture model: each draws in its own style. Refresh asks the service "
 "which ones it has."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:164
-#: contents/ui/config/ProviderEditor.qml:150
+#: contents/ui/config/ImageProviderEditor.qml:168
+#: contents/ui/config/ProviderEditor.qml:154
 #, kde-format
 msgid "Fetching models…"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:165
+#: contents/ui/config/ImageProviderEditor.qml:169
 #, kde-format
 msgid ""
 "Could not get AI Horde's model list. Leave the model empty to use a common "
 "one, or try Refresh later."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:166
+#: contents/ui/config/ImageProviderEditor.qml:170
 #, kde-format
 msgid "Could not reach %1 to list its models. You can still type a model name."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:167
+#: contents/ui/config/ImageProviderEditor.qml:171
 #, kde-format
 msgid "%1 sent no usable model list. You can still type a model name."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:172
+#: contents/ui/config/ImageProviderEditor.qml:176
 #, kde-format
 msgid "Picture size:"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:178
+#: contents/ui/config/ImageProviderEditor.qml:182
 #, kde-format
 msgid "Width"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:186
+#: contents/ui/config/ImageProviderEditor.qml:190
 #, kde-format
 msgid "Height"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:188
+#: contents/ui/config/ImageProviderEditor.qml:192
 #, kde-format
 msgid "pixels"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:191
+#: contents/ui/config/ImageProviderEditor.qml:195
 #, kde-format
 msgid ""
 "Width × height of new pictures. Bigger pictures show more detail but take "
 "longer."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:200
+#: contents/ui/config/ImageProviderEditor.qml:204
 #, kde-format
 msgid ""
 "Without an account AI Horde makes one picture at a time, up to %1 pixels "
 "wide or high and %2 steps. More needs an account with kudos."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:205
+#: contents/ui/config/ImageProviderEditor.qml:210
 #, kde-format
 msgid "Steps:"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:213
+#: contents/ui/config/ImageProviderEditor.qml:218
 #, kde-format
 msgid ""
 "How many times the picture is refined. More steps can look better but take "
 "longer."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:218
+#: contents/ui/config/ImageProviderEditor.qml:224
 #, kde-format
 msgid "Pictures per message:"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:226
+#: contents/ui/config/ImageProviderEditor.qml:232
 #, kde-format
 msgid "How many different pictures each /image message asks for."
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:230
+#: contents/ui/config/ImageProviderEditor.qml:237
 #, kde-format
 msgid "Seed:"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:233
+#: contents/ui/config/ImageProviderEditor.qml:240
 #, kde-format
 msgid "Empty: a new one each time"
 msgstr ""
 
-#: contents/ui/config/ImageProviderEditor.qml:238
+#: contents/ui/config/ImageProviderEditor.qml:245
 #, kde-format
 msgid ""
 "A number that fixes the randomness: the same prompt with the same seed gives "
@@ -3318,17 +3358,22 @@ msgstr ""
 msgid "Send per message:"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:155
+#: contents/ui/ConfigMemory.qml:144
+#, kde-format
+msgid "Send per message"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:156
 #, kde-format
 msgid "characters"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:159
+#: contents/ui/ConfigMemory.qml:160
 #, kde-format
 msgid "No limit"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:166
+#: contents/ui/ConfigMemory.qml:167
 #, kde-format
 msgid ""
 "The most memory text added to one message (a character is a letter, digit or "
@@ -3336,7 +3381,7 @@ msgid ""
 "more memories through."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:167
+#: contents/ui/ConfigMemory.qml:168
 #, kde-format
 msgid ""
 "Pinned memories go first, then the ones that best fit your message, until "
@@ -3344,7 +3389,7 @@ msgid ""
 "every one that fits."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:175
+#: contents/ui/ConfigMemory.qml:176
 #, kde-format
 msgid ""
 "Memories are notes you ask the assistant to keep. Only the ones that fit "
@@ -3352,7 +3397,7 @@ msgid ""
 "under a message or /remember."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:183
+#: contents/ui/ConfigMemory.qml:184
 #, kde-format
 msgid ""
 "1 memory is turned off and is never sent. Memories brought over from the old "
@@ -3363,67 +3408,77 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/ConfigMemory.qml:187
+#: contents/ui/ConfigMemory.qml:188
 #, kde-format
 msgid "Turn on all"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:199
+#: contents/ui/ConfigMemory.qml:200
 #, kde-format
 msgid "Memory deleted."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:213
+#: contents/ui/ConfigMemory.qml:214
 #, kde-format
 msgid "The last change could not be saved: %1"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:224
+#: contents/ui/ConfigMemory.qml:226
 #, kde-format
 msgid "Add a memory for all chats…"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:230
+#: contents/ui/ConfigMemory.qml:232
 #, kde-format
 msgid "Add"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:251
+#: contents/ui/ConfigMemory.qml:244
 #, kde-format
-msgid "All memories"
+msgid "Search memories"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:252
+#: contents/ui/ConfigMemory.qml:250
 #, kde-format
-msgid "For all chats"
-msgstr ""
-
-#: contents/ui/ConfigMemory.qml:253
-#, kde-format
-msgid "For a project"
-msgstr ""
-
-#: contents/ui/ConfigMemory.qml:254
-#, kde-format
-msgid "For one chat"
+msgid "Filter memories"
 msgstr ""
 
 #: contents/ui/ConfigMemory.qml:255
 #, kde-format
+msgid "All memories"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:256
+#, kde-format
+msgid "For all chats"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:257
+#, kde-format
+msgid "For a project"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:258
+#, kde-format
+msgid "For one chat"
+msgstr ""
+
+#: contents/ui/ConfigMemory.qml:259
+#, kde-format
 msgid "Turned off"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:268
+#: contents/ui/ConfigMemory.qml:272
 #, kde-format
 msgid "Loading…"
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:269
+#: contents/ui/ConfigMemory.qml:273
 #, kde-format
 msgid "No memories yet."
 msgstr ""
 
-#: contents/ui/ConfigMemory.qml:269
+#: contents/ui/ConfigMemory.qml:273
 #, kde-format
 msgid "No memories match."
 msgstr ""
@@ -3453,17 +3508,22 @@ msgstr ""
 msgid "off"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:96 contents/ui/config/MemoryRow.qml:98
+#: contents/ui/config/MemoryRow.qml:81
+#, kde-format
+msgid "Edit memory"
+msgstr ""
+
+#: contents/ui/config/MemoryRow.qml:99 contents/ui/config/MemoryRow.qml:101
 #, kde-format
 msgid "Unpin"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:96
+#: contents/ui/config/MemoryRow.qml:99
 #, kde-format
 msgid "Pin"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:98
+#: contents/ui/config/MemoryRow.qml:101
 #, kde-format
 msgid "Pin: send it with every message, first"
 msgstr ""
@@ -3575,83 +3635,83 @@ msgstr ""
 msgid "OpenCode: %1"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:145
+#: contents/ui/config/OpenCodeSettings.qml:146
 #, kde-format
 msgid "Server address:"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:154
+#: contents/ui/config/OpenCodeSettings.qml:155
 #, kde-format
 msgid ""
 "Where the OpenCode program can be reached on this computer. Keep the "
 "suggested address unless you started OpenCode on another port."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:158
+#: contents/ui/config/OpenCodeSettings.qml:159
 #, kde-format
 msgid "Server:"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:162
+#: contents/ui/config/OpenCodeSettings.qml:163
 #, kde-format
 msgid "Start"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:173
+#: contents/ui/config/OpenCodeSettings.qml:174
 #, kde-format
 msgid ""
 "Stops a server started by this widget. Servers you started yourself keep "
 "running."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:176
+#: contents/ui/config/OpenCodeSettings.qml:177
 #, kde-format
 msgid "Check"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:189
+#: contents/ui/config/OpenCodeSettings.qml:190
 #, kde-format
 msgid ""
 "OpenCode has to be running for these chats. Start runs it in the background; "
 "Check looks whether it answers."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:193
+#: contents/ui/config/OpenCodeSettings.qml:195
 #: contents/ui/config/PiSettings.qml:87
 #, kde-format
 msgid "Provider:"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:202
+#: contents/ui/config/OpenCodeSettings.qml:204
 #, kde-format
 msgid ""
 "The AI service OpenCode uses. The list comes from OpenCode's own settings, "
 "where its keys are kept."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:214
+#: contents/ui/config/OpenCodeSettings.qml:216
 #, kde-format
 msgid ""
 "The AI model new OpenCode chats use. Each chat can choose another one in its "
 "Chat info panel if per-chat model settings are on."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:219
-#: contents/ui/config/ProviderEditor.qml:110
+#: contents/ui/config/OpenCodeSettings.qml:221
+#: contents/ui/config/ProviderEditor.qml:114
 #, kde-format
 msgid "Variant:"
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:228
-#: contents/ui/config/PiSettings.qml:132
+#: contents/ui/config/OpenCodeSettings.qml:230
+#: contents/ui/config/PiSettings.qml:133
 #, kde-format
 msgid ""
 "How hard the model thinks before answering. More thinking helps with hard "
 "tasks, but is slower and costs more."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:232
-#: contents/ui/config/PiSettings.qml:136
+#: contents/ui/config/OpenCodeSettings.qml:234
+#: contents/ui/config/PiSettings.qml:137
 #, kde-format
 msgid "Status:"
 msgstr ""
@@ -3681,7 +3741,7 @@ msgstr ""
 msgid "Playful"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:50 contents/ui/ConfigPersonality.qml:308
+#: contents/ui/ConfigPersonality.qml:50 contents/ui/ConfigPersonality.qml:315
 #, kde-format
 msgid "None"
 msgstr ""
@@ -3711,176 +3771,176 @@ msgstr ""
 msgid "Choose a Picture for the AI"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:126
+#: contents/ui/ConfigPersonality.qml:129
 #, kde-format
 msgid "Your name:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:129
+#: contents/ui/ConfigPersonality.qml:132
 #, kde-format
 msgid "Shown as \"You\""
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:133
+#: contents/ui/ConfigPersonality.qml:136
 #, kde-format
 msgid ""
 "What the AI calls you, and the name shown above your messages. Leave empty "
 "to stay \"You\"."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:139
+#: contents/ui/ConfigPersonality.qml:142
 #, kde-format
 msgid "About you:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:141
+#: contents/ui/ConfigPersonality.qml:144
 #, kde-format
 msgid "What you do, what you know well, what you are working on…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:142
+#: contents/ui/ConfigPersonality.qml:145
 #, kde-format
 msgid "About you"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:146
+#: contents/ui/ConfigPersonality.qml:149
 #, kde-format
 msgid ""
 "A few lines about yourself, so answers fit you: your job, what you know "
 "well, what you are working on."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:152
+#: contents/ui/ConfigPersonality.qml:156
 #, kde-format
 msgid "Tone you like:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:161
+#: contents/ui/ConfigPersonality.qml:165
 #, kde-format
 msgid "How you like to be spoken to. \"No preference\" leaves it to the AI."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:167
+#: contents/ui/ConfigPersonality.qml:172
 #, kde-format
 msgid "Reply language:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:170
+#: contents/ui/ConfigPersonality.qml:175
 #, kde-format
 msgid "Same as my message"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:174
+#: contents/ui/ConfigPersonality.qml:179
 #, kde-format
 msgid ""
 "The language replies are written in, for example \"English\" or \"Deutsch\". "
 "Leave empty to get replies in the language you write in."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:180
+#: contents/ui/ConfigPersonality.qml:185
 #, kde-format
 msgid "Always / never:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:182
+#: contents/ui/ConfigPersonality.qml:187
 #, kde-format
 msgid "Always give sources. Never use emoji."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:183
+#: contents/ui/ConfigPersonality.qml:188
 #, kde-format
 msgid "Always or never"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:187
+#: contents/ui/ConfigPersonality.qml:192
 #, kde-format
 msgid ""
 "Things the AI should always or never do, one per line. How long replies are "
 "is set per chat, in its chat settings."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:192
+#: contents/ui/ConfigPersonality.qml:197
 #, kde-format
 msgid "The AI"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:198
+#: contents/ui/ConfigPersonality.qml:204
 #, kde-format
 msgid "Its name:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:201
+#: contents/ui/ConfigPersonality.qml:207
 #, kde-format
 msgid "No name: replies show the model"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:205
+#: contents/ui/ConfigPersonality.qml:211
 #, kde-format
 msgid ""
 "A name for the assistant, shown above its replies. Leave empty to show the "
 "name of the model instead."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:211
+#: contents/ui/ConfigPersonality.qml:218
 #, kde-format
 msgid "Personality:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:220
+#: contents/ui/ConfigPersonality.qml:227
 #, kde-format
 msgid ""
 "The character of the assistant: how it talks and how much it says. Choose "
 "\"Custom…\" to describe it in your own words."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:227
+#: contents/ui/ConfigPersonality.qml:234
 #, kde-format
 msgid "In your words:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:229
+#: contents/ui/ConfigPersonality.qml:236
 #, kde-format
 msgid "Calm and patient, like a good teacher…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:230
+#: contents/ui/ConfigPersonality.qml:237
 #, kde-format
 msgid "Custom personality"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:235
+#: contents/ui/ConfigPersonality.qml:242
 #, kde-format
 msgid "Describe the personality you want in a sentence or two."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:239
+#: contents/ui/ConfigPersonality.qml:246
 #, kde-format
 msgid "Avatar:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:248 contents/ui/ConfigPersonality.qml:250
+#: contents/ui/ConfigPersonality.qml:255 contents/ui/ConfigPersonality.qml:257
 #, kde-format
 msgid "Choose the AI's avatar"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:289
+#: contents/ui/ConfigPersonality.qml:296
 #, kde-format
 msgid "No Avatar"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:307
+#: contents/ui/ConfigPersonality.qml:314
 #, kde-format
 msgid "This picture can't be read; replies show no avatar."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:315
+#: contents/ui/ConfigPersonality.qml:322
 #, kde-format
 msgid ""
 "A small picture shown next to the AI's replies: an icon from your theme or "
 "an image file of your own."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:324
+#: contents/ui/ConfigPersonality.qml:331
 #, kde-format
 msgid ""
 "What you fill in here is sent at the start of every chat with a provider, "
@@ -3888,27 +3948,27 @@ msgid ""
 "their own instructions. The names and avatar show in the chat."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:329 contents/ui/ConfigPersonality.qml:346
+#: contents/ui/ConfigPersonality.qml:336 contents/ui/ConfigPersonality.qml:353
 #, kde-format
 msgid "Extra instructions"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:335
+#: contents/ui/ConfigPersonality.qml:342
 #, kde-format
 msgid "Instructions:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:336
+#: contents/ui/ConfigPersonality.qml:343
 #, kde-format
 msgid "Send these instructions before every chat"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:345
+#: contents/ui/ConfigPersonality.qml:352
 #, kde-format
 msgid "Instructions for the model…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:350
+#: contents/ui/ConfigPersonality.qml:357
 #, kde-format
 msgid ""
 "Anything else the AI should know or do in every chat, in your own words. "
@@ -3936,21 +3996,21 @@ msgstr ""
 msgid "Pi could not be run."
 msgstr ""
 
-#: contents/ui/config/PiSettings.qml:106
+#: contents/ui/config/PiSettings.qml:107
 #, kde-format
 msgid ""
 "The AI service Pi uses. The list comes from Pi itself, which keeps its own "
 "keys; Refresh asks it again."
 msgstr ""
 
-#: contents/ui/config/PiSettings.qml:118
+#: contents/ui/config/PiSettings.qml:119
 #, kde-format
 msgid ""
 "The AI model new Pi chats use. Each chat can choose another one in its Chat "
 "info panel if per-chat model settings are on."
 msgstr ""
 
-#: contents/ui/config/PiSettings.qml:123
+#: contents/ui/config/PiSettings.qml:124
 #, kde-format
 msgid "Thinking:"
 msgstr ""
@@ -4009,27 +4069,27 @@ msgstr ""
 msgid "Key accepted by %1."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:53
+#: contents/ui/config/ProviderEditor.qml:54
 #, kde-format
 msgid "Any name you like; it is how this provider shows in lists."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:56
+#: contents/ui/config/ProviderEditor.qml:58
 #, kde-format
 msgid "API type:"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:57
+#: contents/ui/config/ProviderEditor.qml:59
 #, kde-format
 msgid "OpenAI-compatible"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:57
+#: contents/ui/config/ProviderEditor.qml:59
 #, kde-format
 msgid "Anthropic"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:62
+#: contents/ui/config/ProviderEditor.qml:64
 #, kde-format
 msgid ""
 "The \"language\" the provider's server speaks. Almost all services, and "
@@ -4037,12 +4097,12 @@ msgid ""
 "only for Anthropic's own server."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:66
+#: contents/ui/config/ProviderEditor.qml:69
 #, kde-format
 msgid "Server URL:"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:73
+#: contents/ui/config/ProviderEditor.qml:76
 #, kde-format
 msgid ""
 "The web address of the provider's server, as given in its documentation "
@@ -4050,17 +4110,17 @@ msgid ""
 "http://localhost."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:80
+#: contents/ui/config/ProviderEditor.qml:84
 #, kde-format
 msgid "Optional for local servers"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:80
+#: contents/ui/config/ProviderEditor.qml:84
 #, kde-format
 msgid "Stored in KWallet"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:84
+#: contents/ui/config/ProviderEditor.qml:88
 #, kde-format
 msgid ""
 "The password-like code your AI provider gives you (on its website, usually "
@@ -4068,40 +4128,40 @@ msgid ""
 "Wallet, your computer's password safe."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:85
+#: contents/ui/config/ProviderEditor.qml:89
 #, kde-format
 msgid ""
 "Anyone with this key can use your account, so it is never written into the "
 "settings file. Local servers usually need no key."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:106
+#: contents/ui/config/ProviderEditor.qml:110
 #, kde-format
 msgid ""
 "The AI model to use with this provider. Refresh asks the provider which "
 "models it has."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:118
+#: contents/ui/config/ProviderEditor.qml:122
 #, kde-format
 msgid ""
 "Some models can think longer before answering. More thinking gives better "
 "answers to hard questions, but is slower and costs more."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:132
+#: contents/ui/config/ProviderEditor.qml:136
 #, kde-format
 msgid "Show all models (%1 hidden)"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:138
+#: contents/ui/config/ProviderEditor.qml:142
 #, kde-format
 msgid ""
 "Only models you can chat with are listed. Turn this on to also see the "
 "others (for search, safety checks, speech or pictures)."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:150
+#: contents/ui/config/ProviderEditor.qml:154
 #, kde-format
 msgid "Checking the key with the provider…"
 msgstr ""
@@ -4285,45 +4345,45 @@ msgid ""
 "This is called \"streaming\". A few servers and proxies don't support it."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:28
+#: contents/ui/config/ScheduleDescribeBox.qml:29
 #, kde-format
 msgid "Describe when (e.g. weekdays at 9 and Sunday at noon)"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:34
+#: contents/ui/config/ScheduleDescribeBox.qml:35
 #, kde-format
 msgid "Fill in"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:39
+#: contents/ui/config/ScheduleDescribeBox.qml:40
 #, kde-format
 msgid ""
 "Ask %1 to turn the sentence into rules. You can check them before saving."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:50
+#: contents/ui/config/ScheduleDescribeBox.qml:51
 #, kde-format
 msgid ""
 "To describe it in words, choose a provider with a model in Settings → "
 "Connection. OpenCode and Pi are not used for this."
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:60
+#: contents/ui/config/ScheduleDescribeBox.qml:61
 #, kde-format
 msgid "Asking %1…"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:100
+#: contents/ui/config/ScheduleDescribeBox.qml:102
 #, kde-format
 msgid "Or type your answer"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:107
+#: contents/ui/config/ScheduleDescribeBox.qml:109
 #, kde-format
 msgid "Answer"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:139
+#: contents/ui/config/ScheduleDescribeBox.qml:141
 #, kde-format
 msgid "Filled in: %1. Check the rules and the next runs below, then save."
 msgstr ""
@@ -4365,49 +4425,49 @@ msgid ""
 "differently."
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:87
+#: contents/ui/config/ScheduleEditor.qml:88
 #, kde-format
 msgid "e.g. Latest news"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:91
+#: contents/ui/config/ScheduleEditor.qml:92
 #, kde-format
 msgid "A short name, so you recognise this schedule in the list."
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:95
+#: contents/ui/config/ScheduleEditor.qml:97
 #, kde-format
 msgid "Chat:"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:101
+#: contents/ui/config/ScheduleEditor.qml:103
 #, kde-format
 msgid "A deleted chat"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:101
+#: contents/ui/config/ScheduleEditor.qml:103
 #, kde-format
 msgid "Choose a chat…"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:105
+#: contents/ui/config/ScheduleEditor.qml:107
 #, kde-format
 msgid ""
 "The chat the message is sent into. The answer appears there, like a reply to "
 "something you typed."
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:110
+#: contents/ui/config/ScheduleEditor.qml:112
 #, kde-format
 msgid "Message to send:"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:117
+#: contents/ui/config/ScheduleEditor.qml:122
 #, kde-format
 msgid "e.g. Summarise today's tech news"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:127
+#: contents/ui/config/ScheduleEditor.qml:132
 #, c++-format, kde-format
 msgid ""
 "What is sent to the AI, as if you typed it. You can use {{date}}, {{time}}, "
@@ -4415,12 +4475,12 @@ msgid ""
 "time it is sent."
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:132
+#: contents/ui/config/ScheduleEditor.qml:137
 #, kde-format
 msgid "When"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:136
+#: contents/ui/config/ScheduleEditor.qml:141
 #, kde-format
 msgid ""
 "The times the message is sent. Describe them in a sentence and let the AI "
@@ -4428,24 +4488,24 @@ msgid ""
 "logged in, even when the chat is closed."
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:161
+#: contents/ui/config/ScheduleEditor.qml:166
 #, kde-format
 msgid "Add rule"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:166
+#: contents/ui/config/ScheduleEditor.qml:171
 #, kde-format
 msgid ""
 "The schedule runs at the times of every rule, e.g. Mondays at 16:00 and the "
 "other days at 15:00."
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:176
+#: contents/ui/config/ScheduleEditor.qml:181
 #, kde-format
 msgid "Fewer options"
 msgstr ""
 
-#: contents/ui/config/ScheduleEditor.qml:176
+#: contents/ui/config/ScheduleEditor.qml:181
 #, kde-format
 msgid "More options: dates, run limit, missed runs, notification"
 msgstr ""
@@ -4516,7 +4576,7 @@ msgid "Due, not sent"
 msgstr ""
 
 #: contents/ui/config/ScheduleHistory.qml:30
-#: contents/ui/config/ScheduleRow.qml:69
+#: contents/ui/config/ScheduleRow.qml:70
 #, kde-format
 msgid "Untitled schedule"
 msgstr ""
@@ -4543,90 +4603,105 @@ msgstr ""
 msgid "planned for %1"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:28
+#: contents/ui/config/ScheduleOptions.qml:29
 #, kde-format
 msgid "Start on:"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:30
-#: contents/ui/config/ScheduleOptions.qml:40
+#: contents/ui/config/ScheduleOptions.qml:31
+#: contents/ui/config/ScheduleOptions.qml:42
 #, kde-format
 msgid "YYYY-MM-DD (optional)"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:34
+#: contents/ui/config/ScheduleOptions.qml:35
 #, kde-format
 msgid ""
 "The first day this schedule may run, for example 2026-12-01. Leave empty to "
 "start right away."
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:38
+#: contents/ui/config/ScheduleOptions.qml:40
 #, kde-format
 msgid "End after:"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:44
+#: contents/ui/config/ScheduleOptions.qml:46
 #, kde-format
 msgid ""
 "The last day it may run. Leave empty to keep going until you turn it off."
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:47
+#: contents/ui/config/ScheduleOptions.qml:49
 #, kde-format
 msgid "Stop after:"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:62
+#: contents/ui/config/ScheduleOptions.qml:51
+#, kde-format
+msgid "Stop after a number of runs"
+msgstr ""
+
+#: contents/ui/config/ScheduleOptions.qml:58
+#, kde-format
+msgid "Number of runs"
+msgstr ""
+
+#: contents/ui/config/ScheduleOptions.qml:66
 #, kde-format
 msgid "runs"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:65
+#: contents/ui/config/ScheduleOptions.qml:69
 #, kde-format
 msgid ""
 "Stop by itself after sending the message this many times, for example for a "
 "five-day reminder."
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:69
+#: contents/ui/config/ScheduleOptions.qml:73
 #, kde-format
 msgid "If missed:"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:70
+#: contents/ui/config/ScheduleOptions.qml:74
 #, kde-format
 msgid "Run once when the computer is back"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:77
+#: contents/ui/config/ScheduleOptions.qml:81
 #, kde-format
 msgid "only if missed within"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:85
+#: contents/ui/config/ScheduleOptions.qml:83
+#, kde-format
+msgid "Hours within which a missed run still runs"
+msgstr ""
+
+#: contents/ui/config/ScheduleOptions.qml:90
 #, kde-format
 msgid "hours"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:88
+#: contents/ui/config/ScheduleOptions.qml:93
 #, kde-format
 msgid ""
 "If the computer was off or asleep at the set time, send the message once "
 "when it is back. Off: the missed time is only noted in the history."
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:92
+#: contents/ui/config/ScheduleOptions.qml:97
 #, kde-format
 msgid "Notify:"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:93
+#: contents/ui/config/ScheduleOptions.qml:98
 #, kde-format
 msgid "Show a notification when the answer is ready"
 msgstr ""
 
-#: contents/ui/config/ScheduleOptions.qml:98
+#: contents/ui/config/ScheduleOptions.qml:103
 #, kde-format
 msgid ""
 "A desktop notification tells you when the answer has arrived, so you don't "
@@ -4634,7 +4709,7 @@ msgid ""
 msgstr ""
 
 #: contents/ui/config/SchedulePreview.qml:37
-#: contents/ui/config/ScheduleRow.qml:139
+#: contents/ui/config/ScheduleRow.qml:142
 #, kde-format
 msgid "Never runs"
 msgstr ""
@@ -4674,63 +4749,68 @@ msgstr ""
 msgid "Check it and save it to turn it on"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:60
+#: contents/ui/config/ScheduleRow.qml:55
+#, kde-format
+msgid "Schedule enabled"
+msgstr ""
+
+#: contents/ui/config/ScheduleRow.qml:61
 #, kde-format
 msgid "On: runs at the times below"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:60
+#: contents/ui/config/ScheduleRow.qml:61
 #, kde-format
 msgid "Off: never runs"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:76
+#: contents/ui/config/ScheduleRow.qml:77
 #, kde-format
 msgid "a deleted chat"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:76
+#: contents/ui/config/ScheduleRow.qml:77
 #, kde-format
 msgid "In “%1”"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:76
+#: contents/ui/config/ScheduleRow.qml:77
 #, kde-format
 msgid "No chat chosen"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:82
+#: contents/ui/config/ScheduleRow.qml:83
 #, kde-format
 msgid "Finish…"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:95
-#: contents/ui/config/LayoutSettings.qml:131
+#: contents/ui/config/ScheduleRow.qml:97
+#: contents/ui/config/LayoutSettings.qml:132
 #, kde-format
 msgid "History"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:112
+#: contents/ui/config/ScheduleRow.qml:115
 #, kde-format
 msgid "Brought over from the old scheduler. %1."
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:133
+#: contents/ui/config/ScheduleRow.qml:136
 #, kde-format
 msgid "Off"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:135
+#: contents/ui/config/ScheduleRow.qml:138
 #, kde-format
 msgid "No more runs"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:137
+#: contents/ui/config/ScheduleRow.qml:140
 #, kde-format
 msgid "Next: %1"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:153
+#: contents/ui/config/ScheduleRow.qml:156
 #, kde-format
 msgid "Delete this schedule and its history?"
 msgstr ""
@@ -4795,115 +4875,147 @@ msgstr ""
 msgid "A cron rule has five fields: minute hour day month weekday."
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:73
+#: contents/ui/config/ScheduleRuleRow.qml:54
+#, kde-format
+msgid "Schedule type"
+msgstr ""
+
+#: contents/ui/config/ScheduleRuleRow.qml:74
 #, kde-format
 msgid "Remove rule"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:101
+#: contents/ui/config/ScheduleRuleRow.qml:102
 #, kde-format
 msgid "Weekdays"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:105
+#: contents/ui/config/ScheduleRuleRow.qml:106
 #, kde-format
 msgid "Every day"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:113
+#: contents/ui/config/ScheduleRuleRow.qml:114
 #, kde-format
 msgid "On day"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:124
+#: contents/ui/config/ScheduleRuleRow.qml:116
+#, kde-format
+msgid "Day of the month"
+msgstr ""
+
+#: contents/ui/config/ScheduleRuleRow.qml:126
 #, kde-format
 msgid "Last day of the month"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:133
+#: contents/ui/config/ScheduleRuleRow.qml:135
 #, kde-format
 msgid "On"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:144
+#: contents/ui/config/ScheduleRuleRow.qml:147
 #, kde-format
 msgid "at"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:162
+#: contents/ui/config/ScheduleRuleRow.qml:166
 #, kde-format
 msgid "At"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:176
+#: contents/ui/config/ScheduleRuleRow.qml:180
 #, kde-format
 msgid "day(s)"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:176
+#: contents/ui/config/ScheduleRuleRow.qml:180
 #, kde-format
 msgid "week(s)"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:177
+#: contents/ui/config/ScheduleRuleRow.qml:181
 #, kde-format
 msgid "month(s)"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:177
+#: contents/ui/config/ScheduleRuleRow.qml:181
 #, kde-format
 msgid "minutes"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:180
+#: contents/ui/config/ScheduleRuleRow.qml:184
+#: contents/ui/config/ScheduleRuleRow.qml:186
 #, kde-format
 msgid "Repeat every"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:195
+#: contents/ui/config/ScheduleRuleRow.qml:200
 #, kde-format
 msgid "Every"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:198
+#: contents/ui/config/ScheduleRuleRow.qml:202
+#, kde-format
+msgid "Hours between runs"
+msgstr ""
+
+#: contents/ui/config/ScheduleRuleRow.qml:204
 #, kde-format
 msgid "%1 hour"
 msgid_plural "%1 hours"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:202
+#: contents/ui/config/ScheduleRuleRow.qml:208
 #, kde-format
 msgid "at minute"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:209
+#: contents/ui/config/ScheduleRuleRow.qml:210
+#, kde-format
+msgid "At minute"
+msgstr ""
+
+#: contents/ui/config/ScheduleRuleRow.qml:216
+#: contents/ui/config/ScheduleRuleRow.qml:218
 #, kde-format
 msgid "From hour"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:216
+#: contents/ui/config/ScheduleRuleRow.qml:224
 #, kde-format
 msgid "to hour"
 msgstr ""
 
-#: contents/ui/config/ScheduleRuleRow.qml:241
+#: contents/ui/config/ScheduleRuleRow.qml:226
+#, kde-format
+msgid "To hour"
+msgstr ""
+
+#: contents/ui/config/ScheduleRuleRow.qml:239
+#, kde-format
+msgid "Cron expression"
+msgstr ""
+
+#: contents/ui/config/ScheduleRuleRow.qml:251
 #, kde-format
 msgid ""
 "minute hour day-of-month month weekday, e.g. 0 9 * * 1-5 (09:00 on weekdays)"
 msgstr ""
 
-#: contents/ui/config/ScheduleTimes.qml:45
+#: contents/ui/config/ScheduleTimes.qml:46
 #, kde-format
 msgid "Type a 24-hour time such as 09:00 or 16:30"
 msgstr ""
 
-#: contents/ui/config/ScheduleTimes.qml:51
+#: contents/ui/config/ScheduleTimes.qml:52
 #, kde-format
 msgid "Remove time"
 msgstr ""
 
-#: contents/ui/config/ScheduleTimes.qml:63
+#: contents/ui/config/ScheduleTimes.qml:64
 #, kde-format
 msgid "Add time"
 msgstr ""
@@ -5136,34 +5248,34 @@ msgid ""
 "may need a moment, or a restart of KRunner, to notice the change."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:101
+#: contents/ui/ConfigDesktop.qml:102
 #, kde-format
 msgid "Word to type first:"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:109
+#: contents/ui/ConfigDesktop.qml:110
 #, kde-format
 msgid ""
 "KRunner only offers to ask KDE AI Chat when what you type starts with this "
 "word and a space. Use one short word with no spaces."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:110
+#: contents/ui/ConfigDesktop.qml:111
 #, kde-format
 msgid "Use one word without spaces. “%1” will be used instead."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:116
+#: contents/ui/ConfigDesktop.qml:117
 #, kde-format
 msgid "Dolphin:"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:117
+#: contents/ui/ConfigDesktop.qml:118
 #, kde-format
 msgid "“Ask KDE AI Chat about this file” in Dolphin"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:121
+#: contents/ui/ConfigDesktop.qml:122
 #, kde-format
 msgid ""
 "Adds an entry to Dolphin’s right-click menu for text files, PDFs, Word "
@@ -5172,17 +5284,17 @@ msgid ""
 "when you send the message."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:127
+#: contents/ui/ConfigDesktop.qml:128
 #, kde-format
 msgid "Selected text:"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:128
+#: contents/ui/ConfigDesktop.qml:129
 #, kde-format
 msgid "Ask about the selected text (Meta+Alt+A)"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:132
+#: contents/ui/ConfigDesktop.qml:133
 #, kde-format
 msgid ""
 "Adds a keyboard shortcut that works in any app: select some text, press "
@@ -5193,17 +5305,17 @@ msgid ""
 "Keyboard, Shortcuts, under “Ask KDE AI Chat about the selected text”."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:143 contents/ui/ConfigDesktop.qml:144
+#: contents/ui/ConfigDesktop.qml:144 contents/ui/ConfigDesktop.qml:145
 #, kde-format
 msgid "yes"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:143 contents/ui/ConfigDesktop.qml:144
+#: contents/ui/ConfigDesktop.qml:144 contents/ui/ConfigDesktop.qml:145
 #, kde-format
 msgid "no"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:142
+#: contents/ui/ConfigDesktop.qml:143
 #, kde-format
 msgid "Installed now: KRunner %1, Dolphin %2, shortcut %3."
 msgstr ""
@@ -5957,22 +6069,27 @@ msgid ""
 "computer unless you pick a server below."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:187 contents/ui/config/DictationSettings.qml:67
+#: contents/ui/ConfigVoice.qml:187 contents/ui/config/DictationSettings.qml:68
 #, kde-format
 msgid "Engine:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:199
+#: contents/ui/ConfigVoice.qml:190
+#, kde-format
+msgid "Engine"
+msgstr ""
+
+#: contents/ui/ConfigVoice.qml:200
 #, kde-format
 msgid "%1 (not available)"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:210
+#: contents/ui/ConfigVoice.qml:211
 #, kde-format
 msgid "Looking for voices…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:223
+#: contents/ui/ConfigVoice.qml:224
 #, kde-format
 msgid ""
 "The engine is the program that makes the speech. Speech Note is a separate "
@@ -5980,41 +6097,41 @@ msgid ""
 "any setup but sounds robotic; a speech server is one you run or pay for."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:263 contents/ui/config/DictationSettings.qml:126
+#: contents/ui/ConfigVoice.qml:264 contents/ui/config/DictationSettings.qml:128
 #, kde-format
 msgid "Try it:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:267
+#: contents/ui/ConfigVoice.qml:268
 #, kde-format
 msgid "Say Hello"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:274
+#: contents/ui/ConfigVoice.qml:275
 #, kde-format
 msgid "Speaking…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:282
+#: contents/ui/ConfigVoice.qml:283
 #, kde-format
 msgid ""
 "Plays a short greeting with the settings above, so you can hear them before "
 "saving."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:288
+#: contents/ui/ConfigVoice.qml:289
 #, kde-format
 msgid "Read every reply aloud when it is finished"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:293
+#: contents/ui/ConfigVoice.qml:294
 #, kde-format
 msgid ""
 "Hands-free: each new reply is spoken without pressing the speaker button. "
 "Stop it with the stop button or Ctrl+Shift+S."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:298
+#: contents/ui/ConfigVoice.qml:299
 #, kde-format
 msgid "Dictation"
 msgstr ""
@@ -6226,52 +6343,52 @@ msgstr ""
 msgid "Not saved: %1"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:60 contents/ui/config/TtsOption.qml:61
+#: contents/ui/config/TtsOption.qml:61 contents/ui/config/TtsOption.qml:62
 #, kde-format
 msgid "Engine default"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:81
+#: contents/ui/config/TtsOption.qml:83
 #, kde-format
 msgid "%1×"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:82
+#: contents/ui/config/TtsOption.qml:84
 #, kde-format
 msgid "normal"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:93
+#: contents/ui/config/TtsOption.qml:95
 #, kde-format
 msgid "Enter an address that starts with http:// or https://."
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:126
+#: contents/ui/config/TtsOption.qml:130
 #, kde-format
 msgid "Saved in KWallet"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:126
+#: contents/ui/config/TtsOption.qml:130
 #, kde-format
 msgid "Not set"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:129
+#: contents/ui/config/TtsOption.qml:133
 #, kde-format
 msgid "Save key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:129
+#: contents/ui/config/TtsOption.qml:133
 #, kde-format
 msgid "Remove key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:134
+#: contents/ui/config/TtsOption.qml:138
 #, kde-format
 msgid "Saved."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:79
+#: contents/ui/config/DictationSettings.qml:80
 #, kde-format
 msgid ""
 "The engine is the program that turns your speech into text. Speech Note "
@@ -6279,43 +6396,43 @@ msgid ""
 "the recording."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:112
+#: contents/ui/config/DictationSettings.qml:114
 #, kde-format
 msgid "Spoken language:"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:122
+#: contents/ui/config/DictationSettings.qml:124
 #, kde-format
 msgid ""
 "The language you speak. \"Detect automatically\" works for most people; "
 "choosing yours helps with short phrases."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:130
+#: contents/ui/config/DictationSettings.qml:132
 #, kde-format
 msgid "Test"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:135
+#: contents/ui/config/DictationSettings.qml:137
 #, kde-format
 msgid ""
 "Sends a short recording that comes with the widget to the server, with the "
 "settings above."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:152
+#: contents/ui/config/DictationSettings.qml:154
 #, kde-format
 msgid ""
 "Checks the settings above with a short recording that comes with the widget; "
 "no microphone needed."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:156
+#: contents/ui/config/DictationSettings.qml:158
 #, kde-format
 msgid "Send the transcript right away"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:162
+#: contents/ui/config/DictationSettings.qml:164
 #, kde-format
 msgid ""
 "On: what you said is sent as soon as you stop talking. Off: it waits in the "
@@ -6376,33 +6493,33 @@ msgstr ""
 msgid "Get it:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:106
+#: contents/ui/config/SpeechNotePanel.qml:107
 #, kde-format
 msgid "Speech model:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:106
+#: contents/ui/config/SpeechNotePanel.qml:107
 #, kde-format
 msgid "Voice:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:110
+#: contents/ui/config/SpeechNotePanel.qml:111
 #, kde-format
 msgid "Speech Note's default"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:127
+#: contents/ui/config/SpeechNotePanel.qml:128
 #, kde-format
 msgid ""
 "Speech Note has no speech-to-text model yet: download one in Speech Note."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:128
+#: contents/ui/config/SpeechNotePanel.qml:129
 #, kde-format
 msgid "Speech Note has no voice yet: download one in Speech Note."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:134
+#: contents/ui/config/SpeechNotePanel.qml:135
 #, kde-format
 msgid ""
 "Which of the speech models you downloaded in Speech Note understands you. "
@@ -6410,7 +6527,7 @@ msgid ""
 "name shows its language."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:135
+#: contents/ui/config/SpeechNotePanel.qml:136
 #, kde-format
 msgid ""
 "Which of the voices you downloaded in Speech Note reads to you. \"Speech "
@@ -6418,17 +6535,17 @@ msgid ""
 "its language."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:142
+#: contents/ui/config/SpeechNotePanel.qml:144
 #, kde-format
 msgid "Keep ready:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:147
+#: contents/ui/config/SpeechNotePanel.qml:149
 #, kde-format
 msgid "Only when used"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:154
+#: contents/ui/config/SpeechNotePanel.qml:156
 #, kde-format
 msgid ""
 "How long Speech Note stays ready after you close the chat, so the next press "
@@ -6437,12 +6554,12 @@ msgid ""
 "minute."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:159
+#: contents/ui/config/SpeechNotePanel.qml:161
 #, kde-format
 msgid "Credit:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:164
+#: contents/ui/config/SpeechNotePanel.qml:166
 #, kde-format
 msgid ""
 "Speech, models and GPU support by <a href=\"%1\">Speech Note</a>, © Michał "
@@ -6690,12 +6807,12 @@ msgstr ""
 msgid "Animated images (*.gif *.png *.apng *.webp)"
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:99
+#: contents/ui/config/PanelIconSettings.qml:100
 #, kde-format
 msgid "Panel icon:"
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:109
+#: contents/ui/config/PanelIconSettings.qml:110
 #, kde-format
 msgid ""
 "What the widget shows in the panel: its icon, or a small animation or video "
@@ -6703,7 +6820,7 @@ msgid ""
 "screen is locked."
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:110
+#: contents/ui/config/PanelIconSettings.qml:111
 #, kde-format
 msgid ""
 "What the widget shows in the panel: its icon, or a small animation of your "
@@ -6711,34 +6828,34 @@ msgid ""
 "animation is paused while the panel is hidden or the screen is locked."
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:115
+#: contents/ui/config/PanelIconSettings.qml:116
 #, kde-format
 msgid "File:"
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:134
+#: contents/ui/config/PanelIconSettings.qml:135
 #, kde-format
 msgid "No file chosen"
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:147
+#: contents/ui/config/PanelIconSettings.qml:148
 #, kde-format
 msgid "Use no file"
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:166
+#: contents/ui/config/PanelIconSettings.qml:167
 #, kde-format
 msgid ""
 "A small file of up to 20 MB; a few seconds that repeat look best. If the "
 "file goes missing or can't be played, the normal icon is shown."
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:172
+#: contents/ui/config/PanelIconSettings.qml:173
 #, kde-format
 msgid "Animate only while the pointer is on it"
 msgstr ""
 
-#: contents/ui/config/PanelIconSettings.qml:179
+#: contents/ui/config/PanelIconSettings.qml:180
 #, kde-format
 msgid ""
 "Keeps the panel calm and saves a little power: the animation stands still "
@@ -6756,12 +6873,12 @@ msgstr ""
 msgid "The AI service Pi uses for this chat. Empty: Pi's default."
 msgstr ""
 
-#: contents/ui/chat/PiChatSettings.qml:66
+#: contents/ui/chat/PiChatSettings.qml:67
 #, kde-format
 msgid "The AI model Pi uses for this chat. Empty: Pi's default."
 msgstr ""
 
-#: contents/ui/chat/PiChatSettings.qml:92
+#: contents/ui/chat/PiChatSettings.qml:94
 #, kde-format
 msgid ""
 "How hard the model thinks before answering: more is slower and costs more, "
@@ -6877,53 +6994,68 @@ msgstr ""
 msgid "Spacing:"
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:117
+#: contents/ui/config/ChatLookSettings.qml:107
+#, kde-format
+msgid "Spacing"
+msgstr ""
+
+#: contents/ui/config/ChatLookSettings.qml:118
 #, kde-format
 msgid ""
 "How much room there is between and around messages. Compact fits more on the "
 "screen; roomy is easier to read."
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:121
+#: contents/ui/config/ChatLookSettings.qml:122
 #, kde-format
 msgid "Messages:"
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:136
+#: contents/ui/config/ChatLookSettings.qml:127
+#, kde-format
+msgid "Message style"
+msgstr ""
+
+#: contents/ui/config/ChatLookSettings.qml:138
 #, kde-format
 msgid ""
 "Plain shows the messages as text on the chat's background. Bubbles puts each "
 "message in a box: yours tinted with the accent colour."
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:140
+#: contents/ui/config/ChatLookSettings.qml:142
 #, kde-format
 msgid "Code colours:"
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:155
+#: contents/ui/config/ChatLookSettings.qml:147
+#, kde-format
+msgid "Code colours"
+msgstr ""
+
+#: contents/ui/config/ChatLookSettings.qml:158
 #, kde-format
 msgid ""
 "The colours of program code in answers. Plasma colours match your desktop; "
 "the others always look the same, for example dark code on a light desktop."
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:159
+#: contents/ui/config/ChatLookSettings.qml:162
 #, kde-format
 msgid "Accent colour:"
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:175
+#: contents/ui/config/ChatLookSettings.qml:178
 #, kde-format
 msgid "Plasma accent"
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:177
+#: contents/ui/config/ChatLookSettings.qml:180
 #, kde-format
 msgid "Choose the accent colour"
 msgstr ""
 
-#: contents/ui/config/ChatLookSettings.qml:183
+#: contents/ui/config/ChatLookSettings.qml:186
 #, kde-format
 msgid ""
 "The colour of highlights in the chat: selected text, the picked message and, "
@@ -6973,24 +7105,29 @@ msgstr ""
 msgid "History side:"
 msgstr ""
 
-#: contents/ui/config/LayoutSettings.qml:104
+#: contents/ui/config/LayoutSettings.qml:94
+#, kde-format
+msgid "History side"
+msgstr ""
+
+#: contents/ui/config/LayoutSettings.qml:105
 #, kde-format
 msgid ""
 "Where the list of your chats appears when the chat is wide enough to show it "
 "beside the conversation."
 msgstr ""
 
-#: contents/ui/config/LayoutSettings.qml:108
+#: contents/ui/config/LayoutSettings.qml:109
 #, kde-format
 msgid "Folder bar:"
 msgstr ""
 
-#: contents/ui/config/LayoutSettings.qml:114
+#: contents/ui/config/LayoutSettings.qml:115
 #, kde-format
 msgid "Show the folder and project bar above the chat"
 msgstr ""
 
-#: contents/ui/config/LayoutSettings.qml:121
+#: contents/ui/config/LayoutSettings.qml:122
 #, kde-format
 msgid ""
 "The bar shows the chat's folder and project. Hide it if you don't use them; "
@@ -6998,17 +7135,17 @@ msgid ""
 "show it, for the agent choice."
 msgstr ""
 
-#: contents/ui/config/LayoutSettings.qml:125
+#: contents/ui/config/LayoutSettings.qml:126
 #, kde-format
 msgid "Buttons at the top:"
 msgstr ""
 
-#: contents/ui/config/LayoutSettings.qml:155
+#: contents/ui/config/LayoutSettings.qml:156
 #, kde-format
 msgid "Settings"
 msgstr ""
 
-#: contents/ui/config/LayoutSettings.qml:186
+#: contents/ui/config/LayoutSettings.qml:187
 #, kde-format
 msgid ""
 "Hide the buttons you don't use. The keyboard shortcuts for the history, a "
@@ -7051,68 +7188,78 @@ msgstr ""
 msgid "Sending:"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:74
+#: contents/ui/config/BehaviourSettings.qml:64
+#, kde-format
+msgid "Send key"
+msgstr ""
+
+#: contents/ui/config/BehaviourSettings.qml:75
 #, kde-format
 msgid ""
 "Which key sends your message. Choose Ctrl+Enter if you often write messages "
 "of several lines and sometimes send them too early."
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:78
+#: contents/ui/config/BehaviourSettings.qml:79
 #, kde-format
 msgid "Scrolling:"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:84
+#: contents/ui/config/BehaviourSettings.qml:85
 #, kde-format
 msgid "Follow the answer while it is being written"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:91
+#: contents/ui/config/BehaviourSettings.qml:92
 #, kde-format
 msgid ""
 "The chat moves down as new text comes in. Turn this off to read at your own "
 "pace: a \"New messages\" button takes you to the end."
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:95
+#: contents/ui/config/BehaviourSettings.qml:96
 #, kde-format
 msgid "Times:"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:110
+#: contents/ui/config/BehaviourSettings.qml:101
+#, kde-format
+msgid "Time format"
+msgstr ""
+
+#: contents/ui/config/BehaviourSettings.qml:112
 #, kde-format
 msgid "How the time is written next to each message."
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:114
+#: contents/ui/config/BehaviourSettings.qml:116
 #, kde-format
 msgid "Deleting chats:"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:120
+#: contents/ui/config/BehaviourSettings.qml:122
 #, kde-format
 msgid "Ask before deleting a chat"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:127
+#: contents/ui/config/BehaviourSettings.qml:129
 #, kde-format
 msgid ""
 "A question appears before a chat is deleted from the history. Either way, "
 "Undo brings a deleted chat back for a few seconds."
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:131
+#: contents/ui/config/BehaviourSettings.qml:133
 #, kde-format
 msgid "Opening:"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:137
+#: contents/ui/config/BehaviourSettings.qml:139
 #, kde-format
 msgid "Start a new chat each time the widget opens"
 msgstr ""
 
-#: contents/ui/config/BehaviourSettings.qml:144
+#: contents/ui/config/BehaviourSettings.qml:146
 #, kde-format
 msgid ""
 "Opens on an empty chat instead of the last one. Earlier chats stay in the "
