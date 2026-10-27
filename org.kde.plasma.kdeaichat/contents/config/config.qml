@@ -53,6 +53,6 @@ ConfigModel {
     ConfigCategory {
         name: i18n("Support")
         icon: "emblem-favorite"
-        source: "ConfigAbout.qml"
+        source: "ConfigSupport.qml"
     }
 }
