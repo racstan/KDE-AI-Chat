@@ -55,6 +55,17 @@ sysInfoUser togetherImageBaseUrl togetherImageModel uiLanguage useKWallet voiceC
 voiceTtsModel voiceTtsModelPath voiceTtsVoice voiceVenvPath
 """.split())
 
+# Declared by earlier 1.4.0 builds and 1.3.x for the voice engines the widget no longer runs itself (faster-whisper,
+# Parakeet, whisper.cpp, the custom commands, Kokoro, Flite, Piper). Speech now goes through Speech Note, the
+# system voice or a speech server; voice/SttConfig.js moves a saved engine of those to Speech Note.
+DROPPED |= frozenset("""
+sttModel sttParakeetModel sttDevice sttWhisperCppBinary sttWhisperCppModel sttWhisperCppServer sttCommand
+sttIdleMinutes voiceGpuEnabled voiceSttModel voiceSttModelPath
+voiceTtsNeuralVoice voiceTtsNeuralSpeed voiceTtsKokoroLanguage voiceTtsKokoroVoice voiceTtsKokoroRate
+voiceTtsFliteVoice voiceTtsFliteRate voiceTtsFlitePitch voiceTtsPiperModel voiceTtsPiperSpeaker voiceTtsPiperSpeed
+voiceTtsCommand
+""".split())
+
 # The plaintext key settings store/Migration.qml moves into KWallet (must match privacy.LEGACY_KEY_PROVIDERS).
 OLD_KEYS = frozenset("""
 apiKey anthropicApiKey groqApiKey deepSeekApiKey miniMaxApiKey fireworksApiKey googleApiKey openRouterApiKey
@@ -63,7 +74,7 @@ qwenApiKey moonshotApiKey mimoApiKey huggingfaceImageApiKey replicateApiKey stab
 """.split())
 
 # Copied once into the stt* settings by voice/SttConfig.js, which then sets sttSettingsMigrated.
-OLD_DICTATION = frozenset(("voiceEnabled", "voiceGpuEnabled", "voiceSttModel", "voiceSttModelPath", "voiceLanguage"))
+OLD_DICTATION = frozenset(("voiceEnabled", "voiceLanguage"))
 
 KEEP_BACKUPS = 5
 LOCK_WAIT = 3.0

@@ -1,18 +1,10 @@
-"""Read aloud with engines that write sound files (voice/FileSpeech.qml plays them).
+"""Read aloud with a speech server, which writes sound files (voice/FileSpeech.qml plays them).
 
-- ``tts_probe {}``: which of these engines can run here: ``{"piper": path}``
-  ("" when no ``piper`` program is found).
-- ``tts_synthesize {engine, text, options}``: writes one WAV for ``text`` and
-  prints ``{"ok": true, "path": ...}`` or ``{"ok": false, "error": ...}``.
-  Engines: ``piper`` (local binary + .onnx voice), ``remote`` (an
-  OpenAI-compatible ``/audio/speech``; its key is read here from KWallet,
-  entry ``tts-remote``, never passed in), ``command`` (the user's template,
-  text on stdin, WAV on stdout or to ``{output}``; run without a shell),
-  ``neural`` (the natural voice, Kokoro: ``tts_worker.py`` starts its
-  service on demand). A failure carries ``code`` "not_installed" when the
-  natural voice isn't set up, so the widget can use the system voice.
-- ``tts_cleanup {path?}``: removes one played file, or every file older than
-  ten minutes.
+- ``tts_synthesize {engine: "remote", text, options}``: writes one WAV for ``text`` and
+  prints ``{"ok": true, "path": ...}`` or ``{"ok": false, "error": ...}``. ``remote`` is an
+  OpenAI-compatible ``/audio/speech`` server; its key is read here from KWallet, entry
+  ``tts-remote``, never passed in. (Speech Note and the system voice are run by the widget itself.)
+- ``tts_cleanup {path?}``: removes one played file, or every file older than ten minutes.
 
 Files go to ``$XDG_RUNTIME_DIR/kdeaichat-tts`` (private, in memory), or
 ``~/.cache/kdeaichat/tts`` without a runtime dir. ``KDEAICHAT_TTS_DIR``
@@ -20,16 +12,13 @@ overrides it for tests.
 """
 import json
 import os
-import shlex
-import shutil
-import subprocess
 import tempfile
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from kdeaichat import schedule_wallet, tts_neural, tts_worker
+from kdeaichat import schedule_wallet
 from kdeaichat.common import safe_path
 
 TIMEOUT = 120
@@ -58,20 +47,6 @@ def _new_wav() -> str:
     return path
 
 
-def find_piper(binary: str = "") -> str:
-    if binary:
-        path = os.path.expanduser(binary)
-        if os.sep in path:
-            return path if os.path.isfile(path) and os.access(path, os.X_OK) else ""
-        return shutil.which(path) or ""
-    for name in ("piper", "piper-tts"):
-        found = shutil.which(name)
-        if found:
-            return found
-    local = os.path.expanduser("~/.local/bin/piper")
-    return local if os.access(local, os.X_OK) else ""
-
-
 def _is_wav(path: str) -> bool:
     try:
         with open(path, "rb") as f:
@@ -87,52 +62,6 @@ def _speed(options: Dict[str, Any], key: str) -> float:
     except (TypeError, ValueError):
         value = 1.0
     return max(0.5, min(2.0, value))
-
-
-def _run(argv: List[str], text: str, out_path: str, stdout_is_wav: bool) -> None:
-    try:
-        with open(out_path, "wb") as out:
-            result = subprocess.run(argv, input=text.encode("utf-8"), stdout=out if stdout_is_wav else subprocess.DEVNULL,
-                                    stderr=subprocess.PIPE, timeout=TIMEOUT)
-    except FileNotFoundError:
-        raise RuntimeError(f"program not found: {argv[0]}") from None
-    except subprocess.TimeoutExpired:
-        raise RuntimeError(f"no sound after {TIMEOUT} seconds") from None
-    if result.returncode != 0:
-        last = result.stderr.decode("utf-8", "replace").strip().splitlines()[-1:] or [f"exit code {result.returncode}"]
-        raise RuntimeError(last[0][:300])
-
-
-def synth_piper(text: str, options: Dict[str, Any], out_path: str) -> None:
-    binary = find_piper(str(options.get("voiceTtsPiperBinary", "") or ""))
-    if not binary:
-        raise RuntimeError("Piper is not installed (no piper program found)")
-    model = safe_path(options.get("voiceTtsPiperModel", ""))
-    if not os.path.isfile(model):
-        raise RuntimeError("the Piper voice file was not found")
-    argv = [binary, "--model", model, "--output_file", out_path,
-            "--length_scale", f"{1 / _speed(options, 'voiceTtsPiperSpeed'):.3f}"]
-    try:
-        speaker = int(options.get("voiceTtsPiperSpeaker", 0) or 0)
-    except (TypeError, ValueError):
-        speaker = 0
-    if speaker > 0:
-        argv += ["--speaker", str(speaker)]
-    _run(argv, text, out_path, stdout_is_wav=False)
-
-
-def synth_command(text: str, options: Dict[str, Any], out_path: str) -> None:
-    template = str(options.get("voiceTtsCommand", "") or "").strip()
-    if not template or any(ch in template for ch in "\x00\n\r"):
-        raise RuntimeError("no command is set")
-    try:
-        argv = shlex.split(template)
-    except ValueError as e:
-        raise RuntimeError(f"the command can't be read: {e}") from None
-    uses_output = any("{output}" in arg for arg in argv)
-    argv = [arg.replace("{output}", out_path) for arg in argv]
-    argv[0] = os.path.expanduser(argv[0])
-    _run(argv, text, out_path, stdout_is_wav=not uses_output)
 
 
 def _remote_key() -> str:
@@ -170,17 +99,7 @@ def synth_remote(text: str, options: Dict[str, Any], out_path: str) -> None:
         f.write(data)
 
 
-def pause_after(text: str) -> int:
-    """Silence (ms) after a chunk of the natural voice, which reads a sentence at a time."""
-    end = text.rstrip()[-1:]
-    return 350 if end in ".!?…" else 200 if end in ":;" else 150
-
-
-def synth_neural(text: str, options: Dict[str, Any], out_path: str) -> None:
-    tts_worker.synthesize(text, options, out_path, pause_after(text))
-
-
-ENGINES = {"piper": synth_piper, "remote": synth_remote, "command": synth_command, "neural": synth_neural}
+ENGINES = {"remote": synth_remote}
 
 
 def synthesize(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -198,10 +117,7 @@ def synthesize(payload: Dict[str, Any]) -> Dict[str, Any]:
             raise RuntimeError("the engine did not write a WAV file")
     except (RuntimeError, ValueError) as e:
         _remove(path)
-        failure = {"ok": False, "error": str(e)}
-        if isinstance(e, tts_worker.TtsError):
-            failure["code"] = e.code
-        return failure
+        return {"ok": False, "error": str(e)}
     return {"ok": True, "path": path}
 
 
@@ -231,10 +147,6 @@ def cleanup(path: str = "", max_age: float = 600) -> int:
     return removed
 
 
-def cmd_tts_probe(payload: Dict[str, Any]) -> None:
-    print(json.dumps({"ok": True, "piper": find_piper(str(payload.get("piperBinary", "") or ""))}))
-
-
 def cmd_tts_synthesize(payload: Dict[str, Any]) -> None:
     print(json.dumps(synthesize(payload)))
 
@@ -246,8 +158,7 @@ def cmd_tts_cleanup(payload: Dict[str, Any]) -> None:
         print(json.dumps({"ok": False, "error": str(e)}))
 
 
-COMMANDS = dict(tts_neural.COMMANDS, **{
-    "tts_probe": cmd_tts_probe,
+COMMANDS = {
     "tts_synthesize": cmd_tts_synthesize,
     "tts_cleanup": cmd_tts_cleanup,
-})
+}

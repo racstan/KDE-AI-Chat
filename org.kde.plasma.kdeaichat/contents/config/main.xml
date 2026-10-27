@@ -413,13 +413,10 @@
     <entry name="voiceTtsEnabled" type="Bool"><default>false</default></entry>
     <entry name="voiceTtsAuto" type="Bool"><default>false</default></entry>
     <!-- Migration only (voice/SttConfig.js copies them once into the stt* entries, sttSettingsMigrated):
-         the pre-1.4.0 dictation switch, GPU switch, model, model folder and language. -->
+         the pre-1.4.0 dictation switch and language. -->
     <entry name="voiceEnabled" type="Bool"><default>false</default></entry>
-    <entry name="voiceGpuEnabled" type="Bool"><default>false</default></entry>
-    <entry name="voiceSttModel" type="String"><default></default></entry>
-    <entry name="voiceSttModelPath" type="String"><default></default></entry>
     <entry name="voiceLanguage" type="String"><default>en</default></entry>
-    <!-- Read aloud: the engine and each engine's options (voice/TtsEngines.js).
+    <!-- Read aloud: the engine ("speechnote", "system" or "remote") and each engine's options (voice/TtsEngines.js).
          A speech server's API key is in KWallet (entry "tts-remote"), never here. -->
     <!-- "speechnote" (the Speech Note app) is the default; until it is installed, read aloud uses "system".
          Empty model = Speech Note's own default voice / speech model. -->
@@ -427,48 +424,26 @@
     <entry name="voiceTtsSpeechNoteModel" type="String"><default></default></entry>
     <!-- Minutes Speech Note's service is kept ready after the popup closes (0 = only when used). -->
     <entry name="speechNoteKeepReadyMinutes" type="Int"><default>5</default><min>0</min><max>120</max></entry>
-    <entry name="voiceTtsNeuralVoice" type="String"><default>af_heart</default></entry>
-    <entry name="voiceTtsNeuralSpeed" type="Double"><default>1</default></entry>
     <entry name="voiceTtsSystemLanguage" type="String"><default></default></entry>
     <entry name="voiceTtsSystemVoice" type="String"><default></default></entry>
     <entry name="voiceTtsSystemRate" type="Double"><default>0</default></entry>
     <entry name="voiceTtsSystemPitch" type="Double"><default>0</default></entry>
-    <entry name="voiceTtsKokoroLanguage" type="String"><default></default></entry>
-    <entry name="voiceTtsKokoroVoice" type="String"><default></default></entry>
-    <entry name="voiceTtsKokoroRate" type="Double"><default>0</default></entry>
-    <entry name="voiceTtsFliteVoice" type="String"><default></default></entry>
-    <entry name="voiceTtsFliteRate" type="Double"><default>0</default></entry>
-    <entry name="voiceTtsFlitePitch" type="Double"><default>0</default></entry>
-    <entry name="voiceTtsPiperModel" type="String"><default></default></entry>
-    <entry name="voiceTtsPiperSpeaker" type="Int"><default>0</default></entry>
-    <entry name="voiceTtsPiperSpeed" type="Double"><default>1</default></entry>
     <entry name="voiceTtsRemoteUrl" type="String"><default>http://localhost:8880/v1</default></entry>
     <entry name="voiceTtsRemoteModel" type="String"><default>tts-1</default></entry>
     <entry name="voiceTtsRemoteVoice" type="String"><default>alloy</default></entry>
     <entry name="voiceTtsRemoteSpeed" type="Double"><default>1</default></entry>
-    <entry name="voiceTtsCommand" type="String"><default></default></entry>
     <!-- Dictation: send the transcript at once. -->
     <entry name="voiceAutoSend" type="Bool"><default>true</default></entry>
-    <!-- Dictation (speech-to-text). Off by default; with it off nothing is installed or started.
+    <!-- Dictation (speech-to-text). Off by default; with it off nothing runs.
          Passed to the helper's stt_* commands (kdeaichat/stt_settings.py); the remote key is in KWallet, entry "stt-remote". -->
     <entry name="sttEnabled" type="Bool"><default>false</default></entry>
-    <!-- speechnote (default), parakeet, faster-whisper, whisper-cpp, remote or command. -->
+    <!-- speechnote (default) or remote (an OpenAI-compatible speech server). -->
     <entry name="sttEngine" type="String"><default>speechnote</default></entry>
     <entry name="sttSpeechNoteModel" type="String"><default></default></entry>
-    <entry name="sttModel" type="String"><default>small</default></entry>
-    <!-- Parakeet: "parakeet-unified-en-0.6b" (found on disk or downloaded) or an absolute .gguf path. -->
-    <entry name="sttParakeetModel" type="String"><default>parakeet-unified-en-0.6b</default></entry>
-    <!-- auto, cpu, cuda or gpu (cuda and gpu: the graphics card; CUDA for faster-whisper, Vulkan for Parakeet). -->
-    <entry name="sttDevice" type="String"><default>auto</default></entry>
+    <!-- Spoken language for the speech server: auto or a language code. -->
     <entry name="sttLanguage" type="String"><default>auto</default></entry>
-    <entry name="sttWhisperCppBinary" type="String"><default></default></entry>
-    <entry name="sttWhisperCppModel" type="String"><default></default></entry>
-    <entry name="sttWhisperCppServer" type="String"><default></default></entry>
     <entry name="sttRemoteUrl" type="String"><default></default></entry>
     <entry name="sttRemoteModel" type="String"><default>whisper-1</default></entry>
-    <entry name="sttCommand" type="String"><default></default></entry>
-    <!-- Minutes the faster-whisper service keeps its model loaded after the last use (then it exits). -->
-    <entry name="sttIdleMinutes" type="Int"><default>5</default><min>1</min><max>120</max></entry>
     <!-- Set once the old voice* dictation settings were copied into the stt* ones. -->
     <entry name="sttSettingsMigrated" type="Bool"><default>false</default></entry>
     <entry name="requestTimeout" type="Int">

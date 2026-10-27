@@ -1,24 +1,21 @@
 """Setup checks for the parts around the chat: attachments, voice and schedules.
 
 Rows as in diag_agents.row. Voice is only checked when its switch is on, and
-reuses what Settings → Voice already asks (stt_engines.available,
-stt_record.recorder_name, stt_setup.cached_model, tts.find_piper) instead of
-probing again. Schedules are read without migrating or syncing anything;
+reuses what Settings → Voice already asks (stt_record.recorder_name,
+the Speech Note checks) instead of probing again. Schedules are read without migrating or syncing anything;
 the fix for missing timers is the existing ``schedules_sync``. Stdlib only.
 """
 import datetime as dt
 import os
-import shlex
 import shutil
 from typing import Any, Dict, List
 
-from kdeaichat import diag_speechnote, schedule_store, schedule_units, stt_engines, stt_parakeet, stt_record, stt_setup
+from kdeaichat import diag_speechnote, schedule_store, schedule_units, stt_record
 from kdeaichat.diag_agents import row, valid_http_url
 from kdeaichat.schedule_calendar import timer_name
 from kdeaichat.schedule_model import normalize_schedule
 from kdeaichat.schedule_runs import load_run_state
 from kdeaichat.stt_settings import SettingsError, from_payload
-from kdeaichat.tts import find_piper
 
 
 def check_attachments() -> List[Dict[str, Any]]:
@@ -31,13 +28,9 @@ def check_attachments() -> List[Dict[str, Any]]:
     return rows
 
 
-ENGINE_NAMES = {"parakeet": "Parakeet", "faster-whisper": "faster-whisper", "whisper-cpp": "whisper.cpp", "remote": "speech server",
-                "command": "custom command"}
-
-
 def check_dictation(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Dictation (only called when sttEnabled): recorder, engine, model."""
-    if str(payload.get("sttEngine") or "") == "speechnote":   # Speech Note listens with its own microphone
+    """Dictation (only called when sttEnabled): Speech Note (the default), or the speech server and its recorder."""
+    if str(payload.get("sttEngine") or "speechnote") != "remote":   # Speech Note listens with its own microphone
         return diag_speechnote.check("stt")
     try:
         settings = from_payload(payload)
@@ -47,73 +40,24 @@ def check_dictation(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     recorder = stt_record.recorder_name()
     rows.append(row("stt-recorder", "voice", "ok", "stt-recorder-ok", recorder) if recorder
                 else row("stt-recorder", "voice", "error", "stt-no-recorder"))
-    engine = settings["engine"]
-    found = next((r for r in stt_engines.available(settings) if r["id"] == engine), {})
-    if engine in ("parakeet", "faster-whisper") and not found.get("installed"):
-        code = "stt-fw-missing" if found.get("selectable") else "stt-no-venv"
-        rows.append(row("stt-engine", "voice", "error", code, ENGINE_NAMES[engine]))
-        return rows
-    if engine == "parakeet":
-        if not found.get("model_found"):
-            rows.append(row("stt-model", "voice", "warn" if settings["parakeet_model"] == stt_parakeet.NAME else "error",
-                            "stt-model-missing", settings["parakeet_model"]))
-            return rows
-    elif engine == "faster-whisper":
-        model = settings["model"]
-        if os.sep in model:
-            if not os.path.isdir(model):
-                rows.append(row("stt-model", "voice", "error", "stt-model-folder-missing", model))
-                return rows
-        elif not stt_setup.cached_model(model):
-            rows.append(row("stt-model", "voice", "warn", "stt-model-missing", model))
-            return rows
-    elif engine == "whisper-cpp" and not found.get("available"):
-        binary = found.get("binary") or ""
-        rows.append(row("stt-engine", "voice", "error", "stt-whispercpp-model" if binary else "stt-whispercpp-missing",
-                        settings["whisper_cpp_model"]))
-        return rows
-    elif engine == "remote" and not settings["remote_url"]:
+    if not settings["remote_url"]:
         rows.append(row("stt-engine", "voice", "error", "stt-remote-url"))
         return rows
-    elif engine == "command" and not found.get("available"):
-        rows.append(row("stt-engine", "voice", "error", "stt-command-bad", found.get("reason") or ""))
-        return rows
-    rows.append(row("stt-engine", "voice", "ok", "stt-ready", ENGINE_NAMES.get(engine, engine)))
+    rows.append(row("stt-engine", "voice", "ok", "stt-ready", "speech server"))
     return rows
 
 
 def check_read_aloud(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Read aloud (only called when voiceTtsEnabled): what the chosen engine needs."""
-    engine = str(payload.get("voiceTtsEngine") or "neural")
-    if engine == "speechnote":
-        return diag_speechnote.check("tts")
-    if engine == "neural":
-        from kdeaichat import tts_neural
-        if not (tts_neural.packages_installed() and tts_neural.model_files()):
-            return [row("tts-engine", "voice", "warn", "tts-neural-missing")]
-    elif engine == "piper":
-        if not find_piper(str(payload.get("voiceTtsPiperBinary") or "")):
-            return [row("tts-engine", "voice", "error", "tts-piper-missing")]
-        model = os.path.expanduser(str(payload.get("voiceTtsPiperModel") or ""))
-        if not model or not os.path.isfile(model):
-            return [row("tts-engine", "voice", "error", "tts-piper-voice", model)]
-    elif engine == "remote":
+    """Read aloud (only called when voiceTtsEnabled): Speech Note (the default), the system voice or the speech server."""
+    engine = str(payload.get("voiceTtsEngine") or "speechnote")
+    if engine == "remote":
         if not valid_http_url(str(payload.get("voiceTtsRemoteUrl") or "")):
             return [row("tts-engine", "voice", "error", "tts-remote-url")]
-    elif engine == "command":
-        try:
-            words = shlex.split(str(payload.get("voiceTtsCommand") or ""))
-        except ValueError:
-            words = []
-        program = os.path.expanduser(words[0]) if words else ""
-        if not program or not (shutil.which(program) or (os.sep in program and os.access(program, os.X_OK))):
-            return [row("tts-engine", "voice", "error", "tts-command-bad")]
     elif engine == "system":
         if not shutil.which("speech-dispatcher"):
             return [row("tts-engine", "voice", "warn", "tts-speechd-missing")]
     else:
-        # Kokoro and Flite are Qt speech plugins: only the widget can load them (Settings → Voice lists their voices).
-        return [row("tts-engine", "voice", "ok", "tts-qt-engine", engine)]
+        return diag_speechnote.check("tts")
     return [row("tts-engine", "voice", "ok", "tts-ready", engine)]
 
 
