@@ -77,14 +77,16 @@ QtObject {
     }
 
     // An incognito chat (chat/Incognito.qml) is left out, and never remembered as the last one.
-    function persistSessions() {
+    // `changedIds` (optional): ids of the chats whose messages changed, so the store
+    // need not compare every chat ([] when only chat settings changed).
+    function persistSessions(changedIds) {
         if (chat.sessionHistoryLoadBlocked)
             return;
         var incognito = chat.incognito || null;
         try {
             var kept = incognito ? incognito.storable(chat.sessions) : chat.sessions;
             if (kept !== null)
-                chat.store.save(kept);
+                chat.store.save(kept, false, changedIds);
             if (!incognito || !incognito.isIncognito(chat.currentSessionId))
                 chat.plasmoid.configuration.lastSessionId = chat.currentSessionId;
         } catch (e) {
@@ -141,7 +143,7 @@ QtObject {
         session[key] = value;
         updated[idx] = session;
         chat.sessions = updated;
-        manager.persistSessions();
+        manager.persistSessions([]);
     }
 
     // Apply a dialog's complete draft in one model update.  Per-chat settings
@@ -259,7 +261,7 @@ QtObject {
         if (touchUpdatedAt !== false)
             manager.sortSessionsByUpdated();
 
-        manager.persistSessions();
+        manager.persistSessions([chat.currentSessionId]);
     }
 
     // Un-archives the open chat when it is used; its mode (source) stays as it is.

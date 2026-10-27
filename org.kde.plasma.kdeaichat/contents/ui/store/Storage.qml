@@ -45,12 +45,12 @@ Item {
         _migrateChatsOnce();
     }
 
-    function save(sessions) {
+    function save(sessions, immediate, changed) {
         if (!_chatMigrationSettled) {
             _savePending = true;
             return;
         }
-        chats.save(sessions);
+        chats.save(sessions, immediate, changed);
     }
 
     function _migrateChatsOnce() {

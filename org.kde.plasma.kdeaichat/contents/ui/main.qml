@@ -268,7 +268,7 @@ PlasmoidItem {
     function nowTime(ts) { return TimeFormat.nowTime(ts); }
 
     // Chats (chat/Sessions.qml).
-    function persistSessions() { sessionManager.persistSessions(); }
+    function persistSessions(changedIds) { sessionManager.persistSessions(changedIds); }
     function sortSessionsByUpdated() { sessionManager.sortSessionsByUpdated(); }
     function sessionSubtitle(sessionData) { return sessionManager.sessionSubtitle(sessionData); }
     function sessionIndexById(sessionId) { return sessionManager.sessionIndexById(sessionId); }

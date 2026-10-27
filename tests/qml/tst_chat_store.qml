@@ -129,6 +129,65 @@ TestCase {
         compare(makeStore(dir).loadAll().length, 1);
     }
 
+    // 300 chats of ~50 KB: a hinted save serialises and writes only the changed chat.
+    function test_hinted_save_of_many_large_chats_writes_one_file_quickly() {
+        var s = makeStore(freshDir());
+        var filler = new Array(50 * 1024).join("x");
+        var chats = [];
+        for (var i = 0; i < 300; i++)
+            chats.push(chat("c" + i, "Chat " + i, [filler, "m" + i]));
+        s.save(chats, true);
+        compare(s.loadAll().length, 300);
+
+        var writes = [];
+        s.fileWritten.connect(function(name) { writes.push(name); });
+        var edited = chat("c7", "Chat 7", [filler, "m7", "new"]);
+        chats = chats.slice();
+        chats[7] = edited;
+        var t0 = Date.now();
+        s.save(chats, true, ["c7"]);
+        var hinted = Date.now() - t0;
+        compare(writes, ["chat-c7.ini"]);
+
+        // Without a hint every chat is compared (still correct, slower).
+        writes = [];
+        chats = chats.slice();
+        chats[9] = chat("c9", "Chat 9", [filler, "m9", "new"]);
+        t0 = Date.now();
+        s.save(chats, true);
+        var full = Date.now() - t0;
+        compare(writes, ["chat-c9.ini"]);
+        console.info("save timing: hinted " + hinted + " ms, full compare " + full + " ms");
+        verify(hinted < 300, "hinted save took " + hinted + " ms");
+
+        // A metadata-only hint writes no chat file; the index changes.
+        writes = [];
+        chats = chats.slice();
+        chats[3] = Object.assign({}, chats[3], {text: "Renamed"});
+        s.save(chats, true, []);
+        compare(writes.length, 0);
+        compare(JSON.parse(s._read("index.ini", "sessions"))[3].text, "Renamed");
+    }
+
+    // Hints of several saves before one flush add up; an unhinted save checks everything.
+    function test_hints_accumulate_until_the_flush() {
+        var s = makeStore(freshDir());
+        var a = chat("a", "A", ["1"]), b = chat("b", "B", ["2"]), c = chat("c", "C", ["3"]);
+        s.save([a, b, c], true);
+        var writes = [];
+        s.fileWritten.connect(function(name) { writes.push(name); });
+        a = chat("a", "A", ["1", "x"]);
+        b = chat("b", "B", ["2", "y"]);
+        s.save([a, b, c], false, ["a"]);
+        s.save([a, b, c], false, ["b"]);
+        s.flush();
+        compare(writes.sort(), ["chat-a.ini", "chat-b.ini"]);
+        writes = [];
+        c = chat("c", "C", ["3", "z"]);
+        s.save([a, b, c], true);
+        compare(writes, ["chat-c.ini"]);
+    }
+
     function test_save_waits_until_prepared() {
         var dir = freshDir();
         var s = createTemporaryObject(storeComponent, testCase, {"directory": dir});

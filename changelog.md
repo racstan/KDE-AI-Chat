@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Saving is faster with many chats.** A save now serialises only the chat that changed instead of every chat, so a long history no longer stalls the desktop on each message. Unchanged chats are still never rewritten, and damaged chats and a damaged chat list are still never overwritten.
 - **Desktop integration is sturdier.** A malformed message on the session bus no longer ends the KRunner service, and the runner ignores messages over 1 MiB. A question that fails while being sent no longer leaves the ask inbox stuck. The KRunner, Dolphin and shortcut launchers quote paths exactly as the desktop-entry specification asks (backslashes, quotes, `$` and backticks), and refuse paths with control characters. The settings page now tells you to turn the options off before removing the widget, since their files live outside it.
 
 ### Added
