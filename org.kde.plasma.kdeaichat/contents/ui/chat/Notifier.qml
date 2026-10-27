@@ -2,7 +2,10 @@
 // while the popup is closed, a scheduled task that delivered its message, and
 // "input needed" when the AI asks a question or for permission and the popup is
 // closed (or shows another chat). Each kind has its own setting, bound by
-// main.qml. Clicking a notification asks main.qml to open that chat (openChat).
+// main.qml. Clicking a notification, or its "Open chat" button, asks main.qml to
+// open that chat (openChat); a finished reply also gets "Read aloud" while read
+// aloud is on (the text is kept in memory for the button, never put on a command
+// line). The actions are Plasma's own KNotification actions.
 // Tests replace `sender` and `inputSender`.
 import QtQuick
 import org.kde.notification
@@ -19,7 +22,8 @@ Item {
     property bool replyEnabled: true
     property bool errorEnabled: true
     property bool scheduledEnabled: true
-    // function(title, text, chatId, isError): shows one notification.
+    // function(title, text, chatId, isError, readText): shows one notification; readText (a finished
+    // reply's text, or "") is what its "Read aloud" button speaks, when there is one.
     property var sender: notifier.showNotification
 
     // The sound is separate from notifications: it also plays with the popup open.
@@ -37,7 +41,25 @@ Item {
     // Request id -> its notification, while it is open.
     property var openInputs: ({})
 
+    // Whether read aloud is on (the voice manager is the widget root's voiceManagerRef).
+    readonly property bool readAloudOn: chat !== null && chat.voiceManagerRef !== undefined && chat.voiceManagerRef !== null
+                                        && chat.voiceManagerRef.ttsEnabled === true
+
     signal openChat(string chatId)
+
+    // The buttons of a notification: [{label, run}]. "Open chat" always; "Read aloud" only for a finished
+    // reply with something to read (readText) while read aloud is on. Incognito chats get the same buttons.
+    function actionSpecs(chatId, readText) {
+        var list = [{"label": i18n("Open chat"), "run": function() { notifier.openChat(chatId); }}];
+        if (readAloudOn && String(readText || "").trim() !== "")
+            list.push({"label": i18n("Read aloud"), "run": function() { notifier.readAloud(readText); }});
+        return list;
+    }
+
+    function readAloud(text) {
+        if (readAloudOn)
+            chat.voiceManagerRef.playTTS(String(text));
+    }
 
     function playSound() {
         if (!soundEnabled)
@@ -82,7 +104,7 @@ Item {
         if (!replyEnabled || popupOpen)
             return false;
         var hidden = isIncognito(chatId);
-        sender(hidden ? i18n("Incognito chat") : chatName(chatTitle), (hidden ? "" : preview(text)) || i18n("The reply is ready."), String(chatId), false);
+        sender(hidden ? i18n("Incognito chat") : chatName(chatTitle), (hidden ? "" : preview(text)) || i18n("The reply is ready."), String(chatId), false, String(text || ""));
         return true;
     }
 
@@ -214,11 +236,21 @@ Item {
         return n;
     }
 
-    function showNotification(title, text, chatId, isError) {
+    function showNotification(title, text, chatId, isError, readText) {
         var n = notificationComponent.createObject(notifier, {"title": title, "text": text, "chatId": chatId,
                                                               "iconName": isError ? "dialog-error" : "dialog-messages"});
-        if (n)
-            n.sendEvent();
+        if (!n)
+            return;
+        var actions = [];
+        if (String(chatId) !== "") {
+            actionSpecs(chatId, readText).forEach(function(spec) {
+                var action = actionComponent.createObject(n, {"label": spec.label});
+                action.activated.connect(spec.run);
+                actions.push(action);
+            });
+        }
+        n.actions = actions;
+        n.sendEvent();
     }
 
     Component {

@@ -3,19 +3,50 @@
 
   kdeaichat-ask [--new-chat] [--send] [--stdin] [--file PATH]... [TEXT...]
   kdeaichat-ask --files PATH...        (what the Dolphin menu runs)
+  kdeaichat-ask --selection            (what the global shortcut runs: quotes the text selected in any app)
 
 TEXT is the question; with --stdin it is read from standard input instead (use that for anything private:
 a command line can be read by every local user, standard input can't). --send sends it at once (otherwise it
 only fills the message box); --new-chat starts a new chat first (it uses your default mode; a question for
 the open chat goes to that chat in its own mode). The widget must be on your panel or desktop.
+--selection reads the selected text (the primary selection; the clipboard when nothing is selected, and it
+says so), puts it in the message box as a "> " quote and does not send it: you type the question.
 The request is a private file in $XDG_RUNTIME_DIR/kdeaichat-ask/; the widget picks it up and opens itself.
 """
 import argparse
 import os
+import shutil
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
-from kdeaichat import ask_inbox  # noqa: E402
+from kdeaichat import ask_inbox, selection  # noqa: E402
+
+
+def notify(message: str) -> None:
+    """A short desktop note (never the selected text). Best effort: also printed."""
+    print("kdeaichat-ask: " + message, file=sys.stderr)
+    tool = shutil.which("notify-send", path=os.environ.get("KDEAICHAT_SELECTION_PATH") or None)
+    if tool:
+        try:
+            subprocess.run([tool, "-a", "KDE AI Chat", "-i", "dialog-messages", "KDE AI Chat", message], timeout=5, check=False)
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+
+def ask_selection() -> int:
+    text, source = selection.read_selection()
+    if source is None:
+        notify("Nothing is selected. Select some text first.")
+        return 1
+    if source == "clipboard":
+        notify("Nothing was selected, so the clipboard text is quoted instead.")
+    try:
+        ask_inbox.write_item(selection.quote(text))
+    except (ValueError, OSError) as error:
+        print("kdeaichat-ask: " + str(error), file=sys.stderr)
+        return 1
+    return 0
 
 
 def main(argv=None) -> int:
@@ -23,10 +54,13 @@ def main(argv=None) -> int:
     parser.add_argument("--new-chat", action="store_true", help="start a new chat for it")
     parser.add_argument("--send", action="store_true", help="send it at once instead of only filling the box")
     parser.add_argument("--stdin", action="store_true", help="read the question from standard input")
+    parser.add_argument("--selection", action="store_true", help="quote the text selected in any app")
     parser.add_argument("--file", action="append", default=[], metavar="PATH", help="attach a file (repeat for more)")
     parser.add_argument("--files", nargs="+", default=[], metavar="PATH", help="attach these files")
     parser.add_argument("text", nargs="*", help="the question")
     args = parser.parse_args(argv)
+    if args.selection:
+        return ask_selection()
     text = sys.stdin.read() if args.stdin else " ".join(args.text)
     files = []
     for path in args.file + args.files:

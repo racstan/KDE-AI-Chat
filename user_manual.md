@@ -249,8 +249,9 @@ See [VOICE_SETUP.md](VOICE_SETUP.md). Speech models, environments and services o
 
 ## 11. Ask from KRunner and Dolphin
 
-**Settings → Desktop integration** has two switches, both off until you turn them on. They add small files outside the widget (and remove them again when you switch off). The widget has to be on your panel or desktop.
+**Settings → Desktop integration** has three switches, all off until you turn them on. They add small files outside the widget (and remove them again when you switch off). The widget has to be on your panel or desktop.
 
 - **KRunner:** press Alt+Space, type `ai` and a question (the word is changeable), and press Enter. The widget opens and sends it to the chat you had open, in that chat's own mode. Pick "Ask in a new chat" to start a new chat in your default mode instead. If KRunner does not offer it at once, restart KRunner (`kquitapp6 krunner`).
 - **Dolphin:** right-click a text file, PDF, Word document or picture and choose **Ask KDE AI Chat about this file**. The file is attached to your message and the widget opens with the message box ready; nothing is sent until you press Send.
-- **Command line:** `kdeaichat-ask [--new-chat] [--send] [--file PATH] "question"` (in the widget's `contents/ui/scripts/` folder; use `--stdin` to pass a private question without putting it on the command line).
+- **Selected text:** select text in any app and press **Meta+Alt+A**. The widget opens with the text quoted ("> ...") in the message box; type your question below it and send. Nothing is sent by itself. If nothing is selected, the clipboard text is quoted instead and a short notice says so. Change the shortcut in System Settings → Keyboard → Shortcuts, under "Ask KDE AI Chat about the selected text" (use "Add Application" there if it is not listed).
+- **Command line:** `kdeaichat-ask [--new-chat] [--send] [--file PATH] "question"` (or `kdeaichat-ask --selection`; in the widget's `contents/ui/scripts/` folder; use `--stdin` to pass a private question without putting it on the command line).

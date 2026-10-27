@@ -186,6 +186,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/ask_inbox.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/desktop_integration.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/krunner.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/selection.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/minidbus.py",
                       "org.kde.plasma.kdeaichat/contents/ui/scripts/kdeaichat-ask",
                       "org.kde.plasma.kdeaichat/contents/ui/scripts/kdeaichat-runner",

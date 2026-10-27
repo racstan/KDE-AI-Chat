@@ -1,20 +1,26 @@
-"""Desktop integration (Settings -> Desktop integration): KRunner and the Dolphin menu.
+"""Desktop integration (Settings -> Desktop integration): KRunner, the Dolphin menu and the selection shortcut.
 
 Both live outside the widget's package, so they are installed only while their switch is on, and removed
 when it is switched off:
 
-  desktop_sync    {krunner, dolphin, prefix, restart_krunner} -> {"type": "desktop_status", ...}
-  desktop_status  {} -> {"type": "desktop_status", "krunner": bool, "dolphin": bool, "prefix": str}
+  desktop_sync    {krunner, dolphin, selection, prefix, restart_krunner} -> {"type": "desktop_status", ...}
+  desktop_status  {} -> {"type": "desktop_status", "krunner": bool, "dolphin": bool, "selection": bool, "prefix": str}
 
 KRunner: ``krunner/dbusplugins/kdeaichat-runner.desktop`` (describes the D-Bus runner) and
 ``dbus-1/services/org.kde.kdeaichat.runner.service`` (lets D-Bus start scripts/kdeaichat-runner on demand).
 Dolphin: ``kio/servicemenus/kdeaichat-ask.desktop`` (KDE 6 format, executable) running scripts/kdeaichat-ask.
-All three are under ``$XDG_DATA_HOME`` (default ~/.local/share), so nothing needs root. Every file carries
+Selection shortcut: ``applications/kdeaichat-ask-selection.desktop``, an ordinary application entry that runs
+``scripts/kdeaichat-ask --selection`` and carries ``X-KDE-Shortcuts=Meta+Alt+A``: Plasma's global-shortcut
+service (kglobalacceld) takes the default shortcut from that key, and the user changes it in System Settings
+-> Keyboard -> Shortcuts (the entry is listed there under "Ask KDE AI Chat about the selected text"; if it is
+not, "Add Application..." there finds it). Our file never contains the user's choice, so re-installing
+cannot reset it.
+All four are under ``$XDG_DATA_HOME`` (default ~/.local/share), so nothing needs root. Every file carries
 the marker ``X-KDEAIChat-Managed=true`` (or ``# X-KDEAIChat-Managed``): only files with it are ever
 replaced or deleted, so a file of the same name that is someone else's is left alone. Writes are atomic.
 The runner's prefix (default "ai") and the switches are kept in ``<data>/kdeaichat/desktop-integration.json``,
 which the runner reads. Folders can be replaced for tests and dev runs: KDEAICHAT_KRUNNER_DIR,
-KDEAICHAT_DBUS_SERVICE_DIR, KDEAICHAT_SERVICEMENU_DIR, KDEAICHAT_DESKTOP_STATE.
+KDEAICHAT_DBUS_SERVICE_DIR, KDEAICHAT_SERVICEMENU_DIR, KDEAICHAT_APPLICATIONS_DIR, KDEAICHAT_DESKTOP_STATE.
 """
 import json
 import os
@@ -28,6 +34,8 @@ SERVICE_NAME = "org.kde.kdeaichat.runner"
 RUNNER_FILE = "kdeaichat-runner.desktop"
 SERVICE_FILE = SERVICE_NAME + ".service"
 MENU_FILE = "kdeaichat-ask.desktop"
+SELECTION_FILE = "kdeaichat-ask-selection.desktop"
+DEFAULT_SHORTCUT = "Meta+Alt+A"  # not used by Plasma, KWin or Spectacle by default (Spectacle has Meta+Alt+R)
 MARKER = "X-KDEAIChat-Managed=true"
 # Documents and pictures the widget's attachment code (doc_extractor.py) reads.
 MIME_TYPES = ["text/plain", "text/markdown", "text/csv", "application/pdf", "application/json", "text/x-python",
@@ -46,6 +54,7 @@ def folders() -> Dict[str, str]:
         "krunner": os.environ.get("KDEAICHAT_KRUNNER_DIR") or os.path.join(base, "krunner", "dbusplugins"),
         "service": os.environ.get("KDEAICHAT_DBUS_SERVICE_DIR") or os.path.join(base, "dbus-1", "services"),
         "menu": os.environ.get("KDEAICHAT_SERVICEMENU_DIR") or os.path.join(base, "kio", "servicemenus"),
+        "applications": os.environ.get("KDEAICHAT_APPLICATIONS_DIR") or os.path.join(base, "applications"),
         "state": os.environ.get("KDEAICHAT_DESKTOP_STATE") or os.path.join(base, "kdeaichat", "desktop-integration.json"),
     }
 
@@ -89,6 +98,15 @@ def menu_desktop() -> str:
         "Exec=" + _quote(_python()) + " " + _quote(ask) + " --files %F", ""])
 
 
+def selection_desktop() -> str:
+    ask = os.path.join(_scripts_dir(), "kdeaichat-ask")
+    return "\n".join([
+        "[Desktop Entry]", "Type=Application", "Name=Ask KDE AI Chat about the selected text",
+        "Comment=Quote the text selected in any app in KDE AI Chat", "Icon=dialog-messages",
+        "Exec=" + _quote(_python()) + " " + _quote(ask) + " --selection", "Terminal=false", "StartupNotify=false",
+        "Categories=Utility;", "OnlyShowIn=KDE;", "X-KDE-Shortcuts=" + DEFAULT_SHORTCUT, MARKER, ""])
+
+
 def _ours(path: str) -> bool:
     try:
         with open(path, encoding="utf-8") as f:
@@ -128,6 +146,8 @@ def _files(kind: str) -> List[str]:
     f = folders()
     if kind == "krunner":
         return [os.path.join(f["krunner"], RUNNER_FILE), os.path.join(f["service"], SERVICE_FILE)]
+    if kind == "selection":
+        return [os.path.join(f["applications"], SELECTION_FILE)]
     return [os.path.join(f["menu"], MENU_FILE)]
 
 
@@ -140,10 +160,10 @@ def clean_prefix(value: Any) -> str:
     return value if value and len(value) <= 24 and not any(c.isspace() or c in "\"'\\" for c in value) else DEFAULT_PREFIX
 
 
-def _write_state(krunner: bool, dolphin: bool, prefix: str) -> None:
+def _write_state(krunner: bool, dolphin: bool, selection: bool, prefix: str) -> None:
     path = folders()["state"]
     os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
-    data = json.dumps({"krunner": krunner, "dolphin": dolphin, "prefix": prefix})
+    data = json.dumps({"krunner": krunner, "dolphin": dolphin, "selection": selection, "prefix": prefix})
     fd, tmp = tempfile.mkstemp(prefix=".desktop-", dir=os.path.dirname(path))
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(data)
@@ -161,7 +181,8 @@ def _restart_krunner() -> None:
             pass
 
 
-def sync(krunner: bool, dolphin: bool, prefix: str = DEFAULT_PREFIX, restart_krunner: bool = False) -> Dict[str, Any]:
+def sync(krunner: bool, dolphin: bool, prefix: str = DEFAULT_PREFIX, restart_krunner: bool = False,
+         selection: bool = False) -> Dict[str, Any]:
     """Makes the files match the switches. Returns the status, with "errors" (plain words) for what failed."""
     prefix = clean_prefix(prefix)
     errors: List[str] = []
@@ -184,8 +205,16 @@ def sync(krunner: bool, dolphin: bool, prefix: str = DEFAULT_PREFIX, restart_kru
     except (OSError, ValueError) as error:
         errors.append("Dolphin: %s" % error)
     try:
-        if krunner or dolphin or os.path.exists(f["state"]):
-            _write_state(krunner and is_installed("krunner"), dolphin and is_installed("dolphin"), prefix)
+        if selection:
+            _install(os.path.join(f["applications"], SELECTION_FILE), selection_desktop(), 0o755)
+        else:
+            _remove(os.path.join(f["applications"], SELECTION_FILE))
+    except (OSError, ValueError) as error:
+        errors.append("Shortcut: %s" % error)
+    try:
+        if krunner or dolphin or selection or os.path.exists(f["state"]):
+            _write_state(krunner and is_installed("krunner"), dolphin and is_installed("dolphin"),
+                         selection and is_installed("selection"), prefix)
     except OSError as error:
         errors.append("settings file: %s" % error)
     if restart_krunner and was != is_installed("krunner"):
@@ -201,12 +230,12 @@ def status(prefix: str = "", errors: Any = None) -> Dict[str, Any]:
         except (OSError, ValueError, AttributeError):
             prefix = DEFAULT_PREFIX
     return {"type": "desktop_status", "krunner": is_installed("krunner"), "dolphin": is_installed("dolphin"),
-            "prefix": clean_prefix(prefix), "errors": list(errors or [])}
+            "selection": is_installed("selection"), "prefix": clean_prefix(prefix), "errors": list(errors or [])}
 
 
 def cmd_desktop_sync(payload: Dict[str, Any]) -> None:
     print(json.dumps(sync(payload.get("krunner") is True, payload.get("dolphin") is True, payload.get("prefix", DEFAULT_PREFIX),
-                          payload.get("restart_krunner") is True)), flush=True)
+                          payload.get("restart_krunner") is True, payload.get("selection") is True)), flush=True)
 
 
 def cmd_desktop_status(payload: Dict[str, Any]) -> None:

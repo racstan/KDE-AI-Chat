@@ -23,9 +23,9 @@ Item {
         property var errors: []
         function run(command, payload, onDone) {
             calls = calls.concat([{command: command, payload: payload}]);
-            var on = command === "desktop_sync" ? payload : {krunner: false, dolphin: false};
+            var on = command === "desktop_sync" ? payload : {krunner: false, dolphin: false, selection: false};
             Qt.callLater(function() {
-                onDone(JSON.stringify({"type": "desktop_status", "krunner": on.krunner, "dolphin": on.dolphin, "prefix": "ai",
+                onDone(JSON.stringify({"type": "desktop_status", "krunner": on.krunner, "dolphin": on.dolphin, "selection": on.selection, "prefix": "ai",
                                        "errors": helper.errors}), 0, "");
             });
         }
@@ -63,6 +63,7 @@ Item {
             open();
             compare(findChild(page, "krunnerSwitch").checked, false);
             compare(findChild(page, "dolphinSwitch").checked, false);
+            compare(findChild(page, "selectionSwitch").checked, false);
             compare(findChild(page, "krunnerPrefix").enabled, false, "no prefix to set while KRunner is off");
             compare(helper.calls.map(c => c.command), ["desktop_status"]);
             wait(200);
@@ -73,15 +74,17 @@ Item {
             open();
             findChild(page, "krunnerSwitch").checked = true;
             findChild(page, "dolphinSwitch").checked = true;
+            findChild(page, "selectionSwitch").checked = true;
             findChild(page, "krunnerPrefix").text = "ask";
             page.saveConfig();
             tryVerify(() => helper.calls.length === 2, 3000);
             compare(helper.calls[1].command, "desktop_sync");
             compare(helper.calls[1].payload.krunner, true);
             compare(helper.calls[1].payload.dolphin, true);
+            compare(helper.calls[1].payload.selection, true);
             compare(helper.calls[1].payload.prefix, "ask");
             compare(helper.calls[1].payload.restart_krunner, true, "KRunner changed: it is told to look again");
-            tryVerify(() => findChild(page, "desktopStatus").text.indexOf("KRunner yes, Dolphin yes") >= 0, 3000);
+            tryVerify(() => findChild(page, "desktopStatus").text.indexOf("KRunner yes, Dolphin yes, shortcut yes") >= 0, 3000);
             wait(200);
             screenshot(page, "config-desktop-on");
         }

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 12:58+0530\n"
+"POT-Creation-Date: 2026-10-27 13:12+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -803,7 +803,7 @@ msgstr ""
 msgid "Queue"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:312 contents/ui/chat/Notifier.qml:201
+#: contents/ui/chat/Composer.qml:312 contents/ui/chat/Notifier.qml:223
 #, kde-format
 msgid "Send"
 msgstr ""
@@ -1412,7 +1412,7 @@ msgstr ""
 msgid "The model sent back nothing. Try again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:131 contents/ui/chat/Notifier.qml:92
+#: contents/ui/chat/ErrorText.js:131 contents/ui/chat/Notifier.qml:114
 #, kde-format
 msgid "Something went wrong."
 msgstr ""
@@ -1597,8 +1597,8 @@ msgstr ""
 msgid "Read selection aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:167 contents/ui/ConfigVoice.qml:182
-#: contents/ui/chat/MessageText.qml:115
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/Notifier.qml:55
+#: contents/ui/ConfigVoice.qml:182 contents/ui/chat/MessageText.qml:115
 #, kde-format
 msgid "Read aloud"
 msgstr ""
@@ -1748,65 +1748,66 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:85 contents/ui/chat/Notifier.qml:92
-#: contents/ui/chat/Notifier.qml:111
+#: contents/ui/chat/Notifier.qml:53 contents/ui/chat/Notifier.qml:272
+#: contents/ui/chat/Notifier.qml:286
+#, kde-format
+msgid "Open chat"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:107 contents/ui/chat/Notifier.qml:114
+#: contents/ui/chat/Notifier.qml:133
 #, kde-format
 msgid "Incognito chat"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:85
+#: contents/ui/chat/Notifier.qml:107
 #, kde-format
 msgid "The reply is ready."
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:92
+#: contents/ui/chat/Notifier.qml:114
 #, kde-format
 msgid "%1: request failed"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:101
+#: contents/ui/chat/Notifier.qml:123
 #, kde-format
 msgid "%1 is ready"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:101
+#: contents/ui/chat/Notifier.qml:123
 #, kde-format
 msgid "A scheduled prompt is ready"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:111
+#: contents/ui/chat/Notifier.qml:133
 #, kde-format
 msgid "%1: input needed"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:116
+#: contents/ui/chat/Notifier.qml:138
 #, kde-format
 msgid "%1 asks to use %2"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:117 contents/ui/chat/PermissionButtons.qml:22
+#: contents/ui/chat/Notifier.qml:139 contents/ui/chat/PermissionButtons.qml:22
 #, kde-format
 msgid "Allow"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:117
+#: contents/ui/chat/Notifier.qml:139
 #, kde-format
 msgid "Deny"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:199
+#: contents/ui/chat/Notifier.qml:221
 #, kde-format
 msgid "Reply…"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:200 contents/ui/chat/QuestionCard.qml:89
+#: contents/ui/chat/Notifier.qml:222 contents/ui/chat/QuestionCard.qml:89
 #, kde-format
 msgid "Type your answer…"
-msgstr ""
-
-#: contents/ui/chat/Notifier.qml:240 contents/ui/chat/Notifier.qml:254
-#, kde-format
-msgid "Open chat"
 msgstr ""
 
 #: contents/ui/chat/OwnModelCheck.qml:9
@@ -5102,31 +5103,31 @@ msgid ""
 "removes them; manage them in Speech Note."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:51
+#: contents/ui/ConfigDesktop.qml:52
 #, kde-format
 msgid "Could not set this up. Try again."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:72
+#: contents/ui/ConfigDesktop.qml:73
 #, kde-format
 msgid ""
 "Ask KDE AI Chat from other places on your desktop. These add small files "
-"outside the widget, so both are off until you turn them on, and the files "
-"are removed again when you turn them off. The widget has to be on your panel "
-"or desktop to receive the question."
-msgstr ""
-
-#: contents/ui/ConfigDesktop.qml:89
-#, kde-format
-msgid "KRunner:"
+"outside the widget, so all are off until you turn them on, and the files are "
+"removed again when you turn them off. The widget has to be on your panel or "
+"desktop to receive the question."
 msgstr ""
 
 #: contents/ui/ConfigDesktop.qml:90
 #, kde-format
+msgid "KRunner:"
+msgstr ""
+
+#: contents/ui/ConfigDesktop.qml:91
+#, kde-format
 msgid "Ask from KRunner"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:94
+#: contents/ui/ConfigDesktop.qml:95
 #, kde-format
 msgid ""
 "Adds KDE AI Chat to KRunner (Alt+Space). Type the word below and a question, "
@@ -5135,34 +5136,34 @@ msgid ""
 "may need a moment, or a restart of KRunner, to notice the change."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:100
+#: contents/ui/ConfigDesktop.qml:101
 #, kde-format
 msgid "Word to type first:"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:108
+#: contents/ui/ConfigDesktop.qml:109
 #, kde-format
 msgid ""
 "KRunner only offers to ask KDE AI Chat when what you type starts with this "
 "word and a space. Use one short word with no spaces."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:109
+#: contents/ui/ConfigDesktop.qml:110
 #, kde-format
 msgid "Use one word without spaces. “%1” will be used instead."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:115
+#: contents/ui/ConfigDesktop.qml:116
 #, kde-format
 msgid "Dolphin:"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:116
+#: contents/ui/ConfigDesktop.qml:117
 #, kde-format
 msgid "“Ask KDE AI Chat about this file” in Dolphin"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:120
+#: contents/ui/ConfigDesktop.qml:121
 #, kde-format
 msgid ""
 "Adds an entry to Dolphin’s right-click menu for text files, PDFs, Word "
@@ -5171,19 +5172,40 @@ msgid ""
 "when you send the message."
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:131
+#: contents/ui/ConfigDesktop.qml:127
+#, kde-format
+msgid "Selected text:"
+msgstr ""
+
+#: contents/ui/ConfigDesktop.qml:128
+#, kde-format
+msgid "Ask about the selected text (Meta+Alt+A)"
+msgstr ""
+
+#: contents/ui/ConfigDesktop.qml:132
+#, kde-format
+msgid ""
+"Adds a keyboard shortcut that works in any app: select some text, press "
+"Meta+Alt+A, and the widget opens with that text quoted in the message box, "
+"ready for your question. It is not sent until you type your question and "
+"send it. If nothing is selected, the clipboard text is used instead and a "
+"short notice says so. You can change the shortcut in System Settings, "
+"Keyboard, Shortcuts, under “Ask KDE AI Chat about the selected text”."
+msgstr ""
+
+#: contents/ui/ConfigDesktop.qml:143 contents/ui/ConfigDesktop.qml:144
 #, kde-format
 msgid "yes"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:131
+#: contents/ui/ConfigDesktop.qml:143 contents/ui/ConfigDesktop.qml:144
 #, kde-format
 msgid "no"
 msgstr ""
 
-#: contents/ui/ConfigDesktop.qml:130
+#: contents/ui/ConfigDesktop.qml:142
 #, kde-format
-msgid "Installed now: KRunner %1, Dolphin %2."
+msgid "Installed now: KRunner %1, Dolphin %2, shortcut %3."
 msgstr ""
 
 #: contents/ui/config/StorageRow.qml:56

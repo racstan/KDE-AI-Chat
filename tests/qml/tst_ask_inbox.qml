@@ -4,9 +4,10 @@
 import QtQuick
 import QtCore
 import QtTest
+import QtQuick.Controls as QQC2
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 
-TestCase {
+HarnessTestCase {
     id: testCase
     name: "AskInbox"
     when: windowShown
@@ -31,6 +32,18 @@ TestCase {
 
     property var queued: []        // what the helper hands out next
     property var helperCalls: []
+
+    // What the message box shows, for the screenshot.
+    Component {
+        id: boxComponent
+        QQC2.TextArea {
+            width: 360
+            height: 120
+            text: fakeChat.chatInputText
+            cursorPosition: text.length
+            focus: true
+        }
+    }
 
     Component {
         id: inboxComponent
@@ -78,6 +91,20 @@ TestCase {
         tryVerify(function() { return fakeChat.calls.indexOf("send:why is the sky blue?") >= 0; }, 3000);
         compare(fakeChat.calls.indexOf("newChat:true"), -1, "the open chat is used: no mode change, no new chat");
         compare(fakeChat.currentSessionId, "open");
+    }
+
+    function test_a_quoted_selection_fills_the_box_and_is_not_sent() {
+        queued = [item({"text": "> first line\n> second line\n\n"})];
+        var inbox = createTemporaryObject(inboxComponent, testCase);
+        inbox.take();
+        tryCompare(fakeChat, "chatInputText", "> first line\n> second line\n\n");
+        compare(fakeChat.expanded, true, "the popup opens");
+        verify(fakeChat.calls.indexOf("focus") >= 0);
+        wait(300);
+        verify(fakeChat.calls.every(c => c.indexOf("send") !== 0), "never sent by itself");
+        var box = createTemporaryObject(boxComponent, testCase);
+        wait(100);
+        screenshot(box, "ask-inbox-quoted-selection");
     }
 
     function test_new_chat_is_made_first_and_files_are_attached_with_the_normal_code() {
@@ -168,5 +195,8 @@ TestCase {
         helperCalls = [];
         createTemporaryObject(inboxComponent, testCase, {"config": {"krunnerEnabled": true, "dolphinMenuEnabled": false, "krunnerPrefix": "ask"}});
         tryVerify(function() { return helperCalls.indexOf("desktop_sync") >= 0; });
+        helperCalls = [];
+        createTemporaryObject(inboxComponent, testCase, {"config": {"selectionShortcutEnabled": true}});
+        tryVerify(function() { return helperCalls.indexOf("desktop_sync") >= 0; }, 3000, "only the shortcut switch is on");
     }
 }
