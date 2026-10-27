@@ -1,121 +1,90 @@
-# KDE AI Chat — Native KDE Plasma 6 AI Chat Widget
+# KDE AI Chat
 
 [![KDE Store](https://img.shields.io/badge/KDE%20Store-Download-blue?style=for-the-badge&logo=kde)](https://store.kde.org/p/2360152/) [![GitHub Release](https://img.shields.io/github/v/release/racstan/KDE-AI-Chat?style=for-the-badge&color=success)](https://github.com/racstan/KDE-AI-Chat/releases)
 
-A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6** desktop. It connects directly to your favorite AI providers (including offline local models), lets you drag-and-drop files, schedule automated tasks, and securely save your API keys.
+A chat assistant that lives on your **KDE Plasma 6** desktop. Talk to the AI service of your choice, or to a model running on your own computer. Drop in files, keep your chats in projects, schedule messages, and let the AI help with code. Your API keys are kept in KDE Wallet, and your chats stay in private files on your computer.
+
+![A conversation in KDE AI Chat](docs/media/chat-conversation-light.png)
+
+[Watch the demo (video)](docs/media/demo.webm)
 
 ---
 
-### 📸 Gallery & Features
+## What it does
 
-| Screenshot | Description |
-| :--- | :--- |
-| ![General Settings](.github/assets/image1.png) | **General Settings (API Config)**: Basic settings (Notification Sound, Timeout) and API configurations for default providers like Mistral. |
-| ![TTS in Action](.github/assets/image2.png) | **Chat & Text-Selection TTS**: Active conversation showing text selection highlight and the global status bar **"■ Reading aloud..."** with the Stop button. |
-| ![NVIDIA NIM Settings](.github/assets/image3.png) | **NVIDIA NIM Provider Config**: Settings showing dynamic model loading (118 models fetched) and NVIDIA NIM provider setup. |
-| ![OpenCode Settings](.github/assets/image4.png) | **OpenCode Local Configuration**: Developer settings panel for local API server connections (Ollama / Llama.cpp) and model selections. |
-| ![Voice Tools Settings](.github/assets/image6.png) | **Voice**: dictation and read aloud through Speech Note, the system voice or a speech server. |
-| ![Other Settings](.github/assets/image7.png) | **Prompt Templates & Scheduler**: Custom prompt templates and the login-enabled Scheduler Daemon. |
-| ![Quick-Access Templates](.github/assets/image8.png) | **Quick Prompt Templates**: View and manage short slash-command templates (like `/news`, `/review`) for instant insert. |
-| ![Scheduler UI](.github/assets/image9.png) | **Task Scheduler**: Dialog allowing users to schedule periodic prompt executions (e.g. fetching stock/currency rates every 10 mins). |
-
----
-
-## Key Features
-
-- **🛡️ OpenCode Developer Bridge**: Connect the widget to your local code workspace. Run code, search the web, and execute tasks directly from your desktop panel.
-- **🗣️ Voice (dictation and read aloud)**: Talk to the AI hands-free through the separate app Speech Note (any language, uses your graphics card), the system voice, or an OpenAI-compatible speech server. Both are off by default. You can even highlight/select specific text in the chat and click the "Read Aloud" button to only read that selected part!
-- **📎 Drag & Drop Files**: Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send a file without typing any text.
-- **📝 Prompt Templates**: Save prompts you use often in the settings. Type `/<name>` in the chat to insert them instantly.
-- **📅 Task Scheduler**: Set up recurring tasks (like automated code checks or periodic reminders) using simple calendar schedules or cron expressions.
-- **🌳 Edit Messages & Rewind**: Edit any older question to clear the messages after it and restart the conversation from that point.
-- **🔑 Secure API Key Storage**: Safely save your keys. Keys are kept only in KDE's secure password manager (KWallet), never in a config file, and chats are stored in private files on your computer.
-- **🔄 15+ AI Providers**: Works with OpenAI, Claude, Groq, DeepSeek, Gemini, OpenRouter, Mistral, Ollama, LM Studio, LiteLLM Proxy, and more.
-- **📤 Export Chats**: Save your chat history as Markdown (`.md`) or plain text (`.txt`) with a single click.
-- **🧭 Quick Navigation**: Easily jump between your questions in a long chat using the Up and Down arrow buttons.
-- **⚡ Smooth Scrolling**: Enhanced layout scrolling that won't jump or jitter as messages load.
-- **❓ The AI Can Ask You**: In any mode the model or agent can ask you a question in the chat (tap an answer or type one); direct chats do this with a tool call (switch it off in Settings → Chat).
-- **🔔 "Input Needed" Notifications**: With the popup closed, a question or permission request from the AI shows up as a desktop notification you can answer right there (answer buttons, a reply box, or Allow/Deny), or open the chat from it.
-- **🎨 Resizable Widget**: Drag the bottom-right corner of the chat popup to resize it exactly how you want.
-
-> [!TIP]
-> **Can't find your AI provider listed?**
-> You can open the `opencode` CLI in your terminal and configure/save your custom provider inside it (see the [OpenCode Providers Documentation](https://opencode.ai/docs/providers/) for details). Using the widget in **OpenCode mode** is highly recommended for everyone, as it serves as a powerful local agent bridge that supports customized endpoints, workspace commands, and custom providers.
-
----
-
-## What's New in Recent Releases (v1.4.0)
-
-- **🔀 Per-Chat Model Switching**: Change provider, model or mode for the current chat from the chat settings panel, without affecting other chats.
-- **🔌 Multiple Custom Providers**: Add any number of OpenAI-compatible providers, each with its own name, URL and key — including several of the same type.
-- **🚫 Disable Streaming**: For providers that reject streamed requests.
-- **🖼️ Custom Widget Icon**: Use any KDE icon name or an image file.
-- **🖱️ Smoother Touchpad Scrolling**: Pixel-precise two-finger scrolling.
-- **🤖 Pi Coding Agent Bridge**: A new agent mode alongside OpenCode.
-- **⚡ Lower Idle CPU Use**: No background polling when the scheduler is off, plus fixes for freezes when opening chat settings.
-
-See [changelog.md](changelog.md) for the full list, including v1.3.x.
+- **Many AI providers.** OpenAI, Anthropic, Google Gemini, OpenRouter, Groq, Mistral and more, plus local programs such as Ollama and LM Studio. It can find local servers for you. See [Providers](docs/providers.md).
+- **Three ways to chat.** Directly to a provider, through the OpenCode coding agent, or through the Pi coding agent. See [Modes](docs/modes.md).
+- **Chats that stay organised.** History, search across all chats, projects, incognito chats, quotes, edit and rewind, slash commands, export. See [Chats](docs/chats.md).
+- **Memory and personality.** Tell the AI who you are and what to remember. See [Memory and personality](docs/memory-and-personality.md).
+- **Scheduled messages.** Send a message into a chat at set times, even when the widget is closed. See [Schedules](docs/schedules.md).
+- **Pictures.** Make pictures with `/image` through AI Horde or Pollinations, and see pictures that models send back. See [Pictures](docs/pictures.md).
+- **Voice.** Dictate instead of typing and have replies read aloud. Both are off until you switch them on. See [Voice](docs/voice.md).
+- **Desktop integration.** Ask from KRunner, from Dolphin, or about selected text in any app. See [Desktop integration](docs/desktop-integration.md).
+- **Your look.** Text size, bubbles, accent colour, an icon or animation in the panel, avatars. See [Customising](docs/customising.md).
+- **Private by design.** See [Privacy](docs/privacy.md) for what is stored where and what is sent where.
 
 ---
 
 ## Installation
 
-### Option 1: Install from the Desktop (Recommended)
-1. Right-click your desktop background or panel and select **Add Widgets...**
-2. Click **Get New Widgets** -> **Download New Plasma Widgets...**
-3. Search for **"KDE AI Chat"** and click **Install**.
+### Option 1: From the desktop (recommended)
+1. Right-click the desktop or a panel and choose **Add Widgets...**
+2. Click **Get New Widgets** and then **Download New Plasma Widgets...**
+3. Search for **KDE AI Chat** and click **Install**.
 
-### Option 2: Web Browser Download (KDE Store)
-1. Go to the [KDE Store Page for KDE AI Chat](https://store.kde.org/p/2360152/).
-2. Click the **Download** button to get the `.plasmoid` file.
-3. Install it using the terminal:
+### Option 2: Download the file
+1. Get the `.plasmoid` file from the [KDE Store](https://store.kde.org/p/2360152/) or the [GitHub releases](https://github.com/racstan/KDE-AI-Chat/releases).
+2. Install it in a terminal:
    ```bash
    kpackagetool6 -i /path/to/downloaded-package.plasmoid
    ```
 
-### Option 3: Install from Source (For Developers)
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/racstan/KDE-AI-Chat.git
-   cd KDE-AI-Chat
-   ```
-2. Run the installer script:
-   ```bash
-   ./install.sh
-   ```
-3. Restart your Plasma shell to apply changes:
-   ```bash
-   systemctl --user restart plasma-plasmashell.service
-   ```
-4. Right-click your desktop/panel, select **Add Widgets...**, and add **KDE AI Chat**!
+### Option 3: From the source code
+```bash
+git clone https://github.com/racstan/KDE-AI-Chat.git
+cd KDE-AI-Chat
+./install.sh
+systemctl --user restart plasma-plasmashell.service
+```
+Then right-click the desktop or a panel, choose **Add Widgets...** and add **KDE AI Chat**.
+
+The first time you open the chat, a short setup card helps you choose where your AI runs. More in [Getting started](docs/getting-started.md).
 
 ---
 
-## System Dependencies
+## System dependencies
 
-The widget works out of the box, but some features need basic system tools. If a tool is missing, the widget will show a helpful warning inside the chat and explain what to install:
+The widget works out of the box. Some features need a small tool; if one is missing, the widget tells you what to install, and **Settings → Connection → Check setup** lists it too.
 
-| Feature | Tool Needed | Debian/Ubuntu | Arch Linux | Fedora |
+| Feature | Tool needed | Debian/Ubuntu | Arch Linux | Fedora |
 | :--- | :--- | :--- | :--- | :--- |
 | **Reading PDFs** | `pdftotext` | `sudo apt install poppler-utils` | `sudo pacman -S poppler` | `sudo dnf install poppler-utils` |
-| **Reading Word Docs** | `pandoc` | `sudo apt install pandoc` | `sudo pacman -S pandoc-cli` | `sudo dnf install pandoc` |
-| **Secure Key Storage** | `qdbus6` / `qdbus` | *Pre-installed* | *Pre-installed* | *Pre-installed* |
+| **Reading Word documents** | `pandoc` | `sudo apt install pandoc` | `sudo pacman -S pandoc-cli` | `sudo dnf install pandoc` |
+| **Secure key storage** | `qdbus6` / `qdbus` | *Pre-installed* | *Pre-installed* | *Pre-installed* |
+| **Voice (optional)** | Speech Note (Flatpak [net.mkiol.SpeechNote](https://flathub.org/apps/net.mkiol.SpeechNote)) | see [Voice](docs/voice.md) | see [Voice](docs/voice.md) | see [Voice](docs/voice.md) |
+| **Coding agents (optional)** | `opencode` or `pi` | see [Modes](docs/modes.md) | see [Modes](docs/modes.md) | see [Modes](docs/modes.md) |
 
 ---
 
-## Code Quality & Performance
+## Documentation
 
-- **Zero Errors**: Fully passes QML analysis checks (`qmllint`) with zero warnings and zero errors.
-- **Fast and Lightweight**: Heavy API calls and file processing are run in the background so your desktop never freezes.
-- **Secure Handling**: Safe DBus variables and config paths to prevent system exploits or shell injection issues.
-
----
-
-## Documentation Guides
-
-- [User Operations Manual](user_manual.md) — Step-by-step instructions on chat history, OpenCode, and Prompt Templates.
-- [Voice Setup Guide](VOICE_SETUP.md) — How to set up dictation and read aloud (Speech Note, the system voice, a speech server).
-- [API Keys Setup Guide](SETUP.md) — How to get API keys for each provider.
+- [Getting started](docs/getting-started.md): your first chat in a few minutes
+- [Providers](docs/providers.md): AI services, local servers, custom providers and API keys
+- [Modes](docs/modes.md): direct, OpenCode and Pi
+- [Chats](docs/chats.md): history, search, projects, incognito, commands and more
+- [Memory and personality](docs/memory-and-personality.md)
+- [Schedules](docs/schedules.md)
+- [Pictures](docs/pictures.md)
+- [Voice](docs/voice.md)
+- [Desktop integration](docs/desktop-integration.md)
+- [Customising](docs/customising.md)
+- [Privacy](docs/privacy.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [FAQ](docs/faq.md)
+- [Translating](docs/translating.md)
+- [Development](docs/development.md)
+- [API key pages for each provider](SETUP.md)
+- [Changelog](changelog.md)
 
 ---
 
@@ -133,3 +102,9 @@ Copyright (C) 2026 Rachit Asthana
 KDE AI Chat is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0): you may use, change and share it for any noncommercial purpose (personal use, study, research, hobby projects, and use by charities, schools and public bodies). Commercial use needs the author's permission. It comes without any warranty. See [LICENSE](LICENSE) for the full text, [TERMS.md](TERMS.md) for the terms of use and [SECURITY.md](SECURITY.md) for reporting security problems. Versions up to 1.3.1 were released under the GNU GPL v3.0 or later and stay available under that license.
 
 Using the widget also means accepting the [terms of use](TERMS.md): no warranty, your messages go only to the services you choose, and you are responsible for your keys, your costs and how you use the answers.
+
+---
+
+## Credits
+
+- Voice (dictation and read aloud) is powered by [Speech Note](https://github.com/mkiol/dsnote) by Michał Kosciesza.

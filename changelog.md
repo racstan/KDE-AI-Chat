@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New license: PolyForm Noncommercial 1.0.0.** From 1.4.0, KDE AI Chat may be used, changed and shared for any noncommercial purpose; commercial use needs a separate license from the author. Versions up to 1.3.1 stay under the GNU GPL v3.0 or later. A **SECURITY.md** says how to report security problems privately.
 
 ### Fixed
+- **File names with punctuation attach correctly.** Files with ( ) & ; $ and similar characters in their names are attached as themselves instead of being refused or pointing at another file.
+- **Check setup shows only what needs doing.** What passed is hidden behind "Show what passed", and with no problems it says "Everything is ready."
+- **Personality works in Pi and OpenCode chats.** Your name, "About you", the tone and the AI's persona are now sent in those modes too, and every chat has the "Use my Personality settings" switch.
+- **Small text is easier to read** (less dimmed), and every control has a name a screen reader can say.
 - **Saving is faster with many chats.** A save now serialises only the chat that changed instead of every chat, so a long history no longer stalls the desktop on each message. Unchanged chats are still never rewritten, and damaged chats and a damaged chat list are still never overwritten.
 - **Desktop integration is sturdier.** A malformed message on the session bus no longer ends the KRunner service, and the runner ignores messages over 1 MiB. A question that fails while being sent no longer leaves the ask inbox stuck. The KRunner, Dolphin and shortcut launchers quote paths exactly as the desktop-entry specification asks (backslashes, quotes, `$` and backticks), and refuse paths with control characters. The settings page now tells you to turn the options off before removing the widget, since their files live outside it.
 
@@ -76,9 +80,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Damaged chat files are never overwritten.** A chat file that cannot be read is shown empty with a notice, copied once to `chat-<id>.ini.damaged-<date>` and skipped by every save, so a repair by hand stays possible. A damaged chat list (`index.ini`) no longer starts the widget with no chats and then replaces itself: the widget keeps a rolling `index.ini.bak` and restores from it automatically (it tells you once); when that is damaged too, saving is blocked, the damaged file is copied aside and **Rebuild the chat list from chat files** lists the `chat-*.ini` files again. A chat's mode is never changed by this. New helper commands `keep_damaged_file` and `list_chat_files`.
 
 ### Security
+- **Pictures and keys no longer follow risky redirects.** When the widget downloads a picture, every redirect is checked again against the same rules. When a speech, scheduled-run or other request carries your key, the key is never sent on to a different site after a redirect, and a key is never sent from a secure address to a plain `http` one. A key sent over plain `http` to a server that is not on this computer now brings a warning.
 - Text read aloud with a speech server no longer goes to the helper on its command line (which every local user can read in the process list): it is written to a file in the private runtime folder (`$XDG_RUNTIME_DIR`) that the helper reads and deletes.
 
 ### Removed
+- **Managed speech models and the custom-command voice engine.** The widget no longer downloads, installs or runs speech models of its own (faster-whisper, whisper.cpp, Parakeet, Kokoro, Piper, Flite) and no longer runs a custom command for speech. Use Speech Note, the system voice or a speech server. Old environments and models stay on disk until you delete them in Settings → Storage.
 - The pre-1.4.0 voice engine pages and server: `voice/voice_helper.py` (its read-aloud and dictation servers were replaced), the engine check/repair grid, the voice engine folder and espeak path settings (`voiceVenvPath`, `voiceEspeakPath`; the engine now lives in `~/.local/share/kdeaichat/venv`), the separate GPU switch (the device is chosen per model) and `venv_setup.sh`'s espeak mode. `voiceEnabled` and `voiceLanguage` are kept only so they can be copied once into the new dictation settings.
 
 ### Changed
