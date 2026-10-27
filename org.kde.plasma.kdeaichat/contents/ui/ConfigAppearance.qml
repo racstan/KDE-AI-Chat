@@ -44,6 +44,8 @@ KCM.SimpleKCM {
     function shortcutLabel(id) {
         var labels = {
             "newChat": i18n("New chat"),
+            "incognito": i18n("New incognito chat (never saved)"),
+            "searchChats": i18n("Search all chats"),
             "history": i18n("Show or hide the history"),
             "info": i18n("Show or hide the chat info panel"),
             "focusInput": i18n("Focus the message input"),

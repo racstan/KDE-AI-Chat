@@ -9,6 +9,8 @@
 // Ctrl+Q (a message picked with Up/Down: it only works there).
 var shortcuts = [
     {id: "newChat", keys: "Ctrl+N", text: "New chat"},
+    {id: "incognito", keys: "Ctrl+Shift+N", text: "New incognito chat (never saved)"},
+    {id: "searchChats", keys: "Ctrl+Shift+F", text: "Search all chats"},
     {id: "history", keys: "Ctrl+H", text: "Show or hide the history"},
     {id: "info", keys: "Ctrl+I", text: "Show or hide the chat info panel"},
     {id: "focusInput", keys: "Ctrl+L", text: "Focus the message input"},
@@ -46,11 +48,11 @@ function lastReplyIndex(messages) {
 }
 
 // Id of the chat `delta` places away from the current one in `sessions`
-// (archived chats skipped), wrapping around; "" when there is no other chat.
+// (archived and incognito chats skipped), wrapping around; "" when there is no other chat.
 function neighbourSessionId(sessions, currentId, delta) {
     var ids = [];
     for (var i = 0; i < (sessions || []).length; i++) {
-        if (!sessions[i].archived || sessions[i].value === currentId)
+        if ((!sessions[i].archived && sessions[i].incognito !== true) || sessions[i].value === currentId)
             ids.push(sessions[i].value);
     }
     var at = ids.indexOf(currentId);

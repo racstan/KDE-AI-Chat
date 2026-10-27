@@ -379,6 +379,10 @@
     <entry name="allowAskUser" type="Bool">
       <default>true</default>
     </entry>
+    <!-- Ask before leaving an incognito chat that has messages (chat/Incognito.qml); "Don't ask again" turns it off. -->
+    <entry name="incognitoAskBeforeLeaving" type="Bool">
+      <default>true</default>
+    </entry>
 
     
 

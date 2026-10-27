@@ -31,7 +31,9 @@ ColumnLayout {
         }
         return null;
     }
-    readonly property bool chatOn: !!session && session.memoryOff !== true
+    // An incognito chat (chat/Incognito.qml) never uses memories.
+    readonly property bool incognito: !!session && session.incognito === true
+    readonly property bool chatOn: !!session && session.memoryOff !== true && !incognito
     // The memories of the latest request that are still saved.
     readonly property var used: {
         var ids = session && Array.isArray(session.memoryUsedIds) ? session.memoryUsedIds : [];
@@ -59,9 +61,18 @@ ColumnLayout {
         objectName: "chatMemorySwitch"
         Layout.fillWidth: true
         text: i18n("Use memories in this chat")
-        enabled: !!info.session
+        enabled: !!info.session && !info.incognito
         checked: info.chatOn
         onToggled: info.chat.setSessionProperty(info.sessionId, "memoryOff", !checked)
+    }
+
+    PC3.Label {
+        objectName: "memoryIncognitoNote"
+        visible: info.incognito
+        Layout.fillWidth: true
+        wrapMode: Text.Wrap
+        font: Kirigami.Theme.smallFont
+        text: i18n("An incognito chat uses no memories and adds none.")
     }
 
     PC3.Label {

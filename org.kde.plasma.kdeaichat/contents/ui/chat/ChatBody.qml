@@ -35,6 +35,15 @@ Item {
     signal attachRequested()
     signal chatInfoRequested()
 
+    // Ctrl+Shift+F (chat/ChatShortcuts.qml): the history, with its search field focused.
+    function openSearch() {
+        chat.historyOnlyMode = true;
+        Qt.callLater(function() {
+            if (body.sessionList)
+                body.sessionList.focusSearch();
+        });
+    }
+
     readonly property alias projectEditor: editor
 
     // Creating and editing projects, from the history or any chat's menu.

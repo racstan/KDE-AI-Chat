@@ -112,7 +112,9 @@ QtObject {
             "model": eff.model,
             "thinking": mode.thinkingFor(eff),
             "message": text,
-            "images": images
+            "images": images,
+            // An incognito chat (chat/Incognito.qml): Pi keeps no session file of it.
+            "ephemeral": !!chat.incognito && chat.incognito.isIncognito(sessionId)
         };
     }
 

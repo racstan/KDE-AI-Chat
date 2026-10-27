@@ -248,3 +248,12 @@ def test_idle_bridge_exits_on_its_own():
                     break
                 time.sleep(0.1)
             assert not os.path.exists(state_path), started
+
+
+def test_incognito_chat_runs_pi_without_a_session_file(bridge):
+    q = bridge.events("s-incognito-1-2")
+    assert bridge.post("/chats/s-incognito-1-2/prompt", {"provider": "ollama", "model": "m", "thinking": "low",
+                                                         "message": "hi", "ephemeral": True})[0] == 202
+    _until(q, "agent_settled")
+    argv = _log(bridge)[0]["argv"]
+    assert "--no-session" in argv and "--session-id" not in argv

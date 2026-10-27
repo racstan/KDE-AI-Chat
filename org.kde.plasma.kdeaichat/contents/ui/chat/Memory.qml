@@ -70,7 +70,8 @@ QtObject {
     function remember(text, scope, sessionId, callback) {
         var session = chat ? _session(sessionId) : null;
         var body = clip(text);
-        if (!store || body === "") {
+        // Nothing is remembered from an incognito chat (chat/Incognito.qml).
+        if (!store || body === "" || (session && session.incognito === true)) {
             if (callback) callback(false, "", false);
             return false;
         }
@@ -106,12 +107,12 @@ QtObject {
             store.remove(id, null);
     }
 
-    // Whether memories go with this chat's requests at all.
+    // Whether memories go with this chat's requests at all: never in an incognito chat.
     function activeFor(sessionId) {
         if (!store || !store.enabled)
             return false;
         var session = _session(sessionId);
-        return !!session && session.memoryOff !== true;
+        return !!session && session.memoryOff !== true && session.incognito !== true;
     }
 
     // The memories this chat may use (enabled; every chat, its project, itself).

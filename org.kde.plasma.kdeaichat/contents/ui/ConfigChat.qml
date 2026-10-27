@@ -19,6 +19,7 @@ KCM.SimpleKCM {
     property alias cfg_contextMessageLimit: limitSpin.value
     property alias cfg_autoNameChats: autoNameCheck.checked
     property alias cfg_allowAskUser: askUserCheck.checked
+    property alias cfg_incognitoAskBeforeLeaving: incognitoAskCheck.checked
     property alias cfg_promptTemplates: templates.json
     property alias cfg_openCodeWorkspaceCwd: workspaceField.text
     property alias cfg_perChatModelSettings: perChatSwitch.checked
@@ -77,6 +78,17 @@ KCM.SimpleKCM {
 
         Config.SettingHelp {
             text: i18n("When it needs a choice or a missing detail, the AI can ask you in the chat and wait for your answer. Applies to chats with a provider; the agent modes ask in their own way.")
+        }
+
+        QQC2.CheckBox {
+            id: incognitoAskCheck
+            objectName: "incognitoAskCheck"
+            Kirigami.FormData.label: i18n("Incognito chats:")
+            text: i18n("Ask before leaving one that has messages")
+        }
+
+        Config.SettingHelp {
+            text: i18n("An incognito chat (the button next to New chat, or Ctrl+Shift+N) is never saved: when you leave it, its messages are gone. With this on, you are asked first.")
         }
 
         RowLayout {

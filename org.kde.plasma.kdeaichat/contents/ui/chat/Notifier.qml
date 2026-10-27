@@ -72,18 +72,24 @@ Item {
         return String(chatTitle || "").trim() || "KDE AI Chat";
     }
 
+    // An incognito chat (chat/Incognito.qml): its name and text stay out of notifications.
+    function isIncognito(chatId) {
+        return String(chatId).indexOf("s-incognito-") === 0;
+    }
+
     // Each returns true when a notification was sent.
     function replyFinished(chatId, chatTitle, text) {
         if (!replyEnabled || popupOpen)
             return false;
-        sender(chatName(chatTitle), preview(text) || i18n("The reply is ready."), String(chatId), false);
+        var hidden = isIncognito(chatId);
+        sender(hidden ? i18n("Incognito chat") : chatName(chatTitle), (hidden ? "" : preview(text)) || i18n("The reply is ready."), String(chatId), false);
         return true;
     }
 
     function failed(chatId, chatTitle, message) {
         if (!errorEnabled || popupOpen)
             return false;
-        sender(i18n("%1: request failed", chatName(chatTitle)), preview(message) || i18n("Something went wrong."), String(chatId), true);
+        sender(i18n("%1: request failed", isIncognito(chatId) ? i18n("Incognito chat") : chatName(chatTitle)), preview(message) || i18n("Something went wrong."), String(chatId), true);
         return true;
     }
 
@@ -102,7 +108,7 @@ Item {
     // (backends/AgentEvents.js) shows: {kind, id, chatId, title, text, actions: [{label, value}], typed}.
     // Up to three answers become buttons, a typed answer uses Plasma's inline reply, a permission is Allow / Deny.
     function inputSpec(chatId, chatTitle, message) {
-        var spec = {"chatId": String(chatId), "title": i18n("%1: input needed", chatName(chatTitle)), "actions": [], "typed": false};
+        var spec = {"chatId": String(chatId), "title": i18n("%1: input needed", isIncognito(chatId) ? i18n("Incognito chat") : chatName(chatTitle)), "actions": [], "typed": false};
         if (message.role === "permission_request") {
             var detail = (message.arguments || [])[0];
             spec.kind = "permission";

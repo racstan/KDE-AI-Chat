@@ -1,6 +1,7 @@
 // The toolbar above the chat: the history toggle, pin, settings, the chat
-// title, New chat, the Chat info panel and a "More" menu (rename, jump,
-// export, clear). Every button has an accessible name.
+// title (with the incognito mark), New chat, New incognito chat, the Chat
+// info panel and a "More" menu (rename, jump, export, clear). Every button
+// has an accessible name.
 //
 // Things that live outside the chat (the settings action, dialogs) are
 // requested through signals; the parent wires them up.
@@ -10,6 +11,7 @@ import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
@@ -23,6 +25,8 @@ RowLayout {
     // The history takes the whole view (a narrow popup), so chat actions are
     // hidden and the toggle reads "Back to chat". Set by FullRepresentationContent.
     property bool historyFull: chat ? chat.historyOnlyMode : false
+    readonly property var incognito: chat ? chat.incognito || null : null
+    readonly property bool inIncognito: !!incognito && incognito.active
 
     signal settingsRequested()
     signal chatControlsRequested()
@@ -96,8 +100,16 @@ RowLayout {
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
         Layout.fillWidth: false
-        Layout.maximumWidth: Math.max(50, header.width - 220)
+        Layout.maximumWidth: Math.max(50, header.width - 220 - (incognitoBadge.visible ? incognitoBadge.width + header.spacing : 0))
         clip: true
+    }
+
+    // An incognito chat is marked (chat/IncognitoBadge.qml); its text goes in a very narrow header.
+    IncognitoBadge {
+        id: incognitoBadge
+        visible: !header.historyFull && header.inIncognito
+        chat: header.chat
+        compact: header.width < Kirigami.Units.gridUnit * 24
     }
 
     Item {
@@ -123,6 +135,19 @@ RowLayout {
             else
                 header.chat.createSession(true);
         }
+    }
+
+    // A chat that is never saved (chat/Incognito.qml); while one is open, its mark has the close button.
+    PC3.ToolButton {
+        objectName: "incognitoButton"
+        visible: !!header.incognito && !header.inIncognito
+        icon.name: "view-private"
+        display: PC3.AbstractButton.IconOnly
+        enabled: !header.chat.loading
+        Accessible.name: i18n("New incognito chat (never saved)")
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: Accessible.name
+        onClicked: header.incognito.start()
     }
 
     // Chat info: this chat's usage and its own settings.
@@ -229,6 +254,7 @@ RowLayout {
                 id: projectMenu
                 objectName: "moveToProjectMenu"
                 chat: header.chat
+                enabled: !header.inIncognito
             }
             QQC2.MenuSeparator {
             }
@@ -267,6 +293,7 @@ RowLayout {
                 objectName: "scheduleMessageItem"
                 text: i18n("Schedule a message…")
                 icon.name: "view-calendar"
+                enabled: !header.inIncognito  // nothing can be scheduled into an incognito chat
                 onTriggered: header.scheduleRequested()
             }
             QQC2.MenuItem {

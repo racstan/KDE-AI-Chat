@@ -90,6 +90,17 @@ Item {
             opacity: 0.8
         }
 
+        // An incognito chat (chat/Incognito.qml) says what that means.
+        PC3.Label {
+            objectName: "incognitoHint"
+            visible: !!empty.chat && !!empty.chat.incognito && empty.chat.incognito.active
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            font.bold: true
+            text: i18n("Incognito: this chat is never saved, uses no memories and adds none. It is gone when you leave it.")
+        }
+
         // The chips are centred as one row, wrapping when they don't fit.
         // `measure` is a copy of the row, only to know how wide it wants to be.
         Row {

@@ -97,6 +97,7 @@ PlasmoidItem {
     readonly property var chatStore: storage.chatStore
     readonly property var memoryStore: storage.memoryStore  // memories; chat.memory picks those sent (chat/Memory.qml)
     readonly property Chat.Memory memory: Chat.Memory { chat: root }
+    readonly property Chat.Incognito incognito: Chat.Incognito { chat: root }  // chats never written to disk
     readonly property var store: storage
     property bool sessionHistoryLoadBlocked: false
     // A loaded chat had no mode and was given one (stored by loadSessions).
@@ -272,12 +273,12 @@ PlasmoidItem {
     function getSessionProperty(sessionId, key, defaultValue) { return sessionManager.getSessionProperty(sessionId, key, defaultValue); }
     function setSessionProperty(sessionId, key, value) { sessionManager.setSessionProperty(sessionId, key, value); }
     function setSessionOverrides(sessionId, overrides) { return sessionManager.setSessionOverrides(sessionId, overrides); }
-    function createSession(switchToNew, projectId) { sessionManager.createSession(switchToNew, projectId); }
+    function createSession(switchToNew, projectId, incognito) { sessionManager.createSession(switchToNew, projectId, incognito); }
     function resetUnreadableSessionHistory() { sessionManager.resetUnreadableSessionHistory(); }
     function saveCurrentSessionState(touchUpdatedAt) { sessionManager.saveCurrentSessionState(touchUpdatedAt); }
     function setCurrentSessionSource() { sessionManager.setCurrentSessionSource(); }
     function setSessionArchived(sessionId, archived) { sessionManager.setSessionArchived(sessionId, archived); }
-    function switchSession(sessionId) { sessionManager.switchSession(sessionId); }
+    function switchSession(sessionId, then) { sessionManager.switchSession(sessionId, then); }
     function deleteSession(sessionId) { sessionManager.deleteSession(sessionId); }
     function currentOpenCodeSessionId(sessionId) { return sessionManager.currentOpenCodeSessionId(sessionId); }
     function setCurrentOpenCodeSessionId(remoteSessionId, sessionId) { sessionManager.setCurrentOpenCodeSessionId(remoteSessionId, sessionId); }
@@ -555,7 +556,5 @@ PlasmoidItem {
                 }
             }
         }
-
     }
-
 }
