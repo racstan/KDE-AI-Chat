@@ -2,6 +2,7 @@
 import base64
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -62,8 +63,29 @@ def test_helper_takes_the_file_argument(tmp_path):
     assert not (folder / "kdeaichat-payload-9.ini").exists()
 
 
-def test_helper_runner_sends_read_aloud_text_privately():
+def test_helper_runner_is_private_by_default():
     with open(os.path.join(UI, "store", "HelperRunner.qml"), encoding="utf-8") as f:
         qml = f.read()
-    assert 'privateCommands: ["tts_synthesize", "speechnote_speak"]' in qml
+    assert "privateCommands" not in qml
+    assert "var isPrivate = argvCommands.indexOf(command) < 0;" in qml
+    listed = re.search(r"argvCommands: \[(.*?)\]", qml, re.S).group(1)
+    for name in ("tts_synthesize", "speechnote_speak", "memory_add", "schedule_save", "image_save", "export_chat"):
+        assert name not in listed
     assert "RuntimeLocation" in qml
+
+
+def test_export_chat_writes_plain_content_and_refuses_too_much(tmp_path):
+    from kdeaichat import maintenance
+    target = tmp_path / "out.md"
+    maintenance.cmd_export_chat({"filePath": str(target), "content": "x" * 300000 + "\u00fc"})
+    assert target.read_text(encoding="utf-8") == "x" * 300000 + "\u00fc"
+    with pytest.raises(ValueError):
+        maintenance.cmd_export_chat({"filePath": str(tmp_path / "big.md"), "content": "y" * (maintenance.MAX_EXPORT_BYTES + 1)})
+    assert not (tmp_path / "big.md").exists()
+
+
+def test_a_large_payload_file_is_read(tmp_path):
+    folder = tmp_path / "run"
+    folder.mkdir(mode=0o700)
+    _write(str(folder), "kdeaichat-payload-3.ini", {"content": "z" * 5_000_000})
+    assert len(private_payload.read("@kdeaichat-payload-3.ini", str(folder))["content"]) == 5_000_000

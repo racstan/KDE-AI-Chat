@@ -1,11 +1,12 @@
 // Runs kde_ai_helper.py commands and calls back with their output.
 //
 // run("prepare_chat_dir", {...}, function(stdout, exitCode, stderr) {...})
-// The payload is passed base64-encoded as one argument, so keep it small and
-// never put secrets in it (arguments are visible in the process list).
-// Commands in `privateCommands` carry chat text (read aloud): their payload
-// goes in a file in the private runtime folder ($XDG_RUNTIME_DIR, 0700) and
-// only "@<file name>" is on the command line; the helper reads and deletes it.
+// Arguments are visible in the process list, so by default every payload goes
+// in a file in the private runtime folder ($XDG_RUNTIME_DIR, 0700) and only
+// "@<file name>" is on the command line; the helper reads and deletes it.
+// Only the tiny commands in `argvCommands` (status checks and the like, whose
+// payload is empty or a folder path) pass it base64-encoded as one argument.
+// Never put secrets in a payload at all.
 import QtQuick
 import QtCore
 import org.kde.plasma.plasma5support as P5Support
@@ -19,7 +20,10 @@ P5Support.DataSource {
     property string helperPath: ""
     property var _callbacks: ({})
     property int _counter: 0
-    property var privateCommands: ["tts_synthesize", "speechnote_speak"]
+    // Commands with no private text in their payload; everything else is private.
+    property var argvCommands: ["desktop_status", "storage_usage", "local_servers_scan", "ask_inbox_take",
+                                "read_legacy_keyfile", "remove_legacy_keyfile", "prepare_chat_dir",
+                                "speechnote_status", "get_pi_models"]
     // Tests: where private payload files go (default: the runtime folder).
     property string privateDir: {
         var dir = String(StandardPaths.writableLocation(StandardPaths.RuntimeLocation) || "");
@@ -51,8 +55,9 @@ P5Support.DataSource {
         if (onDone)
             _callbacks[token] = onDone;
         var encoded = Sec.base64Encode(JSON.stringify(payload || {}));
-        var argument = privateCommands.indexOf(command) >= 0 ? _writePrivate(encoded, token) : "";
-        if (privateCommands.indexOf(command) >= 0 && !argument) {
+        var isPrivate = argvCommands.indexOf(command) < 0;
+        var argument = isPrivate ? _writePrivate(encoded, token) : "";
+        if (isPrivate && !argument) {
             if (onDone) onDone("", 1, "no private folder for the payload");
             delete _callbacks[token];
             return;
