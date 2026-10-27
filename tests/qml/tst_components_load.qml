@@ -115,6 +115,7 @@ TestCase {
             { tag: "config/OpenCodeSettings", url: uiDir + "config/OpenCodeSettings.qml" },
             { tag: "config/PiSettings", url: uiDir + "config/PiSettings.qml" },
             { tag: "config/SetupCheck", url: uiDir + "config/SetupCheck.qml" },
+            { tag: "config/LocalServers", url: uiDir + "config/LocalServers.qml" },
             { tag: "config/TemplatesEditor", url: uiDir + "config/TemplatesEditor.qml" },
             { tag: "config/ScheduleService", url: uiDir + "config/ScheduleService.qml" },
             { tag: "config/ScheduleFormat", url: uiDir + "config/ScheduleFormat.qml" },

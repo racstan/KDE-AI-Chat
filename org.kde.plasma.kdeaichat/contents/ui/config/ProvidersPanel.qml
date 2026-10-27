@@ -31,6 +31,8 @@ ColumnLayout {
     property bool editingNew: false
     property var draft: ({})
     property string draftKey: ""
+    // Set before adding a found server that asks for a key: no model list until the key is saved.
+    property bool skipModelFetch: false
     // The models offered in the editor, and what the provider listed.
     property var listChat: []
     property var listAll: []
@@ -92,11 +94,12 @@ ColumnLayout {
         return ProviderService.getProviderConfig(entry.id, {"providersJson": JSON.stringify([entry])}).allowEmptyKey;
     }
 
-    function addFromPreset(presetId) {
+    function addFromPreset(presetId, overrides) {
         var preset = ProviderService.presetById(presetId) || {};
         var entry = {"id": ProviderService.newProviderId(providers, presetId), "name": preset.name || i18n("New provider"), // qmllint disable unqualified
                      "type": preset.type || "openai-compat", "baseUrl": preset.baseUrl || "", "model": preset.model || ""};
         if (preset.headers) entry.headers = preset.headers;
+        Object.assign(entry, overrides || {});   // e.g. a found local server's address and model
         if (preset.service) Object.assign(entry, {"service": preset.service, "accepted": false, "options": {}});   // an image service, off at first
         providers = providers.concat([entry]);
         startEdit(providers.length - 1, true);
@@ -116,7 +119,8 @@ ColumnLayout {
         editingIndex = index;
         confirmRemoveIndex = -1;
         // Show the provider's current models without being asked.
-        if (draft.type !== "image" && (isLocal(draft) || draftKey.trim() !== ""))
+        var skip = skipModelFetch; skipModelFetch = false;
+        if (draft.type !== "image" && !skip && (isLocal(draft) || draftKey.trim() !== ""))
             refreshModels(false);
     }
 
