@@ -146,4 +146,99 @@ TestCase {
         compare(s.fileNameForId("s-1.2_x"), "chat-s-1.2_x.ini");
         compare(s.fileNameForId("a:b/c"), "chat-a%3Ab%2Fc.ini");
     }
+
+    function keptCopies() {
+        return helperCalls.filter(function(c) { return c.command === "keep_damaged_file"; });
+    }
+
+    // A chat file that cannot be parsed is kept as it is: a copy is made once and a save never replaces it.
+    function test_damaged_chat_file_is_not_overwritten() {
+        var dir = freshDir();
+        var s = makeStore(dir);
+        s.save([chat("a", "A", ["one"]), chat("b", "B", ["two"])], true);
+        s._write("chat-a.ini", "messages", "[{\"role\":\"user\",\"content\":\"cut off");
+
+        var reader = makeStore(dir);
+        var loaded = reader.loadAll();
+        compare(loaded.length, 2);
+        compare(loaded[0].messages.length, 0, "the damaged chat is shown empty");
+        verify(reader.damagedIds["a"]);
+        verify(!reader.damagedIds["b"]);
+        compare(loaded[0].source, "provider", "the mode is untouched");
+        var copies = keptCopies();
+        compare(copies.length, 1);
+        compare(copies[0].payload.file, "chat-a.ini");
+        verify(/^\d{8}-\d{6}$/.test(copies[0].payload.stamp));
+
+        var writes = [];
+        reader.fileWritten.connect(function(name) { writes.push(name); });
+        loaded[0].messages = [{role: "user", content: "new"}];
+        loaded[1].messages = [{role: "user", content: "two"}, {role: "user", content: "more"}];
+        reader.save(loaded, true);
+        compare(writes, ["chat-b.ini"], "only the readable chat is written");
+        compare(reader._read("chat-a.ini", "messages"), "[{\"role\":\"user\",\"content\":\"cut off");
+        compare(helperCalls.filter(function(c) { return c.command === "delete_chat_files"; }).length, 0, "it is not treated as removed");
+        compare(makeStore(dir).loadAll().length, 2, "still listed");
+    }
+
+    // A damaged index blocks every save; rebuilding lists the chat files again.
+    function test_damaged_index_blocks_saves_and_rebuild_restores_chats() {
+        var dir = freshDir();
+        var s = makeStore(dir);
+        var a = chat("a", "A", ["hello there"]);
+        a.messages[0].at = 1000;
+        s.save([a, chat("b:2", "B", ["two"])], true);
+        s._write("index.ini", "sessions", "[{\"value\":\"a\",\"te");
+        s._write("index.ini.bak", "sessions", "also {broken");
+        var before = s._read("index.ini", "sessions");
+
+        var reader = makeStore(dir);
+        reader.runHelper = function(command, payload, onDone) {
+            helperCalls.push({command: command, payload: payload});
+            if (onDone) onDone(command === "list_chat_files" ? JSON.stringify({files: ["chat-a.ini", "chat-b%3A2.ini"]}) : "");
+        };
+        compare(reader.loadAll().length, 0, "nothing is listed");
+        verify(reader.indexProblem !== "");
+        compare(keptCopies()[0].payload.file, "index.ini");
+
+        reader.save([chat("new", "New", ["x"])], true);
+        compare(reader._read("index.ini", "sessions"), before, "the damaged index is not replaced");
+        compare(reader._read("chat-new.ini", "messages"), "", "no chat file is written either");
+
+        var count = -1;
+        reader.rebuildIndex(function(n) { count = n; });
+        compare(count, 2);
+        compare(reader.indexProblem, "");
+        var chats = makeStore(dir).loadAll();
+        compare(chats.length, 2);
+        compare(chats[0].value, "a");
+        compare(chats[0].text, "hello there");
+        compare(chats[0].updatedAt, 1000);
+        compare(chats[1].value, "b:2");
+        compare(chats[1].messages[0].content, "two");
+        compare(chats[0].source, undefined, "no mode is invented here");
+        reader.save(chats, true);
+        compare(makeStore(dir).loadAll().length, 2, "saving works again");
+    }
+
+    // index.ini.bak follows each successful index save and stands in for a damaged index.
+    function test_backup_index_is_used_when_the_index_is_damaged() {
+        var dir = freshDir();
+        var s = makeStore(dir);
+        s.save([chat("a", "A", ["one"])], true);
+        compare(JSON.parse(s._read("index.ini.bak", "sessions"))[0].value, "a");
+        s.save([chat("a", "A", ["one"]), chat("b", "B", ["two"])], true);
+        compare(JSON.parse(s._read("index.ini.bak", "sessions")).length, 2, "the backup follows the index");
+        s._write("index.ini", "sessions", "[{truncated");
+
+        var reader = makeStore(dir);
+        var loaded = reader.loadAll();
+        compare(loaded.length, 2);
+        compare(loaded[1].messages[0].content, "two");
+        verify(reader.recoveredFromBackup);
+        compare(reader.indexProblem, "");
+        compare(keptCopies()[0].payload.file, "index.ini", "the damaged index is kept");
+        reader.save(loaded, true);
+        compare(JSON.parse(reader._read("index.ini", "sessions")).length, 2, "the next save repairs index.ini");
+    }
 }

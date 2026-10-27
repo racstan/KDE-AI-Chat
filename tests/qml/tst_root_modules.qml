@@ -54,6 +54,15 @@ TestCase {
         property bool sessionHistoryLoadBlocked: false
         property bool sessionSourceInferred: false
         property var projects: null
+        property string privacyNotice: ""
+        property var chatStore: QtObject {
+            property string indexProblem: ""
+            property bool recoveredFromBackup: false
+            property var stored: null
+            property int rebuilt: 0
+            function loadAll() { return stored; }
+            function rebuildIndex(done) { rebuilt++; indexProblem = ""; stored = [{value: "r-1", text: "Back", source: "provider", messages: []}]; done(1); }
+        }
         readonly property int maxMessageChars: 2000000
         property var streamBuffer: QtObject { function clear() {} function flush() {} }
         property var store: QtObject { property int saves: 0; function save(s) { saves++; } }
@@ -95,6 +104,30 @@ TestCase {
     Chat.ChatNavigation { id: nav; chat: chat }
     Chat.DirectRequest { id: direct; chat: chat }
     Chat.Attachments { id: att; chat: chat }
+
+    // A chat list that could not be read blocks saving until it is rebuilt from the chat files.
+    function test_damaged_chat_list_blocks_saving_until_rebuilt() {
+        chat.chatStore.indexProblem = "damaged";
+        chat.chatStore.stored = [];
+        manager.loadSessions();
+        verify(chat.sessionHistoryLoadBlocked);
+        verify(chat.sessionHistoryLoadError !== "");
+        var saves = chat.store.saves;
+        manager.persistSessions();
+        compare(chat.store.saves, saves, "nothing is saved while blocked");
+
+        manager.resetUnreadableSessionHistory();
+        compare(chat.chatStore.rebuilt, 1);
+        verify(!chat.sessionHistoryLoadBlocked);
+        compare(chat.sessions[0].value, "r-1");
+        compare(chat.sessions[0].source, "provider", "the mode is kept");
+
+        chat.chatStore.recoveredFromBackup = true;
+        manager.loadSessions();
+        verify(chat.privacyNotice !== "", "a list restored from its backup is announced");
+        chat.chatStore.recoveredFromBackup = false;
+        chat.privacyNotice = "";
+    }
 
     function test_sessions_flow() {
         manager.createSession(true);

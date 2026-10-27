@@ -1,4 +1,5 @@
 """Filesystem commands behind store/ChatStore.qml."""
+import json
 import os
 import stat
 import sys
@@ -57,3 +58,46 @@ def test_directory_must_be_an_applet_folder(sub):
     with tempfile.TemporaryDirectory() as data, patch.dict(os.environ, {"XDG_DATA_HOME": data}):
         with pytest.raises(ValueError):
             chats.cmd_prepare_chat_dir({"directory": os.path.join(chats.chats_root(), sub)})
+
+
+def _folder():
+    directory = os.path.join(chats.chats_root(), "applet-1")
+    chats.cmd_prepare_chat_dir({"directory": directory})
+    return directory
+
+
+def test_keep_damaged_file_copies_once_and_leaves_the_original(capsys):
+    with tempfile.TemporaryDirectory() as data, patch.dict(os.environ, {"XDG_DATA_HOME": data}):
+        directory = _folder()
+        path = os.path.join(directory, "chat-a.ini")
+        with open(path, "w") as f:
+            f.write("[General]\nmessages=[{\"role\"")
+        chats.cmd_keep_damaged_file({"directory": directory, "file": "chat-a.ini", "stamp": "20261027-101500"})
+        copy = path + ".damaged-20261027-101500"
+        assert open(copy).read() == open(path).read()
+        assert _mode(copy) == 0o600
+        # A second copy with the same stamp does not replace the first.
+        with open(path, "a") as f:
+            f.write("more")
+        chats.cmd_keep_damaged_file({"directory": directory, "file": "chat-a.ini", "stamp": "20261027-101500"})
+        assert not open(copy).read().endswith("more")
+        assert '"copied": false' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("name,stamp", [("../x.ini", "20261027-101500"), ("projects.ini", "20261027-101500"),
+                                        ("chat-a.ini", "../../etc"), ("chat-a.ini", "2026")])
+def test_keep_damaged_file_rejects_bad_input(name, stamp):
+    with tempfile.TemporaryDirectory() as data, patch.dict(os.environ, {"XDG_DATA_HOME": data}):
+        with pytest.raises(ValueError):
+            chats.cmd_keep_damaged_file({"directory": _folder(), "file": name, "stamp": stamp})
+
+
+def test_list_chat_files_lists_only_chat_files(capsys):
+    with tempfile.TemporaryDirectory() as data, patch.dict(os.environ, {"XDG_DATA_HOME": data}):
+        directory = _folder()
+        for name in ("chat-a.ini", "chat-b%3Ac.ini", "index.ini", "chat-a.ini.damaged-20261027-101500", "projects.ini"):
+            open(os.path.join(directory, name), "w").close()
+        os.symlink("/etc/passwd", os.path.join(directory, "chat-link.ini"))
+        capsys.readouterr()
+        chats.cmd_list_chat_files({"directory": directory})
+        assert json.loads(capsys.readouterr().out)["files"] == ["chat-a.ini", "chat-b%3Ac.ini"]

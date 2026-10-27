@@ -11,6 +11,9 @@ import shutil
 from typing import Any, Dict
 
 _FILE_NAME = re.compile(r"^chat-[A-Za-z0-9._%-]{1,400}\.ini$")
+# A file kept as evidence when it cannot be read: only the index, its backup or a chat file.
+_DAMAGEABLE = re.compile(r"^(index\.ini|index\.ini\.bak|chat-[A-Za-z0-9._%-]{1,400}\.ini)$")
+_STAMP = re.compile(r"^\d{8}-\d{6}$")
 # chat/Incognito.qml: an incognito chat's id. Such a chat is never stored.
 _INCOGNITO = re.compile(r"^s-incognito-[A-Za-z0-9._-]{1,100}$")
 
@@ -64,6 +67,32 @@ def cmd_delete_chat_files(payload: Dict[str, Any]) -> None:
     print(json.dumps({"deleted": deleted}))
 
 
+def cmd_keep_damaged_file(payload: Dict[str, Any]) -> None:
+    """Copy an unreadable index.ini / chat-<id>.ini to <name>.damaged-<stamp> (stamp
+    YYYYMMDD-HHMMSS) so a repair is possible by hand. The original is never touched
+    and an existing copy is never replaced."""
+    directory = _chat_dir(payload)
+    name, stamp = str(payload.get("file", "")), str(payload.get("stamp", ""))
+    if not _DAMAGEABLE.match(name) or not _STAMP.match(stamp):
+        raise ValueError("invalid file name or stamp")
+    source = os.path.join(directory, name)
+    target = source + ".damaged-" + stamp
+    if os.path.islink(source) or not os.path.isfile(source) or os.path.lexists(target):
+        print(json.dumps({"copied": False}))
+        return
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with open(source, "rb") as src, os.fdopen(fd, "wb") as dst:
+        shutil.copyfileobj(src, dst)
+    print(json.dumps({"copied": True, "file": os.path.basename(target)}))
+
+
+def cmd_list_chat_files(payload: Dict[str, Any]) -> None:
+    """Names of the chat-<id>.ini files in the chats folder (to rebuild a lost index)."""
+    directory = _chat_dir(payload)
+    names = [name for name, path in _real_entries(directory) if _FILE_NAME.match(name) and os.path.isfile(path)]
+    print(json.dumps({"files": names}))
+
+
 def _real_entries(folder: str):
     """(name, path) of the entries of `folder` that are not symlinks; none if it is missing or a link."""
     if os.path.islink(folder) or not os.path.isdir(folder):
@@ -111,4 +140,6 @@ COMMANDS = {
     "prepare_chat_dir": cmd_prepare_chat_dir,
     "delete_chat_files": cmd_delete_chat_files,
     "incognito_cleanup": cmd_incognito_cleanup,
+    "keep_damaged_file": cmd_keep_damaged_file,
+    "list_chat_files": cmd_list_chat_files,
 }
