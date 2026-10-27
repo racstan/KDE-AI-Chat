@@ -131,3 +131,4 @@ contents/ui/config/LayoutSettings.qml
 contents/ui/config/BehaviourSettings.qml
 contents/ui/config/ResetRow.qml
 contents/ui/config/PageReset.qml
+contents/ui/chat/Sessions.qml
