@@ -14,7 +14,7 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 | ![TTS in Action](.github/assets/image2.png) | **Chat & Text-Selection TTS**: Active conversation showing text selection highlight and the global status bar **"■ Reading aloud..."** with the Stop button. |
 | ![NVIDIA NIM Settings](.github/assets/image3.png) | **NVIDIA NIM Provider Config**: Settings showing dynamic model loading (118 models fetched) and NVIDIA NIM provider setup. |
 | ![OpenCode Settings](.github/assets/image4.png) | **OpenCode Local Configuration**: Developer settings panel for local API server connections (Ollama / Llama.cpp) and model selections. |
-| ![Voice Tools Settings](.github/assets/image6.png) | **Voice Tools Setup**: Detailed setup for GPU/CUDA acceleration, local model directories (Whisper & Kokoro), and voice model configurations. |
+| ![Voice Tools Settings](.github/assets/image6.png) | **Voice**: dictation and read aloud through Speech Note, the system voice or a speech server. |
 | ![Other Settings](.github/assets/image7.png) | **Prompt Templates & Scheduler**: Custom prompt templates and the login-enabled Scheduler Daemon. |
 | ![Quick-Access Templates](.github/assets/image8.png) | **Quick Prompt Templates**: View and manage short slash-command templates (like `/news`, `/review`) for instant insert. |
 | ![Scheduler UI](.github/assets/image9.png) | **Task Scheduler**: Dialog allowing users to schedule periodic prompt executions (e.g. fetching stock/currency rates every 10 mins). |
@@ -24,7 +24,7 @@ A native, fast, and easy-to-use AI chat assistant widget for the **KDE Plasma 6*
 ## Key Features
 
 - **🛡️ OpenCode Developer Bridge**: Connect the widget to your local code workspace. Run code, search the web, and execute tasks directly from your desktop panel.
-- **🗣️ Local Voice Mode (STT & TTS) (Beta)**: Talk to the AI hands-free. Speaks out loud using local voice tools (configured via Python). CPU mode works broadly, with optional NVIDIA CUDA acceleration (AMD/Intel GPU acceleration is not currently configured). You can even highlight/select specific text in the chat and click the "Read Aloud" button to only read that selected part!
+- **🗣️ Voice (dictation and read aloud)**: Talk to the AI hands-free through the separate app Speech Note (any language, uses your graphics card), the system voice, or an OpenAI-compatible speech server. Both are off by default. You can even highlight/select specific text in the chat and click the "Read Aloud" button to only read that selected part!
 - **📎 Drag & Drop Files**: Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send a file without typing any text.
 - **📝 Prompt Templates**: Save prompts you use often in the settings. Type `/<name>` in the chat to insert them instantly.
 - **📅 Task Scheduler**: Set up recurring tasks (like automated code checks or periodic reminders) using simple calendar schedules or cron expressions.
@@ -114,7 +114,7 @@ The widget works out of the box, but some features need basic system tools. If a
 ## Documentation Guides
 
 - [User Operations Manual](user_manual.md) — Step-by-step instructions on chat history, OpenCode, and Prompt Templates.
-- [Voice Setup Guide (Beta)](VOICE_SETUP.md) — How to set up Speech-to-Text and Text-to-Speech engines locally.
+- [Voice Setup Guide](VOICE_SETUP.md) — How to set up dictation and read aloud (Speech Note, the system voice, a speech server).
 - [API Keys Setup Guide](SETUP.md) — How to get API keys for each provider.
 
 ---

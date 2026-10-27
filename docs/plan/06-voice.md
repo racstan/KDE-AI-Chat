@@ -1,5 +1,7 @@
 # Phase 6: Voice (speech-to-text and text-to-speech)
 
+> **Superseded (owner decision 2026-10-27):** all speech now goes through the separate app Speech Note, the system voice and an OpenAI-compatible speech server. The engines designed below (faster-whisper, whisper.cpp, Parakeet, Kokoro, Piper, custom commands) and their services were removed before 1.4.0 was released; this page is the history of why Phase 6 started.
+
 **Goal:** the user chooses their own speech engines and models for both reading aloud and dictation. A good default works with zero setup, and nothing uses RAM while you're not talking.
 
 **Owner requirement (2026-10-24):** STT and TTS must be the user's choice. Today the code is effectively hard-wired to one model (Whisper "small" on CPU for STT, Kokoro voice `"a"` for TTS).

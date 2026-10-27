@@ -7,7 +7,7 @@ KEY FEATURES:
 -> Link your chat directly to your local code workspace. You can run code, search the web, and execute developer workflows right from your desktop panel. Basically running opencode through this widget.
 
 2. Local Voice Mode
--> Talk to the AI hands-free. Includes real-time speech-to-text input and spoken audio responses using local python-based voice tools. A global stop button allows you to interrupt speech playback instantly.
+-> Talk to the AI hands-free. Includes speech-to-text input and spoken replies through the Speech Note app, the system voice or a speech server. A global stop button allows you to interrupt speech playback instantly.
 
 3. Drag and Drop Files
 -> Paste or drag images, PDFs, CSVs, Word documents, and text files directly into the chat. You can even send files by themselves without typing a question.
