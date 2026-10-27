@@ -176,6 +176,51 @@ Item {
             compare(check.rows[0].code, "check-failed", "the fake's reply isn't a check list");
         }
 
+        function test_find_local_servers_use_fills_in_a_provider() {
+            piReply = {"servers": [
+                {id: "lmstudio-1234", kind: "lmstudio", name: "LM Studio", port: 1234, baseUrl: "http://127.0.0.1:1234/v1",
+                 models: ["gemma-3-4b", "qwen3-8b"], count: 2, needsKey: false, provider: "lmstudio"},
+                {id: "openai-8080", kind: "openai", name: "OpenAI-compatible server", port: 8080, baseUrl: "http://127.0.0.1:8080/v1",
+                 models: ["qwen3"], count: 1, needsKey: false, provider: "custom"},
+                {id: "litellm-4000", kind: "litellm", name: "LiteLLM proxy", port: 4000, baseUrl: "http://127.0.0.1:4000/v1",
+                 models: [], count: 0, needsKey: true, provider: "litellm"}]};
+            open();
+            var found = section("localServers");
+            verify(found !== null && found.visible, "Find local servers is on the Connection page (direct mode)");
+            tryVerify(function() { return found.phase === "ok"; }, 3000);
+            verify(piCommands.indexOf("local_servers_scan") >= 0);
+            var providers = section("providersSection");
+            // The Home server provider already uses 8080, so only LM Studio offers Use.
+            var buttons = findChildren(found, "useLocalServer").filter(function(b) { return b.visible; });
+            compare(buttons.length, 2);
+            var byName = function(name) { return buttons.filter(function(b) { return b.Accessible.name === name; })[0]; };
+            var litellmButton = byName("Use LiteLLM proxy");
+            var lmstudioButton = byName("Use LM Studio");
+            wait(300);   // let the rows settle before clicking at a position
+            mouseClick(lmstudioButton);
+            compare(providers.editingIndex, 2);
+            verify(providers.editingNew);
+            compare(providers.draft.id, "lmstudio");
+            compare(providers.draft.baseUrl, "http://127.0.0.1:1234/v1");
+            compare(providers.draft.model, "gemma-3-4b");
+            verify(!lmstudioButton.enabled, "Use is off while the new provider is being edited");
+            wait(300);
+            screenshot(page, "config-connection-local-servers-" + themeName);
+            // A LiteLLM proxy asks for its key: the preset opens asking for it, and no model list is fetched.
+            providers.cancelEdit();
+            wait(300);
+            mouseClick(litellmButton);
+            compare(providers.draft.id, "litellm");
+            compare(providers.draft.baseUrl, "http://127.0.0.1:4000/v1");
+            compare(providers.draft.model, "");
+            compare(providers.draftKey, "");
+            verify(providers.status.indexOf("asks for a key") >= 0, providers.status);
+            verify(!providers.providerChecker.listing, "no model list is requested before the key is saved");
+            compare(providers.listAll.length, 0);
+            chooseMode("Through OpenCode");
+            verify(!found.visible, "Local servers belong to the direct mode only");
+        }
+
         function test_no_key_is_a_saved_setting() {
             open();
             for (var name in page) {

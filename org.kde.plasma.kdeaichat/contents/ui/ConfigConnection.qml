@@ -15,6 +15,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import "store" as Store
 import "config" as Config
+import "config/LocalServers.js" as LocalServers
 
 // i18n() and plasmoid are provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -96,8 +97,27 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Layout.maximumWidth: Kirigami.Units.gridUnit * 40
             Layout.alignment: Qt.AlignHCenter
-            text: i18n("A provider is an AI service, or an AI program on your computer. Add one with the web address and key its website gives you (a program on your own computer needs no key). The default one answers new chats.")
+            text: i18n("A provider is an AI service, or an AI program on your computer. Add one with the web address and key its website gives you (a program on your own computer usually needs none). The default one answers new chats.")
             details: i18n("Picture services for /image (such as AI Horde) have their own list; they never answer chats.")
+        }
+
+        Config.LocalServers {
+            objectName: "localServers"
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 40
+            Layout.alignment: Qt.AlignHCenter
+            visible: page.mode === "direct"
+            active: page.mode === "direct"
+            helper: page.helperRunner
+            providers: providersPanel.providers
+            busy: providersPanel.editingIndex >= 0
+            onUseServer: function(server) {
+                var made = LocalServers.providerFor(server);
+                providersPanel.skipModelFetch = made.needsKey;
+                providersPanel.addFromPreset(made.presetId, made.overrides);
+                if (made.needsKey)
+                    providersPanel.setStatus(i18n("This server asks for a key. Enter it, then Save; the models are listed after that."), "info");
+            }
         }
 
         Config.RequestOptions {
