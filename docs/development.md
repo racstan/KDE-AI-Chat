@@ -79,6 +79,7 @@ pytest -q tests/test_qml.py                 # only the QML suite
   - `tst_components_load.qml` compiles every shipped QML file, so a component that would fail to load in Plasma fails here.
   - New component tests extend `HarnessTestCase` to get `screenshot(item, name)`, which saves to `build/qml-screens/`, and a fake `plasmoid.configuration`.
   - Requires `qmltestrunner6` (openSUSE/Fedora) or `/usr/lib/qt6/bin/qmltestrunner` (Arch/Debian). The plain `qmltestrunner` on some distros is the Qt 5 one.
+  - Each `tst_*.qml` file runs in its own `qmltestrunner`, several at once (half the CPU cores, at most 6). Set `QML_JOBS=1` to run them one after another, or another number to change how many run together.
 
 ## Checks CI runs
 

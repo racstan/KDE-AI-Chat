@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -32,12 +33,29 @@ def _qt6_runner():
 RUNNER = _qt6_runner()
 # CI sets this so a missing runner fails instead of silently skipping.
 REQUIRED = os.environ.get("REQUIRE_QML_TESTS") == "1"
+# Each test file runs in its own qmltestrunner, several at once (QML_JOBS=1
+# runs them one after another).
+JOBS = int(os.environ.get("QML_JOBS") or max(1, min(6, (os.cpu_count() or 2) // 2)))
 
 
 @pytest.mark.skipif(RUNNER is None and not REQUIRED, reason="Qt 6 qmltestrunner not installed")
 def test_qml_suite():
     assert RUNNER, "REQUIRE_QML_TESTS=1 but no Qt 6 qmltestrunner was found"
-    _run(QML_TESTS, dict(os.environ))
+    files = sorted(glob.glob(os.path.join(QML_TESTS, "tst_*.qml")))
+    assert files, "no QML test files found"
+
+    def one(path):
+        try:
+            _run(path, dict(os.environ))
+            return None
+        except AssertionError as error:
+            return "%s\n%s" % (os.path.basename(path), error)
+        except subprocess.TimeoutExpired:
+            return "%s timed out" % os.path.basename(path)
+
+    with ThreadPoolExecutor(max_workers=JOBS) as pool:
+        failures = [f for f in pool.map(one, files) if f]
+    assert not failures, "\n\n".join(failures)
 
 
 def _run(qml_input, env):
