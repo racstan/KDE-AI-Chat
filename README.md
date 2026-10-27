@@ -122,6 +122,7 @@ The widget works out of the box, but some features need basic system tools. If a
 ## Known Problems
 
 - **Many keyboard shortcuts can't be changed yet.** The only one you can change is the shortcut that opens the widget; the others are fixed for now. Making them customisable is planned for a future release.
+- **Other languages haven't been tested.** The widget comes with translations, but they haven't been checked by people who speak those languages. Testing them is planned for future releases, and testers are welcome to help.
 
 ---
 
