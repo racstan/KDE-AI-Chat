@@ -11,6 +11,8 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional
 
+from kdeaichat import http_safe
+
 MAX_RESPONSE_BYTES = 20_000_000
 
 
@@ -113,7 +115,7 @@ def send(cfg: Dict[str, Any], key: str, model: str, system: str, messages: List[
     data = json.dumps(req["body"]).encode("utf-8")
     request = urllib.request.Request(req["url"], data=data, headers=req["headers"], method="POST")
     try:
-        with (opener or urllib.request.urlopen)(request, timeout=timeout) as response:
+        with (opener or http_safe.urlopen)(request, timeout=timeout) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
     except urllib.error.HTTPError as e:
         body = e.read(100000).decode("utf-8", "replace")
@@ -131,4 +133,7 @@ def send(cfg: Dict[str, Any], key: str, model: str, system: str, messages: List[
         raise RunError("Could not read the provider's response.") from None
     if not isinstance(obj, dict):
         raise RunError("Could not read the provider's response.")
-    return parse_response(cfg["type"], obj)
+    result = parse_response(cfg["type"], obj)
+    if key and http_safe.insecure_key_url(req["url"]):
+        result["warning"] = http_safe.INSECURE_KEY_WARNING
+    return result

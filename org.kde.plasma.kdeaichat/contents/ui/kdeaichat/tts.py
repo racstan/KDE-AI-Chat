@@ -18,7 +18,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict
 
-from kdeaichat import schedule_wallet
+from kdeaichat import http_safe, schedule_wallet
 from kdeaichat.common import safe_path
 
 TIMEOUT = 120
@@ -71,7 +71,7 @@ def _remote_key() -> str:
         return ""  # a local server needs no key; a server that does says so
 
 
-def synth_remote(text: str, options: Dict[str, Any], out_path: str) -> None:
+def synth_remote(text: str, options: Dict[str, Any], out_path: str) -> Dict[str, Any]:
     base = str(options.get("voiceTtsRemoteUrl", "") or "").strip().rstrip("/")
     if not base.startswith(("http://", "https://")) or any(ch.isspace() for ch in base):
         raise RuntimeError("the server URL must start with http:// or https://")
@@ -85,7 +85,7 @@ def synth_remote(text: str, options: Dict[str, Any], out_path: str) -> None:
     if key:
         request.add_header("Authorization", "Bearer " + key)
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+        with http_safe.urlopen(request, timeout=TIMEOUT) as response:
             data = response.read(MAX_AUDIO + 1)
     except urllib.error.HTTPError as e:
         detail = e.read(300).decode("utf-8", "replace").strip()
@@ -97,6 +97,7 @@ def synth_remote(text: str, options: Dict[str, Any], out_path: str) -> None:
         raise RuntimeError("the server sent too much audio")
     with open(out_path, "wb") as f:
         f.write(data)
+    return {"warning": http_safe.INSECURE_KEY_WARNING} if key and http_safe.insecure_key_url(url) else {}
 
 
 ENGINES = {"remote": synth_remote}
@@ -112,13 +113,13 @@ def synthesize(payload: Dict[str, Any]) -> Dict[str, Any]:
         return {"ok": False, "error": "nothing to read"}
     path = _new_wav()
     try:
-        engine(text[:MAX_TEXT], options, path)
+        extra = engine(text[:MAX_TEXT], options, path) or {}
         if not _is_wav(path):
             raise RuntimeError("the engine did not write a WAV file")
     except (RuntimeError, ValueError) as e:
         _remove(path)
         return {"ok": False, "error": str(e)}
-    return {"ok": True, "path": path}
+    return {"ok": True, "path": path, **extra}
 
 
 def _remove(path: str) -> bool:
