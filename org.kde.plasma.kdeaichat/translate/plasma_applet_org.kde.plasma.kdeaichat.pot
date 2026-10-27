@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 13:43+0530\n"
+"POT-Creation-Date: 2026-10-27 13:56+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2337,6 +2337,20 @@ msgstr ""
 msgid "You:"
 msgstr ""
 
+#: contents/ui/chat/HistoryRecovery.qml:16
+#, kde-format
+msgid ""
+"The chat list could not be read, so nothing is saved. A copy was kept next "
+"to it."
+msgstr ""
+
+#: contents/ui/chat/HistoryRecovery.qml:19
+#, kde-format
+msgid ""
+"The chat list was damaged and was restored from its backup. A copy of the "
+"damaged file was kept."
+msgstr ""
+
 #: contents/ui/chat/IncognitoBadge.qml:19
 #, kde-format
 msgid "Incognito — not saved"
@@ -2409,6 +2423,18 @@ msgstr ""
 #: contents/ui/ChatSettingsDialog.qml:249
 #, kde-format
 msgid "Apply"
+msgstr ""
+
+#: contents/ui/FullRepresentationContent.qml:100
+#, kde-format
+msgid "Rebuild the chat list from chat files"
+msgstr ""
+
+#: contents/ui/FullRepresentationContent.qml:107
+#, kde-format
+msgid ""
+"This chat's file could not be read. A copy was kept and this chat is not "
+"saved, so nothing you add here is kept."
 msgstr ""
 
 #: contents/ui/chat/TemplateSuggestions.qml:32

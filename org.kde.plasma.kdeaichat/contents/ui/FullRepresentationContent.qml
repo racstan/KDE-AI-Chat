@@ -97,9 +97,14 @@ Chat.AccentArea {
         Chat.NoticeBanner {
             isError: true
             text: root.sessionHistoryLoadError
-            actionText: "Replace stored history"
+            actionText: root.chatStore && root.chatStore.indexProblem ? i18n("Rebuild the chat list from chat files") : "Replace stored history" // qmllint disable unqualified
             actionIcon: "edit-clear-all"
             onActionTriggered: root.resetUnreadableSessionHistory()
+        }
+
+        Chat.NoticeBanner {
+            isError: true
+            text: root.chatStore && root.chatStore.damagedIds[root.currentSessionId] ? i18n("This chat's file could not be read. A copy was kept and this chat is not saved, so nothing you add here is kept.") : "" // qmllint disable unqualified
         }
 
         Chat.NoticeBanner {

@@ -13,6 +13,7 @@ QtObject {
     property var chat: null
     property var modeSyncRef: null        // chat/ModeSync.qml: the mode and workspace of new chats
     property var helperCommandsRef: null  // chat/HelperCommands.qml
+    property var recovery: HistoryRecovery { chat: manager.chat; sessions: manager }
 
     function makeSessionId() {
         return "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
@@ -217,17 +218,13 @@ QtObject {
         manager.persistSessions();
     }
 
-    function resetUnreadableSessionHistory() {
-        chat.sessionHistoryLoadError = "";
-        chat.sessionHistoryLoadBlocked = false;
-        chat.sessions = [];
-        manager.createSession(true);
-    }
+    function resetUnreadableSessionHistory() { recovery.resolve(); }
 
     function loadSessions() {
         if (chat.incognito)
             chat.incognito.cleanup("");  // pictures of an incognito chat still open when the widget ended
         chat.sessions = manager.parseSessions(chat.chatStore.loadAll());
+        recovery.afterLoad();
         if (chat.sessions.length === 0)
             manager.createSession(true);
 
