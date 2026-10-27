@@ -49,6 +49,7 @@ def test_krunner_files(dirs, tmp_path):
     entry = desktop["Desktop Entry"]
     assert entry["X-Plasma-API"] == "DBus" and entry["X-Plasma-DBusRunner-Service"] == "org.kde.kdeaichat.runner"
     assert entry["X-Plasma-DBusRunner-Path"] == "/runner" and entry["X-KDE-ServiceTypes"] == "Plasma/Runner"
+    assert entry["X-KDE-PluginInfo-EnabledByDefault"] == "true", "KRunner skips a runner that is off by default"
     service = configparser.ConfigParser(interpolation=None)
     service.optionxform = str
     service.read(tmp_path / "dbus" / "org.kde.kdeaichat.runner.service")
@@ -134,6 +135,27 @@ def test_syncing_again_updates_in_place_and_leaves_no_temp_files(dirs, tmp_path)
     assert names(tmp_path / "krunner") == ["kdeaichat-runner.desktop"]
     assert names(tmp_path / "menus") == ["kdeaichat-ask.desktop"]
     assert names(tmp_path / "dbus") == ["org.kde.kdeaichat.runner.service"]
+
+
+def test_bus_reloaded_and_krunner_restarted_only_when_the_runner_changes(dirs, monkeypatch):
+    calls = []
+    monkeypatch.setattr(di, "_reload_bus", lambda: calls.append("reload"))
+    monkeypatch.setattr(di, "_restart_krunner", lambda: calls.append("restart"))
+    di.sync(True, False, "ai")
+    assert calls == ["reload", "restart"], "new files: the bus must learn the service, KRunner the runner"
+    calls.clear()
+    di.sync(True, False, "ai", restart_krunner=True)
+    di.sync(True, True, "ask")
+    assert calls == [], "nothing about the runner changed"
+    di.sync(False, True, "ask", restart_krunner=True)
+    assert calls == ["reload", "restart"]
+
+
+def test_no_desktop_tools_run_when_the_folders_are_redirected(dirs, monkeypatch):
+    ran = []
+    monkeypatch.setattr(di.subprocess, "run", lambda *a, **k: ran.append(a))
+    di.sync(True, False, "ai", restart_krunner=True)
+    assert ran == []
 
 
 @pytest.mark.parametrize("raw,expected", [("ai", "ai"), ("  hey ", "hey"), ("", "ai"), ("two words", "ai"), ("x" * 30, "ai"), (5, "ai"), ('a"b', "ai")])

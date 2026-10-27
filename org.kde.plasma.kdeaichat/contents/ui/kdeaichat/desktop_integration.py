@@ -25,6 +25,7 @@ KDEAICHAT_DBUS_SERVICE_DIR, KDEAICHAT_SERVICEMENU_DIR, KDEAICHAT_APPLICATIONS_DI
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -80,7 +81,9 @@ def runner_desktop() -> str:
         "[Desktop Entry]", "Type=Service", "Name=KDE AI Chat", "Comment=Ask KDE AI Chat a question: type \"ai\" and your question",
         "Icon=dialog-messages", "X-KDE-ServiceTypes=Plasma/Runner", "X-Plasma-API=DBus",
         "X-Plasma-DBusRunner-Service=" + SERVICE_NAME, "X-Plasma-DBusRunner-Path=/runner",
-        "X-KDE-PluginInfo-Name=kdeaichat", MARKER, ""])
+        "X-KDE-PluginInfo-Name=kdeaichat", "X-KDE-PluginInfo-Version=1.0", "X-KDE-PluginInfo-License=GPL",
+        # Without this KRunner (KF6) treats the runner as switched off.
+        "X-KDE-PluginInfo-EnabledByDefault=true", MARKER, ""])
 
 
 def runner_service() -> str:
@@ -115,10 +118,16 @@ def _ours(path: str) -> bool:
         return False
 
 
-def _install(path: str, content: str, mode: int) -> None:
-    """Atomically writes a file of ours; refuses to replace one that isn't."""
+def _install(path: str, content: str, mode: int) -> bool:
+    """Atomically writes a file of ours; refuses to replace one that isn't. True when it changed."""
     if os.path.lexists(path) and not _ours(path):
         raise ValueError("%s already exists and is not from KDE AI Chat" % path)
+    try:
+        with open(path, encoding="utf-8") as f:
+            if f.read() == content and stat.S_IMODE(os.stat(path).st_mode) == mode:
+                return False
+    except OSError:
+        pass
     folder = os.path.dirname(path)
     os.makedirs(folder, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=".kdeaichat-", dir=folder)
@@ -129,6 +138,7 @@ def _install(path: str, content: str, mode: int) -> None:
             os.fsync(f.fileno())
         os.chmod(tmp, mode)
         os.replace(tmp, path)
+        return True
     except BaseException:
         try:
             os.unlink(tmp)
@@ -171,14 +181,26 @@ def _write_state(krunner: bool, dolphin: bool, selection: bool, prefix: str) -> 
     os.replace(tmp, path)
 
 
+def _run_tool(args: List[str]) -> None:
+    """Runs a desktop tool, best effort. Not when the files go to other folders (tests, dev runs)."""
+    if os.environ.get("KDEAICHAT_KRUNNER_DIR") or not shutil.which(args[0]):
+        return
+    try:
+        subprocess.run(args, capture_output=True, timeout=10, check=False)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def _reload_bus() -> None:
+    """dbus-broker only sees a new or removed .service file after ReloadConfig; without it the
+    runner's name "is not activatable" and KRunner gets no answer."""
+    _run_tool(["busctl", "--user", "call", "org.freedesktop.DBus", "/org/freedesktop/DBus",
+               "org.freedesktop.DBus", "ReloadConfig"])
+
+
 def _restart_krunner() -> None:
-    """So KRunner notices the runner at once (it keeps running between uses). Best effort."""
-    tool = shutil.which("kquitapp6")
-    if tool:
-        try:
-            subprocess.run([tool, "krunner"], capture_output=True, timeout=10, check=False)
-        except (OSError, subprocess.SubprocessError):
-            pass
+    """So KRunner notices the runner at once (it keeps running between uses)."""
+    _run_tool(["kquitapp6", "krunner"])
 
 
 def sync(krunner: bool, dolphin: bool, prefix: str = DEFAULT_PREFIX, restart_krunner: bool = False,
@@ -188,10 +210,11 @@ def sync(krunner: bool, dolphin: bool, prefix: str = DEFAULT_PREFIX, restart_kru
     errors: List[str] = []
     was = is_installed("krunner")
     f = folders()
+    runner_changed = False
     try:
         if krunner:
-            _install(os.path.join(f["krunner"], RUNNER_FILE), runner_desktop(), 0o644)
-            _install(os.path.join(f["service"], SERVICE_FILE), runner_service(), 0o644)
+            runner_changed = _install(os.path.join(f["krunner"], RUNNER_FILE), runner_desktop(), 0o644)
+            runner_changed = _install(os.path.join(f["service"], SERVICE_FILE), runner_service(), 0o644) or runner_changed
         else:
             for p in _files("krunner"):
                 _remove(p)
@@ -217,8 +240,11 @@ def sync(krunner: bool, dolphin: bool, prefix: str = DEFAULT_PREFIX, restart_kru
                          selection and is_installed("selection"), prefix)
     except OSError as error:
         errors.append("settings file: %s" % error)
-    if restart_krunner and was != is_installed("krunner"):
-        _restart_krunner()
+    if runner_changed or was != is_installed("krunner"):
+        _reload_bus()
+        # A changed runner file (an update) needs a KRunner restart too, even at start-up.
+        if runner_changed or restart_krunner:
+            _restart_krunner()
     return status(prefix, errors)
 
 
