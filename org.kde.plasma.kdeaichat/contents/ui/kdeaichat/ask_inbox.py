@@ -8,7 +8,12 @@ chat/AskInbox.qml) and calls ``ask_inbox_take``, which claims every file by rena
 only one gets a request), reads it, deletes it and returns the requests. Requests nobody took within a day
 are dropped.
 
-  ask_inbox_take  {} -> {"type": "ask_items", "directory", "items": [{text, files, newChat, send}]}
+  ask_inbox_take  {} -> {"type": "ask_items", "directory", "items": [{text, files, newChat, send, notes}]}
+
+Attached files are checked when the widget takes a request (any program of the user can write one): only
+regular readable files under the home folder, with no dot-folder in the path (.ssh, .gnupg, ...), after
+resolving symlinks. Others are dropped and named in ``notes`` (the widget shows them). A request with files
+never sends by itself: the files are attached and the user presses Enter.
 
 ``KDEAICHAT_ASK_DIR`` replaces the folder (tests, dev runs).
 """
@@ -17,7 +22,7 @@ import os
 import secrets
 import stat
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from kdeaichat import private_payload
 
@@ -54,6 +59,37 @@ def clean(raw: Any) -> Optional[Dict[str, Any]]:
     item = {"text": text[:MAX_TEXT], "files": files[:MAX_FILES], "newChat": raw.get("newChat") is True,
             "send": raw.get("send") is True}
     return item if item["text"].strip() or item["files"] else None
+
+
+# Besides the home folder, files may come from removable and mounted drives.
+MOUNT_ROOTS = ("/media", "/run/media", "/mnt")
+
+
+def _inside(real: str, root: str) -> Optional[str]:
+    """`real` relative to `root`, or None when it is not below it."""
+    rel = os.path.relpath(real, root)
+    return None if rel == os.curdir or rel == os.pardir or rel.startswith(os.pardir + os.sep) else rel
+
+
+def check_files(files: List[str]) -> Tuple[List[str], List[Dict[str, str]]]:
+    """(files to attach, notes {reason: outside|hidden|unreadable, name} about the refused ones). Real readable
+    files under home or a mounted drive (MOUNT_ROOTS), with no dot-folder in the path."""
+    roots = [os.path.realpath(os.path.expanduser("~"))] + [os.path.realpath(r) for r in MOUNT_ROOTS]
+    kept: List[str] = []
+    notes: List[Dict[str, str]] = []
+    for path in files:
+        real = os.path.realpath(path)
+        name = os.path.basename(path) or path
+        rel = next((r for r in (_inside(real, root) for root in roots) if r is not None), None)
+        if rel is None:
+            notes.append({"reason": "outside", "name": name})
+        elif any(part.startswith(".") for part in rel.split(os.sep)):
+            notes.append({"reason": "hidden", "name": name})
+        elif not os.path.isfile(real) or not os.access(real, os.R_OK):
+            notes.append({"reason": "unreadable", "name": name})
+        else:
+            kept.append(real)
+    return kept, notes
 
 
 def write_item(text: str = "", files: Optional[List[str]] = None, new_chat: bool = False, send: bool = False,
@@ -105,6 +141,10 @@ def take_all(directory: Optional[str] = None) -> List[Dict[str, Any]]:
             with open(claimed, encoding="utf-8") as f:
                 item = clean(json.load(f))
             if item is not None:
+                asked = bool(item["files"])
+                item["files"], item["notes"] = check_files(item["files"])
+                if asked:
+                    item["send"] = False  # files are never sent without the user pressing Enter
                 items.append(item)
         except (OSError, ValueError):
             pass

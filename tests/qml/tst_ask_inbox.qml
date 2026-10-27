@@ -28,7 +28,12 @@ HarnessTestCase {
         function attachmentsReadyToSend() { return filesReady; }
         function sendMessage() { calls.push("send:" + chatInputText); chatInputText = ""; }
         function focusInput() { calls.push("focus"); }
+        property var errors: []
+        function pushErrorMessage(text) { errors = errors.concat([text]); }
     }
+
+    // i18n() is provided by Plasma at runtime.
+    function i18n(text, a) { return text.replace("%1", a); }
 
     property var queued: []        // what the helper hands out next
     property var helperCalls: []
@@ -77,6 +82,7 @@ HarnessTestCase {
         fakeChat.currentSessionId = "open";
         fakeChat.chatInputText = "";
         fakeChat.attached = [];
+        fakeChat.errors = [];
         fakeChat.calls = [];
         fakeChat.filesReady = true;
         queued = [];
@@ -119,6 +125,24 @@ HarnessTestCase {
         verify(fakeChat.calls.indexOf("focus") >= 0);
     }
 
+    function test_files_never_send_even_when_the_request_says_send() {
+        var inbox = createTemporaryObject(inboxComponent, testCase);
+        queued = [item({"text": "summarise", "send": true, "files": ["/home/u/a.pdf"]})];
+        inbox.take();
+        compare(fakeChat.attached, ["file:///home/u/a.pdf"]);
+        compare(fakeChat.chatInputText, "summarise");
+        wait(500);
+        compare(fakeChat.calls.indexOf("send:summarise"), -1, "waits for the user to press Enter");
+    }
+
+    function test_refused_files_are_named_in_the_chat() {
+        var inbox = createTemporaryObject(inboxComponent, testCase);
+        queued = [item({"text": "look", "notes": [{"reason": "hidden", "name": "id_rsa"}, {"reason": "outside", "name": "x.txt"}, {"reason": "unreadable", "name": "gone"}]})];
+        inbox.take();
+        compare(fakeChat.errors.length, 3);
+        verify(fakeChat.errors[0].indexOf("id_rsa") >= 0 && fakeChat.errors[1].indexOf("home folder") >= 0 && fakeChat.errors[2].indexOf("readable") >= 0);
+    }
+
     function test_files_only_open_the_popup_with_the_box_ready() {
         var inbox = createTemporaryObject(inboxComponent, testCase);
         queued = [item({"files": ["/tmp/report.pdf", "/tmp/photo.png"]})];
@@ -141,7 +165,7 @@ HarnessTestCase {
     function test_sending_waits_for_the_attached_files() {
         var inbox = createTemporaryObject(inboxComponent, testCase);
         fakeChat.filesReady = false;
-        queued = [item({"text": "what is this?", "send": true, "files": ["/tmp/a.txt"]})];
+        queued = [item({"text": "what is this?", "send": true})];
         inbox.take();
         wait(600);
         compare(fakeChat.calls.indexOf("send:what is this?"), -1, "the file is still loading");
@@ -152,7 +176,7 @@ HarnessTestCase {
     function test_the_text_stays_in_the_box_when_the_user_changes_chat_while_waiting() {
         var inbox = createTemporaryObject(inboxComponent, testCase);
         fakeChat.filesReady = false;
-        queued = [item({"text": "hello", "send": true, "files": ["/tmp/a.txt"]})];
+        queued = [item({"text": "hello", "send": true})];
         inbox.take();
         fakeChat.currentSessionId = "elsewhere";
         wait(500);

@@ -72,7 +72,7 @@ def test_command_quotes_the_selection_without_sending(tools, tmp_path, monkeypat
     fake_tool(tools, "wl-paste", "line one\nline two", "clip")
     done = run_ask(tmp_path, "--selection")
     assert done.returncode == 0 and done.stderr == ""
-    assert ask_inbox.take_all() == [{"text": "> line one\n> line two\n\n", "files": [], "newChat": False, "send": False}]
+    assert ask_inbox.take_all() == [{"text": "> line one\n> line two\n\n", "files": [], "newChat": False, "send": False, "notes": []}]
 
 
 def test_command_says_so_when_it_used_the_clipboard(tools, tmp_path, monkeypatch):

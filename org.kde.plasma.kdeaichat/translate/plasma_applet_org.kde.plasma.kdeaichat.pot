@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 13:56+0530\n"
+"POT-Creation-Date: 2026-10-27 14:02+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5344,6 +5344,21 @@ msgstr ""
 #: contents/ui/ConfigDesktop.qml:143
 #, kde-format
 msgid "Installed now: KRunner %1, Dolphin %2, shortcut %3."
+msgstr ""
+
+#: contents/ui/chat/AskInbox.qml:81
+#, kde-format
+msgid "Not attached (outside your home folder and mounted drives): %1"
+msgstr ""
+
+#: contents/ui/chat/AskInbox.qml:83
+#, kde-format
+msgid "Not attached (inside a hidden folder or a hidden file): %1"
+msgstr ""
+
+#: contents/ui/chat/AskInbox.qml:84
+#, kde-format
+msgid "Not attached (not a readable file): %1"
 msgstr ""
 
 #: contents/ui/config/StorageRow.qml:56

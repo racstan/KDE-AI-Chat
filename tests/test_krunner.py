@@ -64,9 +64,20 @@ def test_run_leaves_the_question_in_the_inbox(env):
     assert krunner.run("ask:in a new one", "new-chat")
     assert not krunner.run("something else", "")
     first, second = ask_inbox.take_all()
-    assert first == {"text": "how are you", "files": [], "newChat": False, "send": True}
+    assert first == {"text": "how are you", "files": [], "newChat": False, "send": True, "notes": []}
     assert second["newChat"] is True and second["send"] is True
     assert krunner.actions() == [("new-chat", "Ask in a new chat", "list-add")]
+
+
+def test_a_krunner_question_with_forged_files_still_never_sends_them(env, tmp_path, monkeypatch):
+    """Any program can write a request with files and send: true; the widget side then waits for Enter."""
+    home = tmp_path / "home"
+    (home / ".ssh").mkdir(parents=True)
+    (home / ".ssh" / "id_rsa").write_text("secret")
+    monkeypatch.setenv("HOME", str(home))
+    ask_inbox.write_item("summarise", [str(home / ".ssh" / "id_rsa")], send=True)
+    (item,) = ask_inbox.take_all()
+    assert item["files"] == [] and item["send"] is False and item["notes"][0]["reason"] == "hidden"
 
 
 @pytest.mark.skipif(not os.environ.get("DBUS_SESSION_BUS_ADDRESS") or not shutil.which("gdbus"), reason="needs a session bus and gdbus")
@@ -92,7 +103,7 @@ def test_round_trip_over_the_session_bus(env):
         with pytest.raises(minidbus.DBusError):
             client.call(name, "/runner", "org.kde.krunner1", "Nope")
         client.call(name, "/runner", "org.kde.krunner1", "Run", "ss", ("ask:from dbus", "new-chat"))
-        assert ask_inbox.take_all() == [{"text": "from dbus", "files": [], "newChat": True, "send": True}]
+        assert ask_inbox.take_all() == [{"text": "from dbus", "files": [], "newChat": True, "send": True, "notes": []}]
         # An independent client (gdbus) sees the same, and the introspection is valid.
         out = subprocess.run(["gdbus", "call", "--session", "--dest", name, "--object-path", "/runner", "--method",
                               "org.kde.krunner1.Match", "ai via gdbus"], capture_output=True, text=True, timeout=10)
