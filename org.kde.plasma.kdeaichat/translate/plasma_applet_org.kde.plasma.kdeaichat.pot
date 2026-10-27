@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 09:39+0530\n"
+"POT-Creation-Date: 2026-10-27 10:44+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2775,7 +2775,7 @@ msgstr ""
 msgid "Your prompt templates are kept."
 msgstr ""
 
-#: contents/ui/ConfigConnection.qml:99
+#: contents/ui/ConfigConnection.qml:100
 #, kde-format
 msgid ""
 "A provider is an AI service, or an AI program on your computer. Add one with "
@@ -2783,11 +2783,18 @@ msgid ""
 "computer needs no key). The default one answers new chats."
 msgstr ""
 
-#: contents/ui/ConfigConnection.qml:100
+#: contents/ui/ConfigConnection.qml:101
 #, kde-format
 msgid ""
 "Picture services for /image (such as AI Horde) have their own list; they "
 "never answer chats."
+msgstr ""
+
+#: contents/ui/ConfigConnection.qml:119
+#, kde-format
+msgid ""
+"This server asks for a key. Enter it, then Save; the models are listed after "
+"that."
 msgstr ""
 
 #: contents/ui/config/ImageModels.qml:68
@@ -3903,75 +3910,75 @@ msgstr ""
 msgid "Remove this provider and its key?"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:68
+#: contents/ui/config/ProvidersPanel.qml:70
 #, kde-format
 msgid "(unavailable)"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:97
+#: contents/ui/config/ProvidersPanel.qml:99
 #, kde-format
 msgid "New provider"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:181
-#: contents/ui/config/ProvidersPanel.qml:244
+#: contents/ui/config/ProvidersPanel.qml:185
+#: contents/ui/config/ProvidersPanel.qml:248
 #, kde-format
 msgid "Enter an http:// or https:// URL."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:252
+#: contents/ui/config/ProvidersPanel.qml:256
 #, kde-format
 msgid "The provider rejected the API key (HTTP %1)."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:253
+#: contents/ui/config/ProvidersPanel.qml:257
 #, kde-format
 msgid "The provider answered HTTP %1 for its model list."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:254
+#: contents/ui/config/ProvidersPanel.qml:258
 #, kde-format
 msgid "Could not fetch models from %1."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:260
+#: contents/ui/config/ProvidersPanel.qml:264
 #, kde-format
 msgid "%1 models available."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:260
+#: contents/ui/config/ProvidersPanel.qml:264
 #, kde-format
 msgid "The provider returned no models."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:296
+#: contents/ui/config/ProvidersPanel.qml:300
 #, kde-format
 msgid "Providers"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:300
+#: contents/ui/config/ProvidersPanel.qml:304
 #, kde-format
 msgid "Add provider"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:330
+#: contents/ui/config/ProvidersPanel.qml:334
 #, kde-format
 msgid ""
 "No providers yet. Add one to chat with a model directly, using your own API "
 "key or a local server."
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:381
+#: contents/ui/config/ProvidersPanel.qml:385
 #, kde-format
 msgid "Use this model anyway"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:381
+#: contents/ui/config/ProvidersPanel.qml:385
 #, kde-format
 msgid "Save anyway"
 msgstr ""
 
-#: contents/ui/config/ProvidersPanel.qml:383
+#: contents/ui/config/ProvidersPanel.qml:387
 #, kde-format
 msgid "Unavailable: %1"
 msgstr ""
@@ -4780,6 +4787,77 @@ msgstr ""
 msgid ""
 "The setup check found nothing wrong on this computer. The provider may be "
 "having trouble; try again in a moment."
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:58
+#, kde-format
+msgid "OpenAI-compatible server"
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:64
+#, kde-format
+msgid "asks for a key"
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:65
+#, kde-format
+msgid "%1 model"
+msgid_plural "%1 models"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/LocalServers.qml:84
+#, kde-format
+msgid "Local servers"
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:97
+#, kde-format
+msgid "Find local servers"
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:106
+#, kde-format
+msgid ""
+"Looks for AI programs running on this computer, such as Ollama or LM Studio, "
+"and lets you add one with a click. It only asks this computer, never the "
+"network, and needs no key."
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:107
+#, kde-format
+msgid ""
+"It checks these places on this computer only: Ollama (11434), LM Studio "
+"(1234), llama.cpp or LocalAI (8080), LiteLLM (4000), vLLM (8000) and Jan "
+"(1337). It just asks each one for its list of models, for about a second at "
+"most, and sends no key or other secret."
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:115
+#, kde-format
+msgid ""
+"No AI program answered on this computer. If you use one, start it and try "
+"again."
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:124
+#, kde-format
+msgid "Could not look for local servers."
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:163
+#, kde-format
+msgid "In your list"
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:170
+#, kde-format
+msgid "Use"
+msgstr ""
+
+#: contents/ui/config/LocalServers.qml:173
+#, kde-format
+msgid "Use %1"
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:22
