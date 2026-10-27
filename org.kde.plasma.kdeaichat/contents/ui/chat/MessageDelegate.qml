@@ -14,6 +14,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "ErrorText.js" as ErrorText
 import "MessageGroups.js" as MessageGroups
+import "ReplyState.js" as ReplyState
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -266,7 +267,7 @@ Item {
                     streaming: row.streaming
                     isError: row.role === "error"
                     alignRight: row.mine
-                    text: row.streaming ? row.chat.currentStreamText : row.role === "error" ? row.errorText : (row.message.content || "")
+                    text: row.streaming ? row.chat.currentStreamText : row.role === "error" ? row.errorText : ReplyState.displayContent(row.message.content, row.chat.maxMessageChars)
                     onSelectionMade: (text) => { if (text.trim() || !actions.keepSelection) row.selectedText = text; }
                 }
 
@@ -375,12 +376,12 @@ Item {
                     // them, while the message is hovered or has keyboard focus.
                     PC3.Label {
                         objectName: "usageLine"
-                        visible: row.message.tokens !== undefined && !row.mine
+                        visible: (row.message.tokens !== undefined || row.message.interrupted === true) && !row.mine
                         Layout.bottomMargin: actions.Layout.bottomMargin
                         Layout.leftMargin: Kirigami.Units.smallSpacing
-                        text: visible ? row.chat.formatTokensUsage(row.message.tokens, row.message.cost) : ""
+                        text: !visible ? "" : (row.message.interrupted === true ? i18n("(interrupted)") + " " : "") + (row.message.tokens !== undefined ? row.chat.formatTokensUsage(row.message.tokens, row.message.cost) : "")
                         font: Kirigami.Theme.smallFont
-                        opacity: actions.shown ? 0.7 : 0
+                        opacity: actions.shown || row.message.interrupted === true ? 0.7 : 0
                         elide: Text.ElideRight
                         Layout.maximumWidth: content.width - actions.implicitWidth - Kirigami.Units.largeSpacing
 

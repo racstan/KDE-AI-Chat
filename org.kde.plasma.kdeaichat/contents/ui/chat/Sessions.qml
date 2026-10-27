@@ -5,6 +5,7 @@
 import QtQuick
 import "../Security.js" as Sec
 import "EffectiveConfig.js" as EffectiveConfig
+import "ReplyState.js" as ReplyState
 import "TimeFormat.js" as TimeFormat
 
 QtObject {
@@ -56,11 +57,10 @@ QtObject {
                         message.content = "";
                     else if (typeof message.content !== "string")
                         message.content = String(message.content);
-                    if (message.content.length > chat.maxMessageChars) {
-                        message.content = message.content.substring(0, chat.maxMessageChars) + "\n[message truncated]";
-                        if (!chat.sessionHistoryLoadError)
-                            chat.sessionHistoryLoadError = "One or more stored messages exceeded the safe display limit and were truncated.";
-                    }
+                    // A long message keeps its full text; the view cuts it (ReplyState.displayContent).
+                    if (message.content.length > chat.maxMessageChars && !chat.sessionHistoryLoadError)
+                        chat.sessionHistoryLoadError = "One or more stored messages exceed the safe display limit and are shown shortened. The full text is kept.";
+                    ReplyState.markInterrupted(message);
                     if (!message.at) message.at = session.updatedAt || session.createdAt || Date.now();
                     if (!message.time) message.time = TimeFormat.nowTime(message.at);
                 }

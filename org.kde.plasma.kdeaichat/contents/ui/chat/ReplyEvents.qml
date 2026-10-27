@@ -11,6 +11,8 @@ QtObject {
 
     property var chat: null
     property var notifierRef: null  // chat/Notifier.qml
+    property alias partialSave: partial  // saves the reply while it streams
+    property var _partial: PartialSave { id: partial; chat: replies.chat }
 
     function resetProviderStreamingState() {
         chat.streamBuffer.flush();
