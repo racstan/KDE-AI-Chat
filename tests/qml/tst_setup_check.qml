@@ -106,6 +106,15 @@ Item {
             compare(JSON.stringify(payload.endpoints), JSON.stringify([{id: "ollama", name: "Ollama (local)", url: "http://localhost:11434/v1"}]));
             compare(payload.stt.sttEnabled, true);
             verify(JSON.stringify(payload).indexOf("or-key") < 0, "no key goes to the helper");
+            // Only what needs doing; what passed is one click away.
+            compare(texts(check, "setupCheckText"), ["NVIDIA NIM has no API key.",
+                            "Nothing answers at http://localhost:11434/v1, so Ollama (local) isn't running there.",
+                            "Word files are read with a simpler built-in reader: pandoc is missing.",
+                            "Dictation has no speech server address.",
+                            "2 schedules are missing their timer, so they won't run."]);
+            var more = findChild(check, "setupCheckShowPassed");
+            compare(more.text, "Show what passed (3 checks)");
+            more.clicked();
             var shown = texts(check, "setupCheckText");
             compare(shown, ["KWallet is open, so API keys can be read.", "OpenRouter is set up.", "NVIDIA NIM has no API key.",
                             "Nothing answers at http://localhost:11434/v1, so Ollama (local) isn't running there.",
@@ -113,6 +122,7 @@ Item {
                             "Word files are read with a simpler built-in reader: pandoc is missing.",
                             "Dictation has no speech server address.",
                             "2 schedules are missing their timer, so they won't run."]);
+            more.clicked();
             var fixes = texts(check, "setupCheckFix");
             verify(fixes.indexOf("Start Ollama (local), or correct the address. For Ollama, the command is: ollama serve") >= 0, fixes);
             verify(fixes.indexOf("Add the key in Settings → Connection; it is kept in KWallet.") >= 0, fixes);
@@ -128,6 +138,16 @@ Item {
             mouseClick(actions[0]);
             tryVerify(function() { return fakeHelper.calls.length === 3 && !check.running; }, 3000);
             compare(fakeHelper.calls.map(function(c) { return c.command; }), ["setup_check", "schedules_sync", "setup_check"]);
+        }
+
+        function test_all_good_is_one_line() {
+            check.rows = [{"id": "wallet", "area": "keys", "status": "ok", "code": "wallet-ok", "args": []},
+                          {"id": "attach-pdf", "area": "attachments", "status": "ok", "code": "pdf-ok", "args": []}];
+            check.checked = true;
+            compare(texts(check, "setupCheckText"), [], "nothing that passed is listed");
+            compare(findChild(check, "setupCheckSummary").text, "Everything is ready.");
+            compare(findChild(check, "setupCheckShowPassed").text, "Show what passed (2 checks)");
+            screenshot(root, "setup-check-all-good");
         }
 
         function test_wallet_is_loaded_first_when_not_yet_asked() {

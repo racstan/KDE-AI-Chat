@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 18:33+0530\n"
+"POT-Creation-Date: 2026-10-27 18:38+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1587,8 +1587,8 @@ msgstr ""
 msgid "Try again"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:53 contents/ui/config/SetupCheck.qml:119
-#: contents/ui/config/SetupCheck.qml:126
+#: contents/ui/chat/ErrorActions.qml:53 contents/ui/config/SetupCheck.qml:122
+#: contents/ui/config/SetupCheck.qml:128
 #, kde-format
 msgid "Check setup"
 msgstr ""
@@ -5910,59 +5910,71 @@ msgstr ""
 msgid "Add template"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:126
+#: contents/ui/config/SetupCheck.qml:128
 #: contents/ui/config/SpeechNotePanel.qml:70
 #, kde-format
 msgid "Check again"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:145
+#: contents/ui/config/SetupCheck.qml:148
 #, kde-format
-msgid "No problems found."
+msgid "Everything is ready."
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:147 contents/ui/config/SetupCheck.qml:148
+#: contents/ui/config/SetupCheck.qml:150 contents/ui/config/SetupCheck.qml:151
 #, kde-format
 msgid "%1 problem"
 msgid_plural "%1 problems"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/config/SetupCheck.qml:147 contents/ui/config/SetupCheck.qml:149
+#: contents/ui/config/SetupCheck.qml:150 contents/ui/config/SetupCheck.qml:152
 #, kde-format
 msgid "%1 warning"
 msgid_plural "%1 warnings"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/config/SetupCheck.qml:158
+#: contents/ui/config/SetupCheck.qml:161
 #, kde-format
 msgid ""
 "Looks at what your settings need on this computer (programs, servers, keys, "
 "timers) and says how to fix what's missing. It changes nothing."
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:180
+#: contents/ui/config/SetupCheck.qml:183
 #, kde-format
 msgid "OK"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:181
+#: contents/ui/config/SetupCheck.qml:184
 #, kde-format
 msgid "Warning"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:181
+#: contents/ui/config/SetupCheck.qml:184
 #, kde-format
 msgid "Problem"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:209
+#: contents/ui/config/SetupCheck.qml:212
 #, kde-format
 msgid "Recreate timers"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:222
+#: contents/ui/config/SetupCheck.qml:225
+#, kde-format
+msgid "Hide what passed"
+msgstr ""
+
+#: contents/ui/config/SetupCheck.qml:226
+#, kde-format
+msgid "Show what passed (1 check)"
+msgid_plural "Show what passed (%1 checks)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/SetupCheck.qml:236
 #, kde-format
 msgid ""
 "The setup check found nothing wrong on this computer. The provider may be "

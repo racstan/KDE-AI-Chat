@@ -35,7 +35,10 @@ ColumnLayout {
     property bool running: false
     property bool checked: false
     property var rows: []
-    readonly property var shownRows: problemsOnly ? rows.filter(function(r) { return r.status !== "ok"; }) : rows
+    // What passed is hidden unless asked for: only what needs doing is shown.
+    property bool showPassed: false
+    readonly property var problemRows: rows.filter(function(r) { return r.status !== "ok"; })
+    readonly property var shownRows: showPassed && !problemsOnly ? rows : problemRows
     readonly property var summary: SetupChecks.counts(rows)
 
     signal finished()
@@ -119,7 +122,6 @@ ColumnLayout {
             text: i18n("Check setup")
         }
 
-        Item { Layout.fillWidth: check.showHeading; visible: check.showHeading }
 
         QQC2.Button {
             objectName: "setupCheckButton"
@@ -139,10 +141,11 @@ ColumnLayout {
         QQC2.Label {
             objectName: "setupCheckSummary"
             visible: check.checked && !check.running
-            Layout.fillWidth: !check.showHeading
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
             wrapMode: Text.Wrap
             opacity: 0.8
-            text: check.summary.error + check.summary.warn === 0 ? i18n("No problems found.")
+            text: check.summary.error + check.summary.warn === 0 ? i18n("Everything is ready.")
                 : check.summary.error > 0 && check.summary.warn > 0
                     ? i18np("%1 problem", "%1 problems", check.summary.error) + ", " + i18np("%1 warning", "%1 warnings", check.summary.warn)
                 : check.summary.error > 0 ? i18np("%1 problem", "%1 problems", check.summary.error)
@@ -211,6 +214,17 @@ ColumnLayout {
                 onClicked: check.runAction(line.action)
             }
         }
+    }
+
+    // The checks that passed, on request (Settings only).
+    QQC2.Button {
+        objectName: "setupCheckShowPassed"
+        visible: !check.problemsOnly && check.checked && !check.running && check.rows.length > check.problemRows.length
+        flat: true
+        icon.name: check.showPassed ? "go-up" : "go-down"
+        text: check.showPassed ? i18n("Hide what passed")
+            : i18np("Show what passed (1 check)", "Show what passed (%1 checks)", check.rows.length - check.problemRows.length)
+        onClicked: check.showPassed = !check.showPassed
     }
 
     QQC2.Label {
