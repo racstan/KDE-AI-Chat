@@ -7136,3 +7136,18 @@ msgstr ""
 #, kde-format
 msgid "Reset this page"
 msgstr ""
+
+#: contents/ui/chat/AskInbox.qml:81
+#, kde-format
+msgid "Not attached (outside your home folder): %1"
+msgstr ""
+
+#: contents/ui/chat/AskInbox.qml:83
+#, kde-format
+msgid "Not attached (inside a hidden folder or a hidden file): %1"
+msgstr ""
+
+#: contents/ui/chat/AskInbox.qml:84
+#, kde-format
+msgid "Not attached (not a readable file): %1"
+msgstr ""

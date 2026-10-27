@@ -24,8 +24,10 @@ from kdeaichat import ask_inbox, selection  # noqa: E402
 
 
 def notify(message: str) -> None:
-    """A short desktop note (never the selected text). Best effort: also printed."""
+    """A short note: printed, and a desktop notification when there is no terminal (never the selected text)."""
     print("kdeaichat-ask: " + message, file=sys.stderr)
+    if sys.stderr.isatty():
+        return  # run from a terminal: the line above is enough; Dolphin and the shortcut have no terminal
     tool = shutil.which("notify-send", path=os.environ.get("KDEAICHAT_SELECTION_PATH") or None)
     if tool:
         try:
@@ -44,7 +46,7 @@ def ask_selection() -> int:
     try:
         ask_inbox.write_item(selection.quote(text))
     except (ValueError, OSError) as error:
-        print("kdeaichat-ask: " + str(error), file=sys.stderr)
+        notify(str(error))
         return 1
     return 0
 
@@ -66,13 +68,16 @@ def main(argv=None) -> int:
     for path in args.file + args.files:
         full = os.path.realpath(os.path.expanduser(path))
         if not os.path.isfile(full):
-            print("kdeaichat-ask: not a file: " + path, file=sys.stderr)
+            notify("not a file: " + path)
             return 2
         files.append(full)
+    if len(files) > ask_inbox.MAX_FILES:
+        notify("Attached %d of %d files; the limit is %d" % (ask_inbox.MAX_FILES, len(files), ask_inbox.MAX_FILES))
+        files = files[:ask_inbox.MAX_FILES]
     try:
         ask_inbox.write_item(text.strip(), files, args.new_chat, args.send)
     except (ValueError, OSError) as error:
-        print("kdeaichat-ask: " + str(error), file=sys.stderr)
+        notify(str(error))
         return 1
     return 0
 

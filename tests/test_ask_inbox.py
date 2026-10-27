@@ -18,7 +18,27 @@ HELPER = os.path.join(UI, "kde_ai_helper.py")
 def inbox(tmp_path, monkeypatch):
     folder = tmp_path / "ask"
     monkeypatch.setenv("KDEAICHAT_ASK_DIR", str(folder))
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
     return folder
+
+
+@pytest.fixture
+def home(inbox, tmp_path):
+    return tmp_path / "home"
+
+
+@pytest.fixture
+def notes_log(tmp_path):
+    """A stand-in notify-send (found through KDEAICHAT_SELECTION_PATH) that logs its arguments: no real notification."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    log = tmp_path / "notify.log"
+    tool = bin_dir / "notify-send"
+    tool.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> ' + str(log) + "\n")
+    tool.chmod(0o755)
+    return bin_dir, log
 
 
 def test_written_request_is_private_and_complete(inbox, tmp_path):
@@ -56,7 +76,8 @@ def test_bad_files_in_the_folder_are_dropped_not_trusted(inbox):
     (inbox / ".tmp-half").write_text("{")      # a request still being written is left alone
     (inbox / "other.json").write_text("{}")
     items = ask_inbox.take_all()
-    assert items == [{"text": "ok", "files": ["/abs/file"], "newChat": False, "send": False}]
+    assert items == [{"text": "ok", "files": [], "newChat": False, "send": False,
+                      "notes": [{"reason": "outside", "name": "file"}]}]
     assert sorted(os.listdir(inbox)) == [".tmp-half", "other.json"]
 
 
@@ -80,23 +101,27 @@ def test_helper_command_takes_the_requests(inbox):
                          env={**os.environ, "KDEAICHAT_ASK_DIR": str(inbox)}).stdout
     data = json.loads(out)
     assert data["type"] == "ask_items" and data["directory"] == str(inbox)
-    assert data["items"] == [{"text": "via helper", "files": [], "newChat": False, "send": True}]
+    assert data["items"] == [{"text": "via helper", "files": [], "newChat": False, "send": True, "notes": []}]
 
 
-def run_ask(inbox, *args, stdin=None):
+def run_ask(inbox, *args, stdin=None, tools=None):
+    # Never a real notification: notify-send is looked up only in this folder (an empty one unless a test gives a stub).
+    tools = tools or str(inbox) + "-no-tools"
+    os.makedirs(tools, exist_ok=True)
     return subprocess.run([sys.executable, ASK, *args], input=stdin, capture_output=True, text=True,
-                          env={**os.environ, "KDEAICHAT_ASK_DIR": str(inbox)})
+                          env={**os.environ, "KDEAICHAT_ASK_DIR": str(inbox), "KDEAICHAT_SELECTION_PATH": str(tools)})
 
 
-def test_command_with_text_files_and_stdin(inbox, tmp_path):
-    doc = tmp_path / "report.pdf"
+def test_command_with_text_files_and_stdin(inbox, home):
+    doc = home / "report.pdf"
     doc.write_bytes(b"%PDF")
     assert run_ask(inbox, "--send", "--new-chat", "why", "is", "the", "sky", "blue").returncode == 0
     assert run_ask(inbox, "--stdin", "--file", str(doc), stdin="private question\n").returncode == 0
     assert run_ask(inbox, "--files", str(doc)).returncode == 0
     items = ask_inbox.take_all()
-    assert items[0] == {"text": "why is the sky blue", "files": [], "newChat": True, "send": True}
-    assert items[1] == {"text": "private question", "files": [os.path.realpath(doc)], "newChat": False, "send": False}
+    assert items[0] == {"text": "why is the sky blue", "files": [], "newChat": True, "send": True, "notes": []}
+    assert items[1] == {"text": "private question", "files": [os.path.realpath(doc)], "newChat": False, "send": False,
+                        "notes": []}
     assert items[2]["text"] == "" and items[2]["files"] == [os.path.realpath(doc)]
 
 
@@ -105,3 +130,60 @@ def test_command_reports_problems(inbox, tmp_path):
     assert missing.returncode == 2 and "not a file" in missing.stderr
     nothing = run_ask(inbox)
     assert nothing.returncode == 1 and "nothing to send" in nothing.stderr
+
+
+def test_files_never_send_by_themselves(inbox, home):
+    doc = home / "a.txt"
+    doc.write_text("x")
+    ask_inbox.write_item("summarise", [str(doc)], send=True)
+    ask_inbox.write_item("just text", send=True)
+    first, second = ask_inbox.take_all()
+    assert first["files"] == [os.path.realpath(doc)] and first["send"] is False
+    assert second["send"] is True
+
+
+def test_dot_folders_and_outside_home_are_refused_with_a_note(inbox, home, tmp_path):
+    (home / ".ssh").mkdir()
+    (home / ".ssh" / "id_rsa").write_text("secret")
+    (home / "docs" / ".git").mkdir(parents=True)
+    (home / "docs" / ".git" / "config").write_text("x")
+    (home / ".bashrc").write_text("x")
+    (home / "docs" / "ok.txt").write_text("ok")
+    outside = tmp_path / "outside.txt"
+    outside.write_text("x")
+    link = home / "docs" / "link.txt"
+    link.symlink_to(home / ".ssh" / "id_rsa")      # a symlink into a dot-folder is resolved first
+    link2 = home / "docs" / "link2.txt"
+    link2.symlink_to(outside)
+    paths = [home / ".ssh" / "id_rsa", home / "docs" / ".git" / "config", home / ".bashrc", outside, link, link2,
+             home / "docs" / "missing.txt", home / "docs", home / "docs" / "ok.txt"]
+    ask_inbox.write_item("look", [str(p) for p in paths])
+    (item,) = ask_inbox.take_all()
+    assert item["files"] == [os.path.realpath(home / "docs" / "ok.txt")]
+    reasons = [(n["reason"], n["name"]) for n in item["notes"]]
+    assert reasons == [("hidden", "id_rsa"), ("hidden", "config"), ("hidden", ".bashrc"), ("outside", "outside.txt"),
+                       ("hidden", "link.txt"), ("outside", "link2.txt"), ("unreadable", "missing.txt"),
+                       ("unreadable", "docs")]
+    assert item["send"] is False
+
+
+def test_more_than_ten_files_from_dolphin_are_cut_with_a_notification(inbox, home, notes_log):
+    bin_dir, log = notes_log
+    docs = []
+    for i in range(25):
+        doc = home / ("f%02d.txt" % i)
+        doc.write_text("x")
+        docs.append(str(doc))
+    done = run_ask(inbox, "--files", *docs, tools=str(bin_dir))
+    assert done.returncode == 0
+    assert "Attached 10 of 25 files; the limit is 10" in log.read_text()
+    (item,) = ask_inbox.take_all()
+    assert item["files"] == [os.path.realpath(d) for d in docs[:10]]
+
+
+def test_errors_from_the_command_are_also_notified_without_a_terminal(inbox, home, notes_log):
+    bin_dir, log = notes_log
+    assert run_ask(inbox, "--files", str(home / "nope.txt"), tools=str(bin_dir)).returncode == 2
+    assert run_ask(inbox, tools=str(bin_dir)).returncode == 1
+    text = log.read_text()
+    assert "not a file" in text and "nothing to send" in text

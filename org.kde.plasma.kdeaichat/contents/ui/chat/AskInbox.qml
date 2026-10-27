@@ -75,11 +75,24 @@ Item {
         return "file://" + String(path).split("/").map(encodeURIComponent).join("/");
     }
 
+    function refusedText(note) {
+        var name = String(note.name || "");
+        if (note.reason === "outside")
+            return i18n("Not attached (outside your home folder): %1", name);
+        if (note.reason === "hidden")
+            return i18n("Not attached (inside a hidden folder or a hidden file): %1", name);
+        return i18n("Not attached (not a readable file): %1", name);
+    }
+
     function apply(item) {
         chat.triggerInitialLoad();
         chat.expanded = true;
         if (item.newChat === true)
             chat.createSession(true);
+        // Files the helper refused (outside home, hidden folders, unreadable): say so, never silently.
+        var notes = item.notes || [];
+        for (var n = 0; n < notes.length; n++)
+            chat.pushErrorMessage(inbox.refusedText(notes[n]));
         var paths = item.files || [];
         for (var i = 0; i < paths.length; i++)
             chat.attachFile(inbox.fileUrl(paths[i]));
@@ -92,7 +105,8 @@ Item {
         if (text !== "")
             chat.chatInputText = draft.trim() !== "" ? draft + "\n" + text : text;
         chat.focusInput();
-        if (item.send === true && text !== "" && draft.trim() === "") {
+        // Files never send by themselves: the user looks at them and presses Enter.
+        if (item.send === true && paths.length === 0 && text !== "" && draft.trim() === "") {
             inbox._busy = true;
             inbox._sendChatId = String(chat.currentSessionId);
             inbox._waited = 0;
