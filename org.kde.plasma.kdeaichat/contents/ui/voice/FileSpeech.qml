@@ -1,5 +1,4 @@
-// Reads aloud with an engine that writes sound files (the natural voice,
-// Piper, a speech server, a custom command): the helper (kdeaichat/tts.py)
+// Reads aloud with a speech server, which sends sound files: the helper (kdeaichat/tts.py)
 // makes one WAV per chunk, up to `ahead` chunks ahead of the one playing, and
 // voice/WavPlayer.qml plays them, the next one already loaded so sentences
 // follow without a gap. Same API as voice/QtSpeech.qml.

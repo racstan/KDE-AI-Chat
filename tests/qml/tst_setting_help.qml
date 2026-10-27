@@ -129,10 +129,10 @@ Item {
         function test_voice_page_read_aloud() {
             open("ConfigVoice.qml", {"cfg_voiceTtsEnabled": true, "cfg_sttEnabled": false,
                                      "runHelper": function(command, payload, onDone) {
-                                         if (command === "tts_probe" && onDone) onDone(JSON.stringify({"ok": true}), 0, "");
+                                         if (onDone) onDone(JSON.stringify({"ok": true}), 0, "");
                                      },
                                      "walletCall": function(member, args, onReply, onError) { onError("no wallet in tests"); },
-                                     "pluginOverride": {"system": "mock", "kokoro": "no-such-engine", "flite": "no-such-engine"}});
+                                     "pluginOverride": {"system": "mock"}});
             wait(500);
             checkPage("Voice");
         }

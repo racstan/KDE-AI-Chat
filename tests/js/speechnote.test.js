@@ -17,7 +17,7 @@ const plain = x => JSON.parse(JSON.stringify(x));
 const N = load("voice/SpeechNote.js", ["ERRORS", "errorText", "parse", "isError", "modelChoices", "withSaved", "KEEPALIVE_MS",
                                        "FLATHUB_URL", "GITHUB_URL"]);
 const T = load("voice/TtsEngines.js", ["engines", "engine", "optionKeys", "settingsFor", "chunksFor", "defaultEngine", "fallbackEngine"]);
-const S = load("voice/SttEngines.js", ["engines", "engine", "defaultEngine", "localDefault", "isLocal", "split"]);
+const S = load("voice/SttEngines.js", ["engines", "engine", "defaultEngine"]);
 
 const tests = {
     every_helper_error_code_has_a_plain_message() {
@@ -70,18 +70,12 @@ const tests = {
         assert.strictEqual(pieces.length, 1);
         assert.ok(pieces[0].indexOf("First sentence.") === 0 && pieces[0].indexOf("A third, with code.") > 0);
         assert.deepStrictEqual(plain(T.chunksFor(T.engine("speechnote"), "   ")), []);
-        assert.ok(T.chunksFor(T.engine("neural"), text).length > 1, "the other engines still split");
+        assert.ok(T.chunksFor(T.engine("remote"), text).length >= 1, "the other engines split themselves");
     },
     dictation_defaults_to_speech_note_and_lists_it_first() {
         assert.strictEqual(S.defaultEngine, "speechnote");
         assert.strictEqual(S.engines[0].id, "speechnote");
-        assert.strictEqual(S.localDefault, "parakeet");
-        assert.strictEqual(S.isLocal("speechnote"), false, "it has no install rows of its own");
-        assert.strictEqual(S.isLocal("parakeet"), true);
-        const lists = plain(S.split([{id: "speechnote", available: false, selectable: true, reason: "not installed"}]));
-        assert.strictEqual(lists.choices.length, 1, "it is offered even before it is installed");
-        const mixed = plain(S.split([{id: "command", selectable: true}, {id: "parakeet", selectable: true}, {id: "speechnote", selectable: true}]));
-        assert.deepStrictEqual(mixed.choices.map(r => r.id), ["speechnote", "parakeet", "command"], "listed in the table's order, Speech Note first");
+        assert.deepStrictEqual(plain(S.engines.map(e => e.id)), ["speechnote", "remote"], "and the speech server is the only other");
     }
 };
 

@@ -1,5 +1,5 @@
-// Reads aloud in the widget process with QtTextToSpeech (Speech Dispatcher,
-// Kokoro, Flite, or Qt's mock engine in tests). One runner of
+// Reads aloud in the widget process with QtTextToSpeech (Speech Dispatcher, or
+// Qt's mock engine in tests). One runner of
 // voice/ReadAloud.qml; voice/FileSpeech.qml is the other, with the same API:
 //   start(chunks, settings), stop(), pause(), resume()
 //   chunkStarted(text), finished(), failed(message, code); canPause

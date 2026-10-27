@@ -44,19 +44,8 @@ Item {
     function fakeHelper(command, payload, onDone) {
         calls.push({"command": command, "payload": payload});
         var reply = {"type": "ok"};
-        if (command === "tts_probe")
-            reply = {"ok": true, "piper": ""};
-        else if (command === "speechnote_status")
+        if (command === "speechnote_status")
             reply = status();
-        else if (command === "stt_engines")
-            reply = {"type": "stt_engines", "gpu": false, "engines": [
-                {"id": "parakeet", "available": false, "selectable": true, "installed": false, "reason": "not installed"},
-                {"id": "faster-whisper", "available": false, "selectable": true, "installed": false, "reason": "not installed"},
-                {"id": "whisper-cpp", "available": false, "selectable": false, "reason": "whisper-cli not found"},
-                {"id": "remote", "available": false, "selectable": true, "reason": "needs a server URL"},
-                {"id": "command", "available": false, "selectable": true, "reason": "no command is set"},
-                {"id": "speechnote", "available": scenario !== "missing", "selectable": true, "installed": scenario !== "missing",
-                 "reason": scenario === "missing" ? "not installed (see the links below)" : ""}]};
         else if (command === "speechnote_speak")
             reply = scenario === "missing" ? {"type": "speechnote_error", "error": "x", "code": "not_installed"}
                                            : {"type": "speechnote_speaking", "task": 4};
@@ -85,7 +74,7 @@ Item {
             verify(component.status === Component.Ready, component.errorString());
             page = component.createObject(root, Object.assign({"width": root.width, "height": root.height,
                 "runHelper": root.fakeHelper, "waitHelper": root.fakeHelper, "walletCall": function(member, args, onReply, onError) { onError("no wallet in tests"); },
-                "pluginOverride": {"system": "mock", "kokoro": "no-such-engine", "flite": "no-such-engine"},
+                "pluginOverride": {"system": "mock"},
                 "cfg_voiceTtsEnabled": true, "cfg_sttEnabled": true}, cfg || {}));
             verify(page !== null);
             return page;
@@ -97,7 +86,7 @@ Item {
             root.calls = [];
             wait(200);
         }
-        // The engine list has been looked up (the Say Hello button is usable).
+        // The voice engines have been looked up (the Say Hello button is usable).
         function settled() { tryVerify(function() { return findChild(page, "ttsTestButton").enabled; }, 5000); }
         function panel(name) { return findChild(page, name); }
         function field(panelName, name) { return findChild(panel(panelName), name); }

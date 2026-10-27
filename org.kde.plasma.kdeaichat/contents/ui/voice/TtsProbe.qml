@@ -1,8 +1,7 @@
-// Which read-aloud engines can run here, and the voices of the Qt ones, for
-// Settings → Voice. A Qt engine counts when its plugin loads and has voices
-// (Kokoro's plugin, for example, can be installed without its runtime);
-// Piper when the helper finds a `piper` program; a speech server and a
-// custom command are always offered (they're whatever the user points to).
+// Which read-aloud engines can run here, and the voices of the system voice, for
+// Settings → Voice. The system voice (a Qt engine) counts when its plugin loads
+// and has voices; Speech Note and a speech server are always offered (they're
+// whatever the user installed or points to).
 import QtQuick
 import QtTextToSpeech
 import "TtsEngines.js" as Engines
@@ -10,20 +9,13 @@ import "TtsEngines.js" as Engines
 Item {
     id: probe
 
-    // store/HelperRunner.qml's run(); without it Piper is not offered.
-    property var runHelper: null
     property var pluginOverride: ({})
 
     property bool probing: false
     property var available: []    // engine ids, in TtsEngines.js order
     property var voices: ({})     // engine id -> [{name, locale, language}]
-    property string piperPath: ""
-    // Piper voices already on this computer (Speech Note, ~/.local/share/piper):
-    // [{path, name, language, quality, source, mb}] from the helper's tts_piper_voices.
-    property var piperVoices: []
 
     property var _instances: []
-    property bool _helperDone: false
     property bool _qtDone: false
 
     function pluginFor(spec) {
@@ -33,8 +25,6 @@ Item {
     function refresh() {
         probing = true;
         _qtDone = false;
-        _helperDone = !runHelper;
-        piperPath = "";
         var installed = [];
         var first = ttsComponent.createObject(probe, {"engine": pluginFor(Engines.engine("system"))});
         if (first) {
@@ -52,27 +42,6 @@ Item {
         }
         _instances = made;
         settle.restart();
-        if (runHelper) {
-            runHelper("tts_probe", {}, function(stdout) {
-                try { probe.piperPath = String(JSON.parse(String(stdout).trim().split("\n").pop()).piper || ""); } catch (e) {}
-                probe._helperDone = true;
-                probe._finish();
-                if (probe.piperPath)
-                    probe.findPiperVoices();
-            });
-        }
-    }
-
-    function findPiperVoices() {
-        if (!runHelper)
-            return;
-        runHelper("tts_piper_voices", {}, function(stdout) {
-            try {
-                probe.piperVoices = JSON.parse(String(stdout).trim().split("\n").pop()).voices || [];
-            } catch (e) {
-                probe.piperVoices = [];
-            }
-        });
     }
 
     function _collect() {
@@ -99,12 +68,12 @@ Item {
     }
 
     function _finish() {
-        if (!_qtDone || !_helperDone)
+        if (!_qtDone)
             return;
         var ids = [];
         for (var i = 0; i < Engines.engines.length; i++) {
             var spec = Engines.engines[i];
-            if (spec.kind === "qt" ? !!voices[spec.id] : (spec.needs === "piper" ? piperPath !== "" : true))
+            if (spec.kind === "qt" ? !!voices[spec.id] : true)
                 ids.push(spec.id);
         }
         available = ids;

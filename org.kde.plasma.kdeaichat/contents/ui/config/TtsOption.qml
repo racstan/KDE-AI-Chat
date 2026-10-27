@@ -7,7 +7,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
-import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import "../Security.js" as Sec
@@ -41,9 +40,9 @@ ColumnLayout {
     Loader {
         id: field
         Layout.fillWidth: true
-        sourceComponent: ({"language": choiceField, "voice": choiceField, "choice": choiceField, "rate": sliderField, "pitch": sliderField,
-                           "speed": sliderField, "int": intField, "text": textField, "url": textField, "command": textField,
-                           "file": fileField, "secret": secretField})[row.option.type] || textField
+        sourceComponent: ({"language": choiceField, "voice": choiceField, "rate": sliderField, "pitch": sliderField,
+                           "speed": sliderField, "text": textField, "url": textField,
+                           "secret": secretField})[row.option.type] || textField
     }
 
     SettingHelp {
@@ -58,8 +57,7 @@ ColumnLayout {
             textRole: "text"
             valueRole: "value"
             Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-            model: row.option.type === "choice" ? row.option.choices.map(function(c) { return {"value": c.value, "text": i18n(c.text)}; })
-                : !row.voiceProbe ? [] : isLanguage ? row.voiceProbe.languages(row.engineId, i18n("Engine default"))
+            model: !row.voiceProbe ? [] : isLanguage ? row.voiceProbe.languages(row.engineId, i18n("Engine default"))
                 : row.voiceProbe.voiceChoices(row.engineId, row.language, i18n("Engine default"), String(row.value || ""))
             currentIndex: count > 0 ? Math.max(0, indexOfValue(String(row.value || row.option.def || ""))) : -1
             onActivated: row.set(currentValue)
@@ -87,32 +85,12 @@ ColumnLayout {
     }
 
     Component {
-        id: intField
-        ColumnLayout {
-            QQC2.SpinBox {
-                from: 0
-                to: 9999
-                value: Number(row.value || 0)
-                onValueModified: row.set(value)
-            }
-            QQC2.Label {
-                visible: !!row.option.hint
-                text: row.option.hint ? i18n(row.option.hint) : ""
-                font: Kirigami.Theme.smallFont
-                opacity: 0.7
-            }
-        }
-    }
-
-    Component {
         id: textField
         ColumnLayout {
             readonly property string problem: {
                 var v = String(row.value || "");
                 if (row.option.type === "url" && v && !Sec.validateHttpUrl(v))
                     return i18n("Enter an address that starts with http:// or https://.");
-                if (row.option.type === "command" && v && !Sec.validateCommandTemplate(v))
-                    return i18n("This command can't be used: check its quotes.");
                 return "";
             }
             QQC2.TextField {
@@ -120,7 +98,6 @@ ColumnLayout {
                 Layout.minimumWidth: Kirigami.Units.gridUnit * 18
                 text: String(row.value || "")
                 placeholderText: row.option.placeholder || ""
-                font.family: row.option.type === "command" ? "monospace" : Kirigami.Theme.defaultFont.family
                 onTextEdited: row.set(text)
             }
             QQC2.Label {
@@ -129,48 +106,6 @@ ColumnLayout {
                 color: Kirigami.Theme.negativeTextColor
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
-            }
-        }
-    }
-
-    Component {
-        id: fileField
-        ColumnLayout {
-            // Piper voices found on this computer (Speech Note, ~/.local/share/piper).
-            QQC2.ComboBox {
-                readonly property var voices: row.option.found === "piper" && row.voiceProbe ? row.voiceProbe.piperVoices : []
-                objectName: "piperFoundCombo"
-                visible: voices.length > 0
-                Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-                textRole: "text"
-                valueRole: "value"
-                model: [{"value": "", "text": i18n("Choose a voice found on this computer…")}].concat(voices.map(function(v) {
-                    return {"value": v.path, "text": i18n("%1 (%2, %3)", v.name, v.source, v.mb + " MB")};
-                }))
-                currentIndex: Math.max(0, indexOfValue(String(row.value || "")))
-                onActivated: if (currentValue) row.set(currentValue)
-            }
-            RowLayout {
-                QQC2.TextField {
-                    id: pathField
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: Kirigami.Units.gridUnit * 16
-                    text: String(row.value || "")
-                    placeholderText: row.option.placeholder || ""
-                    onTextEdited: row.set(text)
-                }
-                QQC2.Button {
-                    icon.name: "document-open"
-                    Accessible.name: i18n("Choose a file")
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: Accessible.name
-                    onClicked: dialog.open()
-                }
-                FileDialog {
-                    id: dialog
-                    nameFilters: [row.option.filter ? row.option.filter : "*"]
-                    onAccepted: row.set(decodeURIComponent(String(selectedFile).replace(/^file:\/\//, "")))
-                }
             }
         }
     }

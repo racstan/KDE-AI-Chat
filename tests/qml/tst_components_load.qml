@@ -130,7 +130,6 @@ TestCase {
             { tag: "config/ScheduleEditor", url: uiDir + "config/ScheduleEditor.qml" },
             { tag: "chat/ScheduleOverlay", url: uiDir + "chat/ScheduleOverlay.qml" },
             { tag: "config/SttSetup", url: uiDir + "config/SttSetup.qml" },
-            { tag: "config/LocalSttRows", url: uiDir + "config/LocalSttRows.qml" },
             { tag: "config/DictationSettings", url: uiDir + "config/DictationSettings.qml" },
             { tag: "config/TtsOption", url: uiDir + "config/TtsOption.qml" },
             { tag: "config/SettingHelp", url: uiDir + "config/SettingHelp.qml" },

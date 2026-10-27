@@ -103,71 +103,14 @@ Item {
             reader.stop();
         }
 
-        function test_natural_voice_pipelines_sentences() {
-            root.config = {"voiceTtsEngine": "neural", "voiceTtsNeuralVoice": "bf_emma", "voiceTtsNeuralSpeed": 1.1};
-            reader.speak("The first sentence is here. The second one follows. A third one ends it. And a fourth.");
-            tryVerify(function() { return root.pendingCallbacks.length === 1; }, 3000);
-            var speech = findSpeech();
-            compare(speech.ahead, 2);
-            speech.player = fakePlayer;
-            var payload = root.pendingCallbacks[0].payload;
-            compare(payload.engine, "neural");
-            compare(payload.text, "The first sentence is here.", "the first sentence alone, so sound starts soon");
-            compare(payload.options.voiceTtsNeuralVoice, "bf_emma");
-            fileReply(0, {"ok": true, "path": "/run/1.wav"});
-            compare(fakePlayer.played, ["/run/1.wav"]);
-            compare(reader.currentChunk, "The first sentence is here.");
-            compare(root.pendingCallbacks.length, 2);
-            compare(root.pendingCallbacks[1].payload.text, "The second one follows.");
-            fileReply(1, {"ok": true, "path": "/run/2.wav"});
-            compare(fakePlayer.preloaded, ["/run/2.wav"], "the next sentence is loaded while one plays");
-            compare(root.pendingCallbacks.length, 3, "two sentences ahead");
-            fileReply(2, {"ok": true, "path": "/run/3.wav"});
-            compare(root.pendingCallbacks.length, 3, "not more than two ahead");
-            reader.pause();
-            compare(fakePlayer.state, "paused");
-            compare(reader.statusText, "Paused");
-            reader.resume();
-            fakePlayer.ended();
-            compare(fakePlayer.played, ["/run/1.wav", "/run/2.wav"]);
-            compare(fakePlayer.preloaded, ["/run/2.wav", "/run/3.wav"]);
-            compare(root.pendingCallbacks.length, 4);
-            fileReply(3, {"ok": true, "path": "/run/4.wav"});
-            fakePlayer.ended();
-            fakePlayer.ended();
-            verify(reader.isPlaying, "still playing the last sentence");
-            fakePlayer.ended();
-            verify(!reader.isPlaying);
-            compare(fakePlayer.played, ["/run/1.wav", "/run/2.wav", "/run/3.wav", "/run/4.wav"]);
-            compare(root.errors.length, 0);
-        }
-
-        function test_natural_voice_stop_is_final() {
-            root.config = {"voiceTtsEngine": "neural"};
-            reader.speak("One sentence here. Another sentence here.");
-            tryVerify(function() { return root.pendingCallbacks.length === 1; }, 3000);
-            findSpeech().player = fakePlayer;
-            fileReply(0, {"ok": true, "path": "/run/a.wav"});
-            reader.stop();
-            compare(fakePlayer.state, "stopped");
-            fileReply(1, {"ok": true, "path": "/run/b.wav"});
-            compare(fakePlayer.played, ["/run/a.wav"]);
-            verify(!reader.isPlaying);
-        }
-
-        function test_without_the_natural_voice_the_system_voice_reads() {
-            root.config = {"voiceTtsEngine": "neural"};
-            reader.speak("Hello there, this is read anyway.");
-            tryVerify(function() { return root.pendingCallbacks.length === 1; }, 3000);
-            fileReply(0, {"ok": false, "error": "the natural voice is not installed", "code": "not_installed"});
-            tryCompare(reader, "engineId", "system", 3000);
-            verify(reader.usedFallback);
-            verify(reader.isPlaying);
-            tryVerify(function() { return !reader.isPlaying; }, 15000);
-            compare(root.errors.length, 0, "no error: the system voice read it");
-            reader.speak("Again.");
-            compare(reader.engineId, "neural", "the natural voice is tried again next time");
-            reader.stop();
+        function test_removed_engines_read_with_speech_note() {
+            var gone = ["neural", "kokoro", "flite", "piper", "command"];
+            for (var i = 0; i < gone.length; i++) {
+                root.config = {"voiceTtsEngine": gone[i]};
+                verify(reader.speak("Hello there, this is read anyway."), gone[i]);
+                compare(reader.engineId, "speechnote", gone[i]);
+                reader.stop();
+            }
         }
 
         function test_system_voice_plays_until_the_engine_is_done() {
@@ -224,7 +167,7 @@ Item {
         }
 
         function test_file_engine_plays_chunks_in_order() {
-            root.config = {"voiceTtsEngine": "piper", "voiceTtsPiperModel": "/v/en.onnx", "voiceTtsPiperSpeed": 1.2};
+            root.config = {"voiceTtsEngine": "remote", "voiceTtsRemoteUrl": "http://localhost:8880/v1", "voiceTtsRemoteSpeed": 1.2};
             var long = [];
             for (var i = 0; i < 40; i++)
                 long.push("Sentence number " + i + " is here.");
@@ -232,9 +175,9 @@ Item {
             tryVerify(function() { return !!reader.children.length && root.pendingCallbacks.length === 1; }, 3000);
             compare(reader.statusText, "Generating speech...");
             var payload = root.pendingCallbacks[0].payload;
-            compare(payload.engine, "piper");
-            compare(payload.options.voiceTtsPiperModel, "/v/en.onnx");
-            compare(payload.options.voiceTtsPiperSpeed, 1.2);
+            compare(payload.engine, "remote");
+            compare(payload.options.voiceTtsRemoteUrl, "http://localhost:8880/v1");
+            compare(payload.options.voiceTtsRemoteSpeed, 1.2);
             var speech = findSpeech();
             speech.player = fakePlayer;
             fakePlayer.played = [];
@@ -261,7 +204,7 @@ Item {
         }
 
         function test_file_engine_finishes_after_the_last_chunk() {
-            root.config = {"voiceTtsEngine": "command", "voiceTtsCommand": "say"};
+            root.config = {"voiceTtsEngine": "remote"};
             reader.speak("Short one.");
             tryVerify(function() { return root.pendingCallbacks.length === 1; }, 3000);
             findSpeech().player = fakePlayer;

@@ -3,7 +3,7 @@
 // button (engines: voice/TtsEngines.js; Speech Note, the default, speaks through
 // voice/SpeechNoteSpeech.qml). The engine is loaded on the first speak() and unloaded after two
 // idle minutes, so nothing runs while read aloud isn't used. While the chosen
-// engine isn't installed (Speech Note, or the natural voice before its install),
+// engine isn't installed (Speech Note),
 // System voices read instead, without an error.
 //
 // `configuration` is read when speak() is called: plasmoid.configuration,
@@ -135,9 +135,6 @@ Item {
     function unload() {
         stop();
         idle.stop();
-        // The natural voice's service would exit by itself when idle; stop it now.
-        if (engineId === "neural" && runHelper)
-            runHelper("tts_neural_stop", {}, null);
         loader.engineKey = "";
         loader.source = "";
     }
