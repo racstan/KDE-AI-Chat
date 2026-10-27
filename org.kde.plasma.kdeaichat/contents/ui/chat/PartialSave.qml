@@ -32,7 +32,7 @@ QtObject {
         for (var i = 0; i < list.length; i++) {
             if (list[i].value === c.currentSessionId) {
                 list[i] = Object.assign({}, list[i], {"messages": messages});
-                try { c.store.save(list); } catch (e) { console.error("KDE AI Chat: partial reply save failed:", e); }
+                try { c.store.save(list, false, [c.currentSessionId]); } catch (e) { console.error("KDE AI Chat: partial reply save failed:", e); }
                 return;
             }
         }

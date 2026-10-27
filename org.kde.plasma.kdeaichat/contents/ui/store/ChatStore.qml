@@ -73,6 +73,9 @@ Item {
         return value;
     }
 
+    property var _dirty: ({})        // ids named by save() hints since the last flush
+    property bool _fullCompare: false  // a save came without a hint
+
     function _write(fileName, key, value) {
         var file = _open(fileName);
         file.setValue(key, value);
@@ -258,8 +261,17 @@ Item {
     }
 
     // Schedules a save of `sessions`; immediate writes now (if ready).
-    function save(sessions, immediate) {
+    // `changed` (optional) lists the ids of the chats whose messages may have
+    // changed ([] when only metadata did). Without it every chat is compared
+    // with what was last written. Hints of saves that wait for one flush add up.
+    function save(sessions, immediate, changed) {
         _pending = sessions;
+        if (Array.isArray(changed)) {
+            for (var i = 0; i < changed.length; i++)
+                _dirty[changed[i]] = true;
+        } else {
+            _fullCompare = true;
+        }
         if (immediate)
             flush();
         else
@@ -271,7 +283,11 @@ Item {
         if (_pending === null || !ready || directory === "" || indexProblem !== "")
             return;
         var sessions = _pending;
+        var dirty = _dirty;
+        var full = _fullCompare;
         _pending = null;
+        _dirty = {};
+        _fullCompare = false;
 
         var metas = [];
         var written = {};
@@ -284,6 +300,11 @@ Item {
             delete meta.messages;
             metas.push(meta);
             if (damagedIds[session.value]) {  // unreadable file: kept as it is
+                written[session.value] = _written[session.value];
+                continue;
+            }
+            // Not hinted as changed and already on disk: no need to serialise it again.
+            if (!full && !dirty[session.value] && session.value in _written) {
                 written[session.value] = _written[session.value];
                 continue;
             }
