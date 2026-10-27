@@ -44,6 +44,11 @@ contents/ui/chat/RememberPopup.qml
 contents/ui/chat/RenameRow.qml
 contents/ui/chat/SenderName.qml
 contents/ui/chat/SessionList.qml
+contents/ui/chat/ChatSearchPanel.qml
+contents/ui/chat/ChatRowMenu.qml
+contents/ui/chat/Incognito.qml
+contents/ui/chat/IncognitoBadge.qml
+contents/ui/chat/IncognitoLeaveDialog.qml
 contents/ui/chat/SessionTitles.qml
 contents/ui/ChatSettingsDialog.qml
 contents/ui/chat/ShortcutList.js

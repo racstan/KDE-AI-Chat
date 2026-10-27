@@ -1,6 +1,6 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the plasma_applet_org.kde.plasma.kdeaichat package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 17:56+0530\n"
+"POT-Creation-Date: 2026-10-26 18:44+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,7 +30,7 @@ msgstr ""
 msgid "Personality"
 msgstr ""
 
-#: contents/config/config.qml:24 contents/ui/chat/ChatMemoryInfo.qml:53
+#: contents/config/config.qml:24 contents/ui/chat/ChatMemoryInfo.qml:55
 msgid "Memory"
 msgstr ""
 
@@ -52,81 +52,85 @@ msgstr ""
 msgid "Open %1"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:59
+#: contents/ui/chat/ChatHeader.qml:63
 msgid "Back to chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:60
+#: contents/ui/chat/ChatHeader.qml:64
 msgid "Hide history"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:60
+#: contents/ui/chat/ChatHeader.qml:64
 msgid "Show history"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:76
+#: contents/ui/chat/ChatHeader.qml:80
 msgid "Unpin (close when clicking away)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:76
+#: contents/ui/chat/ChatHeader.qml:80
 msgid "Pin (keep open)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:83
+#: contents/ui/chat/ChatHeader.qml:87
 msgid "Open Settings"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:94
+#: contents/ui/chat/ChatHeader.qml:98
 msgid "%1 History"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:94 contents/ui/chat/SessionList.qml:173
-#: contents/ui/chat/UndoNotice.qml:128
+#: contents/ui/chat/ChatHeader.qml:98 contents/ui/chat/SessionList.qml:161
+#: contents/ui/chat/ChatSearchPanel.qml:190 contents/ui/chat/UndoNotice.qml:128
 msgid "New Chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:116 contents/ui/ConfigAppearance.qml:46
+#: contents/ui/chat/ChatHeader.qml:128 contents/ui/ConfigAppearance.qml:46
 msgid "New chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:133 contents/ui/ChatSettingsDialog.qml:109
+#: contents/ui/chat/ChatHeader.qml:147 contents/ui/ConfigAppearance.qml:47
+msgid "New incognito chat (never saved)"
+msgstr ""
+
+#: contents/ui/chat/ChatHeader.qml:158 contents/ui/ChatSettingsDialog.qml:109
 msgid "Chat info"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:148
+#: contents/ui/chat/ChatHeader.qml:173
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:220 contents/ui/chat/SessionList.qml:69
-#: contents/ui/chat/SessionList.qml:323
+#: contents/ui/chat/ChatHeader.qml:245 contents/ui/chat/SessionList.qml:311
+#: contents/ui/chat/ChatRowMenu.qml:23
 msgid "Rename chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:236
+#: contents/ui/chat/ChatHeader.qml:262
 msgid "Jump to first message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:247
+#: contents/ui/chat/ChatHeader.qml:273
 msgid "Jump to previous message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:252
+#: contents/ui/chat/ChatHeader.qml:278
 msgid "Jump to next message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:257
+#: contents/ui/chat/ChatHeader.qml:283
 msgid "Jump to latest message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:268
+#: contents/ui/chat/ChatHeader.qml:294
 msgid "Schedule a message…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:273
+#: contents/ui/chat/ChatHeader.qml:300
 msgid "Export chat…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:279
+#: contents/ui/chat/ChatHeader.qml:306
 msgid "Clear chat"
 msgstr ""
 
@@ -181,21 +185,25 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/ChatMemoryInfo.qml:61
+#: contents/ui/chat/ChatMemoryInfo.qml:63
 msgid "Use memories in this chat"
 msgstr ""
 
-#: contents/ui/chat/ChatMemoryInfo.qml:74
-msgid "Memory is turned off for every chat in Settings → Memory."
+#: contents/ui/chat/ChatMemoryInfo.qml:75
+msgid "An incognito chat uses no memories and adds none."
 msgstr ""
 
 #: contents/ui/chat/ChatMemoryInfo.qml:85
+msgid "Memory is turned off for every chat in Settings → Memory."
+msgstr ""
+
+#: contents/ui/chat/ChatMemoryInfo.qml:96
 msgid "The latest message was sent with 1 memory:"
 msgid_plural "The latest message was sent with %1 memories:"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/ChatMemoryInfo.qml:86
+#: contents/ui/chat/ChatMemoryInfo.qml:97
 msgid "The latest message was sent with no memories."
 msgstr ""
 
@@ -292,7 +300,7 @@ msgid "The project's folder: %1"
 msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:307
-#: contents/ui/chat/WorkspaceBar.qml:91 contents/ui/ConfigChat.qml:92
+#: contents/ui/chat/WorkspaceBar.qml:91 contents/ui/ConfigChat.qml:104
 msgid "No workspace"
 msgstr ""
 
@@ -445,11 +453,11 @@ msgstr[1] ""
 msgid "Pi returned no providers"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:281
+#: contents/ui/chat/ChatView.qml:307
 msgid "New messages"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:281
+#: contents/ui/chat/ChatView.qml:307
 msgid "Latest"
 msgstr ""
 
@@ -500,42 +508,46 @@ msgid ""
 msgstr ""
 
 #: contents/ui/chat/CommandRunner.qml:165
+msgid "Nothing is remembered from an incognito chat."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:167
 msgid ""
 "Write what to remember, like /remember I prefer metric units. Start with "
 "chat: or project: to keep it to this chat or its project."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:167
+#: contents/ui/chat/CommandRunner.qml:169
 msgid "This chat is in no project. Use /remember or /remember chat:."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:171
+#: contents/ui/chat/CommandRunner.qml:173
 msgid "Memories are not available."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:178
+#: contents/ui/chat/CommandRunner.qml:180
 msgid "This model has no variants."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:180
+#: contents/ui/chat/CommandRunner.qml:182
 msgid "Variants: %1. Use /variant <name>."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:183
+#: contents/ui/chat/CommandRunner.qml:185
 msgid "This model has no variant “%1”. It has: %2."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:196
+#: contents/ui/chat/CommandRunner.qml:198
 msgid ""
 "Every chat uses the main settings. To change it for just this chat, turn on "
 "“Let chats have their own model settings” in Settings → Chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:202
+#: contents/ui/chat/CommandRunner.qml:204
 msgid "the default variant"
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:202
+#: contents/ui/chat/CommandRunner.qml:204
 msgid "This chat now uses %1."
 msgstr ""
 
@@ -638,7 +650,7 @@ msgstr ""
 msgid "Queue"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:300 contents/ui/chat/Notifier.qml:195
+#: contents/ui/chat/Composer.qml:300 contents/ui/chat/Notifier.qml:201
 msgid "Send"
 msgstr ""
 
@@ -827,7 +839,13 @@ msgid ""
 "box for your templates."
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:125
+#: contents/ui/chat/EmptyState.qml:101
+msgid ""
+"Incognito: this chat is never saved, uses no memories and adds none. It is "
+"gone when you leave it."
+msgstr ""
+
+#: contents/ui/chat/EmptyState.qml:136
 msgid "Start with %1"
 msgstr ""
 
@@ -852,7 +870,7 @@ msgstr ""
 msgid "Copy error"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:86 contents/ui/chat/MessageActions.qml:321
+#: contents/ui/chat/ErrorActions.qml:86 contents/ui/chat/MessageActions.qml:323
 #: contents/ui/config/MemoryRow.qml:116 contents/ui/config/MemoryRow.qml:118
 #: contents/ui/config/ScheduleRow.qml:103
 #: contents/ui/config/ScheduleRow.qml:157
@@ -949,7 +967,7 @@ msgstr ""
 msgid "The model sent back nothing. Try again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:131 contents/ui/chat/Notifier.qml:86
+#: contents/ui/chat/ErrorText.js:131 contents/ui/chat/Notifier.qml:92
 msgid "Something went wrong."
 msgstr ""
 
@@ -1148,11 +1166,11 @@ msgstr ""
 msgid "Quote"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:302
+#: contents/ui/chat/MessageActions.qml:304
 msgid "Remember selection"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:302
+#: contents/ui/chat/MessageActions.qml:304
 #: contents/ui/chat/RememberPopup.qml:52
 msgid "Remember"
 msgstr ""
@@ -1224,47 +1242,52 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:79
+#: contents/ui/chat/Notifier.qml:85 contents/ui/chat/Notifier.qml:92
+#: contents/ui/chat/Notifier.qml:111
+msgid "Incognito chat"
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:85
 msgid "The reply is ready."
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:86
+#: contents/ui/chat/Notifier.qml:92
 msgid "%1: request failed"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:95
+#: contents/ui/chat/Notifier.qml:101
 msgid "%1 is ready"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:95
+#: contents/ui/chat/Notifier.qml:101
 msgid "A scheduled prompt is ready"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:105
+#: contents/ui/chat/Notifier.qml:111
 msgid "%1: input needed"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:110
+#: contents/ui/chat/Notifier.qml:116
 msgid "%1 asks to use %2"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:111 contents/ui/chat/PermissionButtons.qml:22
+#: contents/ui/chat/Notifier.qml:117 contents/ui/chat/PermissionButtons.qml:22
 msgid "Allow"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:111
+#: contents/ui/chat/Notifier.qml:117
 msgid "Deny"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:193
+#: contents/ui/chat/Notifier.qml:199
 msgid "Reply…"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:194 contents/ui/chat/QuestionCard.qml:89
+#: contents/ui/chat/Notifier.qml:200 contents/ui/chat/QuestionCard.qml:89
 msgid "Type your answer…"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:234 contents/ui/chat/Notifier.qml:248
+#: contents/ui/chat/Notifier.qml:240 contents/ui/chat/Notifier.qml:254
 msgid "Open chat"
 msgstr ""
 
@@ -1420,12 +1443,13 @@ msgid "New project…"
 msgstr ""
 
 #: contents/ui/chat/ProjectsSidebar.qml:25
-#: contents/ui/chat/RememberPopup.qml:93 contents/ui/chat/SessionList.qml:117
+#: contents/ui/chat/RememberPopup.qml:93 contents/ui/chat/SessionList.qml:104
 #: contents/ui/ConfigMemory.qml:56
 msgid "All chats"
 msgstr ""
 
 #: contents/ui/chat/ProjectsSidebar.qml:29
+#: contents/ui/chat/ChatSearchPanel.qml:255
 msgid "Archived"
 msgstr ""
 
@@ -1438,7 +1462,7 @@ msgid "Edit project…"
 msgstr ""
 
 #: contents/ui/chat/ProjectsSidebar.qml:196
-#: contents/ui/chat/SessionList.qml:127
+#: contents/ui/chat/SessionList.qml:114
 msgid "New chat in this project"
 msgstr ""
 
@@ -1540,11 +1564,11 @@ msgid ""
 "yet."
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:323
+#: contents/ui/chat/RenameRow.qml:33 contents/ui/chat/SessionList.qml:311
 msgid "Save title"
 msgstr ""
 
-#: contents/ui/chat/RenameRow.qml:39 contents/ui/chat/SessionList.qml:354
+#: contents/ui/chat/RenameRow.qml:39 contents/ui/chat/SessionList.qml:342
 msgid "Cancel rename"
 msgstr ""
 
@@ -1572,56 +1596,129 @@ msgstr ""
 msgid "Scheduled: %1"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:40
+#: contents/ui/chat/SessionList.qml:41 contents/ui/chat/ChatSearchPanel.qml:82
 msgid "Today"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:42
+#: contents/ui/chat/SessionList.qml:43 contents/ui/chat/ChatSearchPanel.qml:84
 msgid "Yesterday"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:79 contents/ui/chat/SessionList.qml:341
-msgid "Restore chat"
-msgstr ""
-
-#: contents/ui/chat/SessionList.qml:79 contents/ui/chat/SessionList.qml:341
-msgid "Archive chat"
-msgstr ""
-
-#: contents/ui/chat/SessionList.qml:85 contents/ui/chat/SessionList.qml:354
-msgid "Delete chat"
-msgstr ""
-
-#: contents/ui/chat/SessionList.qml:117
+#: contents/ui/chat/SessionList.qml:104
 msgid "Archived chats"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:146
+#: contents/ui/chat/SessionList.qml:133
 msgid ""
 "No archived chats. Archive a chat to keep it out of the list without "
 "deleting it."
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:147
+#: contents/ui/chat/SessionList.qml:134
 msgid ""
 "No chats in this project yet. Start one with +, or move a chat here from its "
 "menu."
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:148
+#: contents/ui/chat/SessionList.qml:135
 msgid "No chats yet."
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:270
+#: contents/ui/chat/SessionList.qml:258
 msgid "In project %1"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:280
+#: contents/ui/chat/SessionList.qml:268
 msgid "Pi chat"
 msgstr ""
 
-#: contents/ui/chat/SessionList.qml:280
+#: contents/ui/chat/SessionList.qml:268
 msgid "OpenCode chat"
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:329 contents/ui/chat/ChatRowMenu.qml:33
+msgid "Restore chat"
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:329 contents/ui/chat/ChatRowMenu.qml:33
+msgid "Archive chat"
+msgstr ""
+
+#: contents/ui/chat/SessionList.qml:342 contents/ui/chat/ChatRowMenu.qml:39
+msgid "Delete chat"
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:119
+msgid "Search all chats…"
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:123 contents/ui/ConfigAppearance.qml:48
+msgid "Search all chats"
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:146
+msgid "Searching…"
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:147
+msgid "Type at least two characters."
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:148
+msgid "No chats match “%1”."
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:149
+msgid "The first %1 matches. Type more to narrow them down."
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:150
+msgid "%1 match"
+msgid_plural "%1 matches"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:166
+msgid "Search results"
+msgstr ""
+
+#: contents/ui/chat/ChatSearchPanel.qml:277
+msgid "You:"
+msgstr ""
+
+#: contents/ui/chat/IncognitoBadge.qml:19
+msgid "Incognito — not saved"
+msgstr ""
+
+#: contents/ui/chat/IncognitoBadge.qml:37
+msgid ""
+"This chat is never written to disk, uses no memories and adds none. It is "
+"gone when you leave it."
+msgstr ""
+
+#: contents/ui/chat/IncognitoBadge.qml:62
+msgid "Close incognito chat"
+msgstr ""
+
+#: contents/ui/chat/IncognitoLeaveDialog.qml:70
+msgid "Leave the incognito chat?"
+msgstr ""
+
+#: contents/ui/chat/IncognitoLeaveDialog.qml:78
+msgid ""
+"It isn't saved anywhere: once you leave it, its messages are gone for good."
+msgstr ""
+
+#: contents/ui/chat/IncognitoLeaveDialog.qml:84
+msgid "Don't ask again"
+msgstr ""
+
+#: contents/ui/chat/IncognitoLeaveDialog.qml:94
+msgid "Stay"
+msgstr ""
+
+#: contents/ui/chat/IncognitoLeaveDialog.qml:100
+msgid "Leave and discard"
 msgstr ""
 
 #: contents/ui/ChatSettingsDialog.qml:121
@@ -1793,344 +1890,359 @@ msgstr ""
 msgid "No model matches."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:47
+#: contents/ui/ConfigAppearance.qml:49
 msgid "Show or hide the history"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:48
+#: contents/ui/ConfigAppearance.qml:50
 msgid "Show or hide the chat info panel"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:49
+#: contents/ui/ConfigAppearance.qml:51
 msgid "Focus the message input"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:50
+#: contents/ui/ConfigAppearance.qml:52
 msgid "Stop the reply; cancel an edit"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:51
+#: contents/ui/ConfigAppearance.qml:53
 msgid "Regenerate the last reply"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:52
+#: contents/ui/ConfigAppearance.qml:54
 msgid "Copy the last reply"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:53
+#: contents/ui/ConfigAppearance.qml:55
 msgid "Next chat"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:54
+#: contents/ui/ConfigAppearance.qml:56
 msgid "Previous chat"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:55
+#: contents/ui/ConfigAppearance.qml:57
 msgid "Open the settings"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:56
+#: contents/ui/ConfigAppearance.qml:58
 msgid "Edit your last message"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:57
+#: contents/ui/ConfigAppearance.qml:59
 msgid "Quote the picked message in your next one"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:58
+#: contents/ui/ConfigAppearance.qml:60
 msgid "Read aloud the selected text or the picked message; stop reading"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:59
+#: contents/ui/ConfigAppearance.qml:61
 msgid "Previous message (input empty, or after clicking the chat)"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:60
+#: contents/ui/ConfigAppearance.qml:62
 msgid "Next message; past the latest, back to the input"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:61
+#: contents/ui/ConfigAppearance.qml:63
 msgid "Jump to the first message"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:62
+#: contents/ui/ConfigAppearance.qml:64
 msgid "Jump to the latest message"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:100
+#: contents/ui/ConfigAppearance.qml:102
 msgid "Choose an Image for the Widget"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:102 contents/ui/ConfigPersonality.qml:96
+#: contents/ui/ConfigAppearance.qml:104 contents/ui/ConfigPersonality.qml:96
 msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:113
+#: contents/ui/ConfigAppearance.qml:115
 #: contents/ui/config/ImageProviderEditor.qml:63
 #: contents/ui/config/ProviderEditor.qml:48
 #: contents/ui/config/ScheduleEditor.qml:85
 msgid "Name:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:119
+#: contents/ui/ConfigAppearance.qml:121
 msgid ""
 "The widget's name, shown at the top of the chat and when you hover over it "
 "in the panel."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:124
+#: contents/ui/ConfigAppearance.qml:126
 msgid "Icon:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:128 contents/ui/ConfigAppearance.qml:130
+#: contents/ui/ConfigAppearance.qml:130 contents/ui/ConfigAppearance.qml:132
 msgid "Choose the widget icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:153 contents/ui/ConfigPersonality.qml:275
+#: contents/ui/ConfigAppearance.qml:155 contents/ui/ConfigPersonality.qml:275
 msgid "Choose Icon…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:162 contents/ui/ConfigPersonality.qml:284
+#: contents/ui/ConfigAppearance.qml:164 contents/ui/ConfigPersonality.qml:284
 msgid "Choose Image File…"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:167
+#: contents/ui/ConfigAppearance.qml:169
 msgid "Reset to Default Icon"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:176
+#: contents/ui/ConfigAppearance.qml:178
 msgid ""
 "The picture for the widget: an icon from your theme or an image file of your "
 "own. It is what you click in the panel, unless you choose an animation below."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:193
+#: contents/ui/ConfigAppearance.qml:195
 msgid "Notifications"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:199
+#: contents/ui/ConfigAppearance.qml:201
 msgid "Notify when:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:200
+#: contents/ui/ConfigAppearance.qml:202
 msgid "A reply finishes while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:204
+#: contents/ui/ConfigAppearance.qml:206
 msgid ""
 "A desktop notification tells you the answer is ready, so you can do other "
 "things while you wait."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:210
+#: contents/ui/ConfigAppearance.qml:212
 msgid "A request fails while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:214
+#: contents/ui/ConfigAppearance.qml:216
 msgid ""
 "You hear about problems, for example a wrong key or no internet, without "
 "opening the chat."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:220
+#: contents/ui/ConfigAppearance.qml:222
 msgid "The AI needs an answer or permission while the chat is closed"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:224
+#: contents/ui/ConfigAppearance.qml:226
 msgid ""
 "The AI is waiting for you, for example to answer a question or to allow a "
 "change to your files."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:230
+#: contents/ui/ConfigAppearance.qml:232
 msgid "A scheduled task runs"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:234
+#: contents/ui/ConfigAppearance.qml:236
 msgid ""
 "A schedule from the Schedules page has sent its message. Each schedule can "
 "also turn its own notification off."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:240
+#: contents/ui/ConfigAppearance.qml:242
 msgid "Sound:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:241
+#: contents/ui/ConfigAppearance.qml:243
 msgid "Play a sound when a reply is finished"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:245
+#: contents/ui/ConfigAppearance.qml:247
 msgid ""
 "A short sound when the answer is complete, handy when you are looking at "
 "something else."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:250
+#: contents/ui/ConfigAppearance.qml:252
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:271
+#: contents/ui/ConfigAppearance.qml:273
 msgid ""
 "These work while the chat is open. To open the widget from anywhere, set its "
 "global shortcut on the \"Keyboard Shortcuts\" page of this window."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:276
+#: contents/ui/ConfigAppearance.qml:278
 msgid "Support the developer"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:281
+#: contents/ui/ConfigAppearance.qml:283
 msgid "Like it?"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:282
+#: contents/ui/ConfigAppearance.qml:284
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:291
+#: contents/ui/ConfigAppearance.qml:293
 msgid ""
 "KDE AI Chat is free. If it helps you, you can thank the developer with a "
 "small gift; this opens buymeacoffee.com in your web browser."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:30 contents/ui/ConfigChat.qml:93
+#: contents/ui/ConfigChat.qml:31 contents/ui/ConfigChat.qml:105
 msgid "Default workspace for new chats"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:42
+#: contents/ui/ConfigChat.qml:43
 msgid "Earlier messages sent:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:47
+#: contents/ui/ConfigChat.qml:48
 msgid "All (up to 100)"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:53
+#: contents/ui/ConfigChat.qml:54
 msgid "Number of earlier messages sent with each request"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:57
+#: contents/ui/ConfigChat.qml:58
 msgid ""
 "How much of the conversation the AI sees each time you write. More lets it "
 "remember what was said earlier in the chat; fewer is faster and cheaper."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:58
+#: contents/ui/ConfigChat.qml:59
 msgid ""
 "The AI keeps nothing between messages: the earlier messages are sent again "
 "with every new one. Long chats set to \"All\" use more of your provider's "
 "allowance."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:63
+#: contents/ui/ConfigChat.qml:64
 msgid "Chat names:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:64
+#: contents/ui/ConfigChat.qml:65
 msgid "Let the model name new chats"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:68
+#: contents/ui/ConfigChat.qml:69
 msgid ""
 "After your first message, the AI gives the chat a short title for the chat "
 "list. Turn this off to name chats yourself."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:74
+#: contents/ui/ConfigChat.qml:75
 msgid "Questions:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:75
+#: contents/ui/ConfigChat.qml:76
 msgid "Let the AI ask me questions"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:79
+#: contents/ui/ConfigChat.qml:80
 msgid ""
 "When it needs a choice or a missing detail, the AI can ask you in the chat "
 "and wait for your answer. Applies to chats with a provider; the agent modes "
 "ask in their own way."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:83
+#: contents/ui/ConfigChat.qml:86
+msgid "Incognito chats:"
+msgstr ""
+
+#: contents/ui/ConfigChat.qml:87
+msgid "Ask before leaving one that has messages"
+msgstr ""
+
+#: contents/ui/ConfigChat.qml:91
+msgid ""
+"An incognito chat (the button next to New chat, or Ctrl+Shift+N) is never "
+"saved: when you leave it, its messages are gone. With this on, you are asked "
+"first."
+msgstr ""
+
+#: contents/ui/ConfigChat.qml:95
 msgid "Default workspace for new chats:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:98 contents/ui/ConfigChat.qml:100
+#: contents/ui/ConfigChat.qml:110 contents/ui/ConfigChat.qml:112
 msgid "Choose a folder"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:105
+#: contents/ui/ConfigChat.qml:117
 msgid ""
 "A folder on your computer that new chats work in, for example a project you "
 "are coding. Copied into a chat when it is created. Leave empty for no "
 "workspace. Each chat can change its own in the bar above the chat."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:106
+#: contents/ui/ConfigChat.qml:118
 msgid "The agent modes (OpenCode and Pi) read and change files in this folder."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:111
+#: contents/ui/ConfigChat.qml:123
 msgid "Model settings per chat"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:117
+#: contents/ui/ConfigChat.qml:129
 msgid "Chats:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:118
+#: contents/ui/ConfigChat.qml:130
 msgid "Let chats have their own model settings"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:119
+#: contents/ui/ConfigChat.qml:131
 msgid ""
 "When off, every chat uses the model settings from Settings. A chat's own "
 "settings are kept but ignored."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:124
+#: contents/ui/ConfigChat.qml:136
 msgid ""
 "A chat can choose its own provider and model in its Chat info panel. The way "
 "it sends messages (directly, OpenCode or Pi) stays the one it was started "
 "with."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:125
+#: contents/ui/ConfigChat.qml:137
 msgid ""
 "Every chat uses the mode, provider and model from Settings. Any model "
 "settings a chat already has are kept, and come back if you turn this on."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:132
+#: contents/ui/ConfigChat.qml:144
 msgid "When they differ:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:133
+#: contents/ui/ConfigChat.qml:145
 msgid "This chat's settings win"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:143
+#: contents/ui/ConfigChat.qml:155
 msgid "Main settings win"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:151
+#: contents/ui/ConfigChat.qml:163
 msgid ""
 "A chat that has its own settings uses them; anything it leaves empty comes "
 "from the main settings."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:152
+#: contents/ui/ConfigChat.qml:164
 msgid ""
 "The main settings are used. A chat's own settings only fill in what the main "
 "settings leave empty, such as a model."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:157
+#: contents/ui/ConfigChat.qml:169
 msgid "Prompt templates"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:162
+#: contents/ui/ConfigChat.qml:174
 msgid ""
 "A template is a message you use often, saved under a short name. In the chat "
 "box, type / and the name (for example /summarize) and the saved text "
@@ -2138,11 +2250,11 @@ msgid ""
 "built-in commands."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:167
+#: contents/ui/ConfigChat.qml:179
 msgid "Insert with /name:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:173
+#: contents/ui/ConfigChat.qml:185
 msgid ""
 "Add a template with a short name and the text it stands for. Changes are "
 "kept when you press OK or Apply."
