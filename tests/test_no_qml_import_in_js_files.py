@@ -28,6 +28,7 @@ UI_DIR = os.path.join(
 # module is added.
 WATCHED_FILES = (
     "Security.js",
+    "config/StorageFormat.js",
     "ProviderService.js",
     "ProviderCheck.js",
     "ProviderVariants.js",

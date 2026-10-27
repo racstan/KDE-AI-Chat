@@ -40,4 +40,9 @@ ConfigModel {
         icon: "preferences-desktop-icons"
         source: "ConfigAppearance.qml"
     }
+    ConfigCategory {
+        name: i18n("Storage")
+        icon: "drive-harddisk"
+        source: "ConfigStorage.qml"
+    }
 }

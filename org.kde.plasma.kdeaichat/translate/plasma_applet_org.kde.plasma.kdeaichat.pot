@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 11:20+0530\n"
+"POT-Creation-Date: 2026-10-27 11:27+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -53,6 +53,11 @@ msgstr ""
 #: contents/config/config.qml:39
 #, kde-format
 msgid "Appearance"
+msgstr ""
+
+#: contents/config/config.qml:44
+#, kde-format
+msgid "Storage"
 msgstr ""
 
 #: contents/ui/chat/AttachmentChips.qml:34
@@ -2919,7 +2924,7 @@ msgstr ""
 
 #: contents/ui/config/ImageProviderEditor.qml:141
 #: contents/ui/config/PiSettings.qml:99
-#: contents/ui/config/ProviderEditor.qml:99
+#: contents/ui/config/ProviderEditor.qml:99 contents/ui/ConfigStorage.qml:183
 #, kde-format
 msgid "Refresh"
 msgstr ""
@@ -4691,6 +4696,182 @@ msgid ""
 "news” every weekday at 09:00."
 msgstr ""
 
+#: contents/ui/ConfigStorage.qml:40
+#, kde-format
+msgid "Chats"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:41
+#, kde-format
+msgid ""
+"Your conversations: the text of every chat and the list of chats. Delete "
+"chats in the chat history; this page only shows the space they use."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:42
+#, kde-format
+msgid "Pictures"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:43
+#, kde-format
+msgid ""
+"Pictures the AI made for you, saved next to the chats they belong to. "
+"Deleting a chat deletes its pictures; they can't be removed from here."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:44
+#, kde-format
+msgid "Memories"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:45
+#, kde-format
+msgid ""
+"The notes you asked the assistant to remember. Manage them in Settings → "
+"Memory."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:46
+#, kde-format
+msgid "Schedules and their logs"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:47
+#, kde-format
+msgid ""
+"Your scheduled prompts and the record of when each one last ran. Manage them "
+"in Settings → Schedules."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:48
+#, kde-format
+msgid "Backups"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:49
+#, kde-format
+msgid ""
+"Copies of your Plasma widget settings, made automatically before a clean-up. "
+"Safe to remove once you are happy with how the widget works; it never needs "
+"them to run."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:50
+#, kde-format
+msgid "Temporary files"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:51
+#, kde-format
+msgid ""
+"Short-lived files the widget makes while it works (spoken audio, recordings "
+"and logs). Safe to remove; the widget makes new ones when needed."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:52
+#, kde-format
+msgid "Old voice engines (no longer used)"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:53
+#, kde-format
+msgid ""
+"Programs and speech models that earlier versions of the widget installed for "
+"reading aloud and dictation. Voice now uses the separate app Speech Note, so "
+"you can remove these to free space. Removing them also stops their "
+"background services."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:54
+#, kde-format
+msgid "Other files"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:55
+#, kde-format
+msgid ""
+"Small files the widget needs, such as connection details for its helper "
+"programs. They can't be removed here."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:67
+#, kde-format
+msgid "Could not work out the sizes."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:104
+#, kde-format
+msgid "Removed. %1 freed."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:106
+#, kde-format
+msgid "Could not remove it."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:122
+#, kde-format
+msgid "Remove %1?"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:125
+#, kde-format
+msgid "This frees %1 and can't be undone."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:140
+#, kde-format
+msgid ""
+"Everything the widget keeps on this computer is in one folder. It can't be "
+"moved. Your API keys are not in it: they are kept in KDE Wallet."
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:148
+#, kde-format
+msgid "Folder:"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:161 contents/ui/ConfigStorage.qml:251
+#: contents/ui/config/StorageRow.qml:48
+#, kde-format
+msgid "Open folder"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:176
+#, kde-format
+msgid "Counting…"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:177
+#, kde-format
+msgid "In total: at least %1"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:178
+#, kde-format
+msgid "In total: %1"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:244
+#, kde-format
+msgid "Speech models are kept by Speech Note"
+msgstr ""
+
+#: contents/ui/ConfigStorage.qml:257
+#, kde-format
+msgid ""
+"The voices and speech models used for reading aloud and dictation belong to "
+"the Speech Note app. They are not counted above and this widget never "
+"removes them; manage them in Speech Note."
+msgstr ""
+
+#: contents/ui/config/StorageRow.qml:56 contents/ui/config/LocalSttRows.qml:266
+#: contents/ui/config/NeuralVoiceSetup.qml:141
+#, kde-format
+msgid "Remove…"
+msgstr ""
+
 #: contents/ui/config/TemplatesEditor.qml:88
 #, kde-format
 msgid "Edit /%1"
@@ -5732,12 +5913,6 @@ msgstr ""
 #: contents/ui/config/LocalSttRows.qml:261
 #, kde-format
 msgid "%1 (engine %2, models downloaded here %3)"
-msgstr ""
-
-#: contents/ui/config/LocalSttRows.qml:266
-#: contents/ui/config/NeuralVoiceSetup.qml:141
-#, kde-format
-msgid "Remove…"
 msgstr ""
 
 #: contents/ui/config/LocalSttRows.qml:274
