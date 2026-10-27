@@ -29,6 +29,7 @@ UI_DIR = os.path.join(
 WATCHED_FILES = (
     "Security.js",
     "config/StorageFormat.js",
+    "chat/Privacy.js",
     "ProviderService.js",
     "ProviderCheck.js",
     "ProviderVariants.js",

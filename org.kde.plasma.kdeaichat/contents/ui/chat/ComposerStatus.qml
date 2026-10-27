@@ -92,4 +92,10 @@ RowLayout {
         font: Kirigami.Theme.smallFont
         opacity: status.busy || status.voiceText !== "" || status.notice !== "" ? 0.85 : 0.55
     }
+
+    // Where this chat's messages go (local, network, online, agent).
+    PrivacyBadge {
+        objectName: "privacyBadge"
+        chat: status.chat
+    }
 }

@@ -7,6 +7,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
+import "Privacy.js" as Privacy
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -20,8 +21,8 @@ Item {
     readonly property var providerConfig: mode === "provider" && chat ? chat.getProviderConfig(providerId, chat.currentSessionId) : null
     readonly property string providerName: mode === "opencode" ? "OpenCode" : mode === "pi" ? "Pi" : chat ? chat.providerDisplayName(providerId) : ""
     readonly property string modelName: providerConfig && providerConfig.model ? providerConfig.model : ""
-    // A model served from this computer or the local network never leaves it.
-    readonly property bool local: mode !== "provider" || /^https?:\/\/(localhost|127\.|\[::1\]|0\.0\.0\.0)/i.test((providerConfig && providerConfig.baseUrl) || "")
+    // Where the messages go: this computer, the local network, online, or an agent (Privacy.js).
+    readonly property var privacy: Privacy.describe(mode, providerConfig ? providerConfig.baseUrl : "")
 
     readonly property var templates: chat && chat.promptTemplates ? chat.promptTemplates : []
     // Shown when no templates are set up.
@@ -65,7 +66,7 @@ Item {
             spacing: Kirigami.Units.smallSpacing
 
             Kirigami.Icon {
-                source: empty.local ? "computer" : "folder-cloud"
+                source: empty.privacy.icon
                 Layout.preferredWidth: Kirigami.Units.iconSizes.small
                 Layout.preferredHeight: Kirigami.Units.iconSizes.small
                 opacity: 0.7
@@ -73,8 +74,9 @@ Item {
 
             PC3.Label {
                 objectName: "emptyProvider"
-                text: empty.mode !== "provider" ? i18n("%1 agent · runs on this computer", empty.providerName)
-                    : empty.local ? i18n("%1 · runs on this computer", empty.providerName)
+                text: empty.privacy.place === "agent" ? i18n("%1 agent · runs here, sends your messages to its model", empty.providerName)
+                    : empty.privacy.place === "here" ? i18n("%1 · runs on this computer", empty.providerName)
+                    : empty.privacy.place === "network" ? i18n("%1 · runs on your local network", empty.providerName)
                     : i18n("%1 · your messages are sent to its servers", empty.providerName)
                 opacity: 0.7
                 elide: Text.ElideRight

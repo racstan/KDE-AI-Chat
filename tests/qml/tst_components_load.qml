@@ -83,6 +83,7 @@ TestCase {
             { tag: "chat/ChatShortcuts", url: uiDir + "chat/ChatShortcuts.qml" },
             { tag: "chat/ComposerStatus", url: uiDir + "chat/ComposerStatus.qml" },
             { tag: "chat/EmptyState", url: uiDir + "chat/EmptyState.qml" },
+            { tag: "chat/PrivacyBadge", url: uiDir + "chat/PrivacyBadge.qml" },
             { tag: "chat/ErrorActions", url: uiDir + "chat/ErrorActions.qml" },
             { tag: "chat/MonoBlock", url: uiDir + "chat/MonoBlock.qml" },
             { tag: "chat/PermissionDetail", url: uiDir + "chat/PermissionDetail.qml" },

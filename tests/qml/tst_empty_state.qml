@@ -67,7 +67,7 @@ Item {
         function test_3_agent_modes_are_named() {
             chat.openCodeMode = true;
             wait(50);
-            compare(findChild(view, "emptyProvider").text, "OpenCode agent · runs on this computer");
+            compare(findChild(view, "emptyProvider").text, "OpenCode agent · runs here, sends your messages to its model");
         }
 
         function test_4_templates_are_the_chips_and_a_click_fills_the_input() {
