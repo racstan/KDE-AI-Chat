@@ -135,6 +135,8 @@ def transcribe(wav: str, settings: Dict[str, Any]) -> Dict[str, Any]:
     """{"type": "stt_result", "text", "engine", ...} or {"type": "stt_error", "error", "code"}."""
     engine = settings["engine"]
     started = time.monotonic()
+    if engine not in ADAPTERS:   # Speech Note listens through the speechnote_* commands
+        return {"type": "stt_error", "engine": engine, "error": "this engine is not run by stt_* commands", "code": "bad_request"}
     try:
         reply = dict(ADAPTERS[engine](wav, settings))
     except EngineError as e:
@@ -196,5 +198,9 @@ def available(settings: Dict[str, Any]) -> List[Dict[str, Any]]:
     except SettingsError as e:
         reason = str(e)
     rows.append({"id": "command", "available": not reason, "selectable": True, "local": True, "reason": reason})
+    from kdeaichat import speechnote_bus
+    kind = speechnote_bus.install_kind()
+    rows.append({"id": "speechnote", "available": bool(kind), "selectable": True, "local": True, "installed": bool(kind),
+                 "kind": kind, "reason": "" if kind else "not installed (see the links below)"})
     assert [r["id"] for r in rows] == list(ENGINES)
     return rows

@@ -50,11 +50,12 @@ KCM.SimpleKCM {
     property string cfg_voiceTtsRemoteVoice: "alloy"
     property real cfg_voiceTtsRemoteSpeed: 1
     property string cfg_voiceTtsCommand: ""
+    property string cfg_voiceTtsSpeechNoteModel: ""
 
     // Dictation (speech-to-text): voice/SttConfig.js lists these keys.
     property alias cfg_sttEnabled: enabledCheck.checked
     property bool cfg_voiceAutoSend: true
-    property string cfg_sttEngine: "parakeet"
+    property string cfg_sttEngine: "speechnote"
     property string cfg_sttModel: "small"
     property string cfg_sttParakeetModel: "parakeet-unified-en-0.6b"
     property string cfg_sttDevice: "auto"
@@ -66,6 +67,8 @@ KCM.SimpleKCM {
     property string cfg_sttRemoteUrl: ""
     property string cfg_sttRemoteModel: "whisper-1"
     property string cfg_sttCommand: ""
+    property string cfg_sttSpeechNoteModel: ""
+    property int cfg_speechNoteKeepReadyMinutes: 5
 
     // The dictation settings as they are on the page, as the helper takes them.
     readonly property var sttDraft: {
@@ -86,6 +89,7 @@ KCM.SimpleKCM {
     // Tests pass fakes for these.
     property var runHelper: defaultRunner.run
     property var pluginOverride: ({})
+    property var waitHelper: null
     // Tests: stands in for the KWallet D-Bus call (store/Wallet.qml `call`).
     property var walletCall: null
 
@@ -151,6 +155,12 @@ KCM.SimpleKCM {
 
     Store.Wallet { id: wallet }
 
+    // Speech Note's state, shared by the read-aloud and dictation parts.
+    Config.SpeechNoteStatus {
+        id: speechNoteInfo
+        runHelper: page.runHelper
+    }
+
     Voice.TtsProbe {
         id: probe
         runHelper: page.runHelper
@@ -160,11 +170,13 @@ KCM.SimpleKCM {
     Voice.ReadAloud {
         id: tester
         runHelper: page.runHelper
+        waitHelper: page.waitHelper
         pluginOverride: page.pluginOverride
         idleUnloadMs: 30000
         onError: function(message) { page.testResult = i18n("Read aloud failed: %1", message); }
         onIsPlayingChanged: if (!isPlaying && page.testResult === "") page.testResult = usedFallback
-            ? i18n("That was the system voice: install the natural voice to hear it.") : i18n("Finished.")
+            ? (engine.id === "speechnote" ? i18n("That was the system voice, because Speech Note is not installed: see the setup steps above.")
+                                          : i18n("That was the system voice: install the natural voice to hear it.")) : i18n("Finished.")
     }
 
     ColumnLayout {
@@ -270,6 +282,24 @@ KCM.SimpleKCM {
                 }
             }
 
+        }
+
+        Config.SpeechNotePanel {
+            objectName: "speechNoteReadAloud"
+            role: "tts"
+            showKeepReady: !(cfg_sttEnabled && cfg_sttEngine === "speechnote")   // shown once, with dictation when that uses it
+            form: page
+            status: speechNoteInfo
+            twin: voiceForm
+            visible: readCheck.checked && page.engine.id === "speechnote"
+            active: visible
+        }
+
+        Kirigami.FormLayout {
+            id: voiceForm2
+            twinFormLayouts: [voiceForm]
+            Layout.fillWidth: true
+
             RowLayout {
                 Kirigami.FormData.label: i18n("Try it:")
                 visible: readCheck.checked
@@ -319,6 +349,7 @@ KCM.SimpleKCM {
             keyStore: wallet
             runHelper: page.runHelper
             payload: page.sttDraft
+            speechNote: speechNoteInfo
             twin: voiceForm
             Layout.fillWidth: true
         }

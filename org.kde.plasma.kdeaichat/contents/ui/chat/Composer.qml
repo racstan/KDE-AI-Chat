@@ -203,6 +203,9 @@ ColumnLayout {
             Keys.onPressed: function(event) {
                 if (suggestions.active && suggestions.handleKey(event.key)) {
                     event.accepted = true;
+                } else if (event.key === Qt.Key_Escape && composer.chat.voiceManagerRef && composer.chat.voiceManagerRef.isRecording) {
+                    composer.chat.voiceManagerRef.cancelRecording();
+                    event.accepted = true;
                 } else if (composer.browseKey(event)) {
                     event.accepted = true;
                 } else if (composer.prefs ? composer.prefs.sendsMessage(event)

@@ -2,8 +2,8 @@
 // only engines that work or can be finished here (the rest with a reason);
 // the install size is shown before Install can run; Download and Remove ask
 // first; Test transcribes with the page's choices; OK/Apply syncs the units;
-// the speech server's key is never a setting. Parakeet is the default engine
-// and reuses a copy of its model found on disk (Handy's), or downloads it after
+// the speech server's key is never a setting. Speech Note is the default engine; Parakeet
+// reuses a copy of its model found on disk (Handy's), or downloads it after
 // asking. Also Piper voices found on disk and the screenshots of the page.
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -47,7 +47,8 @@ Item {
                  "reason": installed ? "" : "not installed (one-click install, size shown first)"},
                 {"id": "whisper-cpp", "available": false, "selectable": false, "reason": "whisper-cli not found"},
                 {"id": "remote", "available": !!payload.sttRemoteUrl, "selectable": true, "reason": payload.sttRemoteUrl ? "" : "needs a server URL"},
-                {"id": "command", "available": false, "selectable": true, "reason": "no command is set"}]};
+                {"id": "command", "available": false, "selectable": true, "reason": "no command is set"},
+                {"id": "speechnote", "available": true, "selectable": true, "installed": true, "reason": ""}]};
         case "stt_models":
             return {"type": "stt_models", "gpu": false, "faster_whisper": [
                 {"name": "tiny", "mb": 75, "downloaded": true, "recommended": false, "note": "fastest, least accurate"},
@@ -158,7 +159,7 @@ Item {
 
         function test_1_engine_list_only_usable_engines_with_reasons() {
             open({"cfg_sttEngine": "faster-whisper"});
-            compare(values(engineCombo()), ["parakeet", "faster-whisper", "remote", "command"]);
+            compare(values(engineCombo()), ["speechnote", "parakeet", "faster-whisper", "remote", "command"]);
             verify(named("sttUnavailable").visible);
             verify(named("sttUnavailable").text.indexOf("whisper-cli not found") >= 0);
             var combo = named("sttModelCombo");
@@ -280,8 +281,8 @@ Item {
             screenshot(page, "config-voice-whisper-cpp");
         }
 
-        function test_8_parakeet_is_the_default_and_reuses_the_model_on_disk() {
-            open({"cfg_sttDevice": "cuda"});
+        function test_8_parakeet_reuses_the_model_on_disk() {
+            open({"cfg_sttDevice": "cuda", "cfg_sttEngine": "parakeet"});
             compare(page.cfg_sttEngine, "parakeet");
             compare(engineCombo().currentValue, "parakeet");
             var model = named("sttModelCombo");
@@ -311,7 +312,7 @@ Item {
         function test_9_parakeet_downloads_only_after_asking() {
             root.parakeetInstalled = true;
             root.parakeetOnDisk = false;
-            open();
+            open({"cfg_sttEngine": "parakeet"});
             var button = named("sttDownloadButton");
             tryVerify(function() { return button.visible; }, 2000);
             button.clicked();

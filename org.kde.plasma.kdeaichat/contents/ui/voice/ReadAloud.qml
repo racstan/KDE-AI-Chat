@@ -1,8 +1,9 @@
 // Read aloud with the engine chosen in Settings → Voice (voice/TtsEngines.js).
 // Used by VoiceManager.qml for the chat and by the settings page's test
-// button. The engine is loaded on the first speak() and unloaded after two
+// button (engines: voice/TtsEngines.js; Speech Note, the default, speaks through
+// voice/SpeechNoteSpeech.qml). The engine is loaded on the first speak() and unloaded after two
 // idle minutes, so nothing runs while read aloud isn't used. While the chosen
-// engine isn't installed (the natural voice before its one-time install),
+// engine isn't installed (Speech Note, or the natural voice before its install),
 // System voices read instead, without an error.
 //
 // `configuration` is read when speak() is called: plasmoid.configuration,
@@ -15,6 +16,8 @@ Item {
 
     property var configuration: null
     property var runHelper: null
+    // Speech Note: the runner for the call that waits for the end of the speech (empty: its own).
+    property var waitHelper: null
     // Qt engine to use instead of a registry one, e.g. {"system": "mock"} in tests.
     property var pluginOverride: ({})
     property int idleUnloadMs: 120000
@@ -30,7 +33,7 @@ Item {
     property string text: ""
     property string engineId: ""
     // The status line under the chat (ComposerStatus.qml compares these strings).
-    readonly property string statusText: phase === "synthesizing" ? "Generating speech..."
+    readonly property string statusText: phase === "synthesizing" ? (engineId === "speechnote" ? "Starting Speech Note..." : "Generating speech...")
         : phase === "playing" ? "Reading aloud..." : phase === "paused" ? "Paused" : ""
 
     // The default engine isn't installed yet, so the fallback engine read
@@ -78,8 +81,9 @@ Item {
         phase = spec.kind === "qt" ? "playing" : "synthesizing";
         _pending = {"chunks": chunks, "settings": settingsFor(spec, config)};
         idle.stop();
-        var source = spec.kind === "qt" ? "QtSpeech.qml" : "FileSpeech.qml";
+        var source = spec.kind === "qt" ? "QtSpeech.qml" : spec.kind === "speechnote" ? "SpeechNoteSpeech.qml" : "FileSpeech.qml";
         var props = spec.kind === "qt" ? {"plugin": pluginFor(spec)}
+            : spec.kind === "speechnote" ? {"runHelper": runHelper, "waitHelper": waitHelper}
             : {"engine": spec.id, "runHelper": runHelper, "ahead": spec.ahead || 1};
         var key = spec.id + ":" + pluginFor(spec);
         if (loader.item && loader.engineKey === key) {

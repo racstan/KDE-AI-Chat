@@ -5,9 +5,9 @@
 
 var KEYS = ["sttEnabled", "sttEngine", "sttModel", "sttParakeetModel", "sttDevice", "sttLanguage", "sttWhisperCppBinary",
             "sttWhisperCppModel", "sttWhisperCppServer", "sttRemoteUrl", "sttRemoteModel", "sttCommand",
-            "sttIdleMinutes"];
+            "sttIdleMinutes", "sttSpeechNoteModel"];
 
-var DEFAULTS = {"sttEnabled": false, "sttEngine": "parakeet", "sttModel": "small",
+var DEFAULTS = {"sttEnabled": false, "sttEngine": "speechnote", "sttModel": "small",
                 "sttParakeetModel": "parakeet-unified-en-0.6b", "sttDevice": "auto",
                 "sttLanguage": "auto", "sttRemoteModel": "whisper-1", "sttIdleMinutes": 5};
 

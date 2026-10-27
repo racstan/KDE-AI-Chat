@@ -19,7 +19,7 @@ P5Support.DataSource {
     property string helperPath: ""
     property var _callbacks: ({})
     property int _counter: 0
-    property var privateCommands: ["tts_synthesize"]
+    property var privateCommands: ["tts_synthesize", "speechnote_speak"]
     // Tests: where private payload files go (default: the runtime folder).
     property string privateDir: {
         var dir = String(StandardPaths.writableLocation(StandardPaths.RuntimeLocation) || "");

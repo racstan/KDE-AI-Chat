@@ -3,7 +3,7 @@
 // nothing else shown; the engine list holds only engines that can run; each
 // engine's options are its own settings (kept when switching engines); the
 // Say Hello test speaks and stops; the remote key never becomes a setting;
-// the natural voice is the default, shows its install size before Install,
+// Speech Note is the default; the natural voice shows its install size before Install,
 // and until it is installed Say Hello uses the system voice.
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -128,14 +128,14 @@ Item {
         function test_only_available_engines_are_listed() {
             open({"cfg_voiceTtsEnabled": true});
             tryVerify(function() { return named("ttsEngineCombo").count > 0 && !page.children[0].probing; }, 5000);
-            tryCompare(named("ttsEngineCombo"), "count", 4, 3000);
-            compare(engineValues(), ["neural", "system", "remote", "command"], "no Kokoro or Flite plugin, no piper program");
-            compare(named("ttsEngineCombo").currentText, "Natural voice (Kokoro, recommended)");
+            tryCompare(named("ttsEngineCombo"), "count", 5, 3000);
+            compare(engineValues(), ["speechnote", "neural", "system", "remote", "command"], "no Kokoro or Flite plugin, no piper program");
+            compare(named("ttsEngineCombo").currentText, "Speech Note (any language, recommended)", "Speech Note is the default");
             root.piperPath = "/usr/bin/piper";
             var probe = find(page, function(item) { return item.hasOwnProperty("piperPath"); });
             probe.refresh();
             tryCompare(probe, "probing", false, 3000);
-            compare(engineValues(), ["neural", "system", "piper", "remote", "command"]);
+            compare(engineValues(), ["speechnote", "neural", "system", "piper", "remote", "command"]);
         }
 
         function test_options_persist_per_engine() {
@@ -194,8 +194,8 @@ Item {
             compare(button.text, "Say Hello");
         }
     
-        function test_natural_voice_is_the_default_and_shows_its_size() {
-            open({"cfg_voiceTtsEnabled": true});
+        function test_natural_voice_shows_its_size_and_the_system_voice_reads_until_installed() {
+            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsEngine": "neural"});
             var probe = find(page, function(item) { return item.hasOwnProperty("piperPath"); });
             tryCompare(probe, "probing", false, 5000);
             compare(page.cfg_voiceTtsEngine, "neural");

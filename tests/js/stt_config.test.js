@@ -12,10 +12,11 @@ vm.runInNewContext(source + "\nthis.exports = {payload, migration, applyMigratio
 const S = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
-// Defaults: dictation off, Parakeet with its default model (faster-whisper "small" when chosen), auto device and language.
+// Defaults: dictation off, Speech Note (its own default model), Parakeet's default model (faster-whisper "small" when chosen), auto device and language.
 let p = plain(S.payload({}));
 assert.strictEqual(p.sttEnabled, false);
-assert.strictEqual(p.sttEngine, "parakeet");
+assert.strictEqual(p.sttEngine, "speechnote");
+assert.strictEqual(p.sttSpeechNoteModel, "");
 assert.strictEqual(p.sttParakeetModel, "parakeet-unified-en-0.6b");
 assert.strictEqual(p.sttModel, "small");
 assert.strictEqual(p.sttDevice, "auto");
@@ -48,8 +49,8 @@ const enginesSource = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma
 const ectx = {};
 vm.runInNewContext(enginesSource + "\nthis.exports = {engines, split, size, isFolder, engine, defaultEngine, isLocal, devicesFor, deviceFor};", ectx);
 const E = ectx.exports;
-assert.deepStrictEqual(plain(E.engines.map(e => e.id)), ["parakeet", "faster-whisper", "whisper-cpp", "remote", "command"]);
-assert.strictEqual(E.defaultEngine, "parakeet");
+assert.deepStrictEqual(plain(E.engines.map(e => e.id)), ["speechnote", "parakeet", "faster-whisper", "whisper-cpp", "remote", "command"]);
+assert.strictEqual(E.defaultEngine, "speechnote");
 assert.ok(E.isLocal("parakeet") && E.isLocal("faster-whisper") && !E.isLocal("remote"));
 assert.deepStrictEqual(plain(E.devicesFor("parakeet").map(d => d.value)), ["auto", "cpu", "gpu"]);
 assert.deepStrictEqual(plain(E.devicesFor("faster-whisper").map(d => d.value)), ["auto", "cpu", "cuda"]);

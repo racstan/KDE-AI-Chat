@@ -192,7 +192,7 @@ def test_engine_listing(home, tmp_path, monkeypatch):
     monkeypatch.setenv("PATH", str(bindir))
     s = from_payload({"venv": str(venv)})
     rows = {r["id"]: r for r in stt_engines.available(s)}
-    assert [r["available"] for r in rows.values()] == [False, False, False, False, False]
+    assert [r["available"] for r in rows.values()] == [False] * 6   # the sixth is Speech Note: not installed here
     assert rows["whisper-cpp"]["reason"] == "whisper-cli not found"
     # A venv with faster-whisper and Parakeet (and its model), whisper-cli with a model, a URL and a command.
     (venv / "bin").mkdir(parents=True)
@@ -207,7 +207,7 @@ def test_engine_listing(home, tmp_path, monkeypatch):
     s = from_payload({"venv": str(venv), "sttWhisperCppModel": str(model), "sttRemoteUrl": "https://api.groq.com/openai/v1",
                       "sttCommand": cli + " {wav}", "sttParakeetModel": str(gguf)})
     rows = {r["id"]: r for r in stt_engines.available(s)}
-    assert all(r["available"] for r in rows.values()), rows
+    assert all(r["available"] for i, r in rows.items() if i != "speechnote"), rows
     assert rows["whisper-cpp"]["binary"] == cli
 
 

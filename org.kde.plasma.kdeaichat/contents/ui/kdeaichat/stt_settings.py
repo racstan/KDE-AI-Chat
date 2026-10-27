@@ -14,7 +14,8 @@ from urllib.parse import urlsplit
 
 from kdeaichat import chats
 
-ENGINES = ("parakeet", "faster-whisper", "whisper-cpp", "remote", "command")
+# "speechnote" is run by the widget through kdeaichat/speechnote.py; here it only has a row in the engine list.
+ENGINES = ("parakeet", "faster-whisper", "whisper-cpp", "remote", "command", "speechnote")
 DEFAULT_ENGINE = "parakeet"
 # "gpu" and "cuda" both mean the graphics card: CUDA for faster-whisper, Vulkan for Parakeet.
 DEVICES = ("auto", "cpu", "cuda", "gpu")

@@ -145,7 +145,7 @@ PlasmoidItem {
 
     VoiceManager {
         id: voiceManager
-
+        popupOpen: root.expanded
         onTextRecognized: function(text) {
             if (voiceManager.autoSend) {
                 root.chatInputText = text;

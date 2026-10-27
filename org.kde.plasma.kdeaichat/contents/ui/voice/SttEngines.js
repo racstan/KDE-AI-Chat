@@ -12,6 +12,9 @@ function I18N_NOOP(text) {
 }
 
 var engines = [
+    {id: "speechnote", label: I18N_NOOP("Speech Note (any language, recommended)"),
+     note: I18N_NOOP("Speech Note, a separate app, listens and writes down what you say in any language, with the speech models you download in it, using your graphics card when it can. It starts when you dictate and stops when idle."),
+     options: []},
     {id: "parakeet", label: I18N_NOOP("Parakeet (on this computer, English)"),
      note: I18N_NOOP("NVIDIA's Parakeet Unified EN 0.6B, the model Handy uses: fast, accurate English transcription. English only. Runs in a small service that starts when you dictate and stops when idle, on the graphics card when there is one. Needs a one-time install of about 24 MB."),
      options: []},
@@ -48,7 +51,9 @@ var engines = [
           help: I18N_NOOP("For experts: a program of your own that turns a recording into text. Leave empty if you don't have one.")}]}
 ];
 
-var defaultEngine = "parakeet";
+var defaultEngine = "speechnote";
+// The local engine whose rows the page shows while no local engine is chosen.
+var localDefault = "parakeet";
 // The engines run by the on-demand local service, with their own setup rows.
 var localEngines = ["parakeet", "faster-whisper"];
 var parakeetDefault = "parakeet-unified-en-0.6b";
@@ -105,10 +110,13 @@ function engine(id) {
 // command), `unavailable` can't, with the reason. Unknown ids are dropped.
 function split(rows) {
     var out = {"choices": [], "unavailable": []};
-    for (var i = 0; i < (rows || []).length; i++) {
-        var row = rows[i];
-        if (!engine(row.id))
-            continue;
+    var ordered = [];
+    for (var e = 0; e < engines.length; e++)   // in the order of the table above, not the helper's
+        for (var r = 0; r < (rows || []).length; r++)
+            if (rows[r].id === engines[e].id)
+                ordered.push(rows[r]);
+    for (var i = 0; i < ordered.length; i++) {
+        var row = ordered[i];
         if (row.available || row.selectable)
             out.choices.push(row);
         else

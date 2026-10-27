@@ -25,7 +25,7 @@ RowLayout {
         if (chat.loading)
             return (chat.currentStreamIndex >= 0 ? i18n("Writing…") : i18n("Thinking…")) + " " + i18n("Esc stops it.");
         if (voiceText !== "")
-            return ({"Reading aloud...": i18n("Reading aloud…"), "Generating speech...": i18n("Making speech…"),
+            return ({"Reading aloud...": i18n("Reading aloud…"), "Generating speech...": i18n("Making speech…"), "Starting Speech Note...": i18n("Starting Speech Note…"),
                      "Paused": i18n("Reading paused")})[voiceText] || voiceText;
         if (notice !== "")
             return notice;
@@ -55,7 +55,7 @@ RowLayout {
         readonly property bool paused: !!status.voice && status.voice.ttsPaused === true
         icon.name: paused ? "media-playback-start" : "media-playback-pause"
         visible: !status.chat.loading && !!status.voice && status.voice.isPlaying === true && status.voice.ttsCanPause === true
-                 && status.voiceText !== "Generating speech..."
+                 && status.voiceText !== "Generating speech..." && status.voiceText !== "Starting Speech Note..."
         display: PC3.AbstractButton.IconOnly
         Layout.preferredHeight: status.height
         Layout.preferredWidth: status.height

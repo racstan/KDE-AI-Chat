@@ -22,7 +22,7 @@ const tests = {
     every_engine_has_unique_keys_and_a_known_kind() {
         const seen = {};
         E.engines.forEach(e => {
-            assert.ok(e.kind === "qt" || e.kind === "file", e.id);
+            assert.ok(e.kind === "qt" || e.kind === "file" || e.kind === "speechnote", e.id);
             e.options.forEach(o => {
                 if (o.type === "choice") assert.ok(o.choices.some(c => c.value === o.def), o.key + " default is a choice");
                 if (o.type === "secret") { assert.ok(o.entry && !o.key, "a secret is never a setting"); return; }
@@ -31,8 +31,9 @@ const tests = {
                 seen[o.key] = true;
             });
         });
-        assert.strictEqual(E.defaultEngine, "neural", "the natural voice is the default");
-        assert.strictEqual(E.engines[0].id, "neural", "and first in the list");
+        assert.strictEqual(E.defaultEngine, "speechnote", "Speech Note is the default");
+        assert.strictEqual(E.engines[0].id, "speechnote", "and first in the list");
+        assert.strictEqual(E.engines[1].id, "neural", "the natural voice follows");
         assert.strictEqual(E.fallbackEngine, "system");
         assert.strictEqual(E.engine("system").plugin, "speechd");
         assert.strictEqual(E.engine("system").options.filter(o => o.type === "rate" || o.type === "pitch").every(o => o.def === 0), true);
