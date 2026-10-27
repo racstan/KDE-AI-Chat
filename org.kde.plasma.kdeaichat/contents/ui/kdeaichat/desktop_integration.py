@@ -94,7 +94,7 @@ def runner_desktop() -> str:
         "[Desktop Entry]", "Type=Service", "Name=KDE AI Chat", "Comment=Ask KDE AI Chat a question: type \"ai\" and your question",
         "Icon=dialog-messages", "X-KDE-ServiceTypes=Plasma/Runner", "X-Plasma-API=DBus",
         "X-Plasma-DBusRunner-Service=" + SERVICE_NAME, "X-Plasma-DBusRunner-Path=/runner",
-        "X-KDE-PluginInfo-Name=kdeaichat", "X-KDE-PluginInfo-Version=1.0", "X-KDE-PluginInfo-License=GPL",
+        "X-KDE-PluginInfo-Name=kdeaichat", "X-KDE-PluginInfo-Version=1.0", "X-KDE-PluginInfo-License=PolyForm-Noncommercial-1.0.0",
         # Without this KRunner (KF6) treats the runner as switched off.
         "X-KDE-PluginInfo-EnabledByDefault=true", MARKER, ""])
 
