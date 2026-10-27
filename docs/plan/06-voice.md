@@ -49,7 +49,8 @@ Both directions use a small **engine interface**, so adding an engine doesn't to
 
 | Engine | Setup | Notes |
 |---|---|---|
-| **faster-whisper** (on-demand local service), the default local option | one-click venv install, with size shown | Model size picked by the user (tiny … large-v3, distil, or any CTranslate2 model folder). CPU/CUDA auto-detected, overridable. Language auto or fixed. |
+| **Parakeet** (same on-demand service), the default since 2026-10-26 | one-click venv install (~24 MB: `transcribe-cpp` + `transcribe-cpp-native`, pinned) and the model, reused from disk (Handy's GGUF) or downloaded with size shown (731 MB) | NVIDIA Parakeet Unified EN 0.6B as Handy's Q8_0 GGUF, run by transcribe.cpp (ggml; no torch/NeMo). English only. GPU through Vulkan (any make), CPU fallback. Streaming is possible in transcribe.cpp (`Session.stream`) but not wired yet: the transcript arrives when you stop. |
+| **faster-whisper** (on-demand local service) | one-click venv install, with size shown | Model size picked by the user (tiny … large-v3, distil, or any CTranslate2 model folder). CPU/CUDA auto-detected, overridable. Language auto or fixed. |
 | **whisper.cpp** (`whisper-cli` / server) | user's own binary + `ggml` model | No Python at all. Good for AMD/Intel via Vulkan builds. |
 | **Remote OpenAI-compatible `/audio/transcriptions`** | URL + key (KWallet) + model | Works with a local whisper server, Groq or OpenAI. |
 | **Custom command** | command template that receives a WAV path and prints text | — |

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 17:56+0530\n"
+"POT-Creation-Date: 2026-10-26 18:25+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -160,7 +160,7 @@ msgstr ""
 #: contents/ui/chat/ProjectEditor.qml:211
 #: contents/ui/chat/ProjectEditor.qml:212
 #: contents/ui/components/ModelPicker.qml:104
-#: contents/ui/voice/SttEngines.js:35 contents/ui/chat/PiChatSettings.qml:65
+#: contents/ui/voice/SttEngines.js:38 contents/ui/chat/PiChatSettings.qml:65
 msgid "Model"
 msgid_plural "Models"
 msgstr[0] ""
@@ -651,7 +651,7 @@ msgid "Send message"
 msgstr ""
 
 #: contents/ui/chat/Composer.qml:318 contents/ui/chat/ImageJobCard.qml:73
-#: contents/ui/config/OpenCodeSettings.qml:168 contents/ui/ConfigVoice.qml:262
+#: contents/ui/config/OpenCodeSettings.qml:168 contents/ui/ConfigVoice.qml:263
 msgid "Stop"
 msgstr ""
 
@@ -682,7 +682,7 @@ msgstr ""
 msgid "Reading aloud…"
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:269
+#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:270
 msgid "Making speech…"
 msgstr ""
 
@@ -1099,7 +1099,7 @@ msgstr ""
 msgid "Read selection aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:167 contents/ui/ConfigVoice.qml:194
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/ConfigVoice.qml:195
 #: contents/ui/chat/MessageText.qml:113
 msgid "Read aloud"
 msgstr ""
@@ -2254,7 +2254,7 @@ msgstr ""
 #: contents/ui/config/OpenCodeSettings.qml:206
 #: contents/ui/config/PiSettings.qml:110
 #: contents/ui/config/ProviderEditor.qml:88
-#: contents/ui/config/FasterWhisperRows.qml:73
+#: contents/ui/config/LocalSttRows.qml:87
 msgid "Model:"
 msgstr ""
 
@@ -2663,7 +2663,7 @@ msgstr ""
 
 #: contents/ui/config/OpenCodeSettings.qml:232
 #: contents/ui/config/PiSettings.qml:136
-#: contents/ui/config/FasterWhisperRows.qml:197
+#: contents/ui/config/LocalSttRows.qml:219
 msgid "Status:"
 msgstr ""
 
@@ -4065,7 +4065,7 @@ msgid "Install PipeWire's tools (pipewire-tools or pipewire-utils)."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:85
-msgid "faster-whisper isn't installed."
+msgid "%1 isn't installed."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:86
@@ -4073,7 +4073,7 @@ msgid "Install it in Settings → Voice; the download size is shown first."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:87
-msgid "faster-whisper can't be installed: Python's venv module is missing."
+msgid "%1 can't be installed: Python's venv module is missing."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:88
@@ -4206,541 +4206,599 @@ msgstr ""
 msgid "One check failed: %1"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:53
+#: contents/ui/config/SttSetup.qml:55
 msgid "The helper is not available."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:58
+#: contents/ui/config/SttSetup.qml:60
 msgid "No answer."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:127
-msgid "Installing faster-whisper. This takes a few minutes…"
+#: contents/ui/config/SttSetup.qml:132
+msgid "Installing %1. This can take a few minutes…"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:132
-msgid "faster-whisper is installed."
+#: contents/ui/config/SttSetup.qml:137
+msgid "%1 is installed."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:132
+#: contents/ui/config/SttSetup.qml:137
 msgid "Installing failed: %1"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:144
+#: contents/ui/config/SttSetup.qml:149
 msgid "Downloading the model…"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:149
+#: contents/ui/config/SttSetup.qml:154
 msgid "The model is downloaded."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:149
+#: contents/ui/config/SttSetup.qml:154
 msgid "Downloading failed: %1"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:160
+#: contents/ui/config/SttSetup.qml:165
 msgid "Transcribing a sample recording…"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:165
+#: contents/ui/config/SttSetup.qml:170
 msgid "Heard: “%1” (%2 s)"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:165
+#: contents/ui/config/SttSetup.qml:170
 msgid "No speech heard."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:167
+#: contents/ui/config/SttSetup.qml:172
 msgid "The model is not downloaded yet."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:169
+#: contents/ui/config/SttSetup.qml:174
 msgid "The test failed: %1"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:179
+#: contents/ui/config/SttSetup.qml:184
 msgid "Removing the old engine…"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:179
-msgid "Removing faster-whisper's data…"
+#: contents/ui/config/SttSetup.qml:184
+msgid "Removing the speech engine's data…"
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:184
+#: contents/ui/config/SttSetup.qml:189
 msgid "Freed %1."
 msgstr ""
 
-#: contents/ui/config/SttSetup.qml:184
+#: contents/ui/config/SttSetup.qml:189
 msgid "Removing failed: %1"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:47
+#: contents/ui/config/LocalSttRows.qml:56
 msgid "Download the speech model?"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:48
+#: contents/ui/config/LocalSttRows.qml:57
 msgid "“%1” is %2. It is saved in %3 and used only on this computer."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:53
-msgid "Remove faster-whisper's data?"
+#: contents/ui/config/LocalSttRows.qml:61
+msgid "Remove the speech engine's data?"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:54
+#: contents/ui/config/LocalSttRows.qml:62
 msgid ""
-"This deletes the engine (%1) and the models downloaded here (%2), %3 in all. "
-"Models from Speech Note, Handy or other apps are not touched. Dictation with "
-"faster-whisper needs Install again afterwards."
+"This deletes the speech engine (%1) and the models downloaded here (%2), %3 "
+"in all. Models from Handy, Speech Note or other apps are not touched. "
+"Dictation needs Install again afterwards."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:58
+#: contents/ui/config/LocalSttRows.qml:66
 msgid "Rebuild the engine smaller?"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:59
+#: contents/ui/config/LocalSttRows.qml:67
 msgid ""
 "The engine was installed by an older version with packages dictation no "
 "longer needs. Rebuilding deletes it, frees about %1 and installs it again "
 "(about %2 to download). Your models are kept."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:83
+#: contents/ui/config/LocalSttRows.qml:81
+msgid "on disk (from %1)"
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:81
 msgid "downloaded"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:84
+#: contents/ui/config/LocalSttRows.qml:82
 msgid "recommended"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:89
+#: contents/ui/config/LocalSttRows.qml:98
 msgid "%1 · from %2 · on disk"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:92
-msgid "Folder: %1"
+#: contents/ui/config/LocalSttRows.qml:101
+msgid "Your file: %1"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:100
+#: contents/ui/config/LocalSttRows.qml:109
+msgid "Use a model file (.gguf)"
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:109
 msgid "Use a model folder (CTranslate2)"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:114
+#: contents/ui/config/LocalSttRows.qml:120
+msgid "GGUF models (*.gguf)"
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:129
+msgid ""
+"Parakeet Unified EN 0.6B is NVIDIA's open English speech model, the one the "
+"Handy app uses. If Handy (or another app) already downloaded it, it is used "
+"from there without downloading again."
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:130
 msgid ""
 "Bigger models understand speech better, especially accents and noisy rooms, "
 "but are bigger to download and slower. \"small\" suits most people."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:115
+#: contents/ui/config/LocalSttRows.qml:131
 msgid "The speech model that turns your voice into text."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:115
-msgid "A model folder on this computer: nothing to download."
+#: contents/ui/config/LocalSttRows.qml:131
+msgid "Your own model on this computer: nothing to download."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:117
+#: contents/ui/config/LocalSttRows.qml:133
+msgid "On this computer: %1"
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:133
 msgid "Downloaded."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:117
+#: contents/ui/config/LocalSttRows.qml:134
 msgid "Not downloaded yet (%1)."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:123
+#: contents/ui/config/LocalSttRows.qml:140
 msgid "Run on:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:131
+#: contents/ui/config/LocalSttRows.qml:150
+msgid ""
+"Which part of the computer does the work. \"Automatic\" uses the graphics "
+"card when it can (through Vulkan, any make) and the processor otherwise; "
+"Parakeet is fast on both."
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:151
 msgid ""
 "Which part of the computer does the work. \"Automatic\" is right for almost "
 "everyone; an NVIDIA graphics card is much faster than the processor."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:135
+#: contents/ui/config/LocalSttRows.qml:155
 msgid "Keep loaded:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:143
+#: contents/ui/config/LocalSttRows.qml:163
 msgid "minutes after the last use"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:146
+#: contents/ui/config/LocalSttRows.qml:166
 msgid ""
 "The speech model stays in memory this long after you dictate, so the next "
 "time starts quickly. A shorter time frees memory sooner."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:151
+#: contents/ui/config/LocalSttRows.qml:171
 msgid "Setup:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:157
+#: contents/ui/config/LocalSttRows.qml:177
 msgid "Working out the download size…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:159
+#: contents/ui/config/LocalSttRows.qml:179
 msgid " (with NVIDIA GPU support)"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:160
-msgid "your folder"
+#: contents/ui/config/LocalSttRows.qml:180
+msgid "your own, nothing to download"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:158
+#: contents/ui/config/LocalSttRows.qml:181
+msgid "%1, downloaded afterwards when you choose"
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:182
+msgid "already on this computer, nothing to download"
+msgstr ""
+
+#: contents/ui/config/LocalSttRows.qml:178
 msgid ""
 "Install downloads about %1 of Python packages%2 into its own folder. The "
-"model (%3) is downloaded afterwards, when you choose."
+"model: %3."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:164
+#: contents/ui/config/LocalSttRows.qml:186
 msgid "Install"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:172
+#: contents/ui/config/LocalSttRows.qml:194
 msgid ""
 "A one-time setup of the speech program in its own folder. Nothing is "
 "installed until you press Install."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:176
+#: contents/ui/config/LocalSttRows.qml:198
 msgid "Model download:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:181
+#: contents/ui/config/LocalSttRows.qml:203
 msgid "“%1” needs a download of %2."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:185
+#: contents/ui/config/LocalSttRows.qml:207
 msgid "Download…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:193
+#: contents/ui/config/LocalSttRows.qml:215
 msgid ""
 "The chosen model has to be downloaded once before you can dictate. You are "
 "asked before it starts."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:213
+#: contents/ui/config/LocalSttRows.qml:235
 msgid "Smaller engine:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:218
+#: contents/ui/config/LocalSttRows.qml:240
 msgid ""
 "Installed by an older version with packages dictation no longer needs (about "
 "%1)."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:223
+#: contents/ui/config/LocalSttRows.qml:245
 msgid "Rebuild (smaller)…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:231
+#: contents/ui/config/LocalSttRows.qml:253
 msgid ""
 "Sets the speech program up again without the parts it no longer needs, to "
 "free disk space. Dictation keeps working the same."
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:235
+#: contents/ui/config/LocalSttRows.qml:257
 msgid "Engine data:"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:239
+#: contents/ui/config/LocalSttRows.qml:261
 msgid "%1 (engine %2, models downloaded here %3)"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:244
+#: contents/ui/config/LocalSttRows.qml:266
 msgid "Remove…"
 msgstr ""
 
-#: contents/ui/config/FasterWhisperRows.qml:252
+#: contents/ui/config/LocalSttRows.qml:274
 msgid ""
 "Disk space the speech program and its models use. Remove deletes them if you "
 "no longer dictate; you can install them again later."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:119
+#: contents/ui/ConfigVoice.qml:120
 msgid "Hello! This is how replies will sound."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:162
+#: contents/ui/ConfigVoice.qml:163
 msgid "Read aloud failed: %1"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:163
+#: contents/ui/ConfigVoice.qml:164
 msgid "Finished."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:173
+#: contents/ui/ConfigVoice.qml:174
 msgid "Read aloud:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:174
+#: contents/ui/ConfigVoice.qml:175
 msgid "Offer to read replies aloud"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:178
+#: contents/ui/ConfigVoice.qml:179
 msgid ""
 "Adds a speaker button under each reply that reads it out loud. Choose the "
 "voice below."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:184
+#: contents/ui/ConfigVoice.qml:185
 msgid "Dictation:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:185
+#: contents/ui/ConfigVoice.qml:186
 msgid "Show a microphone button in the chat"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:189
+#: contents/ui/ConfigVoice.qml:190
 msgid ""
 "Speak instead of typing: press the microphone, talk, and your words are "
 "written into the message box. The speech is turned into text on this "
 "computer unless you pick a server below."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:199 contents/ui/config/DictationSettings.qml:77
+#: contents/ui/ConfigVoice.qml:200 contents/ui/config/DictationSettings.qml:77
 msgid "Engine:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:211 contents/ui/config/DictationSettings.qml:89
+#: contents/ui/ConfigVoice.qml:212 contents/ui/config/DictationSettings.qml:89
 msgid "%1 (not available)"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:222
+#: contents/ui/ConfigVoice.qml:223
 msgid "Looking for voices…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:235
+#: contents/ui/ConfigVoice.qml:236
 msgid ""
 "The engine is the program that makes the speech. \"System voices\" works "
 "without any setup; the others can sound more natural but need a program or a "
 "voice file."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:237
+#: contents/ui/ConfigVoice.qml:238
 msgid "Piper is offered once its piper program is installed."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:258 contents/ui/config/DictationSettings.qml:187
+#: contents/ui/ConfigVoice.qml:259 contents/ui/config/DictationSettings.qml:197
 msgid "Try it:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:262
+#: contents/ui/ConfigVoice.qml:263
 msgid "Say Hello"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:269
+#: contents/ui/ConfigVoice.qml:270
 msgid "Speaking…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:277
+#: contents/ui/ConfigVoice.qml:278
 msgid ""
 "Plays a short greeting with the settings above, so you can hear them before "
 "saving."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:283
+#: contents/ui/ConfigVoice.qml:284
 msgid "Read every reply aloud when it is finished"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:288
+#: contents/ui/ConfigVoice.qml:289
 msgid ""
 "Hands-free: each new reply is spoken without pressing the speaker button. "
 "Stop it with the stop button or Ctrl+Shift+S."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:293
+#: contents/ui/ConfigVoice.qml:294
 msgid "Dictation"
 msgstr ""
 
 #: contents/ui/voice/SttEngines.js:15
-msgid "faster-whisper (on this computer)"
+msgid "Parakeet (on this computer, English)"
 msgstr ""
 
 #: contents/ui/voice/SttEngines.js:16
+msgid ""
+"NVIDIA's Parakeet Unified EN 0.6B, the model Handy uses: fast, accurate "
+"English transcription. English only. Runs in a small service that starts "
+"when you dictate and stops when idle, on the graphics card when there is "
+"one. Needs a one-time install of about 24 MB."
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:18
+msgid "faster-whisper (on this computer)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:19
 msgid ""
 "Whisper models run by a small service that starts when you dictate and stops "
 "when idle. Needs a one-time install."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:18
+#: contents/ui/voice/SttEngines.js:21
 msgid "whisper.cpp"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:19
+#: contents/ui/voice/SttEngines.js:22
 msgid ""
 "Your own whisper.cpp program (whisper-cli) with a ggml model, or a running "
 "whisper.cpp server. No Python."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:21
+#: contents/ui/voice/SttEngines.js:24
 msgid "Program"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:22
+#: contents/ui/voice/SttEngines.js:25
 msgid "whisper-cli (found automatically)"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:23
+#: contents/ui/voice/SttEngines.js:26
 msgid ""
 "The whisper.cpp program on your computer. Leave empty to have it found "
 "automatically."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:24
+#: contents/ui/voice/SttEngines.js:27
 msgid "Model file"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:26
+#: contents/ui/voice/SttEngines.js:29
 msgid ""
 "The speech model file whisper.cpp uses (ending in .bin). Bigger files "
 "understand better but are slower."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:27
+#: contents/ui/voice/SttEngines.js:30
 msgid "Or server URL"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:29
+#: contents/ui/voice/SttEngines.js:32
 msgid ""
 "Instead of the program: the address of a whisper.cpp server that is already "
 "running. Leave empty to use the program."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:30 contents/ui/voice/TtsEngines.js:66
+#: contents/ui/voice/SttEngines.js:33 contents/ui/voice/TtsEngines.js:66
 msgid "Speech server (OpenAI-compatible)"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:31
+#: contents/ui/voice/SttEngines.js:34
 msgid ""
 "Any server with /audio/transcriptions: a local Whisper server, Groq, OpenAI…"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:33 contents/ui/voice/TtsEngines.js:69
+#: contents/ui/voice/SttEngines.js:36 contents/ui/voice/TtsEngines.js:69
 msgid "Server URL"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:34 contents/ui/voice/TtsEngines.js:71
+#: contents/ui/voice/SttEngines.js:37 contents/ui/voice/TtsEngines.js:71
 msgid ""
 "The web address of the speech server, from its documentation (often ending "
 "in /v1)."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:36
+#: contents/ui/voice/SttEngines.js:39
 msgid ""
 "The speech model the server should use, as named by the server (for example "
 "whisper-1)."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:37 contents/ui/voice/TtsEngines.js:78
+#: contents/ui/voice/SttEngines.js:40 contents/ui/voice/TtsEngines.js:78
 msgid "API key"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:38
+#: contents/ui/voice/SttEngines.js:41
 msgid "Saved in KWallet. Leave empty for a server on this computer."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:39 contents/ui/voice/TtsEngines.js:79
+#: contents/ui/voice/SttEngines.js:42 contents/ui/voice/TtsEngines.js:79
 msgid ""
 "The password-like code the speech service gives you, so it knows the "
 "requests are yours."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:40 contents/ui/voice/TtsEngines.js:80
+#: contents/ui/voice/SttEngines.js:43 contents/ui/voice/TtsEngines.js:80
 msgid "Custom command"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:41
+#: contents/ui/voice/SttEngines.js:44
 msgid ""
 "Your own program: {wav} is replaced by the recording (16 kHz mono WAV) and "
 "{lang} by the language; it prints the text."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:43 contents/ui/voice/TtsEngines.js:83
+#: contents/ui/voice/SttEngines.js:46 contents/ui/voice/TtsEngines.js:83
 msgid "Command"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:45
+#: contents/ui/voice/SttEngines.js:48
 msgid ""
 "For experts: a program of your own that turns a recording into text. Leave "
 "empty if you don't have one."
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:51
+#: contents/ui/voice/SttEngines.js:57
 msgid "Detect automatically"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:51
+#: contents/ui/voice/SttEngines.js:57
 msgid "English"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:52
+#: contents/ui/voice/SttEngines.js:58
 msgid "German"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:52
+#: contents/ui/voice/SttEngines.js:58
 msgid "Spanish"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:53
+#: contents/ui/voice/SttEngines.js:59
 msgid "French"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:53
+#: contents/ui/voice/SttEngines.js:59
 msgid "Italian"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:54
+#: contents/ui/voice/SttEngines.js:60
 msgid "Portuguese"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:54
+#: contents/ui/voice/SttEngines.js:60
 msgid "Dutch"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:55
+#: contents/ui/voice/SttEngines.js:61
 msgid "Polish"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:55
+#: contents/ui/voice/SttEngines.js:61
 msgid "Russian"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:56
+#: contents/ui/voice/SttEngines.js:62
 msgid "Ukrainian"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:56
+#: contents/ui/voice/SttEngines.js:62
 msgid "Turkish"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:57
+#: contents/ui/voice/SttEngines.js:63
 msgid "Hindi"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:57
+#: contents/ui/voice/SttEngines.js:63
 msgid "Japanese"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:58
+#: contents/ui/voice/SttEngines.js:64
 msgid "Korean"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:58
+#: contents/ui/voice/SttEngines.js:64
 msgid "Chinese"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:62
+#: contents/ui/voice/SttEngines.js:68
 msgid "Automatic (NVIDIA GPU when there is one)"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:63
+#: contents/ui/voice/SttEngines.js:69 contents/ui/voice/SttEngines.js:76
 msgid "Processor (CPU)"
 msgstr ""
 
-#: contents/ui/voice/SttEngines.js:64
+#: contents/ui/voice/SttEngines.js:70
 msgid "NVIDIA GPU (CUDA)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:75
+msgid "Automatic (graphics card when there is one)"
+msgstr ""
+
+#: contents/ui/voice/SttEngines.js:77
+msgid "Graphics card (Vulkan)"
 msgstr ""
 
 #: contents/ui/store/MemoryMigration.qml:106
@@ -4826,7 +4884,7 @@ msgid "Choose a voice found on this computer…"
 msgstr ""
 
 #: contents/ui/config/TtsOption.qml:147
-#: contents/ui/config/DictationSettings.qml:150
+#: contents/ui/config/DictationSettings.qml:151
 msgid "%1 (%2, %3)"
 msgstr ""
 
@@ -4872,51 +4930,56 @@ msgstr ""
 msgid "%1: %2"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:145
+#: contents/ui/config/DictationSettings.qml:146
 msgid "Found models:"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:149
+#: contents/ui/config/DictationSettings.qml:150
 msgid "Choose a model found on this computer…"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:158
+#: contents/ui/config/DictationSettings.qml:159
 msgid ""
 "Speech models other apps on this computer already downloaded. Pick one to "
 "use it without downloading again."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:174
+#: contents/ui/config/DictationSettings.qml:176
+#: contents/ui/config/DictationSettings.qml:183
 msgid "Spoken language:"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:183
+#: contents/ui/config/DictationSettings.qml:177
+msgid "English (this model understands English only)"
+msgstr ""
+
+#: contents/ui/config/DictationSettings.qml:193
 msgid ""
 "The language you speak. \"Detect automatically\" works for most people; "
 "choosing yours helps with short phrases."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:190
+#: contents/ui/config/DictationSettings.qml:200
 msgid "Test"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:195
+#: contents/ui/config/DictationSettings.qml:205
 msgid ""
 "Transcribes a short recording that comes with the widget, with the settings "
 "above."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:211
+#: contents/ui/config/DictationSettings.qml:221
 msgid ""
 "Checks the settings above with a short recording that comes with the widget; "
 "no microphone needed."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:215
+#: contents/ui/config/DictationSettings.qml:225
 msgid "Send the transcript right away"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:221
+#: contents/ui/config/DictationSettings.qml:231
 msgid ""
 "On: what you said is sent as soon as you stop talking. Off: it waits in the "
 "message box so you can check or change it first."

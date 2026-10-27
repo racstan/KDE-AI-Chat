@@ -84,7 +84,7 @@ contents/ui/config/TemplatesEditor.qml
 contents/ui/config/SetupCheck.qml
 contents/ui/config/SetupChecks.js
 contents/ui/config/SttSetup.qml
-contents/ui/config/FasterWhisperRows.qml
+contents/ui/config/LocalSttRows.qml
 contents/ui/ConfigVoice.qml
 contents/ui/voice/SttEngines.js
 contents/ui/store/MemoryMigration.qml
