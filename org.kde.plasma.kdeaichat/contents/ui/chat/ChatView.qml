@@ -298,11 +298,19 @@ Item {
     // chat opens (building this then would slow opening every chat).
     Loader {
         anchors.fill: parent
-        active: !!chatView.chat && !chatView.replacing && (chatView.chat.messages || []).length === 0
+        active: !!chatView.chat && !chatView.replacing && (chatView.chat.messages || []).length === 0 && !firstRun.shown
         visible: active
         sourceComponent: EmptyState {
             chat: chatView.chat
         }
+    }
+
+    // Until a provider works, the empty chat offers to set one up instead (FirstRun.qml).
+    FirstRun {
+        id: firstRun
+        objectName: "firstRun"
+        anchors.fill: parent
+        chat: chatView.chat
     }
 
     PC3.ToolButton {

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 12:43+0530\n"
+"POT-Creation-Date: 2026-10-27 12:58+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -206,7 +206,7 @@ msgstr ""
 #: contents/ui/chat/ChatInfoSummary.qml:90
 #: contents/ui/chat/ChatOverridesForm.qml:147
 #: contents/ui/chat/ChatOverridesForm.qml:229
-#: contents/ui/chat/ProjectEditor.qml:211
+#: contents/ui/chat/FirstRunKey.qml:68 contents/ui/chat/ProjectEditor.qml:211
 #: contents/ui/chat/ProjectEditor.qml:212
 #: contents/ui/components/ModelPicker.qml:104
 #: contents/ui/voice/SttEngines.js:21 contents/ui/chat/PiChatSettings.qml:65
@@ -561,12 +561,12 @@ msgstr[1] ""
 msgid "Pi returned no providers"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:320
+#: contents/ui/chat/ChatView.qml:328
 #, kde-format
 msgid "New messages"
 msgstr ""
 
-#: contents/ui/chat/ChatView.qml:320
+#: contents/ui/chat/ChatView.qml:328
 #, kde-format
 msgid "Latest"
 msgstr ""
@@ -1061,6 +1061,170 @@ msgstr ""
 #: contents/ui/chat/EmptyState.qml:138
 #, kde-format
 msgid "Start with %1"
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:132 contents/ui/chat/FirstRunChoose.qml:53
+#: contents/ui/config/LocalServers.qml:58
+#, kde-format
+msgid "OpenAI-compatible server"
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:154
+#, kde-format
+msgid "%1 did not accept this key. Check you copied the whole key."
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:155
+#, kde-format
+msgid "%1 answered with an error (HTTP %2). Try again in a moment."
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:156
+#, kde-format
+msgid "Could not reach %1. Check your connection."
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:161
+#, kde-format
+msgid "The key works, but %1 listed no models."
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:205
+#, kde-format
+msgid "KWallet is not available, so the key cannot be saved."
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:222
+#, kde-format
+msgid "Hello! Please reply with one short sentence so I know this works."
+msgstr ""
+
+#: contents/ui/chat/FirstRun.qml:266
+#, kde-format
+msgid "Let's get you chatting"
+msgstr ""
+
+#: contents/ui/chat/FirstRunChoose.qml:23
+#, kde-format
+msgid "Choose where your AI runs"
+msgstr ""
+
+#: contents/ui/chat/FirstRunChoose.qml:34
+#, kde-format
+msgid "On this computer"
+msgstr ""
+
+#: contents/ui/chat/FirstRunChoose.qml:54
+#, kde-format
+msgid "Found here · asks for a key"
+msgstr ""
+
+#: contents/ui/chat/FirstRunChoose.qml:55
+#, kde-format
+msgid "Found here · %1 model · stays on this computer"
+msgid_plural "Found here · %1 models · stays on this computer"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/FirstRunChoose.qml:64
+#, kde-format
+msgid "Online services"
+msgstr ""
+
+#: contents/ui/chat/FirstRunChoose.qml:78
+#, kde-format
+msgid "Needs your own key"
+msgstr ""
+
+#: contents/ui/chat/FirstRunChoose.qml:93
+#, kde-format
+msgid ""
+"Online services see the messages you send them; a program on this computer "
+"keeps them here. <a href=\"%1\">Read the terms</a>."
+msgstr ""
+
+#: contents/ui/chat/FirstRunChoose.qml:102
+#: contents/ui/chat/FirstRunChoose.qml:105
+#, kde-format
+msgid "Skip — I'll set it up in Settings"
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:23
+#, kde-format
+msgid "Connect to %1"
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:32
+#, kde-format
+msgid ""
+"This program asks for a key. Paste it here; it is kept in KWallet, not in a "
+"file."
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:33
+#, kde-format
+msgid ""
+"Paste your key here. It is kept in KWallet, not in a file, and only sent to "
+"%1."
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:42 contents/ui/chat/FirstRunKey.qml:45
+#, kde-format
+msgid "Get a key"
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:52 contents/ui/chat/FirstRunKey.qml:56
+#: contents/ui/voice/SttEngines.js:23 contents/ui/voice/TtsEngines.js:63
+#, kde-format
+msgid "API key"
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:91
+#: contents/ui/config/ScheduleHistory.qml:34
+#, kde-format
+msgid "Back"
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:111
+#, kde-format
+msgid "Save and continue"
+msgstr ""
+
+#: contents/ui/chat/FirstRunKey.qml:111
+#, kde-format
+msgid "Check key"
+msgstr ""
+
+#: contents/ui/chat/FirstRunTest.qml:21
+#, kde-format
+msgid "You're set up"
+msgstr ""
+
+#: contents/ui/chat/FirstRunTest.qml:30
+#, kde-format
+msgid "%1 · %2. It runs on this computer, so your messages stay here."
+msgstr ""
+
+#: contents/ui/chat/FirstRunTest.qml:31
+#, kde-format
+msgid "%1 · %2. Your messages are sent to its servers."
+msgstr ""
+
+#: contents/ui/chat/FirstRunTest.qml:38
+#, kde-format
+msgid ""
+"Want to check that it answers? Send a short test message, or just start "
+"chatting."
+msgstr ""
+
+#: contents/ui/chat/FirstRunTest.qml:49
+#, kde-format
+msgid "Send a test message"
+msgstr ""
+
+#: contents/ui/chat/FirstRunTest.qml:56
+#, kde-format
+msgid "Start chatting"
 msgstr ""
 
 #: contents/ui/chat/PrivacyBadge.qml:26
@@ -4361,11 +4525,6 @@ msgstr ""
 msgid "History: %1"
 msgstr ""
 
-#: contents/ui/config/ScheduleHistory.qml:34
-#, kde-format
-msgid "Back"
-msgstr ""
-
 #: contents/ui/config/ScheduleHistory.qml:44
 #, kde-format
 msgid "Ran once"
@@ -5131,11 +5290,6 @@ msgid ""
 "having trouble; try again in a moment."
 msgstr ""
 
-#: contents/ui/config/LocalServers.qml:58
-#, kde-format
-msgid "OpenAI-compatible server"
-msgstr ""
-
 #: contents/ui/config/LocalServers.qml:64
 #, kde-format
 msgid "asks for a key"
@@ -5885,11 +6039,6 @@ msgstr ""
 msgid ""
 "The speech model the server should use, as named by the server (for example "
 "whisper-1)."
-msgstr ""
-
-#: contents/ui/voice/SttEngines.js:23 contents/ui/voice/TtsEngines.js:63
-#, kde-format
-msgid "API key"
 msgstr ""
 
 #: contents/ui/voice/SttEngines.js:24

@@ -30,6 +30,7 @@ WATCHED_FILES = (
     "Security.js",
     "config/StorageFormat.js",
     "chat/Privacy.js",
+    "chat/FirstRun.js",
     "ProviderService.js",
     "ProviderCheck.js",
     "ProviderVariants.js",

@@ -12,24 +12,25 @@
 // API keys are not part of it: each lives in KWallet under the provider's id
 // (see store/Wallet.qml).
 //
-// PRESETS fill in a new provider's URL and type. Versions before 1.4.0 had a
+// PRESETS fill in a new provider's URL and type; `keyUrl` (only for well-known
+// providers) is the page where its keys are made (the first-run setup links it). Versions before 1.4.0 had a
 // fixed set of providers with their own settings (LEGACY); legacyProviders()
 // turns those into list entries with the same ids, so KWallet keys and
 // per-chat provider choices keep working.
 
 var PRESETS = [
-    {"id": "openai", "name": "OpenAI", "type": "openai-compat", "baseUrl": "https://api.openai.com/v1"},
-    {"id": "anthropic", "name": "Anthropic", "type": "anthropic", "baseUrl": "https://api.anthropic.com/v1"},
-    {"id": "openrouter", "name": "OpenRouter", "type": "openai-compat", "baseUrl": "https://openrouter.ai/api/v1", "model": "openrouter/auto",
+    {"id": "openai", "keyUrl": "https://platform.openai.com/api-keys", "name": "OpenAI", "type": "openai-compat", "baseUrl": "https://api.openai.com/v1"},
+    {"id": "anthropic", "keyUrl": "https://console.anthropic.com/settings/keys", "name": "Anthropic", "type": "anthropic", "baseUrl": "https://api.anthropic.com/v1"},
+    {"id": "openrouter", "keyUrl": "https://openrouter.ai/keys", "name": "OpenRouter", "type": "openai-compat", "baseUrl": "https://openrouter.ai/api/v1", "model": "openrouter/auto",
      "headers": {"HTTP-Referer": "https://github.com/racstan/KDE-AI-Chat", "X-Title": "KDE AI Chat"}},
-    {"id": "google", "name": "Google Gemini", "type": "openai-compat", "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai"},
-    {"id": "groq", "name": "Groq", "type": "openai-compat", "baseUrl": "https://api.groq.com/openai/v1"},
-    {"id": "deepseek", "name": "DeepSeek", "type": "openai-compat", "baseUrl": "https://api.deepseek.com"},
-    {"id": "mistral", "name": "Mistral", "type": "openai-compat", "baseUrl": "https://api.mistral.ai/v1"},
+    {"id": "google", "keyUrl": "https://aistudio.google.com/apikey", "name": "Google Gemini", "type": "openai-compat", "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai"},
+    {"id": "groq", "keyUrl": "https://console.groq.com/keys", "name": "Groq", "type": "openai-compat", "baseUrl": "https://api.groq.com/openai/v1"},
+    {"id": "deepseek", "keyUrl": "https://platform.deepseek.com/api_keys", "name": "DeepSeek", "type": "openai-compat", "baseUrl": "https://api.deepseek.com"},
+    {"id": "mistral", "keyUrl": "https://console.mistral.ai/api-keys", "name": "Mistral", "type": "openai-compat", "baseUrl": "https://api.mistral.ai/v1"},
     {"id": "xai", "name": "xAI", "type": "openai-compat", "baseUrl": "https://api.x.ai/v1"},
-    {"id": "nvidia", "name": "NVIDIA NIM", "type": "openai-compat", "baseUrl": "https://integrate.api.nvidia.com/v1"},
-    {"id": "fireworks", "name": "Fireworks", "type": "openai-compat", "baseUrl": "https://api.fireworks.ai/inference/v1"},
-    {"id": "huggingface", "name": "Hugging Face", "type": "openai-compat", "baseUrl": "https://router.huggingface.co/v1"},
+    {"id": "nvidia", "keyUrl": "https://build.nvidia.com/settings/api-keys", "name": "NVIDIA NIM", "type": "openai-compat", "baseUrl": "https://integrate.api.nvidia.com/v1"},
+    {"id": "fireworks", "keyUrl": "https://fireworks.ai/account/api-keys", "name": "Fireworks", "type": "openai-compat", "baseUrl": "https://api.fireworks.ai/inference/v1"},
+    {"id": "huggingface", "keyUrl": "https://huggingface.co/settings/tokens", "name": "Hugging Face", "type": "openai-compat", "baseUrl": "https://router.huggingface.co/v1"},
     {"id": "perplexity", "name": "Perplexity", "type": "openai-compat", "baseUrl": "https://api.perplexity.ai"},
     {"id": "minimax", "name": "MiniMax", "type": "openai-compat", "baseUrl": "https://api.minimax.io/v1"},
     {"id": "qwen", "name": "Qwen", "type": "openai-compat", "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"},
