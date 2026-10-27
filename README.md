@@ -121,7 +121,7 @@ The widget works out of the box, but some features need basic system tools. If a
 
 ## Known Problems
 
-- **Many keyboard shortcuts can't be changed yet.** Most of the widget's keyboard shortcuts are fixed for now. Only the "Ask about the selected text" shortcut (Meta+Alt+A) can be changed, in System Settings → Keyboard → Shortcuts. Making the others customisable is planned for a future release.
+- **Many keyboard shortcuts can't be changed yet.** The only one you can change is the shortcut that opens the widget; the others are fixed for now. Making them customisable is planned for a future release.
 
 ---
 
