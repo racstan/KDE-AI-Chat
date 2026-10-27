@@ -164,9 +164,10 @@ def call(dest: str, path: str, iface: str, member: str, sig: str, args: List[Any
         sock.sendall(b"\0AUTH EXTERNAL " + str(os.getuid()).encode().hex().encode() + b"\r\n")
         reply = b""
         while b"\r\n" not in reply:
-            reply += sock.recv(256)
-            if not reply:
+            chunk = sock.recv(256)
+            if not chunk:
                 raise WireError("the bus closed the connection")
+            reply += chunk
         if not reply.startswith(b"OK"):
             raise WireError("the bus refused authentication")
         sock.sendall(b"BEGIN\r\n")
