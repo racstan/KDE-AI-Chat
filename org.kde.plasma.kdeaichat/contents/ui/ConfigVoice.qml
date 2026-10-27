@@ -30,6 +30,8 @@ KCM.SimpleKCM {
     property alias cfg_voiceTtsEnabled: readCheck.checked
     property alias cfg_voiceTtsAuto: ttsAutoCheck.checked
     property string cfg_voiceTtsEngine: Engines.defaultEngine
+    property string cfg_voiceTtsNeuralVoice: "af_heart"
+    property real cfg_voiceTtsNeuralSpeed: 1
     property string cfg_voiceTtsSystemLanguage: ""
     property string cfg_voiceTtsSystemVoice: ""
     property real cfg_voiceTtsSystemRate: 0
@@ -161,7 +163,8 @@ KCM.SimpleKCM {
         pluginOverride: page.pluginOverride
         idleUnloadMs: 30000
         onError: function(message) { page.testResult = i18n("Read aloud failed: %1", message); }
-        onIsPlayingChanged: if (!isPlaying && page.testResult === "") page.testResult = i18n("Finished.")
+        onIsPlayingChanged: if (!isPlaying && page.testResult === "") page.testResult = usedFallback
+            ? i18n("That was the system voice: install the natural voice to hear it.") : i18n("Finished.")
     }
 
     ColumnLayout {
@@ -233,9 +236,21 @@ KCM.SimpleKCM {
             Config.SettingHelp {
                 visible: readCheck.checked
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 24
-                details: i18n("The engine is the program that makes the speech. \"System voices\" works without any setup; the others can sound more natural but need a program or a voice file.")
+                details: i18n("The engine is the program that makes the speech. \"Natural voice\" sounds the most human and needs a one-time install; \"System voices\" works without any setup but sounds robotic; the others need a program, a voice file or a server.")
                 text: i18n(page.engine.note) + (probe.available.indexOf("piper") < 0 && !probe.probing
                       ? "\n" + i18n("Piper is offered once its piper program is installed.") : "")
+            }
+
+            Config.NeuralVoiceSetup {
+                visible: readCheck.checked && page.engine.setup === "neural"
+                active: visible
+                runHelper: page.runHelper
+                onInstalledChanged: page.testResult = ""
+            }
+
+            Config.SettingHelp {
+                visible: readCheck.checked && page.engine.setup === "neural"
+                text: i18n("The natural voice is installed once, with its size shown first. It starts when something is read and stops itself two minutes later.")
             }
 
             // Every engine's options, made once; only the chosen engine's show

@@ -2,7 +2,9 @@
 // for System voices and a fake helper: both switches off by default and
 // nothing else shown; the engine list holds only engines that can run; each
 // engine's options are its own settings (kept when switching engines); the
-// Say Hello test speaks and stops; the remote key never becomes a setting.
+// Say Hello test speaks and stops; the remote key never becomes a setting;
+// the natural voice is the default, shows its install size before Install,
+// and until it is installed Say Hello uses the system voice.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtTest
@@ -25,10 +27,26 @@ Item {
 
     property string piperPath: ""
     property var helperCalls: []
+    property bool neuralInstalled: false
+    property var installPayload: null
     function fakeHelper(command, payload, onDone) {
         helperCalls.push(command);
         if (command === "tts_probe" && onDone)
             onDone(JSON.stringify({"ok": true, "piper": piperPath}), 0, "");
+        var size = neuralInstalled ? {"program_mb": 0, "gpu_mb": 0, "model_mb": 0, "total_mb": 0}
+                                   : {"program_mb": 52, "gpu_mb": 0, "model_mb": 206, "total_mb": 258};
+        if (command === "tts_neural_status" && onDone)
+            onDone(JSON.stringify({"type": "tts_neural_status", "ok": true, "installed": neuralInstalled, "packages": neuralInstalled,
+                                   "model": neuralInstalled ? "/m/kokoro.onnx" : "", "gpu": true, "gpu_installed": false,
+                                   "venv": "/d/tts-venv", "models": "/d/tts-models/kokoro", "size": size,
+                                   "size_gpu": {"program_mb": size.program_mb, "gpu_mb": 1554, "model_mb": size.model_mb, "total_mb": size.total_mb + 1554}}), 0, "");
+        if (command === "tts_neural_install") {
+            installPayload = payload;
+            neuralInstalled = true;
+            if (onDone) onDone(JSON.stringify({"type": "tts_neural_installed", "ok": true}), 0, "");
+        }
+        if (command === "tts_synthesize" && onDone)
+            onDone(JSON.stringify({"ok": false, "error": "the natural voice is not installed", "code": "not_installed"}), 0, "");
     }
 
     Rectangle {
@@ -57,6 +75,8 @@ Item {
             page = null;
             root.piperPath = "";
             root.helperCalls = [];
+            root.neuralInstalled = false;
+            root.installPayload = null;
             wait(200);
         }
         function find(item, test) {
@@ -108,18 +128,18 @@ Item {
         function test_only_available_engines_are_listed() {
             open({"cfg_voiceTtsEnabled": true});
             tryVerify(function() { return named("ttsEngineCombo").count > 0 && !page.children[0].probing; }, 5000);
-            tryCompare(named("ttsEngineCombo"), "count", 3, 3000);
-            compare(engineValues(), ["system", "remote", "command"], "no Kokoro or Flite plugin, no piper program");
-            compare(named("ttsEngineCombo").currentText, "System voices");
+            tryCompare(named("ttsEngineCombo"), "count", 4, 3000);
+            compare(engineValues(), ["neural", "system", "remote", "command"], "no Kokoro or Flite plugin, no piper program");
+            compare(named("ttsEngineCombo").currentText, "Natural voice (Kokoro, recommended)");
             root.piperPath = "/usr/bin/piper";
             var probe = find(page, function(item) { return item.hasOwnProperty("piperPath"); });
             probe.refresh();
             tryCompare(probe, "probing", false, 3000);
-            compare(engineValues(), ["system", "piper", "remote", "command"]);
+            compare(engineValues(), ["neural", "system", "piper", "remote", "command"]);
         }
 
         function test_options_persist_per_engine() {
-            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsSystemVoice": ""});
+            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsEngine": "system", "cfg_voiceTtsSystemVoice": ""});
             var probe = find(page, function(item) { return item.hasOwnProperty("piperPath"); });
             tryCompare(probe, "probing", false, 5000);
             verify(shownOption("voiceTtsSystemLanguage"));
@@ -158,7 +178,7 @@ Item {
         }
 
         function test_say_hello_speaks_and_stops() {
-            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsSystemVoice": "Bob"});
+            open({"cfg_voiceTtsEnabled": true, "cfg_voiceTtsEngine": "system", "cfg_voiceTtsSystemVoice": "Bob"});
             var probe = find(page, function(item) { return item.hasOwnProperty("piperPath"); });
             tryCompare(probe, "probing", false, 5000);
             var button = named("ttsTestButton");
@@ -172,6 +192,43 @@ Item {
             compare(button.text, "Stop");
             button.clicked();
             compare(button.text, "Say Hello");
+        }
+    
+        function test_natural_voice_is_the_default_and_shows_its_size() {
+            open({"cfg_voiceTtsEnabled": true});
+            var probe = find(page, function(item) { return item.hasOwnProperty("piperPath"); });
+            tryCompare(probe, "probing", false, 5000);
+            compare(page.cfg_voiceTtsEngine, "neural");
+            var voice = shownOption("voiceTtsNeuralVoice");
+            verify(voice, "the natural voice's voice list");
+            compare(voice.item.currentValue, "af_heart");
+            verify(voice.item.count > 20);
+            verify(shownOption("voiceTtsNeuralSpeed"));
+            tryCompare(named("neuralVoiceState"), "text", "Not installed yet: replies are read with the system voice until you install it.", 3000);
+            var size = named("neuralVoiceSize");
+            verify(size.visible);
+            compare(size.text, "Install downloads about 258 MB (the program 52 MB, the voice model 206 MB), into /d.");
+            compare(named("neuralVoiceInstall").text, "Install (258 MB)");
+            verify(named("neuralVoiceGpu").visible, "an NVIDIA card was found");
+            compare(root.helperCalls.indexOf("tts_neural_install"), -1, "nothing installed before the button");
+            screenshot(page, "config-voice-neural");
+
+            // Say Hello before the install: the system voice reads, and the page says so.
+            named("ttsTestButton").clicked();
+            tryCompare(named("ttsTestResult"), "text", "That was the system voice: install the natural voice to hear it.", 15000);
+            verify(root.helperCalls.indexOf("tts_synthesize") >= 0);
+
+            named("neuralVoiceGpu").checked = true;
+            compare(named("neuralVoiceInstall").text, "Install (1.8 GB)");
+            named("neuralVoiceGpu").checked = false;
+            named("neuralVoiceInstall").clicked();
+            compare(root.installPayload.gpu, false);
+            tryCompare(named("neuralVoiceState"), "text", "Installed.", 3000);
+            compare(named("ttsTestResult").text, "", "the old test result is gone");
+            verify(!named("neuralVoiceSize").visible);
+            verify(!named("neuralVoiceInstall").visible);
+            verify(named("neuralVoiceRemove").visible);
+            screenshot(page, "config-voice-neural-installed");
         }
     }
 }

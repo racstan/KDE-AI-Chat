@@ -82,8 +82,12 @@ def check_dictation(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def check_read_aloud(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Read aloud (only called when voiceTtsEnabled): what the chosen engine needs."""
-    engine = str(payload.get("voiceTtsEngine") or "system")
-    if engine == "piper":
+    engine = str(payload.get("voiceTtsEngine") or "neural")
+    if engine == "neural":
+        from kdeaichat import tts_neural
+        if not (tts_neural.packages_installed() and tts_neural.model_files()):
+            return [row("tts-engine", "voice", "warn", "tts-neural-missing")]
+    elif engine == "piper":
         if not find_piper(str(payload.get("voiceTtsPiperBinary") or "")):
             return [row("tts-engine", "voice", "error", "tts-piper-missing")]
         model = os.path.expanduser(str(payload.get("voiceTtsPiperModel") or ""))
