@@ -35,6 +35,25 @@ Item {
         function respondToPermission(id, approved, always) { answers = answers.concat([["permission", id, approved, always]]); }
     }
 
+    // A chat with the voice manager, for the "Read aloud" button.
+    property var spoken: []
+    QtObject {
+        id: voiceChat
+        property var plasmoid: QtObject { property var configuration: QtObject { property bool notifyOnInput: true } }
+        property string currentSessionId: "c1"
+        property var messages: []
+        property var voiceManagerRef: QtObject {
+            property bool ttsEnabled: true
+            function playTTS(text) { root.spoken = root.spoken.concat([text]); }
+        }
+    }
+    property var actionSent: []
+    Chat.Notifier {
+        id: actionNotifier
+        chat: voiceChat
+        sender: function(title, text, chatId, isError, readText) { root.actionSent.push({"chatId": chatId, "readText": readText}); }
+    }
+
     property var inputs: []
     property var closed: []
     Chat.Notifier {
@@ -72,6 +91,43 @@ Item {
             notifier.popupOpen = true;
             verify(!notifier.replyFinished("c1", "Trip plan", "again"));
             compare(root.sent.length, 1);
+        }
+
+        function test_a_finished_reply_has_open_chat_and_read_aloud_buttons() {
+            var opened = [];
+            actionNotifier.openChat.connect(function(id) { opened.push(id); });
+            root.spoken = [];
+            root.actionSent = [];
+            actionNotifier.popupOpen = false;
+            verify(actionNotifier.replyFinished("c9", "Trip", "Here is **the plan**."));
+            compare(root.actionSent[0].readText, "Here is **the plan**.");
+            var specs = actionNotifier.actionSpecs("c9", root.actionSent[0].readText);
+            compare(specs.map(s => s.label), ["Open chat", "Read aloud"]);
+            specs[0].run();
+            compare(opened, ["c9"]);
+            specs[1].run();
+            compare(root.spoken, ["Here is **the plan**."], "the reply text is spoken as written, not the shortened notification text");
+        }
+
+        function test_read_aloud_button_only_while_read_aloud_is_on_and_there_is_text() {
+            voiceChat.voiceManagerRef.ttsEnabled = false;
+            compare(actionNotifier.actionSpecs("c9", "text").map(s => s.label), ["Open chat"]);
+            voiceChat.voiceManagerRef.ttsEnabled = true;
+            compare(actionNotifier.actionSpecs("c9", "  ").map(s => s.label), ["Open chat"]);
+            compare(actionNotifier.actionSpecs("c9").map(s => s.label), ["Open chat"], "errors and scheduled runs have no text to read");
+            compare(notifier.actionSpecs("c9", "text").map(s => s.label), ["Open chat"], "no chat, no voice");
+            voiceChat.voiceManagerRef.ttsEnabled = false;
+            root.spoken = [];
+            actionNotifier.readAloud("late press");
+            compare(root.spoken, [], "read aloud switched off meanwhile: nothing is spoken");
+            voiceChat.voiceManagerRef.ttsEnabled = true;
+        }
+
+        function test_incognito_keeps_its_text_out_of_the_notification_but_keeps_the_buttons() {
+            root.actionSent = [];
+            actionNotifier.popupOpen = false;
+            actionNotifier.replyFinished("s-incognito-1", "Secret", "private words");
+            compare(actionNotifier.actionSpecs("s-incognito-1", "private words").map(s => s.label), ["Open chat", "Read aloud"]);
         }
 
         function test_reply_setting_off() {
