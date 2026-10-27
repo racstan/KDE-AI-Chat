@@ -111,7 +111,8 @@ QtObject {
     function maybeGenerateChatTitle() {
         var sessionId = chat.currentSessionId;
         var idx = chat.sessionIndexById(sessionId);
-        if (chat.plasmoid.configuration.autoNameChats === false || idx < 0 || titles.requested[sessionId])
+        // An incognito chat keeps its first-message name: the model isn't asked (chat/Incognito.qml).
+        if (chat.plasmoid.configuration.autoNameChats === false || idx < 0 || titles.requested[sessionId] || chat.sessions[idx].incognito === true)
             return;
         var current = chat.currentSessionTitle;
         if (!ChatTitle.isDefaultTitle(current) && !(chat.sessions[idx].autoTitle && current === chat.sessions[idx].autoTitle))

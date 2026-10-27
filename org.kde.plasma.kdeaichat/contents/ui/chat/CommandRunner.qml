@@ -161,7 +161,9 @@ Item {
     function runRemember(arg) {
         var parsed = Commands.rememberArg(arg);
         var project = chat.memory.projectOf(chat.currentSessionId);
-        if (parsed.text === "") {
+        if (chat.incognito && chat.incognito.active) {
+            show(i18n("Nothing is remembered from an incognito chat."));
+        } else if (parsed.text === "") {
             show(i18n("Write what to remember, like /remember I prefer metric units. Start with chat: or project: to keep it to this chat or its project."));
         } else if (parsed.scope === "project" && !project) {
             show(i18n("This chat is in no project. Use /remember or /remember chat:."));

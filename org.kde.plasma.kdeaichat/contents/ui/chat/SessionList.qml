@@ -1,4 +1,5 @@
-// The chat history: the projects (chat/ProjectsSidebar.qml: All chats, each
+// The chat history: a search across all chats (chat/ChatSearchPanel.qml;
+// its results take the place of the rest while it has a query), the projects (chat/ProjectsSidebar.qml: All chats, each
 // project, Archived) and, below, the chats of the one chosen, one compact row
 // per chat with its title and when it was last used. Rename, archive (restore
 // in Archived) and delete appear on the row only while the pointer is over it
@@ -47,6 +48,7 @@ Rectangle {
     readonly property bool archivedView: projects.view === "archived"
     readonly property alias sidebar: projectsSidebar
     readonly property alias rowMenu: chatMenu
+    readonly property alias search: searchPanel
 
     radius: Kirigami.Units.cornerRadius
     color: Kirigami.Theme.alternateBackgroundColor
@@ -54,39 +56,12 @@ Rectangle {
     border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
 
     // The menu of one chat (right-click or the Menu key on a row).
-    QQC2.Menu {
+    ChatRowMenu {
         id: chatMenu
-        property var session: ({})
-        readonly property bool archived: session.archived === true
-
-        function openFor(session, item) {
-            chatMenu.session = session;
-            moveMenu.sessionId = session.value;
-            chatMenu.popup(item, 0, item.height);
-        }
-
-        QQC2.MenuItem {
-            text: i18n("Rename chat")
-            icon.name: "document-edit"
-            onTriggered: sessionList.chat.startSessionRename(chatMenu.session.value)
-        }
-        ProjectMenu {
-            id: moveMenu
-            chat: sessionList.chat
-        }
-        QQC2.MenuItem {
-            objectName: "archiveItem"
-            text: chatMenu.archived ? i18n("Restore chat") : i18n("Archive chat")
-            icon.name: chatMenu.archived ? "document-revert" : "archive-insert"
-            onTriggered: sessionList.chat.setSessionArchived(chatMenu.session.value, !chatMenu.archived)
-        }
-        QQC2.MenuSeparator {}
-        QQC2.MenuItem {
-            text: i18n("Delete chat")
-            icon.name: "trash-empty"
-            onTriggered: sessionList.chat.deleteSession(chatMenu.session.value)
-        }
+        chat: sessionList.chat
     }
+
+    function focusSearch() { searchPanel.focusSearch(); }
 
     ColumnLayout {
         anchors.fill: parent
@@ -94,18 +69,30 @@ Rectangle {
         anchors.bottomMargin: Kirigami.Units.smallSpacing + sessionList.bottomRoom
         spacing: Kirigami.Units.smallSpacing
 
+        // Search across all chats: while it has a query, its results replace everything below.
+        ChatSearchPanel {
+            id: searchPanel
+            chat: sessionList.chat
+            closeOnSelect: sessionList.closeOnSelect
+            Layout.fillWidth: true
+            Layout.fillHeight: searching
+        }
+
         ProjectsSidebar {
             id: projectsSidebar
+            visible: !searchPanel.searching
             chat: sessionList.chat
             Layout.fillWidth: true
         }
 
         Kirigami.Separator {
+            visible: !searchPanel.searching
             Layout.fillWidth: true
         }
 
         // What the list shows, and New chat in that project.
         RowLayout {
+            visible: !searchPanel.searching
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing * 2
             spacing: Kirigami.Units.smallSpacing
@@ -137,7 +124,7 @@ Rectangle {
 
         PC3.Label {
             objectName: "emptyViewLabel"
-            visible: historyList.count === 0
+            visible: historyList.count === 0 && !searchPanel.searching
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.largeSpacing
             horizontalAlignment: Text.AlignHCenter
@@ -151,6 +138,7 @@ Rectangle {
         ListView {
             id: historyList
 
+            visible: !searchPanel.searching
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: sessionList.projects.visibleChats

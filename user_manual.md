@@ -168,6 +168,8 @@ Conversation threads are tracked in the persistent sidebar.
 * **Deleting Threads**: Click the trashcan icon to delete the thread and remove its database cache from the disk.
 * **Visual Identifiers**: OpenCode chats are rendered with distinct system badges to instantly separate development workspaces from standard AI conversations.
 * **Edit Message**: Edit any older user message to automatically delete subsequent conversation history and re-send the query, rewinding the chat session.
+* **Search All Chats**: Type in the search field at the top of the history (or press **Ctrl+Shift+F**) to find text in chat names and messages across every chat, archived ones and chats in projects included. Click a result (or press Enter on it) to open that chat at the matching message.
+* **Incognito Chat**: The button next to New chat (or **Ctrl+Shift+N**) starts a chat that is never written to disk. It uses no memories and adds none, and it is gone when you leave it or restart the widget. Leaving one that has messages asks first; Settings → Chat turns the question off or on.
 
 ---
 

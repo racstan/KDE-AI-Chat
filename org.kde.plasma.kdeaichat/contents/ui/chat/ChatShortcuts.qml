@@ -6,6 +6,8 @@
 // text-editing key, so the input keeps Ctrl+C/V/X/Z/A and Ctrl+arrows.
 //
 //   Ctrl+N          new chat
+//   Ctrl+Shift+N    new incognito chat (chat/Incognito.qml)
+//   Ctrl+Shift+F    search all chats (searchRequested: the history opens with its search field)
 //   Ctrl+H          show or hide the history
 //   Ctrl+I          show or hide the chat info panel (chatInfoRequested)
 //   Ctrl+L          focus the input
@@ -19,7 +21,6 @@
 //   Up / Down       browse the messages (input empty, or the chat clicked)
 //   PgUp / PgDown   first / latest message
 //
-// (The history has no search field, so there is no "search chats" key.)
 // Up/Down/PgUp/PgDown (browsing; ChatView.qml and Composer.qml, which read
 // the keys from the list below), Esc on a selected message and "/"
 // (templates) are keys of the list or the input itself.
@@ -37,6 +38,8 @@ Item {
     readonly property alias undoNotice: undo
     // Ctrl+I: the popup owns the info panel, so it listens to this.
     signal chatInfoRequested()
+    // Ctrl+Shift+F: the popup opens the history and focuses its search field.
+    signal searchRequested()
 
     function _browsing() {
         var list = shortcuts.chat ? shortcuts.chat.msgListViewRef : null;
@@ -59,6 +62,19 @@ Item {
         sequence: ShortcutList.keysFor("newChat")
         context: Qt.WindowShortcut
         onActivated: shortcuts.chat.createSession(true)
+    }
+
+    Shortcut {
+        sequence: ShortcutList.keysFor("incognito")
+        context: Qt.WindowShortcut
+        enabled: !!shortcuts.chat && !!shortcuts.chat.incognito && !shortcuts.chat.loading
+        onActivated: shortcuts.chat.incognito.start()
+    }
+
+    Shortcut {
+        sequence: ShortcutList.keysFor("searchChats")
+        context: Qt.WindowShortcut
+        onActivated: shortcuts.searchRequested()
     }
 
     Shortcut {

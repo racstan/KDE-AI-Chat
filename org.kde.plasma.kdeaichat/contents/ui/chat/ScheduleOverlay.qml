@@ -51,7 +51,8 @@ Rectangle {
             id: editorDialog
             width: scroll.availableWidth
             service: scheduleService
-            sessions: overlay.chat ? overlay.chat.sessions : []
+            // No schedule can target an incognito chat (chat/Incognito.qml).
+            sessions: overlay.chat ? overlay.chat.sessions.filter(function(s) { return s.incognito !== true; }) : []
             configuration: overlay.chat && overlay.chat.plasmoid ? overlay.chat.plasmoid.configuration : null
             wallet: overlay.chat ? overlay.chat.wallet : null
             xhrFactory: overlay.xhrFactory

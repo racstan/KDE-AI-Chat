@@ -177,6 +177,9 @@ Item {
         var written = {};
         for (var i = 0; i < sessions.length; i++) {
             var session = sessions[i];
+            // An incognito chat (chat/Incognito.qml) is never written.
+            if (session.incognito === true)
+                continue;
             var meta = Object.assign({}, session);
             delete meta.messages;
             metas.push(meta);

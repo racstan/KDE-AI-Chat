@@ -13,7 +13,8 @@ Routes:
   GET  /health
   GET  /chats/<id>/events        SSE: bridge_connected, then each Pi event,
                                  bridge_exit if the Pi process ends
-  POST /chats/<id>/prompt        {directory, provider, model, thinking, instructions, message, images}
+  POST /chats/<id>/prompt        {directory, provider, model, thinking, instructions, message, images, ephemeral}
+                                 (ephemeral: an incognito chat, Pi keeps no session file)
                                  (no directory: the chat's own folder under
                                  ~/.local/share/kdeaichat/pi-workspaces/<id>;
                                  instructions: added to Pi's system prompt)
@@ -74,18 +75,18 @@ def broadcast(chat_id, event):
 class Agent:
     """One `pi --mode rpc` process for one chat."""
 
-    def __init__(self, chat_id, directory, provider, model, thinking, instructions=""):
+    def __init__(self, chat_id, directory, provider, model, thinking, instructions="", ephemeral=False):
         env = pi_env()
         binary = shutil.which("pi", path=env["PATH"])
         if not binary:
             raise FileNotFoundError("Pi isn't installed (no `pi` command found).")
-        argv = [binary, "--mode", "rpc", "--session-id", "kde-ai-chat-" + chat_id]
+        argv = [binary, "--mode", "rpc"] + (["--no-session"] if ephemeral else ["--session-id", "kde-ai-chat-" + chat_id])
         for flag, value in (("--provider", provider), ("--model", model), ("--thinking", thinking),
                             ("--append-system-prompt", instructions_file(chat_id, instructions))):
             if value:
                 argv += [flag, value]
         self.chat_id = chat_id
-        self.key = (directory, provider, model, thinking, instructions)
+        self.key = (directory, provider, model, thinking, instructions, ephemeral)
         self.running = False
         self.last_active = time.monotonic()
         self.stderr_tail = collections.deque(maxlen=40)
@@ -176,7 +177,8 @@ def prompt(chat_id, payload):
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline and getattr(agents.get(chat_id), "running", False):
         time.sleep(0.1)
-    key = (directory, provider, model, thinking, instructions)
+    ephemeral = payload.get("ephemeral") is True
+    key = (directory, provider, model, thinking, instructions, ephemeral)
     with lock:
         replaced = agents.pop(chat_id) if chat_id in agents and agents[chat_id].key != key and not agents[chat_id].running else None
     if replaced:
@@ -186,7 +188,7 @@ def prompt(chat_id, payload):
         if agent and agent.running:
             return 409, {"error": "Pi is still working on this chat."}
         if agent is None:
-            agent = agents[chat_id] = Agent(chat_id, directory, provider, model, thinking, instructions)
+            agent = agents[chat_id] = Agent(chat_id, directory, provider, model, thinking, instructions, ephemeral)
         agent.running = True
     command = {"id": "prompt-" + secrets.token_hex(4), "type": "prompt", "message": message}
     if images:

@@ -133,8 +133,14 @@ Item {
     Chat.ChatShortcuts {
         chat: root
         onChatInfoRequested: chatSettingsDialog.toggleForSession(root.currentSessionId)
+        onSearchRequested: body.openSearch()
     }
     // qmllint enable unqualified
+
+    // Asks before leaving an incognito chat that has messages (chat/Incognito.qml).
+    Chat.IncognitoLeaveDialog {
+        chat: root // qmllint disable unqualified
+    }
 
     // In the corner away from the panel, so dragging it grows the popup
     // towards the mouse. Above the chat info panel too; the rows in its

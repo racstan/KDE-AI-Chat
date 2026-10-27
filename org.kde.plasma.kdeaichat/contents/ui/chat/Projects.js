@@ -105,8 +105,9 @@ function ofChat(projects, chat) {
 
 // The views of the history: "all" (every chat that isn't archived),
 // "archived", or a project id (that project's chats that aren't archived).
+// An incognito chat (chat/Incognito.qml) is in none of them.
 function inView(chat, view) {
-    if (!chat)
+    if (!chat || chat.incognito === true)
         return false;
     if (view === "archived")
         return chat.archived === true;
@@ -131,7 +132,7 @@ function counts(chats) {
     var c = {"all": 0, "archived": 0};
     for (var i = 0; i < (chats || []).length; i++) {
         var chat = chats[i];
-        if (!chat)
+        if (!chat || chat.incognito === true)
             continue;
         if (chat.archived === true) {
             c.archived++;

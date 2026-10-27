@@ -294,7 +294,9 @@ RowLayout {
     Optional {
         id: remember
         order: 9
+        // Not in an incognito chat: nothing is remembered from it (chat/Incognito.qml).
         shown: MessageContent.canQuote(actions.message) && !actions.editing && !!actions.chat && !!actions.chat.memory
+               && !(actions.chat.incognito && actions.chat.incognito.active)
         sourceComponent: Action {
             objectName: "rememberButton"
             enabled: !actions.streaming

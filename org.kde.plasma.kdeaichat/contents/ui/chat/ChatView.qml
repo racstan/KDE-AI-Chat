@@ -88,6 +88,24 @@ Item {
             select(row);
             return true;
         }
+        // Shows message `id` (else row `index`) as soon as the chat just
+        // opened is in the list: a search result (chat/ChatSearchPanel.qml).
+        property var pendingReveal: null
+        function reveal(id, index) {
+            pendingReveal = {"id": String(id || ""), "index": index, "tries": 0};
+            revealTimer.restart();
+        }
+        function _revealNow() {
+            var r = pendingReveal;
+            if (!r || ++r.tries > 40)
+                return true;
+            if (chatView.replacing || count === 0)
+                return false;
+            pendingReveal = null;
+            if (!jumpToMessage(r.id) && r.index >= 0)
+                select(Math.min(r.index, count - 1));
+            return true;
+        }
         // Up (delta -1) or Down (+1) one message. Down past the latest hands
         // focus back to the input. Returns whether it did anything.
         function browse(delta) {
@@ -252,6 +270,14 @@ Item {
             onPressedChanged: if (!pressed) list.userMoved()
             onPositionChanged: if (pressed) list.userMoved()
         }
+    }
+
+    // After the switch has scrolled to the end (ChatNavigation.qml), not before.
+    Timer {
+        id: revealTimer
+        interval: 50
+        repeat: true
+        onTriggered: if (list._revealNow()) stop()
     }
 
     // An empty chat: guidance instead of a blank panel. Decided from the

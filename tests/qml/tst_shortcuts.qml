@@ -371,7 +371,7 @@ Item {
                 seen[s.keys] = true;
                 verify(!/^Ctrl\+(C|V|X|Z|A|Y)$/.test(s.keys), s.keys + " clashes with text editing");
             });
-            compare(ShortcutList.shortcuts.length, 17);
+            compare(ShortcutList.shortcuts.length, 19);
             ["editLast", "quote", "browseUp", "browseDown", "firstMessage", "latestMessage"].forEach(function(id) {
                 verify(ShortcutList.keysFor(id) !== "", id);
             });

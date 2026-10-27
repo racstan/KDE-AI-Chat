@@ -74,12 +74,17 @@ QtObject {
         }
     }
 
+    // An incognito chat (chat/Incognito.qml) is left out, and never remembered as the last one.
     function persistSessions() {
         if (chat.sessionHistoryLoadBlocked)
             return;
+        var incognito = chat.incognito || null;
         try {
-            chat.store.save(chat.sessions);
-            chat.plasmoid.configuration.lastSessionId = chat.currentSessionId;
+            var kept = incognito ? incognito.storable(chat.sessions) : chat.sessions;
+            if (kept !== null)
+                chat.store.save(kept);
+            if (!incognito || !incognito.isIncognito(chat.currentSessionId))
+                chat.plasmoid.configuration.lastSessionId = chat.currentSessionId;
         } catch (e) {
             console.error("KDE AI Chat: failed to persist sessions:", e);
         }
@@ -100,10 +105,8 @@ QtObject {
         var parts = [];
         if (sessionData.source === "opencode")
             parts.push("OpenCode");
-
         if (sessionData.archived)
             parts.push("Archived");
-
         parts.push("Updated " + TimeFormat.formatDateTime(sessionData.updatedAt || sessionData.createdAt || Date.now()));
         return parts.join(" · ");
     }
@@ -112,7 +115,6 @@ QtObject {
         for (var i = 0; i < chat.sessions.length; i++) {
             if (chat.sessions[i].value === sessionId)
                 return i;
-
         }
         return -1;
     }
@@ -177,12 +179,17 @@ QtObject {
 
     // projectId: the project the chat starts in ("" = none). The mode is the
     // main one either way; a project with a folder gives the chat its folder.
-    function createSession(switchToNew, projectId) {
+    // incognito: a chat that is never stored (chat/Incognito.qml).
+    function createSession(switchToNew, projectId, incognito) {
+        var guard = chat.incognito || null;
+        if (switchToNew && guard && !guard.mayLeave(function() { manager.createSession(switchToNew, projectId, incognito); }))
+            return;
         if (switchToNew && chat.loading)
             chat.invalidateActiveRequest(false);
-        var project = projectId && chat.projects ? chat.projects.byId(projectId) : null;
+        var previousId = chat.currentSessionId;
+        var project = projectId && chat.projects && !incognito ? chat.projects.byId(projectId) : null;
         var s = {
-            "value": manager.makeSessionId(),
+            "value": incognito && guard ? guard.makeId() : manager.makeSessionId(),
             "text": "New Chat",
             "createdAt": Date.now(),
             "updatedAt": Date.now(),
@@ -193,6 +200,8 @@ QtObject {
             "openCodeWorkspaceCwd": project && project.folder ? "" : manager.modeSyncRef.newChatWorkspace(),
             "messages": []
         };
+        if (incognito && guard)
+            s.incognito = true;
         chat.sessions = [s].concat(chat.sessions);
         if (switchToNew) {
             chat.currentSessionId = s.value;
@@ -202,6 +211,8 @@ QtObject {
             manager._resetOpenChatState();
             chat.historyOnlyMode = chat.historySidePanel && chat.historyOnlyMode;
             chat.focusInput();
+            if (guard)
+                guard.left(previousId);
         }
         manager.persistSessions();
     }
@@ -214,6 +225,8 @@ QtObject {
     }
 
     function loadSessions() {
+        if (chat.incognito)
+            chat.incognito.cleanup("");  // pictures of an incognito chat still open when the widget ended
         chat.sessions = manager.parseSessions(chat.chatStore.loadAll());
         if (chat.sessions.length === 0)
             manager.createSession(true);
@@ -236,7 +249,6 @@ QtObject {
         var idx = manager.sessionIndexById(chat.currentSessionId);
         if (idx < 0)
             return ;
-
         var updated = chat.sessions.slice();
         var s = Object.assign({}, updated[idx]);
         s.text = chat.currentSessionTitle || "New Chat";
@@ -257,7 +269,6 @@ QtObject {
         var idx = manager.sessionIndexById(chat.currentSessionId);
         if (idx < 0)
             return ;
-
         var updated = chat.sessions.slice();
         var item = Object.assign({}, updated[idx]);
         item.source = EffectiveConfig.chatMode(item);
@@ -271,7 +282,6 @@ QtObject {
         var idx = manager.sessionIndexById(sessionId);
         if (idx < 0)
             return ;
-
         var updated = chat.sessions.slice();
         var item = Object.assign({}, updated[idx]);
         item.archived = !!archived;
@@ -308,40 +318,44 @@ QtObject {
         chat.currentChatRenameDraft = "";
     }
 
-    function switchSession(sessionId) {
-        if (!sessionId || sessionId === chat.currentSessionId)
+    // then(): runs once the chat is open (search results jump to a message).
+    function switchSession(sessionId, then) {
+        var guard = chat.incognito || null;
+        if (sessionId && sessionId === chat.currentSessionId && then)
+            then();
+        if (!sessionId || sessionId === chat.currentSessionId || manager.sessionIndexById(sessionId) < 0
+                || (guard && !guard.mayLeave(function() { manager.switchSession(sessionId, then); })))
             return ;
-
         // A response must never be allowed to write into the newly selected
         // session. Invalidate callbacks before changing the active model.
         chat.invalidateActiveRequest(false);
         manager.saveCurrentSessionState(false);
         var idx = manager.sessionIndexById(sessionId);
-        if (idx < 0)
-            return ;
-
+        var previousId = chat.currentSessionId;
         chat.currentSessionId = chat.sessions[idx].value;
         chat.currentSessionTitle = chat.sessions[idx].text;
         chat.messages = chat.sessions[idx].messages || [];
         chat.applySessionSource(chat.sessions[idx]);
         manager._resetOpenChatState();
+        if (guard)
+            guard.left(previousId);
         manager.persistSessions();
         chat.scrollToBottom(true);
         chat.focusInput();
         if (!chat.loading)
             Qt.callLater(chat.processNextQueuedMessage);
+        if (then)
+            then();
     }
 
     function deleteSession(sessionId) {
         if (chat.sessions.length <= 1)
             return ;
-
         if (sessionId === chat.currentSessionId)
             chat.invalidateActiveRequest(false);
         var idx = manager.sessionIndexById(sessionId);
         if (idx < 0)
             return ;
-
         var updated = chat.sessions.slice();
         var removed = updated.splice(idx, 1)[0];
         chat.sessions = updated;
@@ -370,7 +384,6 @@ QtObject {
         var idx = manager.sessionIndexById(sessionId || chat.currentSessionId);
         if (idx < 0)
             return ;
-
         var updated = chat.sessions.slice();
         var item = Object.assign({}, updated[idx]);
         item.openCodeSessionId = Sec.validateRemoteSessionId(remoteSessionId || "");
@@ -382,7 +395,6 @@ QtObject {
     function clearCurrentOpenCodeSessionIfNeeded() {
         if (!chat.openCodeMode)
             return ;
-
         manager.setCurrentOpenCodeSessionId("");
     }
 }

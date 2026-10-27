@@ -80,7 +80,14 @@ QtObject {
     property string editingSessionDraft: ""
     property var sessions: []
     function sessionSubtitle(s) { return (s.count || 0) + " messages"; }
-    function switchSession(id) { record("switch", arguments); currentSessionId = id; }
+    // then(): main.qml's switchSession runs it once the chat is open (search results).
+    function switchSession(id, then) {
+        record("switch", [id]);
+        currentSessionId = id;
+        if (then) then();
+    }
+    // main.qml's incognito chats: the real chat/Incognito.qml on this fake.
+    readonly property Chat.Incognito incognito: Chat.Incognito { chat: fake }
     function renameCurrentSession() { record("renameCurrent", arguments); }
     function createSession() { record("create", arguments); }
     // main.qml's projects (the real chat/Projects.qml on this fake's sessions);

@@ -258,9 +258,9 @@ Item {
             compare(page.customIconImageSource("/home/me/robot.gif"), "file:///home/me/robot.gif");
             var rows = [];
             find(page, function(item) { if (item.objectName === "shortcutRow") rows.push(item); return false; });
-            compare(rows.length, 17, "every shortcut is listed");
+            compare(rows.length, 19, "every shortcut is listed");
             compare(rows[0].text, "New chat");
-            compare(rows[7].text, "Next chat");
+            compare(rows[9].text, "Next chat");
             verify(named("shortcutNote") !== null);
             shot("config-appearance");
         }
