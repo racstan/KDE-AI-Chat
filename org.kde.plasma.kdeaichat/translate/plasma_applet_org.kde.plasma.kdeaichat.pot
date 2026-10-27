@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 14:02+0530\n"
+"POT-Creation-Date: 2026-10-27 14:16+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1428,6 +1428,33 @@ msgstr ""
 #: contents/ui/chat/ExportDialog.qml:51
 #, kde-format
 msgid "Export chat"
+msgstr ""
+
+#: contents/ui/chat/HelperCommands.qml:28
+#, kde-format
+msgid "Chat session successfully exported to %1"
+msgstr ""
+
+#: contents/ui/chat/HelperCommands.qml:44
+#, kde-format
+msgid "Export cancelled: invalid destination."
+msgstr ""
+
+#: contents/ui/chat/HelperCommands.qml:48
+#, kde-format
+msgid ""
+"This chat is too large to export (over 20 MB of text). Remove older messages "
+"or export a shorter conversation."
+msgstr ""
+
+#: contents/ui/chat/HelperCommands.qml:53
+#, kde-format
+msgid "the helper exited with code %1"
+msgstr ""
+
+#: contents/ui/chat/HelperCommands.qml:53
+#, kde-format
+msgid "Export failed: %1"
 msgstr ""
 
 #: contents/ui/chat/ImageJobCard.qml:23

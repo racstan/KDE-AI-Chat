@@ -26,6 +26,7 @@ contents/ui/chat/PrivacyBadge.qml
 contents/ui/chat/ErrorActions.qml
 contents/ui/chat/ErrorText.js
 contents/ui/chat/ExportDialog.qml
+contents/ui/chat/HelperCommands.qml
 contents/ui/chat/ImageJobCard.qml
 contents/ui/chat/ImageStore.qml
 contents/ui/chat/ImageViewer.qml

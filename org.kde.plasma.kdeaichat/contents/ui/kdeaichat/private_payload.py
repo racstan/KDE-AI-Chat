@@ -1,4 +1,4 @@
-"""Payloads that must not be on the command line (chat text read aloud).
+"""Payloads that must not be on the command line (chat text, memories, prompts: all but a few tiny commands).
 
 store/HelperRunner.qml writes them with QtCore Settings to
 ``$XDG_RUNTIME_DIR/kdeaichat-payload-<n>.ini`` (a private 0700 folder) as
@@ -17,7 +17,7 @@ import stat
 from typing import Any, Dict
 
 _NAME = re.compile(r"^kdeaichat-payload-[A-Za-z0-9-]{1,80}\.ini$")
-MAX_BYTES = 1024 * 1024
+MAX_BYTES = 100 * 1024 * 1024  # a 20 MB chat export, even all 3-byte characters, as base64
 
 
 class PayloadError(ValueError):

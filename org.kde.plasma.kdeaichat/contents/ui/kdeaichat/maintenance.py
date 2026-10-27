@@ -5,16 +5,24 @@ import os
 import signal
 from typing import Any, Dict, List
 
-from kdeaichat.common import MAX_FILE_BYTES, atomic_write_text, safe_path
+from kdeaichat.common import atomic_write_text, safe_path
+
+MAX_EXPORT_BYTES = 20 * 1024 * 1024
 
 
 def cmd_export_chat(payload: Dict[str, Any]) -> None:
-    """Decode a base64 chat export and write it to ``filePath`` as UTF-8."""
+    """Write the export ``content`` (or the older base64 ``b64Content``) to ``filePath`` as UTF-8."""
     path = safe_path(payload.get("filePath", ""))
-    data = base64.b64decode(str(payload.get("b64Content", "")), validate=True)
-    if len(data) > MAX_FILE_BYTES:
-        raise ValueError("chat export is too large")
-    atomic_write_text(path, data.decode("utf-8"))
+    if "content" in payload:
+        text = str(payload["content"])
+        if len(text.encode("utf-8")) > MAX_EXPORT_BYTES:
+            raise ValueError("chat export is too large")
+    else:
+        data = base64.b64decode(str(payload.get("b64Content", "")), validate=True)
+        if len(data) > MAX_EXPORT_BYTES:
+            raise ValueError("chat export is too large")
+        text = data.decode("utf-8")
+    atomic_write_text(path, text)
     print("OK")
 
 

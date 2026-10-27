@@ -1,10 +1,14 @@
-// One-off helper and shell commands: saving a chat export, removing a
+// One-off helper and shell commands: saving a chat export (privately), removing a
 // deleted chat's schedules, stopping the pre-1.4.0 plasmashell watchdog, and
 // desktop notifications. `chat` is the widget root (main.qml).
 import QtQuick
 import QtCore
 import org.kde.plasma.plasma5support as P5Support
 import "../Security.js" as Sec
+import "../store" as Store
+
+// i18n() is provided by Plasma at runtime.
+// qmllint disable unqualified
 
 P5Support.DataSource {
     id: commands
@@ -13,40 +17,43 @@ P5Support.DataSource {
 
     property var chat: null
 
+    // Where payloads go to the helper (privately, store/HelperRunner.qml); tests replace both.
+    property var runHelper: function(command, payload, onDone) {
+        runner.helperPath = chat.getHelperPath();
+        runner.run(command, payload, onDone);
+    }
+    // function(path): the desktop notification after a successful export.
+    property var exportNotifier: function(path) {
+        commands.connectSource("notify-send -i document-export " + Sec.quotePath("KDE AI Chat") + " "
+            + Sec.quotePath(i18n("Chat session successfully exported to %1", path)) + " #export-notify-" + Date.now());
+    }
+    readonly property int maxExportChars: 20000000
+
+    property QtObject runnerObject: Store.HelperRunner { id: runner }
+
     // Removes the schedules that target a deleted chat.
     function deleteSessionSchedules(sessionId) {
-        var helper = chat.getHelperPath();
-        if (helper) {
-            let deletePayload = Sec.base64Encode(JSON.stringify({"sessionId": sessionId}));
-            commands.connectSource("python3 " + Sec.quoteForShell(helper) + " delete_session_schedules " + Sec.rawShellSnippetQuote(deletePayload) + " #delete-session-schedules-" + Date.now());
-        }
+        runHelper("delete_session_schedules", {"sessionId": sessionId}, null);
     }
 
-    // Saves export text (built by chat/ExportDialog.qml) through the helper.
+    // Saves export text (built by chat/ExportDialog.qml) through the helper; the text goes to it in a
+    // private file, never on the command line. Errors show in the chat, the notification only on success.
     function writeExportFile(filePath, content) {
         var safePath = Sec.validateFilePath(filePath);
-        var helper = chat.getHelperPath();
-        if (!safePath || !helper) {
-            chat.pushErrorMessage("Export cancelled: invalid destination or helper unavailable.");
+        if (!safePath) {
+            chat.pushErrorMessage(i18n("Export cancelled: invalid destination."));
             return;
         }
-        if (content.length > 500000) {
-            chat.pushErrorMessage("This chat is too large to export in one operation. Remove older messages or export a shorter conversation.");
+        if (String(content).length > maxExportChars) {
+            chat.pushErrorMessage(i18n("This chat is too large to export (over 20 MB of text). Remove older messages or export a shorter conversation."));
             return;
         }
-        var payload = {
-            "filePath": safePath,
-            "b64Content": Sec.base64Encode(content)
-        };
-        var encoded = Sec.base64Encode(JSON.stringify(payload));
-        if (encoded.length > 900000) {
-            chat.pushErrorMessage("This chat is too large to export in one operation. Remove older messages or export a shorter conversation.");
-            return;
-        }
-        var cmd = "python3 " + Sec.quoteForShell(helper) + " export_chat " + Sec.rawShellSnippetQuote(encoded)
-            + " && (notify-send -i document-export " + Sec.quoteForShell("KDE AI Chat") + " "
-            + Sec.rawShellSnippetQuote("Chat session successfully exported to " + safePath) + " || true)";
-        commands.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #export-chat-save");
+        runHelper("export_chat", {"filePath": safePath, "content": String(content)}, function(stdout, exitCode, stderr) {
+            if (exitCode !== 0)
+                chat.pushErrorMessage(i18n("Export failed: %1", (stderr.trim() || stdout.trim() || i18n("the helper exited with code %1", exitCode))));
+            else
+                exportNotifier(safePath);
+        });
     }
 
     // The plasmashell watchdog was removed in 1.4.0. A monitor started by an
@@ -87,12 +94,6 @@ P5Support.DataSource {
     }
 
     onNewData: function(sourceName, data) {
-        var exitCode = Number(data["exit code"]);
-        if (isNaN(exitCode)) exitCode = 1;
-        var stdout = data["stdout"] || "";
-        var stderr = data["stderr"] || "";
-        if (sourceName.indexOf("#export-chat-save") !== -1 && exitCode !== 0)
-            chat.pushErrorMessage("Export failed: " + (stderr.trim() || stdout.trim() || ("helper exited with code " + exitCode)));
         disconnectSource(sourceName);
     }
 }
