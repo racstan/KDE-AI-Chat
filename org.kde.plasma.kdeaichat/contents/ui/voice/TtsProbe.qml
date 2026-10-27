@@ -127,12 +127,13 @@ Item {
         return [out[0]].concat(out.slice(1).sort(function(a, b) { return a.text.localeCompare(b.text); }));
     }
 
-    // Voices of an engine, in one language ("" = all): [{value, text}], default first.
-    function voiceChoices(engineId, language, defaultText) {
+    // Voices of an engine, in one language ("" = all): [{value, text}], default
+    // first. espeak-ng's variants ("English+Linda") are left out, except `keep`.
+    function voiceChoices(engineId, language, defaultText, keep) {
         var out = [{"value": "", "text": defaultText}];
         var list = voices[engineId] || [];
         for (var i = 0; i < list.length; i++) {
-            if (!language || list[i].locale === language)
+            if ((!language || list[i].locale === language) && Engines.plainVoice(list[i].name, keep))
                 out.push({"value": list[i].name, "text": list[i].name});
         }
         return out;

@@ -2,7 +2,10 @@
 // for System voices, and with a file engine whose helper and player are fakes:
 // it stays "playing" until the engine has really finished, stop is final,
 // pause/resume, chunks play in order one synthesis ahead, errors reach the
-// error signal and played files are removed.
+// error signal and played files are removed. The system voice says its
+// chunks one after another (no restarts, finished only after the last); the
+// natural voice reads a sentence at a time, two sentences ahead, with the
+// next file preloaded; while it isn't installed the system voice reads.
 import QtQuick
 import QtTest
 import "../../org.kde.plasma.kdeaichat/contents/ui/voice" as Voice
@@ -31,8 +34,15 @@ Item {
         onError: function(message) { root.errors.push(message); }
     }
 
+    Component {
+        id: qtSpeechComponent
+        Voice.QtSpeech { plugin: "mock" }
+    }
+
     QtObject {
         id: fakePlayer
+        property var preloaded: []
+        function preload(path) { preloaded.push(path); }
         signal ended()
         signal failed(string message)
         property var played: []
@@ -54,6 +64,110 @@ Item {
             root.errors = [];
             reader.pluginOverride = {"system": "mock"};
             reader.unload();
+            fakePlayer.played = [];
+            fakePlayer.preloaded = [];
+        }
+
+        function test_system_voice_says_chunks_one_after_another() {
+            var speech = qtSpeechComponent.createObject(root);
+            var events = [];
+            speech.chunkStarted.connect(function(text) { events.push("start " + text); });
+            speech.finished.connect(function() { events.push("finished"); });
+            speech.start(["One two three.", "Four five six.", "Seven."], {});
+            compare(events, ["start One two three."], "only the first chunk is said at first");
+            tryVerify(function() { return events.length >= 2; }, 10000);
+            compare(events[1], "start Four five six.");
+            tryVerify(function() { return events.indexOf("finished") >= 0; }, 15000);
+            compare(events, ["start One two three.", "start Four five six.", "start Seven.", "finished"],
+                    "each chunk once, in order, finished once after the last");
+            speech.destroy();
+        }
+
+        function test_system_voice_stop_says_nothing_more() {
+            var speech = qtSpeechComponent.createObject(root);
+            var events = [];
+            speech.chunkStarted.connect(function(text) { events.push(text); });
+            speech.finished.connect(function() { events.push("finished"); });
+            speech.start(["One two three four five six.", "Never said."], {});
+            wait(100);
+            speech.stop();
+            wait(1500);
+            compare(events, ["One two three four five six."]);
+            speech.destroy();
+        }
+
+        function test_reply_is_one_utterance_for_the_system_voice() {
+            reader.speak("First sentence. Second sentence! Third one?");
+            tryVerify(function() { return reader.currentChunk !== ""; }, 3000);
+            compare(reader.currentChunk, "First sentence. Second sentence! Third one?", "not restarted per sentence or word");
+            reader.stop();
+        }
+
+        function test_natural_voice_pipelines_sentences() {
+            root.config = {"voiceTtsEngine": "neural", "voiceTtsNeuralVoice": "bf_emma", "voiceTtsNeuralSpeed": 1.1};
+            reader.speak("The first sentence is here. The second one follows. A third one ends it. And a fourth.");
+            tryVerify(function() { return root.pendingCallbacks.length === 1; }, 3000);
+            var speech = findSpeech();
+            compare(speech.ahead, 2);
+            speech.player = fakePlayer;
+            var payload = root.pendingCallbacks[0].payload;
+            compare(payload.engine, "neural");
+            compare(payload.text, "The first sentence is here.", "the first sentence alone, so sound starts soon");
+            compare(payload.options.voiceTtsNeuralVoice, "bf_emma");
+            fileReply(0, {"ok": true, "path": "/run/1.wav"});
+            compare(fakePlayer.played, ["/run/1.wav"]);
+            compare(reader.currentChunk, "The first sentence is here.");
+            compare(root.pendingCallbacks.length, 2);
+            compare(root.pendingCallbacks[1].payload.text, "The second one follows.");
+            fileReply(1, {"ok": true, "path": "/run/2.wav"});
+            compare(fakePlayer.preloaded, ["/run/2.wav"], "the next sentence is loaded while one plays");
+            compare(root.pendingCallbacks.length, 3, "two sentences ahead");
+            fileReply(2, {"ok": true, "path": "/run/3.wav"});
+            compare(root.pendingCallbacks.length, 3, "not more than two ahead");
+            reader.pause();
+            compare(fakePlayer.state, "paused");
+            compare(reader.statusText, "Paused");
+            reader.resume();
+            fakePlayer.ended();
+            compare(fakePlayer.played, ["/run/1.wav", "/run/2.wav"]);
+            compare(fakePlayer.preloaded, ["/run/2.wav", "/run/3.wav"]);
+            compare(root.pendingCallbacks.length, 4);
+            fileReply(3, {"ok": true, "path": "/run/4.wav"});
+            fakePlayer.ended();
+            fakePlayer.ended();
+            verify(reader.isPlaying, "still playing the last sentence");
+            fakePlayer.ended();
+            verify(!reader.isPlaying);
+            compare(fakePlayer.played, ["/run/1.wav", "/run/2.wav", "/run/3.wav", "/run/4.wav"]);
+            compare(root.errors.length, 0);
+        }
+
+        function test_natural_voice_stop_is_final() {
+            root.config = {"voiceTtsEngine": "neural"};
+            reader.speak("One sentence here. Another sentence here.");
+            tryVerify(function() { return root.pendingCallbacks.length === 1; }, 3000);
+            findSpeech().player = fakePlayer;
+            fileReply(0, {"ok": true, "path": "/run/a.wav"});
+            reader.stop();
+            compare(fakePlayer.state, "stopped");
+            fileReply(1, {"ok": true, "path": "/run/b.wav"});
+            compare(fakePlayer.played, ["/run/a.wav"]);
+            verify(!reader.isPlaying);
+        }
+
+        function test_without_the_natural_voice_the_system_voice_reads() {
+            root.config = {"voiceTtsEngine": "neural"};
+            reader.speak("Hello there, this is read anyway.");
+            tryVerify(function() { return root.pendingCallbacks.length === 1; }, 3000);
+            fileReply(0, {"ok": false, "error": "the natural voice is not installed", "code": "not_installed"});
+            tryCompare(reader, "engineId", "system", 3000);
+            verify(reader.usedFallback);
+            verify(reader.isPlaying);
+            tryVerify(function() { return !reader.isPlaying; }, 15000);
+            compare(root.errors.length, 0, "no error: the system voice read it");
+            reader.speak("Again.");
+            compare(reader.engineId, "neural", "the natural voice is tried again next time");
+            reader.stop();
         }
 
         function test_system_voice_plays_until_the_engine_is_done() {

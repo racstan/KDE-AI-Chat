@@ -1,7 +1,9 @@
 // Read aloud with the engine chosen in Settings → Voice (voice/TtsEngines.js).
 // Used by VoiceManager.qml for the chat and by the settings page's test
 // button. The engine is loaded on the first speak() and unloaded after two
-// idle minutes, so nothing runs while read aloud isn't used.
+// idle minutes, so nothing runs while read aloud isn't used. While the chosen
+// engine isn't installed (the natural voice before its one-time install),
+// System voices read instead, without an error.
 //
 // `configuration` is read when speak() is called: plasmoid.configuration,
 // or the settings page's unsaved values.
@@ -31,9 +33,14 @@ Item {
     readonly property string statusText: phase === "synthesizing" ? "Generating speech..."
         : phase === "playing" ? "Reading aloud..." : phase === "paused" ? "Paused" : ""
 
+    // The default engine isn't installed yet, so the fallback engine read
+    // the last text (the chat and the settings page can say so).
+    property bool usedFallback: false
+
     signal error(string message)
 
     property var _pending: null
+    property string _lastText: ""
 
     function pluginFor(spec) {
         return (pluginOverride && pluginOverride[spec.id]) || spec.plugin;
@@ -52,10 +59,10 @@ Item {
 
     // Starts reading `text`, replacing what is being read (isPlaying stays
     // true across the switch). False when there is nothing to read.
-    function speak(text) {
+    function speak(text, engineOverride) {
         var config = configuration || {};
-        var spec = Engines.engine(String(config.voiceTtsEngine || "")) || Engines.engine(Engines.defaultEngine);
-        var chunks = Engines.chunks(Engines.speakableText(text));
+        var spec = Engines.engine(engineOverride || String(config.voiceTtsEngine || "")) || Engines.engine(Engines.defaultEngine);
+        var chunks = Engines.chunksFor(spec, text);
         if (chunks.length === 0) {
             stop();
             return false;
@@ -65,12 +72,15 @@ Item {
             runner.stop();
         currentChunk = "";
         reader.text = text;
+        _lastText = text;
+        usedFallback = !!engineOverride;
         engineId = spec.id;
         phase = spec.kind === "qt" ? "playing" : "synthesizing";
         _pending = {"chunks": chunks, "settings": settingsFor(spec, config)};
         idle.stop();
         var source = spec.kind === "qt" ? "QtSpeech.qml" : "FileSpeech.qml";
-        var props = spec.kind === "qt" ? {"plugin": pluginFor(spec)} : {"engine": spec.id, "runHelper": runHelper};
+        var props = spec.kind === "qt" ? {"plugin": pluginFor(spec)}
+            : {"engine": spec.id, "runHelper": runHelper, "ahead": spec.ahead || 1};
         var key = spec.id + ":" + pluginFor(spec);
         if (loader.item && loader.engineKey === key) {
             _begin();
@@ -121,6 +131,9 @@ Item {
     function unload() {
         stop();
         idle.stop();
+        // The natural voice's service would exit by itself when idle; stop it now.
+        if (engineId === "neural" && runHelper)
+            runHelper("tts_neural_stop", {}, null);
         loader.engineKey = "";
         loader.source = "";
     }
@@ -140,7 +153,18 @@ Item {
                 reader.phase = "playing";
         }
         function onFinished() { reader._done(); }
-        function onFailed(message) {
+        function onFailed(message, code) {
+            // Not installed yet: the system voice reads instead, with no error.
+            // (Later: this runner is replaced, so not from inside its signal.)
+            var fallback = Engines.fallbackEngine;
+            if (code === "not_installed" && reader.engineId !== fallback && reader.phase !== "") {
+                let text = reader._lastText;
+                Qt.callLater(function() {
+                    if (reader.phase !== "" && reader._lastText === text)
+                        reader.speak(text, fallback);
+                });
+                return;
+            }
             reader._done();
             reader.error(message);
         }

@@ -1,7 +1,8 @@
-// Reads aloud with an engine that writes sound files (Piper, a speech
-// server, a custom command): the helper (kdeaichat/tts.py) makes one WAV per
-// chunk, one chunk ahead of the one playing, and voice/WavPlayer.qml plays
-// them. Same API as voice/QtSpeech.qml.
+// Reads aloud with an engine that writes sound files (the natural voice,
+// Piper, a speech server, a custom command): the helper (kdeaichat/tts.py)
+// makes one WAV per chunk, up to `ahead` chunks ahead of the one playing, and
+// voice/WavPlayer.qml plays them, the next one already loaded so sentences
+// follow without a gap. Same API as voice/QtSpeech.qml.
 //
 // `runHelper(command, payload, callback(stdout, exitCode, stderr))` is
 // store/HelperRunner.qml's run(); tests pass a fake, and may replace `player`.
@@ -13,11 +14,13 @@ Item {
     property string engine: ""
     property var runHelper: null
     property var player: wavPlayer
+    // Chunks made ahead of the one playing (one helper call at a time).
+    property int ahead: 1
     readonly property bool canPause: true
 
     signal chunkStarted(string text)
     signal finished()
-    signal failed(string message)
+    signal failed(string message, string code)
 
     property int _generation: 0
     property var _chunks: []
@@ -36,10 +39,9 @@ Item {
 
     function stop() {
         _generation++;
-        if (_playing) {
-            player.stop();
+        if (_playing)
             _remove(_playing.path);
-        }
+        player.stop();
         for (var i = 0; i < _ready.length; i++)
             _remove(_ready[i].path);
         _playing = null;
@@ -58,13 +60,13 @@ Item {
     }
 
     function _synthesizeNext() {
-        if (_synthesizing || _next >= _chunks.length || _ready.length > 0)
+        if (_synthesizing || _next >= _chunks.length || _ready.length >= Math.max(1, ahead))
             return;
         var generation = _generation;
         var text = _chunks[_next++];
         _synthesizing = true;
         if (!runHelper) {
-            failed("The helper is not available.");
+            failed("The helper is not available.", "failed");
             return;
         }
         runHelper("tts_synthesize", {"engine": engine, "text": text, "options": _options}, function(stdout, exitCode, stderr) {
@@ -77,12 +79,16 @@ Item {
             speech._synthesizing = false;
             if (!reply || !reply.ok) {
                 speech.stop();
-                speech.failed(reply && reply.error ? reply.error : (String(stderr).trim() || "The speech engine gave no answer."));
+                speech.failed(reply && reply.error ? reply.error : (String(stderr).trim() || "The speech engine gave no answer."),
+                              reply && reply.code ? String(reply.code) : "failed");
                 return;
             }
             speech._ready = speech._ready.concat([{"path": reply.path, "text": text}]);
             if (!speech._playing)
                 speech._playNext();
+            else if (speech._ready.length === 1 && speech.player.preload)
+                speech.player.preload(reply.path);
+            speech._synthesizeNext();
         });
     }
 
@@ -98,6 +104,8 @@ Item {
         _ready = _ready.slice(1);
         chunkStarted(_playing.text);
         player.play(_playing.path);
+        if (_ready.length > 0 && player.preload)
+            player.preload(_ready[0].path);
         _synthesizeNext();
     }
 
@@ -114,7 +122,7 @@ Item {
             if (!speech._playing)
                 return;
             speech.stop();
-            speech.failed(message);
+            speech.failed(message, "failed");
         }
     }
 

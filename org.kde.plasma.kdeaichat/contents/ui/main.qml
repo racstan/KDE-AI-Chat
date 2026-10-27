@@ -377,10 +377,10 @@ PlasmoidItem {
         return ProviderService.getProviderDisplayName(providerId, plasmoid.configuration);
     }
 
-    function triggerNotificationSound() {
+    function triggerNotificationSound(readReply) {   // readReply false: a question, not a new reply
         notifier.playSound();
 
-        if (voiceManager && voiceManager.ttsEnabled && (voiceManager.ttsAuto || voiceManager.callModeActive)) {
+        if (readReply !== false && voiceManager && voiceManager.ttsEnabled && (voiceManager.ttsAuto || voiceManager.callModeActive)) {
             // Find the last assistant message
             for (var i = root.messages.length - 1; i >= 0; i--) {
                 if (root.messages[i].role === "assistant") {

@@ -2,7 +2,12 @@
 // Kokoro, Flite, or Qt's mock engine in tests). One runner of
 // voice/ReadAloud.qml; voice/FileSpeech.qml is the other, with the same API:
 //   start(chunks, settings), stop(), pause(), resume()
-//   chunkStarted(text), finished(), failed(message); canPause
+//   chunkStarted(text), finished(), failed(message, code); canPause
+//
+// Chunks are said one after another: the next one when the engine is Ready
+// after speaking the previous. (Enqueuing them all at once made Speech
+// Dispatcher announce every chunk at the start and go Ready between them,
+// so the reader looked finished while it was still talking.)
 import QtQuick
 import QtTextToSpeech
 import "TtsEngines.js" as Engines
@@ -15,12 +20,12 @@ Item {
 
     signal chunkStarted(string text)
     signal finished()
-    signal failed(string message)
+    signal failed(string message, string code)
 
     property bool _active: false
+    // The chunk being said has made the engine speak (a Ready before that is
+    // left over from the text this replaced).
     property bool _spoke: false
-    // Chunks not started yet. aboutToSynthesize comes once per chunk, in
-    // order (its id isn't reliable, and the first one fires inside enqueue()).
     property var _queue: []
 
     // Applies {language, voice, rate, pitch} (as stored; "" = engine default).
@@ -44,26 +49,31 @@ Item {
 
     function start(chunks, settings) {
         if (tts.state === TextToSpeech.Error) {
-            failed(tts.errorString() || "The speech engine could not start.");
+            failed(tts.errorString() || "The speech engine could not start.", "failed");
             return;
         }
         apply(settings || {});
         _active = true;
-        _spoke = false;
         _queue = chunks.slice();
-        for (var i = 0; i < chunks.length; i++)
-            tts.enqueue(chunks[i]);
+        _sayNext();
     }
 
-    function _finish() {
-        settle.stop();
-        _active = false;
-        finished();
+    function _sayNext() {
+        if (_queue.length === 0) {
+            _active = false;
+            finished();
+            return;
+        }
+        var text = _queue[0];
+        _queue = _queue.slice(1);
+        _spoke = false;
+        chunkStarted(text);
+        tts.say(text);
     }
 
     function stop() {
-        settle.stop();
         _active = false;
+        _queue = [];
         tts.stop(TextToSpeech.Immediate);
     }
 
@@ -80,39 +90,19 @@ Item {
         id: tts
         engine: speech.plugin
 
-        onAboutToSynthesize: function(id) {
-            if (speech._active && speech._queue.length > 0) {
-                var text = speech._queue[0];
-                speech._queue = speech._queue.slice(1);
-                speech.chunkStarted(text);
-            }
-        }
         onStateChanged: function(state) {
             if (!speech._active)
                 return;
-            if (state === TextToSpeech.Speaking || state === TextToSpeech.Paused) {
+            if (state === TextToSpeech.Speaking || state === TextToSpeech.Paused || state === TextToSpeech.Synthesizing)
                 speech._spoke = true;
-                settle.stop();
-            } else if (state === TextToSpeech.Ready && speech._spoke) {
-                // Chunks still to come: Ready may be a gap between them (or a
-                // late Ready from the text this replaced), so wait to be sure.
-                if (speech._queue.length === 0)
-                    speech._finish();
-                else
-                    settle.restart();
-            }
+            else if (state === TextToSpeech.Ready && speech._spoke)
+                speech._sayNext();
         }
         onErrorOccurred: function(reason, message) {
             if (!speech._active)
                 return;
             speech._active = false;
-            speech.failed(message || "The speech engine failed.");
+            speech.failed(message || "The speech engine failed.", "failed");
         }
-    }
-
-    Timer {
-        id: settle
-        interval: 1500
-        onTriggered: if (speech._active && tts.state === TextToSpeech.Ready) speech._finish()
     }
 }
