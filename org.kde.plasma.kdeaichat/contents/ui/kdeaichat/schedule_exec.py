@@ -62,7 +62,7 @@ def _run_direct(config, chat, project, eff, prompt) -> Dict[str, Any]:
 
 def _run_opencode(config, chat, project, eff, prompt) -> Dict[str, Any]:
     directory = _workspace(config, chat, project)
-    use_agent_model = chat.get("openCodeUseAgentModel", config.get("openCodeUseAgentModel")) is not False
+    use_agent_model = chat.get("openCodeUseAgentModel", config.get("openCodeUseAgentModel")) is True
     body = schedule_opencode.prompt_body(prompt, eff, ctx.system_prompt(config, chat, project, direct=False), use_agent_model)
     result = schedule_opencode.run(config, chat, directory, body, AGENT_TIMEOUT)
     result["model"] = f"{eff['provider']}/{eff['model']}" if eff["provider"] and eff["model"] else "OpenCode"

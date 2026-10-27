@@ -32,7 +32,9 @@ function promptBody(options) {
     var body = {"parts": options.parts || []};
     if (options.agent)
         body.agent = options.agent;
-    if (options.providerId && options.modelId && (!options.agent || options.useAgentModel === false))
+    // The chosen model wins; an agent's own model (from OpenCode's config) is
+    // used only when no model is chosen, or when useAgentModel is true.
+    if (options.providerId && options.modelId && (!options.agent || options.useAgentModel !== true))
         body.model = {"providerID": options.providerId, "modelID": options.modelId};
     if (options.system)
         body.system = options.system;

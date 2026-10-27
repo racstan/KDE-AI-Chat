@@ -217,7 +217,7 @@ QtObject {
                 "modelId": modelId,
                 "agent": eff.agent,
                 "variantSend": mode.variantSend(eff),
-                "useAgentModel": chat.getSessionProperty(sessionId, "openCodeUseAgentModel", chat.openCodeUseAgentModel) !== false,
+                "useAgentModel": chat.getSessionProperty(sessionId, "openCodeUseAgentModel", chat.openCodeUseAgentModel) === true,
                 "system": mode.systemFor(sessionId)
             }),
             "xhrFactory": target.xhrFactory,

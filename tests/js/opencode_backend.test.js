@@ -70,8 +70,11 @@ const tests = {
         assert.deepStrictEqual(plain(OC.promptBody({parts: [{type: "text", text: "hi"}], providerId: "openrouter", modelId: "openrouter/auto"})),
                                {parts: [{type: "text", text: "hi"}], model: {providerID: "openrouter", modelID: "openrouter/auto"}});
         const withAgent = plain(OC.promptBody({parts: [], agent: "build", providerId: "p", modelId: "m"}));
-        assert.ok(!("model" in withAgent), "agent's own model is used by default");
-        assert.ok("model" in plain(OC.promptBody({parts: [], agent: "build", providerId: "p", modelId: "m", useAgentModel: false})));
+        assert.deepStrictEqual(withAgent.model, {providerID: "p", modelID: "m"}, "the chosen model wins over the agent's own");
+        assert.strictEqual(withAgent.agent, "build");
+        assert.ok(!("model" in plain(OC.promptBody({parts: [], agent: "build", providerId: "p", modelId: "m", useAgentModel: true}))),
+                  "the agent's own model only when asked for");
+        assert.ok(!("model" in plain(OC.promptBody({parts: [], agent: "build", providerId: "", modelId: ""}))), "no model chosen: the agent's");
         assert.ok(!("model" in plain(OC.promptBody({parts: [], providerId: "", modelId: ""}))), "no empty model");
     },
 

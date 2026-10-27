@@ -109,7 +109,7 @@ def test_opencode_runs_in_the_chats_session_and_refuses_permissions(chat_env, op
         while not _healthy(port) and time.time() < deadline:
             time.sleep(0.1)
         chat_env.config(useOpenCode=False, openCodeUrl=f"http://127.0.0.1:{port}/v1", openCodeProvider="prov",
-                        openCodeModel="mod", openCodeAgent="build", openCodeUseAgentModel=False, systemPrompt="Sys.")
+                        openCodeModel="mod", openCodeAgent="build", systemPrompt="Sys.")
         chat_env.add_chat("s-1", [], source="opencode", openCodeSessionId="ses_old", openCodeWorkspaceCwd=str(tmp_path))
         assert schedule_exec.run_prompt(dict(SCHEDULE), None, NOW) == "ok"
     finally:

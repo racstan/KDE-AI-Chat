@@ -241,7 +241,7 @@
       <default></default>
     </entry>
     <entry name="openCodeUseAgentModel" type="Bool">
-      <default>true</default>
+      <default>false</default>
     </entry>
 
 

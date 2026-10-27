@@ -35,7 +35,7 @@ config = f"{sandbox}/config/plasmawindowedrc"
 text = open(config, encoding="utf-8").read()
 group = "[Applets][4][Configuration][General]\n"
 text = text.replace(group, group + f"useOpenCode=true\nopenCodeUrl=http://127.0.0.1:{port}\nopenCodeWorkspaceCwd=/tmp/kdeaichat-mock-work\n"
-                    "openCodeProvider=mockprov\nopenCodeModel=mock-model\n")
+                    "openCodeProvider=mockprov\nopenCodeModel=mock-model\nopenCodeAgent=build\n")
 open(config, "w", encoding="utf-8").write(text)
 PY
 

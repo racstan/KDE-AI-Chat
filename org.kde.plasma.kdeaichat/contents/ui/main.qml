@@ -58,7 +58,7 @@ PlasmoidItem {
     property string modeNotice: ""
     property string openCodeAgent: plasmoid.configuration.openCodeAgent || ""
     property string openCodeWorkspaceCwd: ""  // the open chat's workspace ("" = none), set by modeSync
-    property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel !== false
+    property bool openCodeUseAgentModel: plasmoid.configuration.openCodeUseAgentModel === true
     property var openCodeAgentsList: []
     // The workspace folder openCodeAgentsList was loaded for (null: not loaded yet).
     property var openCodeAgentsDirectory: null
