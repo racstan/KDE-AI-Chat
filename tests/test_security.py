@@ -6,6 +6,7 @@ malicious inputs the audit flagged. Uses Node/qjs to actually evaluate
 the QML module (with its `.pragma library` directive stripped) so the
 real regexes and string ops are exercised.
 """
+import json
 import os
 import re
 import subprocess
@@ -195,13 +196,14 @@ class TestSecurityFile(unittest.TestCase):
         # Both inputs should produce []
         self.assertEqual(out.strip().count("[]"), 2)
 
-    def test_validate_path_rejects_shell_metachars(self):
+    def test_validate_path_keeps_ordinary_punctuation(self):
+        # Shell characters are path data: quotePath() keeps them inside quotes.
         out, err, rc = self._run_script("""
-            console.log("[" + validateFilePath("/tmp/a;b") + "]");
-            console.log("[" + validateFilePath("/tmp/$(rm)") + "]");
+            console.log("[" + validateFilePath("/tmp/Report (final).pdf") + "]");
+            console.log("[" + validateFilePath("/tmp/Q&A; $2026.docx") + "]");
         """)
         self.assertEqual(rc, 0, msg=err)
-        self.assertEqual(out.strip().count("[]"), 2)
+        self.assertEqual(out.split("\n")[:2], ["[/tmp/Report (final).pdf]", "[/tmp/Q&A; $2026.docx]"])
 
     def test_validate_path_rejects_empty(self):
         out, err, rc = self._run_script("""
@@ -300,20 +302,35 @@ class TestValidateFilePath(unittest.TestCase):
         self.assertEqual(rc, 0, msg=err)
         self.assertIn("[]", out)
 
-    def test_rejects_shell_metachars(self):
-        out, err, rc = self._run('console.log("[" + validateFilePath("file;rm.txt") + "]");')
+    def test_rejects_newlines(self):
+        out, err, rc = self._run('console.log("[" + validateFilePath("/tmp/a\\nb.txt") + "]");')
         self.assertEqual(rc, 0, msg=err)
         self.assertIn("[]", out)
 
-    def test_rejects_pipe(self):
-        out, err, rc = self._run('console.log("[" + validateFilePath("file|cat.txt") + "]");')
+    def test_quoted_awkward_names_reach_the_program_unchanged(self):
+        # Each name goes through quotePath() into a real sh -c, nested the
+        # way chat/HelperCommands.qml nests it, and must come back intact.
+        names = ["/tmp/Report (final).pdf", "/tmp/Q&A.docx", "/tmp/a;b|c<d>e", "/tmp/$(touch pwned)",
+                 "/tmp/`id`.txt", "/tmp/it's \"here\".md", "/tmp/back\\slash", "/tmp/#hash ?.md"]
+        driver = "var names = " + json.dumps(names) + ";\n" + """
+            names.forEach(function(n) {
+                var p = validateFilePath(n);
+                if (p !== n) throw new Error("refused " + n);
+                console.log("sh -c " + rawShellSnippetQuote("printf '%s\\\\0' " + quotePath(p)));
+            });
+        """
+        out, err, rc = self._run(driver)
         self.assertEqual(rc, 0, msg=err)
-        self.assertIn("[]", out)
+        with tempfile.TemporaryDirectory() as cwd:
+            for name, command in zip(names, out.strip().split("\n")):
+                got = subprocess.run(["sh", "-c", command], cwd=cwd, capture_output=True, timeout=10)
+                self.assertEqual(got.stdout.decode(), name + "\0", msg=command)
+                self.assertEqual(os.listdir(cwd), [], msg="nothing may run: " + command)
 
-    def test_rejects_backtick(self):
-        out, err, rc = self._run('console.log("[" + validateFilePath("file`whoami`.txt") + "]");')
+    def test_file_url_escapes_hash_and_question_mark(self):
+        out, err, rc = self._run('console.log(fileUrl("/tmp/a #1?.pdf"));')
         self.assertEqual(rc, 0, msg=err)
-        self.assertIn("[]", out)
+        self.assertEqual(out.strip(), "file:///tmp/a%20%231%3F.pdf")
 
     def test_accepts_safe_absolute(self):
         out, err, rc = self._run('console.log("[" + validateFilePath("/home/user/file.txt") + "]");')

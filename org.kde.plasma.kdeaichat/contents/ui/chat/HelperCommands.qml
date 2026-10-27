@@ -45,7 +45,7 @@ P5Support.DataSource {
         }
         var cmd = "python3 " + Sec.quoteForShell(helper) + " export_chat " + Sec.rawShellSnippetQuote(encoded)
             + " && (notify-send -i document-export " + Sec.quoteForShell("KDE AI Chat") + " "
-            + Sec.quoteForShell("Chat session successfully exported to " + safePath) + " || true)";
+            + Sec.rawShellSnippetQuote("Chat session successfully exported to " + safePath) + " || true)";
         commands.connectSource("sh -c " + Sec.rawShellSnippetQuote(cmd) + " #export-chat-save");
     }
 

@@ -37,7 +37,7 @@ Flow {
             onClicked: {
                 var safe = Sec.validateFilePath(modelData.path || "");
                 if (safe)
-                    Qt.openUrlExternally("file://" + safe);
+                    Qt.openUrlExternally(Sec.fileUrl(safe));
             }
 
             background: Rectangle {

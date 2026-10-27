@@ -192,7 +192,7 @@ Item {
             compare(page.cfg_aiAvatar, decodeURIComponent(picture.replace(/^file:\/\//, "")));
             compare(page.avatarError, "");
             var chosen = page.cfg_aiAvatar;
-            page.setAvatarFile("file:///home/me/a$(x).png");
+            page.setAvatarFile("file:///home/me/../a.png");
             compare(page.cfg_aiAvatar, chosen, "unsafe path refused");
             verify(page.avatarError !== "");
             page.setAvatarFile(picture);

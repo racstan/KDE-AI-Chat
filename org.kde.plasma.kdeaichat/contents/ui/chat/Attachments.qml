@@ -48,7 +48,7 @@ P5Support.DataSource {
         var extractor = attachments.getDocExtractorPath();
         var safePath = Sec.validateFilePath(value);
         if (extractor && safePath)
-            attachments.connectSource("python3 " + Sec.quoteForShell(extractor) + " --cleanup " + Sec.quoteForShell(safePath) + " #cleanup-attachment-" + Date.now());
+            attachments.connectSource("python3 " + Sec.quoteForShell(extractor) + " --cleanup " + Sec.quotePath(safePath) + " #cleanup-attachment-" + Date.now());
     }
 
     function removeAttachedFile(index) {
@@ -121,7 +121,7 @@ P5Support.DataSource {
         }
         var marker = "extract-file-" + (++attachments.requestCounter) + "-" + Date.now();
         var pending = Object.assign({}, attachments.pendingRequests || {});
-        var cmd = "timeout 60s python3 " + Sec.quoteForShell(docExtractorPath) + " " + Sec.quoteForShell(safePath);
+        var cmd = "timeout 60s python3 " + Sec.quoteForShell(docExtractorPath) + " " + Sec.quotePath(safePath);
         var source = cmd + " #" + marker;
         pending[marker] = {"path": safePath, "source": source};
         attachments.pendingRequests = pending;

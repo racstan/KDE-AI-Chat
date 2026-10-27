@@ -140,14 +140,14 @@ function validateImageUrl(url) {
 }
 
 /**
- * Validate a local file path before embedding it in a shell command.
+ * Validate a local file path before passing it to the helper.
  *
- * Allows only characters that are common in real filenames and rejects
- * everything that could be exploited to break out of the quoted
- * argument. Path traversal segments (`..`) are also rejected.
+ * Any character a file name can hold is accepted, so `Report (final).pdf`
+ * and `Q&A.docx` work: callers must quote the result with quotePath(),
+ * never quoteForShell() (which deletes characters and so names another file).
+ * Rejected: NUL, newlines, a leading `~` and `..` segments.
  *
- * Returns `""` for any non-string input, paths containing
- * traversal sequences, or paths with disallowed characters.
+ * Returns `""` for any non-string input or rejected path.
  *
  * @param {string} p  Raw file path.
  * @returns {string}  Sanitized path, or `""` if invalid.
@@ -159,11 +159,6 @@ function validateFilePath(p) {
     if (s === "" || s.length > _MAX_SHELL_ARG_LEN || s.charAt(0) === "~")
         return "";
     if (/[\u0000\n\r]/.test(s))
-        return "";
-    // Spaces, Unicode, quotes and ordinary filename punctuation are valid
-    // path data. Shell metacharacters remain rejected at this boundary even
-    // though callers also quote the argument.
-    if (/[\$()\\`;&|<>]/.test(s))
         return "";
     let segments = s.split("/");
     for (let i = 0; i < segments.length; i++) {
@@ -240,6 +235,28 @@ function rawShellSnippetQuote(s) {
     return "'" + out.replace(/'/g, "'\\''") + "'";
 }
 
+
+/**
+ * Quote a path from validateFilePath() as one shell word, keeping every
+ * character: inside single quotes only `'` itself needs escaping.
+ *
+ * @param {string} p  A validated path.
+ * @returns {string}  The path in single quotes.
+ */
+function quotePath(p) {
+    return rawShellSnippetQuote(p);
+}
+
+/**
+ * The `file://` URL of a validated local path, with `#`, `?`, `%` and
+ * spaces escaped so the whole name stays part of the path.
+ *
+ * @param {string} p  A validated absolute path.
+ * @returns {string}  A file URL.
+ */
+function fileUrl(p) {
+    return "file://" + String(p).split("/").map(encodeURIComponent).join("/");
+}
 
 /**
  * A safe, standard, pure-JavaScript implementation of Base64 encoding.
