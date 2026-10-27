@@ -12,6 +12,7 @@ import "../backends/OpenCodeEvents.js" as OpenCodeEvents
 import "../backends/OpenCodeHistory.js" as OpenCodeHistory
 import "../Variants.js" as Variants
 import "EffectiveConfig.js" as EffectiveConfig
+import "Personality.js" as Personality
 
 QtObject {
     id: mode
@@ -190,6 +191,13 @@ QtObject {
         requestNext();
     }
 
+    // The system text sent with each prompt: Settings → Personality first
+    // (unless this chat turned it off), as in direct chats, then the rest.
+    function systemFor(sessionId) {
+        var personality = chat.getSessionProperty(sessionId, "personalityOff", false) === true ? "" : Personality.block(chat.plasmoid.configuration);
+        return [personality, chat.buildEffectiveSystemPrompt(sessionId)].filter(function(t) { return t; }).join("\n\n");
+    }
+
     function sendOpenCodePrompt(sessionId, generation, target) {
         var source = chat.sessionMessages(sessionId);
         var eff = chat.effectiveConfig(sessionId);
@@ -210,7 +218,7 @@ QtObject {
                 "agent": eff.agent,
                 "variantSend": mode.variantSend(eff),
                 "useAgentModel": chat.getSessionProperty(sessionId, "openCodeUseAgentModel", chat.openCodeUseAgentModel) !== false,
-                "system": chat.buildEffectiveSystemPrompt(sessionId)
+                "system": mode.systemFor(sessionId)
             }),
             "xhrFactory": target.xhrFactory,
             "parserFactory": DirectBackend.createSseParser,

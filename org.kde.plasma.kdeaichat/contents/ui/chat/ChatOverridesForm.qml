@@ -333,20 +333,19 @@ ColumnLayout {
         font: Kirigami.Theme.smallFont
     }
 
-    // --- Instructions and length (not for OpenCode, which has its own) ---
+    // --- Instructions (OpenCode has its own: Personality only) and length ---
 
     Kirigami.Separator {
-        visible: form.draft.mode !== "opencode"
         Layout.fillWidth: true
     }
 
     SettingField {
-        visible: form.draft.mode !== "opencode"
         label: i18n("Instructions")
         help: i18n("Extra instructions only for this chat, for example \"Answer in French\" or \"You are a patient maths tutor\". \"Use my Personality settings\" adds what you filled in on the Personality settings page.") // qmllint disable unqualified
 
         PC3.CheckBox {
             id: systemCheck
+            visible: form.draft.mode !== "opencode"
             text: i18n("Give this chat system instructions")
             onCheckedChanged: {
                 form.draft.systemEnabled = checked;
@@ -358,6 +357,7 @@ ColumnLayout {
             Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
             Accessible.name: placeholderText
             id: systemArea
+            visible: form.draft.mode !== "opencode"
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
             enabled: systemCheck.checked
@@ -372,7 +372,6 @@ ColumnLayout {
         PC3.CheckBox {
             id: personalityCheck
             objectName: "personalityCheck"
-            visible: form.draft.mode === "provider"
             text: i18n("Use my Personality settings") // qmllint disable unqualified
             onToggled: {
                 form.draft.personalityOn = personalityCheck.checked;

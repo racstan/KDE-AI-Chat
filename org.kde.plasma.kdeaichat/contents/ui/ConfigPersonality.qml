@@ -254,7 +254,7 @@ KCM.SimpleKCM {
             Layout.topMargin: Kirigami.Units.smallSpacing
             wrapMode: Text.Wrap
             color: Kirigami.Theme.disabledTextColor
-            text: i18n("What you fill in here is sent at the start of every chat with a provider, unless a chat turns it off in its chat settings. OpenCode and Pi chats keep their own instructions. The names and avatars show in the chat.")
+            text: i18n("What you fill in here is sent at the start of every chat (direct, OpenCode and Pi), unless a chat turns it off in its chat settings. The names and avatars show in the chat.")
         }
 
         Item {

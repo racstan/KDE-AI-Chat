@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 18:38+0530\n"
+"POT-Creation-Date: 2026-10-27 18:51+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -396,12 +396,12 @@ msgstr ""
 msgid "Choose working folder"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:345
+#: contents/ui/chat/ChatOverridesForm.qml:343
 #, kde-format
 msgid "Instructions"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:346
+#: contents/ui/chat/ChatOverridesForm.qml:344
 #, kde-format
 msgid ""
 "Extra instructions only for this chat, for example \"Answer in French\" or "
@@ -409,7 +409,7 @@ msgid ""
 "you filled in on the Personality settings page."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:350
+#: contents/ui/chat/ChatOverridesForm.qml:349
 #, kde-format
 msgid "Give this chat system instructions"
 msgstr ""
@@ -419,46 +419,46 @@ msgstr ""
 msgid "Instructions for this chat"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:376
+#: contents/ui/chat/ChatOverridesForm.qml:375
 #, kde-format
 msgid "Use my Personality settings"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:386
-#: contents/ui/chat/ChatOverridesForm.qml:390
+#: contents/ui/chat/ChatOverridesForm.qml:385
+#: contents/ui/chat/ChatOverridesForm.qml:389
 #, kde-format
 msgid "Response length"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:387
+#: contents/ui/chat/ChatOverridesForm.qml:386
 #, kde-format
 msgid ""
 "How long the answers in this chat should be. \"Default\" lets the model "
 "decide."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:393
+#: contents/ui/chat/ChatOverridesForm.qml:392
 #: contents/ui/components/VariantPicker.qml:24
 #, kde-format
 msgid "Default"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:393
+#: contents/ui/chat/ChatOverridesForm.qml:392
 #, kde-format
 msgid "Short"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:393
+#: contents/ui/chat/ChatOverridesForm.qml:392
 #, kde-format
 msgid "Balanced"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:393
+#: contents/ui/chat/ChatOverridesForm.qml:392
 #, kde-format
 msgid "Detailed"
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:393
+#: contents/ui/chat/ChatOverridesForm.qml:392
 #, kde-format
 msgid "Comprehensive"
 msgstr ""
@@ -4472,9 +4472,9 @@ msgstr ""
 #: contents/ui/ConfigPersonality.qml:257
 #, kde-format
 msgid ""
-"What you fill in here is sent at the start of every chat with a provider, "
-"unless a chat turns it off in its chat settings. OpenCode and Pi chats keep "
-"their own instructions. The names and avatars show in the chat."
+"What you fill in here is sent at the start of every chat (direct, OpenCode "
+"and Pi), unless a chat turns it off in its chat settings. The names and "
+"avatars show in the chat."
 msgstr ""
 
 #: contents/ui/ConfigPersonality.qml:262 contents/ui/ConfigPersonality.qml:279

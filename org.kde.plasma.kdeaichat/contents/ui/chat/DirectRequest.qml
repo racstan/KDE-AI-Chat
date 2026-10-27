@@ -62,10 +62,10 @@ QtObject {
         return parts.join("\n\n");
     }
 
-    // Direct mode only: the Personality block (Settings → Personality) first,
-    // then everything above. OpenCode and Pi use buildEffectiveSystemPrompt
-    // without it. A chat can turn it off (personalityOff), independently of
-    // its own instructions.
+    // Direct mode: the Personality block (Settings → Personality) first, then
+    // everything above. OpenCode and Pi add the same block themselves
+    // (OpenCodeMode.qml, PiMode.qml). A chat can turn it off (personalityOff),
+    // independently of its own instructions.
     function directSystemPrompt(sessionId) {
         var rest = direct.buildEffectiveSystemPrompt(sessionId);
         var off = chat.getSessionProperty(sessionId, "personalityOff", false) === true;

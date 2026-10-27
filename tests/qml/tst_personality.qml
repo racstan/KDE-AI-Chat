@@ -182,25 +182,20 @@ Item {
             verify(!header(0, "senderAvatar").visible, "not an image file: no avatar");
         }
 
-        function test_4_direct_gets_the_block_first_opencode_and_pi_do_not() {
+        function test_4_every_mode_gets_the_block_first() {
             compare(direct.buildDirectRequestParts("a", "openai").system, "Main instructions.", "nothing set: unchanged");
             chat.plasmoid = root.configWith({userName: "Rachit", aiName: "Nova", aiPersonality: "witty"});
             var system = direct.buildDirectRequestParts("a", "openai").system;
             verify(system.indexOf("## About the user\nName: Rachit\n\n## Your persona\nYour name is Nova.") === 0, system);
             verify(system.indexOf("\n\nMain instructions.") > 0, "the extra instructions come after it");
-            // OpenCode sends buildEffectiveSystemPrompt; Pi its own instructions.
+            // OpenCode and Pi get the same block first (in their own requests).
             compare(chat.buildEffectiveSystemPrompt("o"), "Main instructions.");
-            var sent = [];
-            var fakeXhr = function() {
-                var x = {readyState: 0, status: 0, responseText: "", setRequestHeader: function() {}, abort: function() {}};
-                x.open = function(method, url) { x.url = url; };
-                x.send = function(body) { sent.push(String(body || "")); };
-                return x;
-            };
-            openCode.sendOpenCodePrompt("o", 0, {"baseUrl": "http://127.0.0.1:1", "directory": "", "xhrFactory": fakeXhr});
-            verify(sent.length > 0, "OpenCode sent a request");
-            verify(sent.join("\n").indexOf("Rachit") < 0 && sent.join("\n").indexOf("Nova") < 0, sent.join("\n"));
-            compare(pi.promptBody("p", {content: "hi"}).instructions, "");
+            var ocText = openCode.systemFor("o");
+            verify(ocText.indexOf("## About the user\nName: Rachit") === 0 && ocText.indexOf("Your name is Nova.") > 0, ocText);
+            var piText = pi.promptBody("p", {content: "hi"}).instructions;
+            verify(piText.indexOf("## About the user\nName: Rachit") === 0, piText);
+            chat.setSessionProperty("p", "personalityOff", true);
+            compare(pi.promptBody("p", {content: "hi"}).instructions, "", "off for this Pi chat");
             // The chat's own instructions off: personality stays (its own switch).
             chat.setSessionProperty("a", "chatSystemPromptEnabled", false);
             verify(direct.buildDirectRequestParts("a", "openai").system.indexOf("Your name is Nova.") > 0);
@@ -241,11 +236,11 @@ Item {
             dialog._save();
             compare(chat.calls[chat.calls.length - 1].args[1].personalityOff, false);
             verify(direct.buildDirectRequestParts("a", "openai").system.indexOf("## Your persona\nYour name is Nova.") === 0);
-            // Agent chats don't show it.
+            // Agent chats get the Personality too, so they have the switch as well.
             chat.currentSessionId = "o";
             dialog.toggleForSession("o");
             wait(50);
-            verify(!findChild(dialog, "personalityCheck").visible, "not for OpenCode");
+            verify(findChild(dialog, "personalityCheck").visible, "OpenCode chats too");
             dialog.close();
         }
     }
