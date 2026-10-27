@@ -108,6 +108,8 @@ KCM.SimpleKCM {
         Layout.minimumWidth: Kirigami.Units.gridUnit * 20
         implicitHeight: Kirigami.Units.gridUnit * 4
         QQC2.TextArea {
+            Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+            Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
             id: area
             wrapMode: TextEdit.Wrap
             Accessible.name: box.accessibleName
@@ -121,6 +123,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.TextField {
+            Accessible.name: Kirigami.FormData.label
             id: userNameField
             objectName: "userNameField"
             Kirigami.FormData.label: i18n("Your name:")
@@ -147,6 +150,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.ComboBox {
+            Accessible.name: Kirigami.FormData.label
             id: toneCombo
             objectName: "toneCombo"
             Kirigami.FormData.label: i18n("Tone you like:")
@@ -162,6 +166,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.TextField {
+            Accessible.name: Kirigami.FormData.label
             id: languageField
             objectName: "languageField"
             Kirigami.FormData.label: i18n("Reply language:")
@@ -193,6 +198,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.TextField {
+            Accessible.name: Kirigami.FormData.label
             id: aiNameField
             objectName: "aiNameField"
             Kirigami.FormData.label: i18n("Its name:")
@@ -206,6 +212,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.ComboBox {
+            Accessible.name: Kirigami.FormData.label
             id: personalityCombo
             objectName: "personalityCombo"
             Kirigami.FormData.label: i18n("Personality:")

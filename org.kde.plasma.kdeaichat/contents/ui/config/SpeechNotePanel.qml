@@ -100,6 +100,7 @@ ColumnLayout {
         }
 
         QQC2.ComboBox {
+            Accessible.name: Kirigami.FormData.label
             id: modelCombo
             objectName: panel.isStt ? "speechNoteSttModel" : "speechNoteTtsModel"
             visible: panel.ready
@@ -136,6 +137,7 @@ ColumnLayout {
         }
 
         QQC2.SpinBox {
+            Accessible.name: Kirigami.FormData.label
             id: keepReady
             objectName: "speechNoteKeepReady"
             visible: panel.showKeepReady

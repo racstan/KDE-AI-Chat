@@ -51,6 +51,7 @@ QQC2.Frame {
         RowLayout {
             Layout.fillWidth: true
             QQC2.ComboBox {
+                Accessible.name: i18n("Schedule type")
                 id: kindCombo
                 objectName: "ruleKind"
                 model: Draft.KINDS.map(function(k) { return {"value": k, "text": ruleRow.kindLabels[k]}; })
@@ -112,6 +113,7 @@ QQC2.Frame {
             visible: ruleRow.rule.kind === "monthly"
             QQC2.Label { text: i18n("On day") }
             QQC2.SpinBox {
+                Accessible.name: i18n("Day of the month")
                 objectName: "monthDay"
                 from: 1
                 to: 31
@@ -132,6 +134,7 @@ QQC2.Frame {
             visible: ruleRow.rule.kind === "once"
             QQC2.Label { text: i18n("On") }
             QQC2.TextField {
+                Accessible.name: placeholderText
                 objectName: "onceDate"
                 text: String(ruleRow.rule.at || "").substring(0, 10)
                 placeholderText: "2026-11-03"
@@ -143,6 +146,7 @@ QQC2.Frame {
             }
             QQC2.Label { text: i18n("at") }
             QQC2.TextField {
+                Accessible.name: placeholderText
                 objectName: "onceTime"
                 text: String(ruleRow.rule.at || "").substring(11, 16)
                 placeholderText: "09:00"
@@ -179,6 +183,7 @@ QQC2.Frame {
             visible: spec !== null
             QQC2.Label { text: i18n("Repeat every") }
             QQC2.SpinBox {
+                Accessible.name: i18n("Repeat every")
                 objectName: "everyN"
                 from: ruleRow.rule.kind === "minutes" ? 15 : 1
                 to: parent.spec ? parent.spec[1] : 1
@@ -194,6 +199,7 @@ QQC2.Frame {
             columns: 4
             QQC2.Label { text: i18n("Every") }
             QQC2.ComboBox {
+                Accessible.name: i18n("Hours between runs")
                 objectName: "everyHours"
                 model: Draft.HOUR_STEPS.map(function(h) { return i18np("%1 hour", "%1 hours", h); })
                 currentIndex: Math.max(0, Draft.HOUR_STEPS.indexOf(Number(ruleRow.rule.everyHours) || 1))
@@ -201,6 +207,7 @@ QQC2.Frame {
             }
             QQC2.Label { text: i18n("at minute") }
             QQC2.SpinBox {
+                Accessible.name: i18n("At minute")
                 from: 0
                 to: 59
                 value: Number(ruleRow.rule.minute) || 0
@@ -208,6 +215,7 @@ QQC2.Frame {
             }
             QQC2.Label { text: i18n("From hour") }
             QQC2.SpinBox {
+                Accessible.name: i18n("From hour")
                 from: 0
                 to: 23
                 value: Number(ruleRow.rule.from) || 0
@@ -215,6 +223,7 @@ QQC2.Frame {
             }
             QQC2.Label { text: i18n("to hour") }
             QQC2.SpinBox {
+                Accessible.name: i18n("To hour")
                 from: 0
                 to: 23
                 value: ruleRow.rule.to === undefined ? 23 : Number(ruleRow.rule.to)
@@ -227,6 +236,7 @@ QQC2.Frame {
             visible: ruleRow.rule.kind === "cron"
             Layout.fillWidth: true
             QQC2.TextField {
+                Accessible.name: i18n("Cron expression")
                 objectName: "cronExpr"
                 Layout.fillWidth: true
                 text: ruleRow.rule.expr || ""

@@ -91,6 +91,7 @@ Kirigami.FormLayout {
         onReset: form.historySide = Prefs.defaults.historySide
 
         QQC2.ComboBox {
+            Accessible.name: i18n("History side")
             objectName: "historySideCombo"
             model: form.sides
             textRole: "text"

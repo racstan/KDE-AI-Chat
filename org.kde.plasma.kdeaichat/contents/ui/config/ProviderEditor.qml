@@ -45,6 +45,7 @@ Kirigami.FormLayout {
     signal cancelClicked()
 
     QQC2.TextField {
+        Accessible.name: Kirigami.FormData.label
         Kirigami.FormData.label: i18n("Name:")
         text: editor.draft.name || ""
         onTextEdited: editor.fieldEdited("name", text)
@@ -53,6 +54,7 @@ Kirigami.FormLayout {
         text: i18n("Any name you like; it is how this provider shows in lists.")
     }
     QQC2.ComboBox {
+        Accessible.name: Kirigami.FormData.label
         Kirigami.FormData.label: i18n("API type:")
         model: [i18n("OpenAI-compatible"), i18n("Anthropic")]
         currentIndex: editor.draft.type === "anthropic" ? 1 : 0
@@ -62,6 +64,7 @@ Kirigami.FormLayout {
         text: i18n("The \"language\" the provider's server speaks. Almost all services, and local programs like Ollama, use \"OpenAI-compatible\"; choose \"Anthropic\" only for Anthropic's own server.")
     }
     QQC2.TextField {
+        Accessible.name: Kirigami.FormData.label
         objectName: "urlField"
         Kirigami.FormData.label: i18n("Server URL:")
         Layout.fillWidth: true
@@ -73,6 +76,7 @@ Kirigami.FormLayout {
         text: i18n("The web address of the provider's server, as given in its documentation (often ending in /v1). For a model on your own computer it starts with http://localhost.")
     }
     Kirigami.PasswordField {
+        Accessible.name: Kirigami.FormData.label
         objectName: "keyField"
         Kirigami.FormData.label: i18n("API key:")
         Layout.fillWidth: true

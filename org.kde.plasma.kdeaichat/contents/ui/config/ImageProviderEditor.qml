@@ -59,6 +59,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.TextField {
+        Accessible.name: Kirigami.FormData.label
         objectName: "image_nameField"
         Kirigami.FormData.label: i18n("Name:")
         text: editor.draft.name || ""
@@ -86,11 +87,13 @@ Kirigami.FormLayout {
                 : i18n("Your prompt is sent to Pollinations, with your own key. Don't put personal details or secrets in a prompt. Only your prompt is sent, never the chat.")
         }
         Kirigami.UrlButton {
+            Accessible.name: text
             objectName: "termsLink"
             url: editor.isHorde ? "https://aihorde.net/terms" : "https://pollinations.ai"
             text: editor.isHorde ? i18n("AI Horde terms of use") : i18n("pollinations.ai")
         }
         Kirigami.UrlButton {
+            Accessible.name: text
             visible: editor.service === "pollinations"
             url: "https://enter.pollinations.ai"
             text: i18n("Get a Pollinations key")
@@ -107,6 +110,7 @@ Kirigami.FormLayout {
     }
 
     Kirigami.PasswordField {
+        Accessible.name: Kirigami.FormData.label
         objectName: "image_keyField"
         visible: !editor.isLegacy
         Kirigami.FormData.label: i18n("API key:")
@@ -200,6 +204,7 @@ Kirigami.FormLayout {
         text: i18n("Without an account AI Horde makes one picture at a time, up to %1 pixels wide or high and %2 steps. More needs an account with kudos.", Horde.ANON_MAX_SIZE, Horde.ANON_MAX_STEPS)
     }
     QQC2.SpinBox {
+        Accessible.name: Kirigami.FormData.label
         objectName: "stepsBox"
         visible: editor.isHorde
         Kirigami.FormData.label: i18n("Steps:")
@@ -213,6 +218,7 @@ Kirigami.FormLayout {
         text: i18n("How many times the picture is refined. More steps can look better but take longer.")
     }
     QQC2.SpinBox {
+        Accessible.name: Kirigami.FormData.label
         objectName: "countBox"
         visible: editor.isHorde && editor.hasKey
         Kirigami.FormData.label: i18n("Pictures per message:")
@@ -226,6 +232,7 @@ Kirigami.FormLayout {
         text: i18n("How many different pictures each /image message asks for.")
     }
     QQC2.TextField {
+        Accessible.name: Kirigami.FormData.label
         objectName: "seedField"
         Kirigami.FormData.label: i18n("Seed:")
         Layout.maximumWidth: Kirigami.Units.gridUnit * 10

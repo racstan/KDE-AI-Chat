@@ -21,6 +21,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         QQC2.TextField {
+            Accessible.name: placeholderText
             id: sentence
             objectName: "describeField"
             Layout.fillWidth: true
@@ -94,6 +95,7 @@ ColumnLayout {
             RowLayout {
                 Layout.fillWidth: true
                 QQC2.TextField {
+                    Accessible.name: placeholderText
                     id: freeAnswer
                     objectName: "describeAnswer"
                     Layout.fillWidth: true

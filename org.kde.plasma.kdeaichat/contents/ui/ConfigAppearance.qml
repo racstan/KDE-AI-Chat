@@ -136,6 +136,7 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
 
             QQC2.TextField {
+                Accessible.name: Kirigami.FormData.label
                 id: nameField
                 Kirigami.FormData.label: i18n("Name:")
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 16

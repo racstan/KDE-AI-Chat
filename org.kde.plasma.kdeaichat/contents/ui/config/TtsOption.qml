@@ -53,6 +53,7 @@ ColumnLayout {
     Component {
         id: choiceField
         QQC2.ComboBox {
+            Accessible.name: i18n(row.option.label)
             readonly property bool isLanguage: row.option.type === "language"
             textRole: "text"
             valueRole: "value"
@@ -69,6 +70,7 @@ ColumnLayout {
         RowLayout {
             readonly property bool isSpeed: row.option.type === "speed"
             QQC2.Slider {
+                Accessible.name: i18n(row.option.label)
                 id: slider
                 from: parent.isSpeed ? 0.5 : -1
                 to: parent.isSpeed ? 2 : 1
@@ -94,6 +96,7 @@ ColumnLayout {
                 return "";
             }
             QQC2.TextField {
+                Accessible.name: placeholderText
                 Layout.fillWidth: true
                 Layout.minimumWidth: Kirigami.Units.gridUnit * 18
                 text: String(row.value || "")
@@ -119,6 +122,7 @@ ColumnLayout {
             property string note: ""
             RowLayout {
                 QQC2.TextField {
+                    Accessible.name: placeholderText
                     id: keyField
                     objectName: "ttsSecretField"
                     Layout.minimumWidth: Kirigami.Units.gridUnit * 14

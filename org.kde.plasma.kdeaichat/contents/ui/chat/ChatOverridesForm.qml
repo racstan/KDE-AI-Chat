@@ -4,9 +4,8 @@
 // in ChatSettingsDialog.qml.
 //
 // The drop-downs are QQC2.ComboBox, not PC3.ComboBox: with libplasma 6.8 the
-// PC3 one reports "Binding loop detected for property implicitWidth" (or
-// implicitHeight) whenever it is created after another window already showed
-// one, as in the test suite.
+// PC3 one reports "Binding loop detected for property implicitWidth/Height"
+// when created after another window already showed one (as in the tests).
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
@@ -17,8 +16,7 @@ import "../ProviderCheck.js" as ProviderCheck
 import "../components" as Components
 import "../config" as Config
 
-// Each setting is a SettingField: a small grey label, the input(s) and a
-// plain explanation under them.
+// Each setting is a SettingField: a small grey label, the input(s) and help.
 ColumnLayout {
     id: form
 
@@ -117,7 +115,6 @@ ColumnLayout {
         text: i18n("On: this chat can use a different provider or model than the main settings. Off: it follows the main settings.") // qmllint disable unqualified
     }
 
-
     // --- Provider ---
 
     SettingField {
@@ -126,6 +123,7 @@ ColumnLayout {
         help: i18n("The AI service this chat talks to.") // qmllint disable unqualified
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Provider") // qmllint disable unqualified
             id: providerCombo
             Layout.fillWidth: true
             textRole: "text"
@@ -152,6 +150,7 @@ ColumnLayout {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.ComboBox {
+                Accessible.name: i18n("Model") // qmllint disable unqualified
                 id: modelCombo
                 Layout.fillWidth: true
                 editable: true
@@ -170,7 +169,7 @@ ColumnLayout {
                 icon.name: "view-refresh"
                 enabled: !form.draft.busy
                 onClicked: form.draft.refreshModels(true)
-                Accessible.name: i18n("Refresh models")
+                Accessible.name: i18n("Refresh models") // qmllint disable unqualified
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: i18n("Refresh models")
             }
@@ -214,6 +213,7 @@ ColumnLayout {
         help: i18n("The AI service OpenCode uses for this chat. Empty: OpenCode's default.") // qmllint disable unqualified
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Provider") // qmllint disable unqualified
             id: ocProviderCombo
             Layout.fillWidth: true
             editable: true
@@ -230,6 +230,7 @@ ColumnLayout {
         help: i18n("The AI model OpenCode uses for this chat. Empty: OpenCode's default.") // qmllint disable unqualified
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Model") // qmllint disable unqualified
             id: ocModelCombo
             Layout.fillWidth: true
             editable: true
@@ -246,6 +247,7 @@ ColumnLayout {
         help: i18n("OpenCode's way of working, for example \"build\" to make changes or \"plan\" to only suggest them.") // qmllint disable unqualified
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Agent") // qmllint disable unqualified
             id: agentCombo
             Layout.fillWidth: true
             editable: true
@@ -296,6 +298,7 @@ ColumnLayout {
             spacing: Kirigami.Units.smallSpacing
 
             PC3.TextField {
+                Accessible.name: placeholderText
                 id: cwdField
                 Layout.fillWidth: true
                 maximumLength: 4096
@@ -314,7 +317,7 @@ ColumnLayout {
             PC3.ToolButton {
                 icon.name: "folder-open"
                 onClicked: folderDialog.open()
-                Accessible.name: i18n("Choose working folder")
+                Accessible.name: i18n("Choose working folder") // qmllint disable unqualified
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: i18n("Choose working folder")
             }
@@ -351,6 +354,9 @@ ColumnLayout {
             }
         }
         PC3.TextArea {
+            Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+            Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+            Accessible.name: placeholderText
             id: systemArea
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
@@ -381,6 +387,7 @@ ColumnLayout {
         help: i18n("How long the answers in this chat should be. \"Default\" lets the model decide.") // qmllint disable unqualified
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Response length") // qmllint disable unqualified
             id: responseLengthCombo
             Layout.fillWidth: true
             model: [i18n("Default"), i18n("Short"), i18n("Balanced"), i18n("Detailed"), i18n("Comprehensive")]

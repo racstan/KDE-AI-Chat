@@ -45,6 +45,7 @@ Rectangle {
             onClicked: banner.actionTriggered()
         }
         PC3.ToolButton {
+            Accessible.name: QQC2.ToolTip.text
             visible: banner.dismissible
             icon.name: "dialog-close"
             onClicked: banner.dismissed()

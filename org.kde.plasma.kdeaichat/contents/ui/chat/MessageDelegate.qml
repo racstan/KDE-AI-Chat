@@ -75,6 +75,14 @@ Item {
     implicitHeight: column.implicitHeight
     height: implicitHeight
 
+    // Screen readers: who said it. While the reply is being written only that
+    // is said, so the changing text isn't read out again with every token.
+    Accessible.role: Accessible.ListItem
+    Accessible.name: streaming ? i18n("%1 is writing a reply", message.model || i18n("Assistant"))
+        : mine ? i18n("You said: %1", String(message.content || ""))
+        : role === "assistant" ? i18n("%1 replied: %2", message.model || i18n("Assistant"), String(message.content || ""))
+        : role === "error" ? i18n("Error: %1", errorText) : String(message.content || "")
+
     ColumnLayout {
         id: column
         width: row.width
@@ -200,6 +208,9 @@ Item {
                         spacing: Kirigami.Units.smallSpacing
 
                         PC3.TextArea {
+                            Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+                            Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+                            Accessible.name: i18n("Edit message")
                             objectName: "inPlaceEditor"
                             Layout.fillWidth: true
                             text: row.chat.editingDraft

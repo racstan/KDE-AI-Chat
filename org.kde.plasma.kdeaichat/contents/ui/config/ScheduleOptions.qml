@@ -24,6 +24,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.TextField {
+        Accessible.name: Kirigami.FormData.label
         objectName: "startDate"
         Kirigami.FormData.label: i18n("Start on:")
         text: options.draft.startDate || ""
@@ -34,6 +35,7 @@ Kirigami.FormLayout {
         text: i18n("The first day this schedule may run, for example 2026-12-01. Leave empty to start right away.")
     }
     QQC2.TextField {
+        Accessible.name: Kirigami.FormData.label
         objectName: "endDate"
         Kirigami.FormData.label: i18n("End after:")
         text: options.draft.endDate || ""
@@ -46,12 +48,14 @@ Kirigami.FormLayout {
     RowLayout {
         Kirigami.FormData.label: i18n("Stop after:")
         QQC2.CheckBox {
+            Accessible.name: i18n("Stop after a number of runs")
             id: limitCheck
             objectName: "limitCheck"
             checked: Number(options.draft.limitCount) > 0
             onToggled: options.fieldChanged("limitCount", checked ? 5 : null)
         }
         QQC2.SpinBox {
+            Accessible.name: i18n("Number of runs")
             objectName: "limitCount"
             enabled: limitCheck.checked
             from: 1
@@ -76,6 +80,7 @@ Kirigami.FormLayout {
         visible: options.catchUp.enabled === true
         QQC2.Label { text: i18n("only if missed within") }
         QQC2.SpinBox {
+            Accessible.name: i18n("Hours within which a missed run still runs")
             objectName: "catchUpHours"
             from: 1
             to: 168

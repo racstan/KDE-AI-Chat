@@ -141,6 +141,7 @@ KCM.SimpleKCM {
                 enabled: enabledSwitch.checked
 
                 QQC2.SpinBox {
+                    Accessible.name: i18n("Send per message")
                     id: budgetSpin
                     objectName: "memoryBudgetSpin"
                     from: 200
@@ -218,6 +219,7 @@ KCM.SimpleKCM {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.TextField {
+                Accessible.name: placeholderText
                 id: addField
                 objectName: "memoryAddField"
                 Layout.fillWidth: true
@@ -239,11 +241,13 @@ KCM.SimpleKCM {
             spacing: Kirigami.Units.smallSpacing
 
             Kirigami.SearchField {
+                Accessible.name: i18n("Search memories")
                 objectName: "memorySearch"
                 Layout.fillWidth: true
                 onTextChanged: page.query = text
             }
             QQC2.ComboBox {
+                Accessible.name: i18n("Filter memories")
                 objectName: "memoryFilter"
                 textRole: "text"
                 valueRole: "value"

@@ -175,6 +175,14 @@ ColumnLayout {
         }
 
         PC3.TextArea {
+            // Tab and Shift+Tab leave the box (they never type a tab).
+            // Tab picks the highlighted template; otherwise Tab and Shift+Tab leave the box (they never type a tab).
+            Keys.onTabPressed: function(event) {
+                if (!(suggestions.active && suggestions.handleKey(Qt.Key_Tab)))
+                    nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason);
+                event.accepted = true;
+            }
+            Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
             id: msgInput
 
             Layout.fillWidth: true

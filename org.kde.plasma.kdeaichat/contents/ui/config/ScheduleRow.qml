@@ -52,6 +52,7 @@ QQC2.Frame {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Switch {
+                Accessible.name: i18n("Schedule enabled")
                 objectName: "scheduleEnabled"
                 checked: row.item.enabled === true && !row.needsReview
                 enabled: !row.needsReview
@@ -86,6 +87,7 @@ QQC2.Frame {
                 QQC2.ToolTip.text: i18n("Edit")
             }
             QQC2.ToolButton {
+                Accessible.name: QQC2.ToolTip.text
                 objectName: "scheduleHistory"
                 icon.name: "view-history"
                 display: QQC2.AbstractButton.IconOnly
@@ -95,6 +97,7 @@ QQC2.Frame {
                 QQC2.ToolTip.text: i18n("History")
             }
             QQC2.ToolButton {
+                Accessible.name: QQC2.ToolTip.text
                 objectName: "scheduleDelete"
                 icon.name: "edit-delete"
                 display: QQC2.AbstractButton.IconOnly

@@ -61,6 +61,7 @@ Kirigami.FormLayout {
         onReset: form.sendKey = Prefs.defaults.sendKey
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Send key")
             objectName: "sendKeyCombo"
             model: form.sendKeys
             textRole: "text"
@@ -97,6 +98,7 @@ Kirigami.FormLayout {
         onReset: form.timeFormat = Prefs.defaults.timeFormat
 
         QQC2.ComboBox {
+            Accessible.name: i18n("Time format")
             objectName: "timeFormatCombo"
             model: form.timeFormats
             textRole: "text"

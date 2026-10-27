@@ -76,6 +76,9 @@ ColumnLayout {
         }
 
         QQC2.TextArea {
+            Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+            Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+            Accessible.name: i18n("Edit memory")
             id: editor
             objectName: "memoryEditor"
             visible: row.editing
