@@ -30,10 +30,11 @@ RowLayout {
     spacing: Kirigami.Units.smallSpacing
     layoutDirection: mine ? Qt.RightToLeft : Qt.LeftToRight
 
-    Kirigami.Icon {
+    AvatarView {
         id: avatarIcon
         objectName: "senderAvatar"
         visible: sender.avatar.kind !== "" && valid
+        kind: sender.avatar.kind
         source: sender.avatar.source
         Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
         Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium

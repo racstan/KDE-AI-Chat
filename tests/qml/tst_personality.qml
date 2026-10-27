@@ -129,6 +129,36 @@ Item {
             compare(header(1, "senderName").text, "Nova");
         }
 
+        function test_3c_animated_and_video_avatars() {
+            var fixtures = decodeURIComponent(String(Qt.resolvedUrl("../fixtures/")).replace(/^file:\/\//, ""));
+            chat.plasmoid = root.configWith({aiName: "Nova", aiAvatar: fixtures + "panel-icon.gif", userAvatar: fixtures + "avatar-clip.webm"});
+            chat.messages = conversation;
+            wait(300);
+            var ai = header(1, "senderAvatar");
+            compare(ai.shape, "animated");
+            verify(findChild(ai, "avatarAnimation").visible, "an AnimatedImage");
+            verify(findChild(ai, "avatarAnimation").playing, "playing while visible");
+            verify(ai.visible);
+            var me = header(0, "senderAvatar");
+            compare(me.shape, "video");
+            verify(findChild(me, "avatarVideo").item !== null, "the video loads through the Loader");
+            verify(!me.failed, "the clip is playable");
+            compare(String(findChild(me, "avatarVideo").item.source), "file://" + fixtures + "avatar-clip.webm");
+            verify(findChild(me, "avatarVideo").item.playing, "playing while visible");
+            verify(me.visible, "the video, or its generic icon if it can't play");
+            screenshot(root, "personality-chat-animated-video");
+            // A video that can't be played (or no QtMultimedia): a generic icon.
+            chat.plasmoid = root.configWith({userAvatar: "/home/me/missing.mp4"});
+            wait(500);
+            verify(header(0, "senderAvatar").failed, "a missing clip fails");
+            verify(header(0, "senderAvatar").visible, "and a generic icon shows instead");
+            // A still png stays a plain Image.
+            chat.plasmoid = root.configWith({aiName: "Nova", aiAvatar: root.picture});
+            wait(150);
+            compare(header(1, "senderAvatar").shape, "image");
+            verify(!findChild(header(1, "senderAvatar"), "avatarAnimation").visible);
+        }
+
         function test_3b_your_avatar_shows_on_your_messages() {
             chat.plasmoid = root.configWith({userName: "Rachit", userAvatar: "face-glasses", aiName: "Nova", aiAvatar: "face-smile"});
             chat.messages = conversation;

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 16:17+0530\n"
+"POT-Creation-Date: 2026-10-27 17:08+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1707,7 +1707,7 @@ msgstr ""
 
 #: contents/ui/chat/MessageDelegate.qml:82
 #: contents/ui/chat/MessageDelegate.qml:84 contents/ui/chat/QuoteBlock.qml:24
-#: contents/ui/chat/QuoteChips.qml:29 contents/ui/chat/SenderName.qml:50
+#: contents/ui/chat/QuoteChips.qml:29 contents/ui/chat/SenderName.qml:51
 #, kde-format
 msgid "Assistant"
 msgstr ""
@@ -2137,7 +2137,7 @@ msgid "Sending answer…"
 msgstr ""
 
 #: contents/ui/chat/QuoteBlock.qml:23 contents/ui/chat/QuoteChips.qml:28
-#: contents/ui/chat/SenderName.qml:45 contents/ui/ConfigPersonality.qml:90
+#: contents/ui/chat/SenderName.qml:46 contents/ui/ConfigPersonality.qml:102
 #, kde-format
 msgid "You"
 msgstr ""
@@ -2231,80 +2231,166 @@ msgstr ""
 msgid "Cancel rename"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:46
+#: contents/ui/chat/SenderName.qml:47
 #, kde-format
 msgid "%1 · queued"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:46
+#: contents/ui/chat/SenderName.qml:47
 #, kde-format
 msgid "You · queued"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:47
+#: contents/ui/chat/SenderName.qml:48
 #, kde-format
 msgid "Something went wrong"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:48
+#: contents/ui/chat/SenderName.qml:49
 #, kde-format
 msgid "Question"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:49
+#: contents/ui/chat/SenderName.qml:50
 #, kde-format
 msgid "Permission request"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:61
+#: contents/ui/chat/SenderName.qml:62
 #, kde-format
 msgid "Scheduled: %1"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:24
+#: contents/ui/config/AvatarPicker.qml:29
 #, kde-format
 msgid "Choose the avatar"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:25
+#: contents/ui/config/AvatarPicker.qml:30
 #, kde-format
 msgid "Choose a Picture"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:34
+#: contents/ui/config/AvatarPicker.qml:62
 #, kde-format
 msgid "Choose a PNG, JPEG, WebP, GIF, SVG or BMP image."
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:63
+#: contents/ui/config/AvatarPicker.qml:74
+#: contents/ui/config/AvatarPicker.qml:92
+#: contents/ui/config/IconSettings.qml:92
+#, kde-format
+msgid "This file is not a video."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:74
+#: contents/ui/config/AvatarPicker.qml:92
+#: contents/ui/config/IconSettings.qml:92
+#, kde-format
+msgid "This file is not an animated image."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:90
+#: contents/ui/config/IconSettings.qml:90
+#, kde-format
+msgid "This file is %1 MB. Choose one of 20 MB or less."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:93
+#: contents/ui/config/IconSettings.qml:93
+#, kde-format
+msgid "The file was not found."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:93
+#: contents/ui/config/IconSettings.qml:93
+#, kde-format
+msgid "The file can't be read."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:97
+#: contents/ui/config/IconSettings.qml:99
+#, kde-format
+msgid ""
+"This file is %1 MB. Big animations use more memory and power; a smaller one "
+"is better."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:123
 #: contents/ui/config/IconSettings.qml:118
 #, kde-format
 msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:100
+#: contents/ui/config/AvatarPicker.qml:129
+#: contents/ui/config/IconSettings.qml:125
+#, kde-format
+msgid "Choose a Short Video"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:129
+#: contents/ui/config/IconSettings.qml:125
+#, kde-format
+msgid "Choose an Animated Image"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:131
+#: contents/ui/config/IconSettings.qml:127
+#, kde-format
+msgid "Videos (*.mp4 *.webm *.mkv *.mov *.m4v *.ogv)"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:132
+#: contents/ui/config/IconSettings.qml:128
+#, kde-format
+msgid "Animated images (*.gif *.png *.apng *.webp)"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:168
 #: contents/ui/config/IconSettings.qml:182
 #, kde-format
 msgid "Choose Icon…"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:109
+#: contents/ui/config/AvatarPicker.qml:177
 #: contents/ui/config/IconSettings.qml:192
 #, kde-format
 msgid "Choose Image File…"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:114
+#: contents/ui/config/AvatarPicker.qml:182
+#: contents/ui/config/IconSettings.qml:198
+#, kde-format
+msgid "Choose Animated Image…"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:192
+#: contents/ui/config/IconSettings.qml:204
+#, kde-format
+msgid "Choose Short Video…"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:202
 #, kde-format
 msgid "No Avatar"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:132
+#: contents/ui/config/AvatarPicker.qml:221
+#, kde-format
+msgid "This video can't be played; a plain icon is shown."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:221
 #, kde-format
 msgid "This picture can't be read; no avatar is shown."
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:133 contents/ui/ConfigPersonality.qml:51
+#: contents/ui/config/AvatarPicker.qml:223
+#, kde-format
+msgid "Checking the file…"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:224 contents/ui/ConfigPersonality.qml:63
 #, kde-format
 msgid "None"
 msgstr ""
@@ -3845,233 +3931,235 @@ msgstr ""
 msgid "Status:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:44
+#: contents/ui/ConfigPersonality.qml:56
 #, kde-format
 msgid "No preference"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:45 contents/ui/ConfigPersonality.qml:52
+#: contents/ui/ConfigPersonality.qml:57 contents/ui/ConfigPersonality.qml:64
 #, kde-format
 msgid "Friendly"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:46 contents/ui/ConfigPersonality.qml:53
+#: contents/ui/ConfigPersonality.qml:58 contents/ui/ConfigPersonality.qml:65
 #, kde-format
 msgid "Professional"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:47 contents/ui/ConfigPersonality.qml:56
+#: contents/ui/ConfigPersonality.qml:59 contents/ui/ConfigPersonality.qml:68
 #, kde-format
 msgid "Concise"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:48
+#: contents/ui/ConfigPersonality.qml:60
 #, kde-format
 msgid "Playful"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:54
+#: contents/ui/ConfigPersonality.qml:66
 #, kde-format
 msgid "Witty"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:55
+#: contents/ui/ConfigPersonality.qml:67
 #, kde-format
 msgid "Mentor"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:57
+#: contents/ui/ConfigPersonality.qml:69
 #, kde-format
 msgid "Custom…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:97
+#: contents/ui/ConfigPersonality.qml:109
 #, kde-format
 msgid "Your name:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:100
+#: contents/ui/ConfigPersonality.qml:112
 #, kde-format
 msgid "Shown as \"You\""
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:104
+#: contents/ui/ConfigPersonality.qml:116
 #, kde-format
 msgid ""
 "What the AI calls you, and the name shown above your messages. Leave empty "
 "to stay \"You\"."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:109
+#: contents/ui/ConfigPersonality.qml:122
 #, kde-format
 msgid "Your avatar:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:111
+#: contents/ui/ConfigPersonality.qml:124
 #, kde-format
 msgid "Choose your avatar"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:112
+#: contents/ui/ConfigPersonality.qml:125
 #, kde-format
 msgid "Choose a Picture for You"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:116
+#: contents/ui/ConfigPersonality.qml:129
 #, kde-format
 msgid ""
-"A small picture shown next to your messages: an icon from your theme or an "
-"image file of your own."
+"A small picture shown next to your messages: an icon from your theme, or an "
+"image, animated image or short video of your own (up to 20 MB; videos are "
+"always silent and repeat). Videos need the Qt Multimedia package."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:122
+#: contents/ui/ConfigPersonality.qml:135
 #, kde-format
 msgid "About you:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:124
+#: contents/ui/ConfigPersonality.qml:137
 #, kde-format
 msgid "What you do, what you know well, what you are working on…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:125
+#: contents/ui/ConfigPersonality.qml:138
 #, kde-format
 msgid "About you"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:129
+#: contents/ui/ConfigPersonality.qml:142
 #, kde-format
 msgid ""
 "A few lines about yourself, so answers fit you: your job, what you know "
 "well, what you are working on."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:136
+#: contents/ui/ConfigPersonality.qml:149
 #, kde-format
 msgid "Tone you like:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:145
+#: contents/ui/ConfigPersonality.qml:158
 #, kde-format
 msgid "How you like to be spoken to. \"No preference\" leaves it to the AI."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:152
+#: contents/ui/ConfigPersonality.qml:165
 #, kde-format
 msgid "Reply language:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:155
+#: contents/ui/ConfigPersonality.qml:168
 #, kde-format
 msgid "Same as my message"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:159
+#: contents/ui/ConfigPersonality.qml:172
 #, kde-format
 msgid ""
 "The language replies are written in, for example \"English\" or \"Deutsch\". "
 "Leave empty to get replies in the language you write in."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:165
+#: contents/ui/ConfigPersonality.qml:178
 #, kde-format
 msgid "Always / never:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:167
+#: contents/ui/ConfigPersonality.qml:180
 #, kde-format
 msgid "Always give sources. Never use emoji."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:168
+#: contents/ui/ConfigPersonality.qml:181
 #, kde-format
 msgid "Always or never"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:172
+#: contents/ui/ConfigPersonality.qml:185
 #, kde-format
 msgid ""
 "Things the AI should always or never do, one per line. How long replies are "
 "is set per chat, in its chat settings."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:177
+#: contents/ui/ConfigPersonality.qml:190
 #, kde-format
 msgid "The AI"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:184
+#: contents/ui/ConfigPersonality.qml:197
 #, kde-format
 msgid "Its name:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:187
+#: contents/ui/ConfigPersonality.qml:200
 #, kde-format
 msgid "No name: replies show the model"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:191
+#: contents/ui/ConfigPersonality.qml:204
 #, kde-format
 msgid ""
 "A name for the assistant, shown above its replies. Leave empty to show the "
 "name of the model instead."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:198
+#: contents/ui/ConfigPersonality.qml:211
 #, kde-format
 msgid "Personality:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:207
+#: contents/ui/ConfigPersonality.qml:220
 #, kde-format
 msgid ""
 "The character of the assistant: how it talks and how much it says. Choose "
 "\"Custom…\" to describe it in your own words."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:214
+#: contents/ui/ConfigPersonality.qml:227
 #, kde-format
 msgid "In your words:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:216
+#: contents/ui/ConfigPersonality.qml:229
 #, kde-format
 msgid "Calm and patient, like a good teacher…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:217
+#: contents/ui/ConfigPersonality.qml:230
 #, kde-format
 msgid "Custom personality"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:222
+#: contents/ui/ConfigPersonality.qml:235
 #, kde-format
 msgid "Describe the personality you want in a sentence or two."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:227
+#: contents/ui/ConfigPersonality.qml:241
 #, kde-format
 msgid "Avatar:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:229
+#: contents/ui/ConfigPersonality.qml:243
 #, kde-format
 msgid "Choose the AI's avatar"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:230
+#: contents/ui/ConfigPersonality.qml:244
 #, kde-format
 msgid "Choose a Picture for the AI"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:234
+#: contents/ui/ConfigPersonality.qml:248
 #, kde-format
 msgid ""
-"A small picture shown next to the AI's replies: an icon from your theme or "
-"an image file of your own."
+"A small picture shown next to the AI's replies: an icon from your theme, or "
+"an image, animated image or short video of your own (up to 20 MB; videos are "
+"always silent and repeat). Videos need the Qt Multimedia package."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:243
+#: contents/ui/ConfigPersonality.qml:257
 #, kde-format
 msgid ""
 "What you fill in here is sent at the start of every chat with a provider, "
@@ -4079,27 +4167,27 @@ msgid ""
 "their own instructions. The names and avatars show in the chat."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:248 contents/ui/ConfigPersonality.qml:265
+#: contents/ui/ConfigPersonality.qml:262 contents/ui/ConfigPersonality.qml:279
 #, kde-format
 msgid "Extra instructions"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:254
+#: contents/ui/ConfigPersonality.qml:268
 #, kde-format
 msgid "Instructions:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:255
+#: contents/ui/ConfigPersonality.qml:269
 #, kde-format
 msgid "Send these instructions before every chat"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:264
+#: contents/ui/ConfigPersonality.qml:278
 #, kde-format
 msgid "Instructions for the model…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:269
+#: contents/ui/ConfigPersonality.qml:283
 #, kde-format
 msgid ""
 "Anything else the AI should know or do in every chat, in your own words. "
@@ -6875,61 +6963,9 @@ msgstr ""
 msgid "Transcribing…"
 msgstr ""
 
-#: contents/ui/config/IconSettings.qml:90
-#, kde-format
-msgid "This file is %1 MB. Choose one of 20 MB or less."
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:92
-#, kde-format
-msgid "This file is not a video."
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:92
-#, kde-format
-msgid "This file is not an animated image."
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:93
-#, kde-format
-msgid "The file was not found."
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:93
-#, kde-format
-msgid "The file can't be read."
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:99
-#, kde-format
-msgid ""
-"This file is %1 MB. Big animations use more memory and power; a smaller one "
-"is better."
-msgstr ""
-
 #: contents/ui/config/IconSettings.qml:116
 #, kde-format
 msgid "Choose an Image for the Widget"
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:125
-#, kde-format
-msgid "Choose a Short Video"
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:125
-#, kde-format
-msgid "Choose an Animated Image"
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:127
-#, kde-format
-msgid "Videos (*.mp4 *.webm *.mkv *.mov *.m4v *.ogv)"
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:128
-#, kde-format
-msgid "Animated images (*.gif *.png *.apng *.webp)"
 msgstr ""
 
 #: contents/ui/config/IconSettings.qml:133
@@ -6941,16 +6977,6 @@ msgstr ""
 #: contents/ui/config/IconSettings.qml:145
 #, kde-format
 msgid "Choose the widget icon"
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:198
-#, kde-format
-msgid "Choose Animated Image…"
-msgstr ""
-
-#: contents/ui/config/IconSettings.qml:204
-#, kde-format
-msgid "Choose Short Video…"
 msgstr ""
 
 #: contents/ui/config/IconSettings.qml:213

@@ -10,6 +10,7 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import "config" as Config
+import "store" as Store
 import "chat/Personality.js" as Personality
 
 // i18n() is provided by Plasma at runtime.
@@ -32,6 +33,17 @@ KCM.SimpleKCM {
     property alias cfg_userAvatar: userAvatarPicker.value
     property alias cfg_enableSystemPrompt: promptCheck.checked
     property alias cfg_systemPrompt: promptArea.text
+
+    // Runs the helper's commands (the animated avatar file check); tests pass a fake.
+    property var runHelper: defaultRunner.run
+
+    Store.HelperRunner {
+        id: defaultRunner
+        helperPath: {
+            var path = decodeURIComponent(String(Qt.resolvedUrl("kde_ai_helper.py")).replace(/^file:\/\//, ""));
+            return path.endsWith("/contents/ui/kde_ai_helper.py") ? path : "";
+        }
+    }
 
     // Shown beside the AI's avatar button when a chosen file can't be used.
     readonly property string avatarError: aiAvatarPicker.error
@@ -106,6 +118,7 @@ KCM.SimpleKCM {
 
         Config.AvatarPicker {
             id: userAvatarPicker
+            runHelper: page.runHelper
             Kirigami.FormData.label: i18n("Your avatar:")
             prefix: "userAvatar"
             buttonName: i18n("Choose your avatar")
@@ -113,7 +126,7 @@ KCM.SimpleKCM {
         }
 
         Config.SettingHelp {
-            text: i18n("A small picture shown next to your messages: an icon from your theme or an image file of your own.")
+            text: i18n("A small picture shown next to your messages: an icon from your theme, or an image, animated image or short video of your own (up to 20 MB; videos are always silent and repeat). Videos need the Qt Multimedia package.")
         }
 
         Box {
@@ -224,6 +237,7 @@ KCM.SimpleKCM {
 
         Config.AvatarPicker {
             id: aiAvatarPicker
+            runHelper: page.runHelper
             Kirigami.FormData.label: i18n("Avatar:")
             prefix: "avatar"
             buttonName: i18n("Choose the AI's avatar")
@@ -231,7 +245,7 @@ KCM.SimpleKCM {
         }
 
         Config.SettingHelp {
-            text: i18n("A small picture shown next to the AI's replies: an icon from your theme or an image file of your own.")
+            text: i18n("A small picture shown next to the AI's replies: an icon from your theme, or an image, animated image or short video of your own (up to 20 MB; videos are always silent and repeat). Videos need the Qt Multimedia package.")
         }
 
         QQC2.Label {
