@@ -10,7 +10,7 @@ import threading
 
 import pytest
 
-from kdeaichat import speechnote, speechnote_bus, speechnote_wire
+from kdeaichat import minidbus, speechnote, speechnote_bus
 
 UI = os.path.join(os.path.dirname(os.path.dirname(__file__)), "org.kde.plasma.kdeaichat", "contents", "ui")
 SECRET = "my private diary entry 12345"
@@ -361,6 +361,18 @@ class FakeBus:
         msg += b"\0" * (-len(msg) % 8)
         return msg + body
 
+    @staticmethod
+    def read_message(conn):
+        def take(n):
+            data = b""
+            while len(data) < n:
+                data += conn.recv(n - len(data))
+            return data
+        head = take(16)
+        blen, flen = struct.unpack("<II", head[4:8] + head[12:16])
+        rest = take(-(16 + flen) % 8 + flen + blen)
+        return minidbus.decode(head + rest)
+
     def serve(self):
         while True:
             try:
@@ -379,17 +391,11 @@ class FakeBus:
         conn.sendall(b"OK 0123\r\n")
         assert line() == b"BEGIN\r\n"
         for _ in range(2):
-            mtype, fields, body = speechnote_wire.read_message(conn)
-            if fields[3] == "Hello":
+            message = self.read_message(conn)
+            if message.member == "Hello":
                 conn.sendall(self.reply(1, 1, "s", struct.pack("<I", 4) + b":1.1\0"))
             else:
-                texts, pos = [], 0
-                for _s in fields[8]:
-                    pos += -pos % 4
-                    n = struct.unpack_from("<I", body, pos)[0]
-                    texts.append(body[pos + 4:pos + 4 + n].decode())
-                    pos += 5 + n
-                self.seen.append((fields[2], fields[3], fields[6], texts))
+                self.seen.append((message.interface, message.member, message.fields[minidbus.DESTINATION], list(message.body)))
                 conn.sendall(self.reply(2, 2, "i", struct.pack("<i", self.reply_task)))
         conn.close()
 

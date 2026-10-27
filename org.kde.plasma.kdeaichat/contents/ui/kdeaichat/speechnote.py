@@ -30,10 +30,10 @@ spoken text is never logged.
 import json
 import re
 import time
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple
 
 from kdeaichat import speechnote_bus as bus
-from kdeaichat import speechnote_wire
+from kdeaichat import minidbus
 from kdeaichat.speechnote_bus import SpeechNoteError
 
 MAX_TEXT = 500_000
@@ -55,8 +55,8 @@ def _command(fn: Callable[[Dict[str, Any]], Dict[str, Any]]) -> Callable[[Dict[s
             _emit(fn(payload))
         except SpeechNoteError as e:
             _emit({"type": "speechnote_error", "error": str(e), "code": e.code})
-        except speechnote_wire.WireError as e:
-            _emit({"type": "speechnote_error", "error": "D-Bus: %s" % (e.name or "connection failed"), "code": "bus_error"})
+        except (minidbus.DBusError, OSError) as e:
+            _emit({"type": "speechnote_error", "error": "D-Bus: %s" % (str(e) or "connection failed"), "code": "bus_error"})
         except ValueError as e:
             _emit({"type": "speechnote_error", "error": str(e), "code": "bad_request"})
     run.__doc__ = fn.__doc__
@@ -189,10 +189,22 @@ def speak(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("text is too long")
     model = _model(payload)
     bus.ensure_ready()
-    task = speechnote_wire.call(bus.NAME, bus.PATH, bus.IFACE, "TtsPlaySpeech", "ss", [text, model])
+    task = _call_privately("TtsPlaySpeech", "ss", (text, model))
     if not isinstance(task, int) or task < 0:
         raise bus.refused(task)
     return {"type": "speechnote_speaking", "task": task}
+
+
+def _call_privately(member: str, sig: str, args: Tuple[Any, ...]) -> Any:
+    """A call whose arguments must not show up in a process list (busctl puts them
+    on its command line): straight over the session bus socket. Returns the first
+    reply value."""
+    conn = minidbus.Connection()
+    try:
+        reply = conn.call(bus.NAME, bus.PATH, bus.IFACE, member, sig, args, timeout=15.0)
+        return reply.body[0] if reply.body else None
+    finally:
+        conn.close()
 
 
 def _playback(method: str, kind: str) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
