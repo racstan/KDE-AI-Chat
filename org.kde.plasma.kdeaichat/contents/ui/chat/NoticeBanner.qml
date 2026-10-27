@@ -11,6 +11,8 @@ Rectangle {
 
     property string text: ""
     property bool isError: false
+    // Information (not success): the accent colour instead of green.
+    property bool isInfo: false
     property string actionText: ""
     property string actionIcon: ""
     property bool dismissible: !isError
@@ -18,7 +20,7 @@ Rectangle {
     signal actionTriggered()
     signal dismissed()
 
-    readonly property color tone: isError ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.positiveTextColor
+    readonly property color tone: isError ? Kirigami.Theme.negativeTextColor : isInfo ? Kirigami.Theme.highlightColor : Kirigami.Theme.positiveTextColor
 
     visible: text !== ""
     Layout.fillWidth: true

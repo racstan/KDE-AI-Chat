@@ -122,6 +122,11 @@ Item {
                 onDismissed: body.chat.modeNotice = ""
             }
 
+            // Settings now select another mode for new chats than this chat's.
+            ModeMismatchBanner {
+                chat: body.chat
+            }
+
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true

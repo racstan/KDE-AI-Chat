@@ -76,6 +76,7 @@ TestCase {
             { tag: "chat/IncognitoBadge", url: uiDir + "chat/IncognitoBadge.qml" },
             { tag: "chat/IncognitoLeaveDialog", url: uiDir + "chat/IncognitoLeaveDialog.qml" },
             { tag: "chat/ChatBody", url: uiDir + "chat/ChatBody.qml" },
+            { tag: "chat/ModeMismatchBanner", url: uiDir + "chat/ModeMismatchBanner.qml" },
             { tag: "chat/ChatInfoSummary", url: uiDir + "chat/ChatInfoSummary.qml" },
             { tag: "chat/ChatOverridesForm", url: uiDir + "chat/ChatOverridesForm.qml" },
             { tag: "chat/ChatSettingsDraft", url: uiDir + "chat/ChatSettingsDraft.qml" },

@@ -34,6 +34,7 @@ contents/ui/chat/ImageViewer.qml
 contents/ui/chat/MessageActions.qml
 contents/ui/chat/MessageDelegate.qml
 contents/ui/chat/MessageImages.qml
+contents/ui/chat/ModeMismatchBanner.qml
 contents/ui/chat/NoticeBanner.qml
 contents/ui/chat/Notifier.qml
 contents/ui/chat/OwnModelCheck.qml

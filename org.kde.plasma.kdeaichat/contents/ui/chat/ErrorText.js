@@ -11,6 +11,7 @@
 // detail    the original message (without a leading warning sign), "" if it
 //           says nothing more than `text`
 // settings  true when opening the settings can fix it
+// changeModel true when picking another model is the fix (the card offers Change model)
 // checkSetup true when Settings → Connection → Check setup can tell what's wrong
 // template, args, extra  the plain text for translation: `text` is `template`
 //           with %1… filled from `args`, then `extra` (the provider's own words,
@@ -54,7 +55,7 @@ function _agentName(raw) {
 function _result(kind, template, args, detail, settings, extra, raw) {
     var text = template ? _fill(template, args || []) + (extra || "") : raw;
     return {"kind": kind, "text": text, "detail": detail === text ? "" : detail, "settings": settings === true,
-            "checkSetup": CHECKABLE.indexOf(kind) >= 0, "template": template, "args": args || [], "extra": extra || ""};
+            "checkSetup": CHECKABLE.indexOf(kind) >= 0, "changeModel": kind === "model", "template": template, "args": args || [], "extra": extra || ""};
 }
 
 // `info` (from describe) in the user's language; tr(template, args) is i18n.
@@ -87,6 +88,15 @@ function describe(raw, providerName_) {
 
     if (status === 401 || status === 403 || /api key (was )?(rejected|invalid|incorrect)|rejected the api key|invalid api key|incorrect api key|unauthori[sz]ed|authentication (failed|error)/.test(low))
         return _result("auth", I18N_NOOP("Your API key was rejected. Check the key for this provider in Settings."), [], msg, true);
+
+    // The model can't take what was sent (a picture, ...): another model is the fix.
+    if (/\b(images?|vision|multimodal|multi-modal|image_url)\b/.test(low)
+            && /not support|n't support|unsupported|no support|cannot (process|accept|read|handle)|can't (process|accept|read|handle)|does not accept|doesn't accept|only (accepts? )?text|invalid.*image/.test(low)
+            && (status === 0 || status === 400 || status === 404 || status === 422)) {
+        var detailBody = /\):\s*([\s\S]+)$/.exec(msg);
+        return _result("model", I18N_NOOP("This model can't read images. Remove the image, or pick a model that supports images."), [], msg, true,
+                       detailBody ? "\n\n" + detailBody[1].trim() : "");
+    }
 
     var creditWords = /insufficient|out of credit|credits?\b|billing|balance|quota|payment/.test(low);
     if (status === 402 || (creditWords && status !== 429) || (status === 429 && creditWords && /insufficient|credit|billing|balance/.test(low)))

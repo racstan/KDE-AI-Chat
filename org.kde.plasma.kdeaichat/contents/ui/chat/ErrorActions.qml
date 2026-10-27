@@ -1,5 +1,5 @@
 // What the user can do about an error message: Try again, Open settings
-// (when settings can fix it), Check setup (when the setup check can find the
+// (when settings can fix it), Change model (when another model is the fix), Check setup (when the setup check can find the
 // cause: it runs config/SetupCheck.qml here, under the error, and lists only
 // the problems) and, when the original message says more than the
 // plain-language text, a way to read it. `info` is ErrorText.describe().
@@ -26,6 +26,18 @@ ColumnLayout {
     signal copyRequested()
     signal deleteRequested()
 
+    // With per-chat model settings the quick picker (the one /model opens) changes
+    // just this chat's model; otherwise the model is chosen in Settings. Plasma
+    // can't open its settings on a given page; Connection is the first one.
+    function changeModel() {
+        if (!chat)
+            return;
+        if (chat.plasmoid && chat.plasmoid.configuration.perChatModelSettings === true && chat.composerRef && chat.composerRef.picker)
+            chat.composerRef.picker.open();
+        else
+            chat.openSettings();
+    }
+
     spacing: Kirigami.Units.smallSpacing
 
     Flow {
@@ -41,10 +53,18 @@ ColumnLayout {
 
         PC3.Button {
             objectName: "settingsButton"
-            visible: actions.info.settings === true
+            visible: actions.info.settings === true && actions.info.changeModel !== true
             text: i18n("Open settings")
             icon.name: "configure"
             onClicked: actions.settingsRequested()
+        }
+
+        PC3.Button {
+            objectName: "changeModelButton"
+            visible: actions.info.changeModel === true
+            text: i18n("Change model")
+            icon.name: "configure"
+            onClicked: actions.changeModel()
         }
 
         PC3.Button {
