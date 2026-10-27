@@ -19,8 +19,8 @@ Chat.AccentArea {
     property bool popupUpward: false
 
     function updatePopupSide() {
-        var screen = repRoot.Window.window ? repRoot.Window.window.screen : null;
-        if (!screen || grip.pressed || repRoot.width <= 0)
+        var screen = repRoot.Screen;
+        if (!repRoot.Window.window || grip.pressed || repRoot.width <= 0)
             return;
         var topLeft = repRoot.mapToGlobal(0, 0);
         popupLeftward = grip.growsTowardsLow(topLeft.x, topLeft.x + repRoot.width, screen.virtualX, screen.virtualX + screen.width);
