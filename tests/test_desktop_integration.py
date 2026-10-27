@@ -18,7 +18,7 @@ HELPER = os.path.join(UI, "kde_ai_helper.py")
 @pytest.fixture
 def dirs(tmp_path, monkeypatch):
     out = {"KDEAICHAT_KRUNNER_DIR": tmp_path / "krunner", "KDEAICHAT_DBUS_SERVICE_DIR": tmp_path / "dbus",
-           "KDEAICHAT_SERVICEMENU_DIR": tmp_path / "menus", "KDEAICHAT_DESKTOP_STATE": tmp_path / "data" / "state.json"}
+           "KDEAICHAT_SERVICEMENU_DIR": tmp_path / "menus", "KDEAICHAT_APPLICATIONS_DIR": tmp_path / "apps", "KDEAICHAT_DESKTOP_STATE": tmp_path / "data" / "state.json"}
     for key, value in out.items():
         monkeypatch.setenv(key, str(value))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
@@ -31,9 +31,10 @@ def names(folder):
 
 def test_off_by_default_writes_nothing(dirs, tmp_path):
     status = di.status()
-    assert status == {"type": "desktop_status", "krunner": False, "dolphin": False, "prefix": "ai", "errors": []}
+    assert status == {"type": "desktop_status", "krunner": False, "dolphin": False, "selection": False, "prefix": "ai", "errors": []}
     assert di.sync(False, False)["krunner"] is False
     assert not (tmp_path / "krunner").exists() and not (tmp_path / "menus").exists() and not (tmp_path / "xdg").exists()
+    assert not (tmp_path / "apps").exists()
 
 
 def test_krunner_files(dirs, tmp_path):
@@ -73,6 +74,36 @@ def test_dolphin_menu_is_executable_and_kde6_shaped(dirs, tmp_path):
     assert action["Name"] == "Ask KDE AI Chat about this file"
     assert action["Exec"].endswith("scripts/kdeaichat-ask --files %F")
     assert names(tmp_path / "krunner") == []
+
+
+def test_selection_shortcut_entry(dirs, tmp_path):
+    status = di.sync(False, False, selection=True)
+    assert status["selection"] is True and status["errors"] == [] and status["krunner"] is False
+    assert names(tmp_path / "apps") == ["kdeaichat-ask-selection.desktop"]
+    path = tmp_path / "apps" / "kdeaichat-ask-selection.desktop"
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o755
+    desktop = configparser.ConfigParser(interpolation=None)
+    desktop.optionxform = str
+    desktop.read(path)
+    entry = desktop["Desktop Entry"]
+    assert entry["Type"] == "Application" and entry["X-KDE-Shortcuts"] == "Meta+Alt+A"
+    assert entry["Exec"].endswith("scripts/kdeaichat-ask --selection") and entry["X-KDEAIChat-Managed"] == "true"
+    assert "NoDisplay" not in entry, "stays listed so System Settings can show and change its shortcut"
+    assert json.loads((tmp_path / "data" / "state.json").read_text())["selection"] is True
+    assert di.sync(False, False, selection=True)["errors"] == []   # again: replaced in place
+    assert names(tmp_path / "apps") == ["kdeaichat-ask-selection.desktop"]
+    assert di.sync(False, False)["selection"] is False
+    assert names(tmp_path / "apps") == []
+
+
+def test_selection_shortcut_never_replaces_a_foreign_file(dirs, tmp_path):
+    os.makedirs(tmp_path / "apps")
+    foreign = tmp_path / "apps" / "kdeaichat-ask-selection.desktop"
+    foreign.write_text("[Desktop Entry]\nName=Mine\n")
+    status = di.sync(False, False, selection=True)
+    assert status["selection"] is False and "not from KDE AI Chat" in status["errors"][0]
+    di.sync(False, False)
+    assert foreign.read_text() == "[Desktop Entry]\nName=Mine\n"
 
 
 def test_switching_off_removes_only_our_files(dirs, tmp_path):
@@ -128,3 +159,7 @@ def test_helper_commands(dirs, tmp_path):
     assert run("desktop_status")["dolphin"] is True
     assert run("desktop_sync", {"krunner": False, "dolphin": False})["dolphin"] is False
     assert names(tmp_path / "krunner") == []
+    assert run("desktop_sync", {"selection": True})["selection"] is True
+    assert names(tmp_path / "apps") == ["kdeaichat-ask-selection.desktop"]
+    assert run("desktop_sync", {})["selection"] is False
+    assert names(tmp_path / "apps") == []

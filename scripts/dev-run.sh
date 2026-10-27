@@ -40,6 +40,7 @@ export KDEAICHAT_SYSTEMCTL=true
 export KDEAICHAT_ASK_DIR="$SANDBOX/ask"
 export KDEAICHAT_KRUNNER_DIR="$SANDBOX/desktop/krunner" KDEAICHAT_DBUS_SERVICE_DIR="$SANDBOX/desktop/dbus"
 export KDEAICHAT_SERVICEMENU_DIR="$SANDBOX/desktop/servicemenus" KDEAICHAT_DESKTOP_STATE="$SANDBOX/desktop/state.json"
+export KDEAICHAT_APPLICATIONS_DIR="$SANDBOX/desktop/applications"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 

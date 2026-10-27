@@ -9,7 +9,7 @@
 //   - files are attached with the normal attachment code (doc_extractor.py);
 //   - the text goes into the message box (after what is already typed there); a request marked "send" is sent
 //     at once, when the box was empty and the files have loaded, and only while the same chat is still open.
-// On start it also re-installs the KRunner/Dolphin files if those switches are on (so a moved or updated
+// On start it also re-installs the KRunner/Dolphin/shortcut files if those switches are on (so a moved or updated
 // widget keeps them pointing at the right place). `chat` is the widget root (main.qml).
 import QtQuick
 import Qt.labs.folderlistmodel
@@ -84,6 +84,10 @@ Item {
         for (var i = 0; i < paths.length; i++)
             chat.attachFile(inbox.fileUrl(paths[i]));
         var text = String(item.text || "").trim();
+        // A quoted selection (kdeaichat-ask --selection: "> ..." lines) keeps its blank line after it, so the
+        // question is typed below the quote.
+        if (text.indexOf("> ") === 0 && item.send !== true)
+            text += "\n\n";
         var draft = String(chat.chatInputText || "");
         if (text !== "")
             chat.chatInputText = draft.trim() !== "" ? draft + "\n" + text : text;
@@ -125,8 +129,8 @@ Item {
         inbox._started = true;
         inbox.take();   // requests that arrived before the widget did; also creates the folder
         var cfg = inbox.config;
-        if (cfg && inbox.runHelper && (cfg.krunnerEnabled === true || cfg.dolphinMenuEnabled === true))
-            inbox.runHelper("desktop_sync", {"krunner": cfg.krunnerEnabled === true, "dolphin": cfg.dolphinMenuEnabled === true,
+        if (cfg && inbox.runHelper && (cfg.krunnerEnabled === true || cfg.dolphinMenuEnabled === true || cfg.selectionShortcutEnabled === true))
+            inbox.runHelper("desktop_sync", {"krunner": cfg.krunnerEnabled === true, "dolphin": cfg.dolphinMenuEnabled === true, "selection": cfg.selectionShortcutEnabled === true,
                                              "prefix": String(cfg.krunnerPrefix || "ai")}, null);
     }
 

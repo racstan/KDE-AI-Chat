@@ -1,7 +1,7 @@
-// Settings → Desktop integration: ask the widget from KRunner and from Dolphin.
+// Settings → Desktop integration: ask the widget from KRunner, from Dolphin and about selected text.
 //
 // Both need small files outside the widget (a KRunner plugin and a Dolphin menu entry), so they are opt-in:
-// both switches are off by default. On OK/Apply, saveConfig() asks the helper (desktop_sync) to install the
+// all switches are off by default. On OK/Apply, saveConfig() asks the helper (desktop_sync) to install the
 // files of the switches that are on and to remove those of the switches that are off. Nothing here holds a
 // secret; the helper only ever touches its own files (see kdeaichat/desktop_integration.py).
 import QtQuick
@@ -21,6 +21,7 @@ KCM.SimpleKCM {
     property alias cfg_krunnerEnabled: krunnerSwitch.checked
     property alias cfg_krunnerPrefix: prefixField.text
     property alias cfg_dolphinMenuEnabled: dolphinSwitch.checked
+    property alias cfg_selectionShortcutEnabled: selectionSwitch.checked
 
     // Runs the helper's commands; tests pass a fake with run(command, payload, onDone).
     property var helperRunner: defaultRunner
@@ -37,7 +38,7 @@ KCM.SimpleKCM {
     // Called by Plasma on OK/Apply, before it saves the cfg_ values.
     function saveConfig() {
         helperRunner.run("desktop_sync", {
-            "krunner": krunnerSwitch.checked, "dolphin": dolphinSwitch.checked, "prefix": cleanPrefix,
+            "krunner": krunnerSwitch.checked, "dolphin": dolphinSwitch.checked, "selection": selectionSwitch.checked, "prefix": cleanPrefix,
             "restart_krunner": status === null || status.krunner !== krunnerSwitch.checked
         }, function(stdout, exitCode, stderr) { page.takeStatus(stdout); });
     }
@@ -69,7 +70,7 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             opacity: 0.75
-            text: i18n("Ask KDE AI Chat from other places on your desktop. These add small files outside the widget, so both are off until you turn them on, and the files are removed again when you turn them off. The widget has to be on your panel or desktop to receive the question.")
+            text: i18n("Ask KDE AI Chat from other places on your desktop. These add small files outside the widget, so all are off until you turn them on, and the files are removed again when you turn them off. The widget has to be on your panel or desktop to receive the question.")
         }
 
         Kirigami.InlineMessage {
@@ -119,6 +120,17 @@ KCM.SimpleKCM {
             Config.SettingHelp {
                 text: i18n("Adds an entry to Dolphin’s right-click menu for text files, PDFs, Word documents and pictures. It attaches the file to your message in the widget and opens it, ready for your question. Its contents are sent to the AI only when you send the message.")
             }
+
+            QQC2.Switch {
+                id: selectionSwitch
+                objectName: "selectionSwitch"
+                Kirigami.FormData.label: i18n("Selected text:")
+                text: i18n("Ask about the selected text (Meta+Alt+A)")
+            }
+
+            Config.SettingHelp {
+                text: i18n("Adds a keyboard shortcut that works in any app: select some text, press Meta+Alt+A, and the widget opens with that text quoted in the message box, ready for your question. It is not sent until you type your question and send it. If nothing is selected, the clipboard text is used instead and a short notice says so. You can change the shortcut in System Settings, Keyboard, Shortcuts, under “Ask KDE AI Chat about the selected text”.")
+            }
         }
 
         QQC2.Label {
@@ -127,8 +139,9 @@ KCM.SimpleKCM {
             wrapMode: Text.Wrap
             opacity: 0.75
             visible: page.status !== null
-            text: page.status === null ? "" : i18n("Installed now: KRunner %1, Dolphin %2.",
-                  page.status.krunner ? i18n("yes") : i18n("no"), page.status.dolphin ? i18n("yes") : i18n("no"))
+            text: page.status === null ? "" : i18n("Installed now: KRunner %1, Dolphin %2, shortcut %3.",
+                  page.status.krunner ? i18n("yes") : i18n("no"), page.status.dolphin ? i18n("yes") : i18n("no"),
+                  page.status.selection ? i18n("yes") : i18n("no"))
         }
     }
 }
