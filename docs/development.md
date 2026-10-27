@@ -58,6 +58,19 @@ PI_E2E_REAL=1 PI_E2E_SECONDS=150 PI_CODING_AGENT_DIR=/path/to/test-config \
 
 Each prints what the agent was asked and the saved chat. For the real-Pi run, a test config folder with a `models.json` pointing at Ollama keeps your own `~/.pi/agent` out of it (see Pi's `docs/models.md`).
 
+To make the **screenshots, GIFs and demo video for the docs** (`docs/media/`):
+
+```bash
+scripts/dev-media.sh [light|dark|both]       # windowed on your second monitor, or QT_QPA_PLATFORM=offscreen
+```
+
+Per theme it resets the dev sandbox, seeds made-up demo data (`scripts/media/seed.py`: six chats, memories, a schedule, templates, you are "Alex" and the AI "Nova"), writes a Breeze Light or Dark `kdeglobals`/`plasmarc` into the sandbox (with `QT_QPA_PLATFORMTHEME=kde`), starts a fake OpenAI-compatible server (`scripts/media/mock_openai.py`, so no key, network or model), and runs the widget with `scripts/media/MediaTour.qml` (injected by `dev-run.sh` when `DEV_MEDIA_TOUR=1`). The tour saves only the widget's own items with `grabToImage` (never the screen), 460x640 logical px at ratio 2:
+
+- `docs/media/<state>-<light|dark>.png`: the chat states, the settings pages (created inside the widget, so they show the sandbox data) and the extra states of `MediaExtras.qml`. A state that can't be reached is logged as `MEDIA_SKIP <name>: <why>` and left out; a failure of a main state exits 1.
+- light only: frame sequences in `build/media-frames/<flow>/`, turned by ffmpeg (`scripts/media/encode.py`) into `send-message.gif`, `search.gif`, `incognito.gif`, `commands.gif` and `demo.webm`.
+
+Every output is overwritten on a rerun. Logs: `build/dev-media-<theme>.log`. The generated media is not committed from a scratch run.
+
 To try the widget on your real panel instead:
 
 ```bash

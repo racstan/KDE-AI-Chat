@@ -159,6 +159,18 @@ open(path, "w", encoding="utf-8").write(src[:end] + hook + src[end:])
 PY
 fi
 
+# DEV_MEDIA_TOUR=1: in the staged copy only, scripts/media/MediaTour.qml walks the widget through the
+# states and flows of the docs (scripts/dev-media.sh) and saves the widget's own item, never the screen.
+# DEV_MEDIA_OUT=dir (stills), DEV_MEDIA_FRAMES=dir (frame sequences), DEV_MEDIA_THEME=light|dark (the file
+# name suffix), DEV_MEDIA_FLOWS=1 (also record the flows). The run ends as soon as the tour logs
+# MEDIA_DONE or MEDIA_FAIL (the seconds argument is then the most it may take).
+if [ "${DEV_MEDIA_TOUR:-0}" = "1" ]; then
+    mkdir -p "$STAGE/$DEV_ID/contents/ui/media"
+    cp "$ROOT"/scripts/media/*.qml "$STAGE/$DEV_ID/contents/ui/media/"
+    python3 "$ROOT/scripts/media/inject_tour.py" "$STAGE/$DEV_ID/contents/ui/FullRepresentationContent.qml" \
+        "${DEV_MEDIA_OUT:?}" "${DEV_MEDIA_FRAMES:?}" "${DEV_MEDIA_THEME:-light}" "${DEV_MEDIA_FLOWS:-0}"
+fi
+
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
 kpackagetool6 --type Plasma/Applet --install "$STAGE/$DEV_ID" >/dev/null
 
@@ -207,7 +219,14 @@ trap 'unplace; rm -rf "$STAGE"' EXIT
 # messages to the journal in a Plasma session; keep them in $LOG for the check below.
 QT_FORCE_STDERR_LOGGING=1 plasmawindowed "$DEV_ID" >"$LOG" 2>&1 &
 PID=$!
-sleep "$RUN_SECONDS"
+if [ "${DEV_MEDIA_TOUR:-0}" = "1" ]; then
+    for ((i = 0; i < RUN_SECONDS; i++)); do
+        grep -qE "MEDIA_DONE|MEDIA_FAIL" "$LOG" && break
+        sleep 1
+    done
+else
+    sleep "$RUN_SECONDS"
+fi
 # spectacle can only grab the *active* window, so first ask KWin (scripting
 # D-Bus API) to activate the dev window, then check it really is active before
 # taking the shot. If either step fails, no screenshot is taken, so one of the
