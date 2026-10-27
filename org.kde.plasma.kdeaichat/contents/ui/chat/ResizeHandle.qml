@@ -39,11 +39,11 @@ MouseArea {
     property int startWidth: 0
     property int startHeight: 0
 
-    // Which way a popup grows along one axis: Plasma keeps the edge nearest
-    // the screen edge in place, so it grows away from it. True when the high
-    // side (right, bottom) is the one nearer its screen edge, so the popup
-    // grows towards the low side (left, up). The grip belongs there; on the
-    // other corner, dragging does nothing as the popup cannot grow that way.
+    // Which way a popup grows along one axis, from where its widget sits
+    // (low..high, on the screen from screenLow to screenHigh): it grows away
+    // from the nearer screen edge. True when the high side (right, bottom) is
+    // nearer, so it grows towards the low side (left, up). The grip belongs
+    // there; on the other corner, dragging does nothing.
     function growsTowardsLow(low, high, screenLow, screenHigh) {
         return (screenHigh - high) < (low - screenLow);
     }

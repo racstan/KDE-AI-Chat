@@ -179,6 +179,10 @@ Item {
             compare(grip.growsTowardsLow(1000, 1920, 0, 1920), true, "touching the right edge: left");
             compare(grip.growsTowardsLow(300, 1060, 0, 1080), true, "a tall popup above the bottom panel grows up");
             compare(grip.growsTowardsLow(1920 + 1280, 1920 + 1920, 1920, 3840), true, "second screen");
+            // As FullRepresentationContent asks it: the centre of the panel icon.
+            compare(grip.growsTowardsLow(250, 250, 0, 1920), false, "icon near the left of a bottom panel: grows right");
+            compare(grip.growsTowardsLow(1700, 1700, 0, 1920), true, "icon near the right: grows left");
+            compare(grip.growsTowardsLow(1920 + 250, 1920 + 250, 1920, 3840), false, "left part of the second screen");
         }
     }
 }

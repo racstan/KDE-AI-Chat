@@ -14,25 +14,25 @@ Chat.AccentArea {
 
     readonly property int panelEdge: Plasmoid.location
     readonly property bool sideEdge: panelEdge === PlasmaCore.Types.LeftEdge || panelEdge === PlasmaCore.Types.RightEdge
-    // Which corner of the screen the popup is nearest (see grip, below).
+    // Which way the popup grows (see grip, below). Plasma centres the popup on
+    // the widget's panel icon and keeps it on screen, so an icon in the left
+    // half of the screen gives a popup that grows to the right, and the other
+    // way round. The icon is asked, not the popup: on Wayland a popup doesn't
+    // know where it is on the screen, a panel does.
     property bool popupLeftward: false
     property bool popupUpward: false
 
     function updatePopupSide() {
-        var screen = repRoot.Screen;
-        if (!repRoot.Window.window || grip.pressed || repRoot.width <= 0)
+        var icon = root.compactRepresentationItem;
+        if (!icon || !icon.Window.window || grip.pressed || icon.width <= 0)
             return;
-        var topLeft = repRoot.mapToGlobal(0, 0);
-        popupLeftward = grip.growsTowardsLow(topLeft.x, topLeft.x + repRoot.width, screen.virtualX, screen.virtualX + screen.width);
-        popupUpward = grip.growsTowardsLow(topLeft.y, topLeft.y + repRoot.height, screen.virtualY, screen.virtualY + screen.height);
+        var screen = icon.Screen;
+        var centre = icon.mapToGlobal(icon.width / 2, icon.height / 2);
+        popupLeftward = grip.growsTowardsLow(centre.x, centre.x, screen.virtualX, screen.virtualX + screen.width);
+        popupUpward = grip.growsTowardsLow(centre.y, centre.y, screen.virtualY, screen.virtualY + screen.height);
     }
     onVisibleChanged: if (visible) Qt.callLater(updatePopupSide)
     Component.onCompleted: Qt.callLater(updatePopupSide)
-    Connections {
-        target: repRoot.Window.window
-        function onXChanged() { repRoot.updatePopupSide(); }
-        function onYChanged() { repRoot.updatePopupSide(); }
-    }
 
     Connections {
         target: root.voiceManagerRef || null
