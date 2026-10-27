@@ -1,4 +1,8 @@
-"""What installing faster-whisper would download, shown before anything is downloaded.
+"""What installing a local dictation engine would download, shown before anything is downloaded.
+
+Parakeet (``estimate_parakeet``) needs only transcribe.cpp's two wheels (its
+GPU support is Vulkan, from the graphics driver: nothing more to download)
+and the model, unless a copy is on disk already.
 
 ``estimate`` adds up the Python packages still missing from the voice venv
 (approximate manylinux wheel sizes, checked 2026-10) and the chosen model,
@@ -32,7 +36,8 @@ MODELS = {
     "distil-large-v3": ("Systran/faster-distil-whisper-large-v3", 1510),
     "distil-large-v3.5": ("distil-whisper/distil-large-v3.5-ct2", 1510),
 }
-_IMPORT_NAMES = {"faster-whisper": "faster_whisper", "huggingface-hub": "huggingface_hub", "hf-xet": "hf_xet",
+_IMPORT_NAMES = {"transcribe-cpp": "transcribe_cpp", "transcribe-cpp-native": "transcribe_cpp_native",
+                 "faster-whisper": "faster_whisper", "huggingface-hub": "huggingface_hub", "hf-xet": "hf_xet",
                  "nvidia-cublas-cu12": "nvidia/cublas", "nvidia-cudnn-cu12": "nvidia/cudnn"}
 
 
@@ -86,3 +91,23 @@ def estimate(model: str, venv: str, gpu: Any = "auto", has_gpu: bool = False,
     return {"type": "stt_setup_size", "gpu": use_gpu, "packages_mb": packages_mb, "model_mb": model_mb,
             "total_mb": packages_mb + model_mb, "items": items, "model_note": model_note, "venv": venv,
             "approximate": True}
+
+
+def estimate_parakeet(model: str, venv: str, found: str) -> Dict[str, Any]:
+    """Like ``estimate``, for the Parakeet engine; ``found`` is the model file on disk, or ""."""
+    from kdeaichat import stt_parakeet
+    items = [{"name": name, "mb": mb, "kind": "package"} for name, mb in stt_parakeet.PACKAGES.items()
+             if not installed(venv, name)]
+    model_mb, model_note = 0, ""
+    if found:
+        model_note = "already on this computer: " + found
+    elif model == stt_parakeet.NAME:
+        model_mb = stt_parakeet.MB
+        items.append({"name": "model " + stt_parakeet.LABEL, "mb": model_mb, "kind": "model",
+                      "from": stt_parakeet.REPO, "to": stt_parakeet.own_dir()})
+    else:
+        model_note = "your own model file"
+    packages_mb = sum(i["mb"] for i in items if i["kind"] == "package")
+    return {"type": "stt_setup_size", "engine": "parakeet", "gpu": False, "packages_mb": packages_mb,
+            "model_mb": model_mb, "total_mb": packages_mb + model_mb, "items": items, "model_note": model_note,
+            "venv": venv, "approximate": True}

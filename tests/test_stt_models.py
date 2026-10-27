@@ -32,7 +32,7 @@ def test_discover_reuses_other_apps_models(tmp_path, monkeypatch):
     ct2(os.path.join(custom, "multilang_fasterwhisper_tiny"))
     touch(os.path.join(home, ".config", "net.mkiol", "dsnote", "settings.conf"),
           ("[service]\nmodels_dir=%s\n" % custom).encode())
-    # Handy: legacy ggml .bin are whisper.cpp models; .gguf needs Handy's engine.
+    # Handy: legacy ggml .bin are whisper.cpp models; a Whisper .gguf is skipped (Parakeet ones are used).
     handy = os.path.join(home, ".local", "share", "com.pais.handy", "models")
     touch(os.path.join(handy, "ggml-small.bin"))
     touch(os.path.join(handy, "whisper-small-Q8_0.gguf"))
@@ -50,6 +50,7 @@ def test_discover_reuses_other_apps_models(tmp_path, monkeypatch):
         ("Handy", "whisper-cpp", "ggml-small"),
         ("HuggingFace", "faster-whisper", "base"),
         ("HuggingFace", "faster-whisper", "someone/whisper-ct2-de"),
+        ("HuggingFace", "parakeet", "m"),            # Handy's Parakeet GGUF: the Parakeet engine's
         ("Speech Note", "faster-whisper", "multilang_fasterwhisper_small"),
         ("Speech Note", "faster-whisper", "multilang_fasterwhisper_tiny"),
         ("Speech Note", "whisper-cpp", "de_whisper_large3turbo"),

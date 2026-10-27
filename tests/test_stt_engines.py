@@ -63,7 +63,8 @@ def server():
 
 def test_settings_validation():
     s = from_payload({})
-    assert (s["engine"], s["model"], s["device"], s["language"]) == ("faster-whisper", "small", "auto", "auto")
+    assert (s["engine"], s["model"], s["device"], s["language"]) == ("parakeet", "small", "auto", "auto")
+    assert s["parakeet_model"] == "parakeet-unified-en-0.6b"
     assert from_payload({"sttModel": "~/models/ct2"})["model"] == os.path.expanduser("~/models/ct2")
     for bad in ({"sttEngine": "x"}, {"sttDevice": "tpu"}, {"sttLanguage": "en us"}, {"sttModel": "rel/dir"},
                 {"sttRemoteUrl": "ftp://x"}, {"sttRemoteUrl": "https://u:p@host/v1"}, {"sttCommand": "a\nb"}):
@@ -168,7 +169,7 @@ def test_faster_whisper_adapter_talks_to_the_service(home, monkeypatch):
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     monkeypatch.setenv("KDEAICHAT_STT_PORT", str(srv.server_address[1]))
     try:
-        reply = stt_engines.transcribe(TEST_WAV, from_payload({"sttModel": "tiny"}))
+        reply = stt_engines.transcribe(TEST_WAV, from_payload({"sttEngine": "faster-whisper", "sttModel": "tiny"}))
         assert reply["type"] == "stt_result" and reply["text"] == "from service" and reply["device"] == "cpu"
     finally:
         srv.shutdown()
@@ -191,17 +192,20 @@ def test_engine_listing(home, tmp_path, monkeypatch):
     monkeypatch.setenv("PATH", str(bindir))
     s = from_payload({"venv": str(venv)})
     rows = {r["id"]: r for r in stt_engines.available(s)}
-    assert [r["available"] for r in rows.values()] == [False, False, False, False]
+    assert [r["available"] for r in rows.values()] == [False, False, False, False, False]
     assert rows["whisper-cpp"]["reason"] == "whisper-cli not found"
-    # A venv with faster-whisper, whisper-cli with a model, a URL and a command.
+    # A venv with faster-whisper and Parakeet (and its model), whisper-cli with a model, a URL and a command.
     (venv / "bin").mkdir(parents=True)
     (venv / "bin" / "python3").write_text("")
-    (venv / "lib" / "python3.12" / "site-packages" / "faster_whisper").mkdir(parents=True)
+    for package in ("faster_whisper", "transcribe_cpp", "transcribe_cpp_native"):
+        (venv / "lib" / "python3.12" / "site-packages" / package).mkdir(parents=True)
+    gguf = tmp_path / "parakeet.gguf"
+    gguf.write_bytes(b"GGUF")
     cli = script(bindir / "whisper-cli", "print('x')\n")
     model = tmp_path / "ggml.bin"
     model.write_bytes(b"x")
     s = from_payload({"venv": str(venv), "sttWhisperCppModel": str(model), "sttRemoteUrl": "https://api.groq.com/openai/v1",
-                      "sttCommand": cli + " {wav}"})
+                      "sttCommand": cli + " {wav}", "sttParakeetModel": str(gguf)})
     rows = {r["id"]: r for r in stt_engines.available(s)}
     assert all(r["available"] for r in rows.values()), rows
     assert rows["whisper-cpp"]["binary"] == cli

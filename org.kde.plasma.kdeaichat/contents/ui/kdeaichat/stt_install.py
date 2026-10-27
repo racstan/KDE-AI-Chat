@@ -1,6 +1,6 @@
-"""Installs the faster-whisper engine when the user presses Install in Settings → Voice.
+"""Installs the local dictation engine (Parakeet or faster-whisper) when the user presses Install in Settings → Voice.
 
-``stt_install {gpu: "auto"|"cpu"|"gpu"}`` runs ``voice/venv_setup.sh`` for the
+``stt_install {gpu: "auto"|"cpu"|"gpu", sttEngine}`` runs ``voice/venv_setup.sh`` for the
 voice venv (``stt_settings.venv_dir``) without a terminal and prints one line:
 ``{"type": "stt_installed", "ok": true, "mode": "cpu"|"gpu"}`` or
 ``{"type": "stt_installed", "ok": false, "error": ..., "log": last lines}``.
@@ -38,14 +38,16 @@ def _json_lines(text: str) -> List[Dict[str, Any]]:
     return out
 
 
-def install(mode: str = "auto", timeout: float = TIMEOUT) -> Dict[str, Any]:
+def install(mode: str = "auto", timeout: float = TIMEOUT, engine: str = "parakeet") -> Dict[str, Any]:
     if mode not in ("auto", "cpu", "gpu"):
         mode = "auto"
+    if engine not in ("parakeet", "faster-whisper"):
+        engine = "parakeet"
     folder = venv_dir({})
     os.makedirs(os.path.dirname(folder), mode=0o700, exist_ok=True)
     env = dict(os.environ, NON_INTERACTIVE="1")
     try:
-        result = subprocess.run(["bash", setup_script(), folder, mode], stdin=subprocess.DEVNULL,
+        result = subprocess.run(["bash", setup_script(), folder, mode, engine], stdin=subprocess.DEVNULL,
                                 capture_output=True, timeout=timeout, env=env)
     except subprocess.TimeoutExpired:
         return {"type": "stt_installed", "ok": False, "error": "The install took longer than an hour and was stopped."}
@@ -58,13 +60,14 @@ def install(mode: str = "auto", timeout: float = TIMEOUT) -> Dict[str, Any]:
     tail = (stdout + result.stderr.decode("utf-8", "replace")).strip().splitlines()[-6:]
     if result.returncode == 0 and done and not errors:
         gpu = any(e.get("status") == "installing_gpu" for e in events) or "(gpu)" in stdout
-        return {"type": "stt_installed", "ok": True, "venv": folder, "mode": "gpu" if gpu else "cpu"}
+        return {"type": "stt_installed", "ok": True, "venv": folder, "mode": "gpu" if gpu else "cpu", "engine": engine}
     message = errors[-1].get("error") if errors else "The setup script failed (exit %d)." % result.returncode
     return {"type": "stt_installed", "ok": False, "error": message, "log": "\n".join(tail)[-1500:]}
 
 
 def cmd_stt_install(payload: Dict[str, Any]) -> None:
-    print(json.dumps(install(str(payload.get("gpu") or "auto"))), flush=True)
+    print(json.dumps(install(str(payload.get("gpu") or "auto"), engine=str(payload.get("sttEngine") or "parakeet"))),
+          flush=True)
 
 
 COMMANDS = {

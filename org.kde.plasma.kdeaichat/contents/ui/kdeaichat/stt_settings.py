@@ -14,8 +14,12 @@ from urllib.parse import urlsplit
 
 from kdeaichat import chats
 
-ENGINES = ("faster-whisper", "whisper-cpp", "remote", "command")
-DEVICES = ("auto", "cpu", "cuda")
+ENGINES = ("parakeet", "faster-whisper", "whisper-cpp", "remote", "command")
+DEFAULT_ENGINE = "parakeet"
+# "gpu" and "cuda" both mean the graphics card: CUDA for faster-whisper, Vulkan for Parakeet.
+DEVICES = ("auto", "cpu", "cuda", "gpu")
+LOCAL_SERVICE_ENGINES = ("parakeet", "faster-whisper")  # run by the on-demand service
+PARAKEET_DEFAULT = "parakeet-unified-en-0.6b"
 WALLET_ENTRY = "stt-remote"
 DEFAULT_PORT = 9015
 _LANGUAGE = re.compile(r"^(auto|[a-z]{2,3}(-[A-Za-z]{2,4})?)$")
@@ -122,7 +126,7 @@ def command_argv(template: str, wav: str, language: str) -> List[str]:
 
 def from_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Validated settings for one request; raises SettingsError."""
-    engine = _text(payload, "sttEngine", "faster-whisper", 32) or "faster-whisper"
+    engine = _text(payload, "sttEngine", DEFAULT_ENGINE, 32) or DEFAULT_ENGINE
     if engine not in ENGINES:
         raise SettingsError("unknown speech-to-text engine: " + engine)
     device = _text(payload, "sttDevice", "auto", 8) or "auto"
@@ -134,9 +138,15 @@ def from_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     model = _text(payload, "sttModel", "small") or "small"
     if not _MODEL_NAME.match(model):
         model = _path(model)
+    parakeet = _text(payload, "sttParakeetModel", PARAKEET_DEFAULT) or PARAKEET_DEFAULT
+    if parakeet != PARAKEET_DEFAULT:
+        parakeet = _path(parakeet)
+        if not parakeet.endswith(".gguf"):
+            raise SettingsError("the Parakeet model must be a .gguf file")
     return {
         "engine": engine,
         "model": model,
+        "parakeet_model": parakeet,
         "device": device,
         "language": language,
         "allow_download": payload.get("allowDownload") is True,

@@ -1,5 +1,8 @@
 """Speech-to-text engine adapters: each turns a WAV file into text.
 
+* ``parakeet``: NVIDIA Parakeet Unified EN 0.6B (GGUF, transcribe.cpp) in the
+  same on-demand service; the model file is found or downloaded by
+  ``stt_parakeet`` and its path is sent to the service.
 * ``faster-whisper``: the on-demand local service (``voice/stt_service.py``,
   socket-activated ``kde-ai-stt.socket``), asked over loopback with the token.
 * ``whisper-cpp``: the user's ``whisper-cli`` with a ggml model, or a
@@ -18,7 +21,7 @@ import time
 from typing import Any, Callable, Dict, List
 from urllib.parse import urlsplit
 
-from kdeaichat import schedule_units, schedule_wallet, stt_http, voice_services
+from kdeaichat import schedule_units, schedule_wallet, stt_http, stt_parakeet, voice_services
 from kdeaichat.stt_http import EngineError
 from kdeaichat.stt_settings import (ENGINES, WALLET_ENTRY, SettingsError, command_argv, find_binary, port,
                                     venv_python)
@@ -53,10 +56,9 @@ def _run(argv: List[str], timeout: float = RUN_TIMEOUT) -> str:
     return result.stdout[:MAX_OUTPUT].decode("utf-8", "replace")
 
 
-def faster_whisper(wav: str, s: Dict[str, Any], start_socket: Callable[[], int] = None) -> Dict[str, Any]:
+def _service(request: Dict[str, Any], start_socket: Callable[[], int] = None) -> Dict[str, Any]:
+    """POST /transcribe to the on-demand service, starting its socket once if nothing listens."""
     token = voice_services.ensure_voice_http_token(token_path())
-    request = {"wav": wav, "model": s["model"], "device": s["device"], "language": s["language"],
-               "allow_download": s["allow_download"]}
     try:
         return stt_http.service_call("/transcribe", request, token, port())
     except EngineError as e:
@@ -69,9 +71,28 @@ def faster_whisper(wav: str, s: Dict[str, Any], start_socket: Callable[[], int] 
         return stt_http.service_call("/transcribe", request, token, port())
     except EngineError as e:
         if e.code == "unreachable":
-            raise EngineError("The faster-whisper service is not set up. Install it in Settings → Voice.",
+            raise EngineError("The speech service is not set up. Install it in Settings → Voice.",
                               "not_installed") from None
         raise
+
+
+def faster_whisper(wav: str, s: Dict[str, Any], start_socket: Callable[[], int] = None) -> Dict[str, Any]:
+    request = {"engine": "faster-whisper", "wav": wav, "model": s["model"],
+               "device": "cuda" if s["device"] == "gpu" else s["device"], "language": s["language"],
+               "allow_download": s["allow_download"]}
+    return _service(request, start_socket)
+
+
+def parakeet(wav: str, s: Dict[str, Any], start_socket: Callable[[], int] = None) -> Dict[str, Any]:
+    model = stt_parakeet.resolve(s["parakeet_model"])
+    if not model:
+        if s["parakeet_model"] == stt_parakeet.NAME:
+            raise EngineError("The Parakeet model is not downloaded yet (%d MB). Download it in Settings → Voice."
+                              % stt_parakeet.MB, "model_missing")
+        raise EngineError("The Parakeet model file is missing: " + s["parakeet_model"], "model_missing")
+    # The graphics card is used through Vulkan (NVIDIA, AMD and Intel).
+    device = {"cuda": "gpu"}.get(s["device"], s["device"])
+    return _service({"engine": "parakeet", "wav": wav, "model": model, "device": device}, start_socket)
 
 
 def whisper_cpp(wav: str, s: Dict[str, Any]) -> Dict[str, Any]:
@@ -107,7 +128,7 @@ def command(wav: str, s: Dict[str, Any]) -> Dict[str, Any]:
     return {"text": _clean(_run(argv))}
 
 
-ADAPTERS = {"faster-whisper": faster_whisper, "whisper-cpp": whisper_cpp, "remote": remote, "command": command}
+ADAPTERS = {"parakeet": parakeet, "faster-whisper": faster_whisper, "whisper-cpp": whisper_cpp, "remote": remote, "command": command}
 
 
 def transcribe(wav: str, settings: Dict[str, Any]) -> Dict[str, Any]:
@@ -145,11 +166,18 @@ def available(settings: Dict[str, Any]) -> List[Dict[str, Any]]:
     on the settings page: installed, or a URL/command entered) and reason."""
     rows: List[Dict[str, Any]] = []
     fw = _faster_whisper_installed(settings)
-    venv_ok = fw or can_make_venv()
+    pk = bool(venv_python({"venv": settings["venv"]})) and stt_parakeet.installed(settings["venv"])
+    venv_ok = fw or pk or can_make_venv()
+    no_venv = "Python's venv module is missing (install python3-venv)"
+    pk_model = stt_parakeet.resolve(settings["parakeet_model"])
+    rows.append({"id": "parakeet", "available": pk and bool(pk_model), "selectable": pk or venv_ok, "local": True,
+                 "gpu": nvidia_gpu(), "installed": pk, "model_found": bool(pk_model),
+                 "reason": ("" if pk and pk_model else "the model is not downloaded yet" if pk
+                            else "not installed (one-click install, size shown first)" if venv_ok else no_venv)})
     rows.append({"id": "faster-whisper", "available": fw, "selectable": venv_ok, "local": True, "gpu": nvidia_gpu(),
                  "installed": fw,
                  "reason": "" if fw else "not installed (one-click install, size shown first)" if venv_ok
-                 else "Python's venv module is missing (install python3-venv)"})
+                 else no_venv})
     binary = find_binary(settings["whisper_cpp_binary"])
     model = settings["whisper_cpp_model"]
     if settings["whisper_cpp_server"]:

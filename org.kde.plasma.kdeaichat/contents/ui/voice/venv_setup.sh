@@ -1,11 +1,13 @@
 #!/bin/bash
-# venv_setup.sh [venv-dir] [auto|cpu|gpu]
-# Creates the Python venv for the faster-whisper speech-to-text service:
-# faster-whisper with CTranslate2 and onnxruntime only (no torch, spacy or
-# transformers). Read aloud needs no venv. GPU support (cuBLAS + cuDNN wheels,
-# about 1.3 GB) is added when an NVIDIA GPU is found; "cpu" or "gpu" overrides.
-# The download size is printed first (the settings page shows it before
-# running this); models are downloaded separately.
+# venv_setup.sh [venv-dir] [auto|cpu|gpu] [parakeet|faster-whisper]
+# Creates the Python venv for the on-demand speech-to-text service, for one engine:
+#  - parakeet (the default): transcribe.cpp's Python binding and its prebuilt
+#    library (about 24 MB, CPU and Vulkan GPU built in: no CUDA wheels, no torch).
+#  - faster-whisper: faster-whisper with CTranslate2 and onnxruntime only (no
+#    torch, spacy or transformers). GPU support (cuBLAS + cuDNN wheels, about
+#    1.3 GB) is added when an NVIDIA GPU is found; "cpu" or "gpu" overrides.
+# Read aloud needs no venv. The download size is printed first (the settings
+# page shows it before running this); models are downloaded separately.
 
 set -e
 
@@ -13,6 +15,10 @@ VENV_DIR="${1:-${XDG_DATA_HOME:-$HOME/.local/share}/kdeaichat/venv}"
 # Expand tilde if present
 VENV_DIR="${VENV_DIR/#\~/$HOME}"
 MODE="${2:-auto}"
+ENGINE="${3:-parakeet}"
+[ "$ENGINE" = "faster-whisper" ] || ENGINE=parakeet
+# transcribe.cpp is pre-1.0: the binding and the native library must be the same version.
+TRANSCRIBE_CPP_VERSION="0.4.1"
 
 wait_for_keypress() {
     if [ "$NON_INTERACTIVE" = "1" ] || [ "$NONINTERACTIVE" = "1" ]; then
@@ -36,12 +42,12 @@ GPU_FLAG=false
 [ "$MODE" = "gpu" ] && GPU_FLAG=true
 
 echo "================================================================="
-echo "  KDE AI Chat - speech-to-text engine (faster-whisper, $MODE)"
+echo "  KDE AI Chat - speech-to-text engine ($ENGINE, $MODE)"
 echo "================================================================="
 
 HELPER="$(cd "$(dirname "$0")/.." && pwd)/kde_ai_helper.py"
 if [ -f "$HELPER" ]; then
-    SIZE_PAYLOAD=$(python3 -c 'import base64, json, sys; print(base64.b64encode(json.dumps({"venv": sys.argv[1], "gpu": sys.argv[2] == "true"}).encode()).decode())' "$VENV_DIR" "$GPU_FLAG")
+    SIZE_PAYLOAD=$(python3 -c 'import base64, json, sys; print(base64.b64encode(json.dumps({"venv": sys.argv[1], "gpu": sys.argv[2] == "true", "sttEngine": sys.argv[3]}).encode()).decode())' "$VENV_DIR" "$GPU_FLAG" "$ENGINE")
     python3 "$HELPER" stt_setup_size "$SIZE_PAYLOAD" || true
 fi
 
@@ -53,6 +59,10 @@ ready_check() {
     local py
     py="$(venv_python)"
     [ -f "$py" ] || return 1
+    if [ "$ENGINE" = "parakeet" ]; then
+        "$py" -c "import sys, transcribe_cpp; sys.exit(transcribe_cpp.__version__ != sys.argv[1])" "$TRANSCRIBE_CPP_VERSION" 2>/dev/null || return 1
+        return 0
+    fi
     "$py" -c "import faster_whisper, ctranslate2, av, sys; sys.exit(int(av.__version__.split('.')[0]) >= 19)" 2>/dev/null || return 1
     if [ "$MODE" = "gpu" ]; then
         "$py" -c "import importlib.util as u; exit(0 if u.find_spec('nvidia.cublas') and u.find_spec('nvidia.cudnn') else 1)" 2>/dev/null || return 1
@@ -61,7 +71,7 @@ ready_check() {
 }
 
 if ready_check; then
-    echo "  faster-whisper is already installed at: $VENV_DIR"
+    echo "  $ENGINE is already installed at: $VENV_DIR"
     echo '{"type":"setup_status","status":"done","percent":100}'
     wait_for_keypress
     exit 0
@@ -87,6 +97,15 @@ echo '{"type":"setup_status","status":"upgrading_pip","percent":20}'
 "$VENV_DIR/bin/pip" install --upgrade pip
 
 echo '{"type":"setup_status","status":"installing_dependencies","percent":40}'
+if [ "$ENGINE" = "parakeet" ]; then
+    # Prebuilt for x86_64 and aarch64 Linux; the Vulkan GPU backend is used when the driver has Vulkan.
+    "$VENV_DIR/bin/pip" install "transcribe-cpp==$TRANSCRIBE_CPP_VERSION" "transcribe-cpp-native==$TRANSCRIBE_CPP_VERSION"
+    echo '{"type":"setup_status","status":"done","percent":100}'
+    echo "  Speech-to-text engine installed (Parakeet). The model is downloaded separately, with its size shown first."
+    wait_for_keypress
+    exit 0
+fi
+
 # PyAV 19 dropped an argument faster-whisper 1.2 passes; recordings are decoded without it anyway.
 "$VENV_DIR/bin/pip" install faster-whisper "av<19"
 

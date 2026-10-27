@@ -1,4 +1,4 @@
-"""The faster-whisper service's systemd user units, and removing the old always-on one.
+"""The local dictation service's systemd user units, and removing the old always-on one.
 
 ``sync`` runs at every widget start (idempotent, only calls systemctl for
 what changed):
@@ -6,7 +6,8 @@ what changed):
 1. The pre-1.4 ``kde-ai-stt.service`` (``voice_helper.py --stt-server``,
    ``Restart=always``, enabled at login, a Whisper model loaded all day) is
    disabled, stopped and deleted in every case.
-2. With dictation on and faster-whisper chosen (and its venv installed),
+2. With dictation on and a local engine chosen (Parakeet or faster-whisper,
+   its venv installed),
    ``kde-ai-stt.socket`` listens on 127.0.0.1:9015 and starts
    ``kde-ai-stt.service`` (``voice/stt_service.py``) on the first request;
    the service exits after ``sttIdleMinutes`` (default 5) idle minutes.
@@ -23,7 +24,7 @@ from typing import Any, Callable, Dict, List, Optional
 from kdeaichat import procs, schedule_units, voice_services
 from kdeaichat.common import atomic_write_text
 from kdeaichat.stt_engines import token_path
-from kdeaichat.stt_settings import DEFAULT_PORT, venv_python
+from kdeaichat.stt_settings import DEFAULT_ENGINE, DEFAULT_PORT, LOCAL_SERVICE_ENGINES, venv_python
 
 SOCKET = "kde-ai-stt.socket"
 SERVICE = "kde-ai-stt.service"
@@ -61,7 +62,7 @@ WantedBy=sockets.target
 def service_text(python: str, script: str, token: str, idle: int = IDLE_SECONDS) -> str:
     q = voice_services._systemd_quote
     return f"""[Unit]
-Description=KDE AI Chat speech-to-text (faster-whisper, exits when idle)
+Description=KDE AI Chat speech-to-text (Parakeet / faster-whisper, exits when idle)
 Requires={SOCKET}
 After={SOCKET}
 
@@ -141,9 +142,9 @@ def sync(payload: Dict[str, Any], directory: Optional[str] = None,
             pass
 
     enabled = payload.get("sttEnabled") is True
-    engine = str(payload.get("sttEngine") or "faster-whisper")
+    engine = str(payload.get("sttEngine") or DEFAULT_ENGINE)
     python = venv_python(payload)
-    want = enabled and engine == "faster-whisper" and bool(python) and os.path.isfile(service_script())
+    want = enabled and engine in LOCAL_SERVICE_ENGINES and bool(python) and os.path.isfile(service_script())
 
     if want:
         token = token_path()
@@ -170,5 +171,6 @@ def sync(payload: Dict[str, Any], directory: Optional[str] = None,
     elif result["legacy_removed"]:
         run(["daemon-reload"])
     result["reason"] = ("" if want else "dictation is off" if not enabled else
-                        "another engine is chosen" if engine != "faster-whisper" else "faster-whisper is not installed")
+                        "another engine is chosen" if engine not in LOCAL_SERVICE_ENGINES
+                        else engine + " is not installed")
     return result

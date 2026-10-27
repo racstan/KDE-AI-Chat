@@ -20,9 +20,12 @@ def test_install_reports_success_and_mode(tmp_path, monkeypatch):
     monkeypatch.setenv("KDEAICHAT_STT_SETUP", _script(tmp_path, 'echo "$@ $NON_INTERACTIVE" > %s\n'
                        'echo \'{"type":"setup_status","status":"installing_gpu","percent":70}\'\n'
                        'echo \'{"type":"setup_status","status":"done","percent":100}\'\n' % log))
-    reply = stt_install.install("gpu")
-    assert reply == {"type": "stt_installed", "ok": True, "venv": str(tmp_path / "data" / "kdeaichat" / "venv"), "mode": "gpu"}
-    assert log.read_text().split() == [str(tmp_path / "data" / "kdeaichat" / "venv"), "gpu", "1"]
+    reply = stt_install.install("gpu", engine="faster-whisper")
+    assert reply == {"type": "stt_installed", "ok": True, "venv": str(tmp_path / "data" / "kdeaichat" / "venv"), "mode": "gpu",
+                     "engine": "faster-whisper"}
+    assert log.read_text().split() == [str(tmp_path / "data" / "kdeaichat" / "venv"), "gpu", "faster-whisper", "1"]
+    stt_install.install("auto", engine="bogus")       # Parakeet is the default engine
+    assert log.read_text().split()[1:3] == ["auto", "parakeet"]
 
 
 def test_install_failure_gives_the_error_and_log_tail(tmp_path, monkeypatch):

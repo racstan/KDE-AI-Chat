@@ -9,9 +9,10 @@ Every command takes the widget's ``stt*`` settings in its payload (see
   stt_dictate         records until stt_stop (max 5 min), then like stt_transcribe; or {"type": "stt_stopped"}
   stt_stop            {cancel?} -> {"type": "stt_stopping"} | {"type": "stt_stopped"}
   stt_models          -> {"type": "stt_models", "faster_whisper": [{name, mb, downloaded, recommended, note}],
+                         "parakeet": [{name, label, mb, downloaded, path, source, ...}],
                          "found": [{engine, model, path, name, source, mb}]} (Speech Note, Handy, HF cache, whisper.cpp)
-  stt_setup_size      {sttModel, gpu: "auto"|true|false} -> {"type": "stt_setup_size", "total_mb", "items", ...}
-  stt_download_model  {sttModel} -> {"type": "stt_downloaded", "path"} (only after the UI showed the size)
+  stt_setup_size      {sttEngine, sttModel, gpu: "auto"|true|false} -> {"type": "stt_setup_size", "total_mb", "items", ...}
+  stt_download_model  {sttEngine, sttModel} -> {"type": "stt_downloaded", "path"} (only after the UI showed the size)
   stt_sync_units      {sttEnabled, sttEngine} -> {"type": "stt_units", ...} (widget start; see stt_units)
   stt_service_status  -> the service's /status (this starts it if it is socket-activated)
 """
@@ -21,7 +22,8 @@ import shutil
 import tempfile
 from typing import Any, Callable, Dict
 
-from kdeaichat import stt_engines, stt_http, stt_models, stt_record, stt_setup, stt_units, voice_data, voice_services
+from kdeaichat import (stt_engines, stt_http, stt_models, stt_parakeet, stt_record, stt_setup, stt_units, voice_data,
+                       voice_services)
 from kdeaichat.common import safe_path
 from kdeaichat.stt_http import EngineError
 from kdeaichat.stt_settings import SettingsError, from_payload, port, runtime_dir
@@ -86,19 +88,32 @@ def dictate(payload: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]
 def models(payload: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]:
     """The faster-whisper model list and models other apps already downloaded."""
     gpu = stt_engines.nvidia_gpu()
-    return {"type": "stt_models", "gpu": gpu, "faster_whisper": stt_models.catalogue(gpu), "found": stt_models.discover()}
+    return {"type": "stt_models", "gpu": gpu, "faster_whisper": stt_models.catalogue(gpu),
+            "parakeet": stt_parakeet.catalogue(), "found": stt_models.discover()}
 
 
 def setup_size(payload: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]:
-    """What installing faster-whisper and the chosen model would download."""
+    """What installing the chosen local engine and its model would download."""
+    if settings["engine"] == "parakeet":
+        return stt_setup.estimate_parakeet(settings["parakeet_model"], settings["venv"],
+                                           stt_parakeet.resolve(settings["parakeet_model"]))
     return stt_setup.estimate(settings["model"], settings["venv"], payload.get("gpu", "auto"), stt_engines.nvidia_gpu())
 
 
 def download_model(payload: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]:
-    """Download the chosen faster-whisper model through the service (HuggingFace cache).
+    """Download the chosen model: Parakeet's here (checked against its SHA-256), a faster-whisper
+    model through the service (HuggingFace cache).
 
-    A model that was not on disk before is recorded as ours, so "Remove" may delete it later.
+    A faster-whisper model that was not on disk before is recorded as ours, so "Remove" may delete
+    it later; Parakeet's download folder is entirely ours.
     """
+    if settings["engine"] == "parakeet":
+        if settings["parakeet_model"] != stt_parakeet.NAME:
+            raise ValueError("only the default Parakeet model can be downloaded")
+        try:
+            return stt_parakeet.download()
+        except stt_parakeet.DownloadError as e:
+            raise EngineError(str(e), "download_failed") from None
     model = settings["model"]
     had_it = bool(stt_setup.cached_model(model))
     token = voice_services.ensure_voice_http_token(stt_engines.token_path())

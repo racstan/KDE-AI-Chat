@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""On-demand faster-whisper speech-to-text service (runs in the voice venv).
+"""On-demand speech-to-text service for Parakeet and faster-whisper (runs in the voice venv).
 
 Started by systemd socket activation (``kde-ai-stt.socket`` listens on
 127.0.0.1:9015 and passes the socket as fd 3), or with ``--listen-fd`` /
 ``--port`` for tests. It exits after ``--idle-timeout`` seconds without a
 request; systemd keeps the socket and starts it again on the next request.
 The model is loaded on the first request and reloaded when a request asks
-for other settings, so nothing needs a restart. No torch.
+for other settings, so nothing needs a restart. One engine's model is in
+memory at a time: a request for the other engine frees it first. No torch.
 
 Loopback only, every request needs the per-user token header
 (``X-KDE-AI-Chat-Token``); browsers are refused (any ``Origin`` header).
@@ -15,7 +16,8 @@ friends) records a WAV and posts its path here, and the reply carries the
 result, so nothing polls.
 
   GET  /status       {"status", "loaded", "model", "device", "loads", ...}
-  POST /transcribe   {"wav", "model", "device", "language", "allow_download"}
+  POST /transcribe   {"engine": "parakeet", "wav", "model": "/path/x.gguf", "device": auto|cpu|gpu}
+                     {"engine": "faster-whisper" (default), "wav", "model", "device", "language", "allow_download"}
   POST /download     {"model"}  (explicit, after the UI showed its size)
   POST /unload       frees the model now
 """
@@ -32,6 +34,7 @@ from typing import Any, Dict, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from stt_whisper import ModelHolder, SttError, check_model, download_faster_whisper  # noqa: E402
+from stt_parakeet_model import ParakeetHolder  # noqa: E402
 
 MAX_BODY = 64 * 1024
 TOKEN_HEADER = "X-KDE-AI-Chat-Token"
@@ -66,9 +69,10 @@ class SttServer(ThreadingHTTPServer):
     allow_reuse_address = True
 
     def __init__(self, sock: Optional[socket.socket], port: int, token: str, holder: ModelHolder,
-                 idle_timeout: float, downloader=download_faster_whisper):
+                 idle_timeout: float, downloader=download_faster_whisper, parakeet: Optional[ParakeetHolder] = None):
         self.token = token
         self.holder = holder
+        self.parakeet = parakeet or ParakeetHolder()
         self.downloader = downloader
         self.idle_timeout = idle_timeout
         self.active = 0
@@ -101,6 +105,27 @@ class SttServer(ThreadingHTTPServer):
             super().shutdown_request(request)
         finally:
             self.end()
+
+    def holder_for(self, engine: Any):
+        """The engine's holder; the other engine's model is unloaded first (one model in memory)."""
+        engine = str(engine or "faster-whisper")
+        if engine not in ("parakeet", "faster-whisper"):
+            raise SttError("Unknown engine: " + engine[:32], "bad_engine")
+        wanted, other = (self.parakeet, self.holder) if engine == "parakeet" else (self.holder, self.parakeet)
+        other.unload()
+        return wanted
+
+    def status(self) -> Dict[str, Any]:
+        parakeet = self.parakeet.status()
+        status = dict(parakeet, engine="parakeet") if parakeet["loaded"] else dict(self.holder.status(),
+                                                                                 engine="faster-whisper")
+        if parakeet["status"] != "idle":
+            status["status"] = parakeet["status"]
+        return status
+
+    def unload_all(self) -> None:
+        self.holder.unload()
+        self.parakeet.unload()
 
     def idle_for(self) -> float:
         with self._activity_lock:
@@ -153,7 +178,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if method == "GET":
             if self.path == "/status":
-                self._reply(200, dict(self.server.holder.status(), pid=os.getpid(),
+                self._reply(200, dict(self.server.status(), pid=os.getpid(),
                                       idle_timeout=self.server.idle_timeout))
             else:
                 self._reply(404, {"type": "stt_error", "error": "not found", "code": "not_found"})
@@ -182,14 +207,14 @@ class Handler(BaseHTTPRequestHandler):
     def _route(self, request: Dict[str, Any]) -> Dict[str, Any]:
         try:
             if self.path == "/transcribe":
-                return self.server.holder.transcribe(request)
+                return self.server.holder_for(request.get("engine")).transcribe(request)
             if self.path == "/download":
                 model = check_model(request.get("model"))
                 if os.path.isabs(model):
                     return {"type": "stt_downloaded", "model": model, "path": model}
                 return {"type": "stt_downloaded", "model": model, "path": self.server.downloader(model)}
             if self.path == "/unload":
-                self.server.holder.unload()
+                self.server.unload_all()
                 return {"type": "stt_unloaded"}
             return {"type": "stt_error", "error": "unknown endpoint", "code": "not_found"}
         except SttError as e:
@@ -204,7 +229,8 @@ class Handler(BaseHTTPRequestHandler):
         self._handle("POST")
 
 
-def main(argv=None, holder: Optional[ModelHolder] = None, downloader=download_faster_whisper) -> int:
+def main(argv=None, holder: Optional[ModelHolder] = None, downloader=download_faster_whisper,
+         parakeet: Optional[ParakeetHolder] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--token-file", required=True)
     parser.add_argument("--idle-timeout", type=float, default=300.0)
@@ -217,14 +243,15 @@ def main(argv=None, holder: Optional[ModelHolder] = None, downloader=download_fa
         print("kde-ai-stt: no usable token file: %s" % e, file=sys.stderr, flush=True)
         return 1
     sock = socket.socket(fileno=args.listen_fd) if args.listen_fd >= 0 else systemd_socket()
-    server = SttServer(sock, args.port, token, holder or ModelHolder(), max(0.1, args.idle_timeout), downloader)
+    server = SttServer(sock, args.port, token, holder or ModelHolder(), max(0.1, args.idle_timeout), downloader,
+                       parakeet)
     threading.Thread(target=server.watch_idle, daemon=True).start()
     print("kde-ai-stt: listening on %s:%s (idle exit after %ss)" % (*server.server_address[:2], args.idle_timeout),
           flush=True)
     try:
         server.serve_forever(poll_interval=0.2)
     finally:
-        server.holder.unload()
+        server.unload_all()
         server.server_close()
     print("kde-ai-stt: idle, exiting", flush=True)
     return 0

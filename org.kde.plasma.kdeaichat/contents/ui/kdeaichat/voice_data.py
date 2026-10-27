@@ -7,9 +7,9 @@
   tts_piper_voices   {} -> {"type": "tts_piper_voices", voices: [{path, name, language, quality, source, mb}]}
 
 Only what this widget made is ever deleted: the voice venv (exactly
-``stt_settings.venv_dir({})``) and the HuggingFace cache folders of models
+``stt_settings.venv_dir({})``), the HuggingFace cache folders of models
 recorded in ``stt-downloads.json`` when ``stt_download_model`` downloaded
-them. Models from Speech Note, Handy, whisper.cpp or other HF downloads are
+them, and Parakeet's download folder (``stt_parakeet.own_dir()``). Models from Speech Note, Handy, whisper.cpp or other HF downloads are
 never touched. ``keepModels`` is "Rebuild (smaller)": the venv goes, the
 models stay, and the UI runs ``venv_setup.sh`` again.
 """
@@ -21,7 +21,7 @@ import re
 import shutil
 from typing import Any, Dict, List, Optional
 
-from kdeaichat import chats, stt_settings, stt_setup, stt_units
+from kdeaichat import chats, stt_parakeet, stt_settings, stt_setup, stt_units
 from kdeaichat.common import atomic_write_json
 from kdeaichat.stt_models import speech_note_dirs
 
@@ -107,6 +107,10 @@ def _our_models() -> List[Dict[str, Any]]:
             continue
         seen.add(folder)
         rows.append({"name": name, "repo": stt_setup.MODELS[name][0], "path": folder, "mb": _mb(tree_bytes(folder))})
+    parakeet = stt_parakeet.own_dir()
+    if os.path.isdir(parakeet) and not os.path.islink(parakeet) and os.listdir(parakeet):
+        rows.append({"name": stt_parakeet.NAME, "repo": stt_parakeet.REPO, "path": parakeet,
+                     "mb": _mb(tree_bytes(parakeet))})
     return rows
 
 
@@ -191,11 +195,16 @@ def remove(keep_models: bool, run=None) -> Dict[str, Any]:
                 removed.append(folder)
             record.pop(name)
         _write_record(record)
+        parakeet = stt_parakeet.own_dir()
+        if os.path.isdir(parakeet) and not os.path.islink(parakeet):
+            freed += tree_bytes(parakeet)
+            shutil.rmtree(parakeet)
+            removed.append(parakeet)
     return {"type": "voice_data_removed", "freed_mb": _mb(freed), "removed": removed}
 
 
 def cmd_voice_data_remove(payload: Dict[str, Any]) -> None:
-    if payload.get("engine", "faster-whisper") != "faster-whisper":
+    if payload.get("engine", "faster-whisper") not in ("faster-whisper", "parakeet"):
         _emit({"type": "voice_data_error", "error": "unknown engine"})
         return
     if payload.get("confirm") is not True:

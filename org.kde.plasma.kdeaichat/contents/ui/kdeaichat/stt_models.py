@@ -9,8 +9,8 @@ Models other apps downloaded are offered before any download:
   a whisper.cpp model is ``<id>.ggml`` (``*_whisper_*``; its Parakeet models use
   ``.ggml`` too and are skipped).
 * Handy (``com.pais.handy``): whisper.cpp ``.bin`` files in
-  ``~/.local/share/com.pais.handy/models`` (its newer ``.gguf`` files need
-  Handy's own engine and are skipped).
+  ``~/.local/share/com.pais.handy/models``; its Parakeet ``.gguf`` files (there
+  or in the HuggingFace cache) are for the Parakeet engine (``stt_parakeet``).
 * The HuggingFace cache (faster-whisper's own downloads, other CTranslate2 repos).
 * whisper.cpp's ``models/`` folders (``ggml-*.bin``).
 """
@@ -19,6 +19,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional
 
+from kdeaichat import stt_parakeet
 from kdeaichat.stt_setup import MODELS, cached_model, hf_cache
 
 RECOMMENDED_CPU = "small"
@@ -124,8 +125,9 @@ def _huggingface(cache: Optional[str]) -> List[Dict[str, Any]]:
 
 
 def discover(home: Optional[str] = None, cache: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Models on disk for faster-whisper (CTranslate2 folders) and whisper.cpp (ggml files)."""
-    found = _huggingface(cache) + _speech_note(home) + _handy(home) + _whisper_cpp(home)
+    """Models on disk for Parakeet (GGUF), faster-whisper (CTranslate2 folders) and whisper.cpp (ggml files)."""
+    found = (stt_parakeet.discover(home, cache) + _huggingface(cache) + _speech_note(home) + _handy(home)
+             + _whisper_cpp(home))
     for row in found:
         row.setdefault("model", row["path"])  # what goes into sttModel / sttWhisperCppModel
         row["mb"] = _size_mb(row["path"])

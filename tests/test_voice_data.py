@@ -165,8 +165,8 @@ def test_download_records_only_models_that_were_not_on_disk(env, monkeypatch):
     ct2(str(hf / "models--Systran--faster-whisper-base" / "snapshots" / "pre"))  # the user had it already
     out = []
     monkeypatch.setattr(stt_commands, "_emit", out.append)
-    stt_commands.COMMANDS["stt_download_model"]({"sttModel": "base"})
-    stt_commands.COMMANDS["stt_download_model"]({"sttModel": "tiny"})
+    stt_commands.COMMANDS["stt_download_model"]({"sttEngine": "faster-whisper", "sttModel": "base"})
+    stt_commands.COMMANDS["stt_download_model"]({"sttEngine": "faster-whisper", "sttModel": "tiny"})
     assert calls == ["base", "tiny"] and [o["type"] for o in out] == ["stt_downloaded", "stt_downloaded"]
     assert voice_data.read_record() == {"tiny": "Systran/faster-whisper-tiny"}
 

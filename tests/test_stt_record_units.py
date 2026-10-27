@@ -226,7 +226,7 @@ def test_socket_unit_only_while_dictation_is_on_with_faster_whisper(units):
 def test_no_unit_without_the_venv(units, tmp_path):
     directory, calls, sync = units
     result = stt_units.sync({"sttEnabled": True, "venv": str(tmp_path / "missing")}, str(directory), lambda a: 0)
-    assert result["installed"] is False and result["reason"] == "faster-whisper is not installed"
+    assert result["installed"] is False and result["reason"] == "parakeet is not installed"
     assert os.listdir(directory) == []
 
 

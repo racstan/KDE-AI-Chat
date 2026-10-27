@@ -12,7 +12,7 @@ import shlex
 import shutil
 from typing import Any, Dict, List
 
-from kdeaichat import schedule_store, schedule_units, stt_engines, stt_record, stt_setup
+from kdeaichat import schedule_store, schedule_units, stt_engines, stt_parakeet, stt_record, stt_setup
 from kdeaichat.diag_agents import row, valid_http_url
 from kdeaichat.schedule_calendar import timer_name
 from kdeaichat.schedule_model import normalize_schedule
@@ -31,7 +31,7 @@ def check_attachments() -> List[Dict[str, Any]]:
     return rows
 
 
-ENGINE_NAMES = {"faster-whisper": "faster-whisper", "whisper-cpp": "whisper.cpp", "remote": "speech server",
+ENGINE_NAMES = {"parakeet": "Parakeet", "faster-whisper": "faster-whisper", "whisper-cpp": "whisper.cpp", "remote": "speech server",
                 "command": "custom command"}
 
 
@@ -47,11 +47,16 @@ def check_dictation(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
                 else row("stt-recorder", "voice", "error", "stt-no-recorder"))
     engine = settings["engine"]
     found = next((r for r in stt_engines.available(settings) if r["id"] == engine), {})
-    if engine == "faster-whisper":
-        if not found.get("installed"):
-            code = "stt-fw-missing" if found.get("selectable") else "stt-no-venv"
-            rows.append(row("stt-engine", "voice", "error", code))
+    if engine in ("parakeet", "faster-whisper") and not found.get("installed"):
+        code = "stt-fw-missing" if found.get("selectable") else "stt-no-venv"
+        rows.append(row("stt-engine", "voice", "error", code, ENGINE_NAMES[engine]))
+        return rows
+    if engine == "parakeet":
+        if not found.get("model_found"):
+            rows.append(row("stt-model", "voice", "warn" if settings["parakeet_model"] == stt_parakeet.NAME else "error",
+                            "stt-model-missing", settings["parakeet_model"]))
             return rows
+    elif engine == "faster-whisper":
         model = settings["model"]
         if os.sep in model:
             if not os.path.isdir(model):
