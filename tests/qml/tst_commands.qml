@@ -184,6 +184,13 @@ Item {
             compare(composer.suggestions.entries[0].kind, "notice");
             wait(100);
             screenshot(composer.suggestions.contentItem, "commands-model-per-chat-off");
+            // Title on its own line, the reason below it using the whole width.
+            var title = findChild(composer.suggestions.contentItem, "noticeTitle");
+            var text = findChild(composer.suggestions.contentItem, "noticeText");
+            verify(title.visible && text.visible);
+            verify(text.y >= title.y + title.height - 1, "the reason is below the title");
+            verify(text.width > composer.suggestions.width * 0.8, "not squeezed: " + text.width);
+            verify(text.lineCount <= 3, "a few lines, not a word per line: " + text.lineCount);
             keyClick(Qt.Key_Return);
             compare(calls("overrides").length, 0, "nothing is written");
             compare(calls("send").length, 0);

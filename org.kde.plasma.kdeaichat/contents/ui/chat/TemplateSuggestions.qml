@@ -95,27 +95,52 @@ QQC2.Popup {
                 : modelData.kind === "notice" ? popup.noticeTitle + ": " + popup.describe(modelData) : modelData.name
             onClicked: { popup.current = index; popup.chosen(modelData); }
 
-            contentItem: RowLayout {
-                spacing: Kirigami.Units.largeSpacing
+            contentItem: ColumnLayout {
+                readonly property bool notice: item.modelData.kind === "notice"
+                readonly property color textColor: item.highlighted ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                spacing: 0
 
-                PC3.Label {
-                    text: item.modelData.kind === "option" ? item.modelData.name : item.modelData.kind === "notice" ? popup.noticeTitle : "/" + item.modelData.name
-                    font.bold: true
+                RowLayout {
+                    visible: !parent.notice
+                    spacing: Kirigami.Units.largeSpacing
+
+                    PC3.Label {
+                        text: item.modelData.kind === "option" ? item.modelData.name : "/" + item.modelData.name
+                        font.bold: true
+                    }
+
+                    PC3.Label {
+                        visible: text !== ""
+                        text: item.modelData.usage || ""
+                        opacity: 0.7
+                    }
+
+                    PC3.Label {
+                        Layout.fillWidth: true
+                        text: popup.describe(item.modelData)
+                        elide: Text.ElideRight
+                        opacity: 0.7
+                    }
                 }
 
+                // The notice is advice to read whole: title, then the reason below it.
                 PC3.Label {
-                    visible: text !== ""
-                    text: item.modelData.usage
-                    opacity: 0.7
-                }
-
-                PC3.Label {
+                    objectName: "noticeTitle"
+                    visible: parent.notice
                     Layout.fillWidth: true
-                    text: popup.describe(item.modelData)
-                    // The notice is advice to read whole; the rest is a hint.
-                    elide: item.modelData.kind === "notice" ? Text.ElideNone : Text.ElideRight
-                    wrapMode: item.modelData.kind === "notice" ? Text.Wrap : Text.NoWrap
-                    opacity: 0.7
+                    text: popup.noticeTitle
+                    font.bold: true
+                    wrapMode: Text.Wrap
+                    color: parent.textColor
+                }
+
+                PC3.Label {
+                    objectName: "noticeText"
+                    visible: parent.notice
+                    Layout.fillWidth: true
+                    text: parent.notice ? popup.describe(item.modelData) : ""
+                    wrapMode: Text.Wrap
+                    color: parent.textColor
                 }
             }
         }
