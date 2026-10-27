@@ -14,7 +14,9 @@ sys.path.insert(0, UI)
 import kde_ai_helper  # noqa: E402
 
 raw = sys.argv[2] if len(sys.argv) > 2 else ""
-folder = os.environ.get("XDG_RUNTIME_DIR") or "/tmp/runtime-" + os.environ.get("USER", "")
+from kdeaichat import private_payload  # noqa: E402
+
+folder = private_payload.runtime_dir()  # where Qt's RuntimeLocation puts the payload
 existed = raw.startswith("@") and os.path.exists(os.path.join(folder, raw[1:]))
 payload = kde_ai_helper._decode_payload(raw)
 gone = not raw.startswith("@") or not os.path.exists(os.path.join(folder, raw[1:]))
