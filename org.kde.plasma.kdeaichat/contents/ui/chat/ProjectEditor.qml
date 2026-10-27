@@ -173,7 +173,7 @@ QQC2.Popup {
                 Layout.fillWidth: true
                 text: editor.folder || i18n("No folder")
                 elide: Text.ElideMiddle
-                opacity: editor.folder ? 1 : 0.6
+                opacity: editor.folder ? 1 : 0.7
             }
             PC3.Button {
                 text: i18n("Choose…")

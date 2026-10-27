@@ -63,7 +63,7 @@ ColumnLayout {
                 wrapMode: Text.Wrap
                 maximumLineCount: 4
                 elide: Text.ElideRight
-                opacity: row.on ? 1 : 0.55
+                opacity: row.on ? 1 : 0.7
             }
             QQC2.Label {
                 objectName: "memoryScope"

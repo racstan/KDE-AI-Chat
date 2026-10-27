@@ -268,7 +268,7 @@ KCM.SimpleKCM {
             visible: page.shown.length === 0
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
-            opacity: 0.6
+            opacity: 0.7
             text: !store.loaded ? i18n("Loading…")
                 : store.list.length === 0 ? i18n("No memories yet.") : i18n("No memories match.")
         }

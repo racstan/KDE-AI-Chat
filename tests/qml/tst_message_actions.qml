@@ -204,7 +204,7 @@ Item {
             var before = delegate.height;
             var leftEdge = usage.mapToItem(delegate, 0, 0).x;
             mouseMove(delegate, delegate.width / 2, delegate.height / 2);
-            tryCompare(usage, "opacity", 0.55, 2000);
+            tryCompare(usage, "opacity", 0.7, 2000);
             compare(delegate.height, before, "nothing moves");
             compare(usage.mapToItem(delegate, 0, 0).x, leftEdge);
             verify(usage.mapToItem(delegate, 0, 0).x >= actions.mapToItem(delegate, actions.width, 0).x, "right after the buttons");

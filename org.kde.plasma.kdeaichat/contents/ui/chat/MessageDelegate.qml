@@ -94,7 +94,7 @@ Item {
             Layout.topMargin: Kirigami.Units.smallSpacing
             text: row.showDay ? row.chat.dayDividerLabelForIndex(row.index) : ""
             font: Kirigami.Theme.smallFont
-            opacity: 0.6
+            opacity: 0.7
         }
 
         Rectangle {
@@ -184,7 +184,7 @@ Item {
                         text: row.chat.formatMessageTime(row.message, row.index)
                         visible: text !== "" && row.showHeader
                         font: Kirigami.Theme.smallFont
-                        opacity: 0.6
+                        opacity: 0.7
                     }
 
                     Item { Layout.fillWidth: true }
@@ -380,7 +380,7 @@ Item {
                         Layout.leftMargin: Kirigami.Units.smallSpacing
                         text: visible ? row.chat.formatTokensUsage(row.message.tokens, row.message.cost) : ""
                         font: Kirigami.Theme.smallFont
-                        opacity: actions.shown ? 0.55 : 0
+                        opacity: actions.shown ? 0.7 : 0
                         elide: Text.ElideRight
                         Layout.maximumWidth: content.width - actions.implicitWidth - Kirigami.Units.largeSpacing
 
