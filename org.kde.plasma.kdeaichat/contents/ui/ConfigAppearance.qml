@@ -57,6 +57,7 @@ KCM.SimpleKCM {
     }
 
     readonly property string donateUrl: "https://buymeacoffee.com/rachitasthana"
+    readonly property string termsUrl: "https://github.com/racstan/KDE-AI-Chat/blob/master/TERMS.md"
     // Runs the helper's commands (the animation file check); tests pass a fake.
     property var runHelper: defaultRunner.run
     // Opens a link; tests replace it.
@@ -327,6 +328,21 @@ KCM.SimpleKCM {
             Config.SettingHelp {
                 objectName: "donateHelp"
                 text: i18n("KDE AI Chat is free. If it helps you, you can thank the developer with a small gift; this opens buymeacoffee.com in your web browser.")
+            }
+
+            QQC2.Button {
+                objectName: "termsButton"
+                Kirigami.FormData.label: i18n("Terms of use:")
+                text: i18n("Read the terms")
+                icon.name: "documentinfo"
+                onClicked: page.openUrl(page.termsUrl)
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: page.termsUrl
+            }
+
+            Config.SettingHelp {
+                objectName: "termsHelp"
+                text: i18n("In short: the widget comes without warranty and collects nothing itself. Your messages go only to the services you choose, under their terms; you are responsible for your keys, for the costs on your accounts (scheduled prompts run by themselves) and for how you use the answers. Opens the full terms in your web browser.")
             }
         }
 

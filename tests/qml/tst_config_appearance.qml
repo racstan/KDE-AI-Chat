@@ -160,5 +160,14 @@ Item {
             button.clicked();
             compare(root.opened.join(","), "https://buymeacoffee.com/rachitasthana");
         }
+
+        function test_terms_link() {
+            open();
+            var button = findChild(page, "termsButton");
+            verify(button !== null);
+            verify(findChild(page, "termsHelp").text.indexOf("warranty") >= 0);
+            button.clicked();
+            compare(root.opened[root.opened.length - 1], "https://github.com/racstan/KDE-AI-Chat/blob/master/TERMS.md");
+        }
     }
 }
