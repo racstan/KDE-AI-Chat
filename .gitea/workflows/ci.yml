@@ -278,6 +278,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ScheduleInbox.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/TimeFormat.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/MessageContent.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/ReplyState.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/PartialSave.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/QuoteChips.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/QuoteBlock.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PendingFiles.qml",

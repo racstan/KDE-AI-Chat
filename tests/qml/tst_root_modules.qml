@@ -6,6 +6,7 @@
 import QtQuick
 import QtTest
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
+import "../../org.kde.plasma.kdeaichat/contents/ui/chat/ReplyState.js" as ReplyState
 
 TestCase {
     id: tc
@@ -65,7 +66,7 @@ TestCase {
         }
         readonly property int maxMessageChars: 2000000
         property var streamBuffer: QtObject { function clear() {} function flush() {} }
-        property var store: QtObject { property int saves: 0; function save(s) { saves++; } }
+        property var store: QtObject { property int saves: 0; property var last: null; function save(s) { saves++; last = s; } }
         property int sent: 0
         property var errors: []
         signal sessionDeleted(var session, int index)
@@ -98,6 +99,7 @@ TestCase {
         modeSyncRef: QtObject { function newChatMode() { return "chat"; } function newChatWorkspace() { return ""; } }
         helperCommandsRef: QtObject { property int n: 0; function deleteSessionSchedules(id) { n++; } }
     }
+    Chat.PartialSave { id: partial; chat: chat; interval: 30 }
     Chat.SessionTitles { id: titles; chat: chat }
     Chat.SendController { id: sender; chat: chat }
     Chat.MessageEdits { id: edits; chat: chat }
@@ -243,5 +245,61 @@ TestCase {
         chat.sessions = [];
         chat.currentSessionId = "";
         chat.currentSessionTitle = "";
+    }
+
+    // A message over the display limit keeps its full text: only the view cuts it, and a save writes it whole.
+    function test_long_message_is_saved_in_full() {
+        var big = new Array(2000002).join("x") + "END";
+        verify(big.length > chat.maxMessageChars);
+        chat.privacyNotice = "";
+        chat.chatStore.stored = [{value: "big-1", text: "Big", source: "provider", messages: [{role: "assistant", content: big, at: 1}]}];
+        manager.loadSessions();
+        compare(chat.messages[0].content.length, big.length, "loaded whole");
+        verify(chat.privacyNotice !== "", "the shortened view is announced");
+        compare(chat.sessionHistoryLoadError, "", "not as an error: its action would replace the history");
+        var shown = ReplyState.displayContent(chat.messages[0].content, chat.maxMessageChars);
+        compare(shown.length, chat.maxMessageChars + "\n[message truncated]".length, "displayed cut");
+        verify(shown.indexOf("END") < 0);
+        manager.saveCurrentSessionState(true);
+        compare(chat.store.last[0].messages[0].content.length, big.length, "saved whole");
+        chat.privacyNotice = "";
+        chat.sessions = [];
+        chat.messages = [];
+        chat.currentSessionId = "";
+    }
+
+    // A reply that is streaming is saved every interval with streaming: true; chat.messages is untouched.
+    function test_streaming_reply_saved_partially_and_loads_interrupted() {
+        chat.sessions = [];
+        manager.createSession(true);
+        var id = chat.currentSessionId;
+        chat.messages = [{role: "user", content: "q", at: 1}, {role: "assistant", content: "", at: 2}];
+        chat.currentStreamIndex = 1;
+        chat.currentStreamText = "half an ans";
+        chat.store.last = null;
+        chat.streamingResponse = true;
+        tryVerify(function() { return chat.store.last !== null; }, 2000);
+        var saved = chat.store.last.filter(function(s) { return s.value === id; })[0];
+        compare(saved.messages[1].content, "half an ans");
+        compare(saved.messages[1].streaming, true);
+        compare(chat.messages[1].content, "", "the open chat is not changed");
+        verify(chat.messages[1].streaming === undefined);
+
+        chat.streamingResponse = false;
+        chat.store.last = null;
+        wait(100);
+        compare(chat.store.last, null, "no more saves once the reply ends");
+
+        // What was saved loads as interrupted, in any mode, and is not resumed.
+        chat.chatStore.stored = JSON.parse(JSON.stringify([saved]));
+        manager.loadSessions();
+        compare(chat.messages[1].interrupted, true);
+        verify(chat.messages[1].streaming === undefined);
+        compare(chat.messages[1].content, "half an ans");
+        chat.currentStreamIndex = -1;
+        chat.currentStreamText = "";
+        chat.sessions = [];
+        chat.messages = [];
+        chat.currentSessionId = "";
     }
 }
