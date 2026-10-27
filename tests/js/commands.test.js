@@ -67,4 +67,12 @@ assert.deepStrictEqual(names(C.suggest("/mode ", [], ctx2)), ["option:direct", "
 assert.strictEqual(C.suggest("/new x", [], ctx2).length, 0);
 assert.strictEqual(C.suggest("/image a fox", [], ctx2).length, 0, "the prompt is free text");
 assert.strictEqual(C.suggest("/fix some text", templates, ctx2).length, 0);
+
+// Chats without their own model settings: /model and /variant only say how to turn them on.
+const off = Object.assign({}, ctx2, {perChat: false});
+assert.deepStrictEqual(names(C.suggest("/model ", [], off)), ["notice:perChatOff"]);
+assert.deepStrictEqual(names(C.suggest("/model gpt", [], off)), ["notice:perChatOff"]);
+assert.deepStrictEqual(names(C.suggest("/variant ", [], off)), ["notice:perChatOff"]);
+assert.deepStrictEqual(names(C.suggest("/mode p", [], off)), ["option:pi", "option:opencode"], "/mode is not per chat");
+assert.deepStrictEqual(names(C.suggest("/model gpt", [], Object.assign({}, ctx2, {perChat: true}))), ["option:gpt-4", "option:gpt-4o"]);
 console.log("ok");

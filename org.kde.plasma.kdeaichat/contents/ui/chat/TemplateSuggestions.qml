@@ -25,8 +25,12 @@ QQC2.Popup {
 
     readonly property var currentEntry: entries.length > 0 ? entries[Math.min(current, entries.length - 1)] : null
 
+    readonly property string noticeTitle: i18n("Every chat uses the main model")
+
     // Command descriptions go through i18n() here (Commands.js is plain JS).
     function describe(entry) {
+        if (entry.kind === "notice")
+            return i18n("Turn on “Let chats have their own model settings” in Settings → Chat. Enter opens the settings.");
         if (entry.kind !== "command")
             return entry.description;
         return entry.name === "model" ? i18n("Change this chat's model")
@@ -87,14 +91,15 @@ QQC2.Popup {
 
             width: ListView.view.width
             highlighted: index === popup.current
-            Accessible.name: modelData.kind === "command" ? i18n("Command %1", modelData.name) : modelData.kind === "template" ? i18n("Template %1", modelData.name) : modelData.name
+            Accessible.name: modelData.kind === "command" ? i18n("Command %1", modelData.name) : modelData.kind === "template" ? i18n("Template %1", modelData.name)
+                : modelData.kind === "notice" ? popup.noticeTitle + ": " + popup.describe(modelData) : modelData.name
             onClicked: { popup.current = index; popup.chosen(modelData); }
 
             contentItem: RowLayout {
                 spacing: Kirigami.Units.largeSpacing
 
                 PC3.Label {
-                    text: item.modelData.kind === "option" ? item.modelData.name : "/" + item.modelData.name
+                    text: item.modelData.kind === "option" ? item.modelData.name : item.modelData.kind === "notice" ? popup.noticeTitle : "/" + item.modelData.name
                     font.bold: true
                 }
 
@@ -107,7 +112,9 @@ QQC2.Popup {
                 PC3.Label {
                     Layout.fillWidth: true
                     text: popup.describe(item.modelData)
-                    elide: Text.ElideRight
+                    // The notice is advice to read whole; the rest is a hint.
+                    elide: item.modelData.kind === "notice" ? Text.ElideNone : Text.ElideRight
+                    wrapMode: item.modelData.kind === "notice" ? Text.Wrap : Text.NoWrap
                     opacity: 0.7
                 }
             }

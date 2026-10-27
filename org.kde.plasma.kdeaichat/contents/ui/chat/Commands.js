@@ -88,9 +88,11 @@ function rank(items, query, nameOf) {
 }
 
 // What the list under the input shows for `text`. Entries:
-// {kind: "command"|"template"|"option", name, usage, description, insert},
+// {kind: "command"|"template"|"option"|"notice", name, usage, description, insert},
 // where `insert` is what Tab puts in the box. ctx: {hasVariants, models: [id],
-// variants: [id]}: the options of /model, /variant and /mode follow the command.
+// variants: [id], perChat}: the options of /model, /variant and /mode follow the
+// command. With perChat false a chat can't have its own model or variant, so
+// /model and /variant list nothing but one "perChatOff" notice saying so.
 function suggest(text, templates, ctx) {
     ctx = ctx || {};
     if (!text || text.charAt(0) !== "/")
@@ -102,6 +104,8 @@ function suggest(text, templates, ctx) {
             : command.name === "variant" ? ctx.variants : command.name === "mode" ? MODES : null;
         if (!pool)
             return [];
+        if (ctx.perChat === false && (command.name === "model" || command.name === "variant"))
+            return [{"kind": "notice", "name": "perChatOff", "usage": "", "description": "", "insert": "/" + command.name + " "}];
         return rank(pool, parsed.arg, function(id) { return String(id); }).map(function(id) {
             return {"kind": "option", "name": String(id), "usage": "", "description": "", "insert": "/" + command.name + " " + id};
         });

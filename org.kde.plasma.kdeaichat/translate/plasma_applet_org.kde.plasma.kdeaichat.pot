@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 17:08+0530\n"
+"POT-Creation-Date: 2026-10-27 18:25+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -137,43 +137,43 @@ msgstr ""
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:250 contents/ui/chat/SessionList.qml:313
+#: contents/ui/chat/ChatHeader.qml:251 contents/ui/chat/SessionList.qml:313
 #: contents/ui/chat/ChatRowMenu.qml:25
 #, kde-format
 msgid "Rename chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:267
+#: contents/ui/chat/ChatHeader.qml:268
 #, kde-format
 msgid "Jump to first message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:278
+#: contents/ui/chat/ChatHeader.qml:279
 #, kde-format
 msgid "Jump to previous message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:283
+#: contents/ui/chat/ChatHeader.qml:284
 #, kde-format
 msgid "Jump to next message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:288
+#: contents/ui/chat/ChatHeader.qml:289
 #, kde-format
 msgid "Jump to latest message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:299
+#: contents/ui/chat/ChatHeader.qml:300
 #, kde-format
 msgid "Schedule a message…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:305
+#: contents/ui/chat/ChatHeader.qml:306
 #, kde-format
 msgid "Export chat…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:311
+#: contents/ui/chat/ChatHeader.qml:312
 #, kde-format
 msgid "Clear chat"
 msgstr ""
@@ -599,98 +599,98 @@ msgstr ""
 msgid "Copy code"
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:104
-#, kde-format
-msgid "/new takes no argument."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:113
-#, kde-format
-msgid "Started a new chat."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:130
-#, kde-format
-msgid "Use /mode direct, /mode opencode or /mode pi."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:137
-#, kde-format
-msgid "New chats will use %1. This chat stays %2."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:145
-#, kde-format
-msgid "/image works in direct chats only."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:147
-#, kde-format
-msgid "Write what to draw, like /image a red fox in the snow."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:149
-#, kde-format
-msgid "Wait for the current reply to finish, or press Stop, then try again."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:155
-#, kde-format
-msgid ""
-"Add an image service first: Settings → Connection → Add provider → AI Horde "
-"or Pollinations."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:165
-#, kde-format
-msgid "Nothing is remembered from an incognito chat."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:167
-#, kde-format
-msgid ""
-"Write what to remember, like /remember I prefer metric units. Start with "
-"chat: or project: to keep it to this chat or its project."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:169
-#, kde-format
-msgid "This chat is in no project. Use /remember or /remember chat:."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:173
-#, kde-format
-msgid "Memories are not available."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:180
-#, kde-format
-msgid "This model has no variants."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:182
-#, kde-format
-msgid "Variants: %1. Use /variant <name>."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:185
-#, kde-format
-msgid "This model has no variant “%1”. It has: %2."
-msgstr ""
-
-#: contents/ui/chat/CommandRunner.qml:198
+#: contents/ui/chat/CommandRunner.qml:93 contents/ui/chat/CommandRunner.qml:209
 #, kde-format
 msgid ""
 "Every chat uses the main settings. To change it for just this chat, turn on "
 "“Let chats have their own model settings” in Settings → Chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:204
+#: contents/ui/chat/CommandRunner.qml:115
+#, kde-format
+msgid "/new takes no argument."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:124
+#, kde-format
+msgid "Started a new chat."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:141
+#, kde-format
+msgid "Use /mode direct, /mode opencode or /mode pi."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:148
+#, kde-format
+msgid "New chats will use %1. This chat stays %2."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:156
+#, kde-format
+msgid "/image works in direct chats only."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:158
+#, kde-format
+msgid "Write what to draw, like /image a red fox in the snow."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:160
+#, kde-format
+msgid "Wait for the current reply to finish, or press Stop, then try again."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:166
+#, kde-format
+msgid ""
+"Add an image service first: Settings → Connection → Add provider → AI Horde "
+"or Pollinations."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:176
+#, kde-format
+msgid "Nothing is remembered from an incognito chat."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:178
+#, kde-format
+msgid ""
+"Write what to remember, like /remember I prefer metric units. Start with "
+"chat: or project: to keep it to this chat or its project."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:180
+#, kde-format
+msgid "This chat is in no project. Use /remember or /remember chat:."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:184
+#, kde-format
+msgid "Memories are not available."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:191
+#, kde-format
+msgid "This model has no variants."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:193
+#, kde-format
+msgid "Variants: %1. Use /variant <name>."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:196
+#, kde-format
+msgid "This model has no variant “%1”. It has: %2."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:215
 #, kde-format
 msgid "the default variant"
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:204
+#: contents/ui/chat/CommandRunner.qml:215
 #, kde-format
 msgid "This chat now uses %1."
 msgstr ""
@@ -2607,42 +2607,54 @@ msgid ""
 "saved, so nothing you add here is kept."
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:32
+#: contents/ui/chat/TemplateSuggestions.qml:28
 #, kde-format
-msgid "Change this chat's model"
+msgid "Every chat uses the main model"
 msgstr ""
 
 #: contents/ui/chat/TemplateSuggestions.qml:33
 #, kde-format
-msgid "Change this chat's variant (reasoning level)"
-msgstr ""
-
-#: contents/ui/chat/TemplateSuggestions.qml:34
-#, kde-format
-msgid "Start a new chat"
-msgstr ""
-
-#: contents/ui/chat/TemplateSuggestions.qml:35
-#, kde-format
-msgid "Make a picture with the default image service"
+msgid ""
+"Turn on “Let chats have their own model settings” in Settings → Chat. Enter "
+"opens the settings."
 msgstr ""
 
 #: contents/ui/chat/TemplateSuggestions.qml:36
 #, kde-format
-msgid "Save a memory for every chat"
+msgid "Change this chat's model"
 msgstr ""
 
 #: contents/ui/chat/TemplateSuggestions.qml:37
 #, kde-format
+msgid "Change this chat's variant (reasoning level)"
+msgstr ""
+
+#: contents/ui/chat/TemplateSuggestions.qml:38
+#, kde-format
+msgid "Start a new chat"
+msgstr ""
+
+#: contents/ui/chat/TemplateSuggestions.qml:39
+#, kde-format
+msgid "Make a picture with the default image service"
+msgstr ""
+
+#: contents/ui/chat/TemplateSuggestions.qml:40
+#, kde-format
+msgid "Save a memory for every chat"
+msgstr ""
+
+#: contents/ui/chat/TemplateSuggestions.qml:41
+#, kde-format
 msgid "Mode for NEW chats only; this chat keeps its mode"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:90
+#: contents/ui/chat/TemplateSuggestions.qml:94
 #, kde-format
 msgid "Command %1"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:90
+#: contents/ui/chat/TemplateSuggestions.qml:94
 #, kde-format
 msgid "Template %1"
 msgstr ""

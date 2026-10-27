@@ -36,6 +36,7 @@ Item {
     readonly property var context: ({
         "hasVariants": variantIds.length > 0,
         "variants": variantIds,
+        "perChat": !!picker && picker.perChat,
         "models": picker ? (picker.modelList || []).map(function(m) { return String(m); }) : []
     })
 
@@ -78,10 +79,20 @@ Item {
             return;
         if (entry.kind === "option")
             run(entry.insert);
+        else if (entry.kind === "notice")
+            openSettings();
         else if (entry.kind === "command" && text.trim() === "/" + entry.name)
             run(text);
         else
             complete(entry);
+    }
+
+    // The per-chat notice (Commands.suggest): Settings → Chat has the switch.
+    function openSettings() {
+        clearInput();
+        show(i18n("Every chat uses the main settings. To change it for just this chat, turn on “Let chats have their own model settings” in Settings → Chat."));
+        if (typeof chat.openSettings === "function")
+            chat.openSettings();
     }
 
     function complete(entry) {

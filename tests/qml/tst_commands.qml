@@ -176,10 +176,18 @@ Item {
 
         function test_8_model_respects_the_per_chat_switch() {
             setup({source: "provider"}, {perChatModelSettings: false});
-            type("/model acme/chat-small");
+            type("/model ");
+            // Not the current model alone: one line saying how to turn the switch on.
+            tryVerify(() => composer.suggestions.entries.length === 1, 1000);
+            compare(composer.suggestions.entries[0].kind, "notice");
+            type("acme/chat-small");
+            compare(composer.suggestions.entries[0].kind, "notice");
+            wait(100);
+            screenshot(composer.suggestions.contentItem, "commands-model-per-chat-off");
             keyClick(Qt.Key_Return);
             compare(calls("overrides").length, 0, "nothing is written");
             compare(calls("send").length, 0);
+            compare(calls("openSettings").length, 1, "Enter opens the settings");
             verify(notice().indexOf("Every chat uses the main settings") === 0, notice());
         }
 
