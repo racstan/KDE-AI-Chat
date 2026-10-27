@@ -399,7 +399,10 @@
     <entry name="voiceLanguage" type="String"><default>en</default></entry>
     <!-- Read aloud: the engine and each engine's options (voice/TtsEngines.js).
          A speech server's API key is in KWallet (entry "tts-remote"), never here. -->
-    <entry name="voiceTtsEngine" type="String"><default>system</default></entry>
+    <!-- "neural" (Kokoro) is the default; until it is installed, read aloud uses "system". -->
+    <entry name="voiceTtsEngine" type="String"><default>neural</default></entry>
+    <entry name="voiceTtsNeuralVoice" type="String"><default>af_heart</default></entry>
+    <entry name="voiceTtsNeuralSpeed" type="Double"><default>1</default></entry>
     <entry name="voiceTtsSystemLanguage" type="String"><default></default></entry>
     <entry name="voiceTtsSystemVoice" type="String"><default></default></entry>
     <entry name="voiceTtsSystemRate" type="Double"><default>0</default></entry>

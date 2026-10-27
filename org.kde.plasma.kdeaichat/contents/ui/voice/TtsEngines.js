@@ -11,10 +11,16 @@
 // kind "file": the helper (kdeaichat/tts.py) writes a WAV per chunk and the
 //              widget plays it (voice/FileSpeech.qml), with stop and pause.
 //
-// Option types: "language" and "voice" (lists from the Qt engine), "rate" and
-// "pitch" (-1 … 1), "speed" (0.5 … 2), "int", "text", "url", "file" (a path,
-// with `filter`), "command" (a template), "secret" (KWallet entry `entry`,
-// never a setting). `key` is the main.xml entry; `def` its default.
+// Option types: "language" and "voice" (lists from the Qt engine), "choice"
+// (from `choices`), "rate" and "pitch" (-1 … 1), "speed" (0.5 … 2), "int",
+// "text", "url", "file" (a path, with `filter`), "command" (a template),
+// "secret" (KWallet entry `entry`, never a setting). `key` is the main.xml
+// entry; `def` its default.
+//
+// `sentences: true` reads one sentence per chunk, so the first sound comes
+// quickly and the next sentences are made while it plays (`ahead` of them).
+// `setup` names the engine's install box on the settings page; until it is
+// installed the widget reads with `fallbackEngine` instead.
 
 // Marks text for translation (xgettext -kI18N_NOOP); the QML shows it
 // through i18n().
@@ -22,9 +28,45 @@ function I18N_NOOP(text) {
     return text;
 }
 
+// Kokoro v1.0 voices worth offering (the better-rated ones per language).
+var neuralVoices = [
+    {value: "af_heart", text: I18N_NOOP("Heart: American English, woman (recommended)")},
+    {value: "af_bella", text: I18N_NOOP("Bella: American English, woman")},
+    {value: "af_nicole", text: I18N_NOOP("Nicole: American English, woman, soft")},
+    {value: "af_aoede", text: I18N_NOOP("Aoede: American English, woman")},
+    {value: "af_kore", text: I18N_NOOP("Kore: American English, woman")},
+    {value: "af_sarah", text: I18N_NOOP("Sarah: American English, woman")},
+    {value: "am_michael", text: I18N_NOOP("Michael: American English, man")},
+    {value: "am_fenrir", text: I18N_NOOP("Fenrir: American English, man")},
+    {value: "am_puck", text: I18N_NOOP("Puck: American English, man")},
+    {value: "bf_emma", text: I18N_NOOP("Emma: British English, woman")},
+    {value: "bf_isabella", text: I18N_NOOP("Isabella: British English, woman")},
+    {value: "bm_george", text: I18N_NOOP("George: British English, man")},
+    {value: "bm_fable", text: I18N_NOOP("Fable: British English, man")},
+    {value: "ef_dora", text: I18N_NOOP("Dora: Spanish, woman")},
+    {value: "em_alex", text: I18N_NOOP("Alex: Spanish, man")},
+    {value: "ff_siwis", text: I18N_NOOP("Siwis: French, woman")},
+    {value: "if_sara", text: I18N_NOOP("Sara: Italian, woman")},
+    {value: "im_nicola", text: I18N_NOOP("Nicola: Italian, man")},
+    {value: "pf_dora", text: I18N_NOOP("Dora: Brazilian Portuguese, woman")},
+    {value: "pm_alex", text: I18N_NOOP("Alex: Brazilian Portuguese, man")},
+    {value: "hf_alpha", text: I18N_NOOP("Alpha: Hindi, woman")},
+    {value: "hm_omega", text: I18N_NOOP("Omega: Hindi, man")},
+    {value: "jf_alpha", text: I18N_NOOP("Alpha: Japanese, woman")},
+    {value: "zf_xiaoxiao", text: I18N_NOOP("Xiaoxiao: Mandarin Chinese, woman")}
+];
+
 var engines = [
+    {id: "neural", kind: "file", setup: "neural", sentences: true, ahead: 2,
+     label: I18N_NOOP("Natural voice (Kokoro, recommended)"),
+     note: I18N_NOOP("A natural-sounding voice that runs on this computer, offline. It needs a one-time install; until then the system voice reads instead."),
+     options: [
+         {key: "voiceTtsNeuralVoice", type: "choice", choices: neuralVoices, label: I18N_NOOP("Voice"), def: "af_heart",
+          help: I18N_NOOP("Which voice reads to you. Each voice speaks its own language best, so pick one in the language of your chats.")},
+         {key: "voiceTtsNeuralSpeed", type: "speed", label: I18N_NOOP("Speed"), def: 1,
+          help: I18N_NOOP("How fast the voice talks; 1× is normal speed.")}]},
     {id: "system", kind: "qt", plugin: "speechd", label: I18N_NOOP("System voices"),
-     note: I18N_NOOP("Speech Dispatcher: espeak-ng and any voice installed for it. Nothing to set up."),
+     note: I18N_NOOP("Speech Dispatcher: espeak-ng and any voice installed for it. Nothing to set up, but espeak-ng sounds robotic."),
      options: [
          {key: "voiceTtsSystemLanguage", type: "language", label: I18N_NOOP("Language"), def: "",
           help: I18N_NOOP("The language of the voices offered below. \"Engine default\" uses your system language.")},
@@ -34,8 +76,8 @@ var engines = [
           help: I18N_NOOP("How fast the voice talks. The middle is normal speed.")},
          {key: "voiceTtsSystemPitch", type: "pitch", label: I18N_NOOP("Pitch"), def: 0,
           help: I18N_NOOP("How high or deep the voice sounds. The middle is its normal pitch.")}]},
-    {id: "kokoro", kind: "qt", plugin: "kokoro", label: I18N_NOOP("Kokoro"),
-     note: I18N_NOOP("Neural voices from the Kokoro speech plugin."),
+    {id: "kokoro", kind: "qt", plugin: "kokoro", label: I18N_NOOP("Kokoro (KDE speech plugin)"),
+     note: I18N_NOOP("Neural voices from KDE's Kokoro speech plugin, when its own Python packages are installed."),
      options: [
          {key: "voiceTtsKokoroLanguage", type: "language", label: I18N_NOOP("Language"), def: "",
           help: I18N_NOOP("The language of the voices offered below. \"Engine default\" uses your system language.")},
@@ -85,7 +127,9 @@ var engines = [
           help: I18N_NOOP("For experts: a program of your own that turns text into speech. Leave empty if you don't have one.")}]}
 ];
 
-var defaultEngine = "system";
+var defaultEngine = "neural";
+// Reads while the default engine isn't installed; needs no setup.
+var fallbackEngine = "system";
 
 function engine(id) {
     for (var i = 0; i < engines.length; i++)
@@ -187,6 +231,52 @@ function chunks(text, limit) {
     if (current)
         out.push(current);
     return out;
+}
+
+// One sentence (or list item) per piece, for engines that make the next
+// sentence while one plays. A very short piece joins the next one (so
+// "Note:" or "e.g." isn't a sentence on its own); a long one is split like
+// chunks().
+function sentenceChunks(text, limit) {
+    limit = limit || 240;
+    var parts = String(text || "").replace(/([.!?…:;])\s+/g, "$1\n").split(/\n+/);
+    var out = [];
+    var current = "";
+    for (var i = 0; i < parts.length; i++) {
+        var part = parts[i].trim();
+        if (!part)
+            continue;
+        var pieces = part.length > limit ? chunks(part, limit) : [part];
+        for (var j = 0; j < pieces.length; j++) {
+            if (current && current.length < 12 && current.length + 1 + pieces[j].length <= limit) {
+                current += " " + pieces[j];
+            } else {
+                if (current)
+                    out.push(current);
+                current = pieces[j];
+            }
+        }
+    }
+    if (current)
+        out.push(current);
+    return out;
+}
+
+// What an engine reads, in order: sentences for `sentences` engines; Qt
+// engines get long pieces (they pause naturally between sentences, while a
+// new piece restarts the voice); other file engines 300 characters.
+function chunksFor(spec, markdown) {
+    var text = speakableText(markdown);
+    if (spec && spec.sentences)
+        return sentenceChunks(text);
+    return chunks(text, spec && spec.kind === "qt" ? 1000 : 300);
+}
+
+// Voice names of a Qt engine worth listing: Speech Dispatcher's espeak-ng
+// offers every language again with each of its variants ("English+Linda"),
+// which mostly sound odd; those are left out unless one is `keep` (chosen).
+function plainVoice(name, keep) {
+    return String(name).indexOf("+") < 0 || name === keep;
 }
 
 // QtTextToSpeech rate/pitch are -1 … 1.

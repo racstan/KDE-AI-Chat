@@ -12,7 +12,8 @@ function load(rel, names) {
     vm.runInNewContext(src + "\nthis.exports = {" + names.join(", ") + "};", ctx);
     return ctx.exports;
 }
-const E = load("voice/TtsEngines.js", ["engines", "engine", "optionKeys", "settingsFor", "valueOfType", "speakableText", "chunks", "clampUnit", "clampSpeed", "defaultEngine"]);
+const E = load("voice/TtsEngines.js", ["engines", "engine", "optionKeys", "settingsFor", "valueOfType", "speakableText", "chunks", "clampUnit", "clampSpeed", "defaultEngine",
+                                         "fallbackEngine", "sentenceChunks", "chunksFor", "plainVoice"]);
 const A = load("chat/ReadAloudAction.js", ["toggle", "shortcutTarget"]);
 
 function same(a, b, msg) { assert.strictEqual(JSON.stringify(a), JSON.stringify(b), msg); }
@@ -23,14 +24,18 @@ const tests = {
         E.engines.forEach(e => {
             assert.ok(e.kind === "qt" || e.kind === "file", e.id);
             e.options.forEach(o => {
+                if (o.type === "choice") assert.ok(o.choices.some(c => c.value === o.def), o.key + " default is a choice");
                 if (o.type === "secret") { assert.ok(o.entry && !o.key, "a secret is never a setting"); return; }
                 assert.ok(/^voiceTts[A-Z]\w+$/.test(o.key), o.key);
                 assert.ok(!seen[o.key], "duplicate " + o.key);
                 seen[o.key] = true;
             });
         });
-        assert.strictEqual(E.defaultEngine, "system");
+        assert.strictEqual(E.defaultEngine, "neural", "the natural voice is the default");
+        assert.strictEqual(E.engines[0].id, "neural", "and first in the list");
+        assert.strictEqual(E.fallbackEngine, "system");
         assert.strictEqual(E.engine("system").plugin, "speechd");
+        assert.strictEqual(E.engine("system").options.filter(o => o.type === "rate" || o.type === "pitch").every(o => o.def === 0), true);
     },
     main_xml_declares_every_key_with_its_default() {
         const xml = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/config/main.xml"), "utf8");
@@ -40,6 +45,8 @@ const tests = {
             assert.ok(m, "main.xml lacks " + k);
             if (k !== "voiceTtsEngine")
                 assert.strictEqual(String(m[2]), String(keys[k]), k + " default");
+            else
+                assert.strictEqual(m[2], E.defaultEngine, "main.xml's engine default");
         });
     },
     settings_fall_back_to_defaults() {
@@ -62,6 +69,22 @@ const tests = {
         c.forEach(x => assert.ok(x.length <= 60, x));
         assert.strictEqual(c.join(" ").replace(/\s+/g, " "), text.trim());
         same(E.chunks("  "), []);
+    },
+    sentence_engines_read_one_sentence_at_a_time() {
+        const c = E.sentenceChunks("Hi. This is the first real sentence here. Note: it goes on! And on?\nA list item\nAnother");
+        same(c, ["Hi. This is the first real sentence here.", "Note: it goes on!", "And on? A list item", "Another"]);
+        const long = "word ".repeat(120).trim() + ".";
+        E.sentenceChunks(long).forEach(x => assert.ok(x.length <= 240, x.length));
+        same(E.chunksFor(E.engine("neural"), "**The first one.** The second one."), ["The first one.", "The second one."]);
+        const qt = E.chunksFor(E.engine("system"), "One. Two. Three.");
+        same(qt, ["One. Two. Three."], "a Qt engine says a normal reply in one go");
+        assert.ok(E.chunksFor(E.engine("system"), "Sentence here. ".repeat(200)).every(x => x.length <= 1000));
+        same(E.chunksFor(E.engine("neural"), "```\ncode\n```"), ["(code block)"]);
+    },
+    espeak_variants_are_hidden_unless_chosen() {
+        assert.strictEqual(E.plainVoice("English (America)"), true);
+        assert.strictEqual(E.plainVoice("English (Caribbean)+Linda"), false);
+        assert.strictEqual(E.plainVoice("English (Caribbean)+Linda", "English (Caribbean)+Linda"), true);
     },
     clamps() {
         assert.strictEqual(E.clampUnit(3), 1);

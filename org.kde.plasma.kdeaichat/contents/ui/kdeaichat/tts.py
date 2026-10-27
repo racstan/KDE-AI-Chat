@@ -7,7 +7,10 @@
   Engines: ``piper`` (local binary + .onnx voice), ``remote`` (an
   OpenAI-compatible ``/audio/speech``; its key is read here from KWallet,
   entry ``tts-remote``, never passed in), ``command`` (the user's template,
-  text on stdin, WAV on stdout or to ``{output}``; run without a shell).
+  text on stdin, WAV on stdout or to ``{output}``; run without a shell),
+  ``neural`` (the natural voice, Kokoro: ``tts_worker.py`` starts its
+  service on demand). A failure carries ``code`` "not_installed" when the
+  natural voice isn't set up, so the widget can use the system voice.
 - ``tts_cleanup {path?}``: removes one played file, or every file older than
   ten minutes.
 
@@ -26,7 +29,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List
 
-from kdeaichat import schedule_wallet
+from kdeaichat import schedule_wallet, tts_neural, tts_worker
 from kdeaichat.common import safe_path
 
 TIMEOUT = 120
@@ -167,7 +170,17 @@ def synth_remote(text: str, options: Dict[str, Any], out_path: str) -> None:
         f.write(data)
 
 
-ENGINES = {"piper": synth_piper, "remote": synth_remote, "command": synth_command}
+def pause_after(text: str) -> int:
+    """Silence (ms) after a chunk of the natural voice, which reads a sentence at a time."""
+    end = text.rstrip()[-1:]
+    return 350 if end in ".!?…" else 200 if end in ":;" else 150
+
+
+def synth_neural(text: str, options: Dict[str, Any], out_path: str) -> None:
+    tts_worker.synthesize(text, options, out_path, pause_after(text))
+
+
+ENGINES = {"piper": synth_piper, "remote": synth_remote, "command": synth_command, "neural": synth_neural}
 
 
 def synthesize(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -185,7 +198,10 @@ def synthesize(payload: Dict[str, Any]) -> Dict[str, Any]:
             raise RuntimeError("the engine did not write a WAV file")
     except (RuntimeError, ValueError) as e:
         _remove(path)
-        return {"ok": False, "error": str(e)}
+        failure = {"ok": False, "error": str(e)}
+        if isinstance(e, tts_worker.TtsError):
+            failure["code"] = e.code
+        return failure
     return {"ok": True, "path": path}
 
 
@@ -230,8 +246,8 @@ def cmd_tts_cleanup(payload: Dict[str, Any]) -> None:
         print(json.dumps({"ok": False, "error": str(e)}))
 
 
-COMMANDS = {
+COMMANDS = dict(tts_neural.COMMANDS, **{
     "tts_probe": cmd_tts_probe,
     "tts_synthesize": cmd_tts_synthesize,
     "tts_cleanup": cmd_tts_cleanup,
-}
+})
