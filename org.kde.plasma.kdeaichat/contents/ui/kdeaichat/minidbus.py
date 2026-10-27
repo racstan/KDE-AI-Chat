@@ -4,7 +4,7 @@ Why not a D-Bus library: python3-dbus / PyGObject / jeepney are not installed on
 widget's helper code is stdlib-only by design. The wire protocol (v1) is small: a SASL EXTERNAL handshake on
 the session bus socket, then messages made of a header (a fixed part plus an array of header fields) and a
 body in a typed encoding. This module does the types the runner uses (y b n q i u x t d s o g v a () {}),
-method calls, replies and errors. It is checked against a real dbus-daemon in tests/test_minidbus.py.
+method calls, replies and errors. It is checked against a real dbus-daemon in tests/test_krunner.py.
 
 Values: struct = tuple, array = list, dict (a{..}) = dict or list of pairs, variant = (signature, value).
 """
@@ -25,6 +25,13 @@ _FIXED = {"y": ("B", 1), "b": ("I", 4), "n": ("h", 2), "q": ("H", 2), "i": ("i",
 
 class DBusError(Exception):
     pass
+
+
+class MalformedMessage(DBusError):
+    """One message could not be parsed; it is already consumed, so the connection stays usable."""
+
+
+MAX_MESSAGE = 128 * 1024 * 1024
 
 
 def split_signature(sig: str) -> List[str]:
@@ -135,7 +142,7 @@ class Reader:
 
     def take(self, n: int) -> bytes:
         if self.pos + n > len(self.data):
-            raise DBusError("message too short")
+            raise MalformedMessage("message too short")
         chunk = self.data[self.pos:self.pos + n]
         self.pos += n
         return chunk
@@ -217,6 +224,14 @@ class Message:
 
 
 def decode(data: bytes) -> Message:
+    """Parses one message; anything malformed raises DBusError (never IndexError or struct.error)."""
+    try:
+        return _decode(data)
+    except (DBusError, IndexError, struct.error, ValueError, RecursionError) as error:  # UnicodeDecodeError is a ValueError
+        raise MalformedMessage("malformed message: %s" % error)
+
+
+def _decode(data: bytes) -> Message:
     if data[:1] != b"l":
         raise DBusError("only little-endian messages are supported")
     mtype, flags, _version, blen, serial = struct.unpack("<BBBII", data[1:12])
@@ -298,13 +313,13 @@ class Connection:
             self.buf += chunk
         return True
 
-    def read(self, timeout: Optional[float] = None) -> Optional[Message]:
+    def read(self, timeout: Optional[float] = None, max_size: int = MAX_MESSAGE) -> Optional[Message]:
         """The next message, or None when none arrived within ``timeout`` seconds."""
         if not self._fill(16, timeout):
             return None
         blen, flen = struct.unpack("<II", self.buf[4:8] + self.buf[12:16])
         total = _align(16 + flen, 8) + blen
-        if total > 128 * 1024 * 1024 or flen > 65536:
+        if total > max_size or flen > 65536:
             raise DBusError("message too large")
         self._fill(total, None)
         data, self.buf = self.buf[:total], self.buf[total:]

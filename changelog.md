@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Desktop integration is sturdier.** A malformed message on the session bus no longer ends the KRunner service, and the runner ignores messages over 1 MiB. A question that fails while being sent no longer leaves the ask inbox stuck. The KRunner, Dolphin and shortcut launchers quote paths exactly as the desktop-entry specification asks (backslashes, quotes, `$` and backticks), and refuse paths with control characters. The settings page now tells you to turn the options off before removing the widget, since their files live outside it.
+
 ### Added
 - **Long and unfinished replies are kept.** A message over the 2,000,000-character display limit is no longer cut on disk: the whole text is stored and only the chat view shows it shortened. A reply that is still being written is saved every 20 seconds (in any mode); if the widget or plasmashell stops meanwhile, the chat opens with what had arrived, marked "(interrupted)" and never resumed.
 - **Safer KRunner, Dolphin and ask requests.** A request left in the ask inbox never sends by itself when it has files: the files are attached, the question is put in the message box and you press Enter (a KRunner question without files still sends at once). Attached files must be real, readable files under your home folder (symlinks are resolved first); anything inside a hidden folder or a hidden file (`.ssh`, `.gnupg`, ...) is refused, and each refused file is named in the chat. Selecting more than 10 files in Dolphin now attaches the first 10 and shows a desktop notification ("Attached 10 of 25 files; the limit is 10"), and errors of `kdeaichat-ask` are shown as a notification when it runs without a terminal.

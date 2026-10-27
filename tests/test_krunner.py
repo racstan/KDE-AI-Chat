@@ -130,3 +130,52 @@ def test_a_second_runner_does_not_steal_the_name(env):
         assert krunner.serve(name, idle=1) == 1
     finally:
         first.join(timeout=10)
+
+
+def test_decode_turns_garbage_into_a_dbus_error():
+    good = minidbus.Message(minidbus.METHOD_CALL, 0, 1, {minidbus.PATH: "/runner", minidbus.MEMBER: "Match",
+                                                         minidbus.SIGNATURE: "s"}, "s", ("ai x",)).encode()
+    for bad in (good[:20], good[:12] + b"\xff" * 40, b"l\x01\x00\x01", b"B" + good[1:], b"l" + b"\xff" * 30):
+        with pytest.raises(minidbus.DBusError):
+            minidbus.decode(bad)
+
+
+def _stream_connection(raw_messages):
+    """A Connection over a socketpair (no bus): what the runner would read if these bytes arrived."""
+    import socket
+    mine, theirs = socket.socketpair()
+    conn = object.__new__(minidbus.Connection)
+    conn.sock, conn.buf, conn.serial, conn.sent = mine, b"", 0, []
+    conn.send = lambda message: conn.sent.append(message) or 1
+    theirs.sendall(b"".join(raw_messages))
+    theirs.close()
+    return conn
+
+
+def _call(member="Match", body=("ai hello",)):
+    return minidbus.Message(minidbus.METHOD_CALL, 0, 1, {minidbus.PATH: "/runner", minidbus.INTERFACE: "org.kde.krunner1",
+                                                         minidbus.MEMBER: member, minidbus.SIGNATURE: "s"}, "s", body).encode()
+
+
+def test_the_runner_survives_malformed_messages(env, monkeypatch):
+    # Well framed, but the string claims to be 64 KiB long inside a 15-byte body; then a header that is garbage;
+    # then a good call. (A real bus would not forward the first two, but any peer on a private bus could.)
+    bad_body = bytearray(_call())
+    bad_body[-13:-9] = (65536).to_bytes(4, "little")
+    garbage = b"l\x01\x00\x01" + (0).to_bytes(4, "little") + (9).to_bytes(4, "little") + (4).to_bytes(4, "little") + b"\xff" * 8
+    conn = _stream_connection([bytes(bad_body), garbage, _call()])
+    monkeypatch.setattr(krunner.minidbus, "Connection", lambda address=None: conn)
+    monkeypatch.setattr(conn, "request_name", lambda name: True, raising=False)
+    monkeypatch.setattr(conn, "close", lambda: None, raising=False)
+    # The reader reports the closed stream at the end, which stops serve() with 1; before that the good call is answered.
+    assert krunner.serve("x", idle=5) == 1
+    assert len(conn.sent) == 1 and conn.sent[0].type == minidbus.METHOD_RETURN
+    assert conn.sent[0].body[0][0][0] == "ask:hello"
+
+
+def test_the_runner_refuses_messages_over_one_mebibyte():
+    huge = bytearray(_call())
+    huge[4:8] = (2 * 1024 * 1024).to_bytes(4, "little")  # body length
+    conn = _stream_connection([bytes(huge)])
+    with pytest.raises(minidbus.DBusError):
+        conn.read(1.0, krunner.MAX_MESSAGE)

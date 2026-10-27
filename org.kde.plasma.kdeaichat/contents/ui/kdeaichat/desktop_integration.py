@@ -18,6 +18,9 @@ cannot reset it.
 All four are under ``$XDG_DATA_HOME`` (default ~/.local/share), so nothing needs root. Every file carries
 the marker ``X-KDEAIChat-Managed=true`` (or ``# X-KDEAIChat-Managed``): only files with it are ever
 replaced or deleted, so a file of the same name that is someone else's is left alone. Writes are atomic.
+These files are outside the package, so removing the widget does not remove them: the settings page asks
+to switch the options off first (a dead KRunner/Dolphin entry otherwise points at a script that is gone).
+Every start of the widget re-runs the sync, so a moved or updated widget repairs them.
 The runner's prefix (default "ai") and the switches are kept in ``<data>/kdeaichat/desktop-integration.json``,
 which the runner reads. Folders can be replaced for tests and dev runs: KDEAICHAT_KRUNNER_DIR,
 KDEAICHAT_DBUS_SERVICE_DIR, KDEAICHAT_SERVICEMENU_DIR, KDEAICHAT_APPLICATIONS_DIR, KDEAICHAT_DESKTOP_STATE.
@@ -30,6 +33,8 @@ import subprocess
 import sys
 import tempfile
 from typing import Any, Dict, List
+
+from kdeaichat import common
 
 SERVICE_NAME = "org.kde.kdeaichat.runner"
 RUNNER_FILE = "kdeaichat-runner.desktop"
@@ -65,11 +70,19 @@ def _scripts_dir() -> str:
 
 
 def _quote(arg: str, desktop: bool = True) -> str:
-    """One argument of an Exec= line (desktop entry, or D-Bus service file): quoted when it needs it."""
-    if arg and not any(c in arg for c in ' \t\n"\'\\><~|&;$*?#()`%'):
+    """One argument of an Exec= line (desktop entry, or D-Bus service file): quoted when it needs it.
+
+    Desktop-entry spec: inside double quotes a backslash, ", ` and $ get a backslash, and as the value of a
+    desktop file every backslash is doubled once more (so a backslash becomes four, a quote becomes \\\\").
+    A D-Bus service file has no second level. Control characters (a newline would end the line) are refused."""
+    if any(ord(c) < 32 or ord(c) == 127 for c in arg):
+        raise ValueError("a path with control characters cannot be used in a launcher: %r" % arg)
+    if arg and not any(c in arg for c in ' \t"\'\\><~|&;$*?#()`%'):
         return arg
     out = arg.replace("\\", "\\\\").replace('"', '\\"').replace("`", "\\`").replace("$", "\\$")
-    return '"' + (out.replace("%", "%%") if desktop else out) + '"'
+    if desktop:
+        out = out.replace("\\", "\\\\").replace("%", "%%")
+    return '"' + out + '"'
 
 
 def _python() -> str:
@@ -172,13 +185,8 @@ def clean_prefix(value: Any) -> str:
 
 def _write_state(krunner: bool, dolphin: bool, selection: bool, prefix: str) -> None:
     path = folders()["state"]
-    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
     data = json.dumps({"krunner": krunner, "dolphin": dolphin, "selection": selection, "prefix": prefix})
-    fd, tmp = tempfile.mkstemp(prefix=".desktop-", dir=os.path.dirname(path))
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(data)
-    os.chmod(tmp, 0o600)
-    os.replace(tmp, path)
+    common.atomic_write_text(path, data, 0o600)  # removes its temp file when the write fails
 
 
 def _run_tool(args: List[str]) -> None:

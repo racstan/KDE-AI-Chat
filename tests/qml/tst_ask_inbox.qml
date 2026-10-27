@@ -26,7 +26,12 @@ HarnessTestCase {
         function createSession(switchToNew) { calls.push("newChat:" + switchToNew); currentSessionId = "fresh"; }
         function attachFile(url) { attached.push(url); calls.push("attach"); }
         function attachmentsReadyToSend() { return filesReady; }
-        function sendMessage() { calls.push("send:" + chatInputText); chatInputText = ""; }
+        property bool throwOnSend: false
+        function sendMessage() {
+            calls.push("send:" + chatInputText);
+            chatInputText = "";
+            if (throwOnSend) throw new Error("send failed");
+        }
         function focusInput() { calls.push("focus"); }
         property var errors: []
         function pushErrorMessage(text) { errors = errors.concat([text]); }
@@ -85,6 +90,7 @@ HarnessTestCase {
         fakeChat.errors = [];
         fakeChat.calls = [];
         fakeChat.filesReady = true;
+        fakeChat.throwOnSend = false;
         queued = [];
         helperCalls = [];
     }
@@ -97,6 +103,19 @@ HarnessTestCase {
         tryVerify(function() { return fakeChat.calls.indexOf("send:why is the sky blue?") >= 0; }, 3000);
         compare(fakeChat.calls.indexOf("newChat:true"), -1, "the open chat is used: no mode change, no new chat");
         compare(fakeChat.currentSessionId, "open");
+    }
+
+    function test_a_send_that_throws_does_not_leave_the_inbox_busy() {
+        var inbox = createTemporaryObject(inboxComponent, testCase);
+        fakeChat.throwOnSend = true;
+        queued = [item({"text": "first", "send": true})];
+        inbox.take();
+        tryVerify(function() { return fakeChat.calls.indexOf("send:first") >= 0; }, 3000);
+        tryCompare(inbox, "_busy", false);
+        fakeChat.throwOnSend = false;
+        queued = [item({"text": "second", "send": true})];
+        inbox.take();
+        tryVerify(function() { return fakeChat.calls.indexOf("send:second") >= 0; }, 3000, "the next request still goes through");
     }
 
     function test_a_quoted_selection_fills_the_box_and_is_not_sent() {
