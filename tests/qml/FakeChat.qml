@@ -177,7 +177,7 @@ QtObject {
     property var wallet: null
     // Runs Check setup's helper commands in tests (chat/ErrorActions.qml); the widget has none.
     property var setupCheckHelper: null
-    property var plasmoid: ({configuration: {}})
+    property var plasmoid: ({configuration: {firstRunDismissed: true}})
     // main.qml's effectiveConfig, on this fake's sessions and plasmoid.configuration.
     function effectiveConfig(id) {
         var session = null;
