@@ -17,6 +17,7 @@ This manual provides an in-depth operations guide, walkthroughs of every feature
 8. [Prompt Templates](#8-prompt-templates)
 9. [Frequently Asked Questions (FAQ)](#9-frequently-asked-questions-faq)
 10. [Voice Mode & Local Speech Tools (Beta)](#10-voice-mode--local-speech-tools-beta)
+11. [Ask from KRunner and Dolphin](#11-ask-from-krunner-and-dolphin)
 
 ---
 
@@ -245,3 +246,13 @@ Please note that Voice Tools are currently a **Beta feature**. You may encounter
 To process voice inputs and synthesize read-aloud audio quickly, you can enable GPU acceleration in the settings.
 > [!IMPORTANT]
 > **NVIDIA GPUs via CUDA** are supported for local hardware acceleration. CPU mode works without NVIDIA; AMD and Intel GPU acceleration is not currently configured. If you do not have NVIDIA CUDA, leave **GPU Usage** disabled.
+
+---
+
+## 11. Ask from KRunner and Dolphin
+
+**Settings → Desktop integration** has two switches, both off until you turn them on. They add small files outside the widget (and remove them again when you switch off). The widget has to be on your panel or desktop.
+
+- **KRunner:** press Alt+Space, type `ai` and a question (the word is changeable), and press Enter. The widget opens and sends it to the chat you had open, in that chat's own mode. Pick "Ask in a new chat" to start a new chat in your default mode instead. If KRunner does not offer it at once, restart KRunner (`kquitapp6 krunner`).
+- **Dolphin:** right-click a text file, PDF, Word document or picture and choose **Ask KDE AI Chat about this file**. The file is attached to your message and the widget opens with the message box ready; nothing is sent until you press Send.
+- **Command line:** `kdeaichat-ask [--new-chat] [--send] [--file PATH] "question"` (in the widget's `contents/ui/scripts/` folder; use `--stdin` to pass a private question without putting it on the command line).

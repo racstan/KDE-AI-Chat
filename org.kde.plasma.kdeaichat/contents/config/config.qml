@@ -41,6 +41,11 @@ ConfigModel {
         source: "ConfigAppearance.qml"
     }
     ConfigCategory {
+        name: i18n("Desktop integration")
+        icon: "preferences-desktop-plasma"
+        source: "ConfigDesktop.qml"
+    }
+    ConfigCategory {
         name: i18n("Storage")
         icon: "drive-harddisk"
         source: "ConfigStorage.qml"

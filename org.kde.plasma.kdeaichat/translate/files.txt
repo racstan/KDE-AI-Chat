@@ -86,6 +86,8 @@ contents/ui/config/ScheduleRuleRow.qml
 contents/ui/config/ScheduleTimes.qml
 contents/ui/ConfigSchedules.qml
 contents/ui/ConfigStorage.qml
+contents/ui/ConfigDesktop.qml
+contents/ui/chat/AskInbox.qml
 contents/ui/config/StorageRow.qml
 contents/ui/config/TemplatesEditor.qml
 contents/ui/config/SetupCheck.qml
