@@ -5,7 +5,7 @@
 //
 // The chat uses: isRecording, startRecording(), stopRecording(),
 // textRecognized(text); isPlaying, playingText, currentPlayingChunk,
-// playTTS(text), stopTTS(), pauseTTS(), resumeTTS(), ttsPaused, ttsCanPause;
+// cancelRecording(), playTTS(text), stopTTS(), pauseTTS(), resumeTTS(), ttsPaused, ttsCanPause;
 // statusText; errorOccurred(text).
 import QtQuick
 import "voice" as Voice
@@ -27,6 +27,8 @@ Item {
     property string lastRecognizedText: ""
     // store/HelperRunner.qml's run(), for the read-aloud engines that write files.
     property var runHelper: null
+    // The widget's popup is open (main.qml): Speech Note is warmed up and kept ready (voice/SpeechNoteWarm.qml).
+    property bool popupOpen: false
     property var configuration: plasmoid.configuration
     // Title of the notification for errorOccurred (main.qml).
     readonly property string errorTitle: i18n("Voice error")
@@ -34,6 +36,8 @@ Item {
     readonly property bool callModeActive: false
     // Tests: e.g. {"system": "mock"} (Qt's mock speech engine).
     property alias ttsPluginOverride: readAloud.pluginOverride
+    // Tests: the runner for Speech Note's wait-until-spoken call.
+    property alias waitHelper: readAloud.waitHelper
 
     // Dictation switch (migrated once from the old voiceEnabled by SttConfig.js).
     readonly property bool sttEnabled: configuration.sttEnabled === true
@@ -52,6 +56,12 @@ Item {
     signal textRecognized(string text)
     signal errorOccurred(string errorText)
 
+    Voice.SpeechNoteWarm {
+        configuration: root.configuration
+        runHelper: root.runHelper
+        popupOpen: root.popupOpen
+    }
+
     Voice.ReadAloud {
         id: readAloud
         configuration: root.configuration
@@ -64,7 +74,9 @@ Item {
     Voice.SttBackend {
         id: sttBackend
         configuration: root.configuration
+        runHelper: root.runHelper
         onReply: function(data) { root.handleResponse(data); }
+        onStatus: function(text) { if (root.isRecording) root.sttStatusText = text; }
     }
 
     function handleResponse(resp) {
@@ -95,6 +107,15 @@ Item {
     function stopRecording() {
         root.sttStatusText = i18n("Transcribing…");
         sttBackend.stop(false);
+    }
+
+    // Esc while recording: drop what was said.
+    function cancelRecording() {
+        if (!root.isRecording)
+            return;
+        sttBackend.stop(true);
+        root.isRecording = false;
+        root.sttStatusText = "";
     }
 
     // Read aloud (voice/ReadAloud.qml), the API the chat uses.

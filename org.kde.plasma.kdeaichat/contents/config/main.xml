@@ -421,8 +421,12 @@
     <entry name="voiceLanguage" type="String"><default>en</default></entry>
     <!-- Read aloud: the engine and each engine's options (voice/TtsEngines.js).
          A speech server's API key is in KWallet (entry "tts-remote"), never here. -->
-    <!-- "neural" (Kokoro) is the default; until it is installed, read aloud uses "system". -->
-    <entry name="voiceTtsEngine" type="String"><default>neural</default></entry>
+    <!-- "speechnote" (the Speech Note app) is the default; until it is installed, read aloud uses "system".
+         Empty model = Speech Note's own default voice / speech model. -->
+    <entry name="voiceTtsEngine" type="String"><default>speechnote</default></entry>
+    <entry name="voiceTtsSpeechNoteModel" type="String"><default></default></entry>
+    <!-- Minutes Speech Note's service is kept ready after the popup closes (0 = only when used). -->
+    <entry name="speechNoteKeepReadyMinutes" type="Int"><default>5</default><min>0</min><max>120</max></entry>
     <entry name="voiceTtsNeuralVoice" type="String"><default>af_heart</default></entry>
     <entry name="voiceTtsNeuralSpeed" type="Double"><default>1</default></entry>
     <entry name="voiceTtsSystemLanguage" type="String"><default></default></entry>
@@ -448,8 +452,9 @@
     <!-- Dictation (speech-to-text). Off by default; with it off nothing is installed or started.
          Passed to the helper's stt_* commands (kdeaichat/stt_settings.py); the remote key is in KWallet, entry "stt-remote". -->
     <entry name="sttEnabled" type="Bool"><default>false</default></entry>
-    <!-- parakeet (default), faster-whisper, whisper-cpp, remote or command. -->
-    <entry name="sttEngine" type="String"><default>parakeet</default></entry>
+    <!-- speechnote (default), parakeet, faster-whisper, whisper-cpp, remote or command. -->
+    <entry name="sttEngine" type="String"><default>speechnote</default></entry>
+    <entry name="sttSpeechNoteModel" type="String"><default></default></entry>
     <entry name="sttModel" type="String"><default>small</default></entry>
     <!-- Parakeet: "parakeet-unified-en-0.6b" (found on disk or downloaded) or an absolute .gguf path. -->
     <entry name="sttParakeetModel" type="String"><default>parakeet-unified-en-0.6b</default></entry>

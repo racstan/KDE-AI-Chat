@@ -10,6 +10,9 @@
 //              engine), with stop and pause; voices come from the plugin.
 // kind "file": the helper (kdeaichat/tts.py) writes a WAV per chunk and the
 //              widget plays it (voice/FileSpeech.qml), with stop and pause.
+// kind "speechnote": the Speech Note app speaks the whole reply itself, with
+//              its own voices and graphics-card support (voice/SpeechNoteSpeech.qml).
+//              `keys` are its settings (no form rows: config/SpeechNotePanel.qml).
 //
 // Option types: "language" and "voice" (lists from the Qt engine), "choice"
 // (from `choices`), "rate" and "pitch" (-1 … 1), "speed" (0.5 … 2), "int",
@@ -57,6 +60,10 @@ var neuralVoices = [
 ];
 
 var engines = [
+    {id: "speechnote", kind: "speechnote", setup: "speechnote", keys: {"voiceTtsSpeechNoteModel": ""},
+     label: I18N_NOOP("Speech Note (any language, recommended)"),
+     note: I18N_NOOP("Speech Note, a separate app, reads replies in any language with the voices you download in it, using your graphics card when it can. Until it is set up, the system voice reads."),
+     options: []},
     {id: "neural", kind: "file", setup: "neural", sentences: true, ahead: 2,
      label: I18N_NOOP("Natural voice (Kokoro, recommended)"),
      note: I18N_NOOP("A natural-sounding voice that runs on this computer, offline. It needs a one-time install; until then the system voice reads instead."),
@@ -127,7 +134,7 @@ var engines = [
           help: I18N_NOOP("For experts: a program of your own that turns text into speech. Leave empty if you don't have one.")}]}
 ];
 
-var defaultEngine = "neural";
+var defaultEngine = "speechnote";
 // Reads while the default engine isn't installed; needs no setup.
 var fallbackEngine = "system";
 
@@ -141,10 +148,13 @@ function engine(id) {
 // Every main.xml key the engines use, with its default.
 function optionKeys() {
     var keys = {};
-    for (var i = 0; i < engines.length; i++)
+    for (var i = 0; i < engines.length; i++) {
         for (var j = 0; j < engines[i].options.length; j++)
             if (engines[i].options[j].key)
                 keys[engines[i].options[j].key] = engines[i].options[j].def;
+        for (var extra in (engines[i].keys || {}))
+            keys[extra] = engines[i].keys[extra];
+    }
     return keys;
 }
 
@@ -161,6 +171,10 @@ function settingsFor(id, config) {
             continue;
         var value = config ? config[o.key] : undefined;
         out[o.key] = value === undefined || value === null ? o.def : value;
+    }
+    for (var extra in (spec.keys || {})) {
+        var chosen = config ? config[extra] : undefined;
+        out[extra] = chosen === undefined || chosen === null ? spec.keys[extra] : chosen;
     }
     return out;
 }
@@ -267,6 +281,8 @@ function sentenceChunks(text, limit) {
 // new piece restarts the voice); other file engines 300 characters.
 function chunksFor(spec, markdown) {
     var text = speakableText(markdown);
+    if (spec && spec.kind === "speechnote")   // Speech Note splits sentences itself
+        return text ? [text] : [];
     if (spec && spec.sentences)
         return sentenceChunks(text);
     return chunks(text, spec && spec.kind === "qt" ? 1000 : 300);

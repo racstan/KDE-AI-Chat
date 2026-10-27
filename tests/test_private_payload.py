@@ -65,5 +65,5 @@ def test_helper_takes_the_file_argument(tmp_path):
 def test_helper_runner_sends_read_aloud_text_privately():
     with open(os.path.join(UI, "store", "HelperRunner.qml"), encoding="utf-8") as f:
         qml = f.read()
-    assert 'privateCommands: ["tts_synthesize"]' in qml
+    assert 'privateCommands: ["tts_synthesize", "speechnote_speak"]' in qml
     assert "RuntimeLocation" in qml
