@@ -2,8 +2,8 @@
 
 // The dictation (speech-to-text) engines as Settings → Voice shows them:
 // names, notes, and the options of the engines that need no special panel
-// (config/TtsOption.qml draws them; faster-whisper has its own panel,
-// config/FasterWhisperPanel.qml). The engine rows themselves come from the
+// (config/TtsOption.qml draws them; the local engines, Parakeet and
+// faster-whisper, have their own rows: config/LocalSttRows.qml). The engine rows themselves come from the
 // helper's `stt_engines` (kdeaichat/stt_engines.py), which knows what is
 // installed. Plain JS (tested with node): no QML imports.
 
@@ -12,6 +12,9 @@ function I18N_NOOP(text) {
 }
 
 var engines = [
+    {id: "parakeet", label: I18N_NOOP("Parakeet (on this computer, English)"),
+     note: I18N_NOOP("NVIDIA's Parakeet Unified EN 0.6B, the model Handy uses: fast, accurate English transcription. English only. Runs in a small service that starts when you dictate and stops when idle, on the graphics card when there is one. Needs a one-time install of about 24 MB."),
+     options: []},
     {id: "faster-whisper", label: I18N_NOOP("faster-whisper (on this computer)"),
      note: I18N_NOOP("Whisper models run by a small service that starts when you dictate and stops when idle. Needs a one-time install."),
      options: []},
@@ -45,7 +48,10 @@ var engines = [
           help: I18N_NOOP("For experts: a program of your own that turns a recording into text. Leave empty if you don't have one.")}]}
 ];
 
-var defaultEngine = "faster-whisper";
+var defaultEngine = "parakeet";
+// The engines run by the on-demand local service, with their own setup rows.
+var localEngines = ["parakeet", "faster-whisper"];
+var parakeetDefault = "parakeet-unified-en-0.6b";
 
 var languages = [
     {value: "auto", text: I18N_NOOP("Detect automatically")}, {value: "en", text: I18N_NOOP("English")},
@@ -63,6 +69,29 @@ var devices = [
     {value: "cpu", text: I18N_NOOP("Processor (CPU)")},
     {value: "cuda", text: I18N_NOOP("NVIDIA GPU (CUDA)")}
 ];
+
+// Parakeet uses any graphics card through Vulkan; "cuda" (a faster-whisper choice) means the same there.
+var parakeetDevices = [
+    {value: "auto", text: I18N_NOOP("Automatic (graphics card when there is one)")},
+    {value: "cpu", text: I18N_NOOP("Processor (CPU)")},
+    {value: "gpu", text: I18N_NOOP("Graphics card (Vulkan)")}
+];
+
+function devicesFor(engineId) {
+    return engineId === "parakeet" ? parakeetDevices : devices;
+}
+
+// The device value as the engine's list knows it ("gpu" and "cuda" both mean the graphics card).
+function deviceFor(engineId, value) {
+    value = String(value || "auto");
+    if (engineId === "parakeet")
+        return value === "cuda" ? "gpu" : value;
+    return value === "gpu" ? "cuda" : value;
+}
+
+function isLocal(engineId) {
+    return localEngines.indexOf(engineId) >= 0;
+}
 
 function engine(id) {
     for (var i = 0; i < engines.length; i++)
@@ -96,7 +125,7 @@ function size(mb) {
     return Math.max(0, Math.round(mb)) + " MB";
 }
 
-// True when sttModel is a folder rather than a faster-whisper model name.
+// True when sttModel / sttParakeetModel is a path rather than a model name.
 function isFolder(model) {
     return String(model || "").indexOf("/") >= 0;
 }

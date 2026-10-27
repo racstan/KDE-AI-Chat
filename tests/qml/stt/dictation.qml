@@ -48,13 +48,16 @@ TestCase {
     function test_migration_then_dictate_until_stop() {
         config = createTemporaryObject(configComponent, testCase, {
             "voiceEnabled": true, "voiceSttModel": "base", "voiceLanguage": "de", "voiceGpuEnabled": false,
-            "sttSettingsMigrated": false, "sttEngine": "command", "sttCommand": fakeStt + " {wav} {lang}"});
+            "sttSettingsMigrated": false, "sttCommand": fakeStt + " {wav} {lang}"});
         var backend = createTemporaryObject(backendComponent, testCase, {"configuration": config});
         // The old settings were carried over once, at start.
         compare(config.sttSettingsMigrated, true);
         compare(config.sttEnabled, true);
         compare(config.sttModel, "base");
         compare(config.sttLanguage, "de");
+        // A user who had picked a Whisper model keeps faster-whisper; this test fakes the custom command engine.
+        compare(config.sttEngine, "faster-whisper");
+        config.sttEngine = "command";
 
         backend.start();
         verify(backend.busy);

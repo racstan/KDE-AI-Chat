@@ -4,8 +4,8 @@
 // start(): `stt_dictate` records until stop() and prints one result when it
 // ends, so the reply arrives once (no polling). At start it copies the old
 // voice* settings once and runs `stt_sync_units`, which removes the old
-// always-on service and keeps the on-demand faster-whisper socket installed
-// only while dictation is on with that engine.
+// always-on service and keeps the on-demand local socket (Parakeet or faster-whisper) installed
+// only while dictation is on with one of those engines.
 import QtQuick
 import "../store" as Store
 import "SttConfig.js" as SttConfig

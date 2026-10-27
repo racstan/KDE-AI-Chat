@@ -419,8 +419,12 @@
     <!-- Dictation (speech-to-text). Off by default; with it off nothing is installed or started.
          Passed to the helper's stt_* commands (kdeaichat/stt_settings.py); the remote key is in KWallet, entry "stt-remote". -->
     <entry name="sttEnabled" type="Bool"><default>false</default></entry>
-    <entry name="sttEngine" type="String"><default>faster-whisper</default></entry>
+    <!-- parakeet (default), faster-whisper, whisper-cpp, remote or command. -->
+    <entry name="sttEngine" type="String"><default>parakeet</default></entry>
     <entry name="sttModel" type="String"><default>small</default></entry>
+    <!-- Parakeet: "parakeet-unified-en-0.6b" (found on disk or downloaded) or an absolute .gguf path. -->
+    <entry name="sttParakeetModel" type="String"><default>parakeet-unified-en-0.6b</default></entry>
+    <!-- auto, cpu, cuda or gpu (cuda and gpu: the graphics card; CUDA for faster-whisper, Vulkan for Parakeet). -->
     <entry name="sttDevice" type="String"><default>auto</default></entry>
     <entry name="sttLanguage" type="String"><default>auto</default></entry>
     <entry name="sttWhisperCppBinary" type="String"><default></default></entry>

@@ -12,10 +12,11 @@ vm.runInNewContext(source + "\nthis.exports = {payload, migration, applyMigratio
 const S = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
-// Defaults: dictation off, faster-whisper "small", auto device and language.
+// Defaults: dictation off, Parakeet with its default model (faster-whisper "small" when chosen), auto device and language.
 let p = plain(S.payload({}));
 assert.strictEqual(p.sttEnabled, false);
-assert.strictEqual(p.sttEngine, "faster-whisper");
+assert.strictEqual(p.sttEngine, "parakeet");
+assert.strictEqual(p.sttParakeetModel, "parakeet-unified-en-0.6b");
 assert.strictEqual(p.sttModel, "small");
 assert.strictEqual(p.sttDevice, "auto");
 assert.strictEqual(p.sttLanguage, "auto");
@@ -31,12 +32,13 @@ assert.ok(!("apiKey" in p) && !JSON.stringify(p).includes("key"), "no key in the
 // Old voice settings carry over once; dictation stays on for people who had voice on.
 let cfg = {voiceEnabled: true, voiceSttModel: "medium", voiceLanguage: "de", voiceGpuEnabled: true, sttSettingsMigrated: false};
 assert.deepStrictEqual(plain(S.applyMigration(cfg)),
-    {sttSettingsMigrated: true, sttEnabled: true, sttModel: "medium", sttLanguage: "de", sttDevice: "cuda"});
+    {sttSettingsMigrated: true, sttEnabled: true, sttModel: "medium", sttEngine: "faster-whisper", sttLanguage: "de",
+     sttDevice: "cuda"});
 assert.strictEqual(cfg.sttEnabled, true);
 assert.deepStrictEqual(plain(S.migration(cfg)), {}, "only once");
 
 cfg = {voiceEnabled: false, voiceSttModel: "small", voiceSttModelPath: "/m/ct2", voiceLanguage: "", voiceGpuEnabled: false};
-assert.deepStrictEqual(plain(S.migration(cfg)), {sttSettingsMigrated: true, sttModel: "/m/ct2"});
+assert.deepStrictEqual(plain(S.migration(cfg)), {sttSettingsMigrated: true, sttModel: "/m/ct2", sttEngine: "faster-whisper"});
 // A fresh install: dictation stays off.
 assert.deepStrictEqual(plain(S.migration({voiceEnabled: false})), {sttSettingsMigrated: true});
 
@@ -44,9 +46,17 @@ assert.deepStrictEqual(plain(S.migration({voiceEnabled: false})), {sttSettingsMi
 const enginesSource = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/voice/SttEngines.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ectx = {};
-vm.runInNewContext(enginesSource + "\nthis.exports = {engines, split, size, isFolder, engine};", ectx);
+vm.runInNewContext(enginesSource + "\nthis.exports = {engines, split, size, isFolder, engine, defaultEngine, isLocal, devicesFor, deviceFor};", ectx);
 const E = ectx.exports;
-assert.deepStrictEqual(plain(E.engines.map(e => e.id)), ["faster-whisper", "whisper-cpp", "remote", "command"]);
+assert.deepStrictEqual(plain(E.engines.map(e => e.id)), ["parakeet", "faster-whisper", "whisper-cpp", "remote", "command"]);
+assert.strictEqual(E.defaultEngine, "parakeet");
+assert.ok(E.isLocal("parakeet") && E.isLocal("faster-whisper") && !E.isLocal("remote"));
+assert.deepStrictEqual(plain(E.devicesFor("parakeet").map(d => d.value)), ["auto", "cpu", "gpu"]);
+assert.deepStrictEqual(plain(E.devicesFor("faster-whisper").map(d => d.value)), ["auto", "cpu", "cuda"]);
+assert.strictEqual(E.deviceFor("parakeet", "cuda"), "gpu");
+assert.strictEqual(E.deviceFor("faster-whisper", "gpu"), "cuda");
+assert.strictEqual(E.deviceFor("parakeet", ""), "auto");
+assert.ok(E.isFolder("/home/u/models/p.gguf") && !E.isFolder("parakeet-unified-en-0.6b"));
 const parts = plain(E.split([{id: "faster-whisper", available: false, selectable: true},
                              {id: "whisper-cpp", available: false, selectable: false, reason: "whisper-cli not found"},
                              {id: "remote", available: true}, {id: "nope", available: true}]));

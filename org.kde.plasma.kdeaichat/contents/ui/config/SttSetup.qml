@@ -6,6 +6,7 @@
 // runHelper(command, payload, callback(stdout, exitCode, stderr)) is
 // store/HelperRunner.qml's run(); tests pass a fake.
 import QtQuick
+import "../voice/SttEngines.js" as SttEngines
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -21,6 +22,7 @@ QtObject {
     property bool enginesLoaded: false
     property var gpu: false
     property var catalogue: []       // faster-whisper models: {name, mb, downloaded, recommended, note}
+    property var parakeetCatalogue: []  // Parakeet's default model: {name, label, mb, downloaded, path, source, note}
     property var found: []           // models on disk: {engine, model, path, name, source, mb}
     property var size: null          // stt_setup_size reply
     property var data: null          // voice_data reply's faster_whisper part
@@ -66,6 +68,8 @@ QtObject {
         return null;
     }
     readonly property bool fasterWhisperInstalled: !!(engineRow("faster-whisper") || {}).installed
+    readonly property bool parakeetInstalled: !!(engineRow("parakeet") || {}).installed
+    readonly property string engineName: payload.sttEngine === "faster-whisper" ? "faster-whisper" : "Parakeet"
 
     // Everything the page shows; cheap (no download, nothing started).
     function refresh() {
@@ -73,6 +77,7 @@ QtObject {
         _run("stt_models", {}, function(r) {
             if (r && r.type === "stt_models") {
                 setup.catalogue = r.faster_whisper || [];
+                setup.parakeetCatalogue = r.parakeet || [];
                 setup.found = r.found || [];
                 setup.gpu = !!r.gpu;
             }
@@ -95,9 +100,9 @@ QtObject {
         });
     }
 
-    // What installing faster-whisper (and the chosen model) would download.
+    // What installing the chosen local engine (and its model) would download.
     function estimate() {
-        _run("stt_setup_size", {"gpu": payload.sttDevice === "cpu" ? false : payload.sttDevice === "cuda" ? true : "auto"},
+        _run("stt_setup_size", {"gpu": payload.sttDevice === "cpu" ? false : (payload.sttDevice === "cuda" || payload.sttDevice === "gpu") ? true : "auto"},
              function(r) { if (r && r.type === "stt_setup_size") setup.size = r; });
     }
 
@@ -110,11 +115,11 @@ QtObject {
         _run("stt_sync_units", {"sttEnabled": enabled === undefined ? payload.sttEnabled === true : enabled}, null);
     }
 
-    // faster-whisper runs as the on-demand service, so its units must exist
+    // The local engines run as the on-demand service, so its units must exist
     // before a download or a test (the next widget start removes them again
     // if dictation stays off).
     function _withService(work) {
-        if (payload.sttEngine !== "faster-whisper")
+        if (!SttEngines.isLocal(payload.sttEngine))
             work();
         else
             _run("stt_sync_units", {"sttEnabled": true}, function() { work(); });
@@ -124,12 +129,12 @@ QtObject {
         if (busy)
             return;
         installing = true;
-        status = i18n("Installing faster-whisper. This takes a few minutes…");
-        var mode = payload.sttDevice === "cpu" ? "cpu" : payload.sttDevice === "cuda" ? "gpu" : "auto";
+        status = i18n("Installing %1. This can take a few minutes…", engineName);
+        var mode = payload.sttDevice === "cpu" ? "cpu" : (payload.sttDevice === "cuda" || payload.sttDevice === "gpu") ? "gpu" : "auto";
         _run("stt_install", {"gpu": mode}, function(r, error) {
             setup.installing = false;
             var ok = !!(r && r.ok);
-            setup.status = ok ? i18n("faster-whisper is installed.") : i18n("Installing failed: %1", (r && r.error) || error);
+            setup.status = ok ? i18n("%1 is installed.", setup.engineName) : i18n("Installing failed: %1", (r && r.error) || error);
             if (ok)
                 setup.syncUnits(true);
             setup.refresh();
@@ -176,8 +181,8 @@ QtObject {
         if (busy)
             return;
         removing = true;
-        status = keepModels ? i18n("Removing the old engine…") : i18n("Removing faster-whisper's data…");
-        _run("voice_data_remove", {"engine": "faster-whisper", "confirm": true, "keepModels": keepModels === true},
+        status = keepModels ? i18n("Removing the old engine…") : i18n("Removing the speech engine's data…");
+        _run("voice_data_remove", {"engine": payload.sttEngine, "confirm": true, "keepModels": keepModels === true},
              function(r, error) {
             setup.removing = false;
             var ok = !!(r && r.type === "voice_data_removed");

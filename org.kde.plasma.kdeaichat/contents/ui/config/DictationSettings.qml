@@ -3,9 +3,9 @@
 // are listed with the reason), that engine's options, the language, and a
 // Test button that transcribes a bundled recording (no microphone).
 //
-// faster-whisper gets its own rows (config/FasterWhisperRows.qml): model with
-// sizes and models found on disk, device, Install / Download / Remove data,
-// each showing its size first. The values are the page's cfg_ properties
+// The local engines (Parakeet, the default, and faster-whisper) get their own
+// rows (config/LocalSttRows.qml): model with sizes and models found on disk,
+// device, Install / Download / Remove data, each showing its size first. The values are the page's cfg_ properties
 // (`form.optionValue(key)` / `form.setOption(key, value)`); the speech
 // server's key goes to KWallet (entry stt-remote), never into the settings.
 pragma ComponentBehavior: Bound
@@ -106,7 +106,7 @@ ColumnLayout {
             text: {
                 var row = sttSetup.engineRow(dictation.engineId);
                 var note = i18n(dictation.engine.note);
-                if (row && !row.available && row.reason && dictation.engineId !== "faster-whisper")
+                if (row && !row.available && row.reason && !SttEngines.isLocal(dictation.engineId))
                     note += "\n" + i18n("Not ready: %1", row.reason);
                 return note;
             }
@@ -126,10 +126,11 @@ ColumnLayout {
         }
     }
 
-    FasterWhisperRows {
+    LocalSttRows {
         form: dictation
         setup: sttSetup
-        shown: dictation.engineId === "faster-whisper"
+        engine: SttEngines.isLocal(dictation.engineId) ? dictation.engineId : SttEngines.defaultEngine
+        shown: SttEngines.isLocal(dictation.engineId)
         twinFormLayouts: dictation.twin ? [dictation.twin] : []
     }
 
@@ -169,8 +170,16 @@ ColumnLayout {
             }
         }
 
+        QQC2.Label {
+            objectName: "sttEnglishOnly"
+            visible: dictation.engineId === "parakeet"
+            Kirigami.FormData.label: i18n("Spoken language:")
+            text: i18n("English (this model understands English only)")
+        }
+
         QQC2.ComboBox {
             objectName: "sttLanguageCombo"
+            visible: dictation.engineId !== "parakeet"
             Kirigami.FormData.label: i18n("Spoken language:")
             textRole: "text"
             valueRole: "value"
@@ -180,6 +189,7 @@ ColumnLayout {
         }
 
         SettingHelp {
+            visible: dictation.engineId !== "parakeet"
             text: i18n("The language you speak. \"Detect automatically\" works for most people; choosing yours helps with short phrases.")
         }
 

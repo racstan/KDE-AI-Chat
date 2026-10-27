@@ -52,8 +52,9 @@ KCM.SimpleKCM {
     // Dictation (speech-to-text): voice/SttConfig.js lists these keys.
     property alias cfg_sttEnabled: enabledCheck.checked
     property bool cfg_voiceAutoSend: true
-    property string cfg_sttEngine: "faster-whisper"
+    property string cfg_sttEngine: "parakeet"
     property string cfg_sttModel: "small"
+    property string cfg_sttParakeetModel: "parakeet-unified-en-0.6b"
     property string cfg_sttDevice: "auto"
     property string cfg_sttLanguage: "auto"
     property int cfg_sttIdleMinutes: 5

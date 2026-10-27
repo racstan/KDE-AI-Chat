@@ -3,11 +3,12 @@
 // plasmoid config, and the one-time copy of the old voice* settings.
 // Plain JS (tested with node): no QML imports.
 
-var KEYS = ["sttEnabled", "sttEngine", "sttModel", "sttDevice", "sttLanguage", "sttWhisperCppBinary",
+var KEYS = ["sttEnabled", "sttEngine", "sttModel", "sttParakeetModel", "sttDevice", "sttLanguage", "sttWhisperCppBinary",
             "sttWhisperCppModel", "sttWhisperCppServer", "sttRemoteUrl", "sttRemoteModel", "sttCommand",
             "sttIdleMinutes"];
 
-var DEFAULTS = {"sttEnabled": false, "sttEngine": "faster-whisper", "sttModel": "small", "sttDevice": "auto",
+var DEFAULTS = {"sttEnabled": false, "sttEngine": "parakeet", "sttModel": "small",
+                "sttParakeetModel": "parakeet-unified-en-0.6b", "sttDevice": "auto",
                 "sttLanguage": "auto", "sttRemoteModel": "whisper-1", "sttIdleMinutes": 5};
 
 // The stt* settings the helper's stt_* commands take (never a key: that is read from KWallet).
@@ -25,7 +26,8 @@ function payload(cfg) {
 
 // Changes that carry the pre-1.4 voice settings over, once: dictation stays on
 // for people who had voice on, with their model, model folder, language and GPU
-// choice. {} when already done.
+// choice. Someone who had picked a Whisper model keeps faster-whisper (Parakeet
+// is the default otherwise). {} when already done.
 function migration(cfg) {
     if (!cfg || cfg.sttSettingsMigrated === true)
         return {};
@@ -38,6 +40,8 @@ function migration(cfg) {
         changes.sttModel = folder;
     else if (model)
         changes.sttModel = model;
+    if (folder || model)
+        changes.sttEngine = "faster-whisper";
     var language = String(cfg.voiceLanguage || "").trim();
     if (language)
         changes.sttLanguage = language;
