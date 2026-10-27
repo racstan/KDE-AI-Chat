@@ -109,6 +109,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/ConfigSchedules.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/ConfigVoice.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/ConfigAppearance.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/ConfigAbout.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/config/AvatarPicker.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/ScheduleDialog.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/config/ModeChooser.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/config/RequestOptions.qml",

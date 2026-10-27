@@ -167,6 +167,7 @@ Item {
             compare(named("languageField").placeholderText, "Same as my message");
             compare(named("systemPromptArea").text, "You are a helpful assistant.", "the global prompt moved here");
             compare(named("avatarStatus").text, "face-smile");
+            compare(named("userAvatarStatus").text, "None");
             verify(!named("customPersonalityArea").visible, "custom text only for Custom");
             shot("config-personality");
 
@@ -197,7 +198,45 @@ Item {
             verify(page.avatarError !== "");
             page.setAvatarFile(picture);
             compare(named("avatarStatus").text, "avatar.png");
+            compare(page.cfg_userAvatar, "", "the AI's avatar is not yours");
             shot("config-personality-custom");
+        }
+
+        // Your own avatar: the same choices and checks as the AI's, saved as cfg_userAvatar.
+        function test_personality_user_avatar() {
+            open("ConfigPersonality.qml", {"cfg_userName": "Rachit", "cfg_userAbout": "", "cfg_userTone": "", "cfg_userLanguage": "",
+                                            "cfg_userNotes": "", "cfg_aiName": "", "cfg_aiPersonality": "", "cfg_aiPersonalityCustom": "",
+                                            "cfg_aiAvatar": "", "cfg_userAvatar": "", "cfg_enableSystemPrompt": false, "cfg_systemPrompt": ""});
+            noSecretSettings();
+            var named = function(name) { return find(page, function(item) { return item.objectName === name; }); };
+            var picker = named("userAvatarButton").parent;
+            verify(named("userAvatarButton").visible);
+            compare(named("userAvatarStatus").text, "None");
+            // A theme icon (what the icon dialog does).
+            picker.value = "face-glasses";
+            compare(page.cfg_userAvatar, "face-glasses");
+            compare(named("userAvatarStatus").text, "face-glasses");
+            compare(page.cfg_aiAvatar, "", "the AI's avatar is untouched");
+            shot("config-personality-user-icon");
+            // An image file with a safe path.
+            var picture = String(Qt.resolvedUrl("../fixtures/avatar.png"));
+            picker.setFile(picture);
+            compare(page.cfg_userAvatar, decodeURIComponent(picture.replace(/^file:\/\//, "")));
+            compare(named("userAvatarStatus").text, "avatar.png");
+            wait(100);
+            shot("config-personality-user-image");
+            // Bad choices are refused and the old one stays.
+            var chosen = page.cfg_userAvatar;
+            picker.setFile("file:///home/me/notes.txt");
+            compare(page.cfg_userAvatar, chosen, "not an image");
+            verify(picker.error !== "");
+            compare(named("userAvatarStatus").text, picker.error);
+            picker.setFile("file:///home/me/../a.png");
+            compare(page.cfg_userAvatar, chosen, "unsafe path refused");
+            compare(page.avatarError, "", "the AI's error line is its own");
+            // No Avatar.
+            picker.value = "";
+            compare(named("userAvatarStatus").text, "None" );
         }
 
         function test_personality_page_empty() {

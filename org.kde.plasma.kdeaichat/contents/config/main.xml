@@ -254,9 +254,12 @@
     </entry>
 
     <!-- Settings → Personality (chat/Personality.js). Empty = not used.
-         Tone and personality are preset ids; aiAvatar is a theme icon name
+         Tone and personality are preset ids; userAvatar and aiAvatar are a theme icon name
          or the absolute path of an image file. -->
     <entry name="userName" type="String">
+      <default></default>
+    </entry>
+    <entry name="userAvatar" type="String">
       <default></default>
     </entry>
     <entry name="userAbout" type="String">

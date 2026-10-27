@@ -1,6 +1,6 @@
 // Settings → Appearance: the panel icon's animation (mode, file check with
-// the size limits, hover only, video only when QtMultimedia is there) and
-// the "Buy Me a Coffee" link. The helper is a fake: no file is read.
+// the size limits, hover only, video only when QtMultimedia is there); the
+// support and terms links live on the About page. The helper is a fake: no file is read.
 import QtQuick
 import QtTest
 
@@ -33,7 +33,6 @@ Item {
         });
     }
     property var calls: []
-    property var opened: []
 
     Rectangle {
         anchors.fill: parent
@@ -59,8 +58,7 @@ Item {
                 "runHelper": function(command, payload, onDone) {
                     root.calls.push(command + " " + payload.path);
                     onDone(JSON.stringify(root.files[payload.path] || {"ok": false, "error": "invalid path"}), 0, "");
-                },
-                "openUrl": function(url) { root.opened.push(url); }
+                }
             }, cfg || {}));
             verify(page !== null);
             form = findChild(page, "panelIconModeCombo").parent;
@@ -74,7 +72,6 @@ Item {
                 page.destroy();
             page = null;
             root.calls = [];
-            root.opened = [];
             wait(200);
         }
         function pickMode(value) {
@@ -151,23 +148,12 @@ Item {
             compare(combo.model[2].text, "Short video");
         }
 
-        function test_donate_link() {
+        function test_support_and_terms_links_moved_to_about() {
             open();
-            var button = findChild(page, "donateButton");
-            verify(button !== null);
-            compare(button.text, "Buy Me a Coffee");
-            verify(findChild(page, "donateHelp").text.length > 20);
-            button.clicked();
-            compare(root.opened.join(","), "https://buymeacoffee.com/rachitasthana");
-        }
-
-        function test_terms_link() {
-            open();
-            var button = findChild(page, "termsButton");
-            verify(button !== null);
-            verify(findChild(page, "termsHelp").text.indexOf("warranty") >= 0);
-            button.clicked();
-            compare(root.opened[root.opened.length - 1], "https://github.com/racstan/KDE-AI-Chat/blob/master/TERMS.md");
+            verify(findChild(page, "donateButton") === null, "Buy Me a Coffee is on the About page now");
+            verify(findChild(page, "termsButton") === null, "Read the terms is on the About page now");
+            verify(findChild(page, "donateHelp") === null);
+            verify(findChild(page, "termsHelp") === null);
         }
     }
 }

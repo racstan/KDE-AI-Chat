@@ -72,7 +72,7 @@ Item {
         function allResets() { return findChildren(page, "resetButton"); }
         function enabledResets() { return allResets().filter(function(b) { return b.enabled; }).length; }
         function appearance(extra) {
-            return open("ConfigAppearance.qml", Object.assign({"runHelper": function() {}, "openUrl": function() {}}, extra || {}));
+            return open("ConfigAppearance.qml", Object.assign({"runHelper": function() {}}, extra || {}));
         }
         // The defaults of `keys` as cfg_ values.
         function cfg(keys) {

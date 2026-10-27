@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/Personality.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {block, clamp, userLabel, aiLabel, avatar, isImagePath, personalityText, LIMITS, TONE_IDS, PERSONALITY_IDS};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {block, clamp, userLabel, aiLabel, avatar, userAvatar, isImagePath, personalityText, LIMITS, TONE_IDS, PERSONALITY_IDS};", ctx);
 const P = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -82,3 +82,12 @@ assert.ok(!P.isImagePath("/a/b\n.jpeg"));
 assert.ok(!P.isImagePath(""));
 
 console.log("personality ok");
+
+// Your avatar is read from userAvatar with the same rules, and never from aiAvatar.
+assert.deepStrictEqual(plain(P.userAvatar({userAvatar: "face-smile"})), {kind: "icon", source: "face-smile"});
+assert.deepStrictEqual(plain(P.userAvatar({userAvatar: "/home/me/me.png"})), {kind: "image", source: "file:///home/me/me.png"});
+assert.strictEqual(P.userAvatar({userAvatar: "/home/me/notes.txt"}).kind, "", "not an image");
+assert.strictEqual(P.userAvatar({userAvatar: "/home/me/../me.png"}).kind, "", "no ..");
+assert.strictEqual(P.userAvatar({aiAvatar: "face-smile"}).kind, "", "the AI's avatar is not yours");
+assert.strictEqual(P.avatar({userAvatar: "face-smile"}).kind, "", "yours is not the AI's");
+assert.strictEqual(P.userAvatar({}).kind, "");

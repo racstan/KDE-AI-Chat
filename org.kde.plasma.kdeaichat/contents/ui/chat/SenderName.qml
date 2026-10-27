@@ -1,5 +1,5 @@
 // Who a message is from, in its header (chat/MessageDelegate.qml): your name
-// or "You", the AI's name with its avatar and the model in small type, or the
+// or "You" with your avatar, the AI's name with its avatar and the model in small type, or the
 // model alone when the AI has no name (Settings → Personality,
 // chat/Personality.js). Errors and agent requests have their own headings.
 import QtQuick
@@ -25,7 +25,7 @@ RowLayout {
     readonly property bool mine: role === "user" || role === "queued"
     readonly property string userName: mine ? Personality.userLabel(cfg) : ""
     readonly property string aiName: role === "assistant" ? Personality.aiLabel(cfg) : ""
-    readonly property var avatar: role === "assistant" ? Personality.avatar(cfg) : ({"kind": "", "source": ""})
+    readonly property var avatar: mine ? Personality.userAvatar(cfg) : role === "assistant" ? Personality.avatar(cfg) : ({"kind": "", "source": ""})
 
     spacing: Kirigami.Units.smallSpacing
     layoutDirection: mine ? Qt.RightToLeft : Qt.LeftToRight
