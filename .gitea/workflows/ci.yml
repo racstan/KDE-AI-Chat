@@ -64,6 +64,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/config/DictationSettings.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ReadAloudAction.js",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/tts.py",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/http_safe.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/speechnote.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/speechnote_bus.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/voice_legacy.py",

@@ -11,6 +11,8 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional, Tuple
 
+from kdeaichat import http_safe
+
 MAX_REPLY = 2 * 1024 * 1024
 
 
@@ -55,7 +57,7 @@ def post(url: str, body: bytes, content_type: str, headers: Optional[Dict[str, s
     for name, value in (headers or {}).items():
         request.add_header(name, value)
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with http_safe.urlopen(request, timeout=timeout) as response:
             raw = response.read(MAX_REPLY + 1)
     except urllib.error.HTTPError as e:
         detail = _error_detail(e.read(4096) if e.fp else b"")
@@ -89,8 +91,12 @@ def remote(wav: str, settings: Dict[str, Any], key: str) -> Dict[str, Any]:
         fields["language"] = settings["language"].split("-")[0]
     body, ctype = multipart(fields, wav)
     headers = {"Authorization": "Bearer " + key} if key else {}
-    data = post(transcriptions_url(settings["remote_url"]), body, ctype, headers)
-    return {"text": str(data.get("text", "")).strip(), "model": settings["remote_model"]}
+    url = transcriptions_url(settings["remote_url"])
+    data = post(url, body, ctype, headers)
+    reply = {"text": str(data.get("text", "")).strip(), "model": settings["remote_model"]}
+    if key and http_safe.insecure_key_url(url):
+        reply["warning"] = http_safe.INSECURE_KEY_WARNING
+    return reply
 
 
 def wav_exists(path: str) -> bool:

@@ -31,7 +31,7 @@ import tempfile
 import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional, Tuple
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from kdeaichat import chats
 from kdeaichat.common import safe_path
@@ -152,8 +152,23 @@ def valid_image_url(url: str) -> bool:
     return parts.scheme == "https" and bool(parts.hostname) and parts.username is None and parts.password is None
 
 
+class _CheckedRedirects(urllib.request.HTTPRedirectHandler):
+    """Every hop must pass the same checks as the first link (https, no credentials)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        target = urljoin(req.full_url, newurl)
+        if not valid_image_url(target):
+            raise urllib.error.HTTPError(req.full_url, code, "refused a redirect to a link that is not an https one", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, target)
+
+
 def _open_url(url: str):  # type: ignore[no-untyped-def]
-    opener = urllib.request.build_opener(_GuardedHandler(context=ssl.create_default_context()))
+    # Only the guarded https handler: no http, ftp or file handlers, so a redirect cannot reach this computer.
+    # Each hop connects through _GuardedHTTPS, which also refuses non-public addresses.
+    opener = urllib.request.OpenerDirector()
+    for handler in (_GuardedHandler(context=ssl.create_default_context()), _CheckedRedirects(),
+                    urllib.request.HTTPErrorProcessor(), urllib.request.UnknownHandler()):
+        opener.add_handler(handler)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "image/png,image/jpeg,image/webp,image/gif"})
     return opener.open(request, timeout=FETCH_TIMEOUT)
 
