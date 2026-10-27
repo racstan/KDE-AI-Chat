@@ -39,6 +39,9 @@ A server that asks for a key (for example a LiteLLM proxy) says so: enter the ke
 
 If a local server does not answer, **Check setup** says whether it is not running, too slow or at the wrong address. For Ollama, start it with `ollama serve`.
 
+![Find local servers lists AI programs running on this computer](media/settings-providers-find-light.png)
+*Find local servers lists AI programs running on this computer.*
+
 ## Custom providers
 
 Choose **Other OpenAI-compatible** and fill in a name, the server URL and, if it needs one, a key. You can add as many as you like, including several of the same kind.

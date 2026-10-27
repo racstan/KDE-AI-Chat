@@ -275,6 +275,9 @@ class Connection:
         self.sock.connect(_socket_path(address or session_address()))
         self.buf = b""
         self.serial = 0
+        # Messages that arrived while call() waited for its reply (for a D-Bus-activated service, the call
+        # that started it comes in right after RequestName), handed out by read() first.
+        self.pending: List[Message] = []
         self._handshake()
         self.unique_name = self.call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "Hello").body[0]
 
@@ -315,6 +318,11 @@ class Connection:
 
     def read(self, timeout: Optional[float] = None, max_size: int = MAX_MESSAGE) -> Optional[Message]:
         """The next message, or None when none arrived within ``timeout`` seconds."""
+        if self.pending:
+            return self.pending.pop(0)
+        return self._read_wire(timeout, max_size)
+
+    def _read_wire(self, timeout: Optional[float], max_size: int = MAX_MESSAGE) -> Optional[Message]:
         if not self._fill(16, timeout):
             return None
         blen, flen = struct.unpack("<II", self.buf[4:8] + self.buf[12:16])
@@ -329,13 +337,14 @@ class Connection:
              timeout: float = 10.0) -> Message:
         serial = self.send(Message(METHOD_CALL, 0, 0, {PATH: path, INTERFACE: interface, MEMBER: member, DESTINATION: dest}, sig, body))
         while True:
-            message = self.read(timeout)
+            message = self._read_wire(timeout)
             if message is None:
                 raise DBusError("no reply from " + dest)
             if message.fields.get(REPLY_SERIAL) == serial:
                 if message.type == ERROR:
                     raise DBusError("%s: %s" % (message.fields.get(ERROR_NAME, "error"), message.body[0] if message.body else ""))
                 return message
+            self.pending.append(message)
 
     def reply(self, call: Message, sig: str = "", body: Tuple[Any, ...] = ()) -> None:
         if call.flags & NO_REPLY_EXPECTED:

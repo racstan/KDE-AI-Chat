@@ -20,6 +20,9 @@ By default the widget follows your Plasma theme, light or dark, and your accent 
 - **Folder bar**: show or hide the folder and project bar above the chat. OpenCode chats always show it, for the agent choice.
 - **Buttons at the top**: hide the buttons you don't use (history, pin, settings, new chat, info). The keyboard shortcuts still work, and the More button always stays.
 
+![A narrow popup: Send and ⋮ stay visible](media/chat-narrow-light.png)
+*A narrow popup: Send and ⋮ stay visible.*
+
 ## Behaviour
 
 These are in **Settings → Chat**:
@@ -37,9 +40,15 @@ The name shows at the top of the chat and when you hover over the widget. You ca
 
 **Icon** is one setting with a menu: a picture from your theme, a still image of your own (PNG, JPEG, WebP, GIF, SVG or BMP), an **animated image** (GIF, APNG or WebP) or a **short video** (MP4, WebM, MKV, MOV, M4V or OGV). Videos are silent and repeat, and are offered only when Qt Multimedia is installed. A file over 20 MB is refused, and one over 5 MB gets a warning (big animations use more memory and power). The animation pauses while the panel is hidden or the screen is locked. **Animate only while the pointer is on it** keeps the panel calm. A missing or unplayable file falls back to the normal icon. **Reset to Default Icon** puts it back.
 
+![The widget's icon setting](media/settings-icon-light.png)
+*The widget's icon setting.*
+
 ## Avatars
 
 In **Settings → Personality** you can give the AI and yourself an avatar: an icon from your theme, an image, an animated image or a short video, with the same limits as the panel icon. The chat shows your name and the AI's name above the messages, once for each run of messages from the same sender.
+
+![Your avatar and the AI's next to the messages](media/chat-avatars-light.png)
+*Your avatar and the AI's next to the messages.*
 
 ## Keyboard shortcuts
 

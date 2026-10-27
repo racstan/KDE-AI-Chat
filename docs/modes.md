@@ -18,12 +18,18 @@ If the mode in Settings is different from the open chat's mode, the chat shows a
 
 To use another mode, start a new chat. Chat info shows the mode of the open chat, marked "set when the chat was started".
 
+![The notice when Settings uses another mode than the open chat](media/chat-mode-notice-light.png)
+*The notice when Settings uses another mode than the open chat.*
+
 ## Direct mode
 
 You set up providers in [Providers](providers.md). The widget sends your messages and the earlier messages of the chat to the provider you chose. Direct chats can also:
 
 - let the AI **ask you a question** in the chat and wait for your answer (switch this off in Settings → Chat → **Let the AI ask me questions**);
 - show pictures that models send back, and make pictures with `/image` (see [Pictures](pictures.md)).
+
+![The AI asks a question in the chat](media/chat-ask-light.png)
+*The AI asks a question in the chat.*
 
 ## OpenCode mode
 
@@ -35,6 +41,9 @@ The model you choose is always used, also when the chat has an agent (such as `b
 
 In an OpenCode chat you can pick the agent and the folder it works in. The agent shows what it is doing in cards, and asks for permission before it changes things: you answer with **Allow**, **Always allow** or **Reject**. If the popup is closed, an "input needed" notification lets you answer from the desktop.
 
+![OpenCode at work: thinking, steps and a permission request](media/chat-opencode-light.png)
+*OpenCode at work: thinking, steps and a permission request.*
+
 ## Pi mode
 
 1. Install Pi and choose **Through Pi** in Settings → Connection.
@@ -42,9 +51,15 @@ In an OpenCode chat you can pick the agent and the folder it works in. The agent
 
 The widget starts a small helper that runs one Pi per chat, in the chat's own folder. It stops by itself when idle.
 
+![A Pi chat](media/chat-pi-light.png)
+*A Pi chat.*
+
 ## Folders (workspaces)
 
 Every mode can have a **workspace**: a folder on your computer. It shows under the header as "No workspace" until you choose one, and a button clears it. In Settings → Chat you can set a **Default workspace for new chats**. The agent modes read and change files in this folder.
+
+![A chat with a workspace folder, shown under the header](media/chat-workspace-light.png)
+*A chat with a workspace folder, shown under the header.*
 
 ## Per-chat model settings
 
@@ -63,3 +78,6 @@ The small badge in the status line by the message box says it: "OpenRouter · on
 ## When an error is about the model
 
 If a reply fails because of the model (it can't read images, or it is not available on your account), the error card has a **Change model** button. With per-chat model settings on, it opens the model picker for just this chat. Otherwise it opens the widget's settings.
+
+![An error card with Try again](media/chat-error-light.png)
+*An error card with Try again.*

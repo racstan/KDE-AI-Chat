@@ -145,7 +145,7 @@ def _stream_connection(raw_messages):
     import socket
     mine, theirs = socket.socketpair()
     conn = object.__new__(minidbus.Connection)
-    conn.sock, conn.buf, conn.serial, conn.sent = mine, b"", 0, []
+    conn.sock, conn.buf, conn.serial, conn.sent, conn.pending = mine, b"", 0, [], []
     conn.send = lambda message: conn.sent.append(message) or 1
     theirs.sendall(b"".join(raw_messages))
     theirs.close()
@@ -179,3 +179,21 @@ def test_the_runner_refuses_messages_over_one_mebibyte():
     conn = _stream_connection([bytes(huge)])
     with pytest.raises(minidbus.DBusError):
         conn.read(1.0, krunner.MAX_MESSAGE)
+
+
+def test_a_call_arriving_while_waiting_for_a_reply_is_kept():
+    """D-Bus activation: KRunner's Match arrives before the RequestName reply and must not be dropped."""
+    import socket
+    ours, bus = socket.socketpair()
+    conn = minidbus.Connection.__new__(minidbus.Connection)
+    conn.sock, conn.buf, conn.serial, conn.pending = ours, b"", 0, []
+    early = minidbus.Message(minidbus.METHOD_CALL, 0, 7, {minidbus.PATH: "/runner", minidbus.INTERFACE: "org.kde.krunner1",
+                             minidbus.MEMBER: "Match"}, "s", ("ai hello",))
+    answer = minidbus.Message(minidbus.METHOD_RETURN, 0, 8, {minidbus.REPLY_SERIAL: 1}, "u", (1,))
+    bus.sendall(early.encode() + answer.encode())
+    assert conn.call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName", "su",
+                     ("x.y", 4), timeout=2).body[0] == 1
+    kept = conn.read(0.1)
+    assert kept is not None and kept.member == "Match" and kept.body[0] == "ai hello"
+    assert conn.read(0.1) is None
+    ours.close(), bus.close()

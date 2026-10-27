@@ -4,9 +4,24 @@
 
 A chat assistant that lives on your **KDE Plasma 6** desktop. Talk to the AI service of your choice, or to a model running on your own computer. Drop in files, keep your chats in projects, schedule messages, and let the AI help with code. Your API keys are kept in KDE Wallet, and your chats stay in private files on your computer.
 
-![A conversation in KDE AI Chat](docs/media/chat-conversation-light.png)
+![Sending a message in KDE AI Chat](docs/media/send-message.gif)
 
 [Watch the demo (video)](docs/media/demo.webm)
+
+---
+
+## Screenshots
+
+<table>
+<tr><td align="center" width="33%"><img src="docs/media/chat-conversation-light.png" alt="A conversation" width="260"><br><sub>A conversation</sub></td><td align="center" width="33%"><img src="docs/media/chat-long-reply-dark.png" alt="Tables and code (dark theme)" width="260"><br><sub>Tables and code (dark theme)</sub></td><td align="center" width="33%"><img src="docs/media/chat-opencode-light.png" alt="OpenCode agent with permissions" width="260"><br><sub>OpenCode agent with permissions</sub></td></tr>
+<tr><td align="center" width="33%"><img src="docs/media/chat-history-light.png" alt="Chat history and projects" width="260"><br><sub>Chat history and projects</sub></td><td align="center" width="33%"><img src="docs/media/chat-search-dark.png" alt="Search across all chats" width="260"><br><sub>Search across all chats</sub></td><td align="center" width="33%"><img src="docs/media/chat-incognito-light.png" alt="Incognito chats" width="260"><br><sub>Incognito chats</sub></td></tr>
+<tr><td align="center" width="33%"><img src="docs/media/chat-commands-light.png" alt="Slash commands" width="260"><br><sub>Slash commands</sub></td><td align="center" width="33%"><img src="docs/media/chat-ask-dark.png" alt="The AI can ask you" width="260"><br><sub>The AI can ask you</sub></td><td align="center" width="33%"><img src="docs/media/chat-image-light.png" alt="Pictures with /image" width="260"><br><sub>Pictures with /image</sub></td></tr>
+<tr><td align="center" width="33%"><img src="docs/media/chat-settings-light.png" alt="Chat info and per-chat settings" width="260"><br><sub>Chat info and per-chat settings</sub></td><td align="center" width="33%"><img src="docs/media/schedule-editor-dark.png" alt="Scheduled messages" width="260"><br><sub>Scheduled messages</sub></td><td align="center" width="33%"><img src="docs/media/chat-first-run-light.png" alt="First-run setup" width="260"><br><sub>First-run setup</sub></td></tr>
+<tr><td align="center" width="33%"><img src="docs/media/settings-connection-light.png" alt="Providers and local servers" width="260"><br><sub>Providers and local servers</sub></td><td align="center" width="33%"><img src="docs/media/settings-personality-dark.png" alt="Personality and avatars" width="260"><br><sub>Personality and avatars</sub></td><td align="center" width="33%"><img src="docs/media/settings-memory-light.png" alt="Memory" width="260"><br><sub>Memory</sub></td></tr>
+<tr><td align="center" width="33%"><img src="docs/media/settings-voice-speechnote-light.png" alt="Voice with Speech Note" width="260"><br><sub>Voice with Speech Note</sub></td><td align="center" width="33%"><img src="docs/media/settings-desktop-dark.png" alt="KRunner, Dolphin, selected text" width="260"><br><sub>KRunner, Dolphin, selected text</sub></td><td align="center" width="33%"><img src="docs/media/settings-setup-check-light.png" alt="Check setup" width="260"><br><sub>Check setup</sub></td></tr>
+</table>
+
+Short clips: [sending a message](docs/media/send-message.gif) · [search](docs/media/search.gif) · [incognito](docs/media/incognito.gif) · [slash commands](docs/media/commands.gif). Every screenshot comes in a light and a dark version in [docs/media](docs/media).
 
 ---
 

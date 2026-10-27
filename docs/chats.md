@@ -35,6 +35,7 @@ A project groups chats. The history starts with **All chats**, then each project
 - A project's **instructions** go to every chat in it. Its **folder** is where OpenCode and Pi work, unless the chat has its own.
 - Deleting a project asks whether to keep its chats or delete them with it. **Undo** brings it back.
 
+
 ## Writing messages
 
 - **Files**: drop, paste or attach images, PDFs, CSV files, Word documents and text files. You can send a file without typing text. Reading PDFs and Word documents needs `pdftotext` and `pandoc` (see the [README](../README.md#system-dependencies)).
@@ -42,13 +43,22 @@ A project groups chats. The history starts with **All chats**, then each project
 - **Quote**: each message has a **Quote** button (**Ctrl+Q** for the picked message). The quote shows as a chip above the message box and goes to the AI with your message, in every mode.
 - **Browse**: with the message box empty, **Up** and **Down** pick the previous and next message. Esc clears the pick. **Ctrl+E** edits your last message, **Ctrl+Shift+R** regenerates the last reply, **Ctrl+Shift+C** copies it.
 
+![Part of a reply quoted into the message box](media/chat-quote-light.png)
+*Part of a reply quoted into the message box.*
+
 ## Edit and rewind
 
 **Edit** an older message of yours and send it again: the messages after it are cleared and the chat continues from that point. This is the "rewind". **Regenerate** asks for a new answer to a message. A chat's messages can also be cleared from the More menu.
 
+![Editing an earlier question](media/chat-edit-light.png)
+*Editing an earlier question.*
+
 ## Variants
 
 When the model has thinking levels, a **variant** picker appears next to it. Change it with `/variant`. See [Modes](modes.md).
+
+![This chat's own model settings in Chat info](media/chat-variants-light.png)
+*This chat's own model settings in Chat info.*
 
 ## Slash commands
 
@@ -68,17 +78,29 @@ Type `/` in the message box to see the list. Up and Down move, Tab completes, En
 ![Slash commands](media/commands.gif)
 *Typing `/` lists the commands and your templates.*
 
+![The commands list after typing /](media/chat-commands-light.png)
+*The commands list after typing /.*
+
 ## Starting points
 
 An empty chat shows up to six chips: your templates first (at most three), a **Continue: ...** chip that opens your most recent other chat, and built-in suggestions that change from time to time.
+
+![Starting points in a new chat](media/chat-empty-light.png)
+*Starting points in a new chat.*
 
 ## Chat info
 
 The (i) button (or **Ctrl+I**) shows this chat's mode, provider and model, tokens used, the cost where the provider reports it, the number of messages, the models used, and when it was created. It also lists the memories used, and has the chat's own settings: its instructions and the length of its answers.
 
+![Chat info: what the chat uses, its memory and its own settings](media/chat-settings-light.png)
+*Chat info: what the chat uses, its memory and its own settings.*
+
 ## Export
 
 Choose **Export chat...** from the More menu. Pick Markdown, plain text or JSON in the save dialog. The file starts with the chat title and details, has clear speaker headings with times, keeps code in fenced blocks, and lists attachments and tool calls. The AI's internal reasoning is left out.
+
+![The ⋮ menu: rename, move to a project, jump between messages, schedule, export, clear](media/chat-more-menu-light.png)
+*The ⋮ menu: rename, move to a project, jump between messages, schedule, export, clear.*
 
 ## When a chat file is damaged
 

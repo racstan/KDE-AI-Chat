@@ -17,6 +17,9 @@ The widget does not install or run speech models itself. The speech is done by a
 
 Settings → Voice shows whether Speech Note is installed and has a **Test** to try your settings. It says "Speech Note has no speech-to-text model yet" or "no voice yet" if you still need to download one.
 
+![Settings → Voice with Speech Note as the engine](media/settings-voice-speechnote-light.png)
+*Settings → Voice with Speech Note as the engine.*
+
 ### Graphics card
 
 Speech Note can use your graphics card (NVIDIA, AMD, Vulkan) to be much faster. That support belongs to Speech Note, not to this widget. With the Flatpak version, the graphics-card support may come as separate add-ons; Speech Note's own page explains how to install them.

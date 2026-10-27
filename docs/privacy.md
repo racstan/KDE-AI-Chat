@@ -17,6 +17,9 @@ The widget itself collects nothing: no analytics, no telemetry, no account. It s
 
 If KWallet is off, locked or refuses access, the widget cannot read your keys and tells you why in the chat. Turn KWallet on in System Settings → KDE Wallet.
 
+![Settings → Storage: what is kept where, and how much space it takes](media/settings-storage-light.png)
+*Settings → Storage: what is kept where, and how much space it takes.*
+
 ## What is sent where
 
 - **Direct mode, online provider**: your messages, attached files, pictures, the memories that fit your message and your instructions go to the provider you chose for that chat. The provider's own privacy policy applies.
@@ -39,6 +42,9 @@ The small badge in the status line by the message box always tells you where the
 ## Incognito chats
 
 An [incognito chat](chats.md#incognito-chats) is never written to disk, is not searchable, uses and saves no memories, and shows no text in notifications. Pictures in it are deleted when it closes. In OpenCode mode the agent keeps its own session while the chat is open and it is removed when the chat closes; in Pi mode Pi keeps no session file. The messages still go to the provider you chose.
+
+![Starting an incognito chat](media/incognito.gif)
+*Starting an incognito chat.*
 
 ## Upgrading from before 1.4.0
 

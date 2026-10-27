@@ -8,6 +8,9 @@ Some models send a picture back. The widget saves it as a file in the chat's own
 
 A link to a picture in a reply (Markdown `![...](https://...)`) is **never loaded by itself**. The text shows `[image: ...]` and a button, "Show image from <site>". The picture is fetched only when you click it, and only from public secure (https) addresses.
 
+![A picture in a reply, with zoom, copy, save and regenerate](media/chat-image-light.png)
+*A picture in a reply, with zoom, copy, save and regenerate.*
+
 ## Making pictures with `/image`
 
 Type `/image` and what you want, for example `/image a sun hugging the moon`. While it works, the reply shows the queue place and waiting time, with a **Stop** button. The chat is named after your prompt.

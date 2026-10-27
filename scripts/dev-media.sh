@@ -61,7 +61,7 @@ for theme in $THEMES; do
     rm -f "$OUT"/*-"$theme".png
     echo "== $theme: running the tour"
     set +e
-    QT_QPA_PLATFORMTHEME=kde DEV_KEEP=1 DEV_MEDIA_TOUR=1 DEV_MEDIA_OUT="$OUT" DEV_MEDIA_FRAMES="$FRAMES" \
+    QT_QPA_PLATFORMTHEME=kde DEV_SCREENSHOT=0 DEV_KEEP=1 DEV_MEDIA_TOUR=1 DEV_MEDIA_OUT="$OUT" DEV_MEDIA_FRAMES="$FRAMES" \
         DEV_MEDIA_THEME="$theme" DEV_MEDIA_FLOWS="$flows" "$ROOT/scripts/dev-run.sh" "$SECONDS_MAX" >"$ROOT/build/dev-media-$theme.txt" 2>&1
     set -e
     LOG="$ROOT/build/dev-run/qml.log"

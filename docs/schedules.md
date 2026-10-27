@@ -35,9 +35,15 @@ Each rule can have several times. "Mondays at 16:00 and the other days at 15:00"
 
 **More options** has a start and end date, **Stop after a number of runs**, **Run once when the computer is back** (off by default: if the computer was off or asleep, send the message once when it is back, if it was missed within a number of hours), and **Show a notification when the answer is ready**.
 
+![Editing a schedule's rules](media/settings-schedule-dialog-light.png)
+*Editing a schedule's rules.*
+
 ## The list
 
 Each schedule shows its name, chat, a plain summary, the next run and the last result (sent, failed with the reason, missed). You can switch it on or off, **Edit** it, see its **History**, or **Delete** it (it asks first). A message that a schedule sent shows "Scheduled: name" next to your name.
+
+![A scheduled message's answer in its chat](media/chat-scheduled-light.png)
+*A scheduled message's answer in its chat.*
 
 ## How it runs in each mode
 

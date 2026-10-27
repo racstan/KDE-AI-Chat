@@ -18,6 +18,9 @@ Pick one. For an online service, paste your key (the **Get a key** link opens th
 ![An empty chat with starting points](media/chat-empty-light.png)
 *An empty chat. The chips are starting points; type `/` to see commands and your templates.*
 
+![The first-run card: choose where your AI runs](media/chat-first-run-light.png)
+*The first-run card: choose where your AI runs.*
+
 ## 3. Say hello
 
 Type in the message box and press Enter. (If you prefer, change this to Ctrl+Enter in Settings → Chat → Behaviour.) The answer appears as it is written. While it is coming, the Send button becomes **Stop**. If you write another message meanwhile, it is queued and sent after the current reply finishes.
@@ -30,6 +33,9 @@ You can also:
 
 ![Sending a message](media/send-message.gif)
 *Sending a message and watching the answer appear.*
+
+![A conversation, with names and avatars](media/chat-conversation-light.png)
+*A conversation, with names and avatars.*
 
 ## 4. Check that things work
 

@@ -38,6 +38,9 @@ The chat explains errors in plain words. The error card has a **Copy** button th
 
 When a reply fails because of the model, the error card has **Change model**. With per-chat model settings on, it opens the model picker for just this chat. Otherwise it opens the widget's settings (Connection is the first page).
 
+![/model when chats can't have their own model](media/chat-model-notice-light.png)
+*/model when chats can't have their own model.*
+
 ## A chat shows "This chat stays in ... mode"
 
 A chat can't change mode. Start a new chat to use the new mode. See [Modes](modes.md).

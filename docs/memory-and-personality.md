@@ -49,3 +49,6 @@ Both confirm with "Saved to memory" and an **Undo**.
 - In an [incognito chat](chats.md#incognito-chats), memories are neither used nor saved.
 
 Memories are kept in a private file, `~/.local/share/kdeaichat/memory.json`, never in the widget's settings. Deleting a chat or project deletes its notes (Undo brings them back). See [Privacy](privacy.md).
+
+![A memory saved from the chat, with Undo](media/chat-remember-light.png)
+*A memory saved from the chat, with Undo.*
