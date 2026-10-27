@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 17:08+0530\n"
+"POT-Creation-Date: 2026-10-27 18:23+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -997,83 +997,381 @@ msgstr ""
 msgid "Main settings win when they differ from a chat's own (Settings → Chat)."
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:30
+#: contents/ui/chat/EmptyState.qml:43
 #, kde-format
-msgid "Explain something simply"
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:30
-#, kde-format
-msgid "Explain this in simple terms: "
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:31
-#, kde-format
-msgid "Help me write"
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:31
-#, kde-format
-msgid "Help me write "
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:32
-#, kde-format
-msgid "Brainstorm ideas"
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:32
-#, kde-format
-msgid "Give me ten ideas for "
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:61
-#, kde-format
-msgid "Chat with %1"
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:61
-#, kde-format
-msgid "Start a conversation"
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:77
-#, kde-format
-msgid "%1 agent · runs here, sends your messages to its model"
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:78
-#, kde-format
-msgid "%1 · runs on this computer"
-msgstr ""
-
-#: contents/ui/chat/EmptyState.qml:79
-#, kde-format
-msgid "%1 · runs on your local network"
+msgid "Continue: %1"
 msgstr ""
 
 #: contents/ui/chat/EmptyState.qml:80
 #, kde-format
+msgid "Chat with %1"
+msgstr ""
+
+#: contents/ui/chat/EmptyState.qml:80
+#, kde-format
+msgid "Start a conversation"
+msgstr ""
+
+#: contents/ui/chat/EmptyState.qml:96
+#, kde-format
+msgid "%1 agent · runs here, sends your messages to its model"
+msgstr ""
+
+#: contents/ui/chat/EmptyState.qml:97
+#, kde-format
+msgid "%1 · runs on this computer"
+msgstr ""
+
+#: contents/ui/chat/EmptyState.qml:98
+#, kde-format
+msgid "%1 · runs on your local network"
+msgstr ""
+
+#: contents/ui/chat/EmptyState.qml:99
+#, kde-format
 msgid "%1 · your messages are sent to its servers"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:91
+#: contents/ui/chat/EmptyState.qml:110
 #, kde-format
 msgid ""
 "Ask a question, drop in a file, or start from one of these. Type / in the "
 "box for your templates."
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:103
+#: contents/ui/chat/EmptyState.qml:122
 #, kde-format
 msgid ""
 "Incognito: this chat is never saved, uses no memories and adds none. It is "
 "gone when you leave it."
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:138
+#: contents/ui/chat/EmptyState.qml:157
 #, kde-format
 msgid "Start with %1"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:18
+#, kde-format
+msgid "Explain something simply"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:18
+#, kde-format
+msgid "Explain this in simple terms: "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:19
+#, kde-format
+msgid "Help me write"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:19
+#, kde-format
+msgid "Help me write "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:20
+#, kde-format
+msgid "Summarise a text"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:20
+#, kde-format
+msgid "Summarise the following in five bullet points:\n"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:21
+#, kde-format
+msgid "Translate"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:21
+#, kde-format
+msgid "Translate this into English:\n"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:22
+#, kde-format
+msgid "Make a plan"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:22
+#, kde-format
+msgid "Help me make a step-by-step plan for "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:23
+#, kde-format
+msgid "Brainstorm ideas"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:23
+#, kde-format
+msgid "Give me ten ideas for "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:24
+#, kde-format
+msgid "Draft an email"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:24
+#, kde-format
+msgid "Draft a polite email to "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:25
+#, kde-format
+msgid "Dinner ideas"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:25
+#, kde-format
+msgid "Suggest a quick dinner I can make with "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:26
+#, kde-format
+msgid "Compare options"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:26
+#, kde-format
+msgid "Compare these options and tell me the pros and cons: "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:27
+#, kde-format
+msgid "Learn a topic"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:27
+#, kde-format
+msgid "Teach me the basics of "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:28
+#, kde-format
+msgid "Proofread"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:28
+#, kde-format
+msgid "Fix the spelling and grammar in this text, keeping my wording:\n"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:29
+#, kde-format
+msgid "Help me decide"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:29
+#, kde-format
+msgid "Help me decide between "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:30
+#, kde-format
+msgid "Quiz me"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:30
+#, kde-format
+msgid "Quiz me with five questions about "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:31
+#, kde-format
+msgid "Rewrite it nicer"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:31
+#, kde-format
+msgid "Rewrite this so it sounds friendlier and clearer:\n"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:32
+#, kde-format
+msgid "Plan a trip"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:32
+#, kde-format
+msgid "Plan a three-day trip to "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:33
+#, kde-format
+msgid "Gift ideas"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:33
+#, kde-format
+msgid "Suggest gift ideas for "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:34
+#, kde-format
+msgid "Make it shorter"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:34
+#, kde-format
+msgid "Make this shorter without losing the point:\n"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:35
+#, kde-format
+msgid "Spreadsheet or regex help"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:35
+#, kde-format
+msgid "Help me write a formula or regular expression that "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:37
+#, kde-format
+msgid "Plan my day"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:37
+#, kde-format
+msgid "Help me plan my day. Here is what I have to do: "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:38
+#, kde-format
+msgid "Reflect on today"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:38
+#, kde-format
+msgid ""
+"Help me look back on today: what went well, and what to do tomorrow. Today I "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:40
+#, kde-format
+msgid "Explain this project"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:40
+#, kde-format
+msgid "Explain what this project does and how it is organised."
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:41
+#, kde-format
+msgid "Find and fix a bug"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:41
+#, kde-format
+msgid "Find and fix the bug where "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:42
+#, kde-format
+msgid "Write tests"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:42
+#, kde-format
+msgid "Write tests for "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:43
+#, kde-format
+msgid "Summarise recent changes"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:43
+#, kde-format
+msgid "Summarise the most recent changes in this project."
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:44
+#, kde-format
+msgid "Review my changes"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:44
+#, kde-format
+msgid "Review my uncommitted changes and point out problems."
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:45
+#, kde-format
+msgid "Find the TODOs"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:45
+#, kde-format
+msgid "List the TODO and FIXME comments in this project, most important first."
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:46
+#, kde-format
+msgid "Refactor"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:46
+#, kde-format
+msgid "Refactor this to be simpler without changing what it does: "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:47
+#, kde-format
+msgid "Write documentation"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:47
+#, kde-format
+msgid "Write or improve the documentation for "
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:48
+#, kde-format
+msgid "Check dependencies"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:48
+#, kde-format
+msgid "List the dependencies of this project and tell me which look outdated."
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:49
+#, kde-format
+msgid "How do I run it?"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:49
+#, kde-format
+msgid "Show me how to build, run and test this project."
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:50
+#, kde-format
+msgid "What should I do first?"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:50
+#, kde-format
+msgid ""
+"Look at the recent changes and open TODOs and suggest what to work on first "
+"today."
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:51
+#, kde-format
+msgid "Wrap up today's work"
+msgstr ""
+
+#: contents/ui/chat/StarterTexts.qml:51
+#, kde-format
+msgid "Summarise what changed in this project today and what is left to do."
 msgstr ""
 
 #: contents/ui/chat/FirstRun.qml:132 contents/ui/chat/FirstRunChoose.qml:53

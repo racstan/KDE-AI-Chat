@@ -250,6 +250,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ComposerStatus.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ComposerPicker.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/EmptyState.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/StarterTexts.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/Starters.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PrivacyBadge.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/Privacy.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/FirstRun.qml",
