@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Desktop integration is sturdier.** A malformed message on the session bus no longer ends the KRunner service, and the runner ignores messages over 1 MiB. A question that fails while being sent no longer leaves the ask inbox stuck. The KRunner, Dolphin and shortcut launchers quote paths exactly as the desktop-entry specification asks (backslashes, quotes, `$` and backticks), and refuse paths with control characters. The settings page now tells you to turn the options off before removing the widget, since their files live outside it.
+
 ### Added
 - **Long and unfinished replies are kept.** A message over the 2,000,000-character display limit is no longer cut on disk: the whole text is stored and only the chat view shows it shortened. A reply that is still being written is saved every 20 seconds (in any mode); if the widget or plasmashell stops meanwhile, the chat opens with what had arrived, marked "(interrupted)" and never resumed.
 - **An About page and an avatar for you.** Settings has a new last page, **About**: the widget's name and version, a one-line description, the license (GPL-3.0-or-later), the author, a link to the source, the Speech Note credit and, moved here from Appearance, the **Buy Me a Coffee** and **Read the terms** buttons. In Settings → Personality you can now choose **your own avatar** (a theme icon or an image file, the same choices and checks as the AI's; new setting `userAvatar`, empty = none); it shows next to your messages in the chat.

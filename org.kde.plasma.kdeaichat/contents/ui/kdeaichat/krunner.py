@@ -30,6 +30,7 @@ EXACT_MATCH = 100
 ICON = "dialog-messages"
 DEFAULT_PREFIX = "ai"
 MAX_QUERY = 20000
+MAX_MESSAGE = 1024 * 1024  # a runner only gets short queries
 
 INTROSPECTION = """<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
@@ -128,11 +129,24 @@ def serve(service: str = SERVICE, idle: float = IDLE_SECONDS, address: Optional[
             return 1  # another runner is already serving
         last = time.monotonic()
         while time.monotonic() - last < idle:
-            message = conn.read(1.0)
+            try:
+                message = conn.read(1.0, MAX_MESSAGE)
+            except minidbus.MalformedMessage:
+                continue  # one bad message from any program on the bus must not end the service
+            except minidbus.DBusError:
+                return 1  # bus closed, or a message too large to skip: stop; D-Bus starts us again on the next use
             if message is None or message.type != minidbus.METHOD_CALL:
                 continue
             last = time.monotonic()
-            _handle(conn, message)
+            try:
+                _handle(conn, message)
+            except minidbus.DBusError:
+                raise
+            except Exception:  # noqa: BLE001 - a bad call is answered with an error, never ends the loop
+                try:
+                    conn.reply_error(message, "org.freedesktop.DBus.Error.Failed", "internal error")
+                except (OSError, minidbus.DBusError):
+                    pass
     finally:
         conn.close()
     return 0

@@ -166,7 +166,28 @@ def test_prefix_is_cleaned(raw, expected):
 def test_paths_with_spaces_are_quoted():
     assert di._quote("/a b/c") == '"/a b/c"'
     assert di._quote("/plain/path") == "/plain/path"
-    assert di._quote('/a"b$') == '"/a\\"b\\$"'
+    assert di._quote('/a"b$') == '"/a\\\\"b\\\\$"'
+
+
+def test_exec_quoting_follows_the_desktop_entry_spec():
+    # Desktop file: reserved characters get a backslash, then every backslash is doubled again.
+    assert di._quote('/a"b') == '"/a\\\\"b"'
+    assert di._quote("/a\\b") == '"/a\\\\\\\\b"'
+    assert di._quote("/a`b") == '"/a\\\\`b"'
+    assert di._quote("/a%b") == '"/a%%b"'
+    # D-Bus service file: one level only.
+    assert di._quote('/a"b\\', False) == '"/a\\"b\\\\"'
+    with pytest.raises(ValueError):
+        di._quote("/a\nb")
+
+
+def test_state_file_write_leaves_no_temp_file_on_failure(dirs, tmp_path, monkeypatch):
+    def boom(src, dst):
+        raise OSError("disk full")
+    monkeypatch.setattr(os, "replace", boom)
+    with pytest.raises(OSError):
+        di._write_state(True, False, False, "ai")
+    assert not [p for p in (tmp_path).rglob("*") if p.is_file() and p.name.startswith(".")]
 
 
 def test_helper_commands(dirs, tmp_path):

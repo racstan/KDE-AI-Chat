@@ -125,10 +125,14 @@ Item {
             inbox._waited++;
             var sameChat = String(inbox.chat.currentSessionId) === inbox._sendChatId;
             if (!sameChat || inbox._waited > 150) {
-                sendTimer.stop();   // the user moved on: the text stays in the box
+                sendTimer.stop();   // the user moved on (or 30 s passed): the text stays in the box
             } else if (inbox.chat.attachmentsReadyToSend()) {
                 sendTimer.stop();
-                inbox.chat.sendMessage();
+                try {
+                    inbox.chat.sendMessage();
+                } catch (e) {
+                    console.warn("ask inbox: sending failed: " + e);   // never leave the inbox stuck busy
+                }
             } else {
                 return;
             }

@@ -70,7 +70,7 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             opacity: 0.75
-            text: i18n("Ask KDE AI Chat from other places on your desktop. These add small files outside the widget, so all are off until you turn them on, and the files are removed again when you turn them off. The widget has to be on your panel or desktop to receive the question.")
+            text: i18n("Ask KDE AI Chat from other places on your desktop. These add small files outside the widget, so all are off until you turn them on, and the files are removed again when you turn them off. The widget has to be on your panel or desktop to receive the question. Turn these off before you remove the widget, or the files stay behind.")
         }
 
         Kirigami.InlineMessage {
