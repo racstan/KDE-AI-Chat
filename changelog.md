@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The pre-1.4.0 voice engine pages and server: `voice/voice_helper.py` (its read-aloud and dictation servers were replaced), the engine check/repair grid, the voice engine folder and espeak path settings (`voiceVenvPath`, `voiceEspeakPath`; the engine now lives in `~/.local/share/kdeaichat/venv`), the separate GPU switch (the device is chosen per model) and `venv_setup.sh`'s espeak mode. `voiceEnabled` and `voiceLanguage` are kept only so they can be copied once into the new dictation settings.
 
 ### Changed
+- **One "Icon:" setting in Settings → Appearance.** The theme icon, a still image, an animated image (GIF, APNG, WebP) and a short video are all chosen from the one Icon button's menu, which shows what the panel will show. The separate "Panel icon:" choice and its "File:" row are gone; the file name, the size message and "Animate only while the pointer is on it" appear only when an animation or video is chosen. Your saved settings are unchanged.
 - Check setup's fix for a local server that isn't running reads "Start Ollama (local), or correct the address. For Ollama, the command is: ollama serve" instead of the doubled brackets.
 - **Error cards can be translated.** Their plain-words texts (chat/ErrorText.js) are now in the translation template and shown through i18n(); the provider's own words stay as they are.
 - **Settings → Chat → Prompt templates** now explains in one plain paragraph what a template is and how to use it (/name in the chat box; / alone lists them).

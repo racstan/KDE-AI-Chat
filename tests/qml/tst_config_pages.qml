@@ -296,9 +296,6 @@ Item {
             compare(page.cfg_notifyOnError, true);
             mouseClick(named("notifyReplyCheck"));
             compare(page.cfg_notifyOnReply, false);
-            verify(!page.isCustomIconImage("bot-symbolic"));
-            verify(page.isCustomIconImage("/home/me/robot.GIF"));
-            compare(page.customIconImageSource("/home/me/robot.gif"), "file:///home/me/robot.gif");
             var rows = [];
             find(page, function(item) { if (item.objectName === "shortcutRow") rows.push(item); return false; });
             compare(rows.length, 19, "every shortcut is listed");

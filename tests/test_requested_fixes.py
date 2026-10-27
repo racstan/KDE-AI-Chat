@@ -61,16 +61,16 @@ def test_feature_settings_are_exposed_and_persisted():
         main_qml = f.read()
 
     # Saved by Plasma on Apply/OK, like every other setting.
-    assert "property string cfg_customIcon" in appearance
+    assert "property alias cfg_customIcon: panelIcon.customIcon" in appearance
+    with open(os.path.join(os.path.dirname(CONFIG_APPEARANCE_QML), "config", "IconSettings.qml"), encoding="utf-8") as f:
+        icon_settings = f.read()
     # The Connection page saves the request options through aliases.
     assert "property alias cfg_disableStreaming: requests.disableStreaming" in connection
     assert "property alias cfg_requestTimeout: requests.timeout" in connection
     assert "options.disableStreaming = !checked" in request_options
-    assert "function isCustomIconImage" in appearance
-    assert "function customIconImageSource" in appearance
-    assert "FileDialog.OpenFile" in appearance
-    assert "*.gif" in appearance
-    assert "KIconThemes.IconDialog" in appearance
+    assert "FileDialog.OpenFile" in icon_settings
+    assert "*.gif" in icon_settings
+    assert "KIconThemes.IconDialog" in icon_settings
     assert "Plasmoid.icon:" in main_qml
     # The panel icon (still image, theme icon or animation) is chat/PanelIcon.qml.
     assert "compactRepresentation: Chat.PanelIcon" in main_qml
