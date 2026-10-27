@@ -16,7 +16,7 @@ import json
 import base64
 from typing import Any, Callable, Dict
 
-from kdeaichat import (chats, config_cleanup, diagnostics, images, local_servers, maintenance, memory, opencode_server,
+from kdeaichat import (ask_inbox, chats, config_cleanup, desktop_integration, diagnostics, images, local_servers, maintenance, memory, opencode_server,
                        panel_icon, pi_bridge, pi_models, privacy, schedule_chat, schedule_job, schedule_store, schedules,
                        speechnote, storage, stt_commands, stt_install, tts, voice_data, voice_legacy, voice_services)
 
@@ -62,7 +62,7 @@ def main() -> None:
     commands: Dict[str, Callable[[Dict[str, Any]], None]] = {}
     for module in (schedules, schedule_store, schedule_job, schedule_chat, voice_services, stt_commands, maintenance, privacy,
                    chats, images, memory, opencode_server, panel_icon, pi_bridge, pi_models, tts, voice_legacy, stt_install,
-                   voice_data, diagnostics, config_cleanup, speechnote, local_servers, storage):
+                   voice_data, diagnostics, config_cleanup, speechnote, local_servers, storage, ask_inbox, desktop_integration):
         commands.update(module.COMMANDS)
     if command not in commands:
         print(f"Unknown command: {command}")
