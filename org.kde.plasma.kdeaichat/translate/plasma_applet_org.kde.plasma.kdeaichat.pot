@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 14:16+0530\n"
+"POT-Creation-Date: 2026-10-27 14:52+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -64,6 +64,11 @@ msgstr ""
 msgid "Storage"
 msgstr ""
 
+#: contents/config/config.qml:54
+#, kde-format
+msgid "About"
+msgstr ""
+
 #: contents/ui/chat/AttachmentChips.qml:34
 #, kde-format
 msgid "Open %1"
@@ -110,13 +115,13 @@ msgstr ""
 msgid "New Chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:138 contents/ui/ConfigAppearance.qml:71
+#: contents/ui/chat/ChatHeader.qml:138 contents/ui/ConfigAppearance.qml:66
 #: contents/ui/config/LayoutSettings.qml:168
 #, kde-format
 msgid "New chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:157 contents/ui/ConfigAppearance.qml:72
+#: contents/ui/chat/ChatHeader.qml:157 contents/ui/ConfigAppearance.qml:67
 #, kde-format
 msgid "New incognito chat (never saved)"
 msgstr ""
@@ -2128,7 +2133,7 @@ msgid "Sending answer…"
 msgstr ""
 
 #: contents/ui/chat/QuoteBlock.qml:23 contents/ui/chat/QuoteChips.qml:28
-#: contents/ui/chat/SenderName.qml:45 contents/ui/ConfigPersonality.qml:122
+#: contents/ui/chat/SenderName.qml:45 contents/ui/ConfigPersonality.qml:90
 #, kde-format
 msgid "You"
 msgstr ""
@@ -2252,6 +2257,51 @@ msgstr ""
 msgid "Scheduled: %1"
 msgstr ""
 
+#: contents/ui/config/AvatarPicker.qml:24
+#, kde-format
+msgid "Choose the avatar"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:25
+#, kde-format
+msgid "Choose a Picture"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:34
+#, kde-format
+msgid "Choose a PNG, JPEG, WebP, GIF, SVG or BMP image."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:63 contents/ui/ConfigAppearance.qml:124
+#, kde-format
+msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:100 contents/ui/ConfigAppearance.qml:176
+#, kde-format
+msgid "Choose Icon…"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:109 contents/ui/ConfigAppearance.qml:185
+#, kde-format
+msgid "Choose Image File…"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:114
+#, kde-format
+msgid "No Avatar"
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:132
+#, kde-format
+msgid "This picture can't be read; no avatar is shown."
+msgstr ""
+
+#: contents/ui/config/AvatarPicker.qml:133 contents/ui/ConfigPersonality.qml:51
+#, kde-format
+msgid "None"
+msgstr ""
+
 #: contents/ui/chat/SessionList.qml:39 contents/ui/chat/ChatSearchPanel.qml:82
 #, kde-format
 msgid "Today"
@@ -2322,7 +2372,7 @@ msgstr ""
 msgid "Search all chats…"
 msgstr ""
 
-#: contents/ui/chat/ChatSearchPanel.qml:123 contents/ui/ConfigAppearance.qml:73
+#: contents/ui/chat/ChatSearchPanel.qml:123 contents/ui/ConfigAppearance.qml:68
 #, kde-format
 msgid "Search all chats"
 msgstr ""
@@ -2643,263 +2693,100 @@ msgstr ""
 msgid "No model matches."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:74
+#: contents/ui/ConfigAbout.qml:31
 #, kde-format
-msgid "Show or hide the history"
+msgid "KDE AI Chat"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:75
+#: contents/ui/ConfigAbout.qml:36
 #, kde-format
-msgid "Show or hide the chat info panel"
+msgid "Version:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:76
-#, kde-format
-msgid "Focus the message input"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:77
-#, kde-format
-msgid "Stop the reply; cancel an edit"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:78
-#, kde-format
-msgid "Regenerate the last reply"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:79
-#, kde-format
-msgid "Copy the last reply"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:80
-#, kde-format
-msgid "Next chat"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:81
-#, kde-format
-msgid "Previous chat"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:82
-#, kde-format
-msgid "Open the settings"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:83
-#, kde-format
-msgid "Edit your last message"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:84
-#, kde-format
-msgid "Quote the picked message in your next one"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:85
-#, kde-format
-msgid "Read aloud the selected text or the picked message; stop reading"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:86
-#, kde-format
-msgid "Previous message (input empty, or after clicking the chat)"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:87
-#, kde-format
-msgid "Next message; past the latest, back to the input"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:88
-#, kde-format
-msgid "Jump to the first message"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:89
-#, kde-format
-msgid "Jump to the latest message"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:127
-#, kde-format
-msgid "Choose an Image for the Widget"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:129 contents/ui/ConfigPersonality.qml:96
-#, kde-format
-msgid "Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:141
-#: contents/ui/config/ImageProviderEditor.qml:64
-#: contents/ui/config/ProviderEditor.qml:49
-#: contents/ui/config/ScheduleEditor.qml:86
-#, kde-format
-msgid "Name:"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:147
+#: contents/ui/ConfigAbout.qml:45
 #, kde-format
 msgid ""
-"The widget's name, shown at the top of the chat and when you hover over it "
-"in the panel."
+"A chat with AI models (online services or ones on your computer, OpenCode "
+"and Pi agents) in a Plasma widget."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:152
+#: contents/ui/ConfigAbout.qml:50
 #, kde-format
-msgid "Icon:"
+msgid "License:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:156 contents/ui/ConfigAppearance.qml:158
+#: contents/ui/ConfigAbout.qml:51
 #, kde-format
-msgid "Choose the widget icon"
+msgid "GPL-3.0-or-later"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:181 contents/ui/ConfigPersonality.qml:282
+#: contents/ui/ConfigAbout.qml:56
 #, kde-format
-msgid "Choose Icon…"
+msgid "Author:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:190 contents/ui/ConfigPersonality.qml:291
+#: contents/ui/ConfigAbout.qml:62
 #, kde-format
-msgid "Choose Image File…"
+msgid "Source code:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:195
+#: contents/ui/ConfigAbout.qml:63
 #, kde-format
-msgid "Reset to Default Icon"
+msgid "Open the project page"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:204
-#, kde-format
-msgid ""
-"The picture for the widget: an icon from your theme or an image file of your "
-"own. It is what you click in the panel, unless you choose an animation below."
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:233
-#, kde-format
-msgid "Notifications"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:239
-#, kde-format
-msgid "Notify when:"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:240
-#, kde-format
-msgid "A reply finishes while the chat is closed"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:244
+#: contents/ui/ConfigAbout.qml:71
 #, kde-format
 msgid ""
-"A desktop notification tells you the answer is ready, so you can do other "
-"things while you wait."
+"The code, the issue tracker and the releases are on GitHub; this opens the "
+"page in your web browser."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:250
+#: contents/ui/ConfigAbout.qml:76
 #, kde-format
-msgid "A request fails while the chat is closed"
+msgid "Credits:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:254
-#, kde-format
-msgid ""
-"You hear about problems, for example a wrong key or no internet, without "
-"opening the chat."
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:260
-#, kde-format
-msgid "The AI needs an answer or permission while the chat is closed"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:264
+#: contents/ui/ConfigAbout.qml:81 contents/ui/config/SpeechNotePanel.qml:166
 #, kde-format
 msgid ""
-"The AI is waiting for you, for example to answer a question or to allow a "
-"change to your files."
+"Speech, models and GPU support by <a href=\"%1\">Speech Note</a>, © Michał "
+"Kosciesza, MPL-2.0"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:270
-#, kde-format
-msgid "A scheduled task runs"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:274
-#, kde-format
-msgid ""
-"A schedule from the Schedules page has sent its message. Each schedule can "
-"also turn its own notification off."
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:280
-#, kde-format
-msgid "Sound:"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:281
-#, kde-format
-msgid "Play a sound when a reply is finished"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:285
-#, kde-format
-msgid ""
-"A short sound when the answer is complete, handy when you are looking at "
-"something else."
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:290
-#, kde-format
-msgid "Keyboard shortcuts"
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:311
-#, kde-format
-msgid ""
-"These work while the chat is open. To open the widget from anywhere, set its "
-"global shortcut on the \"Keyboard Shortcuts\" page of this window."
-msgstr ""
-
-#: contents/ui/ConfigAppearance.qml:316
+#: contents/ui/ConfigAbout.qml:87
 #, kde-format
 msgid "Support the developer"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:321
+#: contents/ui/ConfigAbout.qml:92
 #, kde-format
 msgid "Like it?"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:322
+#: contents/ui/ConfigAbout.qml:93
 #, kde-format
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:331
+#: contents/ui/ConfigAbout.qml:102
 #, kde-format
 msgid ""
 "KDE AI Chat is free. If it helps you, you can thank the developer with a "
 "small gift; this opens buymeacoffee.com in your web browser."
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:336
+#: contents/ui/ConfigAbout.qml:107
 #, kde-format
 msgid "Terms of use:"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:337
+#: contents/ui/ConfigAbout.qml:108
 #, kde-format
 msgid "Read the terms"
 msgstr ""
 
-#: contents/ui/ConfigAppearance.qml:346
+#: contents/ui/ConfigAbout.qml:117
 #, kde-format
 msgid ""
 "In short: the widget comes without warranty and collects nothing itself. "
@@ -2907,6 +2794,215 @@ msgid ""
 "responsible for your keys, for the costs on your accounts (scheduled prompts "
 "run by themselves) and for how you use the answers. Opens the full terms in "
 "your web browser."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:69
+#, kde-format
+msgid "Show or hide the history"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:70
+#, kde-format
+msgid "Show or hide the chat info panel"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:71
+#, kde-format
+msgid "Focus the message input"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:72
+#, kde-format
+msgid "Stop the reply; cancel an edit"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:73
+#, kde-format
+msgid "Regenerate the last reply"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:74
+#, kde-format
+msgid "Copy the last reply"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:75
+#, kde-format
+msgid "Next chat"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:76
+#, kde-format
+msgid "Previous chat"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:77
+#, kde-format
+msgid "Open the settings"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:78
+#, kde-format
+msgid "Edit your last message"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:79
+#, kde-format
+msgid "Quote the picked message in your next one"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:80
+#, kde-format
+msgid "Read aloud the selected text or the picked message; stop reading"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:81
+#, kde-format
+msgid "Previous message (input empty, or after clicking the chat)"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:82
+#, kde-format
+msgid "Next message; past the latest, back to the input"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:83
+#, kde-format
+msgid "Jump to the first message"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:84
+#, kde-format
+msgid "Jump to the latest message"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:122
+#, kde-format
+msgid "Choose an Image for the Widget"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:136
+#: contents/ui/config/ImageProviderEditor.qml:64
+#: contents/ui/config/ProviderEditor.qml:49
+#: contents/ui/config/ScheduleEditor.qml:86
+#, kde-format
+msgid "Name:"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:142
+#, kde-format
+msgid ""
+"The widget's name, shown at the top of the chat and when you hover over it "
+"in the panel."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:147
+#, kde-format
+msgid "Icon:"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:151 contents/ui/ConfigAppearance.qml:153
+#, kde-format
+msgid "Choose the widget icon"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:190
+#, kde-format
+msgid "Reset to Default Icon"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:199
+#, kde-format
+msgid ""
+"The picture for the widget: an icon from your theme or an image file of your "
+"own. It is what you click in the panel, unless you choose an animation below."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:228
+#, kde-format
+msgid "Notifications"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:234
+#, kde-format
+msgid "Notify when:"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:235
+#, kde-format
+msgid "A reply finishes while the chat is closed"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:239
+#, kde-format
+msgid ""
+"A desktop notification tells you the answer is ready, so you can do other "
+"things while you wait."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:245
+#, kde-format
+msgid "A request fails while the chat is closed"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:249
+#, kde-format
+msgid ""
+"You hear about problems, for example a wrong key or no internet, without "
+"opening the chat."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:255
+#, kde-format
+msgid "The AI needs an answer or permission while the chat is closed"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:259
+#, kde-format
+msgid ""
+"The AI is waiting for you, for example to answer a question or to allow a "
+"change to your files."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:265
+#, kde-format
+msgid "A scheduled task runs"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:269
+#, kde-format
+msgid ""
+"A schedule from the Schedules page has sent its message. Each schedule can "
+"also turn its own notification off."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:275
+#, kde-format
+msgid "Sound:"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:276
+#, kde-format
+msgid "Play a sound when a reply is finished"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:280
+#, kde-format
+msgid ""
+"A short sound when the answer is complete, handy when you are looking at "
+"something else."
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:285
+#, kde-format
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: contents/ui/ConfigAppearance.qml:306
+#, kde-format
+msgid ""
+"These work while the chat is open. To open the widget from anywhere, set its "
+"global shortcut on the \"Keyboard Shortcuts\" page of this window."
 msgstr ""
 
 #: contents/ui/ConfigChat.qml:46 contents/ui/ConfigChat.qml:124
@@ -3769,259 +3865,261 @@ msgstr ""
 msgid "Status:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:43
+#: contents/ui/ConfigPersonality.qml:44
 #, kde-format
 msgid "No preference"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:44 contents/ui/ConfigPersonality.qml:51
+#: contents/ui/ConfigPersonality.qml:45 contents/ui/ConfigPersonality.qml:52
 #, kde-format
 msgid "Friendly"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:45 contents/ui/ConfigPersonality.qml:52
+#: contents/ui/ConfigPersonality.qml:46 contents/ui/ConfigPersonality.qml:53
 #, kde-format
 msgid "Professional"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:46 contents/ui/ConfigPersonality.qml:55
+#: contents/ui/ConfigPersonality.qml:47 contents/ui/ConfigPersonality.qml:56
 #, kde-format
 msgid "Concise"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:47
+#: contents/ui/ConfigPersonality.qml:48
 #, kde-format
 msgid "Playful"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:50 contents/ui/ConfigPersonality.qml:315
-#, kde-format
-msgid "None"
-msgstr ""
-
-#: contents/ui/ConfigPersonality.qml:53
+#: contents/ui/ConfigPersonality.qml:54
 #, kde-format
 msgid "Witty"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:54
+#: contents/ui/ConfigPersonality.qml:55
 #, kde-format
 msgid "Mentor"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:56
+#: contents/ui/ConfigPersonality.qml:57
 #, kde-format
 msgid "Custom…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:72
-#, kde-format
-msgid "Choose a PNG, JPEG, WebP, GIF, SVG or BMP image."
-msgstr ""
-
-#: contents/ui/ConfigPersonality.qml:94
-#, kde-format
-msgid "Choose a Picture for the AI"
-msgstr ""
-
-#: contents/ui/ConfigPersonality.qml:129
+#: contents/ui/ConfigPersonality.qml:97
 #, kde-format
 msgid "Your name:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:132
+#: contents/ui/ConfigPersonality.qml:100
 #, kde-format
 msgid "Shown as \"You\""
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:136
+#: contents/ui/ConfigPersonality.qml:104
 #, kde-format
 msgid ""
 "What the AI calls you, and the name shown above your messages. Leave empty "
 "to stay \"You\"."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:142
+#: contents/ui/ConfigPersonality.qml:109
+#, kde-format
+msgid "Your avatar:"
+msgstr ""
+
+#: contents/ui/ConfigPersonality.qml:111
+#, kde-format
+msgid "Choose your avatar"
+msgstr ""
+
+#: contents/ui/ConfigPersonality.qml:112
+#, kde-format
+msgid "Choose a Picture for You"
+msgstr ""
+
+#: contents/ui/ConfigPersonality.qml:116
+#, kde-format
+msgid ""
+"A small picture shown next to your messages: an icon from your theme or an "
+"image file of your own."
+msgstr ""
+
+#: contents/ui/ConfigPersonality.qml:122
 #, kde-format
 msgid "About you:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:144
+#: contents/ui/ConfigPersonality.qml:124
 #, kde-format
 msgid "What you do, what you know well, what you are working on…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:145
+#: contents/ui/ConfigPersonality.qml:125
 #, kde-format
 msgid "About you"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:149
+#: contents/ui/ConfigPersonality.qml:129
 #, kde-format
 msgid ""
 "A few lines about yourself, so answers fit you: your job, what you know "
 "well, what you are working on."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:156
+#: contents/ui/ConfigPersonality.qml:136
 #, kde-format
 msgid "Tone you like:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:165
+#: contents/ui/ConfigPersonality.qml:145
 #, kde-format
 msgid "How you like to be spoken to. \"No preference\" leaves it to the AI."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:172
+#: contents/ui/ConfigPersonality.qml:152
 #, kde-format
 msgid "Reply language:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:175
+#: contents/ui/ConfigPersonality.qml:155
 #, kde-format
 msgid "Same as my message"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:179
+#: contents/ui/ConfigPersonality.qml:159
 #, kde-format
 msgid ""
 "The language replies are written in, for example \"English\" or \"Deutsch\". "
 "Leave empty to get replies in the language you write in."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:185
+#: contents/ui/ConfigPersonality.qml:165
 #, kde-format
 msgid "Always / never:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:187
+#: contents/ui/ConfigPersonality.qml:167
 #, kde-format
 msgid "Always give sources. Never use emoji."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:188
+#: contents/ui/ConfigPersonality.qml:168
 #, kde-format
 msgid "Always or never"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:192
+#: contents/ui/ConfigPersonality.qml:172
 #, kde-format
 msgid ""
 "Things the AI should always or never do, one per line. How long replies are "
 "is set per chat, in its chat settings."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:197
+#: contents/ui/ConfigPersonality.qml:177
 #, kde-format
 msgid "The AI"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:204
+#: contents/ui/ConfigPersonality.qml:184
 #, kde-format
 msgid "Its name:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:207
+#: contents/ui/ConfigPersonality.qml:187
 #, kde-format
 msgid "No name: replies show the model"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:211
+#: contents/ui/ConfigPersonality.qml:191
 #, kde-format
 msgid ""
 "A name for the assistant, shown above its replies. Leave empty to show the "
 "name of the model instead."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:218
+#: contents/ui/ConfigPersonality.qml:198
 #, kde-format
 msgid "Personality:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:227
+#: contents/ui/ConfigPersonality.qml:207
 #, kde-format
 msgid ""
 "The character of the assistant: how it talks and how much it says. Choose "
 "\"Custom…\" to describe it in your own words."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:234
+#: contents/ui/ConfigPersonality.qml:214
 #, kde-format
 msgid "In your words:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:236
+#: contents/ui/ConfigPersonality.qml:216
 #, kde-format
 msgid "Calm and patient, like a good teacher…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:237
+#: contents/ui/ConfigPersonality.qml:217
 #, kde-format
 msgid "Custom personality"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:242
+#: contents/ui/ConfigPersonality.qml:222
 #, kde-format
 msgid "Describe the personality you want in a sentence or two."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:246
+#: contents/ui/ConfigPersonality.qml:227
 #, kde-format
 msgid "Avatar:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:255 contents/ui/ConfigPersonality.qml:257
+#: contents/ui/ConfigPersonality.qml:229
 #, kde-format
 msgid "Choose the AI's avatar"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:296
+#: contents/ui/ConfigPersonality.qml:230
 #, kde-format
-msgid "No Avatar"
+msgid "Choose a Picture for the AI"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:314
-#, kde-format
-msgid "This picture can't be read; replies show no avatar."
-msgstr ""
-
-#: contents/ui/ConfigPersonality.qml:322
+#: contents/ui/ConfigPersonality.qml:234
 #, kde-format
 msgid ""
 "A small picture shown next to the AI's replies: an icon from your theme or "
 "an image file of your own."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:331
+#: contents/ui/ConfigPersonality.qml:243
 #, kde-format
 msgid ""
 "What you fill in here is sent at the start of every chat with a provider, "
 "unless a chat turns it off in its chat settings. OpenCode and Pi chats keep "
-"their own instructions. The names and avatar show in the chat."
+"their own instructions. The names and avatars show in the chat."
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:336 contents/ui/ConfigPersonality.qml:353
+#: contents/ui/ConfigPersonality.qml:248 contents/ui/ConfigPersonality.qml:265
 #, kde-format
 msgid "Extra instructions"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:342
+#: contents/ui/ConfigPersonality.qml:254
 #, kde-format
 msgid "Instructions:"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:343
+#: contents/ui/ConfigPersonality.qml:255
 #, kde-format
 msgid "Send these instructions before every chat"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:352
+#: contents/ui/ConfigPersonality.qml:264
 #, kde-format
 msgid "Instructions for the model…"
 msgstr ""
 
-#: contents/ui/ConfigPersonality.qml:357
+#: contents/ui/ConfigPersonality.qml:269
 #, kde-format
 msgid ""
 "Anything else the AI should know or do in every chat, in your own words. "
@@ -6625,13 +6723,6 @@ msgstr ""
 #: contents/ui/config/SpeechNotePanel.qml:161
 #, kde-format
 msgid "Credit:"
-msgstr ""
-
-#: contents/ui/config/SpeechNotePanel.qml:166
-#, kde-format
-msgid ""
-"Speech, models and GPU support by <a href=\"%1\">Speech Note</a>, © Michał "
-"Kosciesza, MPL-2.0"
 msgstr ""
 
 #: contents/ui/voice/SpeechNote.js:19

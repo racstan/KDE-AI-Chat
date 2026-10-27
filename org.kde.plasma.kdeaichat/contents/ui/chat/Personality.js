@@ -9,12 +9,12 @@
 // Plain JavaScript on purpose (tested with node): no QML globals, no .import.
 // `cfg` is plasmoid.configuration (or any object with the same keys):
 //   userName, userAbout, userTone, userLanguage, userNotes,
-//   aiName, aiPersonality, aiPersonalityCustom, aiAvatar
+//   userAvatar, aiName, aiPersonality, aiPersonalityCustom, aiAvatar
 
 // Field lengths: longer text is cut (settings are free text, the prompt must stay short).
 var LIMITS = {
     "userName": 60, "userAbout": 600, "userLanguage": 60, "userNotes": 800,
-    "aiName": 40, "aiPersonalityCustom": 800, "aiAvatar": 1024
+    "aiName": 40, "aiPersonalityCustom": 800, "aiAvatar": 1024, "userAvatar": 1024
 };
 
 // Preset ids → the line the model gets. "" (the default) sends nothing.
@@ -72,10 +72,10 @@ function isImagePath(value) {
     return IMAGE_EXT.test(v);
 }
 
-// The AI's avatar: {kind: "" | "icon" | "image", source}. An image is a
+// An avatar setting as {kind: "" | "icon" | "image", source}. An image is a
 // file:// URL; an icon is a theme icon name. Anything else is no avatar.
-function avatar(cfg) {
-    var v = String((cfg && cfg.aiAvatar) || "").trim();
+function _avatarOf(value) {
+    var v = String(value || "").trim();
     if (!v || v.length > LIMITS.aiAvatar)
         return {"kind": "", "source": ""};
     if (v.charAt(0) === "/" || v.indexOf("file://") === 0) {
@@ -84,6 +84,16 @@ function avatar(cfg) {
         return {"kind": "image", "source": v.indexOf("file://") === 0 ? v : "file://" + v};
     }
     return /^[A-Za-z0-9._+-]+$/.test(v) ? {"kind": "icon", "source": v} : {"kind": "", "source": ""};
+}
+
+// The AI's avatar (cfg.aiAvatar).
+function avatar(cfg) {
+    return _avatarOf(cfg && cfg.aiAvatar);
+}
+
+// Your avatar (cfg.userAvatar), shown next to your messages.
+function userAvatar(cfg) {
+    return _avatarOf(cfg && cfg.userAvatar);
 }
 
 // The personality line: a preset's text, or the user's own ("custom").

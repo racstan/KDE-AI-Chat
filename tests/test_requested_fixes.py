@@ -87,7 +87,7 @@ def test_settings_pages_exist_and_cut_settings_are_gone():
     with open(os.path.join(package, "config", "config.qml"), encoding="utf-8") as f:
         sources = re.findall(r'source:\s*"([^"]+)"', f.read())
     assert sources == ["ConfigConnection.qml", "ConfigChat.qml", "ConfigPersonality.qml", "ConfigMemory.qml",
-                       "ConfigSchedules.qml", "ConfigVoice.qml", "ConfigAppearance.qml", "ConfigDesktop.qml", "ConfigStorage.qml"]
+                       "ConfigSchedules.qml", "ConfigVoice.qml", "ConfigAppearance.qml", "ConfigDesktop.qml", "ConfigStorage.qml", "ConfigAbout.qml"]
     for source in sources:
         assert os.path.isfile(os.path.join(package, "ui", source)), source
 

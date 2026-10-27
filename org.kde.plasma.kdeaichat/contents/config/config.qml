@@ -50,4 +50,9 @@ ConfigModel {
         icon: "drive-harddisk"
         source: "ConfigStorage.qml"
     }
+    ConfigCategory {
+        name: i18n("About")
+        icon: "help-about"
+        source: "ConfigAbout.qml"
+    }
 }

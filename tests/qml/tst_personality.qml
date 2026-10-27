@@ -21,7 +21,7 @@ Item {
     function i18np(one, many, n) { return (n === 1 ? one : many).replace("%1", n); }
 
     readonly property string picture: decodeURIComponent(String(Qt.resolvedUrl("../fixtures/avatar.png")).replace(/^file:\/\//, ""))
-    readonly property var nobody: ({userName: "", userAbout: "", userTone: "", userLanguage: "", userNotes: "",
+    readonly property var nobody: ({userName: "", userAvatar: "", userAbout: "", userTone: "", userLanguage: "", userNotes: "",
                                    aiName: "", aiPersonality: "", aiPersonalityCustom: "", aiAvatar: ""})
 
     function configWith(extra) {
@@ -111,7 +111,7 @@ Item {
             compare(header(1, "senderModel").text, "nemotron-3.5");
             verify(header(1, "senderAvatar").visible);
             compare(String(header(1, "senderAvatar").source), "face-smile");
-            verify(!header(0, "senderAvatar").visible, "your messages have no avatar");
+            verify(!header(0, "senderAvatar").visible, "no avatar of yours chosen: your messages show none");
             compare(header(3, "senderName").text, "Rachit · queued");
             screenshot(root, "personality-chat-icon");
         }
@@ -127,6 +127,29 @@ Item {
             wait(50);
             verify(!header(1, "senderAvatar").visible, "not an image file: no avatar");
             compare(header(1, "senderName").text, "Nova");
+        }
+
+        function test_3b_your_avatar_shows_on_your_messages() {
+            chat.plasmoid = root.configWith({userName: "Rachit", userAvatar: "face-glasses", aiName: "Nova", aiAvatar: "face-smile"});
+            chat.messages = conversation;
+            wait(100);
+            verify(header(0, "senderAvatar").visible, "your first message");
+            compare(String(header(0, "senderAvatar").source), "face-glasses");
+            verify(header(2, "senderAvatar").visible);
+            verify(header(3, "senderAvatar").visible, "a queued message too");
+            compare(String(header(1, "senderAvatar").source), "face-smile", "the AI keeps its own");
+            screenshot(root, "personality-chat-user-icon");
+
+            chat.plasmoid = root.configWith({userAvatar: root.picture});
+            wait(150);
+            compare(String(header(0, "senderAvatar").source), "file://" + root.picture);
+            compare(header(0, "senderName").text, "You", "the name is unchanged");
+            verify(!header(1, "senderAvatar").visible, "the AI has none");
+            screenshot(root, "personality-chat-user-image");
+
+            chat.plasmoid = root.configWith({userAvatar: "/home/me/notes.txt"});
+            wait(50);
+            verify(!header(0, "senderAvatar").visible, "not an image file: no avatar");
         }
 
         function test_4_direct_gets_the_block_first_opencode_and_pi_do_not() {

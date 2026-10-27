@@ -1,17 +1,14 @@
-// Settings → Personality: about you (name, a few lines about you, the tone
+// Settings → Personality: about you (name, avatar, a few lines about you, the tone
 // and language you want, always/never notes), the AI (its name, personality
 // and avatar) and the extra instructions sent before every chat (the old
 // "System prompt" of the Chat page; same settings). The filled-in fields go
 // at the start of a direct chat's system prompt (chat/Personality.js); the
-// names and avatar show in the chat and in exports. Nothing here is secret.
+// names and avatars show in the chat and in exports. Nothing here is secret.
 import QtQuick
 import QtQuick.Controls as QQC2
-import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
-import org.kde.iconthemes as KIconThemes
-import "Security.js" as Sec
 import "config" as Config
 import "chat/Personality.js" as Personality
 
@@ -30,13 +27,17 @@ KCM.SimpleKCM {
     property string cfg_aiPersonality: ""
     property alias cfg_aiPersonalityCustom: customArea.text
     // A theme icon name, or the absolute path of an image file ("" = none).
-    property string cfg_aiAvatar: ""
+    property alias cfg_aiAvatar: aiAvatarPicker.value
+    // Your own picture, shown next to your messages (same choices).
+    property alias cfg_userAvatar: userAvatarPicker.value
     property alias cfg_enableSystemPrompt: promptCheck.checked
     property alias cfg_systemPrompt: promptArea.text
 
-    // Shown under the avatar button when a chosen file can't be used.
-    property string avatarError: ""
-    readonly property var avatar: Personality.avatar({"aiAvatar": cfg_aiAvatar})
+    // Shown beside the AI's avatar button when a chosen file can't be used.
+    readonly property string avatarError: aiAvatarPicker.error
+
+    // Takes a picked file as the AI's avatar (an image file with a safe path).
+    function setAvatarFile(url) { aiAvatarPicker.setFile(url); }
 
     // The preset labels as literal i18n() calls, so they get extracted.
     readonly property var toneOptions: [
@@ -64,39 +65,6 @@ KCM.SimpleKCM {
         }
         return 0;
     }
-
-    // Takes a picked file as the avatar if it is an image file with a safe path.
-    function setAvatarFile(url) {
-        var path = decodeURIComponent(String(url || "").replace(/^file:\/\//, ""));
-        if (!Personality.isImagePath(path) || Sec.validateFilePath(path) === "") {
-            avatarError = i18n("Choose a PNG, JPEG, WebP, GIF, SVG or BMP image.");
-            return;
-        }
-        avatarError = "";
-        cfg_aiAvatar = path;
-    }
-
-    Component {
-        id: iconDialogComponent
-        KIconThemes.IconDialog {
-            onIconNameChanged: function(iconName) {
-                if (iconName) {
-                    page.avatarError = "";
-                    page.cfg_aiAvatar = iconName;
-                }
-            }
-        }
-    }
-    property var iconDialog: null
-
-    FileDialog {
-        id: imageDialog
-        title: i18n("Choose a Picture for the AI")
-        fileMode: FileDialog.OpenFile
-        nameFilters: [i18n("Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)")]
-        onAccepted: page.setAvatarFile(selectedFile)
-    }
-
 
     // A multi-line box that grows with the form.
     component Box: QQC2.ScrollView {
@@ -134,6 +102,18 @@ KCM.SimpleKCM {
 
         Config.SettingHelp {
             text: i18n("What the AI calls you, and the name shown above your messages. Leave empty to stay \"You\".")
+        }
+
+        Config.AvatarPicker {
+            id: userAvatarPicker
+            Kirigami.FormData.label: i18n("Your avatar:")
+            prefix: "userAvatar"
+            buttonName: i18n("Choose your avatar")
+            dialogTitle: i18n("Choose a Picture for You")
+        }
+
+        Config.SettingHelp {
+            text: i18n("A small picture shown next to your messages: an icon from your theme or an image file of your own.")
         }
 
         Box {
@@ -242,80 +222,12 @@ KCM.SimpleKCM {
             text: i18n("Describe the personality you want in a sentence or two.")
         }
 
-        RowLayout {
+        Config.AvatarPicker {
+            id: aiAvatarPicker
             Kirigami.FormData.label: i18n("Avatar:")
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Button {
-                id: avatarButton
-                objectName: "avatarButton"
-                implicitWidth: Kirigami.Units.iconSizes.large + Kirigami.Units.largeSpacing * 2
-                implicitHeight: implicitWidth
-                onPressed: avatarMenu.opened ? avatarMenu.close() : avatarMenu.popup(avatarButton, 0, avatarButton.height)
-                Accessible.name: i18n("Choose the AI's avatar")
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: i18n("Choose the AI's avatar")
-
-                Image {
-                    id: avatarImage
-                    anchors.centerIn: parent
-                    width: Kirigami.Units.iconSizes.large
-                    height: width
-                    visible: page.avatar.kind === "image" && status === Image.Ready
-                    source: page.avatar.kind === "image" ? page.avatar.source : ""
-                    sourceSize.width: width
-                    sourceSize.height: height
-                    fillMode: Image.PreserveAspectFit
-                }
-                Kirigami.Icon {
-                    anchors.centerIn: parent
-                    width: Kirigami.Units.iconSizes.large
-                    height: width
-                    visible: !avatarImage.visible
-                    source: page.avatar.kind === "icon" ? page.avatar.source : "user-identity"
-                    opacity: page.avatar.kind === "icon" ? 1 : 0.35
-                }
-
-                QQC2.Menu {
-                    id: avatarMenu
-                    QQC2.MenuItem {
-                        text: i18n("Choose Icon…")
-                        icon.name: "document-open-folder"
-                        onTriggered: {
-                            if (!page.iconDialog)
-                                page.iconDialog = iconDialogComponent.createObject(page);
-                            page.iconDialog.open();
-                        }
-                    }
-                    QQC2.MenuItem {
-                        text: i18n("Choose Image File…")
-                        icon.name: "image-x-generic"
-                        onTriggered: imageDialog.open()
-                    }
-                    QQC2.MenuItem {
-                        text: i18n("No Avatar")
-                        icon.name: "edit-clear"
-                        enabled: page.cfg_aiAvatar !== ""
-                        onTriggered: {
-                            page.avatarError = "";
-                            page.cfg_aiAvatar = "";
-                        }
-                    }
-                }
-            }
-
-            QQC2.Label {
-                objectName: "avatarStatus"
-                Layout.fillWidth: true
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 20
-                wrapMode: Text.Wrap
-                color: page.avatarError !== "" || avatarImage.status === Image.Error ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.disabledTextColor
-                text: page.avatarError !== "" ? page.avatarError
-                    : avatarImage.status === Image.Error ? i18n("This picture can't be read; replies show no avatar.")
-                    : page.cfg_aiAvatar === "" ? i18n("None")
-                    : page.avatar.kind === "image" ? page.cfg_aiAvatar.substring(page.cfg_aiAvatar.lastIndexOf("/") + 1)
-                    : page.cfg_aiAvatar
-            }
+            prefix: "avatar"
+            buttonName: i18n("Choose the AI's avatar")
+            dialogTitle: i18n("Choose a Picture for the AI")
         }
 
         Config.SettingHelp {
@@ -328,7 +240,7 @@ KCM.SimpleKCM {
             Layout.topMargin: Kirigami.Units.smallSpacing
             wrapMode: Text.Wrap
             color: Kirigami.Theme.disabledTextColor
-            text: i18n("What you fill in here is sent at the start of every chat with a provider, unless a chat turns it off in its chat settings. OpenCode and Pi chats keep their own instructions. The names and avatar show in the chat.")
+            text: i18n("What you fill in here is sent at the start of every chat with a provider, unless a chat turns it off in its chat settings. OpenCode and Pi chats keep their own instructions. The names and avatars show in the chat.")
         }
 
         Item {
