@@ -103,3 +103,10 @@ contents/ui/voice/TtsEngines.js
 contents/ui/VoiceManager.qml
 contents/ui/config/PanelIconSettings.qml
 contents/ui/chat/PiChatSettings.qml
+contents/ui/chat/ChatDeleteConfirm.qml
+contents/ui/chat/ChatPrefs.qml
+contents/ui/config/ChatLookSettings.qml
+contents/ui/config/LayoutSettings.qml
+contents/ui/config/BehaviourSettings.qml
+contents/ui/config/ResetRow.qml
+contents/ui/config/PageReset.qml
