@@ -1,16 +1,14 @@
-// Settings → Appearance: the widget's name and icon, the panel icon's
-// animation (config/PanelIconSettings.qml), the chat's look
+// Settings → Appearance: the widget's name, its icon and panel
+// animation (config/IconSettings.qml), the chat's look
 // (config/ChatLookSettings.qml) and layout (config/LayoutSettings.qml), which desktop notifications to
 // show, the sound played when a reply finishes, the keyboard shortcuts.
 // Colours follow the Plasma colour scheme; only the accent can be changed.
 // Every look and layout option is opt-in: its default is the Plasma look.
 import QtQuick
 import QtQuick.Controls as QQC2
-import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
-import org.kde.iconthemes as KIconThemes
 import "config" as Config
 import "store" as Store
 import "chat/ShortcutList.js" as ShortcutList
@@ -22,8 +20,8 @@ import "chat/Prefs.js" as Prefs
 KCM.SimpleKCM {
     id: page
 
-    // A KDE icon name, or the path of an image file (animated GIFs work).
-    property string cfg_customIcon: "dialog-messages"
+    // A KDE icon name, or the path of a still image file.
+    property alias cfg_customIcon: panelIcon.customIcon
     property alias cfg_appDisplayName: nameField.text
     property alias cfg_playNotificationSound: soundCheck.checked
     property alias cfg_notifyOnReply: replyCheck.checked
@@ -58,8 +56,6 @@ KCM.SimpleKCM {
     // Runs the helper's commands (the animation file check); tests pass a fake.
     property var runHelper: defaultRunner.run
 
-    readonly property string defaultIcon: "dialog-messages"
-
     // The labels as literal i18n() calls, so they get extracted for translation.
     function shortcutLabel(id) {
         var labels = {
@@ -86,43 +82,12 @@ KCM.SimpleKCM {
         return labels[id] || id;
     }
 
-    function isCustomIconImage(value) {
-        var v = String(value || "").trim().toLowerCase();
-        if (v.indexOf("file://") === 0 || v.charAt(0) === "/")
-            return true;
-        return /\.(png|jpe?g|gif|webp|svgz?|bmp)$/.test(v);
-    }
-
-    function customIconImageSource(value) {
-        var v = String(value || "").trim();
-        return v === "" || v.indexOf("file://") === 0 ? v : "file://" + v;
-    }
-
-    Component {
-        id: iconDialogComponent
-        KIconThemes.IconDialog {
-            onIconNameChanged: function(iconName) {
-                if (iconName)
-                    page.cfg_customIcon = iconName;
-            }
-        }
-    }
-    property var iconDialog: null
-
     Store.HelperRunner {
         id: defaultRunner
         helperPath: {
             var path = decodeURIComponent(String(Qt.resolvedUrl("kde_ai_helper.py")).replace(/^file:\/\//, ""));
             return path.endsWith("/contents/ui/kde_ai_helper.py") ? path : "";
         }
-    }
-
-    FileDialog {
-        id: imageDialog
-        title: i18n("Choose an Image for the Widget")
-        fileMode: FileDialog.OpenFile
-        nameFilters: [i18n("Images (*.png *.jpg *.jpeg *.webp *.gif *.svg *.svgz *.bmp)")]
-        onAccepted: page.cfg_customIcon = decodeURIComponent(String(selectedFile).replace(/^file:\/\//, ""))
     }
 
     ColumnLayout {
@@ -141,66 +106,9 @@ KCM.SimpleKCM {
             Config.SettingHelp {
                 text: i18n("The widget's name, shown at the top of the chat and when you hover over it in the panel.")
             }
-
-            QQC2.Button {
-                id: iconButton
-                Kirigami.FormData.label: i18n("Icon:")
-                implicitWidth: Kirigami.Units.iconSizes.large + Kirigami.Units.largeSpacing * 2
-                implicitHeight: implicitWidth
-                onPressed: iconMenu.opened ? iconMenu.close() : iconMenu.popup(iconButton, 0, iconButton.height)
-                Accessible.name: i18n("Choose the widget icon")
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: i18n("Choose the widget icon")
-
-                Image {
-                    anchors.centerIn: parent
-                    width: Kirigami.Units.iconSizes.large
-                    height: width
-                    visible: page.isCustomIconImage(page.cfg_customIcon)
-                    source: visible ? page.customIconImageSource(page.cfg_customIcon) : ""
-                    sourceSize.width: width
-                    sourceSize.height: height
-                    fillMode: Image.PreserveAspectFit
-                }
-                Kirigami.Icon {
-                    anchors.centerIn: parent
-                    width: Kirigami.Units.iconSizes.large
-                    height: width
-                    visible: !page.isCustomIconImage(page.cfg_customIcon)
-                    source: page.cfg_customIcon || page.defaultIcon
-                }
-
-                QQC2.Menu {
-                    id: iconMenu
-                    QQC2.MenuItem {
-                        text: i18n("Choose Icon…")
-                        icon.name: "document-open-folder"
-                        onTriggered: {
-                            if (!page.iconDialog)
-                                page.iconDialog = iconDialogComponent.createObject(page);
-                            page.iconDialog.open();
-                        }
-                    }
-                    QQC2.MenuItem {
-                        text: i18n("Choose Image File…")
-                        icon.name: "image-x-generic"
-                        onTriggered: imageDialog.open()
-                    }
-                    QQC2.MenuItem {
-                        text: i18n("Reset to Default Icon")
-                        icon.name: "edit-clear"
-                        enabled: page.cfg_customIcon !== page.defaultIcon
-                        onTriggered: page.cfg_customIcon = page.defaultIcon
-                    }
-                }
-            }
-
-            Config.SettingHelp {
-                text: i18n("The picture for the widget: an icon from your theme or an image file of your own. It is what you click in the panel, unless you choose an animation below.")
-            }
         }
 
-        Config.PanelIconSettings {
+        Config.IconSettings {
             id: panelIcon
             Layout.fillWidth: true
             twinFormLayouts: [mainForm, restForm]

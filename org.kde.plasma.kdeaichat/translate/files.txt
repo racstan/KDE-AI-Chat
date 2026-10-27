@@ -124,7 +124,7 @@ contents/ui/voice/SpeechNoteSpeech.qml
 contents/ui/voice/SpeechNoteWarm.qml
 contents/ui/voice/TtsEngines.js
 contents/ui/VoiceManager.qml
-contents/ui/config/PanelIconSettings.qml
+contents/ui/config/IconSettings.qml
 contents/ui/chat/PiChatSettings.qml
 contents/ui/chat/ChatDeleteConfirm.qml
 contents/ui/chat/ChatPrefs.qml

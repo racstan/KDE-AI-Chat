@@ -139,7 +139,7 @@ TestCase {
             { tag: "config/DictationSettings", url: uiDir + "config/DictationSettings.qml" },
             { tag: "config/TtsOption", url: uiDir + "config/TtsOption.qml" },
             { tag: "config/SettingHelp", url: uiDir + "config/SettingHelp.qml" },
-            { tag: "config/PanelIconSettings", url: uiDir + "config/PanelIconSettings.qml" },
+            { tag: "config/IconSettings", url: uiDir + "config/IconSettings.qml" },
             { tag: "config/ChatLookSettings", url: uiDir + "config/ChatLookSettings.qml" },
             { tag: "config/LayoutSettings", url: uiDir + "config/LayoutSettings.qml" },
             { tag: "config/BehaviourSettings", url: uiDir + "config/BehaviourSettings.qml" },

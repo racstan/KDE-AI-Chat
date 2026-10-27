@@ -101,7 +101,7 @@
   "org.kde.plasma.kdeaichat/contents/ui/config/MemoryRow.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/ModeChooser.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/OpenCodeSettings.qml": 0,
-  "org.kde.plasma.kdeaichat/contents/ui/config/PanelIconSettings.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/config/IconSettings.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/PiSettings.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/ProviderChecker.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/ProviderEditor.qml": 0,
