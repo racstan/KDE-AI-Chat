@@ -114,7 +114,7 @@ Item {
                             "The speech model small isn't downloaded yet.",
                             "2 schedules are missing their timer, so they won't run."]);
             var fixes = texts(check, "setupCheckFix");
-            verify(fixes.indexOf("Start Ollama (local) (for Ollama: ollama serve), or correct the address.") >= 0, fixes);
+            verify(fixes.indexOf("Start Ollama (local), or correct the address. For Ollama, the command is: ollama serve") >= 0, fixes);
             verify(fixes.indexOf("Add the key in Settings → Connection; it is kept in KWallet.") >= 0, fixes);
             compare(findChild(check, "setupCheckSummary").text, "3 problems, 2 warnings");
             screenshot(root, "setup-check");

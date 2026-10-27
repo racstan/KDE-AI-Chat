@@ -39,7 +39,7 @@ var MESSAGES = {
     "local-ok": [I18N_NOOP("%1 answers at %2."), ""],
     "local-needs-key": [I18N_NOOP("%1 answers at %2 and asks for a key."), ""],
     "local-refused": [I18N_NOOP("Nothing answers at %2, so %1 isn't running there."),
-                      I18N_NOOP("Start %1 (for Ollama: ollama serve), or correct the address.")],
+                      I18N_NOOP("Start %1, or correct the address. For Ollama, the command is: ollama serve")],
     "local-timeout": [I18N_NOOP("%1 at %2 didn't answer in time."),
                       I18N_NOOP("Check that the computer at that address is on and the server isn't stuck.")],
     "local-not-found": [I18N_NOOP("%1 answers at %2, but has no model list there (HTTP 404)."),
