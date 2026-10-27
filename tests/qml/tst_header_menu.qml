@@ -44,7 +44,7 @@ Item {
         function test_01_hovering_the_button_opens_the_menu_after_a_short_delay() {
             var b = more();
             mouseMove(b, b.width / 2, b.height / 2);
-            wait(40);
+            wait(20);
             verify(!menu().opened, "not yet: the delay avoids menus opening as the pointer passes by");
             tryVerify(() => menu().opened, 600);
             // Opened under the button, not where the pointer is.
@@ -55,7 +55,7 @@ Item {
         function test_02_passing_over_the_button_does_not_open_it() {
             var b = more();
             mouseMove(b, b.width / 2, b.height / 2);
-            wait(40);
+            wait(20);
             mouseMove(root, root.width / 2, root.height - 5);
             wait(400);
             verify(!menu().opened);

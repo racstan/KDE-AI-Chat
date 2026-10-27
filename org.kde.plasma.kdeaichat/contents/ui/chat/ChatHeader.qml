@@ -212,8 +212,9 @@ RowLayout {
                 return false;
             }
 
+            // Just long enough that passing over the button doesn't open it.
             property Timer openTimer: Timer {
-                interval: 150
+                interval: 70
                 onTriggered: {
                     if (moreButton.hovered && !moreMenu.opened) {
                         moreHover.hoverOpened = true;
