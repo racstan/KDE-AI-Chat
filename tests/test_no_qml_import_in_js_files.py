@@ -59,6 +59,7 @@ WATCHED_FILES = (
     "chat/PanelIcon.js",
     "config/ScheduleDraft.js",
     "voice/SttConfig.js",
+    "voice/SpeechNote.js",
     "voice/SttEngines.js",
     "config/ScheduleDescribe.js",
     "chat/ShortcutList.js",

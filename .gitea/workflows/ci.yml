@@ -316,6 +316,13 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/voice/SttBackend.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/SttConfig.js",
                       "org.kde.plasma.kdeaichat/contents/ui/voice/SttEngines.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/SpeechNote.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/SpeechNoteDictation.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/SpeechNoteSpeech.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/voice/SpeechNoteWarm.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/config/SpeechNotePanel.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/config/SpeechNoteStatus.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/diag_speechnote.py",
                   ]
                   missing = [name for name in required if name not in names]
                   if missing:

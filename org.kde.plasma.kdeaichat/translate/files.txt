@@ -100,6 +100,12 @@ contents/ui/chat/MessageText.qml
 contents/ui/config/TtsOption.qml
 contents/ui/config/NeuralVoiceSetup.qml
 contents/ui/config/DictationSettings.qml
+contents/ui/config/SpeechNotePanel.qml
+contents/ui/config/SpeechNoteStatus.qml
+contents/ui/voice/SpeechNote.js
+contents/ui/voice/SpeechNoteDictation.qml
+contents/ui/voice/SpeechNoteSpeech.qml
+contents/ui/voice/SpeechNoteWarm.qml
 contents/ui/voice/TtsEngines.js
 contents/ui/VoiceManager.qml
 contents/ui/config/PanelIconSettings.qml

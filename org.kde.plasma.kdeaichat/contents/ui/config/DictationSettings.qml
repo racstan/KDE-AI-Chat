@@ -31,6 +31,7 @@ ColumnLayout {
     property var runHelper: null
     property var payload: ({})
     property bool active: false
+    property var speechNote: null    // config/SpeechNoteStatus.qml
 
     readonly property string engineId: form ? String(form.optionValue("sttEngine") || SttEngines.defaultEngine) : SttEngines.defaultEngine
     readonly property var engine: SttEngines.engine(engineId) || SttEngines.engine(SttEngines.defaultEngine)
@@ -126,10 +127,20 @@ ColumnLayout {
         }
     }
 
+    SpeechNotePanel {
+        objectName: "speechNoteDictation"
+        role: "stt"
+        form: dictation
+        status: dictation.speechNote
+        twin: dictation.twin
+        visible: dictation.engineId === "speechnote" && !!dictation.speechNote
+        active: visible && dictation.active
+    }
+
     LocalSttRows {
         form: dictation
         setup: sttSetup
-        engine: SttEngines.isLocal(dictation.engineId) ? dictation.engineId : SttEngines.defaultEngine
+        engine: SttEngines.isLocal(dictation.engineId) ? dictation.engineId : SttEngines.localDefault
         shown: SttEngines.isLocal(dictation.engineId)
         twinFormLayouts: dictation.twin ? [dictation.twin] : []
     }
@@ -179,7 +190,7 @@ ColumnLayout {
 
         QQC2.ComboBox {
             objectName: "sttLanguageCombo"
-            visible: dictation.engineId !== "parakeet"
+            visible: dictation.engineId !== "parakeet" && dictation.engineId !== "speechnote"
             Kirigami.FormData.label: i18n("Spoken language:")
             textRole: "text"
             valueRole: "value"
@@ -189,12 +200,13 @@ ColumnLayout {
         }
 
         SettingHelp {
-            visible: dictation.engineId !== "parakeet"
+            visible: dictation.engineId !== "parakeet" && dictation.engineId !== "speechnote"
             text: i18n("The language you speak. \"Detect automatically\" works for most people; choosing yours helps with short phrases.")
         }
 
         RowLayout {
             Kirigami.FormData.label: i18n("Try it:")
+            visible: dictation.engineId !== "speechnote"
             QQC2.Button {
                 objectName: "sttTestButton"
                 text: i18n("Test")
@@ -218,6 +230,7 @@ ColumnLayout {
         }
 
         SettingHelp {
+            visible: dictation.engineId !== "speechnote"
             text: i18n("Checks the settings above with a short recording that comes with the widget; no microphone needed.")
         }
 
