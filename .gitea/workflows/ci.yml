@@ -145,6 +145,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/diag_system.py",
                       "org.kde.plasma.kdeaichat/contents/ui/kdeaichat/config_cleanup.py",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/ModeMismatchBanner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/OpenCodeMode.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PiMode.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PermissionButtons.qml",

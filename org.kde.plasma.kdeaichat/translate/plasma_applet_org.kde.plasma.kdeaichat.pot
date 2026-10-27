@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 18:38+0530\n"
+"POT-Creation-Date: 2026-10-27 18:48+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -115,7 +115,9 @@ msgstr ""
 msgid "New Chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:132 contents/ui/ConfigAppearance.qml:62
+#: contents/ui/chat/ChatHeader.qml:132
+#: contents/ui/chat/ModeMismatchBanner.qml:30
+#: contents/ui/ConfigAppearance.qml:62
 #: contents/ui/config/LayoutSettings.qml:168
 #, kde-format
 msgid "New chat"
@@ -589,7 +591,7 @@ msgstr ""
 msgid "Code"
 msgstr ""
 
-#: contents/ui/chat/CodeBlock.qml:69 contents/ui/chat/ErrorActions.qml:72
+#: contents/ui/chat/CodeBlock.qml:69 contents/ui/chat/ErrorActions.qml:92
 #, kde-format
 msgid "Copied"
 msgstr ""
@@ -696,6 +698,7 @@ msgid "This chat now uses %1."
 msgstr ""
 
 #: contents/ui/chat/ComposerPicker.qml:40 contents/ui/chat/EffectiveLine.qml:35
+#: contents/ui/chat/ModeMismatchBanner.qml:25
 #, kde-format
 msgid "Direct"
 msgstr ""
@@ -729,7 +732,7 @@ msgid ""
 "on “Let chats have their own model settings” in Settings → Chat."
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:218 contents/ui/chat/ErrorActions.qml:45
+#: contents/ui/chat/ComposerPicker.qml:218 contents/ui/chat/ErrorActions.qml:57
 #, kde-format
 msgid "Open settings"
 msgstr ""
@@ -1582,122 +1585,134 @@ msgid ""
 "with, which may be online."
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:37
+#: contents/ui/chat/ErrorActions.qml:49
 #, kde-format
 msgid "Try again"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:53 contents/ui/config/SetupCheck.qml:122
+#: contents/ui/chat/ErrorActions.qml:65
+#, kde-format
+msgid "Change model"
+msgstr ""
+
+#: contents/ui/chat/ErrorActions.qml:73 contents/ui/config/SetupCheck.qml:122
 #: contents/ui/config/SetupCheck.qml:128
 #, kde-format
 msgid "Check setup"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:63
+#: contents/ui/chat/ErrorActions.qml:83
 #, kde-format
 msgid "Hide details"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:63
+#: contents/ui/chat/ErrorActions.qml:83
 #, kde-format
 msgid "Show details"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:72
+#: contents/ui/chat/ErrorActions.qml:92
 #, kde-format
 msgid "Copy error"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:86 contents/ui/chat/MessageActions.qml:323
-#: contents/ui/config/MemoryRow.qml:119 contents/ui/config/MemoryRow.qml:121
-#: contents/ui/config/ScheduleRow.qml:106
+#: contents/ui/chat/ErrorActions.qml:106
+#: contents/ui/chat/MessageActions.qml:323 contents/ui/config/MemoryRow.qml:119
+#: contents/ui/config/MemoryRow.qml:121 contents/ui/config/ScheduleRow.qml:106
 #: contents/ui/config/ScheduleRow.qml:160
 #, kde-format
 msgid "Delete"
 msgstr ""
 
-#: contents/ui/chat/ErrorActions.qml:87
+#: contents/ui/chat/ErrorActions.qml:107
 #, kde-format
 msgid "Delete this message"
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:76
+#: contents/ui/chat/ErrorText.js:77
 #, kde-format
 msgid "%1 isn't installed on this computer. Install it, then try again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:78
+#: contents/ui/chat/ErrorText.js:79
 #, kde-format
 msgid ""
 "%1 isn't running and couldn't be started. Check that it is installed and "
 "that its address in Settings is right."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:83
+#: contents/ui/chat/ErrorText.js:84
 #, kde-format
 msgid "There's no API key for %1 yet. Add one in Settings, then try again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:84
+#: contents/ui/chat/ErrorText.js:85
 #, kde-format
 msgid ""
 "There's no API key for this provider yet. Add one in Settings, then try "
 "again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:86
+#: contents/ui/chat/ErrorText.js:87
 #, kde-format
 msgid ""
 "This chat isn't set up yet. Finish the provider and model settings, then try "
 "again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:89
+#: contents/ui/chat/ErrorText.js:90
 #, kde-format
 msgid "Your API key was rejected. Check the key for this provider in Settings."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:93
+#: contents/ui/chat/ErrorText.js:97
+#, kde-format
+msgid ""
+"This model can't read images. Remove the image, or pick a model that "
+"supports images."
+msgstr ""
+
+#: contents/ui/chat/ErrorText.js:103
 #, kde-format
 msgid ""
 "The provider says your account is out of credit or over its quota. Add "
 "credit with the provider, or switch to another one."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:96
+#: contents/ui/chat/ErrorText.js:106
 #, kde-format
 msgid ""
 "The provider is limiting how fast you can send. Wait a moment and try again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:99
+#: contents/ui/chat/ErrorText.js:109
 #, kde-format
 msgid ""
 "The provider took too long to answer. Try again, or choose a faster model."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:102
+#: contents/ui/chat/ErrorText.js:112
 #, kde-format
 msgid ""
 "Can't reach the provider. Check your internet connection and the server "
 "address in Settings."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:116
+#: contents/ui/chat/ErrorText.js:126
 #, kde-format
 msgid ""
 "This model has been retired and isn't available on your %1 account any more. "
 "Pick another model in Settings → Connection, or in this chat's settings."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:118
+#: contents/ui/chat/ErrorText.js:128
 #, kde-format
 msgid ""
 "This model has been retired and isn't available on your account any more. "
 "Pick another model in Settings → Connection, or in this chat's settings."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:120
+#: contents/ui/chat/ErrorText.js:130
 #, kde-format
 msgid ""
 "This model isn't available on your %1 account (it may be retired or not "
@@ -1705,7 +1720,7 @@ msgid ""
 "settings."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:121
+#: contents/ui/chat/ErrorText.js:131
 #, kde-format
 msgid ""
 "This model isn't available on your account (it may be retired or not "
@@ -1713,17 +1728,17 @@ msgid ""
 "settings."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:125
+#: contents/ui/chat/ErrorText.js:135
 #, kde-format
 msgid "The provider had a problem on its side. Try again in a moment."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:128
+#: contents/ui/chat/ErrorText.js:138
 #, kde-format
 msgid "The model sent back nothing. Try again."
 msgstr ""
 
-#: contents/ui/chat/ErrorText.js:131 contents/ui/chat/Notifier.qml:114
+#: contents/ui/chat/ErrorText.js:141 contents/ui/chat/Notifier.qml:114
 #, kde-format
 msgid "Something went wrong."
 msgstr ""
@@ -2115,6 +2130,13 @@ msgstr ""
 #: contents/ui/chat/MessageImages.qml:280
 #, kde-format
 msgid "Saved to %1"
+msgstr ""
+
+#: contents/ui/chat/ModeMismatchBanner.qml:33
+#, kde-format
+msgid ""
+"The mode is now %1. This chat stays in %2 mode, because a chat can't change "
+"mode. Start a new chat to use %1."
 msgstr ""
 
 #: contents/ui/chat/NoticeBanner.qml:53 contents/ui/chat/QuestionCard.qml:106
