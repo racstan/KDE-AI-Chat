@@ -31,6 +31,8 @@ You set up providers in [Providers](providers.md). The widget sends your message
 2. Set the **Server address** (keep the suggested one unless you started OpenCode on another port). Press **Start** to run it in the background, or **Check** to see whether it answers. **Stop** only stops a server that this widget started.
 3. Choose the **Provider**, **Model** and **Variant** for new OpenCode chats. The list comes from OpenCode itself, which keeps its own keys.
 
+The model you choose is always used, also when the chat has an agent (such as `build`) that names its own model in OpenCode's configuration. Leave the model empty to let the agent use its own.
+
 In an OpenCode chat you can pick the agent and the folder it works in. The agent shows what it is doing in cards, and asks for permission before it changes things: you answer with **Allow**, **Always allow** or **Reject**. If the popup is closed, an "input needed" notification lets you answer from the desktop.
 
 ## Pi mode

@@ -26,7 +26,7 @@ Change or remove the shortcut in System Settings → Keyboard → Shortcuts, und
 Other programs hand a question to the widget through a private "ask inbox": one private file per request in your runtime folder, which is gone at logout. So a question never sits on a command line that other users could read. The rules:
 
 - A request that has **files** never sends by itself. The files are attached, the question is put in the message box, and you press Enter. (A KRunner question without files sends at once.)
-- Files must be real, readable files under your **home folder**.
+- Files must be real, readable files under your **home folder** or on a mounted drive (`/media`, `/run/media` or `/mnt`).
 - Anything inside a **hidden folder or a hidden file** (such as `.ssh` or `.gnupg`) is refused. Each refused file is named in the chat.
 - A request goes into the open chat in that chat's own mode. It never changes a chat's mode.
 - Requests older than a day are dropped.
