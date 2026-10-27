@@ -89,3 +89,30 @@ def test_a_large_payload_file_is_read(tmp_path):
     folder.mkdir(mode=0o700)
     _write(str(folder), "kdeaichat-payload-3.ini", {"content": "z" * 5_000_000})
     assert len(private_payload.read("@kdeaichat-payload-3.ini", str(folder))["content"]) == 5_000_000
+
+
+def _aged(path, seconds):
+    t = os.path.getmtime(path) - seconds
+    os.utime(path, (t, t), follow_symlinks=False)
+
+
+def test_sweep_removes_only_old_payload_files(tmp_path):
+    old = _write(str(tmp_path), "kdeaichat-payload-helper-1-2.ini", {})
+    fresh = _write(str(tmp_path), "kdeaichat-payload-helper-1-3.ini", {})
+    other = _write(str(tmp_path), "other-file.ini", {})
+    _aged(old, 7200)
+    _aged(other, 7200)
+    (tmp_path / "kdeaichat-payload-dir.ini").mkdir()
+    target = tmp_path / "target"
+    target.write_text("x")
+    link = tmp_path / "kdeaichat-payload-link.ini"
+    link.symlink_to(target)
+    _aged(str(target), 7200)
+    os.utime(link, (1, 1), follow_symlinks=False)
+    assert private_payload.sweep(str(tmp_path)) == 1
+    assert not os.path.exists(old) and os.path.exists(fresh) and os.path.exists(other)
+    assert os.path.islink(link) and target.exists()
+
+
+def test_sweep_without_folder_is_quiet(tmp_path):
+    assert private_payload.sweep(str(tmp_path / "missing")) == 0

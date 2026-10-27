@@ -54,6 +54,8 @@ def main() -> None:
         sys.exit(1)
 
     command = sys.argv[1]
+    from kdeaichat import private_payload
+    private_payload.sweep()  # payload files an earlier run never read
     if command == "run_schedule":  # started by systemd as `run_schedule <id>` (%i), not base64
         payload: Dict[str, Any] = {"id": sys.argv[2] if len(sys.argv) > 2 else ""}
     else:

@@ -43,7 +43,8 @@ P5Support.DataSource {
 
     function cleanupTemporaryAttachment(path) {
         var value = String(path || "");
-        if (value.indexOf("/tmp/kdeaichat_clip_") !== 0 && value.indexOf("/tmp/kdeaichat_shot_") !== 0)
+        // clipboard images live in the runtime folder (/tmp as a fallback); the extractor checks the folder
+        if (!/^\/(?:[^\/]+\/)*kdeaichat_(?:clip|shot)_[^\/]*$/.test(value))
             return;
         var extractor = attachments.getDocExtractorPath();
         var safePath = Sec.validateFilePath(value);

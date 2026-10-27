@@ -131,3 +131,32 @@ class TestExtractEdgeCases:
             assert len(result["content"]) == 100000
         finally:
             os.unlink(tmpname)
+
+
+class TestClipboardFiles:
+    def test_clip_dir_prefers_the_runtime_folder(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+        assert ext.clip_dir() == str(tmp_path)
+        monkeypatch.delenv("XDG_RUNTIME_DIR")
+        assert ext.clip_dir() == tempfile.gettempdir()
+
+    def test_cleanup_accepts_the_runtime_folder_only_for_our_names(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+        mine = tmp_path / "kdeaichat_clip_x.png"
+        other = tmp_path / "other.png"
+        mine.write_text("x")
+        other.write_text("x")
+        assert ext.cleanup_temporary_file(str(mine)) == {"status": "success"}
+        assert not mine.exists()
+        assert ext.cleanup_temporary_file(str(other))["status"] == "error" and other.exists()
+
+    def test_sweep_stale_clips(self, tmp_path):
+        old = tmp_path / "kdeaichat_clip_old.png"
+        new = tmp_path / "kdeaichat_clip_new.png"
+        keep = tmp_path / "unrelated.png"
+        for p in (old, new, keep):
+            p.write_text("x")
+        os.utime(old, (1, 1))
+        os.utime(keep, (1, 1))
+        assert ext.sweep_stale_clips(str(tmp_path)) == 1
+        assert not old.exists() and new.exists() and keep.exists()

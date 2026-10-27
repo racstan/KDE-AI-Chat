@@ -105,7 +105,8 @@ def test_direct_run_appends_to_the_chat_and_notifies(chat_env, provider):
     entry = chat_env.inbox_entry(name)
     assert entry["chatId"] == "s-1" and entry["notified"] is True and entry["messages"] == [user, reply]
     notes = chat_env.sched.recorded("fake-notify-send")
-    assert notes and notes[-1][-2:] == ["Daily news is ready", "Here are today's headlines."]
+    assert notes and notes[-1][-2:] == ["Daily news is ready", "A new reply is ready"]
+    assert not any("headlines" in " ".join(call) for call in chat_env.sched.recorded("fake-notify-send"))
     # the key never reaches a command line
     assert all(KEY not in " ".join(call) for call in chat_env.sched.recorded())
 
