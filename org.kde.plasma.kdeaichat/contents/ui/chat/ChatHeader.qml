@@ -99,30 +99,24 @@ RowLayout {
         onClicked: header.settingsRequested()
     }
 
-    Item {
-        Layout.fillWidth: true
-    }
-
+    // The title takes what the buttons leave and elides. It must never widen
+    // the header: a Label's minimum width is its text width unless set to 0.
     PC3.Label {
         text: header.historyFull ? i18n("%1 History", header.appName) : (header.chat.currentSessionTitle || i18n("New Chat"))
         font.bold: true
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
-        Layout.fillWidth: false
-        Layout.maximumWidth: Math.max(50, header.width - 220 - (incognitoBadge.visible ? incognitoBadge.width + header.spacing : 0))
+        Layout.fillWidth: true
+        Layout.minimumWidth: 0
         clip: true
     }
 
-    // An incognito chat is marked (chat/IncognitoBadge.qml); its text goes in a very narrow header.
+    // An incognito chat is marked (chat/IncognitoBadge.qml); its text goes in a narrower header.
     IncognitoBadge {
         id: incognitoBadge
         visible: !header.historyFull && header.inIncognito
         chat: header.chat
-        compact: header.width < Kirigami.Units.gridUnit * 24
-    }
-
-    Item {
-        Layout.fillWidth: true
+        compact: header.width < Kirigami.Units.gridUnit * 36
     }
 
     // New chat: a plain "+" with no menu. It sits away from the More button,

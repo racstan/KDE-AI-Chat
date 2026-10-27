@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
@@ -10,6 +11,28 @@ Chat.AccentArea {
     id: repRoot
     anchors.fill: parent
     accent: root.prefs ? root.prefs.accent : ""
+
+    readonly property int panelEdge: Plasmoid.location
+    readonly property bool sideEdge: panelEdge === PlasmaCore.Types.LeftEdge || panelEdge === PlasmaCore.Types.RightEdge
+    // Which corner of the screen the popup is nearest (see grip, below).
+    property bool popupLeftward: false
+    property bool popupUpward: false
+
+    function updatePopupSide() {
+        var screen = repRoot.Screen;
+        if (!repRoot.Window.window || grip.pressed || repRoot.width <= 0)
+            return;
+        var topLeft = repRoot.mapToGlobal(0, 0);
+        popupLeftward = grip.growsTowardsLow(topLeft.x, topLeft.x + repRoot.width, screen.virtualX, screen.virtualX + screen.width);
+        popupUpward = grip.growsTowardsLow(topLeft.y, topLeft.y + repRoot.height, screen.virtualY, screen.virtualY + screen.height);
+    }
+    onVisibleChanged: if (visible) Qt.callLater(updatePopupSide)
+    Component.onCompleted: Qt.callLater(updatePopupSide)
+    Connections {
+        target: repRoot.Window.window
+        function onXChanged() { repRoot.updatePopupSide(); }
+        function onYChanged() { repRoot.updatePopupSide(); }
+    }
 
     Connections {
         target: root.voiceManagerRef || null
@@ -157,8 +180,10 @@ Chat.AccentArea {
         id: grip
         chat: root
         config: plasmoid.configuration
-        growsUp: Plasmoid.location === PlasmaCore.Types.BottomEdge
-        growsLeft: Plasmoid.location === PlasmaCore.Types.RightEdge
+        // Along the panel the popup sits where the widget is, so the screen
+        // decides: a panel at the bottom right grows the popup up and left.
+        growsUp: repRoot.panelEdge === PlasmaCore.Types.BottomEdge || (repRoot.sideEdge && repRoot.popupUpward)
+        growsLeft: repRoot.panelEdge === PlasmaCore.Types.RightEdge || (!repRoot.sideEdge && repRoot.popupLeftward)
         z: 1001
     }
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 14:50+0530\n"
+"POT-Creation-Date: 2026-10-27 14:53+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -99,76 +99,76 @@ msgstr ""
 msgid "Open Settings"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:107
+#: contents/ui/chat/ChatHeader.qml:105
 #, kde-format
 msgid "%1 History"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:107 contents/ui/chat/SessionList.qml:162
+#: contents/ui/chat/ChatHeader.qml:105 contents/ui/chat/SessionList.qml:162
 #: contents/ui/chat/ChatSearchPanel.qml:190 contents/ui/chat/UndoNotice.qml:128
 #, kde-format
 msgid "New Chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:138 contents/ui/ConfigAppearance.qml:71
+#: contents/ui/chat/ChatHeader.qml:132 contents/ui/ConfigAppearance.qml:71
 #: contents/ui/config/LayoutSettings.qml:168
 #, kde-format
 msgid "New chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:157 contents/ui/ConfigAppearance.qml:72
+#: contents/ui/chat/ChatHeader.qml:151 contents/ui/ConfigAppearance.qml:72
 #, kde-format
 msgid "New incognito chat (never saved)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:169 contents/ui/ChatSettingsDialog.qml:109
+#: contents/ui/chat/ChatHeader.qml:163 contents/ui/ChatSettingsDialog.qml:109
 #: contents/ui/config/LayoutSettings.qml:180
 #, kde-format
 msgid "Chat info"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:184
+#: contents/ui/chat/ChatHeader.qml:178
 #, kde-format
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:256 contents/ui/chat/SessionList.qml:313
+#: contents/ui/chat/ChatHeader.qml:250 contents/ui/chat/SessionList.qml:313
 #: contents/ui/chat/ChatRowMenu.qml:25
 #, kde-format
 msgid "Rename chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:273
+#: contents/ui/chat/ChatHeader.qml:267
 #, kde-format
 msgid "Jump to first message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:284
+#: contents/ui/chat/ChatHeader.qml:278
 #, kde-format
 msgid "Jump to previous message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:289
+#: contents/ui/chat/ChatHeader.qml:283
 #, kde-format
 msgid "Jump to next message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:294
+#: contents/ui/chat/ChatHeader.qml:288
 #, kde-format
 msgid "Jump to latest message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:305
+#: contents/ui/chat/ChatHeader.qml:299
 #, kde-format
 msgid "Schedule a message…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:311
+#: contents/ui/chat/ChatHeader.qml:305
 #, kde-format
 msgid "Export chat…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:317
+#: contents/ui/chat/ChatHeader.qml:311
 #, kde-format
 msgid "Clear chat"
 msgstr ""
@@ -2457,12 +2457,12 @@ msgstr ""
 msgid "Apply"
 msgstr ""
 
-#: contents/ui/FullRepresentationContent.qml:100
+#: contents/ui/FullRepresentationContent.qml:123
 #, kde-format
 msgid "Rebuild the chat list from chat files"
 msgstr ""
 
-#: contents/ui/FullRepresentationContent.qml:107
+#: contents/ui/FullRepresentationContent.qml:130
 #, kde-format
 msgid ""
 "This chat's file could not be read. A copy was kept and this chat is not "
