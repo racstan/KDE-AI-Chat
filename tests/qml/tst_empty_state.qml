@@ -42,6 +42,8 @@ Item {
             chat.providerModel = "openrouter/auto";
             chat.providerBaseUrl = "https://openrouter.ai/api/v1";
             chat.promptTemplates = [];
+            chat.sessions = [];
+            chat.currentSessionId = "a";
             wait(50);
         }
 
@@ -74,7 +76,7 @@ Item {
             chat.promptTemplates = [{name: "Fix code", prompt: "Fix this code:\n"}, {name: "Summarise", prompt: "Summarise the following:\n"}];
             wait(50);
             var list = chips();
-            compare(list.length, 2);
+            compare(list.length, 6, "two templates, then built-in suggestions");
             compare(list[0].text, "Fix code");
             compare(list[1].text, "Summarise");
             screenshot(root, "empty-state-templates");
@@ -82,19 +84,68 @@ Item {
             compare(chat.chatInputText, "Summarise the following:\n");
         }
 
-        function test_5_without_templates_there_are_a_few_examples() {
-            compare(chips().length, 3);
+        function test_5_without_templates_there_are_six_suggestions_that_fill_the_input() {
+            compare(chips().length, 6);
             mouseClick(chips()[0]);
-            verify(chat.chatInputText !== "", "an example fills the input");
+            verify(chat.chatInputText !== "", "a suggestion fills the input");
+            compare(chat.calls.filter(c => c[0] === "send").length, 0, "and is never sent by itself");
+            screenshot(root, "empty-state-suggestions");
         }
 
-        function test_6_at_most_six_chips() {
+        function test_6_at_most_six_chips_and_templates_never_crowd_out_the_rest() {
             var many = [];
             for (var i = 0; i < 10; i++)
                 many.push({name: "T" + i, prompt: "p" + i});
             chat.promptTemplates = many;
             wait(50);
-            compare(chips().length, 6);
+            var list = chips();
+            compare(list.length, 6);
+            compare(list.filter(c => /^T\d$/.test(c.text)).length, 3);
+        }
+
+        function test_6b_agent_modes_get_project_tasks() {
+            chat.piMode = true;
+            wait(50);
+            var all = ["Explain this project", "Find and fix a bug", "Write tests", "Summarise recent changes",
+                       "Review my changes", "Find the TODOs", "Refactor", "Write documentation",
+                       "Check dependencies", "How do I run it?", "What should I do first?", "Wrap up today's work"];
+            var list = chips();
+            compare(list.length, 6);
+            for (var i = 0; i < list.length; i++)
+                verify(all.indexOf(list[i].text) >= 0, "agent chip: " + list[i].text);
+            screenshot(root, "empty-state-agent");
+        }
+
+        function test_6c_a_chat_keeps_its_chips_and_the_next_one_differs() {
+            var names = () => chips().map(c => c.text).join("|");
+            var first = names();
+            wait(50);
+            compare(names(), first, "stable while the chat is open");
+            var differs = false;
+            for (var i = 0; i < 6 && !differs; i++) {
+                chat.currentSessionId = "other-" + i;
+                wait(30);
+                differs = names() !== first;
+            }
+            verify(differs, "another chat gets other suggestions");
+            chat.currentSessionId = "a";
+        }
+
+        function test_6d_continue_chip_switches_to_the_latest_other_chat() {
+            chat.currentSessionId = "a";
+            chat.sessions = [{value: "a", text: "Trip planning", updatedAt: 9},
+                             {value: "b", text: "Tax questions", updatedAt: 5},
+                             {value: "c", text: "Old", updatedAt: 1}];
+            wait(50);
+            var list = chips();
+            compare(list.length, 6);
+            compare(list[0].text, "Continue: Tax questions");
+            screenshot(root, "empty-state-continue");
+            mouseClick(list[0]);
+            compare(chat.currentSessionId, "b");
+            compare(chat.chatInputText, "", "switching does not fill the input");
+            chat.currentSessionId = "a";
+            chat.sessions = [];
         }
 
         function test_7_gone_as_soon_as_there_is_a_message() {

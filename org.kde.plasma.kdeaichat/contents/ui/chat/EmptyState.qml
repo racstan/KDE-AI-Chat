@@ -1,13 +1,15 @@
 // What an empty chat shows: who you are talking to (and whether your
 // messages leave the computer), a hint, and a few starting points. Starting
-// points are the prompt templates from the settings; a chip puts the
-// template's text in the input for you to change and send.
+// points are your prompt templates, built-in suggestions for the mode and a
+// way back to the latest chat (Starters.js); a chip puts its text in the
+// input for you to change and send.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "Privacy.js" as Privacy
+import "Starters.js" as Starters
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
@@ -25,16 +27,33 @@ Item {
     readonly property var privacy: Privacy.describe(mode, providerConfig ? providerConfig.baseUrl : "")
 
     readonly property var templates: chat && chat.promptTemplates ? chat.promptTemplates : []
-    // Shown when no templates are set up.
-    readonly property var examples: [
-        {"name": i18n("Explain something simply"), "prompt": i18n("Explain this in simple terms: ")},
-        {"name": i18n("Help me write"), "prompt": i18n("Help me write ")},
-        {"name": i18n("Brainstorm ideas"), "prompt": i18n("Give me ten ideas for ")}
-    ]
-    readonly property var starters: (templates.length > 0 ? templates : examples).slice(0, 6)
+    // Up to six chips (Starters.js): your templates, the latest other chat, then
+    // built-in suggestions for this mode, different for each new chat.
+    readonly property var starters: Starters.pick({
+        "mode": mode,
+        "templates": templates,
+        "seed": chat ? chat.currentSessionId : "",
+        "hour": new Date().getHours(),
+        "sessions": chat && chat.sessions ? chat.sessions : [],
+        "currentId": chat ? chat.currentSessionId : ""
+    }).map(function(chip) {
+        if (chip.kind === "template")
+            return {"name": chip.name, "prompt": chip.prompt, "tip": chip.prompt, "chatId": ""};
+        if (chip.kind === "continue")
+            return {"name": i18n("Continue: %1", chip.title), "prompt": "", "tip": chip.title, "chatId": chip.id};
+        var text = starterTexts.forId(chip.id);
+        return {"name": text.name, "prompt": text.prompt, "tip": text.prompt, "chatId": ""};
+    })
 
-    function useStarter(prompt) {
-        chat.chatInputText = prompt;
+    StarterTexts { id: starterTexts }
+
+    // A chip puts its text in the box (never sends); "Continue" opens that chat.
+    function useStarter(starter) {
+        if (starter.chatId !== "") {
+            chat.switchSession(starter.chatId);
+            return;
+        }
+        chat.chatInputText = starter.prompt;
         chat.focusInput();
     }
 
@@ -134,9 +153,9 @@ Item {
                     objectName: "starterChip"
                     text: modelData.name
                     QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: modelData.prompt
+                    QQC2.ToolTip.text: modelData.tip
                     Accessible.name: i18n("Start with %1", modelData.name)
-                    onClicked: empty.useStarter(modelData.prompt)
+                    onClicked: empty.useStarter(modelData)
                 }
             }
         }
