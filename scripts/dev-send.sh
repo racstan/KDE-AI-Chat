@@ -12,6 +12,7 @@
 # DEV_AUTO_ANSWER="Tea" answers the model's ask_user questions with that text (see dev-run.sh).
 # DEV_PROJECT="Answer in French." puts the chat in a project with those instructions.
 # DEV_CONFIG=$'userName=Ana\naiName=Nova' adds settings (one key=value per line) to the sandbox config.
+# DEV_INCOGNITO=1 sends in a new incognito chat and checks afterwards that nothing of it is on disk.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -110,3 +111,33 @@ for path in glob.glob(f"{sys.argv[1]}/data/kdeaichat/chats/applet-4/chat-*.ini")
                 if m.get("role") == "question_request":
                     print(f"    question [{m.get('status')}] answer={m.get('submittedAnswer')!r}")
 PY
+
+# DEV_INCOGNITO=1: the message went into an incognito chat. Its conversation
+# comes from the log (it has no file), and nothing of it may be on disk.
+if [ "${DEV_INCOGNITO:-0}" = "1" ]; then
+    python3 - "$SANDBOX" "$ROOT/build/dev-run/qml.log" <<'PY'
+import json, os, sys
+sandbox, log = sys.argv[1:]
+lines = [l.split("DEV_INCOGNITO ", 1)[1] for l in open(log, encoding="utf-8", errors="replace") if "DEV_INCOGNITO " in l]
+if not lines:
+    sys.exit("incognito: no incognito chat was logged")
+chat = json.loads(lines[-1])
+print(f"incognito chat {chat['id']}:")
+for m in chat["messages"]:
+    print(f"  [{m['role']}] {('model=' + m['model'] + ' ') if m['model'] else ''}{m['content']}")
+found = []
+for folder, _dirs, files in os.walk(os.path.join(sandbox, "data")):
+    for name in files + _dirs:
+        path = os.path.join(folder, name)
+        if chat["id"] in name:
+            found.append(path)
+        elif os.path.isfile(path) and name.endswith((".ini", ".json", ".md")):
+            if chat["id"] in open(path, encoding="utf-8", errors="replace").read():
+                found.append(path)
+config = os.path.join(sandbox, "config", "plasmawindowedrc")
+if os.path.exists(config) and chat["id"] in open(config, encoding="utf-8").read():
+    found.append(config)
+print("incognito: nothing of it on disk" if not found else "incognito: FOUND ON DISK: " + ", ".join(found))
+sys.exit(1 if found else 0)
+PY
+fi

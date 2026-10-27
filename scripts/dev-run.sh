@@ -94,13 +94,21 @@ fi
 # DEV_SEND_MESSAGE="text": in the staged copy only, the widget sends this text from the
 # composer once, a few seconds after it starts (root.sendMessage, the Send button's path).
 # scripts/dev-send.sh and the dev-*-e2e.sh scripts use it.
+# DEV_INCOGNITO=1: the message goes into a new incognito chat (chat/Incognito.qml)
+# instead; nothing of it is stored, so its messages are logged every 2 s as
+# "DEV_INCOGNITO <json>" for dev-send.sh to print.
 if [ -n "${DEV_SEND_MESSAGE:-}" ]; then
-    python3 - "$STAGE/$DEV_ID/contents/ui/main.qml" "$DEV_SEND_MESSAGE" <<'PY'
+    python3 - "$STAGE/$DEV_ID/contents/ui/main.qml" "$DEV_SEND_MESSAGE" "${DEV_INCOGNITO:-0}" <<'PY'
 import json, sys
-path, message = sys.argv[1:]
+path, message, incognito = sys.argv[1:]
 src = open(path, encoding="utf-8").read()
 end = src.rstrip().rindex("}")
-hook = "    Timer { interval: 5000; running: true; onTriggered: { root.chatInputText = %s; root.sendMessage(); } }\n" % json.dumps(message)
+start = "root.incognito.start(); " if incognito == "1" else ""
+hook = "    Timer { interval: 5000; running: true; onTriggered: { %sroot.chatInputText = %s; root.sendMessage(); } }\n" % (start, json.dumps(message))
+if incognito == "1":
+    hook += ("    Timer { interval: 2000; running: true; repeat: true; onTriggered: if (root.incognito.active) console.log(\"DEV_INCOGNITO \" + "
+             "JSON.stringify({\"id\": root.currentSessionId, \"messages\": root.messages.map(function(m) { "
+             "return {\"role\": m.role, \"model\": m.model || \"\", \"content\": String(m.content || \"\").substring(0, 400)}; })})) }\n")
 open(path, "w", encoding="utf-8").write(src[:end] + hook + src[end:])
 PY
 fi
