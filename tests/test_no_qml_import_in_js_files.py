@@ -36,6 +36,7 @@ WATCHED_FILES = (
     "ProviderCheck.js",
     "ProviderVariants.js",
     "Variants.js",
+    "chat/Activity.js",
     "backends/DirectBackend.js",
     "backends/DirectStream.js",
     "backends/DirectTools.js",

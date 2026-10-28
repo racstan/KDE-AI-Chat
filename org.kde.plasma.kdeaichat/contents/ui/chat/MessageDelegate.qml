@@ -35,9 +35,6 @@ Item {
     // The name and time show on the first message of a run from one sender only (MessageGroups.js).
     readonly property bool showHeader: showDay || MessageGroups.startsRun(chat.messages, index)
     readonly property bool showDay: index === 0 || chat.messageDayKeyAt(index) !== chat.messageDayKeyAt(index - 1)
-    readonly property string reasoning: streaming && (chat.currentStreamReasoning || chat.currentStreamExtractedReasoning)
-        ? [chat.currentStreamReasoning, chat.currentStreamExtractedReasoning].filter(function(t) { return !!t; }).join("\n")
-        : (message.reasoning || "")
     property string selectedText: ""
     // Picked with Up/Down (ChatView.qml).
     readonly property bool selected: !!view && view.selectedIndex === index
@@ -191,14 +188,14 @@ Item {
                     Item { Layout.fillWidth: true }
                 }
 
-                Loader {
-                    active: row.role === "assistant" && row.reasoning !== "" && !row.editing
+                // Direct and Pi: thinking and steps in one box; OpenCode keeps its own display.
+                ThinkingSlot {
                     visible: active
                     Layout.fillWidth: true
-                    sourceComponent: ReasoningBlock {
-                        text: row.reasoning
-                        streaming: row.streaming && row.chat.currentStreamText === ""
-                    }
+                    chat: row.chat
+                    message: row.message
+                    streaming: row.streaming
+                    editing: row.editing
                 }
 
                 Loader {
@@ -337,7 +334,7 @@ Item {
                 }
 
                 Loader {
-                    active: (row.message.contextItems || []).length > 0
+                    active: row.chat.openCodeMode && (row.message.contextItems || []).length > 0
                     visible: active
                     Layout.fillWidth: true
                     sourceComponent: ContextList {
