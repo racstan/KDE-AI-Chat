@@ -214,6 +214,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/IncognitoBadge.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/IncognitoLeaveDialog.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatSearch.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/DisplayPath.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatBody.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatInfoSummary.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ChatOverridesForm.qml",

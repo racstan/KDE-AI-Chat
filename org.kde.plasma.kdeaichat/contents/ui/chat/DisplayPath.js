@@ -22,8 +22,9 @@ function tilde(path, home) {
 }
 
 // What a user typed in a folder field ("~" or "~/rest" or a full path) -> the full path.
+// Not trimmed: a field bound to the result must keep a space the user just typed.
 function expand(text, home) {
-    var t = String(text || "").trim();
+    var t = String(text || "");
     var h = plainPath(home);
     if (t === "~")
         return h || t;
