@@ -15,7 +15,7 @@ The widget does not install or run speech models itself. The speech is done by a
 2. **Open Speech Note once** and download a **speech-to-text** model (for dictation) and a **voice** (for read aloud) in your language. The languages and models are chosen in Speech Note, not in the widget.
 3. In the widget's **Settings → Voice**, switch on **Dictation** and/or **Read aloud**. Speech Note is the default engine. If you don't want Speech Note's own default model or voice, pick one in the **Speech model** and **Voice** lists. Each name shows its language.
 
-Settings → Voice shows whether Speech Note is installed and has a **Test** to try your settings. It says "Speech Note has no speech-to-text model yet" or "no voice yet" if you still need to download one.
+Settings → Voice shows whether Speech Note is installed and has a **Test** to try your settings. It says "Speech Note has no speech-to-text model yet" or "no voice yet" if you still need to download one. Until you have a voice in Speech Note (or while it isn't installed), replies are read with the system voice.
 
 ![Settings → Voice with Speech Note as the engine](media/settings-voice-speechnote-light.png)
 *Settings → Voice with Speech Note as the engine.*

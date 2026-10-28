@@ -360,12 +360,13 @@ Item {
             compare(errors.count, 0);
         }
 
-        function test_no_voice_in_speech_note_is_an_error_not_a_fallback() {
+        function test_no_voice_in_speech_note_also_falls_back_to_the_system_voice() {
             root.script["speechnote_speak"] = root.error("not_configured");
-            voice.playTTS("Hello there.");
-            tryCompare(errors, "count", 1, 3000);
-            compare(errors.signalArguments[0][0], "Speech Note has no speech model yet — add one in Speech Note");
-            verify(!voice.isPlaying);
+            voice.playTTS("Hello there, this is read anyway.");
+            tryVerify(function() { return voice.isPlaying && voice.currentPlayingChunk !== ""; }, 3000);
+            compare(errors.count, 0, "no error: the system voice reads until a voice is downloaded");
+            tryVerify(function() { return !voice.isPlaying; }, 15000);
+            compare(errors.count, 0);
         }
     }
 }

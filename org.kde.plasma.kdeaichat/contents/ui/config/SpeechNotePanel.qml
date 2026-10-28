@@ -129,7 +129,7 @@ ColumnLayout {
             wrapMode: Text.Wrap
             font: Kirigami.Theme.smallFont
             text: panel.isStt ? i18n("Speech Note has no speech-to-text model yet: download one in your language inside Speech Note.")
-                              : i18n("Speech Note has no voice yet: download one in your language inside Speech Note.")
+                              : i18n("Speech Note has no voice yet: download one in your language inside Speech Note. Until then the system voice reads.")
         }
 
         SettingHelp {

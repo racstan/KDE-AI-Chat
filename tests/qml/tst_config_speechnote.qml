@@ -228,7 +228,7 @@ Item {
             // Installed: no install steps, and one line on what is missing (not two that say the same).
             verify(!field(tts, "speechNoteSetup").visible, "no install steps once it is installed");
             verify(!field(stt, "speechNoteSetup").visible, "no install steps once it is installed");
-            compare(field(tts, "speechNoteNoModels").text, "Speech Note has no voice yet: download one in your language inside Speech Note.");
+            compare(field(tts, "speechNoteNoModels").text, "Speech Note has no voice yet: download one in your language inside Speech Note. Until then the system voice reads.");
             compare(field(stt, "speechNoteNoModels").text, "Speech Note has no speech-to-text model yet: download one in your language inside Speech Note.");
             verify(field(tts, "speechNoteTtsModel").visible, "the default entry is still offered");
             compare(modelValues(field(tts, "speechNoteTtsModel")), [""]);

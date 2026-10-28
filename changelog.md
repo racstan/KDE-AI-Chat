@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New license: PolyForm Noncommercial 1.0.0.** From 1.4.0, KDE AI Chat may be used, changed and shared for any noncommercial purpose; commercial use needs a separate license from the author. Versions up to 1.3.1 stay under the GNU GPL v3.0 or later. A **SECURITY.md** says how to report security problems privately.
 
 ### Fixed
+- **Search matches are easy to see in dark themes.** The matched words are bold and underlined in the normal text colour instead of a dim blue.
+- **Read aloud works before Speech Note has a voice.** With Speech Note installed but no voice downloaded yet, replies are read with the system voice (as when Speech Note isn't installed) instead of failing, and Settings → Voice no longer tells you to install Speech Note when it already is.
+- **Folders show as `~/...`.** Settings → Storage, the chat's workspace and project folders show a folder in your home as `~/...` instead of the full path.
 - **Search results show plain text.** The text around a match no longer shows Markdown marks such as ``` or ** from the message.
 - **`/memories` sends all your memories with a question.** Memories are picked by the words you use, so a question worded differently could miss one. `/memories <question>` (or `/memories` before your next message) sends them all, within the size limit.
 - **Memories no longer slow down or cost more.** They now go with the message being answered instead of the AI's standing instructions, which changed with every message: Pi was restarted each time and providers' discount for repeated text (prompt caching) was lost.

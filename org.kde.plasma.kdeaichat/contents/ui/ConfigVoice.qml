@@ -147,8 +147,9 @@ KCM.SimpleKCM {
         idleUnloadMs: 30000
         onError: function(message) { page.testResult = i18n("Read aloud failed: %1", message); }
         onIsPlayingChanged: if (!isPlaying && page.testResult === "") page.testResult = usedFallback
-            ? (engine.id === "speechnote" ? i18n("That was the system voice, because Speech Note is not installed: see the setup steps above.")
-                                          : i18n("That was the system voice.")) : i18n("Finished.")
+            ? (engine.id !== "speechnote" ? i18n("That was the system voice.")
+               : fallbackReason === "not_configured" ? i18n("That was the system voice, because Speech Note has no voice yet: download one in Speech Note.")
+               : i18n("That was the system voice, because Speech Note is not installed: see the setup steps above.")) : i18n("Finished.")
     }
 
     ColumnLayout {

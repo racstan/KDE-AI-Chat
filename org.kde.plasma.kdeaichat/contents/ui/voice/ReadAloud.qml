@@ -41,6 +41,8 @@ Item {
     // The default engine isn't installed yet, so the fallback engine read
     // the last text (the chat and the settings page can say so).
     property bool usedFallback: false
+    // Why: "not_installed" or "not_configured" (Speech Note has no voice yet).
+    property string fallbackReason: ""
 
     signal error(string message)
 
@@ -80,6 +82,8 @@ Item {
         reader.text = text;
         _lastText = text;
         usedFallback = !!engineOverride;
+        if (!engineOverride)
+            fallbackReason = "";
         engineId = spec.id;
         phase = spec.kind === "qt" ? "playing" : "synthesizing";
         _pending = {"chunks": chunks, "settings": settingsFor(spec, config)};
@@ -161,11 +165,12 @@ Item {
         function onWordStarted(start) { reader.currentWordStart = start; }
         function onFinished() { reader._done(); }
         function onFailed(message, code) {
-            // Not installed yet: the system voice reads instead, with no error.
+            // Not installed, or installed with no voice yet: the system voice reads instead, with no error.
             // (Later: this runner is replaced, so not from inside its signal.)
             var fallback = Engines.fallbackEngine;
-            if (code === "not_installed" && reader.engineId !== fallback && reader.phase !== "") {
+            if ((code === "not_installed" || code === "not_configured") && reader.engineId !== fallback && reader.phase !== "") {
                 let text = reader._lastText;
+                reader.fallbackReason = code;
                 Qt.callLater(function() {
                     if (reader.phase !== "" && reader._lastText === text)
                         reader.speak(text, fallback);
