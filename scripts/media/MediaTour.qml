@@ -20,6 +20,8 @@ Item {
     property var exportDialog: null
     property var plasmoidRef: null
     property bool flows: false
+    // Comma-separated step names to run instead of the whole tour (DEV_MEDIA_ONLY); see steps() below.
+    property string only: ""
     property string themeName: "light"
     property string outDir: ""
     property string framesDir: ""
@@ -40,6 +42,20 @@ Item {
         id: extras
         tour: tour
         kit: kit
+    }
+
+    VideoChat {
+        id: videoChat
+        tour: tour; kit: kit; app: tour.app; body: tour.body; settingsDialog: tour.settingsDialog
+        scheduleOverlay: tour.scheduleOverlay; exportDialog: tour.exportDialog; plasmoidRef: tour.plasmoidRef
+        pages: pages; grabItem: tour.target
+    }
+
+    VideoMore {
+        id: videoMore
+        tour: tour; kit: kit; app: tour.app; body: tour.body; settingsDialog: tour.settingsDialog
+        scheduleOverlay: tour.scheduleOverlay; exportDialog: tour.exportDialog; plasmoidRef: tour.plasmoidRef
+        pages: pages; grabItem: tour.target
     }
 
     TourSettings {
@@ -309,6 +325,27 @@ Item {
         });
     }
 
+    // The whole tour, or only the named steps (DEV_MEDIA_ONLY=videoChat,flowSend).
+    function steps() {
+        var named = {
+            "conversation": stateConversation, "empty": stateEmpty, "history": stateHistory, "search": stateSearch,
+            "incognito": stateIncognito, "commands": stateCommands, "ask": stateAsk, "chatSettings": stateChatSettings,
+            "schedule": stateSchedule, "pages": pages.run, "flowSend": flowSend, "flowSearch": flowSearch,
+            "flowIncognito": flowIncognito, "flowCommands": flowCommands, "videoChat": videoChat.run,
+            "videoMore": videoMore.run, "pageExtras": pages.runExtras, "extras": extras.run
+        };
+        if (tour.only !== "")
+            return tour.only.split(",").map(function(n) {
+                if (!named[n.trim()]) kit.fail("no tour step named " + n);
+                return named[n.trim()];
+            });
+        var all = [stateConversation, stateEmpty, stateHistory, stateSearch, stateIncognito, stateCommands,
+                   stateAsk, stateChatSettings, stateSchedule, pages.run];
+        if (flows)
+            all = all.concat([flowSend, flowSearch, flowIncognito, flowCommands, videoChat.run, videoMore.run]);
+        return all.concat([pages.runExtras, extras.run]);
+    }
+
     function run(steps, i) {
         if (i >= steps.length) {
             kit.waitFor("saves to finish", function() { return kit.saving === 0; }, 20000, function() { console.log("MEDIA_DONE"); });
@@ -330,12 +367,7 @@ Item {
             }, 20000, function() {
                 // Pixel-exact theme proof: the colour Kirigami gives the chat.
                 console.log("MEDIA_THEME " + themeName + " background=" + themeBackground);
-                var steps = [stateConversation, stateEmpty, stateHistory, stateSearch, stateIncognito, stateCommands,
-                             stateAsk, stateChatSettings, stateSchedule, pages.run];
-                if (flows)
-                    steps = steps.concat([flowSend, flowSearch, flowIncognito, flowCommands]);
-                steps = steps.concat([pages.runExtras, extras.run]);
-                tour.run(steps, 0);
+                tour.run(tour.steps(), 0);
             });
         });
     }

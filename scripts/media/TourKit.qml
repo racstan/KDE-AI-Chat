@@ -14,6 +14,8 @@ Item {
     property string theme: "light"
     property real ratio: 2
     property string framesDir: ""
+    // Pixel ratio of the flow frames (2: sharp in the 1080p video; the GIFs are scaled down).
+    property real frameRatio: 2
     property bool failed: false
     property int saving: 0
     // Steps that are allowed to fail (the extra states): guard(name, next) makes a failure log
@@ -122,7 +124,7 @@ Item {
         var t = timerComponent.createObject(kit, {"interval": every, "repeat": true});
         var frame = function() {
             var n = ("0000" + (++count)).slice(-4);
-            var size = Qt.size(Math.round(item.width), Math.round(item.height));
+            var size = Qt.size(Math.round(item.width * kit.frameRatio), Math.round(item.height * kit.frameRatio));
             kit.saving++;
             item.grabToImage(function(result) {
                 kit.saving--;

@@ -3,6 +3,8 @@
 # real widget running in the dev sandbox with made-up demo data. See docs/development.md.
 #
 # Usage: scripts/dev-media.sh [light|dark|both]      (default: both)
+#   DEV_MEDIA_ONLY=videoChat,flowSend scripts/dev-media.sh light   runs only those tour steps (MediaTour.qml
+#   steps()); the other stills and frames are kept, and nothing is checked or encoded.
 #   docs/media/<state>-<light|dark>.png   the widget's chat states and the settings pages
 #   docs/media/{send-message,search,incognito,commands}.gif and demo.webm   (light theme only)
 #
@@ -42,6 +44,14 @@ python3 "$ROOT/scripts/media/mock_openai.py" "$PORT" &
 MOCK=$!
 trap 'kill "$MOCK" 2>/dev/null || true' EXIT
 
+# The tour files whose flows DEV_MEDIA_ONLY re-records (videoChat -> VideoChat.qml; built-in steps -> MediaTour.qml).
+only_files() {
+    local name
+    for name in ${DEV_MEDIA_ONLY//,/ }; do
+        if [ -f "$ROOT/scripts/media/${name^}.qml" ]; then echo "$ROOT/scripts/media/${name^}.qml"; else echo "$ROOT/scripts/media/MediaTour.qml"; fi
+    done | sort -u
+}
+
 status=0
 for theme in $THEMES; do
     case "$theme" in
@@ -59,14 +69,18 @@ for theme in $THEMES; do
     flows=0
     if [ "$theme" = light ]; then
         flows=1
-        rm -rf "$FRAMES"
-        for flow in "${FLOWS[@]}"; do mkdir -p "$FRAMES/$flow"; done
+        # Every flow any tour file records (kit.record("<name>", ...)) gets an empty folder.
+        [ -z "${DEV_MEDIA_ONLY:-}" ] && rm -rf "$FRAMES"
+        for flow in $(grep -ohE 'kit\.record\("[a-z0-9-]+"' "$ROOT"/scripts/media/*.qml | sed -E 's/.*"(.*)"/\1/' | sort -u); do
+            [ -n "${DEV_MEDIA_ONLY:-}" ] && grep -qE "kit\.record\(\"$flow\"" $(only_files) 2>/dev/null && rm -rf "${FRAMES:?}/$flow"
+            mkdir -p "$FRAMES/$flow"
+        done
     fi
-    rm -f "$OUT"/*-"$theme".png
+    [ -z "${DEV_MEDIA_ONLY:-}" ] && rm -f "$OUT"/*-"$theme".png
     echo "== $theme: running the tour"
     set +e
     QT_QPA_PLATFORMTHEME=kde DEV_SCREENSHOT=0 DEV_KEEP=1 DEV_MEDIA_TOUR=1 DEV_MEDIA_OUT="$OUT" DEV_MEDIA_FRAMES="$FRAMES" \
-        DEV_MEDIA_THEME="$theme" DEV_MEDIA_FLOWS="$flows" "$ROOT/scripts/dev-run.sh" "$SECONDS_MAX" >"$ROOT/build/dev-media-$theme.txt" 2>&1
+        DEV_MEDIA_THEME="$theme" DEV_MEDIA_FLOWS="$flows" DEV_MEDIA_ONLY="${DEV_MEDIA_ONLY:-}" "$ROOT/scripts/dev-run.sh" "$SECONDS_MAX" >"$ROOT/build/dev-media-$theme.txt" 2>&1
     set -e
     LOG="$ROOT/build/dev-run/qml.log"
     cp "$LOG" "$ROOT/build/dev-media-$theme.log"
@@ -79,6 +93,7 @@ for theme in $THEMES; do
         echo "$theme: the tour did not finish in ${SECONDS_MAX}s" >&2
         status=1
     fi
+    [ -n "${DEV_MEDIA_ONLY:-}" ] && continue
     for state in "${STATES[@]}"; do
         [ -s "$OUT/$state-$theme.png" ] || { echo "$theme: missing $state-$theme.png" >&2; status=1; }
     done
@@ -86,7 +101,7 @@ for theme in $THEMES; do
     grep -E "$ROOT|org.kde.plasma.kdeaichat.dev/contents" "$LOG" | grep -v "used before its declaration" | head -5 || true
 done
 
-if [ "$status" = 0 ] && [[ " $THEMES " == *" light "* ]]; then
+if [ "$status" = 0 ] && [ -z "${DEV_MEDIA_ONLY:-}" ] && [[ " $THEMES " == *" light "* ]]; then
     python3 "$ROOT/scripts/media/encode.py" "$FRAMES" "$OUT" || status=1
 fi
 exit "$status"

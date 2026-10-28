@@ -168,7 +168,7 @@ if [ "${DEV_MEDIA_TOUR:-0}" = "1" ]; then
     mkdir -p "$STAGE/$DEV_ID/contents/ui/media"
     cp "$ROOT"/scripts/media/*.qml "$STAGE/$DEV_ID/contents/ui/media/"
     python3 "$ROOT/scripts/media/inject_tour.py" "$STAGE/$DEV_ID/contents/ui/FullRepresentationContent.qml" \
-        "${DEV_MEDIA_OUT:?}" "${DEV_MEDIA_FRAMES:?}" "${DEV_MEDIA_THEME:-light}" "${DEV_MEDIA_FLOWS:-0}"
+        "${DEV_MEDIA_OUT:?}" "${DEV_MEDIA_FRAMES:?}" "${DEV_MEDIA_THEME:-light}" "${DEV_MEDIA_FLOWS:-0}" "${DEV_MEDIA_ONLY:-}"
 fi
 
 kpackagetool6 --type Plasma/Applet --remove "$DEV_ID" >/dev/null 2>&1 || true
