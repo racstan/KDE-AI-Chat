@@ -5,6 +5,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtCore
+import "DisplayPath.js" as Paths
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
@@ -171,7 +173,7 @@ QQC2.Popup {
             PC3.Label {
                 objectName: "projectFolder"
                 Layout.fillWidth: true
-                text: editor.folder || i18n("No folder")
+                text: (editor.folder ? Paths.tilde(editor.folder, StandardPaths.writableLocation(StandardPaths.HomeLocation)) : "") || i18n("No folder")
                 elide: Text.ElideMiddle
                 opacity: editor.folder ? 1 : 0.7
             }

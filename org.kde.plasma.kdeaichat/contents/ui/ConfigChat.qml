@@ -5,6 +5,7 @@
 // opening). The instructions sent before every chat are on the Personality
 // page. Each chat can add its own instructions and workspace in its chat settings.
 import QtQuick
+import QtCore
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import QtQuick.Dialogs
@@ -12,6 +13,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import "config" as Config
 import "chat/Prefs.js" as Prefs
+import "chat/DisplayPath.js" as Paths
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -24,7 +26,9 @@ KCM.SimpleKCM {
     property alias cfg_allowAskUser: askUserCheck.checked
     property alias cfg_incognitoAskBeforeLeaving: incognitoAskCheck.checked
     property alias cfg_promptTemplates: templates.json
-    property alias cfg_openCodeWorkspaceCwd: workspaceField.text
+    // The full path is saved; the field shows it as ~/... under the home folder.
+    property string cfg_openCodeWorkspaceCwd: ""
+    readonly property string home: StandardPaths.writableLocation(StandardPaths.HomeLocation)
     property alias cfg_perChatModelSettings: perChatSwitch.checked
     // "chat" or "main" (see chat/EffectiveConfig.js).
     property string cfg_perChatPriority: "chat"
@@ -48,7 +52,7 @@ KCM.SimpleKCM {
             var path = selectedFolder.toString();
             if (path.indexOf("file://") === 0)
                 path = decodeURIComponent(path.substring(7));
-            workspaceField.text = path;
+            page.cfg_openCodeWorkspaceCwd = path;
         }
     }
 
@@ -120,6 +124,8 @@ KCM.SimpleKCM {
                     Layout.fillWidth: true
                     Layout.minimumWidth: Kirigami.Units.gridUnit * 16
                     maximumLength: 4096
+                    text: Paths.tilde(page.cfg_openCodeWorkspaceCwd, page.home)
+                    onTextEdited: page.cfg_openCodeWorkspaceCwd = Paths.expand(text, page.home)
                     placeholderText: i18n("No workspace")
                     Accessible.name: i18n("Default workspace for new chats")
                 }

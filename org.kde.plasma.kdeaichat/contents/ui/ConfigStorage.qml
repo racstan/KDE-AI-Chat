@@ -9,6 +9,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtCore
+import "chat/DisplayPath.js" as Paths
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kcmutils as KCM
@@ -151,7 +153,7 @@ KCM.SimpleKCM {
             QQC2.Label {
                 objectName: "storageRoot"
                 Layout.fillWidth: true
-                text: page.usage ? page.usage.root : ""
+                text: page.usage ? Paths.tilde(page.usage.root, StandardPaths.writableLocation(StandardPaths.HomeLocation)) : ""
                 elide: Text.ElideMiddle
                 font.family: "monospace"
             }

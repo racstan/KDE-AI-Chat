@@ -28,10 +28,13 @@ if [ "${DEV_KEEP:-0}" != "1" ]; then
     rm -rf "$SANDBOX"
 fi
 rm -f "$SHOT"
-mkdir -p "$OUT_DIR" "$(dirname "$SHOT")" "$SANDBOX/config" "$SANDBOX/data" "$SANDBOX/cache"
-export XDG_CONFIG_HOME="$SANDBOX/config"
-export XDG_DATA_HOME="$SANDBOX/data"
-export XDG_CACHE_HOME="$SANDBOX/cache"
+# DEV_HOME=dir (the media run): a sandbox home, so folders show as a user sees them (~/.local/share/kdeaichat).
+if [ -n "${DEV_HOME:-}" ]; then
+    export HOME="$DEV_HOME" XDG_CONFIG_HOME="$DEV_HOME/.config" XDG_DATA_HOME="$DEV_HOME/.local/share" XDG_CACHE_HOME="$DEV_HOME/.cache"
+else
+    export XDG_CONFIG_HOME="$SANDBOX/config" XDG_DATA_HOME="$SANDBOX/data" XDG_CACHE_HOME="$SANDBOX/cache"
+fi
+mkdir -p "$OUT_DIR" "$(dirname "$SHOT")" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
 # Schedule timers the sandbox widget syncs on start go to a sandbox folder, and
 # systemctl is a no-op: the real user manager is never told about them.
 export KDEAICHAT_UNIT_DIR="$SANDBOX/units"

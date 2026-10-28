@@ -132,8 +132,21 @@ Item {
             verify(field !== null, "the field exists");
             compare(field.text, "");
             compare(field.placeholderText, "No workspace");
-            field.text = "/home/me/work";
-            compare(page.cfg_openCodeWorkspaceCwd, "/home/me/work");
+            field.text = "/srv/work";
+            field.textEdited();
+            compare(page.cfg_openCodeWorkspaceCwd, "/srv/work");
+        }
+
+        function test_chat_page_default_workspace_shows_home_as_tilde() {
+            open("ConfigChat.qml", {"cfg_contextMessageLimit": -1,
+                                    "cfg_autoNameChats": true, "cfg_promptTemplates": "[]", "cfg_openCodeWorkspaceCwd": ""});
+            var field = find(page, function(item) { return item.objectName === "defaultWorkspaceField"; });
+            var home = decodeURIComponent(String(page.home).replace(/^file:\/\//, ""));
+            page.cfg_openCodeWorkspaceCwd = home + "/Projects/demo";
+            compare(field.text, "~/Projects/demo");
+            field.text = "~/Projects/other";   // typed: the full path is saved
+            field.textEdited();
+            compare(page.cfg_openCodeWorkspaceCwd, home + "/Projects/other");
         }
 
         function test_chat_page_edits_templates() {
