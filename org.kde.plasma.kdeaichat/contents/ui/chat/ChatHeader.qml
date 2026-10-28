@@ -59,6 +59,21 @@ RowLayout {
 
     Layout.fillWidth: true
 
+    // Disabled buttons get no hover, so the header tracks the pointer to
+    // still say why New chat and New incognito chat are off during a reply.
+    HoverHandler {
+        id: headerHover
+    }
+
+    function pointerOver(item) {
+        if (!headerHover.hovered || !item.visible)
+            return false;
+        var p = item.mapFromItem(header, headerHover.point.position.x, headerHover.point.position.y);
+        return item.contains(p);
+    }
+
+    readonly property string busyReason: i18n("Available when the reply is finished")
+
     PC3.ToolButton {
         id: historyButton
         objectName: "historyButton"
@@ -130,8 +145,8 @@ RowLayout {
         enabled: !header.chat.loading
         Accessible.role: Accessible.Button
         Accessible.name: i18n("New chat")
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: Accessible.name
+        QQC2.ToolTip.visible: hovered || (!enabled && header.pointerOver(this))
+        QQC2.ToolTip.text: enabled ? Accessible.name : Accessible.name + "\n" + header.busyReason
         // With the history open, the chat starts in the project it shows.
         onClicked: {
             if (header.chat.historyOnlyMode && header.chat.projects)
@@ -149,8 +164,8 @@ RowLayout {
         display: PC3.AbstractButton.IconOnly
         enabled: !header.chat.loading
         Accessible.name: i18n("New incognito chat (never saved)")
-        QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: Accessible.name
+        QQC2.ToolTip.visible: hovered || (!enabled && header.pointerOver(this))
+        QQC2.ToolTip.text: enabled ? Accessible.name : Accessible.name + "\n" + header.busyReason
         onClicked: header.incognito.start()
     }
 

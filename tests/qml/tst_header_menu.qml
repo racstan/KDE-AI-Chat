@@ -4,6 +4,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtTest
+import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 
@@ -118,6 +119,18 @@ Item {
             compare(chat.renamingCurrentChat, true, "the first item (Rename chat) was triggered from the keyboard");
             chat.renamingCurrentChat = false;
             tryVerify(() => !menu().opened);
+        }
+
+        function test_08_disabled_new_chat_buttons_still_explain_themselves() {
+            chat.loading = true;
+            var b = findChild(header, "newChatButton");
+            verify(!b.enabled);
+            mouseMove(b, b.width / 2, b.height / 2);
+            tryVerify(() => header.pointerOver(b));
+            verify(!header.pointerOver(more()));
+            verify(b.QQC2.ToolTip.visible, "a reason shows while a reply runs");
+            verify(b.QQC2.ToolTip.text.indexOf("reply is finished") > 0);
+            chat.loading = false;
         }
     }
 }
