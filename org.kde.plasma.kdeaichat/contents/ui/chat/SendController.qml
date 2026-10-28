@@ -73,6 +73,9 @@ QtObject {
         };
         if (quotes && quotes.length > 0)
             message.quotes = quotes;
+        // After /memories: this message goes with all the chat's memories (chat/Memory.qml).
+        if (chat.memory && chat.memory.takeAllNext(chat.currentSessionId))
+            message.memoriesAll = true;
         chat.messages = chat.messages.concat([message]);
         if ((role || "user") === "user")
             chat.nameChatFromFirstMessage(text);

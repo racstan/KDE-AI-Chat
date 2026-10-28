@@ -121,17 +121,16 @@ QtObject {
             // The chat's working folder (shared with OpenCode mode, hence the key), else its project's.
             "directory": chat.projects ? chat.projects.workspaceFor(sessionId).path
                 : String(chat.getSessionProperty(sessionId, "openCodeWorkspaceCwd", chat.openCodeWorkspaceCwd) || "").trim(),
-            // Settings → Personality (unless this chat turned it off), the project's
-            // instructions and the memories for this message (chat/Memory.qml),
-            // added to Pi's system prompt.
+            // Settings → Personality (unless this chat turned it off) and the project's
+            // instructions, added to Pi's system prompt. Memories go with the message
+            // instead (below): instructions that change restart Pi (pi_bridge_server.py).
             "instructions": [chat.getSessionProperty(sessionId, "personalityOff", false) === true ? "" : Personality.block(chat.plasmoid.configuration),
-                             chat.projects ? chat.projects.instructionsFor(sessionId) : "",
-                             chat.memory ? chat.memory.blockFor(sessionId) : ""].filter(function(t) { return t; }).join("\n\n"),
+                             chat.projects ? chat.projects.instructionsFor(sessionId) : ""].filter(function(t) { return t; }).join("\n\n"),
             // Provider, model and thinking: the main settings or the chat's own (EffectiveConfig.js).
             "provider": eff.provider,
             "model": eff.model,
             "thinking": mode.thinkingFor(eff),
-            "message": text,
+            "message": chat.memory ? chat.memory.withMemories(sessionId, text) : text,
             "images": images,
             // An incognito chat (chat/Incognito.qml): Pi keeps no session file of it.
             "ephemeral": !!chat.incognito && chat.incognito.isIncognito(sessionId)

@@ -36,13 +36,12 @@ QtObject {
         return cfg;
     }
 
-    // Memories (chat/Memory.qml) go last, and also when the chat's own
-    // instructions are off: memory has its own switches.
+    // Memories are not here: they go with the message being answered
+    // (chat/Memory.qml withMemories), so this stays the same from message to message.
     function buildEffectiveSystemPrompt(sessionId) {
-        var memoryBlock = chat.memory ? chat.memory.blockFor(sessionId) : "";
         var enabled = chat.getSessionProperty(sessionId, "chatSystemPromptEnabled", true) !== false;
         if (!enabled)
-            return memoryBlock;
+            return "";
         var parts = [];
         if (chat.plasmoid.configuration.enableSystemPrompt !== false && chat.compiledSystemPrompt)
             parts.push(chat.compiledSystemPrompt);
@@ -57,8 +56,6 @@ QtObject {
         var instructions = ["", "Keep the response short and focused, around 256 output tokens unless the task requires more.", "Give a balanced response, around 1024 output tokens at most.", "Give a detailed response, around 4096 output tokens at most.", "Give a comprehensive response, up to roughly 8192 output tokens when useful."];
         if (responseLength > 0 && responseLength < instructions.length)
             parts.push("Response length preference: " + instructions[responseLength]);
-        if (memoryBlock)
-            parts.push(memoryBlock);
         return parts.join("\n\n");
     }
 
@@ -133,7 +130,31 @@ QtObject {
             messages.push(item);
             plain.push(item);
         }
+        direct.addMemories(sessionId, messages);
         return {"system": direct.directSystemPrompt(sessionId), "messages": messages, "plain": asText ? plain : null};
+    }
+
+    // The memories for this request go at the start of the last user message
+    // (text, or the first text part of one with pictures). `plain` shares the item.
+    function addMemories(sessionId, messages) {
+        for (var i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role !== "user")
+                continue;
+            var content = messages[i].content;
+            if (typeof content === "string") {
+                messages[i].content = chat.memory ? chat.memory.withMemories(sessionId, content) : content;
+            } else if (Array.isArray(content)) {
+                var parts = content.slice();
+                for (var k = 0; k < parts.length; k++) {
+                    if (parts[k] && parts[k].type === "text") {
+                        parts[k] = Object.assign({}, parts[k], {"text": chat.memory ? chat.memory.withMemories(sessionId, parts[k].text || "") : parts[k].text});
+                        break;
+                    }
+                }
+                messages[i].content = parts;
+            }
+            return;
+        }
     }
 
     // Sends a direct API request and applies its events to the chat.

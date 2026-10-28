@@ -229,12 +229,13 @@ Item {
             verify(!composer.suggestions.visible);
             keyClick("/");
             tryVerify(() => composer.suggestions.visible, 1000);
-            compare(composer.suggestions.entries.length, 7, "5 commands, then the 2 templates");
+            compare(composer.suggestions.entries.length, 8, "6 commands, then the 2 templates");
             compare(composer.suggestions.entries[0].kind, "command");
-            compare(composer.suggestions.entries[5].kind, "template");
+            compare(composer.suggestions.entries[6].kind, "template");
             wait(300);
             screenshot(root.Window.window.contentItem, "shortcuts-templates");
             keyClick("s");
+            keyClick("u");
             compare(composer.suggestions.entries.length, 1);
             compare(composer.suggestions.entries[0].name, "summarize");
             keyClick(Qt.Key_Return);
@@ -251,7 +252,7 @@ Item {
             compare(composer.suggestions.current, 1);
             keyClick(Qt.Key_Up);
             compare(composer.suggestions.current, 0);
-            for (var i = 0; i < 6; i++)
+            for (var i = 0; i < 7; i++)
                 keyClick(Qt.Key_Down);
             keyClick(Qt.Key_Tab);
             compare(composer.input.text, "/summarize ");

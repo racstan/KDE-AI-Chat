@@ -20,6 +20,8 @@
 //   /image <prompt>             make a picture with the default image service (direct chats only)
 //   /remember <text>            save a memory for every chat; "/remember chat: <text>" for this
 //                               chat only, "/remember project: <text>" for its project
+//   /memories [question]        send all memories with this question (or with the next message),
+//                               not only the ones that match it
 
 var MODES = ["direct", "opencode", "pi"];
 
@@ -31,7 +33,8 @@ var COMMANDS = [
     {"name": "new", "args": "", "description": "Start a new chat"},
     {"name": "mode", "args": "<direct|opencode|pi>", "description": "Mode for NEW chats only; this chat keeps its mode"},
     {"name": "image", "args": "<prompt>", "description": "Make a picture with the default image service"},
-    {"name": "remember", "args": "<text>", "description": "Save a memory for every chat"}
+    {"name": "remember", "args": "<text>", "description": "Save a memory for every chat"},
+    {"name": "memories", "args": "[question]", "description": "Send all your memories with this question"}
 ];
 
 // The argument of /remember: {scope: "all"|"chat"|"project", text}. A

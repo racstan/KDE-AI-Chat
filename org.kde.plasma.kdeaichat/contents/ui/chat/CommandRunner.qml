@@ -130,6 +130,8 @@ Item {
             runImage(arg);
         } else if (name === "remember") {
             runRemember(arg);
+        } else if (name === "memories") {
+            runMemories(arg);
         } else {
             apply("model", arg);
         }
@@ -182,6 +184,28 @@ Item {
             clearInput();
         } else {
             show(i18n("Memories are not available."));
+        }
+    }
+
+    // /memories [question]: the question (or, without one, the next message)
+    // goes with all this chat's memories, not only those that match it.
+    function runMemories(arg) {
+        var id = chat.currentSessionId;
+        if (!chat.memory || !chat.memory.store) {
+            show(i18n("Memories are not available."));
+        } else if (!chat.memory.activeFor(id)) {
+            show(i18n("Memory is off for this chat. Turn it on in Chat info (or in Settings → Memory)."));
+        } else if (chat.memory.applicableFor(id).length === 0) {
+            show(i18n("You have no memories for this chat yet. Save one with /remember."));
+        } else {
+            chat.memory.sendAllNext(id);
+            if (arg === "") {
+                clearInput();
+                show(i18n("Your next message will go with all your memories."));
+            } else {
+                chat.chatInputText = arg;
+                chat.sendMessage();
+            }
         }
     }
 

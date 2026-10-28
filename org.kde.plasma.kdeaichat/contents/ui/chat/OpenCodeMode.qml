@@ -41,6 +41,21 @@ QtObject {
                     : String(chat.getSessionProperty(sessionId, "openCodeWorkspaceCwd", chat.openCodeWorkspaceCwd || "") || "").trim()};
     }
 
+    // The memories for this message go at the start of its first text part (chat/Memory.qml).
+    function withMemories(sessionId, parts) {
+        if (!chat.memory)
+            return parts;
+        var out = parts.slice();
+        for (var i = 0; i < out.length; i++) {
+            if (out[i].type === "text") {
+                out[i] = Object.assign({}, out[i], {"text": chat.memory.withMemories(sessionId, out[i].text || "")});
+                return out;
+            }
+        }
+        var block = chat.memory.blockFor(sessionId);
+        return block ? [{"type": "text", "text": block}].concat(out) : out;
+    }
+
     // OpenCode prompt parts for a user message (text, plus images as files).
     function openCodeParts(message) {
         var hasQuotes = !!message.quotes && message.quotes.length > 0;
@@ -212,7 +227,7 @@ QtObject {
             "sessionId": chat.currentOpenCodeSessionId(sessionId),
             "title": chat.currentSessionTitle || "KDE AI Chat",
             "body": OpenCodeBackend.promptBody({
-                "parts": mode.openCodeParts(source[source.length - 1] || {}),
+                "parts": mode.withMemories(sessionId, mode.openCodeParts(source[source.length - 1] || {})),
                 "providerId": providerId,
                 "modelId": modelId,
                 "agent": eff.agent,

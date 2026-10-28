@@ -106,7 +106,7 @@ Item {
         function test_1_slash_lists_commands_before_templates() {
             keyClick("/");
             tryVerify(() => composer.suggestions.visible, 1000);
-            compare(names().join(" "), "command:model command:new command:mode command:image command:remember template:fix template:summarize", "/variant is not offered: no variants");
+            compare(names().join(" "), "command:model command:new command:mode command:image command:remember command:memories template:fix template:summarize", "/variant is not offered: no variants");
             wait(300);
             screenshot(root.Window.window.contentItem, "commands-list");
         }

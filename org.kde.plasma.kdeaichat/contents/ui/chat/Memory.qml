@@ -5,10 +5,13 @@
 //
 // A request gets nothing when memory is off in the settings (memoryEnabled)
 // or for the chat (its session property memoryOff is true). Otherwise the
-// chosen memories go into the system prompt (direct, OpenCode) or Pi's
-// instructions as one block, and their ids are kept on the chat as the
+// chosen memories go as one block at the start of the message being answered
+// (withMemories), in every mode, and their ids are kept on the chat as the
 // session property memoryUsedIds (the memories of its latest request), for
-// Chat info to show.
+// Chat info to show. Not in the system prompt or Pi's instructions: those
+// would change with every message that picks other memories, which restarts
+// Pi and makes the provider's prompt cache miss. Only the request carries the
+// block; the chat keeps the message as it was typed.
 //
 // remember() saves a memory the user asked for (the Remember action under a
 // message, /remember); `remembered` tells chat/UndoNotice.qml, whose Undo
@@ -123,12 +126,42 @@ QtObject {
         return MemoryRecall.applicable(store.list, {"id": session.value, "projectId": session.projectId || ""});
     }
 
+    // /memories: the next message this chat sends goes with all its memories
+    // (as far as the budget allows), not only the ones that match. The mark is
+    // taken by the message (memoriesAll), so a retry or resend keeps it.
+    property var _allNext: ({})
+
+    function sendAllNext(sessionId) {
+        var next = Object.assign({}, _allNext);
+        next[sessionId] = true;
+        _allNext = next;
+    }
+
+    function takeAllNext(sessionId) {
+        if (_allNext[sessionId] !== true)
+            return false;
+        var next = Object.assign({}, _allNext);
+        delete next[sessionId];
+        _allNext = next;
+        return true;
+    }
+
+    // Whether the message being answered asked for all memories.
+    function _wantsAll(messages) {
+        for (var i = messages.length - 1; i >= 0; i--) {
+            if (messages[i] && messages[i].role === "user")
+                return messages[i].memoriesAll === true;
+        }
+        return false;
+    }
+
     // What a request is sent with: {block, ids}. Records the ids on the chat
     // (memoryUsedIds) when they changed.
     function forRequest(sessionId) {
         var id = sessionId || (chat ? chat.currentSessionId : "");
+        var messages = _messages(id);
         var chosen = activeFor(id)
-            ? MemoryRecall.recall(applicableFor(id), MemoryRecall.queryFor(_messages(id)), budget)
+            ? MemoryRecall.recall(applicableFor(id), MemoryRecall.queryFor(messages), budget, _wantsAll(messages))
             : {"block": "", "ids": []};
         var previous = chat && _session(id) ? chat.getSessionProperty(id, "memoryUsedIds", []) : [];
         if (_session(id) && JSON.stringify(previous || []) !== JSON.stringify(chosen.ids))
@@ -139,6 +172,12 @@ QtObject {
     // The prompt block for a request ("" = none); see forRequest.
     function blockFor(sessionId) {
         return forRequest(sessionId).block;
+    }
+
+    // `text` (the message being answered) with this request's memories before it.
+    function withMemories(sessionId, text) {
+        var block = blockFor(sessionId);
+        return block ? block + "\n\n---\n\n" + text : text;
     }
 
     function _forget(kind, id) {

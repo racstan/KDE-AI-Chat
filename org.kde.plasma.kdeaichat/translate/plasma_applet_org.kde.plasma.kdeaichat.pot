@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-28 08:44+0530\n"
+"POT-Creation-Date: 2026-10-28 10:00+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -668,7 +668,7 @@ msgstr ""
 msgid "Copy code"
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:93 contents/ui/chat/CommandRunner.qml:209
+#: contents/ui/chat/CommandRunner.qml:93 contents/ui/chat/CommandRunner.qml:233
 msgid ""
 "Every chat uses the main settings. To change it for just this chat, turn on "
 "“Let chats have their own model settings” in Settings → Chat."
@@ -682,67 +682,82 @@ msgstr ""
 msgid "Started a new chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:141
+#: contents/ui/chat/CommandRunner.qml:143
 msgid "Use /mode direct, /mode opencode or /mode pi."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:148
+#: contents/ui/chat/CommandRunner.qml:150
 msgid "New chats will use %1. This chat stays %2."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:156
+#: contents/ui/chat/CommandRunner.qml:158
 msgid "/image works in direct chats only."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:158
+#: contents/ui/chat/CommandRunner.qml:160
 msgid "Write what to draw, like /image a red fox in the snow."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:160
+#: contents/ui/chat/CommandRunner.qml:162
 msgid "Wait for the current reply to finish, or press Stop, then try again."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:166
+#: contents/ui/chat/CommandRunner.qml:168
 msgid ""
 "Add an image service first: Settings → Connection → Add provider → AI Horde "
 "or Pollinations."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:176
+#: contents/ui/chat/CommandRunner.qml:178
 msgid "Nothing is remembered from an incognito chat."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:178
+#: contents/ui/chat/CommandRunner.qml:180
 msgid ""
 "Write what to remember, like /remember I prefer metric units. Start with "
 "chat: or project: to keep it to this chat or its project."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:180
+#: contents/ui/chat/CommandRunner.qml:182
 msgid "This chat is in no project. Use /remember or /remember chat:."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:184
+#: contents/ui/chat/CommandRunner.qml:186
+#: contents/ui/chat/CommandRunner.qml:195
 msgid "Memories are not available."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:191
+#: contents/ui/chat/CommandRunner.qml:197
+msgid ""
+"Memory is off for this chat. Turn it on in Chat info (or in Settings → "
+"Memory)."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:199
+msgid "You have no memories for this chat yet. Save one with /remember."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:204
+msgid "Your next message will go with all your memories."
+msgstr ""
+
+#: contents/ui/chat/CommandRunner.qml:215
 msgid "This model has no variants."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:193
+#: contents/ui/chat/CommandRunner.qml:217
 msgid "Variants: %1. Use /variant <name>."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:196
+#: contents/ui/chat/CommandRunner.qml:220
 msgid "This model has no variant “%1”. It has: %2."
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:215
+#: contents/ui/chat/CommandRunner.qml:239
 msgid "the default variant"
 msgstr ""
 
-#: contents/ui/chat/CommandRunner.qml:215
+#: contents/ui/chat/CommandRunner.qml:239
 msgid "This chat now uses %1."
 msgstr ""
 
@@ -2394,14 +2409,18 @@ msgid "Save a memory for every chat"
 msgstr ""
 
 #: contents/ui/chat/TemplateSuggestions.qml:41
+msgid "Send all your memories with this question"
+msgstr ""
+
+#: contents/ui/chat/TemplateSuggestions.qml:42
 msgid "Mode for NEW chats only; this chat keeps its mode"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:94
+#: contents/ui/chat/TemplateSuggestions.qml:95
 msgid "Command %1"
 msgstr ""
 
-#: contents/ui/chat/TemplateSuggestions.qml:94
+#: contents/ui/chat/TemplateSuggestions.qml:95
 msgid "Template %1"
 msgstr ""
 

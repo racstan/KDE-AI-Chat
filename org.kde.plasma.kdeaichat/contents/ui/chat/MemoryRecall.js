@@ -128,8 +128,10 @@ function _byCreated(a, b) {
 // ones (see applicable()); query is the text being answered (queryFor()).
 // Pinned memories come first (oldest first), then matches by score; one that
 // doesn't fit in what is left of the budget is skipped; a budget of 0 (or
-// less) means no limit. block is "" when nothing is chosen.
-function recall(memories, query, budget) {
+// less) means no limit. block is "" when nothing is chosen. With `all` (the
+// /memories command) the memories that don't match come too, after the
+// matches, oldest first.
+function recall(memories, query, budget, all) {
     var limit = budget === undefined ? DEFAULT_BUDGET : Number(budget) || 0;
     if (limit <= 0)
         limit = Infinity;
@@ -138,7 +140,7 @@ function recall(memories, query, budget) {
     var ranked = list.map(function(m, i) { return {"memory": m, "score": score[i]}; });
     var pinned = ranked.filter(function(r) { return r.memory.pinned === true; })
         .sort(function(a, b) { return _byCreated(a.memory, b.memory); });
-    var matched = ranked.filter(function(r) { return r.memory.pinned !== true && r.score > 0; })
+    var matched = ranked.filter(function(r) { return r.memory.pinned !== true && (r.score > 0 || all === true); })
         .sort(function(a, b) { return b.score - a.score || _byCreated(a.memory, b.memory); });
     var chosen = [];
     var used = HEADING.length;

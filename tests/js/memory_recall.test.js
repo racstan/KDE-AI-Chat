@@ -66,6 +66,16 @@ const tests = {
         assert.strictEqual(R.recall([], "x").block, "");
     },
 
+    recall_all_adds_the_ones_that_do_not_match() {
+        const pinned = mem("Answer in British English", {pinned: true});
+        const dog = mem("My dog is called Rex");
+        const tea = mem("I drink green tea");
+        const r = R.recall([tea, dog, pinned], "What are my plans this weekend?", 2000, true);
+        assert.deepStrictEqual(plain(r.ids), [pinned.id, dog.id, tea.id], "pinned, then the rest oldest first");
+        const tight = R.recall([tea, dog, pinned], "dog", R.HEADING.length + 60, true);
+        assert.deepStrictEqual(plain(tight.ids), [pinned.id, dog.id], "still within the budget, matches before the rest");
+    },
+
     recall_is_deterministic() {
         const list = [mem("alpha beta"), mem("beta alpha"), mem("alpha"), mem("beta gamma", {pinned: true})];
         const first = plain(R.recall(list, "alpha beta"));

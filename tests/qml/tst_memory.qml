@@ -101,6 +101,7 @@ Item {
 
     Chat.DirectRequest { id: direct; chat: chat }
     Chat.PiMode { id: pi; chat: chat }
+    Chat.OpenCodeMode { id: opencode; chat: chat }
 
     TestCase {
         name: "Memory"
@@ -108,6 +109,13 @@ Item {
 
         function waitIdle() {
             tryVerify(function() { return !store._busy && store._queue.length === 0; });
+        }
+
+        // The last user message of a direct request (where memories go) and its system prompt.
+        function directSent(id) {
+            var parts = direct.buildDirectRequestParts(id, "openai", false);
+            var users = parts.messages.filter(function(m) { return m.role === "user"; });
+            return {"text": users.length > 0 ? String(users[users.length - 1].content) : "", "system": parts.system};
         }
 
         function addAll(items) {
@@ -178,55 +186,82 @@ Item {
             verify(store.lastError !== "");
         }
 
-        function test_direct_and_opencode_get_matching_memories_in_the_system_prompt() {
+        function test_direct_gets_matching_memories_with_the_message_not_in_the_system_prompt() {
             addAll([{text: "My dog is called Rex", scope: "all"}, {text: "Answer in British English", scope: "all", pinned: true},
                     {text: "Rex eats dog kibble", scope: "project", projectId: "p-work"},
                     {text: "The dog is a husky", scope: "chat", chatId: "b"},
                     {text: "dog walking schedule", scope: "all", enabled: false},
                     {text: "Tea is nice", scope: "all"}]);
-            var prompt = direct.buildEffectiveSystemPrompt("a");
+            var sent = directSent("a");
             var block = "## Things the user asked you to remember\n- Answer in British English\n";
-            verify(prompt.indexOf("Main instructions.") === 0, prompt);
-            verify(prompt.indexOf(block) > 0, prompt);
-            verify(prompt.indexOf("Rex eats dog kibble") > 0, "the project's memory");
-            verify(prompt.indexOf("My dog is called Rex") > 0);
-            verify(prompt.indexOf("husky") < 0, "another chat's memory");
-            verify(prompt.indexOf("walking") < 0, "a memory that is off");
-            verify(prompt.indexOf("Tea") < 0, "not relevant");
+            verify(sent.text.indexOf(block) === 0, sent.text);
+            verify(/---\n\nWhat should I feed my dog\?$/.test(sent.text), "the question follows the memories");
+            verify(sent.text.indexOf("Rex eats dog kibble") > 0, "the project's memory");
+            verify(sent.text.indexOf("My dog is called Rex") > 0);
+            verify(sent.text.indexOf("husky") < 0, "another chat's memory");
+            verify(sent.text.indexOf("walking") < 0, "a memory that is off");
+            verify(sent.text.indexOf("Tea") < 0, "not relevant");
+            verify(sent.system.indexOf("remember") < 0, "the system prompt stays the same: " + sent.system);
+            compare(chat.messages[0].content, "What should I feed my dog?", "the chat keeps the message as typed");
             // The ids sent are kept on the chat.
             var used = chat.getSessionProperty("a", "memoryUsedIds", []);
             compare(used.length, 3);
             compare(used[0], store.list[1].id, "pinned first");
         }
 
-        function test_pi_gets_memories_in_its_instructions() {
+        function test_pi_gets_memories_with_the_message_and_steady_instructions() {
             addAll([{text: "My dog is called Rex", scope: "all"}]);
             var body = pi.promptBody("p", {content: "dog food"});
-            compare(body.instructions, "## Things the user asked you to remember\n- My dog is called Rex");
+            compare(body.message, "## Things the user asked you to remember\n- My dog is called Rex\n\n---\n\ndog food");
+            compare(body.instructions, "", "nothing that changes per message: Pi is not restarted");
             compare(chat.getSessionProperty("p", "memoryUsedIds", []).length, 1);
+        }
+
+        function test_opencode_gets_memories_in_the_first_text_part() {
+            addAll([{text: "My dog is called Rex", scope: "all"}]);
+            var parts = opencode.withMemories("a", [{type: "file", url: "data:image/png;base64,x"}, {type: "text", text: "What should I feed my dog?"}]);
+            compare(parts[0].type, "file");
+            compare(parts[1].text, "## Things the user asked you to remember\n- My dog is called Rex\n\n---\n\nWhat should I feed my dog?");
+            var only = opencode.withMemories("a", [{type: "file", url: "data:image/png;base64,x"}]);
+            compare(only.length, 2, "a picture alone gets the memories as a text part before it");
+            compare(only[0].type, "text");
+        }
+
+        function test_memories_command_sends_all_with_one_message() {
+            addAll([{text: "on saturday I'll visit my sister", scope: "all"}, {text: "I have a pet dog", scope: "all"}]);
+            verify(!chat.memory.takeAllNext("p"), "no /memories yet");
+            chat.memory.sendAllNext("p");
+            verify(chat.memory.takeAllNext("p"), "the next message takes the mark");
+            verify(!chat.memory.takeAllNext("p"), "only once");
+            // A message sent after /memories carries the mark, and its request gets every memory.
+            chat.currentSessionId = "a";
+            chat.messages = [{role: "user", content: "what am I doing this weekend", memoriesAll: true}];
+            var block = chat.memory.blockFor("a");
+            verify(block.indexOf("visit my sister") > 0 && block.indexOf("pet dog") > 0, block);
+            chat.messages = [{role: "user", content: "what am I doing this weekend"}];
+            compare(chat.memory.blockFor("a"), "", "without the mark only matches go");
         }
 
         function test_off_switches_send_nothing() {
             addAll([{text: "My dog is called Rex", scope: "all", pinned: true}]);
-            verify(direct.buildEffectiveSystemPrompt("a").indexOf("Rex") > 0);
+            verify(directSent("a").text.indexOf("Rex") > 0);
             chat.setSessionProperty("a", "memoryOff", true);
-            compare(direct.buildEffectiveSystemPrompt("a"), "Main instructions.", "this chat has memory off");
+            compare(directSent("a").text, "What should I feed my dog?", "this chat has memory off");
             compare(chat.getSessionProperty("a", "memoryUsedIds", null).length, 0, "nothing recorded as used");
-            verify(direct.buildEffectiveSystemPrompt("b").indexOf("Rex") > 0, "other chats still get it");
+            verify(pi.promptBody("p", {content: "dog"}).message.indexOf("Rex") > 0, "other chats still get it");
             store.setGlobalEnabled(false);
             compare(config.memoryEnabled, false);
-            compare(direct.buildEffectiveSystemPrompt("b"), "Main instructions.", "memory off everywhere");
-            compare(pi.promptBody("p", {content: "dog"}).instructions, "");
+            compare(pi.promptBody("p", {content: "dog"}).message, "dog", "memory off everywhere");
         }
 
         function test_the_size_per_message_follows_the_setting() {
             var long = "dog " + "x".repeat(2500);
             addAll([{text: long, scope: "all"}]);
-            verify(direct.buildEffectiveSystemPrompt("a").indexOf(long) < 0, "too big for 2000");
+            verify(directSent("a").text.indexOf(long) < 0, "too big for 2000");
             config.memoryBudget = 0;
-            verify(direct.buildEffectiveSystemPrompt("a").indexOf(long) > 0, "no limit");
+            verify(directSent("a").text.indexOf(long) > 0, "no limit");
             config.memoryBudget = 5000;
-            verify(direct.buildEffectiveSystemPrompt("a").indexOf(long) > 0, "fits in 5000");
+            verify(directSent("a").text.indexOf(long) > 0, "fits in 5000");
             config.memoryBudget = 2000;
         }
 

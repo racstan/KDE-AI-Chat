@@ -12,6 +12,7 @@
 # DEV_AUTO_ANSWER="Tea" answers the model's ask_user questions with that text (see dev-run.sh).
 # DEV_PROJECT="Answer in French." puts the chat in a project with those instructions.
 # DEV_CONFIG=$'userName=Ana\naiName=Nova' adds settings (one key=value per line) to the sandbox config.
+# DEV_MEMORY="On Saturday I visit my sister." saves that memory (for all chats) through the helper first.
 # DEV_INCOGNITO=1 sends in a new incognito chat and checks afterwards that nothing of it is on disk.
 set -euo pipefail
 
@@ -91,6 +92,11 @@ if instructions:
     index = re.sub(r"^sessions=.*$", lambda m: "sessions=" + ini_string(json.dumps(sessions, separators=(",", ":"))), index, flags=re.M)
     open(f"{chats_dir}/index.ini", "w", encoding="utf-8").write(index)
 PY
+
+if [ -n "${DEV_MEMORY:-}" ]; then
+    payload="$(python3 -c 'import base64, json, sys; print(base64.b64encode(json.dumps({"items": [{"text": sys.argv[1], "scope": "all"}]}).encode()).decode())' "$DEV_MEMORY")"
+    XDG_DATA_HOME="$SANDBOX/data" python3 "$ROOT/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py" memory_add "$payload" >/dev/null
+fi
 
 wallet copy "$PROVIDER"
 DEV_KEEP=1 DEV_SEND_MESSAGE="$MESSAGE" "$ROOT/scripts/dev-run.sh" "$SECONDS_TO_RUN" | tail -1

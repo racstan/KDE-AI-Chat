@@ -40,9 +40,9 @@ assert.deepStrictEqual(plain(C.rememberArg("chatty people")), {scope: "all", tex
 assert.deepStrictEqual(plain(C.rememberArg("")), {scope: "all", text: ""});
 
 // "/" lists commands first, then templates; /variant only with variants
-assert.deepStrictEqual(names(C.suggest("/", templates, {})), ["command:model", "command:new", "command:mode", "command:image", "command:remember", "template:fix", "template:modeling", "template:new-year"]);
+assert.deepStrictEqual(names(C.suggest("/", templates, {})), ["command:model", "command:new", "command:mode", "command:image", "command:remember", "command:memories", "template:fix", "template:modeling", "template:new-year"]);
 assert.ok(names(C.suggest("/", templates, {hasVariants: true})).indexOf("command:variant") === 1);
-assert.deepStrictEqual(names(C.suggest("/mo", templates, {})), ["command:model", "command:mode", "template:modeling"]);
+assert.deepStrictEqual(names(C.suggest("/mo", templates, {})), ["command:model", "command:mode", "command:memories", "template:modeling"]);
 assert.deepStrictEqual(names(C.suggest("/new", templates, {})), ["command:new", "template:new-year"]);
 assert.deepStrictEqual(names(C.suggest("/im", templates, {})), ["command:image"]);
 assert.strictEqual(C.suggest("/im", [], {})[0].insert, "/image ");

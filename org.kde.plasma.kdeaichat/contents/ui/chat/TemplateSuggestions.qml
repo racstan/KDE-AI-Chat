@@ -38,6 +38,7 @@ QQC2.Popup {
             : entry.name === "new" ? i18n("Start a new chat")
             : entry.name === "image" ? i18n("Make a picture with the default image service")
             : entry.name === "remember" ? i18n("Save a memory for every chat")
+            : entry.name === "memories" ? i18n("Send all your memories with this question")
             : entry.name === "mode" ? i18n("Mode for NEW chats only; this chat keeps its mode") : entry.description;
     }
 
