@@ -4,7 +4,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtTest
-import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 
@@ -128,8 +127,12 @@ Item {
             mouseMove(b, b.width / 2, b.height / 2);
             tryVerify(() => header.pointerOver(b));
             verify(!header.pointerOver(more()));
-            verify(b.QQC2.ToolTip.visible, "a reason shows while a reply runs");
-            verify(b.QQC2.ToolTip.text.indexOf("reply is finished") > 0);
+            var tip = header.busyTip;
+            tryVerify(() => tip.visible, 2000, "a reason shows while a reply runs");
+            compare(tip.parent, b);
+            verify(tip.text.indexOf("reply is finished") > 0);
+            wait(200);
+            screenshot(root.Window.window.contentItem, "header-busy-tip");
             chat.loading = false;
         }
     }

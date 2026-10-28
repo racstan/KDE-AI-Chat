@@ -72,7 +72,20 @@ RowLayout {
         return item.contains(p);
     }
 
+    readonly property alias busyTip: busyTip
     readonly property string busyReason: i18n("Available when the reply is finished")
+
+    // Its own tooltip: Qt (6.12+) doesn't show a disabled control's attached one.
+    QQC2.ToolTip {
+        id: busyTip
+        readonly property Item target: [newChatButton, incognitoButton].filter(function(b) {
+            return !b.enabled && header.pointerOver(b);
+        })[0] || null
+        parent: target || header
+        visible: target !== null
+        text: target ? target.Accessible.name + "\n" + header.busyReason : ""
+        delay: Kirigami.Units.toolTipDelay
+    }
 
     PC3.ToolButton {
         id: historyButton
@@ -145,8 +158,8 @@ RowLayout {
         enabled: !header.chat.loading
         Accessible.role: Accessible.Button
         Accessible.name: i18n("New chat")
-        QQC2.ToolTip.visible: hovered || (!enabled && header.pointerOver(this))
-        QQC2.ToolTip.text: enabled ? Accessible.name : Accessible.name + "\n" + header.busyReason
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: Accessible.name
         // With the history open, the chat starts in the project it shows.
         onClicked: {
             if (header.chat.historyOnlyMode && header.chat.projects)
@@ -158,14 +171,15 @@ RowLayout {
 
     // A chat that is never saved (chat/Incognito.qml); while one is open, its mark has the close button.
     PC3.ToolButton {
+        id: incognitoButton
         objectName: "incognitoButton"
         visible: !!header.incognito && !header.inIncognito
         icon.name: "view-private"
         display: PC3.AbstractButton.IconOnly
         enabled: !header.chat.loading
         Accessible.name: i18n("New incognito chat (never saved)")
-        QQC2.ToolTip.visible: hovered || (!enabled && header.pointerOver(this))
-        QQC2.ToolTip.text: enabled ? Accessible.name : Accessible.name + "\n" + header.busyReason
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: Accessible.name
         onClicked: header.incognito.start()
     }
 
