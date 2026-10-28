@@ -3,8 +3,8 @@
 
 Usage: add_music.py <video.mp4> <out.mp4> <track> [<track> ...]
 
-The tracks play one after another with a 4 s crossfade, each brought to the same loudness (LOUDNESS LUFS,
-quiet enough to sit behind the captions), cut to the video's length, faded in over 2 s and out over 5 s.
+The tracks play one after another with a 4 s crossfade, each brought to the same low loudness (LOUDNESS LUFS:
+background, not a song) and softened (no highs above SOFTEN_HZ), cut to the video's length, faded in over 2 s and out over 5 s.
 The picture is copied as it is; the sound is AAC 192 kb/s. The tracks must be ones the video may use
 (the ones in scripts/media/CREDITS.md are public domain, CC0); they are not kept in the repository.
 Exits 1 if ffmpeg fails or the tracks are shorter than the video.
@@ -12,7 +12,8 @@ Exits 1 if ffmpeg fails or the tracks are shorter than the video.
 import subprocess
 import sys
 
-LOUDNESS = -20
+LOUDNESS = -30
+SOFTEN_HZ = 3500   # the bright top is taken off, so it sounds like a backdrop rather than a song
 CROSSFADE = 4
 FADE_IN, FADE_OUT = 2, 5
 
@@ -35,7 +36,7 @@ def main():
     chain = []
     for i, track in enumerate(tracks, start=1):
         inputs += ["-i", track]
-        chain.append("[%d:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=%d:TP=-2:LRA=7[t%d]" % (i, LOUDNESS, i))
+        chain.append("[%d:a]aresample=48000,aformat=channel_layouts=stereo,lowpass=f=%d,loudnorm=I=%d:TP=-2:LRA=7[t%d]" % (i, SOFTEN_HZ, LOUDNESS, i))
     last = "t1"
     for i in range(2, len(tracks) + 1):
         chain.append("[%s][t%d]acrossfade=d=%d:c1=tri:c2=tri[x%d]" % (last, i, CROSSFADE, i))
